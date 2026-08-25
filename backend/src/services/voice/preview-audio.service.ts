@@ -58,6 +58,8 @@ export interface PreviewRequest {
   lang?: VoiceLanguage;
   /** Voix clonée: elle n'existe que chez ElevenLabs. Voir `useCartesia`. */
   cloned?: boolean;
+  /** Posé quand l'identifiant vient déjà du catalogue Cartesia. */
+  voiceProvider?: 'cartesia';
 }
 
 /**

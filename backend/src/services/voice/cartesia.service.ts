@@ -128,3 +128,83 @@ export async function synthesiseWithCartesia(req: {
   if (!audio.length) throw new CartesiaError('cartesia_empty_audio', 200);
   return audio;
 }
+
+/**
+ * Le catalogue Cartesia, dans la forme que le sélecteur sait déjà afficher.
+ *
+ * Champ par champ, et volontairement tolérant: la documentation de Cartesia
+ * n'est pas atteignable depuis l'environnement où ce code a été écrit, et
+ * deviner une forme exacte qu'on ne peut pas lire produirait un écran vide sans
+ * rien pour l'expliquer. On accepte donc les deux noms plausibles pour chaque
+ * champ (`id` ou `voice_id`, `data` ou tableau nu), on ignore ce qu'on ne
+ * reconnaît pas, et on refuse une entrée sans identifiant utilisable plutôt que
+ * de mettre une chaîne vide devant un appelant. C'est exactement la précaution
+ * déjà prise pour ElevenLabs, pour la même raison: un tiers change ses formes.
+ */
+export interface CartesiaCatalogVoice {
+  voiceId: string;
+  name: string;
+  description: string | null;
+  language: string | null;
+}
+
+export function toCartesiaVoice(raw: unknown): CartesiaCatalogVoice | null {
+  if (!raw || typeof raw !== 'object') return null;
+  const v = raw as Record<string, unknown>;
+  const id = [v.id, v.voice_id, v.voiceId].find(x => typeof x === 'string' && x !== '');
+  if (typeof id !== 'string') return null;
+
+  const str = (x: unknown) => (typeof x === 'string' && x.trim() !== '' ? x : null);
+  return {
+    voiceId: id,
+    name: str(v.name) ?? 'Sans nom',
+    description: str(v.description),
+    language: str(v.language),
+  };
+}
+
+const CATALOG_TTL_MS = 10 * 60 * 1000;
+let catalog: { at: number; voices: CartesiaCatalogVoice[] } | null = null;
+
+/** Vide le cache, pour qu'une voix ajoutée chez Cartesia apparaisse tout de suite. */
+export function invalidateCartesiaCatalog(): void {
+  catalog = null;
+}
+
+/**
+ * Les voix du compte, filtrées sur la langue de l'agent.
+ *
+ * Le filtre est appliqué SEULEMENT quand l'entrée porte une langue: une voix
+ * sans langue déclarée est servie plutôt que cachée, parce qu'une liste vide
+ * ne se distingue pas d'une panne à l'écran.
+ */
+export async function listCartesiaVoices(lang: VoiceLanguage): Promise<CartesiaCatalogVoice[]> {
+  if (!env.CARTESIA_API_KEY) throw new CartesiaError('cartesia_key_missing');
+
+  if (!catalog || Date.now() - catalog.at >= CATALOG_TTL_MS) {
+    let r: Response;
+    try {
+      r = await fetch('https://api.cartesia.ai/voices/?limit=100', {
+        headers: { 'X-API-Key': env.CARTESIA_API_KEY, 'Cartesia-Version': API_VERSION },
+      });
+    } catch (error) {
+      throw new CartesiaError('cartesia_unreachable', undefined, (error as Error).message);
+    }
+
+    if (!r.ok) {
+      const detail = await r.text().catch(() => '');
+      logger.warn(`[Cartesia] voices ${r.status}: ${detail.slice(0, 300)}`);
+      throw new CartesiaError('cartesia_list_failed', r.status, detail.slice(0, 200));
+    }
+
+    const body = (await r.json().catch(() => ({}))) as { data?: unknown[] } | unknown[];
+    const rows = Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : [];
+    catalog = {
+      at: Date.now(),
+      voices: rows.map(toCartesiaVoice).filter((v): v is CartesiaCatalogVoice => v !== null),
+    };
+  }
+
+  const wanted = CARTESIA_LANG[lang];
+  return catalog.voices.filter(v => !v.language || v.language === wanted);
+}

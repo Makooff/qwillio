@@ -98,6 +98,40 @@ describe('useCartesia — les trois garde-fous', () => {
   });
 });
 
+/**
+ * Une voix CHOISIE dans le sélecteur, par opposition à une voix traduite.
+ *
+ * Depuis que le sélecteur propose le catalogue Cartesia, l'identifiant
+ * enregistré vient déjà du bon catalogue. Le chercher dans la table de
+ * correspondance ne le trouverait pas, et le client entendrait la voix par
+ * défaut au lieu de celle qu'il vient d'écouter et de choisir: le pire des
+ * échecs, silencieux et exactement à l'endroit de la décision.
+ */
+describe('useCartesia — une voix venue du catalogue Cartesia', () => {
+  it('sert l\'identifiant tel quel, sans passer par la table', () => {
+    expect(useCartesia({ voiceId: 'ca_choisie', voiceProvider: 'cartesia' })).toBe('ca_choisie');
+  });
+
+  it('la sert même si le réglage global est revenu à ElevenLabs', () => {
+    /* Le réglage global peut changer après le choix. Une voix choisie reste ce
+       qu'elle est: l'envoyer à ElevenLabs, où son identifiant ne désigne rien,
+       ferait échouer la synthèse plutôt que de « revenir en arrière ». */
+    envMock.VOICE_TTS_PROVIDER = '11labs';
+    expect(useCartesia({ voiceId: 'ca_choisie', voiceProvider: 'cartesia' })).toBe('ca_choisie');
+  });
+
+  it('change de voix de SECOURS, parce que l\'originale n\'existe pas ailleurs', () => {
+    /* Quand la voix est traduite, l'identifiant ElevenLabs d'origine fait un
+       secours parfait. Quand elle a été choisie chez Cartesia, ce même
+       identifiant ne désigne rien chez ElevenLabs: le poser fabriquerait une
+       voix de secours qui échoue elle aussi, ce qui est pire que pas de
+       secours du tout puisque ça se découvre en pleine panne. */
+    const v = buildVoice({ voiceId: 'ca_choisie', voiceProvider: 'cartesia', lang: 'fr' }) as any;
+    expect(v.voiceId).toBe('ca_choisie');
+    expect(v.fallbackPlan.voices.map((f: any) => f.voiceId)).toEqual(['el_fallback_1', 'el_fallback_2']);
+  });
+});
+
 describe('buildVoice — le bloc Cartesia', () => {
   const voice = () => buildVoice({ voiceId: 'el_marie', lang: 'fr', style: 0.6, stability: 0.3 }) as any;
 

@@ -17,6 +17,16 @@ import { logger } from '../../config/logger';
 export interface CatalogVoice {
   voiceId: string;
   name: string;
+  /**
+   * Le catalogue d'où vient cet identifiant.
+   *
+   * Absent veut dire ElevenLabs. Il remonte jusqu'à l'écran, et l'écran le
+   * renvoie à l'enregistrement: un identifiant Cartesia ne désigne rien chez
+   * ElevenLabs, donc le choix doit se souvenir d'où il vient. Sans ce champ,
+   * choisir une voix Cartesia enregistrerait un identifiant que le reste du
+   * système enverrait à ElevenLabs.
+   */
+  provider?: 'cartesia';
   /** ElevenLabs labels: gender, accent, age, use case. Free-form, often partial. */
   gender: string | null;
   accent: string | null;
@@ -60,7 +70,21 @@ class VoiceCatalogService {
    * après, donc deux clients ne peuvent pas se servir la liste l'un de l'autre
    * depuis le cache.
    */
-  async list(clientId?: string): Promise<CatalogVoice[]> {
+  async list(clientId?: string, lang: 'fr' | 'en' | 'nl' = 'fr'): Promise<CatalogVoice[]> {
+    /* Quand les appels passent par Cartesia, le sélecteur doit proposer des
+       voix CARTESIA. Proposer les voix ElevenLabs reviendrait à faire choisir
+       dans un catalogue qui ne sert plus, ce qui est la version la plus
+       coûteuse du mensonge qu'on a passé la semaine à retirer de cet écran.
+       Les clones du client restent servis avec: ils vivent chez ElevenLabs, ils
+       continuent de fonctionner, et ce sont les seuls à porter sa propre voix. */
+    if (env.VOICE_TTS_PROVIDER === 'cartesia') return this.cartesiaList(clientId, lang);
+    return this.elevenLabsList(clientId);
+  }
+
+  /** Le catalogue ElevenLabs, inchangé. Séparé de `list` pour que la branche
+   *  Cartesia puisse l'appeler pour les seuls clones, sans se rappeler
+   *  elle-même: `list` la renverrait vers Cartesia, indéfiniment. */
+  private async elevenLabsList(clientId?: string): Promise<CatalogVoice[]> {
     if (!env.ELEVENLABS_API_KEY) throw new Error('elevenlabs_key_missing');
 
     if (cache && Date.now() - cache.at < TTL_MS) return this.forClient(cache.voices, clientId);
@@ -84,6 +108,39 @@ class VoiceCatalogService {
 
     cache = { at: Date.now(), voices };
     return this.forClient(voices, clientId);
+  }
+
+  /**
+   * Les voix Cartesia, plus les clones ElevenLabs de CE client.
+   *
+   * Les clones survivent à la bascule parce qu'ils sont la seule chose que
+   * Cartesia ne peut pas remplacer: l'enregistrement du client lui-même. Le
+   * reste du catalogue ElevenLabs disparaît de l'écran, ce qui est voulu:
+   * proposer un timbre qui ne sera plus servi n'aide personne.
+   */
+  private async cartesiaList(clientId: string | undefined, lang: 'fr' | 'en' | 'nl'): Promise<CatalogVoice[]> {
+    const { listCartesiaVoices } = await import('./cartesia.service');
+    const voices: CatalogVoice[] = (await listCartesiaVoices(lang)).map(v => ({
+      voiceId: v.voiceId,
+      name: v.name,
+      gender: null,
+      accent: v.language,
+      description: v.description,
+      // Cartesia ne sert pas d'extrait tout fait: l'aperçu passe par notre
+      // propre route, qui synthétise la phrase du personnage. C'est mieux, elle
+      // dit ce que l'appelant entendra plutôt qu'une démonstration choisie.
+      previewUrl: null,
+      cloned: false,
+      provider: 'cartesia',
+    }));
+
+    if (!clientId) return voices;
+
+    /* Les clones, cherchés séparément et sans faire échouer la liste: une clé
+       ElevenLabs absente ou expirée ne doit pas vider un écran qui n'en dépend
+       plus pour l'essentiel. */
+    const clones = await this.elevenLabsList(clientId).catch(() => [] as CatalogVoice[]);
+    return [...clones.filter(v => v.cloned), ...voices];
   }
 
   /** Le tri par propriétaire, appliqué APRÈS le cache. */

@@ -12,12 +12,22 @@ export interface CatalogVoice {
   description: string | null;
   previewUrl: string | null;
   cloned: boolean;
+  /** Absent = ElevenLabs. Voir le commentaire sur `SelectedVoice.provider`. */
+  provider?: 'cartesia';
 }
 
 export interface SelectedVoice {
   voiceId: string;
   name: string;
   cloned?: boolean;
+  /**
+   * Le catalogue d'où vient l'identifiant, renvoyé tel quel à l'enregistrement.
+   *
+   * Un identifiant Cartesia ne désigne rien chez ElevenLabs: sans ce champ, le
+   * choix serait enregistré nu et le serveur l'enverrait au mauvais catalogue.
+   * Absent veut dire ElevenLabs, ce qu'étaient toutes les voix jusqu'ici.
+   */
+  provider?: 'cartesia';
 }
 
 /**
@@ -60,9 +70,18 @@ export default function VoicePicker({
       .then(({ data }) => { if (alive) setVoices(Array.isArray(data?.voices) ? data.voices : []); })
       .catch(err => {
         if (!alive) return;
-        setError(err?.response?.status === 503
-          ? "Les voix ne sont pas disponibles : la clé ElevenLabs n'est pas configurée sur le serveur."
-          : "Impossible de charger la liste des voix. Réessayez dans un instant.");
+        /* Le message nomme le fournisseur que le serveur a désigné: « la clé
+           n'est pas configurée » sans dire laquelle envoie chercher au mauvais
+           endroit, et les deux catalogues cohabitent maintenant. */
+        const code = err?.response?.data?.error;
+        setError(
+          code === 'cartesia_key_missing'
+            ? "Les voix ne sont pas disponibles : la clé Cartesia n'est pas configurée sur le serveur."
+            : code === 'cartesia_list_failed'
+              ? 'Cartesia ne répond pas. Réessayez dans un instant.'
+              : err?.response?.status === 503
+                ? "Les voix ne sont pas disponibles : la clé ElevenLabs n'est pas configurée sur le serveur."
+                : "Impossible de charger la liste des voix. Réessayez dans un instant.");
       })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
@@ -117,8 +136,17 @@ export default function VoicePicker({
       key: v.voiceId,
       label: v.name,
       sub: [v.cloned ? (isFr ? 'Voix clonée' : 'Cloned voice') : null, v.gender, v.accent, v.description]
-        .filter(Boolean).join(' · ') || (isFr ? 'Voix ElevenLabs' : 'ElevenLabs voice'),
-      voice: { voiceId: v.voiceId, name: v.name, ...(v.cloned ? { cloned: true } : {}) },
+        .filter(Boolean).join(' · ')
+        // Le repli nomme le bon catalogue: écrire « voix ElevenLabs » sous une
+        // voix Cartesia est faux, et c'est faux à l'endroit précis où le client
+        // décide.
+        || (v.provider === 'cartesia' ? 'Voix Cartesia' : isFr ? 'Voix ElevenLabs' : 'ElevenLabs voice'),
+      voice: {
+        voiceId: v.voiceId,
+        name: v.name,
+        ...(v.cloned ? { cloned: true } : {}),
+        ...(v.provider ? { provider: v.provider } : {}),
+      },
       cloned: v.cloned,
     })),
   ];

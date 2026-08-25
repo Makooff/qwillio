@@ -23,6 +23,9 @@ export function readCustomVoice(raw: unknown): CustomVoice | null {
     // sounds like the speaker rather than an impression of them. Dropping the
     // flag here silently gave every clone the character's style back.
     ...(v.cloned === true ? { cloned: true } : {}),
+    // Sans ce champ, une voix Cartesia choisie par le client repartirait chez
+    // ElevenLabs, où son identifiant ne désigne rien.
+    ...(v.provider === 'cartesia' ? { provider: 'cartesia' as const } : {}),
   };
 }
 

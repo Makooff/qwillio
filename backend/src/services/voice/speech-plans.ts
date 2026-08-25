@@ -320,7 +320,20 @@ function buildChunkPlan() {
  * doit y répondre pareil: sinon on auditionne une voix et l'appelant en entend
  * une autre.
  */
-export function useCartesia(opts: { voiceId: string; cloned?: boolean }): string | null {
+export function useCartesia(opts: {
+  voiceId: string;
+  cloned?: boolean;
+  /** Posé quand l'identifiant vient DÉJÀ du catalogue Cartesia. */
+  voiceProvider?: 'cartesia';
+}): string | null {
+  /* Une voix choisie CHEZ Cartesia par le client se sert telle quelle, et elle
+     court-circuite tout le reste: ni le réglage global (il a pu changer après
+     le choix), ni la table de correspondance (il n'y a rien à traduire, c'est
+     déjà le bon catalogue). Sans ce raccourci, l'identifiant serait cherché
+     dans une table où il n'a aucune raison d'être, et le client entendrait la
+     voix par défaut au lieu de celle qu'il a choisie. */
+  if (opts.voiceProvider === 'cartesia') return opts.voiceId;
+
   if (env.VOICE_TTS_PROVIDER !== 'cartesia') return null;
   if (opts.cloned) return null;
   return cartesiaVoiceFor(opts.voiceId);
@@ -335,6 +348,8 @@ export function buildVoice(opts: {
   lang?: VoiceLanguage;
   /** Une voix clonée ne quitte jamais ElevenLabs. Voir `useCartesia`. */
   cloned?: boolean;
+  /** Posé quand l'identifiant vient déjà du catalogue Cartesia. */
+  voiceProvider?: 'cartesia';
 }) {
   const cartesiaVoiceId = useCartesia(opts);
   if (cartesiaVoiceId) {
@@ -353,11 +368,18 @@ export function buildVoice(opts: {
       /* Le filet. Si Cartesia ne répond pas, la ligne repart sur la voix
          ElevenLabs d'origine plutôt que de rester muette. C'est ce qui rend la
          bascule essayable sur de vrais appels entrants. */
+      /* Le filet, et il change de forme selon d'où vient la voix.
+         Quand elle est TRADUITE depuis ElevenLabs, l'identifiant d'origine
+         existe encore là-bas et fait un secours parfait: même personnage, autre
+         grain. Quand elle a été CHOISIE chez Cartesia, cet identifiant ne
+         désigne rien chez ElevenLabs, et le poser produirait une voix de
+         secours qui échoue elle aussi. On tombe alors sur la voix de repli
+         générale, qui existe pour ça. */
       fallbackPlan: {
-        voices: [
-          { provider: '11labs', voiceId: opts.voiceId, model: env.VOICE_TTS_MODEL },
-          { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_1, model: env.VOICE_TTS_MODEL },
-        ],
+        voices: (opts.voiceProvider === 'cartesia'
+          ? [env.VAPI_VOICE_FALLBACK_1, env.VAPI_VOICE_FALLBACK_2]
+          : [opts.voiceId, env.VAPI_VOICE_FALLBACK_1]
+        ).map(voiceId => ({ provider: '11labs', voiceId, model: env.VOICE_TTS_MODEL })),
       },
     };
   }
@@ -434,7 +456,17 @@ export function buildSpeech(opts: {
   lang: VoiceLanguage;
   systemPrompt: string;
   tools: any[];
-  character: { voiceId: string; gender: 'f' | 'm'; stability?: number; similarityBoost?: number; style?: number };
+  character: {
+    voiceId: string;
+    gender: 'f' | 'm';
+    stability?: number;
+    similarityBoost?: number;
+    style?: number;
+    /** Posé quand la voix vient du catalogue Cartesia. Voir `useCartesia`. */
+    voiceProvider?: 'cartesia';
+    /** Posé pour un vrai clone. Voir `useCartesia`. */
+    voiceCloned?: boolean;
+  };
   hasCustomVoice?: boolean;
   /** Le mode choisi pour ce client; `auto` suit le réglage global. */
   voiceMode?: 'auto' | 'realtime' | 'classic';
@@ -487,9 +519,14 @@ export function buildSpeech(opts: {
       similarityBoost: opts.character.similarityBoost,
       style: opts.character.style,
       lang: opts.lang,
-      /* Une voix clonée ne quitte pas ElevenLabs, et c'est ici qu'on le sait:
-         `hasCustomVoice` est déjà ce qui décide du moteur juste au dessus. */
-      cloned: opts.hasCustomVoice,
+      /* Le VRAI drapeau de clone, pas `hasCustomVoice`.
+         `hasCustomVoice` veut dire « le client a choisi une voix », ce qui
+         inclut les voix de bibliothèque; il décide du moteur juste au dessus,
+         à raison, puisque le temps réel n'en sert aucune. Mais retenir chez
+         ElevenLabs une voix de bibliothèque n'aurait aucun sens: ce qui ne peut
+         pas déménager, c'est l'enregistrement du client. */
+      cloned: opts.character.voiceCloned,
+      voiceProvider: opts.character.voiceProvider,
     }),
   };
 }
