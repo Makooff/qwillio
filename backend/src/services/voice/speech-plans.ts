@@ -250,6 +250,33 @@ export function buildStopSpeakingPlan() {
  * le premier son, une fois par tour de parole; le gain est qu'on entend une
  * personne plutôt qu'un enchaînement de morceaux.
  */
+/**
+ * Les réglages d'un personnage, tels qu'ils sont RÉELLEMENT servis.
+ *
+ * Extrait de `buildVoice` parce qu'un second appelant en avait besoin, et que
+ * son absence était un défaut à elle seule: l'aperçu du sélecteur synthétisait
+ * les valeurs BRUTES du personnage, sans plancher ni plafond, et sur un autre
+ * modèle. Le client auditionnait donc une voix, et ses appelants en
+ * entendaient une autre, plus plate. C'est la façon la plus sûre de rendre un
+ * choix de voix impossible, et ça explique une partie du « ça sonne pas comme
+ * ce que j'ai écouté ».
+ *
+ * Plancher de stabilité: sous ~0,35 le modèle articule mal, syllabes avalées
+ * et mots écrasés. Plafond de style: un personnage reste plus expressif qu'un
+ * autre, aucun ne monte au niveau théâtral.
+ */
+export function resolveVoiceTuning(opts: {
+  stability?: number;
+  similarityBoost?: number;
+  style?: number;
+}) {
+  return {
+    stability: Math.max(0.35, opts.stability ?? 0.45),
+    similarityBoost: opts.similarityBoost ?? 0.65,
+    style: Math.min(env.VOICE_TTS_STYLE_CAP, opts.style ?? 0.4),
+  };
+}
+
 export function buildVoice(opts: {
   voiceId: string;
   stability?: number;
@@ -260,18 +287,7 @@ export function buildVoice(opts: {
     provider: '11labs',
     voiceId: opts.voiceId,
     model: env.VOICE_TTS_MODEL,
-    /* Plancher de stabilité.
-     *
-     * 0,22 était le défaut, et sous ~0,35 le modèle Flash articule mal: il
-     * gagne en expressivité ce qu'il perd en diction, avec des syllabes
-     * avalées et des mots écrasés. Un personnage peut demander plus bas, on
-     * remonte quand même: une réceptionniste qu'on ne comprend pas ne remplit
-     * aucun de ses rôles. */
-    stability: Math.max(0.35, opts.stability ?? 0.45),
-    similarityBoost: opts.similarityBoost ?? 0.65,
-    /* Plafonné, pas remplacé: un personnage reste plus expressif qu'un autre,
-       mais aucun ne monte au niveau théâtral. Voir `VOICE_TTS_STYLE_CAP`. */
-    style: Math.min(env.VOICE_TTS_STYLE_CAP, opts.style ?? 0.4),
+    ...resolveVoiceTuning(opts),
     useSpeakerBoost: true,
     optimizeStreamingLatency: env.VAPI_OPTIMIZE_LATENCY,
     speed: env.VOICE_SPEECH_SPEED,

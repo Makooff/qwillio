@@ -108,6 +108,13 @@ export function buildSystemPrompt(
            de terrain, dans les deux modes: « ça articule trop, ça sonne pas
            naturel ». */
         '- Langage parlé, contractions naturelles: enchaîne les mots, ne détache pas les syllabes.',
+        /* La seconde moitié du débit, et la SEULE qui agisse en mode direct:
+           là, le modèle fabrique lui-même sa voix, aucun réglage de synthèse
+           ne l'atteint, et le prompt est le seul endroit d'où lui demander de
+           ne pas réciter. « Trop articulé » y est un défaut de prosodie, pas
+           de diction: une phrase qui garde la même hauteur du début à la fin
+           s'entend comme une annonce. */
+        '- Débit d\'une conversation, pas d\'une annonce: varie le rythme, laisse la voix retomber en fin de phrase.',
         '- Ne répète pas ce que la personne vient de dire.',
         '- Si on te coupe, arrête-toi et écoute.',
         '- Ne prononce jamais de balise technique, de code, ni de contenu entre crochets.',
@@ -116,6 +123,7 @@ export function buildSystemPrompt(
         'SPEAKING RULES:',
         '- One or two sentences per turn. Never read a list out loud.',
         '- Spoken English, natural contractions: run words together, do not over-enunciate.',
+        '- Conversation pace, not announcement pace: vary the rhythm, let your voice fall at the end of a sentence.',
         '- Do not repeat back what the caller just said.',
         '- If you get interrupted, stop and listen.',
         '- Never speak a technical tag, code, or anything in brackets.',
@@ -124,6 +132,7 @@ export function buildSystemPrompt(
         'SPREEKREGELS:',
         '- Eén à twee zinnen per beurt. Nooit een lijst voorlezen.',
         '- Spreektaal, natuurlijk Nederlands: laat woorden in elkaar overlopen, articuleer niet overdreven.',
+        '- Gesprekstempo, geen omroepbericht: varieer je ritme, laat je stem dalen aan het eind van een zin.',
         '- Herhaal niet wat de beller net zei.',
         '- Word je onderbroken, stop dan en luister.',
         '- Spreek nooit een technische tag, code of iets tussen haakjes uit.',

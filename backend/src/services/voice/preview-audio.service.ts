@@ -5,6 +5,7 @@ import { tmpdir } from 'os';
 import { env } from '../../config/env';
 import { logger } from '../../config/logger';
 import { FishAudioError, fishVoiceFor, synthesiseWithFish } from './fish-audio.service';
+import { resolveVoiceTuning } from './speech-plans';
 
 /**
  * Preview clips, synthesised once and then read from a file.
@@ -30,7 +31,12 @@ import { FishAudioError, fishVoiceFor, synthesiseWithFish } from './fish-audio.s
  * synthesis, so it is a cache, never a store.
  */
 
-const MODEL = 'eleven_multilingual_v2';
+/* Le MÊME modèle que l'appel (`VOICE_TTS_MODEL`), et c'est un changement.
+   L'aperçu synthétisait en `eleven_multilingual_v2`, le plus expressif de la
+   famille, pendant que les appels tournaient sur le plus rapide et le plus
+   plat. Le client auditionnait donc une voix et ses appelants en entendaient
+   une autre. Un sélecteur de voix qui ment sur la voix ne sert à rien: mieux
+   vaut un aperçu moins flatteur et vrai. */
 /** Roughly 60 KB a clip, so the whole catalog in both languages stays small. */
 const MAX_MEMORY_ENTRIES = 60;
 const CACHE_DIR = join(tmpdir(), 'qwillio-preview-audio');
@@ -62,8 +68,11 @@ export function previewKey(req: PreviewRequest): string {
   const provider = env.VOICE_PREVIEW_PROVIDER === 'fish'
     ? `fish:${env.FISH_AUDIO_MODEL}:${fishVoiceFor(req.voiceId) ?? 'unmapped'}`
     : '11labs';
+  /* Le modèle entre dans la clé: sans lui, changer `VOICE_TTS_MODEL` servirait
+     indéfiniment les clips synthétisés par l'ancien, depuis le disque. */
   return createHash('sha1')
-    .update([provider, req.voiceId, req.text, req.stability, req.similarityBoost, req.style].join('|'))
+    .update([provider, env.VOICE_TTS_MODEL, req.voiceId, req.text,
+             req.stability, req.similarityBoost, req.style].join('|'))
     .digest('hex');
 }
 
@@ -142,7 +151,7 @@ async function synthesise(req: PreviewRequest): Promise<Buffer> {
       },
       body: JSON.stringify({
         text: req.text,
-        model_id: MODEL,
+        model_id: env.VOICE_TTS_MODEL,
         voice_settings: {
           stability: req.stability,
           similarity_boost: req.similarityBoost,
@@ -181,7 +190,12 @@ async function synthesise(req: PreviewRequest): Promise<Buffer> {
 
 class PreviewAudioService {
   /** The clip, from memory, then disk, then ElevenLabs — in that order. */
-  async get(req: PreviewRequest): Promise<{ audio: Buffer; key: string }> {
+  async get(raw: PreviewRequest): Promise<{ audio: Buffer; key: string }> {
+    /* Les réglages tels que l'APPEL les servira, plancher et plafond compris.
+       L'aperçu passait les valeurs brutes du personnage: une voix plafonnée à
+       l'appel s'auditionnait sans plafond, donc plus vivante que ce que
+       l'appelant entendra. Même raison que le modèle ci-dessus. */
+    const req: PreviewRequest = { ...raw, ...resolveVoiceTuning(raw) };
     const key = previewKey(req);
 
     const cached = memory.get(key) ?? await readDisk(key);
