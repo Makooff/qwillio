@@ -48,6 +48,16 @@ class GreetingAudioService {
       logger.info('[Greeting] no ElevenLabs key — greetings stay on live synthesis');
       return 0;
     }
+    /* Ce service synthétise chez ElevenLabs, en direct. Quand les APPELS
+       passent par Cartesia, un accueil pré-enregistré ici serait d'un autre
+       grain que la phrase suivante, et le changement de voix au milieu du
+       premier tour s'entend beaucoup plus qu'un accueil un peu plus lent.
+       On rend donc l'accueil à la synthèse en direct de l'appel, qui elle est
+       du bon fournisseur. */
+    if (env.VOICE_TTS_PROVIDER !== '11labs') {
+      logger.info(`[Greeting] fournisseur ${env.VOICE_TTS_PROVIDER} — accueil laissé à la synthèse en direct`);
+      return 0;
+    }
 
     const character = resolveCharacter({
       characterId: profile.characterId,

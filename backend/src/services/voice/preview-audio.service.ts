@@ -5,7 +5,8 @@ import { tmpdir } from 'os';
 import { env } from '../../config/env';
 import { logger } from '../../config/logger';
 import { FishAudioError, fishVoiceFor, synthesiseWithFish } from './fish-audio.service';
-import { resolveVoiceTuning } from './speech-plans';
+import { resolveVoiceTuning, useCartesia, type VoiceLanguage } from './speech-plans';
+import { CartesiaError, synthesiseWithCartesia } from './cartesia.service';
 
 /**
  * Preview clips, synthesised once and then read from a file.
@@ -53,6 +54,12 @@ export interface PreviewRequest {
   stability: number;
   similarityBoost: number;
   style: number;
+  /** Langue du clip, pour Cartesia qui la veut explicitement. */
+  lang?: VoiceLanguage;
+  /** Voix clonée: elle n'existe que chez ElevenLabs. Voir `useCartesia`. */
+  cloned?: boolean;
+  /** Posé quand l'identifiant vient déjà du catalogue Cartesia. */
+  voiceProvider?: 'cartesia';
 }
 
 /**
@@ -65,9 +72,15 @@ export interface PreviewRequest {
  * différence », c'est-à-dire la mauvaise conclusion.
  */
 export function previewKey(req: PreviewRequest): string {
+  const cartesiaVoiceId = useCartesia(req);
   const provider = env.VOICE_PREVIEW_PROVIDER === 'fish'
     ? `fish:${env.FISH_AUDIO_MODEL}:${fishVoiceFor(req.voiceId) ?? 'unmapped'}`
-    : '11labs';
+    /* Le timbre Cartesia entre dans la clé, pas seulement le fournisseur: deux
+       voix ElevenLabs peuvent retomber sur le même timbre Cartesia par défaut,
+       et sans lui elles se serviraient le clip l'une de l'autre. */
+    : cartesiaVoiceId
+      ? `cartesia:${env.CARTESIA_MODEL}:${cartesiaVoiceId}`
+      : '11labs';
   /* Le modèle entre dans la clé: sans lui, changer `VOICE_TTS_MODEL` servirait
      indéfiniment les clips synthétisés par l'ancien, depuis le disque. */
   return createHash('sha1')
@@ -135,8 +148,35 @@ async function synthesiseWithFishProvider(req: PreviewRequest): Promise<Buffer> 
   }
 }
 
+/**
+ * L'aperçu par Cartesia, quand les appels y passent.
+ *
+ * Aucun repli sur ElevenLabs en cas d'échec: c'est exactement ce qui rendrait
+ * l'audition fausse, en faisant écouter un timbre qu'aucun appelant n'entendra.
+ * Une erreur visible vaut mieux qu'un clip trompeur.
+ *
+ * `stability`, `style` et `similarityBoost` sont ignorés ici: ils n'existent
+ * pas chez Cartesia, où le timbre se choisit en choisissant la voix. Ils
+ * restent dans la clé de cache parce qu'ils décrivent la demande.
+ */
+async function synthesiseWithCartesiaProvider(req: PreviewRequest, voiceId: string): Promise<Buffer> {
+  try {
+    return await synthesiseWithCartesia({ voiceId, text: req.text, lang: req.lang ?? 'fr' });
+  } catch (err) {
+    if (err instanceof CartesiaError) {
+      // Clé ou correspondance absente: un réglage manquant, pas une panne. 503
+      // pour que l'écran le dise plutôt que d'afficher une erreur serveur.
+      const configMissing = err.message === 'cartesia_key_missing' || err.message === 'cartesia_voice_unmapped';
+      throw new PreviewAudioError(err.message, configMissing ? 503 : 502, err.upstream, err.reason);
+    }
+    throw err;
+  }
+}
+
 async function synthesise(req: PreviewRequest): Promise<Buffer> {
   if (env.VOICE_PREVIEW_PROVIDER === 'fish') return synthesiseWithFishProvider(req);
+  const cartesiaVoiceId = useCartesia(req);
+  if (cartesiaVoiceId) return synthesiseWithCartesiaProvider(req, cartesiaVoiceId);
   if (!env.ELEVENLABS_API_KEY) throw new PreviewAudioError('elevenlabs_key_missing', 503);
 
   // One retry, because the failure that actually happens here is a transient

@@ -235,6 +235,45 @@ export const env = {
    * d'environnement, pas un déploiement.
    */
   VOICE_TTS_MODEL: process.env.VOICE_TTS_MODEL || 'eleven_turbo_v2_5',
+  /**
+   * Le FOURNISSEUR de synthèse, en mode classique.
+   *
+   * `11labs` par défaut: tant que rien n'est posé, absolument rien ne change.
+   * `cartesia` bascule les appels sur Sonic, plus rapide qu'ElevenLabs Flash
+   * et nettement plus humain, avec des respirations et des hésitations que
+   * Sonic produit et qu'aucun réglage ElevenLabs ne fabrique.
+   *
+   * Trois garde-fous, parce qu'une voix ratée sur un appel entrant coûte un
+   * client (voir `buildVoice`): une voix CLONÉE reste chez ElevenLabs, c'est
+   * là qu'elle existe; un timbre sans correspondance dans `CARTESIA_VOICES`
+   * reste chez ElevenLabs plutôt que de sonner faux; et le bloc porte un
+   * `fallbackPlan` ElevenLabs si Cartesia ne répond pas.
+   */
+  VOICE_TTS_PROVIDER: process.env.VOICE_TTS_PROVIDER === 'cartesia' ? 'cartesia' : '11labs',
+  /**
+   * Le modèle Cartesia. `sonic-3.5` est celui que la documentation de Vapi
+   * annonce, français compris.
+   *
+   * ATTENTION, un désaccord connu: le SDK serveur de Vapi, généré depuis leur
+   * définition d'API, ne liste que jusqu'à `sonic-3`. La page de documentation
+   * est la plus récente des deux et c'est elle qui fait foi ici, mais un modèle
+   * refusé fait rejeter l'assistant ENTIER, pas seulement la voix. Si un appel
+   * de test échoue en annonçant un modèle invalide, `sonic-3` est la valeur de
+   * repli, et elle est dans les deux listes.
+   */
+  CARTESIA_MODEL: process.env.CARTESIA_MODEL || 'sonic-3.5',
+  /**
+   * Clé Cartesia, pour les APERÇUS seulement. Sur l'appel, c'est Vapi qui
+   * s'adresse à Cartesia avec ses propres clés: la bascule fonctionne sans
+   * cette clé, mais le sélecteur de voix auditionnerait alors ElevenLabs en
+   * annonçant Cartesia, ce qui est exactement le mensonge qu'on vient de
+   * retirer de cet écran.
+   */
+  CARTESIA_API_KEY: process.env.CARTESIA_API_KEY || '',
+  /** Table `voixEleven:voixCartesia,…`. Voir `cartesiaVoiceFor`. */
+  CARTESIA_VOICES: process.env.CARTESIA_VOICES || '',
+  /** Le timbre servi quand un personnage n'a pas encore de correspondance. */
+  CARTESIA_DEFAULT_VOICE_ID: process.env.CARTESIA_DEFAULT_VOICE_ID || '',
   VOICE_TTS_STYLE_CAP: Math.min(1, Math.max(0, parseFloat(process.env.VOICE_TTS_STYLE_CAP || '0.4') || 0.4)),
   /* Parole-à-parole (le mode « voix de ChatGPT »).
    *

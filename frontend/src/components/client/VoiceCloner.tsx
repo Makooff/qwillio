@@ -9,6 +9,14 @@ export interface CustomVoice {
   createdAt?: string;
   /** Cloned from the owner's recording, which drops style at call time. */
   cloned?: boolean;
+  /**
+   * Le catalogue d'où vient l'identifiant. Absent = ElevenLabs.
+   *
+   * Enregistré avec la voix parce qu'un identifiant Cartesia ne désigne rien
+   * chez ElevenLabs: le choix doit se souvenir d'où il vient, y compris si le
+   * réglage global change après.
+   */
+  provider?: 'cartesia';
 }
 
 /** ElevenLabs wants a real sample; under this a clone sounds like a stranger. */

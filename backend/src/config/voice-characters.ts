@@ -30,6 +30,10 @@ export interface Character {
   stability: number;
   similarityBoost: number;
   style: number;
+  /** Posé quand la voix vient d'un autre catalogue. Voir `CustomVoice.provider`. */
+  voiceProvider?: 'cartesia';
+  /** Posé pour un VRAI clone, pas pour toute voix choisie. Voir `useCartesia`. */
+  voiceCloned?: boolean;
   personaKey: PersonaKey;
   /** Served under /characters/<id>.webp, 512px. */
   avatar: string;
@@ -307,6 +311,19 @@ export interface CustomVoice {
   createdAt: string;
   /** Cloned from the owner's recording, as opposed to picked from the library. */
   cloned?: boolean;
+  /**
+   * Le catalogue d'où vient cet identifiant.
+   *
+   * Absent veut dire ElevenLabs, ce qu'étaient toutes les configurations
+   * écrites jusqu'ici. `cartesia` existe parce qu'un identifiant Cartesia ne
+   * désigne RIEN chez ElevenLabs et réciproquement: sans ce champ, une voix
+   * choisie chez l'un serait envoyée à l'autre, qui répondrait par une erreur
+   * ou par une voix étrangère au choix du client.
+   *
+   * Il est porté par la voix plutôt que déduit du réglage global, parce que le
+   * réglage global peut changer après: une voix choisie reste ce qu'elle est.
+   */
+  provider?: 'cartesia';
 }
 
 /** Kept for configs written before the override model. Never assigned anymore. */
@@ -347,6 +364,15 @@ export function resolveCharacter(params: {
     return {
       ...character,
       voiceId: customVoice.voiceId,
+      // Le catalogue voyage avec l'identifiant: `buildVoice` doit savoir à qui
+      // il parle, et il ne peut plus le déduire du seul réglage global.
+      ...(customVoice.provider ? { voiceProvider: customVoice.provider } : {}),
+      /* Et le fait d'être un CLONE voyage avec, séparément de « le client a
+         choisi une voix ». Les deux se confondaient jusqu'ici, ce qui n'avait
+         pas de conséquence tant qu'un seul fournisseur existait; maintenant si:
+         seul un vrai clone doit rester chez ElevenLabs, une voix de
+         bibliothèque n'a aucune raison d'y être retenue. */
+      ...(customVoice.cloned ? { voiceCloned: true } : {}),
       // Only for a clone. A cloned voice carries the speaker's own timbre, and
       // pushing style on top of it is what makes clones sound like impressions
       // of themselves. A library voice keeps the character's tuning.

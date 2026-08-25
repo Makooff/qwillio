@@ -850,6 +850,7 @@ export class ClientDashboardController {
             stability: character.stability,
             similarityBoost: character.similarityBoost,
             style: character.style,
+            lang: fr ? 'fr' : 'en',
           }),
           firstMessage: fr
             ? `Bonjour ! On configure votre standard ensemble. Qu'est-ce que vous voulez ajuster ?`
@@ -889,11 +890,23 @@ export class ClientDashboardController {
       // before the override model still name it. It resolves to whatever voice
       // the client chose, over the default character.
       let character = isCustom ? null : CHARACTERS[id];
+      /* Une voix CLONÉE ne quitte pas ElevenLabs, et l'aperçu doit le savoir:
+         sinon il auditionnerait un timbre Cartesia là où l'appel servira le
+         clone. Voir `useCartesia`. */
+      let cloned = false;
       if (isCustom) {
-        const voiceId = ((previewClient?.vapiConfig as any)?.customVoice?.voiceId ?? '') as string;
+        const custom = (previewClient?.vapiConfig as any)?.customVoice;
+        const voiceId = (custom?.voiceId ?? '') as string;
         if (!voiceId) return res.status(404).json({ error: 'no_custom_voice' });
+        cloned = custom?.cloned === true;
         const base = CHARACTERS[previewClient?.agentLanguage?.startsWith('fr') ? DEFAULT_CHARACTER_FR : DEFAULT_CHARACTER_EN];
-        character = { ...base, voiceId, style: 0, similarityBoost: 0.85 };
+        character = {
+          ...base,
+          voiceId,
+          ...(custom?.provider === 'cartesia' ? { voiceProvider: 'cartesia' as const } : {}),
+          style: 0,
+          similarityBoost: 0.85,
+        };
       }
       if (!character) return res.status(404).json({ error: 'Unknown character' });
 
@@ -908,7 +921,13 @@ export class ClientDashboardController {
         const voices = await voiceCatalogService.list(req.clientId).catch(() => []);
         const match = voices.find(v => v.voiceId === overrideId);
         if (!match) return res.status(404).json({ error: 'unknown_voice' });
-        character = { ...character, voiceId: match.voiceId, ...(match.cloned ? { style: 0, similarityBoost: 0.85 } : {}) };
+        character = {
+          ...character,
+          voiceId: match.voiceId,
+          ...(match.provider ? { voiceProvider: match.provider } : {}),
+          ...(match.cloned ? { style: 0, similarityBoost: 0.85 } : {}),
+        };
+        cloned = match.cloned;
       }
 
       const previewFrench = previewClient?.agentLanguage?.startsWith('fr')
@@ -926,6 +945,13 @@ export class ClientDashboardController {
         stability: character.stability,
         similarityBoost: character.similarityBoost,
         style: character.style,
+        lang: previewFrench ? 'fr' : 'en',
+        cloned,
+        /* Sans ça, l'aperçu d'une voix Cartesia chercherait son identifiant
+           dans la table de correspondance, ne l'y trouverait pas, et jouerait
+           la voix par défaut: on auditionnerait autre chose que ce qu'on
+           croit choisir. */
+        voiceProvider: character.voiceProvider,
       });
 
       res.setHeader('Content-Type', 'audio/mpeg');
@@ -980,6 +1006,7 @@ export class ClientDashboardController {
         stability: c.stability,
         similarityBoost: c.similarityBoost,
         style: c.style,
+        lang: (isFrench ? 'fr' : 'en') as 'fr' | 'en',
       })));
     } catch (error: any) {
       logger.debug(`warmCharacterPreviews failed: ${error.message}`);
@@ -1125,7 +1152,14 @@ export class ClientDashboardController {
       const { voiceCatalogService } = await import('../services/voice/voice-catalog.service');
       // L'identifiant FILTRE les clones: sans lui, ce client verrait les voix
       // clonées de tous les autres. Voir `cloneBelongsTo`.
-      res.json({ voices: await voiceCatalogService.list(req.clientId) });
+      /* La langue de l'agent: le catalogue Cartesia est filtré dessus, sans
+         quoi un gérant francophone choisirait parmi des voix anglaises. */
+      const c = await prisma.client.findUnique({
+        where: { id: req.clientId },
+        select: { agentLanguage: true },
+      });
+      const lang = c?.agentLanguage === 'nl' ? 'nl' : c?.agentLanguage === 'en' ? 'en' : 'fr';
+      res.json({ voices: await voiceCatalogService.list(req.clientId, lang) });
     } catch (error: any) {
       // 503 rather than 500 for a missing key: the UI shows "not configured",
       // which is actionable, instead of "server error", which is not.
@@ -1134,6 +1168,14 @@ export class ClientDashboardController {
       }
       if (error.message === 'elevenlabs_list_failed') {
         return res.status(502).json({ error: 'elevenlabs_list_failed' });
+      }
+      // Mêmes deux cas, côté Cartesia: un réglage absent se dit, une panne amont
+      // se distingue d'une erreur de notre part.
+      if (error.message === 'cartesia_key_missing') {
+        return res.status(503).json({ error: 'cartesia_key_missing' });
+      }
+      if (error.message === 'cartesia_list_failed' || error.message === 'cartesia_unreachable') {
+        return res.status(502).json({ error: 'cartesia_list_failed' });
       }
       logger.error('listVoices failed:', error);
       res.status(500).json({ error: 'voices_unavailable' });

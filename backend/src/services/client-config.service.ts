@@ -38,7 +38,7 @@ export interface VapiConfigPatch {
    * character, not a character: null (or a blank voiceId) means "use the
    * character's own voice".
    */
-  customVoice?: { voiceId?: string; name?: string; cloned?: boolean } | null;
+  customVoice?: { voiceId?: string; name?: string; cloned?: boolean; provider?: string } | null;
   /**
    * Quelle chaîne vocale sert cet agent.
    *
@@ -234,6 +234,11 @@ export function buildVapiConfigPatch(
           ? prevVoice.createdAt
           : new Date().toISOString(),
         ...(patch.customVoice?.cloned === true ? { cloned: true } : {}),
+        /* Le catalogue d'origine, validé contre une liste fermée: c'est un
+           champ qui décide À QUI on envoie l'identifiant, donc une valeur
+           inconnue ne doit pas s'y glisser. Absent = ElevenLabs, ce qu'étaient
+           toutes les configurations écrites jusqu'ici. */
+        ...(patch.customVoice?.provider === 'cartesia' ? { provider: 'cartesia' } : {}),
       };
     }
   }

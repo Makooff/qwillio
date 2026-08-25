@@ -23,6 +23,7 @@ const envState = vi.hoisted(() => ({
   VAPI_VOICE_ID_FR: 'v-fr',
   VAPI_VOICE_ID_BE: '',
   VOICE_TTS_MODEL: 'eleven_flash_v2_5',
+  VOICE_TTS_PROVIDER: '11labs',
 }));
 vi.mock('../../../config/env', () => ({ env: envState }));
 
@@ -98,6 +99,26 @@ describe('greetingAudioService.generate', () => {
 
     const written = await greetingAudioService.generate(profile);
     expect(written).toBe(firstMessageVariants(profile, null).length - 1);
+  });
+
+  /**
+   * Ce service synthétise chez ElevenLabs, en direct.
+   *
+   * Si les APPELS passent par un autre fournisseur, un accueil pré-enregistré
+   * ici serait d'un autre grain que la phrase suivante: la voix changerait au
+   * milieu du premier tour de parole, ce qui s'entend bien plus qu'un accueil
+   * légèrement plus lent. L'accueil retourne alors à la synthèse en direct de
+   * l'appel, qui est du bon fournisseur.
+   */
+  it("ne pré-enregistre rien quand les appels ne sont plus chez ElevenLabs", async () => {
+    const fetchSpy = mockTts();
+    envState.VOICE_TTS_PROVIDER = 'cartesia';
+    try {
+      expect(await greetingAudioService.generate(profile)).toBe(0);
+      expect(fetchSpy).not.toHaveBeenCalled();
+    } finally {
+      envState.VOICE_TTS_PROVIDER = '11labs';
+    }
   });
 
   it('uses the same TTS model as the live pipeline', async () => {

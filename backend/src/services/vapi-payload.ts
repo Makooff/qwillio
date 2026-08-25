@@ -34,7 +34,9 @@ export function buildVapiCallPayload(input: VapiCallPayloadInput) {
       // hang up on a robot just as fast as inbound callers do. The legacy
       // `responseDelaySeconds` / `interruptionsEnabled` / `numWordsToInterrupt`
       // trio is superseded by the start- and stop-speaking plans.
-      voice: buildVoice({ voiceId: input.voiceId }),
+      // `lang` explicite: Cartesia veut la langue sur le bloc voix, et cet
+      // assistant sortant est anglophone, comme ses plans juste en dessous.
+      voice: buildVoice({ voiceId: input.voiceId, lang: 'en' }),
       backgroundSound: env.VOICE_BACKGROUND_SOUND,
       ...buildRealtimePlans('en'),
       firstMessage: input.firstMessage,
