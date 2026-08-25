@@ -191,7 +191,13 @@ export const env = {
    * à peine à l'oreille mais raccourcit chaque phrase; au delà de ~1,15 le
    * modèle Flash commence à manger des syllabes.
    */
-  VOICE_SPEECH_SPEED: Math.min(1.2, Math.max(0.8, parseFloat(process.env.VOICE_SPEECH_SPEED || '1.05') || 1.05)),
+  /* 1,0 est la vitesse à laquelle le modèle a été entraîné, et ElevenLabs
+     prévient que s'en écarter dégrade la qualité. 1,05 avait été posé contre
+     la lenteur; c'est peu, mais ça se paie exactement là où le défaut se
+     plaint, sur la netteté des syllabes. Le débit se règle d'abord par la
+     longueur des réponses (une à deux phrases par tour), pas en accélérant la
+     bande. */
+  VOICE_SPEECH_SPEED: Math.min(1.2, Math.max(0.8, parseFloat(process.env.VOICE_SPEECH_SPEED || '1.0') || 1.0)),
   /**
    * Plafond de l'exagération de style d'ElevenLabs.
    *
@@ -216,12 +222,19 @@ export const env = {
    * `eleven_multilingual_v2` est le plus naturel des trois et le plus lent, à
    * réserver à un essai.
    *
-   * Le défaut ne bouge pas: la lenteur a déjà été signalée une fois, et
-   * l'échanger contre le naturel est un arbitrage qui se juge à l'oreille sur
-   * un vrai appel, pas dans ce fichier. La variable est là pour que cet essai
-   * soit un set d'environnement, pas un déploiement.
+   * LE DÉFAUT A CHANGÉ, et il faut savoir pourquoi. Il est resté sur `flash`
+   * un tour de plus, au motif que la lenteur avait été signalée une fois et
+   * que l'arbitrage se jugeait à l'oreille. Le retour est venu deux fois de
+   * suite, sur le même mot: « ça articule encore trop, pas assez naturel ».
+   * Un curseur qu'il faut savoir tourner ne corrige rien.
+   *
+   * `turbo_v2_5` est aussi ce qui rapproche l'appel de l'APERÇU, qui lui a
+   * toujours été synthétisé en `multilingual_v2`: la voix auditionnée dans le
+   * sélecteur était plus vivante que celle des appels, et personne ne pouvait
+   * le voir. Retour arrière: `VOICE_TTS_MODEL=eleven_flash_v2_5`, une variable
+   * d'environnement, pas un déploiement.
    */
-  VOICE_TTS_MODEL: process.env.VOICE_TTS_MODEL || 'eleven_flash_v2_5',
+  VOICE_TTS_MODEL: process.env.VOICE_TTS_MODEL || 'eleven_turbo_v2_5',
   VOICE_TTS_STYLE_CAP: Math.min(1, Math.max(0, parseFloat(process.env.VOICE_TTS_STYLE_CAP || '0.4') || 0.4)),
   /* Parole-à-parole (le mode « voix de ChatGPT »).
    *

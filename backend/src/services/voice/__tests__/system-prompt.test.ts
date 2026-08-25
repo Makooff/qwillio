@@ -70,6 +70,21 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('lookupBooking');
   });
 
+  /**
+   * Les règles de DÉBIT, épinglées.
+   *
+   * Elles sont les seules à agir en parole-à-parole, où le modèle fabrique sa
+   * propre voix et où aucun réglage de synthèse ne l'atteint. Deux retours de
+   * terrain consécutifs les ont fait écrire (« ça articule trop, pas assez
+   * naturel »); un nettoyage de prompt les retirerait sans bruit, et personne
+   * ne saurait dire ce qui a changé.
+   */
+  it('dit COMMENT parler, pas seulement quoi dire', () => {
+    const prompt = buildSystemPrompt(profile, newCaller);
+    expect(prompt).toMatch(/ne détache pas les syllabes/i);
+    expect(prompt).toMatch(/varie le rythme/i);
+  });
+
   it('omits the history block entirely for a first-time caller', () => {
     expect(buildSystemPrompt(profile, newCaller)).not.toMatch(/HISTORIQUE/);
   });
@@ -81,8 +96,11 @@ describe('buildSystemPrompt', () => {
        langage parlé plutôt qu'ajoutée, et le plafond monte de 100 caractères,
        soit 25 jetons par tour: un appel de 20 tours reste sous 10 500 jetons de
        prompt. Le plafond est là pour empêcher la dérive, pas pour interdire une
-       règle qui répond à un défaut entendu. */
-    expect(buildSystemPrompt(profile, newCaller).length).toBeLessThan(2100);
+       règle qui répond à un défaut entendu. Il monte une seconde fois, de 100
+       caractères encore, pour la règle de prosodie: en mode direct le prompt
+       est le SEUL levier sur la façon de parler, aucun réglage de synthèse ne
+       l'atteint. Un appel de 20 tours reste sous 11 000 jetons de prompt. */
+    expect(buildSystemPrompt(profile, newCaller).length).toBeLessThan(2200);
   });
 
   it('injects the pre-rendered knowledge block when one is supplied', () => {

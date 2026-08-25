@@ -1,4 +1,5 @@
 import { describe, it, expect } from 'vitest';
+import { env } from '../../../config/env';
 import {
   buildRealtimePlans,
   buildSpeech,
@@ -144,8 +145,14 @@ describe('fallbacks fournisseurs — opt-in strict', () => {
 describe('buildVoice', () => {
   const voice = buildVoice({ voiceId: 'voice_x' });
 
-  it('pins the low-latency ElevenLabs model', () => {
-    expect(voice.model).toBe('eleven_flash_v2_5');
+  it('sert le modèle choisi, et le MÊME que l\'aperçu du sélecteur', () => {
+    /* Ce test figeait `eleven_flash_v2_5`, le plus rapide et le plus plat.
+       Deux retours de suite sur le même mot (« ça articule trop, pas assez
+       naturel ») l'ont fait passer à `turbo`. Ce qui compte ici n'est plus la
+       valeur mais l'accord: l'aperçu du sélecteur synthétise sur la même
+       variable, sinon on auditionne une voix et l'appelant en entend une
+       autre. Retour arrière par `VOICE_TTS_MODEL`, sans déploiement. */
+    expect(voice.model).toBe(env.VOICE_TTS_MODEL);
   });
 
   it('rend au synthétiseur de quoi faire une PHRASE', () => {
@@ -169,9 +176,10 @@ describe('buildVoice', () => {
     expect(voice.style).toBeLessThanOrEqual(0.45);
   });
 
-  it('keeps the fallback voices on the same fast model', () => {
+  it('keeps the fallback voices on the same model', () => {
+    // Une voix de secours d'un autre grain s'entendrait au basculement.
     for (const fallback of voice.fallbackPlan.voices) {
-      expect(fallback.model).toBe('eleven_flash_v2_5');
+      expect(fallback.model).toBe(env.VOICE_TTS_MODEL);
     }
   });
 });

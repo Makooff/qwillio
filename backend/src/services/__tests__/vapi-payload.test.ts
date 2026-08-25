@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { buildVapiCallPayload } from '../vapi-payload';
+import { env } from '../../config/env';
 
 const input = {
   assistantId: 'asst_1',
@@ -23,7 +24,9 @@ describe('buildVapiCallPayload', () => {
   it('pins the human-tuned voice + latency config', () => {
     const v = buildVapiCallPayload(input).assistantOverrides.voice;
     expect(v.provider).toBe('11labs');
-    expect(v.model).toBe('eleven_flash_v2_5');
+    /* Plus de valeur figée: le modèle est réglable (`VOICE_TTS_MODEL`), et
+       c'est l'accord avec le reste du parc qui compte, pas la marque. */
+    expect(v.model).toBe(env.VOICE_TTS_MODEL);
     /* 0,22 laissait le modèle Flash avaler des syllabes: la voix était
        expressive et mal comprise. Le défaut remonte à 0,45, et un plancher à
        0,35 empêche un personnage de redescendre sous le seuil d'articulation
