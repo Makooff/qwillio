@@ -16,6 +16,7 @@ import { businessMemoryService } from './business-memory.service';
 import { callerMemoryService } from './caller-memory.service';
 import { toolRuntimeService, type ToolCallInput, type ToolCallResult } from './tool-runtime.service';
 import { resolveCharacter } from '../../config/voice-characters';
+import { type LineAgent } from './inbound-routing.service';
 
 /**
  * Real-time call orchestrator (Phases 1, 2, 3).
@@ -53,6 +54,30 @@ function callerNumberOf(event: VapiEvent): string | null {
   return msg.call?.customer?.number ?? event.call?.customer?.number ?? null;
 }
 
+/**
+ * L'agent du client, coiffé de ce que la ligne redéfinit.
+ *
+ * Les consignes s'AJOUTENT au lieu de remplacer: une ligne dit ce qui lui est
+ * propre (« ici on ne prend que les urgences »), pas tout ce que l'entreprise a
+ * déjà écrit. Tous les autres champs remplacent, parce qu'un nom ou une voix ne
+ * se cumulent pas.
+ */
+export function applyLineAgent(profile: ClientVoiceProfile, line: LineAgent): ClientVoiceProfile {
+  return {
+    ...profile,
+    ...(line.agentName ? { agentName: line.agentName } : {}),
+    ...(line.transferNumber ? { transferNumber: line.transferNumber } : {}),
+    ...(line.characterId ? { characterId: line.characterId } : {}),
+    ...(line.instructions
+      ? { instructions: [profile.instructions, line.instructions].filter(Boolean).join('\n') }
+      : {}),
+    /* Le nom d'entreprise prend le libellé de la ligne quand il existe: c'est
+       ce qui fait dire « Boutique Ixelles » plutôt que le nom générique, et
+       c'est la seule chose que l'appelant entend tout de suite. */
+    ...(line.label ? { businessName: line.label } : {}),
+  };
+}
+
 class RealtimeOrchestratorService {
   /**
    * `assistant-request` — Vapi asks what assistant to run for an inbound call.
@@ -62,16 +87,23 @@ class RealtimeOrchestratorService {
    * needed comes from the context cache, so the common case is zero database
    * round-trips.
    */
-  async buildAssistantForCall(clientId: string, event: VapiEvent) {
+  async buildAssistantForCall(clientId: string, event: VapiEvent, line?: LineAgent) {
     const started = Date.now();
     const callerNumber = callerNumberOf(event);
     const vapiCallId = callIdOf(event);
 
-    const { profile, caller } = await realtimeContextService.getCallContext(clientId, callerNumber);
-    if (!profile) {
+    const { profile: base, caller } = await realtimeContextService.getCallContext(clientId, callerNumber);
+    if (!base) {
       logger.error(`[Voice] assistant-request for unknown client ${clientId}`);
       return null;
     }
+
+    /* La ligne composée peut porter son propre agent, en SURCHARGE.
+       Appliquée ici plutôt que dans le contexte, parce que le contexte est mis
+       en cache PAR CLIENT: y injecter une surcharge de ligne servirait l'agent
+       de la boutique d'Ixelles au prochain appel arrivé sur la ligne des
+       urgences. La fusion est donc faite après le cache, à chaque appel. */
+    const profile = line ? applyLineAgent(base, line) : base;
 
     // Only the highest-priority entries go into the prompt; the rest stay
     // reachable through lookupKnowledge so a large knowledge base does not
@@ -119,7 +151,10 @@ class RealtimeOrchestratorService {
     callSessionStore.setSpeechToSpeech(vapiCallId, speechToSpeech);
 
     // Après `buildSpeech`: l'accueil dépend du mode retenu.
-    const firstMessage = await this.resolveFirstMessage(profile, caller.knownName, speechToSpeech);
+    /* L'accueil de la ligne passe devant celui calculé: le client l'a écrit
+       pour CETTE ligne, et c'est la première seconde de l'appel. */
+    const firstMessage = line?.greeting
+      || (await this.resolveFirstMessage(profile, caller.knownName, speechToSpeech));
 
     const assistant = {
       name: `Receptionist - ${profile.businessName}`,

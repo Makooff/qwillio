@@ -1185,6 +1185,52 @@ export class ClientDashboardController {
     }
   }
 
+  /**
+   * Régler l'agent d'UNE ligne.
+   *
+   * Partiel et volontairement: chaque champ absent du corps n'est pas touché,
+   * et une chaîne vide efface la surcharge pour rendre la ligne à l'agent du
+   * client. Sans ce second cas, un client ne pourrait jamais REVENIR en
+   * arrière, seulement changer de valeur.
+   *
+   * Le `updateMany` porte `clientId`: c'est ce qui empêche de régler l'agent de
+   * la ligne d'un autre en devinant un identifiant.
+   */
+  async updatePhoneNumber(req: any, res: Response) {
+    try {
+      const body = req.body ?? {};
+      const text = (v: unknown, max: number) =>
+        v === undefined ? undefined : (String(v).trim().slice(0, max) || null);
+
+      const data = {
+        label: text(body.label, 120),
+        agentName: text(body.agentName, 80),
+        greeting: text(body.greeting, 400),
+        instructions: text(body.instructions, 1500),
+        transferNumber: text(body.transferNumber, 50),
+        characterId: text(body.characterId, 60),
+      };
+      // Ne poster QUE ce qui a été envoyé: le PUT est partiel, et écrire les
+      // clés absentes remettrait à zéro ce qu'une autre vue vient d'enregistrer.
+      const patch = Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined));
+      if (!Object.keys(patch).length) return res.status(400).json({ error: 'nothing_to_update' });
+
+      const r = await prisma.clientPhoneNumber.updateMany({
+        where: { id: String(req.params.id), clientId: req.clientId },
+        data: patch,
+      });
+      if (!r.count) return res.status(404).json({ error: 'number_not_found' });
+
+      const line = await prisma.clientPhoneNumber.findFirst({
+        where: { id: String(req.params.id), clientId: req.clientId },
+      });
+      res.json({ number: line });
+    } catch (error: any) {
+      logger.error('[phone-numbers] mise à jour impossible:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   async removePhoneNumber(req: any, res: Response) {
     try {
       const r = await prisma.clientPhoneNumber.deleteMany({

@@ -164,7 +164,9 @@ export class WebhooksController {
           return res.json({ assistant: inboundRoutingService.unroutableAssistant() });
         }
 
-        const assistant = await realtimeOrchestratorService.buildAssistantForCall(routed.clientId, event);
+        const assistant = await realtimeOrchestratorService.buildAssistantForCall(
+          routed.clientId, event, routed.line,
+        );
         if (!assistant) {
           return res.json({ assistant: inboundRoutingService.unroutableAssistant() });
         }

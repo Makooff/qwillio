@@ -1852,6 +1852,24 @@ model ClientPhoneNumber {
   /// « Boutique Ixelles », « Ligne urgences ». Sert au client, et au brief.
   label     String?  @db.VarChar(120)
   isActive  Boolean  @default(true) @map("is_active")
+
+  /// UN AGENT PAR LIGNE, en surcharge de celui du client.
+  ///
+  /// Chaque champ est NULLABLE et vaut « garde celui du client »: une ligne
+  /// existante ne change donc pas de comportement, et un client qui n'en règle
+  /// aucun garde exactement la réceptionniste qu'il avait. C'est une couche de
+  /// surcharge, pas un second assistant: dupliquer la configuration entière par
+  /// ligne ferait diverger les deux au premier réglage modifié d'un seul côté.
+  agentName      String? @map("agent_name") @db.VarChar(80)
+  /// La phrase d'accueil de CETTE ligne. « Boutique Ixelles, bonjour. »
+  greeting       String? @map("greeting")
+  /// Consignes propres à la ligne, ajoutées à celles du client, pas à la place.
+  instructions   String? @map("instructions")
+  /// Vers qui CETTE ligne transfère. Un atelier et un service commercial ne
+  /// basculent pas sur le même téléphone.
+  transferNumber String? @map("transfer_number") @db.VarChar(50)
+  /// La voix de cette ligne, résolue dans le même catalogue que celle du client.
+  characterId    String? @map("character_id") @db.VarChar(60)
   createdAt DateTime @default(now()) @map("created_at")
   client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 

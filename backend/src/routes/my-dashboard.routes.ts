@@ -84,6 +84,7 @@ router.delete('/api-keys/:id', (req, res) => clientDashboardController.revokeApi
 /* Lignes supplémentaires (multi-sites), reserve au forfait qui les annonce. */
 router.get('/phone-numbers', (req, res) => clientDashboardController.listPhoneNumbers(req, res));
 router.post('/phone-numbers', (req, res) => clientDashboardController.addPhoneNumber(req, res));
+router.put('/phone-numbers/:id', (req, res) => clientDashboardController.updatePhoneNumber(req, res));
 router.delete('/phone-numbers/:id', (req, res) => clientDashboardController.removePhoneNumber(req, res));
 // Voice cloning. Same budget as dictation — a multi-megabyte body going to a
 // paid API, and a retry loop here would both bill the account and litter it

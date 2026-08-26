@@ -5,7 +5,7 @@ vi.mock('../../../config/database', () => ({
   prisma: { client: { findMany: (...a: unknown[]) => findMany(...a) } },
 }));
 
-const { inboundRoutingService, divertedNumber } = await import('../inbound-routing.service');
+const { inboundRoutingService, divertedNumber, lineAgentOf } = await import('../inbound-routing.service');
 
 const client = (
   id: string,
@@ -235,5 +235,83 @@ describe('le numéro déclaré par le client', () => {
       expect(r.clientId).toBe('c1');
       expect(r.via).toBe('diversion');
     }
+  });
+});
+
+describe("l'agent de la ligne remonte jusqu'à l'appel", () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  /* Le libellé était déjà calculé ici puis JETÉ: il n'atteignait jamais le
+     prompt. C'est ce trajet-là que ces cas vérifient. */
+
+  const avecAgent = (id: string, primary: string, ligne: Record<string, unknown>) => ({
+    ...client(id, primary),
+    phoneNumbers: [ligne],
+  });
+
+  it('rend la surcharge de la ligne composée', async () => {
+    findMany.mockResolvedValue([
+      avecAgent('c1', '+3225881904', {
+        number: '+3223334455', label: 'Atelier',
+        agentName: 'Léo', transferNumber: '+3225559999', characterId: 'leo',
+        greeting: null, instructions: null,
+      }),
+    ]);
+
+    const r = await inboundRoutingService.resolveClient('+3223334455');
+
+    expect(r).toMatchObject({
+      kind: 'resolved',
+      clientId: 'c1',
+      line: { label: 'Atelier', agentName: 'Léo', transferNumber: '+3225559999' },
+    });
+  });
+
+  it("ne rend RIEN quand la ligne ne surcharge pas", async () => {
+    /* La non-régression: les lignes existantes n'ont aucun de ces champs, et
+       l'orchestrateur ne doit alors appliquer aucune surcharge. */
+    findMany.mockResolvedValue([
+      avecAgent('c1', '+3225881904', { number: '+3223334455', label: null, agentName: null }),
+    ]);
+
+    const r = await inboundRoutingService.resolveClient('+3223334455');
+
+    expect(r.kind).toBe('resolved');
+    expect((r as { line?: unknown }).line).toBeUndefined();
+  });
+
+  it("ne rend pas la surcharge d'une AUTRE ligne du même client", async () => {
+    /* Le cas qui ferait décrocher « Atelier » sur la ligne des ventes: la
+       surcharge se choisit par le numéro composé, jamais par la première ligne
+       de la liste. */
+    findMany.mockResolvedValue([
+      {
+        ...client('c1', '+3225881904'),
+        phoneNumbers: [
+          { number: '+3223334455', label: 'Atelier', agentName: 'Léo' },
+          { number: '+3223336677', label: 'Vente', agentName: 'Sofia' },
+        ],
+      },
+    ]);
+
+    const r = await inboundRoutingService.resolveClient('+3223336677');
+
+    expect((r as { line?: { agentName?: string } }).line?.agentName).toBe('Sofia');
+  });
+
+  it("n'attache aucune surcharge au numéro PRINCIPAL", async () => {
+    // Le principal n'est pas une `ClientPhoneNumber`: il garde l'agent du client.
+    findMany.mockResolvedValue([
+      avecAgent('c1', '+3225881904', { number: '+3223334455', label: 'Atelier', agentName: 'Léo' }),
+    ]);
+
+    const r = await inboundRoutingService.resolveClient('+3225881904');
+
+    expect((r as { line?: unknown }).line).toBeUndefined();
+  });
+
+  it('ignore les champs vides plutôt que de les appliquer', () => {
+    // Une chaîne vide en base est un champ NON réglé, pas un nom d'agent vide.
+    expect(lineAgentOf({ label: '', agentName: '', greeting: null })).toBeUndefined();
   });
 });

@@ -18,8 +18,60 @@ import { normalizeNumber } from './phone-allocation.service';
  * cas de se produire pour les clients créés par l'onboarding.
  */
 
+/**
+ * Ce qu'une ligne peut redéfinir de l'agent du client.
+ *
+ * Chaque champ absent veut dire « garde celui du client »: c'est une couche de
+ * surcharge et non un second assistant, sinon les deux configurations
+ * divergeraient au premier réglage modifié d'un seul côté.
+ */
+export interface LineAgent {
+  label?: string;
+  agentName?: string;
+  greeting?: string;
+  instructions?: string;
+  transferNumber?: string;
+  characterId?: string;
+}
+
+/** Les champs non vides d'une ligne, ou `undefined` si elle ne surcharge rien. */
+export function lineAgentOf(line: {
+  label?: string | null;
+  agentName?: string | null;
+  greeting?: string | null;
+  instructions?: string | null;
+  transferNumber?: string | null;
+  characterId?: string | null;
+} | undefined | null): LineAgent | undefined {
+  if (!line) return undefined;
+  const out: LineAgent = {};
+  if (line.label) out.label = line.label;
+  if (line.agentName) out.agentName = line.agentName;
+  if (line.greeting) out.greeting = line.greeting;
+  if (line.instructions) out.instructions = line.instructions;
+  if (line.transferNumber) out.transferNumber = line.transferNumber;
+  if (line.characterId) out.characterId = line.characterId;
+  return Object.keys(out).length ? out : undefined;
+}
+
 export type InboundResolution =
-  | { kind: 'resolved'; clientId: string; businessName: string; lineLabel?: string; via: 'dialed' | 'diversion' }
+  | {
+      kind: 'resolved';
+      clientId: string;
+      businessName: string;
+      lineLabel?: string;
+      /**
+       * L'agent propre à la ligne composée, quand elle en a un.
+       *
+       * Le libellé était déjà calculé ici, puis JETÉ: il n'atteignait jamais le
+       * prompt. Un garage avec une ligne atelier et une ligne vente avait donc
+       * le même agent sur les deux, et l'agent ne savait même pas laquelle
+       * avait sonné. Ce qui est rendu ici descend maintenant jusqu'à
+       * `buildAssistantForCall`.
+       */
+      line?: LineAgent;
+      via: 'dialed' | 'diversion';
+    }
   | { kind: 'unknown'; dialed: string | null };
 
 /**
@@ -141,7 +193,16 @@ class InboundRoutingService {
         // Servent uniquement à départager un numéro partagé, plus bas.
         activationDate: true,
         createdAt: true,
-        phoneNumbers: { where: { isActive: true }, select: { number: true, label: true } },
+        phoneNumbers: {
+          where: { isActive: true },
+          select: {
+            number: true, label: true,
+            // La surcharge d'agent de CETTE ligne. Tout est nullable: une ligne
+            // qui ne règle rien rend exactement l'agent du client.
+            agentName: true, greeting: true, instructions: true,
+            transferNumber: true, characterId: true,
+          },
+        },
       },
     });
 
@@ -164,6 +225,7 @@ class InboundRoutingService {
         clientId: c.id,
         businessName: c.businessName,
         ...(line?.label ? { lineLabel: line.label } : {}),
+        ...(lineAgentOf(line) ? { line: lineAgentOf(line) } : {}),
         via,
       };
     }
@@ -200,6 +262,7 @@ class InboundRoutingService {
         clientId: chosen.id,
         businessName: chosen.businessName,
         ...(line?.label ? { lineLabel: line.label } : {}),
+        ...(lineAgentOf(line) ? { line: lineAgentOf(line) } : {}),
         via,
       };
     }
