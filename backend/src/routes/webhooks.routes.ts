@@ -17,6 +17,14 @@ router.post('/vapi', (req, res) => webhooksController.vapiWebhook(req, res));
 // on never queues behind transcript telemetry on the same route.
 router.post('/vapi/client/:clientId', (req, res) => voiceWebhookController.clientEvent(req, res));
 router.post('/vapi/tools/:clientId', (req, res) => voiceWebhookController.toolCall(req, res));
+
+/* Le banc d'essai admin. Les outils qui écrivent y sont décrits, jamais
+   exécutés: c'est la seule façon de voir l'agent prendre un rendez-vous sans
+   en poser un dans l'agenda d'un vrai client. */
+router.post('/lab/:sessionId', async (req, res) => {
+  const { labToolWebhook } = await import('../controllers/voice-lab.controller');
+  return labToolWebhook(req, res);
+});
 router.get('/vapi/health', (req, res) => voiceWebhookController.health(req, res));
 
 // OpenAI-compatible SSE endpoint. Only reached when a client is on the

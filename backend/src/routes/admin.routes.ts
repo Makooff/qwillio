@@ -1097,4 +1097,22 @@ router.delete('/call-consents/:phone', async (req: Request, res: Response) => {
   }
 });
 
+/* ─── Banc d'essai des réceptionnistes ────────────────────
+   Régler une voix demandait de poser une variable sur Render puis d'attendre
+   un redéploiement: on ne compare pas deux moteurs comme ça, on compare deux
+   souvenirs. Ici tout se règle à l'appel près, et rien n'est enregistré sur un
+   client. */
+router.get('/lab/options', async (req: Request, res: Response) => {
+  const { voiceLabController } = await import('../controllers/voice-lab.controller');
+  return voiceLabController.options(req, res);
+});
+router.post('/lab/session', async (req: Request, res: Response) => {
+  const { voiceLabController } = await import('../controllers/voice-lab.controller');
+  return voiceLabController.session(req, res);
+});
+router.get('/lab/session/:id', async (req: Request, res: Response) => {
+  const { voiceLabController } = await import('../controllers/voice-lab.controller');
+  return voiceLabController.events(req, res);
+});
+
 export default router;

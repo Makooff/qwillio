@@ -26,6 +26,7 @@ const AdminCalls = lazy(() => import('./pages/admin/Calls'));
 const AdminLeads = lazy(() => import('./pages/admin/Leads'));
 const AdminBilling = lazy(() => import('./pages/admin/Billing'));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
+const VoiceLab = lazy(() => import('./pages/admin/VoiceLab'));
 const AdminNotFound = lazy(() => import('./pages/admin/NotFound'));
 // Client portal pages (lazy loaded)
 const ClientPortal = lazy(() => import('./pages/ClientPortal'));
@@ -468,6 +469,9 @@ export default function App() {
           <Route path="agents/local-seo-ai" element={<Suspense fallback={<Spinner />}><AdminAgentLocalSeo /></Suspense>} />
           <Route path="agents/lead-gen-ai" element={<Suspense fallback={<Spinner />}><AdminAgentLeadGen /></Suspense>} />
           <Route path="agents/analytics-ai" element={<Suspense fallback={<Spinner />}><AdminAgentAnalytics /></Suspense>} />
+          {/* Le banc d'essai des réceptionnistes: régler, appeler, voir ce que
+              ça aurait déclenché. Admin seulement, et il n'écrit rien. */}
+          <Route path="lab" element={<Suspense fallback={<Spinner />}><VoiceLab /></Suspense>} />
           <Route path="learning-agents" element={<Suspense fallback={<Spinner />}><Agents /></Suspense>} />
           <Route path="agency" element={<Suspense fallback={<Spinner />}><Agency /></Suspense>} />
           {/* Old routes → redirect to new locations */}
