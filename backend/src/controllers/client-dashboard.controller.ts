@@ -220,6 +220,8 @@ export class ClientDashboardController {
           vatNumber: true,
           transferNumber: true,
           vapiPhoneNumber: true,
+          phoneSetupState: true,
+          phoneSetupReason: true,
           vapiConfig: true,
           vapiAssistantId: true,
           subscriptionStatus: true,
@@ -278,6 +280,17 @@ export class ClientDashboardController {
            l'interface devrait deviner le réglage global du serveur, et
            afficherait « temps réel » là où la plateforme fait du classique. */
         autoResolvesTo: useSpeechToSpeech({ voiceMode: 'auto' }) ? 'realtime' : 'classic',
+        /* Où en est la ligne entrante, et pourquoi.
+           Un état qu'aucun écran ne peut lire répète le défaut qu'il corrige:
+           jusqu'ici, un client sans ligne était indistinguable d'un client dont
+           l'achat avait échoué, et la différence ne se voyait que quand un
+           appelant se plaignait. La raison est écrite en français, pour être
+           affichée telle quelle. */
+        phoneSetup: {
+          state: client.phoneSetupState,
+          reason: client.phoneSetupReason,
+          dedicated: client.phoneSetupState === 'active',
+        },
         /* La synthèse servie à CE client, et celle que la plateforme sert par
            défaut. Les deux, parce que l'écran doit pouvoir afficher « suit le
            réglage global (ElevenLabs) » plutôt qu'un bouton vide. */
