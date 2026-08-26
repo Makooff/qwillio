@@ -24,7 +24,11 @@ export const HUMAN_PART_TIME_MONTHLY = 2300;
    ses commissions dessus. Elle en gardait sa propre copie, et cette copie avait
    dérivé (149 € et 470 €): elle promettait donc une commission qui n'aurait
    jamais été versée. */
-export const PLAN_MONTHLY_EUR = { solo: 99, starter: 249, pro: 599, enterprise: 1290 } as const;
+/* Les prix vivent dans `pricing-plans`: ce sont des données, et les garder ici
+   rendait impossible de les vérifier sans monter la page, donc GSAP et un DOM.
+   Ré-exportés parce que la page Partenaires les lit depuis ce module. */
+export { PLAN_MONTHLY_EUR, PLAN_MINUTES, effectivePerMinute } from './pricing-plans';
+import { PLAN_MONTHLY_EUR, PLAN_MINUTES, effectivePerMinute } from './pricing-plans';
 
 interface Tier {
   id: string;
@@ -57,6 +61,23 @@ export default function Pricing() {
     billing === 'annual' ? Math.round(monthlyPrice * (1 - ANNUAL_DISCOUNT)) : monthlyPrice;
   const perLabel = isFr ? 'mois' : 'month';
 
+  /**
+   * Le prix RÉELLEMENT payé par minute incluse.
+   *
+   * La page n'affichait que le prix d'abonnement, or c'est le seul chiffre
+   * qu'on ne peut pas comparer: une offre à 29 € qui contient 50 minutes coûte
+   * 0,58 € la minute, presque le double d'un abonnement à 99 € qui en contient
+   * 250. Un prospect qui aligne deux grilles prend la moins chère à l'affichage
+   * et se trompe, et c'est nous qui perdons la comparaison sans qu'elle ait eu
+   * lieu.
+   *
+   * Calculé, jamais écrit en dur, et dérivé de `priceFor`: il suit donc le
+   * sélecteur mensuel/annuel, alors qu'une valeur recopiée annoncerait le tarif
+   * mensuel sur la vue annuelle.
+   */
+  const perMinute = (t: { monthly: number; minutes: number }): string =>
+    `${effectivePerMinute(priceFor(t.monthly), t.minutes).toFixed(2).replace('.', ',')} €`;
+
   useSEO({
     title: isFr ? 'Tarifs Qwillio' : 'Qwillio Pricing',
     description: isFr
@@ -73,8 +94,8 @@ export default function Pricing() {
       note: isFr
         ? 'PME, artisans, professions libérales (conforme RGPD).'
         : 'Small businesses, tradespeople, liberal professions (GDPR compliant).',
-      monthly: 99,
-      minutes: 250,
+      monthly: PLAN_MONTHLY_EUR.solo,
+      minutes: PLAN_MINUTES.solo,
       overage: 0.45,
       description: isFr ? 'Pour un indépendant' : 'For a solo operator',
       features: isFr
@@ -90,8 +111,8 @@ export default function Pricing() {
     {
       id: 'starter',
       name: 'Starter',
-      monthly: 249,
-      minutes: 750,
+      monthly: PLAN_MONTHLY_EUR.starter,
+      minutes: PLAN_MINUTES.starter,
       overage: 0.39,
       description: isFr ? 'Pour commencer' : 'To get started',
       features: isFr
@@ -104,8 +125,8 @@ export default function Pricing() {
       id: 'pro',
       name: 'Pro',
       badge: isFr ? 'Le plus populaire' : 'Most popular',
-      monthly: 599,
-      minutes: 2000,
+      monthly: PLAN_MONTHLY_EUR.pro,
+      minutes: PLAN_MINUTES.pro,
       overage: 0.35,
       description: isFr ? 'Pour grandir' : 'To grow',
       features: isFr
@@ -117,8 +138,8 @@ export default function Pricing() {
     {
       id: 'enterprise',
       name: 'Enterprise',
-      monthly: 1290,
-      minutes: 5000,
+      monthly: PLAN_MONTHLY_EUR.enterprise,
+      minutes: PLAN_MINUTES.enterprise,
       overage: 0.30,
       description: isFr ? 'Pour scale' : 'To scale',
       features: isFr
@@ -178,6 +199,9 @@ export default function Pricing() {
           rows: [
             ['Minutes incluses', '250', '750', '2 000', '5 000'],
             [`Prix / ${perLabel}`, ...tiers.map((t) => `${priceFor(t.monthly).toLocaleString('fr-FR')} €`)],
+            /* Le chiffre qui rend la grille comparable. Placé JUSTE sous le
+               prix: séparés, le lecteur compare l'abonnement et s'arrête là. */
+            ['Prix effectif / minute', ...tiers.map(perMinute)],
             ['Dépassement / minute', '0,45 €', '0,39 €', '0,35 €', '0,30 €'],
           ],
         },
@@ -223,6 +247,7 @@ export default function Pricing() {
           rows: [
             ['Minutes included', '250', '750', '2,000', '5,000'],
             [`Price / ${perLabel}`, ...tiers.map((t) => `€${priceFor(t.monthly).toLocaleString('en-US')}`)],
+            ['Effective price / minute', ...tiers.map((t) => `€${effectivePerMinute(priceFor(t.monthly), t.minutes).toFixed(2)}`)],
             ['Overage per minute', '€0.45', '€0.39', '€0.35', '€0.30'],
           ],
         },
@@ -306,6 +331,15 @@ export default function Pricing() {
     isFr
       ? `Dépassement\u00a0: ${t.overage.toFixed(2).replace('.', ',')}\u00a0€/min au-delà des ${t.minutes.toLocaleString('fr-FR')} minutes incluses`
       : `Overage: €${t.overage.toFixed(2)}/min beyond ${t.minutes.toLocaleString('fr-FR')} included minutes`;
+
+  /* Sur la carte AUSSI, et pas seulement dans le tableau comparatif: la
+     majorité des visiteurs choisit devant les cartes et ne déroule jamais le
+     tableau. Le chiffre qui rend la grille comparable doit être là où la
+     décision se prend. */
+  const perMinuteLine = (t: Tier) =>
+    isFr
+      ? `Soit ${perMinute(t)}\u00a0la minute incluse`
+      : `That is €${effectivePerMinute(priceFor(t.monthly), t.minutes).toFixed(2)} per included minute`;
 
   const annualLine = (monthlyPrice: number) =>
     isFr
@@ -434,6 +468,7 @@ export default function Pricing() {
                     </ul>
 
                     <div className="mt-7 flex flex-wrap items-center justify-between gap-4">
+                      <p className="text-xs text-q2-graphite max-w-[420px] leading-relaxed">{perMinuteLine(tier)}</p>
                       <p className="text-xs text-q2-body max-w-[420px] leading-relaxed">{overageLine(tier)}</p>
                       {/* La période choisie voyage avec le clic: sans elle,
                           l'inscription repartait en mensuel et la remise
@@ -479,7 +514,8 @@ export default function Pricing() {
                   ))}
                 </ul>
 
-                <p className="text-xs text-q2-body mt-6 leading-relaxed">{overageLine(pro)}</p>
+                <p className="text-xs text-q2-graphite mt-6 leading-relaxed">{perMinuteLine(pro)}</p>
+                <p className="text-xs text-q2-body mt-1 leading-relaxed">{overageLine(pro)}</p>
 
                 <PillLink to={`/register?billing=${billing}`} variant="primary" size="lg" className="mt-6 w-full">
                   {pro.cta}
