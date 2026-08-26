@@ -168,3 +168,40 @@ describe('firstMessageVariants', () => {
     }
   });
 });
+
+describe('les règles de transfert, réglées par le client', () => {
+  /* « Ne me passez pas d'appel après 19 h » est la demande la plus fréquente
+     d'un indépendant, et le prompt n'avait qu'un seul comportement. */
+
+  const withMode = (mode: 'always' | 'hours' | 'never') =>
+    buildSystemPrompt({ ...profile, transferNumber: '+32470111222', transferMode: mode } as never, newCaller);
+
+  it('garde le comportement historique par défaut', () => {
+    const sans = buildSystemPrompt({ ...profile, transferNumber: '+32470111222' } as never, newCaller);
+    expect(sans).toMatch(/transferCall tout de suite/);
+    expect(sans).toBe(withMode('always'));
+  });
+
+  it("interdit le transfert en nommant l'outil à prendre À LA PLACE", () => {
+    /* Retirer la ligne au lieu de la remplacer laisserait deux instructions
+       contradictoires plus haut dans le prompt, et l'agent transférerait quand
+       même, au hasard des exécutions. */
+    const jamais = withMode('never');
+    expect(jamais).toMatch(/TRANSFERT INTERDIT/);
+    expect(jamais).toMatch(/captureLead/);
+    expect(jamais).not.toMatch(/transferCall/);
+  });
+
+  it("conditionne le transfert à l'ouverture, avec un repli explicite", () => {
+    const heures = withMode('hours');
+    expect(heures).toMatch(/SI ouvert/);
+    expect(heures).toMatch(/sinon captureLead/);
+  });
+
+  it('ne fait pas grossir le prompt, qui est rejoué à chaque tour', () => {
+    // Les trois variantes tiennent la même longueur à quelques caractères près.
+    const tailles = (['always', 'hours', 'never'] as const).map(m => withMode(m).length);
+    expect(Math.max(...tailles)).toBeLessThan(2200);
+    expect(Math.max(...tailles) - Math.min(...tailles)).toBeLessThan(30);
+  });
+});

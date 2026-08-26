@@ -58,6 +58,26 @@ export interface VapiConfigPatch {
    * jamais un message parce qu'il a coché cette case.
    */
   notificationChannel?: 'sms' | 'whatsapp';
+  /**
+   * Quand le gérant est prévenu qu'un appel a produit un lead.
+   *
+   * `urgent` par DÉFAUT, et le défaut compte ici plus que le réglage: jusqu'à
+   * présent personne n'était prévenu, donc basculer tout le monde sur `all`
+   * enverrait demain matin trente SMS au commerce qui reçoit trente appels, et
+   * il couperait la notification le jour même. `urgent` est une amélioration
+   * stricte sur le silence et ne peut noyer personne; le client monte à `all`
+   * lui-même s'il en veut plus.
+   */
+  leadAlert?: 'all' | 'urgent' | 'none';
+  /**
+   * Quand l'agent a le droit de transférer un appel.
+   *
+   * `always` est le comportement historique. `hours` ne transfère que pendant
+   * les heures d'ouverture et prend un message le reste du temps, ce qui est la
+   * demande la plus fréquente d'un indépendant: « ne me passez pas d'appel
+   * après 19 h ». `never` prend toujours un message.
+   */
+  transferMode?: 'always' | 'hours' | 'never';
 }
 
 const PERSONA_KEYS = new Set(Object.keys(PERSONALITY_PROMPTS));
@@ -186,6 +206,17 @@ export function buildVapiConfigPatch(
     // Même règle que `voiceMode`: une valeur inconnue vaut le défaut sûr plutôt
     // que d'être écrite telle quelle.
     next.notificationChannel = patch.notificationChannel === 'whatsapp' ? 'whatsapp' : 'sms';
+  }
+  if (patch.leadAlert !== undefined) {
+    // Même règle que `voiceMode`: une valeur inconnue vaut le défaut sûr.
+    next.leadAlert = ['all', 'urgent', 'none'].includes(String(patch.leadAlert))
+      ? patch.leadAlert
+      : 'urgent';
+  }
+  if (patch.transferMode !== undefined) {
+    next.transferMode = ['always', 'hours', 'never'].includes(String(patch.transferMode))
+      ? patch.transferMode
+      : 'always';
   }
   if (patch.knowledge !== undefined) {
     const src = patch.knowledge && typeof patch.knowledge === 'object' && !Array.isArray(patch.knowledge)

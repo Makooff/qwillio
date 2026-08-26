@@ -8,6 +8,7 @@ import { realtimeOrchestratorService, type VapiEvent } from '../services/voice/r
 import { callSessionStore } from '../services/voice/call-session.store';
 import { voiceMetricsService } from '../services/voice/voice-metrics.service';
 import { isVapiWebhookAuthorized } from '../utils/vapi-webhook-auth';
+import { leadAlertService, type LeadForAlert } from '../services/voice/lead-alert.service';
 
 /**
  * Streaming webhook surface for the receptionist (Phase 2.1).
@@ -211,6 +212,23 @@ export class VoiceWebhookController {
       finalized.metrics as Record<string, unknown> | null,
       finalized.billing as Record<string, unknown> | null,
     );
+
+    /* Prévenir le gérant, et le faire ICI.
+       `captureLead` s'exécute pendant que l'appelant attend une réponse: y
+       ajouter un envoi de SMS rallongerait le chemin critique pour tout le
+       monde, et le lead n'y est pas encore complet. « Immédiat » veut dire
+       quelques secondes après le raccroché, pas pendant.
+       `void` et non `await`: une alerte est un supplément. Perdre un SMS coûte
+       un rappel tardif; faire échouer cette fonction coûterait la
+       transcription, l'analyse, la mémoire et la facturation de l'appel. */
+    void leadAlertService
+      .notify({
+        clientId,
+        vapiCallId: vapiCallId ?? null,
+        lead: (finalized.metrics as { lead?: LeadForAlert | null } | null)?.lead ?? null,
+        callerNumber: finalized.callerNumber ?? null,
+      })
+      .catch(err => logger.warn(`[Voice] alerte lead non envoyée: ${err.message}`));
 
     // Caller memory last: it reads the ClientCall row the analysis just wrote.
     await realtimeOrchestratorService.persistMemory({

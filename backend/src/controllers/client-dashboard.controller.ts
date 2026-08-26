@@ -287,6 +287,12 @@ export class ClientDashboardController {
            de message sans modèle approuvé par Meta repart en SMS plutôt que de
            se perdre. L'écran doit donc le dire, pas le promettre. */
         notificationChannel: cfg.notificationChannel === 'whatsapp' ? 'whatsapp' : 'sms',
+        /* Quand le gérant est prévenu qu'un appel a produit un lead, et quand
+           l'agent a le droit de transférer. Les défauts sont renvoyés résolus
+           plutôt que vides: un bouton sans valeur laisse croire que rien n'est
+           réglé, alors que `urgent` et `always` sont bien ce qui s'applique. */
+        leadAlert: ['all', 'urgent', 'none'].includes(String(cfg.leadAlert)) ? cfg.leadAlert : 'urgent',
+        transferMode: ['always', 'hours', 'never'].includes(String(cfg.transferMode)) ? cfg.transferMode : 'always',
         /* Ce que le compte peut RÉELLEMENT faire aujourd'hui. Sans ce drapeau,
            l'écran proposerait un canal qui n'enverra jamais rien, et le client
            croirait avoir activé quelque chose. */
@@ -354,7 +360,9 @@ export class ClientDashboardController {
         body.customVoice !== undefined ||
         body.voiceMode !== undefined ||
         body.ttsProvider !== undefined ||
-        body.notificationChannel !== undefined;
+        body.notificationChannel !== undefined ||
+        body.leadAlert !== undefined ||
+        body.transferMode !== undefined;
       if (hasKnowledgeUpdate) {
         const existing = await prisma.client.findUnique({
           where: { id: req.clientId },
@@ -378,6 +386,11 @@ export class ClientDashboardController {
           voiceMode:         body.voiceMode,
           ttsProvider:       body.ttsProvider,
           notificationChannel: body.notificationChannel,
+          /* Le piège que `voiceMode` a déjà tendu une fois: un réglage validé
+             de bout en bout mais que PERSONNE ne passe ici est un réglage
+             inexistant, y compris en appelant l'API à la main. */
+          leadAlert:         body.leadAlert,
+          transferMode:      body.transferMode,
         });
       }
 

@@ -253,6 +253,10 @@ export default function ClientAccount() {
      ni modèle configurés, cocher la case n'enverrait jamais rien. Proposer un
      canal muet est pire que ne pas le proposer. */
   const [notificationChannel, setNotificationChannel] = useState<'sms' | 'whatsapp'>('sms');
+  /* QUAND on vous prévient. Le canal ci-dessus dit OÙ. `urgent` par défaut:
+     jusqu'ici personne n'était prévenu, et basculer tout le monde sur « tous »
+     enverrait trente messages par jour au commerce qui reçoit trente appels. */
+  const [leadAlert, setLeadAlert] = useState<'all' | 'urgent' | 'none'>('urgent');
   const [whatsappAvailable, setWhatsappAvailable] = useState(false);
   const [businessName, setBusinessName] = useState('');
   const [businessType, setBusinessType] = useState('');
@@ -433,6 +437,7 @@ export default function ClientAccount() {
         if (typeof notif.notifLeads  === 'boolean') setNotifLeads(notif.notifLeads);
         if (typeof notif.notifQuota  === 'boolean') setNotifQuota(notif.notifQuota);
       }
+      if (['all', 'urgent', 'none'].includes(data?.leadAlert)) setLeadAlert(data.leadAlert);
       if (data?.notificationChannel === 'whatsapp' || data?.notificationChannel === 'sms') {
         setNotificationChannel(data.notificationChannel);
       }
@@ -911,6 +916,51 @@ export default function ClientAccount() {
                         pour qu'il ne se perde jamais.
                       </p>
                     )}
+
+                    {/* QUAND vous prévenir, une fois su PAR OÙ. Posé après le
+                        canal et non avant: choisir la fréquence d'une alerte
+                        sans savoir où elle arrive ne veut rien dire. */}
+                    <div className="mt-4 pt-4" style={{ borderTop: `1px solid ${C.border}` }}>
+                      <p className="text-[13px] font-medium mb-1" style={{ color: C.text }}>
+                        Vous prévenir après un appel
+                      </p>
+                      <p className="text-[11.5px] mb-3" style={{ color: C.textTer }}>
+                        Quand un appel laisse un contact à rappeler.
+                      </p>
+                      <div className="flex flex-wrap gap-2">
+                        {([
+                          { key: 'urgent' as const, label: 'Urgents seulement' },
+                          { key: 'all' as const,    label: 'Tous les contacts' },
+                          { key: 'none' as const,   label: 'Jamais' },
+                        ]).map(opt => {
+                          const active = leadAlert === opt.key;
+                          return (
+                            <button
+                              key={opt.key}
+                              type="button"
+                              onClick={() => {
+                                const prev = leadAlert;
+                                setLeadAlert(opt.key);
+                                void api.put('/my-dashboard/settings', { leadAlert: opt.key })
+                                  .then(() => invalidateLive('/my-dashboard/'))
+                                  .catch(() => setLeadAlert(prev));
+                              }}
+                              className="h-9 px-4 rounded-xl text-[12.5px] font-medium transition-colors"
+                              style={active
+                                ? { background: 'rgba(122,95,255,0.16)', color: '#b9a8ff' }
+                                : { background: 'rgba(255,255,255,0.04)', color: C.textSec }}
+                            >
+                              {opt.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      <p className="text-[11px] mt-2.5" style={{ color: C.textTer }}>
+                        {leadAlert === 'urgent' && "Seuls les appels marqués urgents vous sont signalés tout de suite. Les autres restent dans vos contacts."}
+                        {leadAlert === 'all' && "Chaque appel qui laisse un contact vous est signalé. À éviter si vous recevez beaucoup d'appels."}
+                        {leadAlert === 'none' && "Aucune alerte. Vous consultez vos contacts quand vous le souhaitez."}
+                      </p>
+                    </div>
                   </div>
                   {([
                     { label: 'Notifications email',  desc: 'Évènements importants',   checked: notifEmail,  set: (v: boolean) => { setNotifEmail(v);  saveNotifications({ notifEmail: v, notifWeekly, notifLeads, notifQuota }); } },
