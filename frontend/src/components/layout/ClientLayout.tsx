@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Phone, Users, BarChart3, CreditCard,
-  Bot, UserCircle, HelpCircle, Target, Activity,
+  Bot, UserCircle, HelpCircle, Target, Activity, Link2,
 } from '../icons';
 import AiStatusPill from '../AiStatusPill';
 import DashboardShell, { NavItem } from './DashboardShell';
@@ -35,6 +35,7 @@ const PRIMARY_NAV: PlanNavItem[] = [
 const SETTINGS_SUB: NavItem[] = [
   { path: '/dashboard/account',  icon: UserCircle, label: 'Compte' },
   { path: '/dashboard/billing',  icon: CreditCard, label: 'Facturation' },
+  { path: '/dashboard/integrations', icon: Link2, label: 'Intégrations' },
   { path: '/dashboard/support',  icon: HelpCircle, label: 'Support' },
 ];
 
@@ -69,6 +70,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard/crm/activities': 'Activité',
   '/dashboard/account':      'Compte',
   '/dashboard/billing':      'Facturation',
+  '/dashboard/integrations': 'Intégrations',
   '/dashboard/support':      'Support',
 };
 

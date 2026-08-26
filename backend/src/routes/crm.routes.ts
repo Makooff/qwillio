@@ -1,4 +1,5 @@
 import { Router, Request, Response } from 'express';
+import { findIntegration, isConnectable, catalogueForBusinessType } from '../config/integrations';
 import { authMiddleware, clientMiddleware } from '../middleware/auth.middleware';
 import { requireCapability } from '../middleware/plan.middleware';
 import { prisma } from '../config/database';
@@ -425,6 +426,42 @@ router.post('/activities', async (req: Request, res: Response) => {
 
 // ─── CRM Integrations ────────────────────────────────────
 
+/**
+ * GET /api/crm/integrations/catalog — ce que CE client peut brancher.
+ *
+ * Filtré par son métier: une page de quarante logos ne se lit pas, et un
+ * garagiste n'a rien à faire de Doctolib. Le tri met en tête ce qui marche
+ * aujourd'hui, jamais les promesses.
+ *
+ * Chaque entrée dit son `transport`, et l'écran doit le reproduire tel quel:
+ * `native` marche, `relay` demande un scénario Make ou Zapier, `planned`
+ * n'existe pas encore. C'est la différence entre un catalogue et une vitrine.
+ */
+router.get('/integrations/catalog', async (req: Request, res: Response) => {
+  try {
+    const clientId = (req as any).clientId as string;
+
+    const [client, connected] = await Promise.all([
+      prisma.client.findUnique({ where: { id: clientId }, select: { businessType: true } }),
+      prisma.crmIntegration.findMany({
+        where: { clientId },
+        select: { provider: true, config: true, syncStatus: true, lastSync: true },
+      }),
+    ]);
+
+    const connectedIds = new Set(connected.map(row => row.provider));
+
+    const catalogue = catalogueForBusinessType(client?.businessType).map(entry => ({
+      ...entry,
+      connected: connectedIds.has(entry.id),
+    }));
+
+    res.json({ businessType: client?.businessType ?? null, integrations: catalogue });
+  } catch (error: any) {
+    res.status(500).json({ error: 'Failed to fetch integration catalog' });
+  }
+});
+
 // GET /api/crm/integrations — list connected integrations
 router.get('/integrations', async (req: Request, res: Response) => {
   try {
@@ -478,10 +515,33 @@ router.post('/integrations/:provider/connect', async (req: Request, res: Respons
      * L'URL est validée AVANT d'être enregistrée: sans ça, une adresse
      * pointant sur le réseau interne serait acceptée ici puis appelée toutes
      * les quinze minutes par le cron, depuis notre propre serveur. */
-    const URL_PROVIDERS = ['webhook', 'zapier', 'make', 'n8n', 'slack'];
+    /* Un fournisseur qu'on ne sait pas synchroniser est REFUSÉ, il n'est pas
+       enregistré « connecté ».
+       Sans ce garde, la route acceptait n'importe quelle chaîne et écrivait
+       `syncStatus: 'connected'`: le client voyait « connecté » sur une
+       intégration que `crm-sync.service.ts` ignore (`default: no sync handler,
+       skipping`), et il l'aurait découvert en cherchant ses leads chez lui.
+       Afficher « bientôt » est honnête; afficher « connecté » sur du vide ne
+       l'est pas. */
+    const entry = findIntegration(provider);
+    if (!entry) {
+      return res.status(404).json({ error: `Unknown integration "${provider}"` });
+    }
+    if (!isConnectable(provider)) {
+      return res.status(409).json({
+        error: `"${entry.name}" n'est pas encore disponible`,
+        transport: entry.transport,
+      });
+    }
+    /* Un relais se branche en collant l'URL du scénario Make, Zapier ou n8n.
+       Il est enregistré sous SON nom et non sous `webhook`: la clé unique est
+       `(clientId, provider)`, donc les ranger tous sous `webhook` n'en aurait
+       laissé brancher qu'un seul par client, le deuxième écrasant le premier
+       sans rien dire. C'est `crm-sync` qui les aiguille, via le catalogue. */
+    const needsUrl = entry.setup === 'url';
     const webhookUrl = (config as Record<string, unknown> | undefined)?.webhookUrl;
 
-    if (URL_PROVIDERS.includes(provider)) {
+    if (needsUrl) {
       if (typeof webhookUrl !== 'string' || !webhookUrl.trim()) {
         return res.status(400).json({ error: 'webhookUrl is required' });
       }
