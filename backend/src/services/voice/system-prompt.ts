@@ -221,13 +221,40 @@ export function buildSystemPrompt(
        La ligne est plus COURTE que celle qu'elle remplace (99 caractères contre
        107): le prompt est rejoué à chaque tour de modèle, et un test garde le
        total sous 2 000 caractères. */
-    lines.push(
-      t(
-        'TRANSFERT: humain, responsable ou urgence demandés → transferCall tout de suite, jamais captureLead.',
-        'TRANSFER: human, manager or emergency requested → transferCall right away, never captureLead.',
-        'DOORVERBINDEN: mens, verantwoordelijke of nood gevraagd → meteen transferCall, nooit captureLead.',
-      )
-    );
+    /* Le client décide QUAND l'agent a le droit de transférer.
+       `never` et `hours` ne suppriment pas la règle, ils la remplacent: sans
+       ligne du tout, le prompt garde deux instructions contradictoires plus
+       haut (captureLead pour ce qu'il ne peut pas satisfaire) et l'agent
+       transférerait quand même, au hasard des exécutions. Chaque variante
+       nomme donc l'outil à prendre ET celui à ne pas prendre, comme l'originale.
+       Les trois tiennent la même longueur à quelques caractères près: le prompt
+       est rejoué à chaque tour de modèle, et un test le borne. */
+    const mode = profile.transferMode ?? 'always';
+    if (mode === 'never') {
+      lines.push(
+        t(
+          'TRANSFERT INTERDIT: même si un humain est demandé → captureLead, promets un rappel.',
+          'NO TRANSFER: even if a human is asked for → captureLead, promise a call back.',
+          'NIET DOORVERBINDEN: ook als om een mens wordt gevraagd → captureLead, beloof terugbellen.',
+        )
+      );
+    } else if (mode === 'hours') {
+      lines.push(
+        t(
+          'TRANSFERT: humain ou urgence demandés → transferCall SI ouvert, sinon captureLead et rappel.',
+          'TRANSFER: human or emergency asked → transferCall IF open, otherwise captureLead and call back.',
+          'DOORVERBINDEN: mens of nood gevraagd → transferCall INDIEN open, anders captureLead en terugbellen.',
+        )
+      );
+    } else {
+      lines.push(
+        t(
+          'TRANSFERT: humain, responsable ou urgence demandés → transferCall tout de suite, jamais captureLead.',
+          'TRANSFER: human, manager or emergency requested → transferCall right away, never captureLead.',
+          'DOORVERBINDEN: mens, verantwoordelijke of nood gevraagd → meteen transferCall, nooit captureLead.',
+        )
+      );
+    }
   }
 
   if (profile.hasKnowledgeBase) {

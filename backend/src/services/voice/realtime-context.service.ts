@@ -64,6 +64,11 @@ export interface ClientVoiceProfile {
   language: 'fr' | 'en' | 'nl';
   timezone: string;
   transferNumber: string | null;
+  /**
+   * Quand l'agent a le droit de transférer: `always` (historique), `hours`
+   * (seulement pendant les heures d'ouverture), `never` (message toujours).
+   */
+  transferMode?: 'always' | 'hours' | 'never';
   /** Free-text client instructions from onboarding ("never quote prices"). */
   instructions: string | null;
   services: string[];
@@ -276,6 +281,9 @@ class RealtimeContextService {
       language,
       timezone: onboarding.timezone || (language === 'fr' ? 'Europe/Paris' : 'America/New_York'),
       transferNumber: client.transferNumber,
+      transferMode: ['always', 'hours', 'never'].includes(String(vapiConfig.transferMode))
+        ? (vapiConfig.transferMode as 'always' | 'hours' | 'never')
+        : 'always',
       instructions: onboarding.specialInstructions || onboarding.instructions || null,
       services: Array.isArray(onboarding.services) ? onboarding.services.slice(0, 12) : [],
       openingHours: onboarding.openingHours || onboarding.hours || null,

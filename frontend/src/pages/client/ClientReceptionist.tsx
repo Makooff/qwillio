@@ -285,6 +285,10 @@ export default function ClientReceptionist() {
   const [businessType, setBusinessType] = useState('');
   const [agentLanguage, setAgentLanguage] = useState('en');
   const [transferNumber, setTransferNumber] = useState('');
+  /* QUAND l'agent a le droit de passer la main à un humain. À ne pas confondre
+     avec `forwardingType`, qui décrit le renvoi configuré chez l'OPÉRATEUR,
+     donc la façon dont les appels arrivent jusqu'à nous. */
+  const [transferMode, setTransferMode] = useState<'always' | 'hours' | 'never'>('always');
   const [agentName, setAgentName] = useState('');
   const [forwardingType, setForwardingType] = useState('');
   const [googleCalendarId, setGoogleCalendarId] = useState('');
@@ -380,6 +384,7 @@ export default function ClientReceptionist() {
       setBusinessName(s?.businessName || ov.data?.client?.businessName || '');
       setBusinessType(s?.businessType || '');
       setTransferNumber(s?.transferNumber || '');
+      if (['always', 'hours', 'never'].includes(s?.transferMode)) setTransferMode(s.transferMode);
       setAgentName(s?.agentName || '');
       setAgentLanguage(s?.agentLanguage || 'en');
       setForwardingType(s?.forwardingType || '');
@@ -519,7 +524,7 @@ export default function ClientReceptionist() {
       // moindre frappe, ce que le client vient d'y saisir — par la copie que
       // cette page a chargée au montage. Une perte de données sans symptôme.
       await api.put('/my-dashboard/settings', {
-        transferNumber, agentName,
+        transferNumber, agentName, transferMode,
         forwardingType, googleCalendarId,
         items: items.filter(i => i.name.trim()),
         hours: weekHours,
@@ -538,7 +543,7 @@ export default function ClientReceptionist() {
       // the instant this call returns.
       invalidateLive('/my-dashboard/');
     } catch { /* silent — the next edit retries */ }
-  }, [transferNumber, agentName, forwardingType, googleCalendarId,
+  }, [transferNumber, agentName, transferMode, forwardingType, googleCalendarId,
       items, weekHours, faqEntries, knowledge, personalityPreset, personalityNotes, characterId, customVoice, voiceMode, ttsProvider]);
 
   // Auto-save: debounce after any edit. Skips the initial hydration from load()
@@ -1126,8 +1131,40 @@ export default function ClientReceptionist() {
               <option value="no_answer">Si pas de réponse</option>
               <option value="scheduled">Programmé (hors heures)</option>
             </select>
-            <p className="text-[10px] text-[#8B8BA7] mt-1">Quand transférer les appels à un humain</p>
+            <p className="text-[10px] text-[#8B8BA7] mt-1">Comment votre opérateur renvoie vos appels vers l'IA</p>
           </div>
+        </div>
+
+        {/* QUAND l'agent passe la main, ce qui n'est pas la même question que
+            le renvoi ci-dessus: l'un dit comment l'appel ARRIVE, l'autre ce que
+            l'agent en fait. Les deux libellés disaient la seconde chose. */}
+        <div className="mt-4">
+          <label className="text-xs text-[#8B8BA7] mb-1.5 block">Quand l'IA vous passe l'appel</label>
+          <div className="flex flex-wrap gap-2">
+            {([
+              { key: 'always' as const, label: 'Toujours',        hint: "Dès qu'un appelant demande un humain" },
+              { key: 'hours'  as const, label: 'Heures ouvrées',  hint: 'Sinon elle prend un message' },
+              { key: 'never'  as const, label: 'Jamais',          hint: 'Elle prend toujours un message' },
+            ]).map(opt => (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => setTransferMode(opt.key)}
+                className={`h-9 px-4 rounded-xl text-[12.5px] font-medium transition-colors ${
+                  transferMode === opt.key
+                    ? 'bg-[#7349fe]/15 text-[#b9a8ff]'
+                    : 'bg-white/[0.04] text-[#8B8BA7] hover:text-[#F5F5F7]'
+                }`}
+              >
+                {opt.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-[10px] text-[#8B8BA7] mt-2">
+            {transferMode === 'always' && "L'IA transfère dès qu'un appelant demande à parler à quelqu'un."}
+            {transferMode === 'hours' && "L'IA ne transfère que pendant vos heures d'ouverture. En dehors, elle prend un message et vous prévient."}
+            {transferMode === 'never' && "L'IA ne transfère jamais. Elle prend le message et vous prévient."}
+          </p>
         </div>
         {fwdVerified && transferNumber && (
           <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-400/5 border border-emerald-400/15">
