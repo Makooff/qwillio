@@ -1096,9 +1096,43 @@ export class ClientDashboardController {
     }
   }
 
-  // ── Lignes supplémentaires (multi-sites) ──────────────────────────────
-  // « Multi-sites & numéros multiples » est vendu sur Enterprise. Le numéro
-  // principal du client reste sur son enregistrement: celles-ci s'y ajoutent.
+  /* ── Les numéros du client ────────────────────────────────────────────
+   *
+   * DEUX CHOSES DIFFÉRENTES VIVENT DANS CETTE TABLE, et les confondre a coûté
+   * la fonctionnalité entière:
+   *
+   *  1. SON PROPRE NUMÉRO, celui que ses clients composent depuis toujours et
+   *     qu'il renvoie vers notre ligne. Le déclarer n'est pas une option de
+   *     confort: c'est ce qui permet au routage de reconnaître un appel renvoyé
+   *     (voir `divertedNumber`), donc ce qui rend une ligne partagée utilisable
+   *     par plusieurs clients. Sans lui, un client doit acheter et faire valider
+   *     un numéro à lui, et en attendant il reçoit un numéro américain qu'il ne
+   *     peut même pas appeler pour tester.
+   *
+   *  2. SES LIGNES SUPPLÉMENTAIRES (« Boutique Ixelles »), qui sont bien
+   *     l'option multi-sites vendue sur Enterprise.
+   *
+   * La première était barrée par le même contrôle de forfait que la seconde.
+   * C'est ce qui rendait le renvoi d'appel inopérant pour tout le monde sauf
+   * Enterprise, alors que le renvoi est justement ce qu'on demande à TOUS les
+   * clients de faire à l'installation. Le premier numéro est donc gratuit; les
+   * suivants restent l'option payante. */
+
+  /** Le forfait est exigé à partir de la DEUXIÈME ligne, pas de la première. */
+  private async requireLinePlan(req: any, res: Response): Promise<boolean> {
+    const [client, count] = await Promise.all([
+      prisma.client.findUnique({ where: { id: req.clientId }, select: { planType: true } }),
+      prisma.clientPhoneNumber.count({ where: { clientId: req.clientId } }),
+    ]);
+    if (count === 0) return true;
+    if ((client?.planType || '').toLowerCase() === 'enterprise') return true;
+    res.status(403).json({
+      error: 'plan_required',
+      message: 'Les lignes supplémentaires (multi-sites) sont incluses au forfait Enterprise. '
+        + 'Votre propre numéro, lui, reste gratuit.',
+    });
+    return false;
+  }
 
   async listPhoneNumbers(req: any, res: Response) {
     try {
@@ -1115,8 +1149,7 @@ export class ClientDashboardController {
 
   async addPhoneNumber(req: any, res: Response) {
     try {
-      const ok = await this.requireApiPlan(req, res);
-      if (!ok) return;
+      if (!(await this.requireLinePlan(req, res))) return;
 
       const number = String(req.body?.number || '').trim();
       /* Au moins huit chiffres, comme le routage entrant: en accepter moins
