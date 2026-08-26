@@ -2,6 +2,7 @@ import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { env } from '../config/env';
 import { getPrompt, type Lang } from './prompt-loader.service';
+import { tenantWhere, type TenantScope } from './tenant-scope';
 
 interface DiscoverOpts {
   clientId: string;
@@ -156,8 +157,10 @@ export class AgentLeadGenService {
     return { activityId: activity.id, output };
   }
 
-  async sendNextStep(activityId: string) {
-    const activity = await prisma.agentLeadGenActivity.findUnique({ where: { id: activityId } });
+  async sendNextStep(activityId: string, scope: TenantScope) {
+    const activity = await prisma.agentLeadGenActivity.findFirst({
+      where: { id: activityId, ...tenantWhere(scope) },
+    });
     if (!activity) throw new Error('Activity not found');
     const sequence = (activity.content as any)?.touches as SequenceTouch[] | undefined;
     if (!sequence || sequence.length === 0) throw new Error('No sequence to send');

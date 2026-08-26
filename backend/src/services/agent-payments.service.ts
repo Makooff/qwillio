@@ -4,6 +4,7 @@ import { logger } from '../config/logger';
 import { resend } from '../config/resend';
 import { env } from '../config/env';
 import { stripe } from '../config/stripe';
+import { tenantWhere, type TenantScope } from './tenant-scope';
 
 // ═══════════════════════════════════════════════════════════
 // Types
@@ -83,10 +84,14 @@ export class AgentPaymentsService {
   // SEND INVOICE
   // ═══════════════════════════════════════════
 
-  async sendInvoice(invoiceId: string) {
+  async sendInvoice(invoiceId: string, scope: TenantScope) {
     try {
-      const invoice = await prisma.agentInvoice.findUnique({
-        where: { id: invoiceId },
+      /* `findFirst` avec la portée, et non `findUnique` par identifiant seul:
+         cette méthode ENVOIE un email au client final. Sans cloisonnement,
+         n'importe quel locataire pouvait déclencher l'envoi de la facture d'un
+         autre, à son propre client. */
+      const invoice = await prisma.agentInvoice.findFirst({
+        where: { id: invoiceId, ...tenantWhere(scope) },
         include: { client: true },
       });
 
@@ -141,8 +146,17 @@ export class AgentPaymentsService {
   // MARK PAID
   // ═══════════════════════════════════════════
 
-  async markPaid(invoiceId: string) {
+  async markPaid(invoiceId: string, scope: TenantScope) {
     try {
+      /* Vérifier AVANT d'écrire: `update({ where: { id } })` marquait payée la
+         facture de n'importe quel locataire. C'est une donnée financière, et
+         c'était la seule des dix routes qui écrivait sans même lire d'abord. */
+      const owned = await prisma.agentInvoice.findFirst({
+        where: { id: invoiceId, ...tenantWhere(scope) },
+        select: { id: true },
+      });
+      if (!owned) throw new Error(`Invoice ${invoiceId} not found`);
+
       const invoice = await prisma.agentInvoice.update({
         where: { id: invoiceId },
         data: {

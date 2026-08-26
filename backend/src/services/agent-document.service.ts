@@ -2,6 +2,7 @@ import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { env } from '../config/env';
 import { getPrompt, type Lang } from './prompt-loader.service';
+import { tenantWhere, type TenantScope } from './tenant-scope';
 
 interface LineItem {
   description: string;
@@ -123,8 +124,11 @@ export class AgentDocumentService {
     return { activityId: activity.id, output };
   }
 
-  async sendForSignature(activityId: string) {
-    const doc = await prisma.agentDocumentActivity.findUnique({ where: { id: activityId } });
+  async sendForSignature(activityId: string, scope: TenantScope) {
+    // Scopé: cette méthode ENVOIE le document à un destinataire externe.
+    const doc = await prisma.agentDocumentActivity.findFirst({
+      where: { id: activityId, ...tenantWhere(scope) },
+    });
     if (!doc) throw new Error('Document not found');
     if (!doc.recipientEmail) throw new Error('No recipient email on this document');
 
@@ -139,7 +143,16 @@ export class AgentDocumentService {
     });
   }
 
-  async markSigned(activityId: string) {
+  async markSigned(activityId: string, scope: TenantScope) {
+    /* Vérifier l'appartenance AVANT d'écrire. Sans cette lecture, la route
+       agissait sur l'activité de n'importe quel locataire: l'identifiant seul
+       n'est pas un droit d'accès, il fuit par les URL, les exports et les
+       journaux. */
+    const owned = await prisma.agentDocumentActivity.findFirst({
+      where: { id: activityId, ...tenantWhere(scope) },
+      select: { id: true },
+    });
+    if (!owned) throw new Error('Document not found');
     return prisma.agentDocumentActivity.update({
       where: { id: activityId },
       data: {

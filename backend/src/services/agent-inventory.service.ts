@@ -4,6 +4,7 @@ import { resend } from '../config/resend';
 import { env } from '../config/env';
 import { discordService } from './discord.service';
 import { Decimal } from '@prisma/client/runtime/library';
+import { tenantWhere, type TenantScope } from './tenant-scope';
 
 const REORDER_COOLDOWN_DAYS = 7;
 
@@ -13,10 +14,12 @@ export class AgentInventoryService {
   // RECORD USAGE — Decrement stock
   // ═══════════════════════════════════════════
 
-  async recordUsage(inventoryId: string, quantity: number, note?: string) {
-    const item = await prisma.agentInventory.findUniqueOrThrow({
-      where: { id: inventoryId },
+  async recordUsage(inventoryId: string, scope: TenantScope, quantity: number, note?: string) {
+    // `findFirst` scopé: sans lui, un locataire décrémentait le stock d'un autre.
+    const item = await prisma.agentInventory.findFirst({
+      where: { id: inventoryId, ...tenantWhere(scope) },
     });
+    if (!item) throw new Error(`Inventory item ${inventoryId} not found`);
 
     const currentQty = Number(item.quantity);
     if (quantity > currentQty) {
@@ -51,10 +54,11 @@ export class AgentInventoryService {
   // RECORD RESTOCK — Increment stock
   // ═══════════════════════════════════════════
 
-  async recordRestock(inventoryId: string, quantity: number, note?: string) {
-    const item = await prisma.agentInventory.findUniqueOrThrow({
-      where: { id: inventoryId },
+  async recordRestock(inventoryId: string, scope: TenantScope, quantity: number, note?: string) {
+    const item = await prisma.agentInventory.findFirst({
+      where: { id: inventoryId, ...tenantWhere(scope) },
     });
+    if (!item) throw new Error(`Inventory item ${inventoryId} not found`);
 
     const newQty = Number(item.quantity) + quantity;
 

@@ -2,6 +2,7 @@ import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { env } from '../config/env';
 import { getPrompt, type Lang } from './prompt-loader.service';
+import { tenantWhere, type TenantScope } from './tenant-scope';
 
 interface ClassifyOpts {
   clientId: string;
@@ -89,7 +90,16 @@ export class AgentSupportService {
     return { activityId: activity.id, output };
   }
 
-  async sendReply(activityId: string) {
+  async sendReply(activityId: string, scope: TenantScope) {
+    /* Vérifier l'appartenance AVANT d'écrire. Sans cette lecture, la route
+       agissait sur l'activité de n'importe quel locataire: l'identifiant seul
+       n'est pas un droit d'accès, il fuit par les URL, les exports et les
+       journaux. */
+    const owned = await prisma.agentSupportActivity.findFirst({
+      where: { id: activityId, ...tenantWhere(scope) },
+      select: { id: true },
+    });
+    if (!owned) throw new Error('Activity not found');
     return prisma.agentSupportActivity.update({
       where: { id: activityId },
       data: { status: 'sent', performedAt: new Date() },
