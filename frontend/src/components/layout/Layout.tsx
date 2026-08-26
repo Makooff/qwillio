@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, Phone, Zap, Settings, ExternalLink,
+  LayoutDashboard, Users, Phone, Zap, Settings, ExternalLink, FlaskConical,
 } from '../icons';
 import { t } from '../../styles/admin-theme';
 import CommandPalette from '../ui/CommandPalette';
@@ -12,6 +12,7 @@ const PRIMARY_NAV: NavItem[] = [
   { path: '/admin/leads',    icon: Zap,             label: 'Leads' },
   { path: '/admin/calls',    icon: Phone,           label: 'Appels' },
   { path: '/admin/clients',  icon: Users,           label: 'Clients' },
+  { path: '/admin/lab',      icon: FlaskConical,    label: 'Banc d\'essai' },
   { path: '/admin/settings', icon: Settings,        label: 'Paramètres' },
 ];
 
@@ -28,6 +29,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin/leads':    'Leads',
   '/admin/calls':    'Appels',
   '/admin/clients':  'Clients',
+  '/admin/lab':      "Banc d'essai",
   '/admin/settings': 'Paramètres',
   // sub-routes that still exist
   '/admin/billing':  'Facturation',
@@ -67,6 +69,8 @@ export default function Layout() {
         const shortcuts: Record<string, string> = {
           o: '/admin', c: '/admin/clients', l: '/admin/leads',
           p: '/admin/agents', a: '/admin/calls', b: '/admin/settings',
+          // `g` puis `e` pour « essai »: `l` et `b` sont déjà pris.
+          e: '/admin/lab',
         };
         if (shortcuts[e.key]) navigate(shortcuts[e.key]);
         lastKey = '';

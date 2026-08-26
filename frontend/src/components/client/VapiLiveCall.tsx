@@ -401,6 +401,7 @@ export default function VapiLiveCall({
    * la largeur, c'est-à-dire sur sa propre ligne.
    */
   onError,
+  onConfig,
   autoStart = false,
   onEnded,
 }: {
@@ -412,6 +413,15 @@ export default function VapiLiveCall({
   showBars?: boolean;
   variant?: 'card' | 'pill';
   onError?: (message: string | null, detail: string | null) => void;
+  /**
+   * La configuration BRUTE, remontée au parent dès qu'elle arrive.
+   *
+   * Le banc d'essai admin en a besoin: le serveur y renvoie l'identifiant de
+   * session (qui relie l'appel au moniteur) et le moteur RÉELLEMENT retenu, que
+   * l'écran ne peut pas déduire du réglage demandé sans mentir le jour où une
+   * voix clonée l'emporte. Optionnel: personne d'autre ne s'en sert.
+   */
+  onConfig?: (config: any) => void;
   autoStart?: boolean;
   onEnded?: () => void;
 }) {
@@ -588,8 +598,8 @@ export default function VapiLiveCall({
       ? api.post(endpoint, JSON.parse(bodyKey)).then(r => r.data)
       : loadLiveConfig(endpoint);
     configRef.current = load;
-    load.then(d => { configValueRef.current = d; }).catch(() => undefined);
-  }, [endpoint, bodyKey]);
+    load.then(d => { configValueRef.current = d; onConfig?.(d); }).catch(() => undefined);
+  }, [endpoint, bodyKey, onConfig]);
 
   useEffect(() => {
     sdkRef.current = loadVapiSdk();

@@ -92,6 +92,66 @@ export interface SpeechOptions {
   fallbacks?: boolean;
 }
 
+/**
+ * Les réglages de rendu, RENDUS PARAMÉTRABLES.
+ *
+ * Jusqu'ici chacun de ces curseurs se lisait directement dans `env`, donc
+ * l'essayer demandait de poser une variable sur Render et d'attendre un
+ * redéploiement. Deux moteurs ne se comparent pas comme ça: on compare deux
+ * souvenirs séparés d'un quart d'heure.
+ *
+ * Un champ absent vaut la valeur d'environnement, ce qui garantit que la
+ * production ne change pas d'un iota tant que personne ne passe rien: c'est la
+ * condition pour que ce banc d'essai ne coûte rien à ceux qui ne s'en servent
+ * pas.
+ */
+export interface VoiceTuning {
+  ttsModel?: string;
+  cartesiaModel?: string;
+  speed?: number;
+  styleCap?: number;
+  minChunkChars?: number;
+  bargeInWords?: number;
+  bargeInVoiceSeconds?: number;
+  backoffSeconds?: number;
+  silenceTimeout?: number;
+  realtimeModel?: string;
+  llmModel?: string;
+  temperature?: number;
+}
+
+/**
+ * Les bornes, appliquées ICI et pas à l'écran.
+ *
+ * Un banc d'essai qui accepte n'importe quel nombre fabrique des assistants que
+ * Vapi rejette, et l'essai échoue alors pour une raison qui n'a rien à voir
+ * avec ce qu'on voulait entendre. Les bornes sont donc celles du domaine, pas
+ * celles d'un champ de formulaire.
+ */
+const clamp = (v: number | undefined, lo: number, hi: number, fallback: number): number =>
+  typeof v === 'number' && Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : fallback;
+
+export function resolveTuning(t: VoiceTuning = {}) {
+  return {
+    ttsModel: t.ttsModel || env.VOICE_TTS_MODEL,
+    cartesiaModel: t.cartesiaModel || env.CARTESIA_MODEL,
+    speed: clamp(t.speed, 0.8, 1.2, env.VOICE_SPEECH_SPEED),
+    styleCap: clamp(t.styleCap, 0, 1, env.VOICE_TTS_STYLE_CAP),
+    minChunkChars: Math.round(clamp(t.minChunkChars, 10, 200, env.VOICE_TTS_MIN_CHUNK_CHARS)),
+    bargeInWords: Math.round(clamp(t.bargeInWords, 0, 5, env.VOICE_BARGE_IN_WORDS)),
+    bargeInVoiceSeconds: clamp(t.bargeInVoiceSeconds, 0.1, 1.5, env.VOICE_BARGE_IN_VOICE_SECONDS),
+    backoffSeconds: clamp(t.backoffSeconds, 0.3, 3, env.VOICE_BARGE_IN_BACKOFF_SECONDS),
+    // Le plancher de 10 s vient de `env.ts`: en dessous, la réceptionniste
+    // raccroche au nez de quelqu'un qui réfléchit.
+    silenceTimeout: Math.round(clamp(t.silenceTimeout, 10, 120, env.VAPI_SILENCE_TIMEOUT)),
+    realtimeModel: t.realtimeModel || env.VOICE_REALTIME_MODEL,
+    llmModel: t.llmModel || env.VAPI_MODEL,
+    temperature: clamp(t.temperature, 0, 1.2, 0.6),
+  };
+}
+
+export type ResolvedTuning = ReturnType<typeof resolveTuning>;
+
 export function buildTranscriber(lang: VoiceLanguage, opts: SpeechOptions = {}) {
   return {
     provider: 'deepgram',
@@ -199,21 +259,21 @@ export function buildStartSpeakingPlan(lang: VoiceLanguage) {
  * en temps réel aussi, sans réintroduire l'attente de mots qui rendait la
  * réceptionniste sourde.
  */
-export function buildRealtimeStopSpeakingPlan() {
+export function buildRealtimeStopSpeakingPlan(tuning: ResolvedTuning = resolveTuning()) {
   return {
     /* 0 explicitement: c'est le chemin « énergie seule », le seul disponible
        sans transcripteur. Ce n'est pas un oubli de `VOICE_BARGE_IN_WORDS`. */
     numWords: 0,
-    voiceSeconds: env.VOICE_BARGE_IN_VOICE_SECONDS,
-    backoffSeconds: env.VOICE_BARGE_IN_BACKOFF_SECONDS,
+    voiceSeconds: tuning.bargeInVoiceSeconds,
+    backoffSeconds: tuning.backoffSeconds,
   };
 }
 
-export function buildStopSpeakingPlan() {
+export function buildStopSpeakingPlan(tuning: ResolvedTuning = resolveTuning()) {
   return {
-    numWords: env.VOICE_BARGE_IN_WORDS,
-    voiceSeconds: env.VOICE_BARGE_IN_VOICE_SECONDS,
-    backoffSeconds: env.VOICE_BARGE_IN_BACKOFF_SECONDS,
+    numWords: tuning.bargeInWords,
+    voiceSeconds: tuning.bargeInVoiceSeconds,
+    backoffSeconds: tuning.backoffSeconds,
     acknowledgementPhrases: [
       'i understand', 'ok', 'okay', 'right', 'yeah', 'yes', 'uh-huh', 'mm-hmm',
       'd\'accord', 'ouais', 'oui', 'hm', 'mhm', 'je vois', 'très bien',
@@ -270,11 +330,11 @@ export function resolveVoiceTuning(opts: {
   stability?: number;
   similarityBoost?: number;
   style?: number;
-}) {
+}, styleCap: number = env.VOICE_TTS_STYLE_CAP) {
   return {
     stability: Math.max(0.35, opts.stability ?? 0.45),
     similarityBoost: opts.similarityBoost ?? 0.65,
-    style: Math.min(env.VOICE_TTS_STYLE_CAP, opts.style ?? 0.4),
+    style: Math.min(styleCap, opts.style ?? 0.4),
   };
 }
 
@@ -285,10 +345,10 @@ export function resolveVoiceTuning(opts: {
  * rendu que les deux acceptent, et le laisser en double aurait fait diverger
  * deux copies de la même décision.
  */
-function buildChunkPlan() {
+function buildChunkPlan(tuning: ResolvedTuning = resolveTuning()) {
   return {
     enabled: true,
-    minCharacters: env.VOICE_TTS_MIN_CHUNK_CHARS,
+    minCharacters: tuning.minChunkChars,
     // Only the boundaries Vapi accepts. An em dash and an ellipsis look like
     // obvious sentence breaks and are not on the list, and one unknown value
     // rejects the entire assistant:
@@ -361,13 +421,16 @@ export function buildVoice(opts: {
   voiceProvider?: 'cartesia';
   /** La synthèse choisie pour ce client. Absente, on suit le réglage global. */
   ttsProvider?: '11labs' | 'cartesia';
+  /** Les curseurs de rendu. Absents, ce sont ceux de l'environnement. */
+  tuning?: VoiceTuning;
 }) {
+  const tuning = resolveTuning(opts.tuning);
   const cartesiaVoiceId = useCartesia(opts);
   if (cartesiaVoiceId) {
     return {
       provider: 'cartesia',
       voiceId: cartesiaVoiceId,
-      model: env.CARTESIA_MODEL,
+      model: tuning.cartesiaModel,
       language: CARTESIA_LANG[opts.lang ?? 'fr'],
       /* Les champs ElevenLabs (stability, style, similarityBoost, speed,
          useSpeakerBoost) N'EXISTENT PAS sur ce bloc, et Vapi rejette
@@ -390,7 +453,7 @@ export function buildVoice(opts: {
         voices: (opts.voiceProvider === 'cartesia'
           ? [env.VAPI_VOICE_FALLBACK_1, env.VAPI_VOICE_FALLBACK_2]
           : [opts.voiceId, env.VAPI_VOICE_FALLBACK_1]
-        ).map(voiceId => ({ provider: '11labs', voiceId, model: env.VOICE_TTS_MODEL })),
+        ).map(voiceId => ({ provider: '11labs', voiceId, model: tuning.ttsModel })),
       },
     };
   }
@@ -398,16 +461,16 @@ export function buildVoice(opts: {
   return {
     provider: '11labs',
     voiceId: opts.voiceId,
-    model: env.VOICE_TTS_MODEL,
-    ...resolveVoiceTuning(opts),
+    model: tuning.ttsModel,
+    ...resolveVoiceTuning(opts, tuning.styleCap),
     useSpeakerBoost: true,
     optimizeStreamingLatency: env.VAPI_OPTIMIZE_LATENCY,
-    speed: env.VOICE_SPEECH_SPEED,
-    chunkPlan: buildChunkPlan(),
+    speed: tuning.speed,
+    chunkPlan: buildChunkPlan(tuning),
     fallbackPlan: {
       voices: [
-        { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_1, model: env.VOICE_TTS_MODEL },
-        { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_2, model: env.VOICE_TTS_MODEL },
+        { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_1, model: tuning.ttsModel },
+        { provider: '11labs', voiceId: env.VAPI_VOICE_FALLBACK_2, model: tuning.ttsModel },
       ],
     },
   };
@@ -501,7 +564,10 @@ export function buildSpeech(opts: {
   temperature?: number;
   /** Voir `SpeechOptions`: `false` sur les appels navigateur. */
   fallbacks?: boolean;
+  /** Les curseurs de rendu. Absents, ce sont ceux de l'environnement. */
+  tuning?: VoiceTuning;
 }): { model: any; voice: any; speechToSpeech: boolean } {
+  const tuning = resolveTuning(opts.tuning);
   const speechToSpeech = useSpeechToSpeech({
     hasCustomVoice: opts.hasCustomVoice,
     clonedVoice: opts.character.voiceCloned,
@@ -513,8 +579,8 @@ export function buildSpeech(opts: {
       speechToSpeech,
       model: {
         provider: 'openai',
-        model: env.VOICE_REALTIME_MODEL,
-        temperature: opts.temperature ?? 0.6,
+        model: tuning.realtimeModel,
+        temperature: opts.temperature ?? tuning.temperature,
         maxTokens: env.VOICE_MAX_COMPLETION_TOKENS,
         messages: [{ role: 'system', content: opts.systemPrompt }],
         tools: opts.tools,
@@ -529,8 +595,8 @@ export function buildSpeech(opts: {
       ...(opts.customLlmUrl
         ? { provider: 'custom-llm', url: opts.customLlmUrl }
         : { provider: 'openai' }),
-      model: env.VAPI_MODEL,
-      temperature: opts.temperature ?? 0.6,
+      model: tuning.llmModel,
+      temperature: opts.temperature ?? tuning.temperature,
       // Cap the completion: a receptionist turn that runs past ~60 tokens is
       // a monologue, and long completions are the other half of TTS latency.
       maxTokens: env.VOICE_MAX_COMPLETION_TOKENS,
@@ -558,6 +624,7 @@ export function buildSpeech(opts: {
       cloned: opts.character.voiceCloned,
       voiceProvider: opts.character.voiceProvider,
       ttsProvider: opts.ttsProvider,
+      tuning: opts.tuning,
     }),
   };
 }
@@ -599,7 +666,13 @@ export function buildBackchannelPlan(lang: VoiceLanguage) {
  * outbound call overrides. Everything here is latency- or interruption-related;
  * business config (prompt, tools, first message) is layered on by the caller.
  */
-export function buildRealtimePlans(lang: VoiceLanguage, speechToSpeech = false, opts: SpeechOptions = {}) {
+export function buildRealtimePlans(
+  lang: VoiceLanguage,
+  speechToSpeech = false,
+  opts: SpeechOptions = {},
+  rawTuning: VoiceTuning = {},
+) {
+  const tuning = resolveTuning(rawTuning);
   return {
     /* Le modèle parole-à-parole entend l'audio lui-même: lui adjoindre un
        transcripteur, c'est payer une étape dont plus personne ne lit la
@@ -634,11 +707,11 @@ export function buildRealtimePlans(lang: VoiceLanguage, speechToSpeech = false, 
              répondre appartient au modèle. Le moment de SE TAIRE, lui, se
              mesure sur l'audio, et le laisser au défaut de Vapi (0,2 s) est
              précisément ce qui la fait taire au moindre bruit. */
-          stopSpeakingPlan: buildRealtimeStopSpeakingPlan(),
+          stopSpeakingPlan: buildRealtimeStopSpeakingPlan(tuning),
         }
       : {
           startSpeakingPlan: buildStartSpeakingPlan(lang),
-          stopSpeakingPlan: buildStopSpeakingPlan(),
+          stopSpeakingPlan: buildStopSpeakingPlan(tuning),
         }),
     backchannelingEnabled: env.VOICE_BACKCHANNEL_ENABLED,
     // No backchannelPlan here. Vapi rejects the whole assistant with
@@ -653,7 +726,7 @@ export function buildRealtimePlans(lang: VoiceLanguage, speechToSpeech = false, 
     // for the model to be primed.
     firstMessageMode: 'assistant-speaks-first',
     backgroundDenoisingEnabled: true,
-    silenceTimeoutSeconds: env.VAPI_SILENCE_TIMEOUT,
+    silenceTimeoutSeconds: tuning.silenceTimeout,
     maxDurationSeconds: env.VAPI_MAX_DURATION,
   };
 }
