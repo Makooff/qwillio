@@ -13,6 +13,7 @@ import { adminClientsService } from '../services/admin-clients.service';
 import { emailService } from '../services/email.service';
 import { smsService } from '../services/sms.service';
 import { smsTemplates } from '../services/sms-templates';
+import { callSessionStore } from '../services/voice/call-session.store';
 
 const router = Router();
 
@@ -692,6 +693,14 @@ router.get('/system', async (_req: Request, res: Response) => {
       uptime: process.uptime(),
       nodeVersion: process.version,
       env: process.env.NODE_ENV,
+      /* Appels simultanés, avec les identifiants: cette route est derrière
+         `authMiddleware` + `adminMiddleware`, contrairement au point de santé
+         des webhooks qui n'en reçoit que la forme anonyme.
+         Le compte n'est vrai que pour CETTE instance: avec plusieurs instances
+         Render, chacune ne voit que ses propres appels. C'est suffisant pour
+         répondre à « une ligne a-t-elle déjà sonné occupé », qui est la question
+         posée, et ça ne coûte aucune écriture sur le chemin de l'appel. */
+      voiceConcurrency: callSessionStore.concurrency(),
     });
   } catch (err: any) {
     logger.error('[API] System error:', err);
