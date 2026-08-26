@@ -218,3 +218,43 @@ describe('parole-à-parole', () => {
     expect(classic.model.url).toBe('https://api.example.com/llm');
   });
 });
+
+
+/**
+ * Le mode direct ne s'établit pas, et ces deux tests épinglent les gardes
+ * posées pendant qu'on cherche pourquoi.
+ *
+ * Constaté le 25/08 sur un appareil où le mode classique fonctionne dans la
+ * même minute, avec le même micro et le même navigateur.
+ */
+describe('temps réel hors service — les gardes', () => {
+  it("`auto` NE résout PLUS en temps réel par défaut", async () => {
+    /* C'est le point grave: avec l'ancien défaut, `auto` valait temps réel, et
+       tous les clients sont en `auto`. Le moteur qui ne se connecte pas était
+       donc celui de TOUS les appels entrants réels, sans que personne ne l'ait
+       choisi. Un moteur qui échoue à s'établir ne peut pas être le défaut. */
+    const { useSpeechToSpeech } = await load({});
+    delete process.env.VOICE_SPEECH_TO_SPEECH;
+    const fresh = await load({});
+    expect(fresh.useSpeechToSpeech({ voiceMode: 'auto' })).toBe(false);
+    // Le choix EXPLICITE reste possible: c'est ce qui permet de le réparer.
+    expect(useSpeechToSpeech({ voiceMode: 'realtime' })).toBe(true);
+  });
+
+  it("le plan d'interruption temps réel se coupe sans redéploiement", async () => {
+    /* Second suspect, et il est de nous: la seule présence d'un
+       `stopSpeakingPlan` peut faire prendre le tour de parole à
+       l'orchestration de Vapi plutôt qu'au modèle, qui est le seul à entendre
+       l'audio en parole-à-parole. Les deux hypothèses doivent se tester une à
+       la fois, sans déploiement entre les deux essais. */
+    const on = await load({ VOICE_REALTIME_STOP_PLAN: 'on' });
+    expect((on.buildRealtimePlans('fr', true) as any).stopSpeakingPlan).toBeDefined();
+
+    const off = await load({ VOICE_REALTIME_STOP_PLAN: 'off' });
+    const plans = off.buildRealtimePlans('fr', true) as any;
+    expect(plans.stopSpeakingPlan).toBeUndefined();
+    expect(plans.startSpeakingPlan).toBeUndefined();
+    // Ce qui ne dépend pas du transcripteur reste servi dans les deux cas.
+    expect(plans.silenceTimeoutSeconds).toBeDefined();
+  });
+});

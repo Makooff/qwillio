@@ -627,7 +627,7 @@ export function buildRealtimePlans(lang: VoiceLanguage, speechToSpeech = false, 
        je ne parle pas ». On envoie donc, en parole-à-parole, la partie du plan
        qui s'entend, et rien de ce qui se compte. */
     ...(speechToSpeech
-      ? {
+      ? !env.VOICE_REALTIME_STOP_PLAN ? {} : {
           /* Ce qui reste envoyable sans transcripteur: le seuil de bruit.
              `startSpeakingPlan` n'a pas d'équivalent, il est fait de règles de
              ponctuation et de fin de phrase; en parole-à-parole, le moment de

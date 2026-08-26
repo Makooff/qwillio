@@ -286,7 +286,24 @@ export const env = {
    * Mis à 'off' dans Render, tout retombe sur ElevenLabs sans redéploiement:
    * c'est le seul interrupteur à connaître si le rendu déplaît ou si la minute
    * coûte trop cher. */
-  VOICE_SPEECH_TO_SPEECH: (process.env.VOICE_SPEECH_TO_SPEECH || 'on').toLowerCase() !== 'off',
+  /* LE DÉFAUT PASSE À 'off', ET CE N'EST PAS UN CHOIX ESTHÉTIQUE.
+   *
+   * Avec 'on' et aucune surtaxe posée, `auto` résolvait en TEMPS RÉEL. Or tous
+   * les clients sont en `auto`: le temps réel était donc le moteur de tous les
+   * appels entrants réels, sans que personne ne l'ait choisi.
+   *
+   * Et ce moteur ne se connecte pas. Constaté le 25/08 sur l'appel de test,
+   * depuis un appareil où le mode classique fonctionne dans la même minute,
+   * avec le même micro et le même navigateur: « en direct il ne m'entend pas ».
+   * Un moteur qui échoue à s'établir ne peut pas être celui par défaut, et ça
+   * explique peut-être pourquoi `fleetMetrics` n'a jamais compté un seul appel
+   * abouti.
+   *
+   * `auto` vaut donc « classique » tant que le temps réel n'a pas réussi un
+   * vrai appel. Le choisir explicitement reste possible, c'est ce qui permet de
+   * le réparer. Remettre 'on' est un set d'environnement, à faire le jour où il
+   * marche. */
+  VOICE_SPEECH_TO_SPEECH: (process.env.VOICE_SPEECH_TO_SPEECH || 'off').toLowerCase() !== 'off',
   /**
    * Supplément facturé à la minute pour le mode parole-à-parole, en euros.
    *
@@ -301,7 +318,42 @@ export const env = {
    * la rend explicitement choisie.
    */
   VOICE_REALTIME_SURCHARGE_EUR: Math.max(0, parseFloat(process.env.VOICE_REALTIME_SURCHARGE_EUR || '0') || 0),
-  VOICE_REALTIME_MODEL: process.env.VOICE_REALTIME_MODEL || 'gpt-realtime-2025-08-28',
+  /**
+   * LE DÉFAUT CHANGE AUSSI, et c'est le premier suspect de la panne ci-dessus.
+   *
+   * `gpt-realtime-2025-08-28` est un instantané d'août 2025. `.env.example`
+   * signalait déjà qu'il avait deux générations de retard, et personne ne l'a
+   * jamais bougé. OpenAI a publié `gpt-realtime-2.1` en juillet 2026, avec
+   * 25 % de latence p95 en moins et, mot pour mot dans leur note, une
+   * meilleure gestion du silence et du bruit et des interruptions plus fiables
+   * quand l'utilisateur parle par dessus le modèle: c'est la description
+   * littérale des défauts signalés ici depuis une semaine.
+   *
+   * Un modèle refusé fait échouer l'assistant ENTIER, et la branche temps réel
+   * n'a pas de secours. C'est pourquoi ce défaut n'avait pas bougé jusqu'ici.
+   * Il bouge maintenant parce que le risque a changé de camp: `auto` ne résout
+   * plus en temps réel (voir juste au dessus), donc seul quelqu'un qui le
+   * choisit explicitement l'atteint, et ce quelqu'un est en train d'essayer de
+   * le réparer.
+   */
+  VOICE_REALTIME_MODEL: process.env.VOICE_REALTIME_MODEL || 'gpt-realtime-2.1',
+  /**
+   * Envoie-t-on un plan d'interruption en parole-à-parole ?
+   *
+   * Le SECOND suspect, et il est de moi. La correction du 23/08 avait retiré
+   * les deux plans de parole en temps réel, au motif qu'ils comptent des mots
+   * sans transcripteur. Je n'en ai remis qu'un, en jugeant que `voiceSeconds`
+   * et `backoffSeconds` se mesurent sur l'audio et n'ont besoin de rien. Ce
+   * raisonnement est peut-être faux: la seule présence d'un `stopSpeakingPlan`
+   * peut faire prendre le tour de parole à l'orchestration de Vapi plutôt qu'à
+   * la détection propre du modèle, qui elle est la seule à entendre l'audio.
+   *
+   * L'interrupteur existe pour que les deux hypothèses se testent SÉPARÉMENT,
+   * une variable à la fois, sans redéployer entre les deux essais. Défaut: on
+   * garde le comportement actuel, pour ne changer qu'une chose à ce
+   * déploiement-ci.
+   */
+  VOICE_REALTIME_STOP_PLAN: (process.env.VOICE_REALTIME_STOP_PLAN || 'on').toLowerCase() !== 'off',
   /** Cap on a single assistant turn; long completions are long silences. */
   VOICE_MAX_COMPLETION_TOKENS: parseInt(process.env.VOICE_MAX_COMPLETION_TOKENS || '120', 10),
   /** How long a running tool waits before the second filler line fires. */
