@@ -12,7 +12,7 @@ import { greetingAudioService } from './voice/greeting-audio.service';
 import { toE164 } from '../utils/phone';
 import { resolveNiche } from '../config/niches';
 import { knowledgePreset } from '../config/knowledge-presets';
-import { allocateInboundNumber } from './voice/phone-allocation.service';
+import { phoneSetupService } from './voice/phone-setup.service';
 import { clientPortalUrl } from '../utils/urls';
 
 const MAX_RETRIES = 3;
@@ -116,41 +116,21 @@ export class OnboardingService {
          fort: c'est un numéro à acheter, pas une panne à découvrir par un
          appelant. Le reste de son installation (assistant, portail, sortant)
          fonctionne. */
-      const allocation = await allocateInboundNumber(clientId);
-      let sharedPhoneNumber = allocation.kind === 'allocated' ? allocation.number : null;
-      let sharedPhoneNumberId = allocation.kind === 'allocated' ? allocation.numberId : null;
+      const line = await phoneSetupService.ensureLine(clientId, assistant.id);
+      const effectivePhoneNumber = line.number ?? client.vapiPhoneNumber ?? null;
 
-      /* Ligne partagée indisponible: tentative d'ACHAT automatique, derrière
-         PHONE_AUTO_PROVISION=1 (off par défaut — un achat est une dépense,
-         voir phone-provisioning.service). En échec ou flag off, on retombe
-         sur le chemin existant: alerte + achat manuel. */
-      if (allocation.kind === 'none') {
-        const { autoProvisionNumber } = await import('./voice/phone-provisioning.service');
-        const bought = await autoProvisionNumber(clientId, assistant.id);
-        if (bought) {
-          sharedPhoneNumber = bought.number;
-          sharedPhoneNumberId = bought.numberId;
-          await discordService.notify(
-            `📞 NUMÉRO PROVISIONNÉ AUTOMATIQUEMENT\n\nClient: ${client.businessName}\nNuméro: ${bought.number}`,
-          );
-        }
-      }
-
-      /* Ce que le client A vraiment au bout du compte: la ligne attribuee, ou
-         celle qu'un exploitant a deja posee a la main sur sa fiche. C'est cette
-         valeur-la qui part dans l'email et dans l'alerte. */
-      const effectivePhoneNumber = sharedPhoneNumber ?? client.vapiPhoneNumber ?? null;
-
-      if (sharedPhoneNumber) {
-        logger.info(`Ligne entrante attribuée: ${sharedPhoneNumber}`);
-      } else if (allocation.kind === 'none') {
-        const why =
-          allocation.reason === 'already_taken'
-            ? `la ligne ${env.VAPI_PHONE_NUMBER} appartient déjà à « ${allocation.heldBy} »`
-            : 'aucun numéro VAPI_PHONE_NUMBER n\'est configuré';
-        logger.error(`[Onboarding] ${client.businessName} reste sans ligne entrante: ${why}`);
+      if (line.state === 'active') {
+        logger.info(`Ligne dédiée attribuée: ${line.number}`);
+      } else if (line.state === 'shared') {
+        logger.info(`Ligne partagée attribuée: ${line.number} (${line.reason})`);
+      } else {
+        /* Sans ligne entrante, ce client ne recevra AUCUN appel, et le reste de
+           son installation fonctionne quand même: c'est exactement le genre de
+           panne qu'un appelant découvre avant nous. Elle s'annonce donc, avec
+           sa raison, et l'état reste lisible sur la fiche client. */
+        logger.error(`[Onboarding] ${client.businessName} reste sans ligne entrante: ${line.reason}`);
         await discordService.notify(
-          `⚠️ PAS DE LIGNE ENTRANTE\n\nClient: ${client.businessName}\nRaison: ${why}\n` +
+          `⚠️ PAS DE LIGNE ENTRANTE\n\nClient: ${client.businessName}\nRaison: ${line.reason}\n` +
             'Acheter un numéro et le poser sur la fiche client, sinon ce client ne recevra aucun appel.',
         );
       }
@@ -179,11 +159,11 @@ export class OnboardingService {
              sur la fiche; ecrire `null` ici l'effacerait au premier passage du
              cron de reprise, et le client redeviendrait injoignable sans
              qu'aucune trace ne le dise. */
-          ...(sharedPhoneNumber ? { vapiPhoneNumber: sharedPhoneNumber } : {}),
+          ...(line.number ? { vapiPhoneNumber: line.number } : {}),
           vapiConfig: {
             assistant_id: assistant.id,
             phone_number: effectivePhoneNumber,
-            phone_number_id: sharedPhoneNumberId ?? (client.vapiConfig as any)?.phone_number_id ?? null,
+            phone_number_id: line.numberId ?? (client.vapiConfig as any)?.phone_number_id ?? null,
             webhook_url: `${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`,
             healthy: isHealthy,
             onboarded_at: new Date().toISOString(),

@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, Phone, Zap, Settings, ExternalLink, FlaskConical,
+  LayoutDashboard, Users, Phone, Zap, Settings, ExternalLink, FlaskConical, PhoneForwarded,
 } from '../icons';
 import { t } from '../../styles/admin-theme';
 import CommandPalette from '../ui/CommandPalette';
@@ -13,6 +13,9 @@ const PRIMARY_NAV: NavItem[] = [
   { path: '/admin/calls',    icon: Phone,           label: 'Appels' },
   { path: '/admin/clients',  icon: Users,           label: 'Clients' },
   { path: '/admin/lab',      icon: FlaskConical,    label: 'Banc d\'essai' },
+  /* Ne se lit que quand quelque chose cloche, mais doit se lire SANS qu'on
+     pense à aller voir: un client injoignable ne se signale pas tout seul. */
+  { path: '/admin/lignes',   icon: PhoneForwarded,  label: 'Lignes' },
   { path: '/admin/settings', icon: Settings,        label: 'Paramètres' },
 ];
 
@@ -30,6 +33,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/admin/calls':    'Appels',
   '/admin/clients':  'Clients',
   '/admin/lab':      "Banc d'essai",
+  '/admin/lignes':   'Lignes entrantes',
   '/admin/settings': 'Paramètres',
   // sub-routes that still exist
   '/admin/billing':  'Facturation',

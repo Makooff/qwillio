@@ -10,6 +10,7 @@ import { logger } from '../config/logger';
 import { listCharacters, resolveCharacter, CHARACTERS, isValidCharacterId, DEFAULT_CHARACTER_FR, DEFAULT_CHARACTER_EN, CUSTOM_CHARACTER_ID } from '../config/voice-characters';
 import { buildVapiConfigPatch, parseFaq } from '../services/client-config.service';
 import { knowledgePreset } from '../config/knowledge-presets';
+import { clientMessage, type PhoneSetupState } from '../services/voice/phone-setup.service';
 
 // OAuth state: per-user, signed, short-lived — the callback verifies it was
 // minted for the same client that finishes the flow (CSRF protection).
@@ -220,6 +221,7 @@ export class ClientDashboardController {
           vatNumber: true,
           transferNumber: true,
           vapiPhoneNumber: true,
+          phoneSetupState: true,
           vapiConfig: true,
           vapiAssistantId: true,
           subscriptionStatus: true,
@@ -278,6 +280,23 @@ export class ClientDashboardController {
            l'interface devrait deviner le réglage global du serveur, et
            afficherait « temps réel » là où la plateforme fait du classique. */
         autoResolvesTo: useSpeechToSpeech({ voiceMode: 'auto' }) ? 'realtime' : 'classic',
+        /* Où en est la ligne entrante, et pourquoi.
+           Un état qu'aucun écran ne peut lire répète le défaut qu'il corrige:
+           jusqu'ici, un client sans ligne était indistinguable d'un client dont
+           l'achat avait échoué, et la différence ne se voyait que quand un
+           appelant se plaignait. La raison est écrite en français, pour être
+           affichée telle quelle. */
+        phoneSetup: {
+          state: client.phoneSetupState,
+          /* `clientMessage`, JAMAIS `phoneSetupReason`: la raison stockée est
+             écrite pour l'exploitant et nomme des variables d'environnement,
+             dit qu'un AUTRE client tient la ligne partagée, ou qu'une clé
+             manque sur la plateforme. Le client n'a pas à savoir qu'un autre
+             client existe, et le tableau de bord d'exploitation ne lui est pas
+             ouvert. La raison technique est servie par /api/admin. */
+          message: clientMessage(client.phoneSetupState as PhoneSetupState),
+          dedicated: client.phoneSetupState === 'active',
+        },
         /* La synthèse servie à CE client, et celle que la plateforme sert par
            défaut. Les deux, parce que l'écran doit pouvoir afficher « suit le
            réglage global (ElevenLabs) » plutôt qu'un bouton vide. */

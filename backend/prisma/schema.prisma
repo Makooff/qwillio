@@ -327,6 +327,13 @@ model Client {
   subscriptionStatus         String                    @default("active") @map("subscription_status") @db.VarChar(50)
   vapiAssistantId            String?                   @map("vapi_assistant_id") @db.VarChar(255)
   vapiPhoneNumber            String?                   @map("vapi_phone_number") @db.VarChar(50)
+  /// Où en est l'attribution de la ligne entrante de ce client.
+  /// none | shared | provisioning | active | failed. Voir phone-setup.service.
+  phoneSetupState            String                    @default("none") @map("phone_setup_state") @db.VarChar(30)
+  /// Pourquoi c'est bloqué ou ce qui reste à faire, en français, lisible par
+  /// le client. Un échec muet a coûté deux diagnostics; celui-ci se lit.
+  phoneSetupReason           String?                   @map("phone_setup_reason")
+  phoneSetupAt               DateTime?                 @map("phone_setup_at")
   vapiConfig                 Json?                     @map("vapi_config")
   onboardingStatus           String                    @default("pending") @map("onboarding_status") @db.VarChar(50)
   onboardingCompletedAt      DateTime?                 @map("onboarding_completed_at")
