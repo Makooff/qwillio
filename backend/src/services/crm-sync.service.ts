@@ -1,5 +1,6 @@
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
+import { findIntegration } from '../config/integrations';
 
 // ═══════════════════════════════════════════════════════════
 // CRM SYNC SERVICE
@@ -36,8 +37,21 @@ export class CrmSyncService {
       case 'hubspot':
         await this.syncHubspot(integration, since);
         break;
-      default:
+      default: {
+        /* Un RELAIS (Pipedrive, Notion, Airtable...) est le mécanisme
+           `webhook` sous un nom commercial: le client colle l'URL de son
+           scénario Make ou Zapier, et le corps envoyé est le même. On le
+           stocke donc sous SON nom plutôt que sous `webhook`, sinon
+           `@@unique([clientId, provider])` n'en laisserait brancher qu'un
+           seul par client, et le deuxième écraserait le premier en silence.
+           C'est le catalogue qui tranche, à un seul endroit. */
+        const entry = findIntegration(integration.provider);
+        if (entry?.transport === 'relay') {
+          await this.syncWebhook(integration, since);
+          break;
+        }
         logger.debug(`[CrmSync] Provider "${integration.provider}" — no sync handler, skipping`);
+      }
     }
   }
 

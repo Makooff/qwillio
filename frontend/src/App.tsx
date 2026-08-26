@@ -42,6 +42,7 @@ const ClientAccount = lazy(() => import('./pages/client/ClientAccount'));
 const ClientSetupForwarding = lazy(() => import('./pages/client/ClientSetupForwarding'));
 const ClientSetupCustomize  = lazy(() => import('./pages/client/ClientSetupCustomize'));
 const ClientSupport = lazy(() => import('./pages/client/ClientSupport'));
+const ClientIntegrations = lazy(() => import('./pages/client/ClientIntegrations'));
 const ClientAnalytics = lazy(() => import('./pages/client/ClientAnalytics'));
 const ClientBilling = lazy(() => import('./pages/client/ClientBilling'));
 // Agent IA pages (lazy loaded)
@@ -413,6 +414,7 @@ export default function App() {
           <Route path="setup/call-forwarding" element={<Suspense fallback={<Spinner />}><ClientSetupForwarding /></Suspense>} />
           <Route path="setup/customize"       element={<Suspense fallback={<Spinner />}><ClientSetupCustomize /></Suspense>} />
           <Route path="support" element={<Suspense fallback={<Spinner />}><ClientSupport /></Suspense>} />
+          <Route path="integrations" element={<Suspense fallback={<Spinner />}><ClientIntegrations /></Suspense>} />
           {/* Agent IA — OUVERT module par module, jamais en bloc.
               Le catch-all renvoyait tout vers le tableau de bord: la carte
               « CRM AI » existait, sa page existait, ses neuf routes serveur
