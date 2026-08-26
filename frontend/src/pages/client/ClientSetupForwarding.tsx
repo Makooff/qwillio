@@ -6,6 +6,7 @@ import {
   Apple, Bot, Smartphone, Copy, ArrowRight,
 } from '../../components/icons';
 import api from '../../services/api';
+import { forwardingFor, activationCode, activationLink, cancelLink } from '../../lib/forwarding-codes';
 
 type Platform = 'ios' | 'android' | 'unknown';
 
@@ -22,6 +23,7 @@ export default function ClientSetupForwarding() {
   const [platform, setPlatform] = useState<Platform>('ios');
   const [number, setNumber] = useState<string>('');
   const [copied, setCopied] = useState(false);
+  const [forwardingType, setForwardingType] = useState('');
   const [confirming, setConfirming] = useState(false);
 
   const [confirmError, setConfirmError] = useState('');
@@ -52,14 +54,23 @@ export default function ClientSetupForwarding() {
     api.get('/my-dashboard/overview')
       .then(r => setNumber(r.data?.client?.vapiPhoneNumber ?? r.data?.client?.transferNumber ?? ''))
       .catch(() => {});
+    /* Le TYPE de renvoi choisi par le client, qui décide du code.
+       Cette page donnait `*21*` à tout le monde, c'est-à-dire le renvoi de
+       TOUS les appels, y compris à qui venait de choisir « Si occupé »: il
+       croyait ne renvoyer que ce qu'il rate, et son téléphone ne sonnait plus
+       du tout. Le champ était enregistré et relu par personne. */
+    api.get('/my-dashboard/settings')
+      .then(r => setForwardingType(r.data?.forwardingType || ''))
+      .catch(() => {});
   }, []);
 
   const numberClean = useMemo(() => (number || '').replace(/[^\d+]/g, ''), [number]);
-  // GSM forwarding MMI code — works on iOS and Android, opens the dialer with
-  // the code so the user just presses Call.
-  const forwardMmi = numberClean ? `*21*${numberClean}#` : '*21*NUMBER#';
-  const forwardLink = numberClean ? `tel:*21*${numberClean}%23` : undefined;
-  const cancelLink = 'tel:%23%2321%23';
+  /* Le code dépend du renvoi CHOISI, pas d'une constante. Codes MMI du GSM,
+     normalisés: ils valent sur n'importe quel mobile, iPhone comme Android. */
+  const renvoi = useMemo(() => forwardingFor(forwardingType), [forwardingType]);
+  const forwardMmi = useMemo(() => activationCode(forwardingType, number), [forwardingType, number]);
+  const forwardLink = useMemo(() => activationLink(forwardingType, number), [forwardingType, number]);
+  const cancelHref = useMemo(() => cancelLink(forwardingType), [forwardingType]);
 
   const copy = (v: string) => {
     navigator.clipboard?.writeText(v);
@@ -139,8 +150,15 @@ export default function ClientSetupForwarding() {
             {copied ? <Check size={15} className="text-emerald-400" /> : <Copy size={15} />}
           </button>
         </div>
+        {/* CE QUE ÇA FAIT, avant le mode d'emploi: un code qu'on compose sans
+            savoir ce qu'il déclenche est un code qu'on regrette. Le piège vient
+            en second, mais il vient. */}
+        <p className="text-[12px] text-[#C8C8D0] mt-3 leading-relaxed">{renvoi.effect}</p>
+        {renvoi.caveat && (
+          <p className="text-[11px] text-[#9A9AA5] mt-1.5 leading-relaxed">{renvoi.caveat}</p>
+        )}
         <p className="text-[11px] text-[#6B6B75] mt-2 leading-relaxed">
-          Le code MMI ouvre directement le clavier. Appuie sur Appeler pour activer le renvoi immédiatement. Fonctionne sur iPhone comme Android.
+          Le code ouvre directement le clavier. Appuie sur Appeler pour activer le renvoi. Fonctionne sur iPhone comme Android, jamais sur une ligne fixe.
         </p>
       </div>
 
@@ -171,10 +189,10 @@ export default function ClientSetupForwarding() {
       {/* Cancel forwarding */}
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4 mb-6">
         <p className="text-[13px] font-semibold text-[#F2F2F2] mb-1">Désactiver plus tard</p>
-        <p className="text-[12px] text-[#9A9AA5] mb-3">Compose <code className="font-mono">##21#</code> depuis ton téléphone pour couper le renvoi.</p>
-        <a href={cancelLink}
+        <p className="text-[12px] text-[#9A9AA5] mb-3">Compose <code className="font-mono">{renvoi.cancel}</code> depuis ton téléphone pour couper CE renvoi.</p>
+        <a href={cancelHref}
           className="inline-flex items-center gap-2 h-9 px-3 rounded-full border border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.06] text-[12px] font-medium text-[#E5E5EA] transition-colors">
-          <Phone size={12} /> Composer ##21#
+          <Phone size={12} /> Composer {renvoi.cancel}
         </a>
       </div>
 
