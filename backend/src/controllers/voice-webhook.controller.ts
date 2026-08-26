@@ -225,6 +225,12 @@ export class VoiceWebhookController {
   async health(_req: Request, res: Response) {
     return res.json({
       liveCalls: callSessionStore.liveCount(),
+      /* Appels simultanés: le pic est ce qui dit s'il faut relever le plafond
+         de concurrence du compte Vapi, seul vrai plafond de la flotte.
+         La forme ANONYME, et pas `concurrency()`: cette route est sur le routeur
+         des webhooks, donc sans authentification. Le détail par client est servi
+         par `/api/admin/system`, derrière `adminMiddleware`. */
+      concurrency: callSessionStore.concurrencySummary(),
       sharedCache: Boolean(env.REDIS_URL),
       endpointingMs: env.VOICE_ENDPOINTING_MS,
       startWaitSeconds: env.VOICE_START_WAIT_SECONDS,

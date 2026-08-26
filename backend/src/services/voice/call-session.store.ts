@@ -95,6 +95,9 @@ const MIN_UTTERANCE_FOR_HARD_BARGE_IN_MS = 900;
 class CallSessionStore {
   private sessions = new Map<string, CallSession>();
   private holds: SlotHold[] = [];
+  /** Pics de concurrence depuis le démarrage. Voir `concurrency()`. */
+  private peakLive = 0;
+  private peakPerClient = new Map<string, number>();
   private sweeper: NodeJS.Timeout | null = null;
 
   constructor() {
@@ -153,6 +156,7 @@ class CallSessionStore {
       tokens: { input: 0, cached: 0, output: 0 },
     };
     this.sessions.set(input.vapiCallId, session);
+    this.notePeak(input.clientId);
     return session;
   }
 
@@ -327,10 +331,107 @@ class CallSessionStore {
     return this.sessions.size;
   }
 
+  /**
+   * Combien d'appels sont EN CE MOMENT sur la ligne de ce client.
+   *
+   * Rien n'oblige un client à n'avoir qu'un appel à la fois: l'assistant est
+   * reconstruit à chaque `assistant-request`, donc deux appelants simultanés
+   * obtiennent deux assistants et deux sessions. Ce compteur ne LIMITE donc
+   * rien, il MESURE.
+   *
+   * Il existe parce que la promesse vendue est « la ligne ne sonne jamais
+   * occupé », et que cette promesse était jusqu'ici invérifiable: le seul vrai
+   * plafond est la concurrence du compte Vapi, il est partagé par toute la
+   * flotte, et le jour où il sera atteint c'est un appelant qui l'apprendra en
+   * premier. Compter est ce qui permet d'alerter avant.
+   */
+  liveCountFor(clientId: string): number {
+    let n = 0;
+    for (const session of this.sessions.values()) {
+      if (session.clientId === clientId) n++;
+    }
+    return n;
+  }
+
+  /**
+   * Le pic observé depuis le démarrage, global et par client.
+   *
+   * Le compteur instantané ne sert à rien pour dimensionner: il vaut zéro la
+   * plupart du temps, et personne ne regarde l'écran à l'instant précis où deux
+   * appels se croisent. C'est le PIC qui dit s'il faut relever le plafond du
+   * compte, et il ne coûte que deux entiers.
+   *
+   * Remis à zéro au redémarrage, volontairement: c'est une mesure
+   * d'exploitation, pas une donnée. La persister demanderait une écriture sur
+   * le chemin critique de l'appel, ce qui est exactement ce que ce magasin a
+   * été créé pour éviter.
+   */
+  /** Relève les pics. Appelé à l'ouverture d'une session, jamais ailleurs. */
+  private notePeak(clientId: string): void {
+    const live = this.sessions.size;
+    if (live > this.peakLive) this.peakLive = live;
+    const forClient = this.liveCountFor(clientId);
+    if (forClient > (this.peakPerClient.get(clientId) ?? 0)) {
+      this.peakPerClient.set(clientId, forClient);
+    }
+  }
+
+  /**
+   * L'état de la concurrence SANS identifier personne.
+   *
+   * C'est la seule forme publiable: le point de santé `/api/webhooks/vapi/health`
+   * vit sur le routeur des webhooks, qui n'a pas d'authentification, et y écrire
+   * des identifiants de clients les publierait à qui interroge l'URL. Les
+   * chiffres, eux, ne disent rien de personne et répondent à la seule question
+   * posée là: est-ce que la flotte approche du plafond.
+   */
+  concurrencySummary(): { live: number; peakLive: number; busiestLive: number } {
+    const full = this.concurrency();
+    return {
+      live: full.live,
+      peakLive: full.peakLive,
+      busiestLive: full.busiest?.live ?? 0,
+    };
+  }
+
+  /**
+   * L'état de la concurrence, client par client. **Réservé à l'administration.**
+   *
+   * `busiest` plutôt que la liste entière: un tableau de bord qui afficherait
+   * une ligne par client vivant deviendrait illisible dès la dixième vente, et
+   * la seule question posée ici est « qui est le plus proche du plafond ».
+   */
+  concurrency(): {
+    live: number;
+    peakLive: number;
+    busiest: { clientId: string; live: number } | null;
+    peakPerClient: Array<{ clientId: string; peak: number }>;
+  } {
+    const perClient = new Map<string, number>();
+    for (const session of this.sessions.values()) {
+      perClient.set(session.clientId, (perClient.get(session.clientId) ?? 0) + 1);
+    }
+    let busiest: { clientId: string; live: number } | null = null;
+    for (const [clientId, live] of perClient) {
+      if (!busiest || live > busiest.live) busiest = { clientId, live };
+    }
+    return {
+      live: this.sessions.size,
+      peakLive: this.peakLive,
+      busiest,
+      peakPerClient: [...this.peakPerClient]
+        .map(([clientId, peak]) => ({ clientId, peak }))
+        .sort((a, b) => b.peak - a.peak)
+        .slice(0, 10),
+    };
+  }
+
   /** Test seam. */
   reset(): void {
     this.sessions.clear();
     this.holds = [];
+    this.peakLive = 0;
+    this.peakPerClient.clear();
   }
 }
 

@@ -82,6 +82,19 @@ class RealtimeOrchestratorService {
 
     if (vapiCallId) {
       callSessionStore.start({ vapiCallId, clientId, callerNumber, language: profile.language });
+
+      /* Un appel qui en croise un autre est le cas que la vente promet de tenir
+         (« la ligne ne sonne jamais occupé »), et c'est aussi le seul qui puisse
+         un jour buter sur la concurrence du compte Vapi, laquelle est partagée
+         par toute la flotte. Il se journalise donc explicitement: sans cette
+         ligne, le premier appelant refusé serait aussi le premier à l'apprendre. */
+      const simultaneous = callSessionStore.liveCountFor(clientId);
+      if (simultaneous > 1) {
+        logger.info(
+          `[Voice] ${simultaneous} appels simultanés pour ${profile.businessName} ` +
+            `(${callSessionStore.liveCount()} sur l'instance)`
+        );
+      }
     }
 
     const character = resolveCharacter({
