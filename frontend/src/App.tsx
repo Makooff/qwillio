@@ -27,6 +27,7 @@ const AdminLeads = lazy(() => import('./pages/admin/Leads'));
 const AdminBilling = lazy(() => import('./pages/admin/Billing'));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
 const VoiceLab = lazy(() => import('./pages/admin/VoiceLab'));
+const Lignes = lazy(() => import('./pages/admin/Lignes'));
 const AdminNotFound = lazy(() => import('./pages/admin/NotFound'));
 // Client portal pages (lazy loaded)
 const ClientPortal = lazy(() => import('./pages/ClientPortal'));
@@ -472,6 +473,10 @@ export default function App() {
           {/* Le banc d'essai des réceptionnistes: régler, appeler, voir ce que
               ça aurait déclenché. Admin seulement, et il n'écrit rien. */}
           <Route path="lab" element={<Suspense fallback={<Spinner />}><VoiceLab /></Suspense>} />
+          {/* Les lignes entrantes qui demandent une action. Admin seulement:
+              elle affiche la raison TECHNIQUE, celle qui nomme les variables
+              d'environnement et l'existence des autres clients. */}
+          <Route path="lignes" element={<Suspense fallback={<Spinner />}><Lignes /></Suspense>} />
           <Route path="learning-agents" element={<Suspense fallback={<Spinner />}><Agents /></Suspense>} />
           <Route path="agency" element={<Suspense fallback={<Spinner />}><Agency /></Suspense>} />
           {/* Old routes → redirect to new locations */}
