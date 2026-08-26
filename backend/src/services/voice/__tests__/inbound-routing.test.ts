@@ -211,3 +211,29 @@ describe('resolveClient — priorité au numéro renvoyé', () => {
     expect(r).toMatchObject({ kind: 'resolved', clientId: 'c1', via: 'dialed' });
   });
 });
+
+/**
+ * Le numéro du CLIENT, déclaré par lui, est ce qui rend le renvoi utilisable.
+ *
+ * Sans lui, un appel renvoyé arrive sur une ligne partagée et rien ne dit de
+ * quelle entreprise il s'agit. Le déclarer était réservé au forfait Enterprise
+ * et aucun écran ne le proposait: le renvoi, qu'on demande pourtant à TOUS les
+ * clients de faire à l'installation, ne pouvait donc pas fonctionner. Ce test
+ * fige le fait que le routage sait s'en servir.
+ */
+describe('le numéro déclaré par le client', () => {
+  it("résout par le numéro d'origine quand l'appel a été renvoyé", async () => {
+    findMany.mockResolvedValue([
+      multiSite('c1', '+16073548569', [{ number: '+3225550011', label: 'Mon numéro' }]),
+    ]);
+
+    /* Composé: la ligne partagée américaine. Origine: le numéro belge du
+       client. C'est la seconde qui doit décider. */
+    const r = await inboundRoutingService.resolveClient('+16073548569', '+3225550011');
+    expect(r.kind).toBe('resolved');
+    if (r.kind === 'resolved') {
+      expect(r.clientId).toBe('c1');
+      expect(r.via).toBe('diversion');
+    }
+  });
+});

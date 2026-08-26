@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import {
-  Bot, PhoneForwarded, AlertCircle,
+  Bot, PhoneForwarded, Phone, AlertCircle,
   Activity, Power, Globe, User, Clock, Shield, Calendar,
   Volume2, Languages, Building2, Settings,
   CheckCircle2, XCircle,
@@ -16,6 +16,7 @@ import { type Character } from '../../components/client/CharacterPicker';
 import CharacterCarousel from '../../components/v2/app/CharacterCarousel';
 import AssistantChat from '../../components/client/AssistantChat';
 import VoiceCloner, { type CustomVoice } from '../../components/client/VoiceCloner';
+import OwnNumber from '../../components/client/OwnNumber';
 import { HubGroup, HubRow, HubPanel } from '../../components/client/SettingsHub';
 
 /**
@@ -714,6 +715,14 @@ export default function ClientReceptionist() {
           deux, deux et une: on lit une intention par groupe au lieu de cinq
           titres à la file. */}
       <HubGroup label="L'agent">
+      {/* En TÊTE du groupe, avant même l'identité de l'agent: tant que ce
+          numéro n'est pas déclaré, le renvoi d'appel ne peut pas être
+          reconnu, et le client n'a qu'une ligne qu'il ne peut souvent même
+          pas composer depuis son pays. Régler la voix d'une réceptionniste
+          que personne ne peut joindre vient après. */}
+      <Section title="Votre numéro" hint="Celui que vos clients composent déjà" id="mon-numero" openId={openId} setOpenId={setOpenId} icon={Phone}>
+        <OwnNumber isFr={agentLanguage !== 'en'} />
+      </Section>
       <Section title="Identité de l'agent" hint="Nom, voix et caractère" id="identite" openId={openId} setOpenId={setOpenId} icon={Bot}>
         {/* Le champ « Nom de l'agent », le rappel entreprise/métier/langue et
             le titre du personnage sont partis (demande utilisateur). Chacun
