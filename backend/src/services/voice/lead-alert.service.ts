@@ -73,7 +73,9 @@ export function thresholdOf(config: unknown): LeadAlertThreshold {
  */
 export function buildSms(lead: LeadForAlert, callerNumber: string | null, lang: VoiceLanguage): string {
   const fr = lang === 'fr';
-  const urgent = lead.urgency === 'high' ? (fr ? 'URGENT - ' : 'URGENT - ') : '';
+  // Pas de traduction: « URGENT » se lit dans les trois langues, et un ternaire
+  // qui rendrait la même chaîne des deux côtés se lirait comme un oubli.
+  const urgent = lead.urgency === 'high' ? 'URGENT - ' : '';
   const who = lead.name || (fr ? 'Appelant' : 'Caller');
   const why = lead.reason ? ` : ${lead.reason}` : '';
   const back = callerNumber ? (fr ? `\nRappeler : ${callerNumber}` : `\nCall back: ${callerNumber}`) : '';
@@ -100,6 +102,21 @@ function alreadySent(callId: string): boolean {
   if (alerted.has(callId)) return true;
   alerted.set(callId, now);
   return false;
+}
+
+/**
+ * Le nom et le motif viennent de l'APPELANT, via le modèle.
+ *
+ * Insérés tels quels dans l'email, ils y injecteraient du HTML: un appelant qui
+ * dicte son nom peut dire ce qu'il veut, et le modèle le recopie fidèlement.
+ * Le SMS n'a pas ce problème, l'email si.
+ */
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
 }
 
 class LeadAlertService {
@@ -152,7 +169,16 @@ class LeadAlertService {
         ? emailService.send({
             to: client.contactEmail,
             subject: body.split('\n')[0],
-            html: `<p>${body.replace(/\n/g, '<br>')}</p>`,
+            /* Le rappel du RÉGLAGE, et pas seulement l'alerte.
+               `emailService.send` ajoute un lien de désabonnement global à tout
+               ce qu'il envoie. Sur une alerte que le gérant a lui-même demandée,
+               c'est le mauvais bouton: il coupe tout au lieu de baisser le
+               seuil, et il ne revient pas dessus. Nommer le bon endroit juste
+               au-dessus évite ce clic. */
+            html:
+              `<p>${escapeHtml(body).replace(/\n/g, '<br>')}</p>`
+              + '<p style="color:#777;font-size:12px">Pour recevoir moins d\'alertes, '
+              + 'changez le seuil dans Paramètres, section Notifications.</p>',
           })
         : Promise.resolve(),
       this.postToTeamChannel(clientId, body),

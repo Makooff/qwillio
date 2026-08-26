@@ -147,6 +147,37 @@ describe('les canaux', () => {
   });
 });
 
+describe("le nom vient de l'APPELANT, et il finit dans un email", () => {
+  it("échappe le HTML plutôt que de le recopier", async () => {
+    /* Un appelant dicte son nom, le modèle le transcrit fidèlement, et il
+       atterrit dans un email. Sans échappement, il y injecte du HTML. Le SMS
+       n'a pas ce problème, l'email si. */
+    findUnique.mockResolvedValue(client({ vapiConfig: { leadAlert: 'all' } }));
+    await leadAlertService.notify({
+      clientId: 'c1',
+      vapiCallId: callId(),
+      lead: lead({ name: '<img src=x onerror=alert(1)>' }),
+      callerNumber: null,
+    });
+
+    const html = sendEmail.mock.calls[0][0].html as string;
+    expect(html).not.toContain('<img');
+    expect(html).toContain('&lt;img');
+  });
+
+  it("renvoie vers le RÉGLAGE, pas seulement vers le désabonnement", async () => {
+    /* `emailService.send` ajoute un lien de désabonnement global à tout ce
+       qu'il envoie. Sur une alerte que le gérant a lui-même demandée, c'est le
+       mauvais bouton: il coupe tout au lieu de baisser le seuil. */
+    findUnique.mockResolvedValue(client({ vapiConfig: { leadAlert: 'all' } }));
+    await leadAlertService.notify({
+      clientId: 'c1', vapiCallId: callId(), lead: lead(), callerNumber: null,
+    });
+
+    expect(sendEmail.mock.calls[0][0].html).toMatch(/seuil/i);
+  });
+});
+
 describe('ce qui ferait douter du produit', () => {
   it('ne prévient pas DEUX fois pour le même appel', async () => {
     /* Vapi peut délivrer un rapport de fin d'appel plus d'une fois. Deux SMS
