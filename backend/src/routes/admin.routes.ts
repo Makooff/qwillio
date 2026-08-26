@@ -677,6 +677,54 @@ router.get('/billing', async (_req: Request, res: Response) => {
   }
 });
 
+/**
+ * GET /api/admin/lignes — où en est la ligne entrante de chaque client.
+ *
+ * Derrière `authMiddleware` + `adminMiddleware`, et c'est la condition de son
+ * existence: `phoneSetupReason` nomme des variables d'environnement, dit qu'un
+ * AUTRE client tient la ligne partagée, ou qu'une clé manque sur la plateforme.
+ * Le portail client, lui, ne reçoit qu'une phrase dérivée de l'état.
+ *
+ * Ne liste que ce qui DEMANDE une action: un client actif sur sa ligne dédiée
+ * n'a rien à faire ici, et une page qui les afficherait tous cacherait les
+ * trois qui comptent.
+ */
+router.get('/lignes', async (_req: Request, res: Response) => {
+  try {
+    const clients = await prisma.client.findMany({
+      where: {
+        phoneSetupState: { in: ['none', 'shared', 'provisioning', 'failed'] },
+        subscriptionStatus: { in: ['active', 'trialing'] },
+      },
+      select: {
+        id: true,
+        businessName: true,
+        planType: true,
+        subscriptionStatus: true,
+        vapiPhoneNumber: true,
+        phoneSetupState: true,
+        phoneSetupReason: true,
+        phoneSetupAt: true,
+      },
+      orderBy: { phoneSetupAt: 'desc' },
+      take: 200,
+    });
+
+    /* `failed` d'abord: c'est le seul état où un appelant tombe dans le vide.
+       `shared` sur un abonnement PAYÉ vient ensuite, parce que ce client a
+       droit à sa ligne et ne l'a pas. */
+    const rank = (c: (typeof clients)[number]) =>
+      c.phoneSetupState === 'failed' ? 0
+        : c.phoneSetupState === 'shared' && c.subscriptionStatus === 'active' ? 1
+        : 2;
+
+    res.json({ total: clients.length, clients: clients.sort((a, b) => rank(a) - rank(b)) });
+  } catch (err: any) {
+    logger.error('[API] Lignes error:', err);
+    res.status(500).json({ error: 'Failed to fetch line states' });
+  }
+});
+
 router.get('/system', async (_req: Request, res: Response) => {
   try {
     const [prospectCount, clientCount, callCount] = await Promise.allSettled([

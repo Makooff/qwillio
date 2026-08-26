@@ -44,7 +44,19 @@ export interface LineOutcome {
   number: string | null;
   /** L'identifiant du numéro chez Vapi, quand il est connu. */
   numberId: string | null;
-  /** En français, lisible par le client. Jamais vide sur un échec. */
+  /**
+   * Pour L'EXPLOITANT, pas pour le client.
+   *
+   * Il nomme des variables d'environnement, dit qu'un AUTRE client tient la
+   * ligne, ou qu'une clé manque sur la plateforme. C'est ce qui permet de
+   * diagnostiquer sans ouvrir les journaux, et c'est précisément ce qu'un
+   * client ne doit jamais lire: il n'a pas à savoir qu'un autre client existe,
+   * ni comment notre approvisionnement est réglé.
+   *
+   * Ce que le client voit se calcule à part, par `clientMessage()`, à partir du
+   * seul ÉTAT. Deux textes plutôt qu'un, pour que l'un ne puisse pas fuir dans
+   * l'autre par distraction.
+   */
   reason: string | null;
   /** Vrai quand rien n'a été fait parce que rien n'avait à l'être. */
   unchanged: boolean;
@@ -53,6 +65,33 @@ export interface LineOutcome {
 /** Un abonnement payé, par opposition à un essai. */
 export function hasPaidSubscription(status: string | null | undefined): boolean {
   return (status || '').toLowerCase() === 'active';
+}
+
+/**
+ * Ce que le CLIENT lit, dérivé du seul état.
+ *
+ * Volontairement pauvre: il ne dit que ce que le client peut faire ou attendre.
+ * Le détail technique reste côté exploitant, où il sert à quelque chose.
+ */
+export function clientMessage(state: PhoneSetupState): string | null {
+  switch (state) {
+    case 'active':
+      return null; // Rien à signaler: la ligne est à lui et elle fonctionne.
+    case 'shared':
+      return 'Votre ligne est en service. Configurez le renvoi d\'appel depuis '
+        + 'votre numéro actuel pour recevoir vos appels. Un numéro dédié vous est '
+        + 'attribué dès le passage à un abonnement.';
+    case 'provisioning':
+      return 'Attribution de votre numéro en cours.';
+    case 'failed':
+      /* Ni faux ni technique: le client sait à quoi s'en tenir et qui agit.
+         Écrire « en cours de traitement » sur un échec serait un mensonge
+         confortable, et il se paie au premier appel manqué. */
+      return 'Votre numéro n\'a pas encore pu être attribué. Notre équipe s\'en occupe, '
+        + 'contactez le support si cela dure.';
+    default:
+      return 'Votre ligne téléphonique n\'est pas encore configurée.';
+  }
 }
 
 class PhoneSetupService {

@@ -30,7 +30,7 @@ vi.mock('../phone-provisioning.service', () => ({
   autoProvisionEnabled: () => autoProvisionEnabled(),
 }));
 
-const { phoneSetupService, hasPaidSubscription } = await import('../phone-setup.service');
+const { phoneSetupService, hasPaidSubscription, clientMessage } = await import('../phone-setup.service');
 
 /** Un client tel que le `select` de `ensureLine` le rend. */
 const client = (over: Record<string, unknown> = {}) => ({
@@ -177,5 +177,57 @@ describe("ce qui empêche d'attribuer une ligne se dit, au lieu de se taire", ()
     const r = await phoneSetupService.ensureLine('fantome');
     expect(r.state).toBe('failed');
     expect(r.unchanged).toBe(true);
+  });
+});
+
+describe("ce que le CLIENT lit n'est pas ce que l'exploitant lit", () => {
+  /* Le tableau de bord d'exploitation n'est pas ouvert aux clients, et la
+     raison stockée est écrite POUR lui: elle nomme des variables
+     d'environnement, dit qu'un AUTRE client tient la ligne partagée, ou
+     qu'une clé manque sur la plateforme. Un client n'a pas à savoir qu'un
+     autre client existe. */
+
+  const INTERNE = [
+    /PHONE_AUTO_PROVISION/,
+    /VAPI/i,
+    /autre client/i,
+    /plateforme/i,
+    /assistant/i,
+  ];
+
+  it("ne laisse fuir aucun terme interne, quel que soit l'état", () => {
+    for (const state of ['none', 'shared', 'provisioning', 'active', 'failed'] as const) {
+      const vu = clientMessage(state) ?? '';
+      for (const motif of INTERNE) {
+        expect(motif.test(vu), `« ${vu} » laisse passer ${motif}`).toBe(false);
+      }
+    }
+  });
+
+  it('se tait quand la ligne dédiée fonctionne', () => {
+    // Rien à signaler n'est pas un manque: un bandeau permanent sur un état
+    // normal finit par ne plus rien vouloir dire.
+    expect(clientMessage('active')).toBeNull();
+  });
+
+  it("dit au client ce qu'il peut FAIRE quand il est sur la ligne partagée", () => {
+    const vu = clientMessage('shared')!;
+    expect(vu).toMatch(/renvoi d'appel/i);
+    expect(vu).toMatch(/abonnement/i);
+  });
+
+  it("n'habille pas un échec en « traitement en cours »", () => {
+    /* Écrire « en cours de traitement » sur un échec est un mensonge
+       confortable, et il se paie au premier appel manqué. */
+    const vu = clientMessage('failed')!;
+    expect(vu).toMatch(/pas encore pu être attribué/i);
+    expect(vu).toMatch(/support/i);
+  });
+
+  it("garde la raison TECHNIQUE dans l'objet rendu, pour l'exploitant", async () => {
+    // Elle reste écrite, elle n'est simplement pas servie au portail client.
+    findUnique.mockResolvedValue(client({ vapiAssistantId: null }));
+    const r = await phoneSetupService.ensureLine('c1');
+    expect(r.reason).toMatch(/assistant/i);
   });
 });

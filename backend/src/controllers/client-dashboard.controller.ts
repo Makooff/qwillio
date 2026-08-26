@@ -10,6 +10,7 @@ import { logger } from '../config/logger';
 import { listCharacters, resolveCharacter, CHARACTERS, isValidCharacterId, DEFAULT_CHARACTER_FR, DEFAULT_CHARACTER_EN, CUSTOM_CHARACTER_ID } from '../config/voice-characters';
 import { buildVapiConfigPatch, parseFaq } from '../services/client-config.service';
 import { knowledgePreset } from '../config/knowledge-presets';
+import { clientMessage, type PhoneSetupState } from '../services/voice/phone-setup.service';
 
 // OAuth state: per-user, signed, short-lived — the callback verifies it was
 // minted for the same client that finishes the flow (CSRF protection).
@@ -221,7 +222,6 @@ export class ClientDashboardController {
           transferNumber: true,
           vapiPhoneNumber: true,
           phoneSetupState: true,
-          phoneSetupReason: true,
           vapiConfig: true,
           vapiAssistantId: true,
           subscriptionStatus: true,
@@ -288,7 +288,13 @@ export class ClientDashboardController {
            affichée telle quelle. */
         phoneSetup: {
           state: client.phoneSetupState,
-          reason: client.phoneSetupReason,
+          /* `clientMessage`, JAMAIS `phoneSetupReason`: la raison stockée est
+             écrite pour l'exploitant et nomme des variables d'environnement,
+             dit qu'un AUTRE client tient la ligne partagée, ou qu'une clé
+             manque sur la plateforme. Le client n'a pas à savoir qu'un autre
+             client existe, et le tableau de bord d'exploitation ne lui est pas
+             ouvert. La raison technique est servie par /api/admin. */
+          message: clientMessage(client.phoneSetupState as PhoneSetupState),
           dedicated: client.phoneSetupState === 'active',
         },
         /* La synthèse servie à CE client, et celle que la plateforme sert par
