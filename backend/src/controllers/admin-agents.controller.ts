@@ -10,6 +10,7 @@ import { agentDocumentService } from '../services/agent-document.service';
 import { agentLocalSeoService } from '../services/agent-local-seo.service';
 import { agentLeadGenService } from '../services/agent-lead-gen.service';
 import { agentAnalyticsService } from '../services/agent-analytics.service';
+import { ALL_TENANTS } from '../services/tenant-scope';
 
 // Admin oversight of the 8 product agent modules. Mirrors per-client services
 // but at the global tenant level — admin can view aggregate metrics, edit
@@ -279,7 +280,12 @@ export class AdminAgentsController {
             result = await agentLeadGenService.generateSequence({ clientId, prospectId, channel, tone, stepCount, language });
           } else if (task === 'send_next') {
             if (!activityId) return res.status(400).json({ error: 'params.activityId required' });
-            result = await agentLeadGenService.sendNextStep(activityId);
+            /* `ALL_TENANTS`, et il faut le dire: cette route est
+               l'administration, derrière adminMiddleware, et elle agit
+               volontairement sur l'activité de n'importe quel client. Le
+               symbole rend ce choix visible à la relecture, là où un
+               paramètre omis se serait confondu avec un oubli. */
+            result = await agentLeadGenService.sendNextStep(activityId, ALL_TENANTS);
           } else {
             return res.status(400).json({ error: 'params.task required: discover|sequence|send_next' });
           }

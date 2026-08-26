@@ -430,7 +430,7 @@ router.get('/payments/invoices', async (req: Request, res: Response) => {
 
 router.post('/payments/invoices/:id/send', async (req: Request, res: Response) => {
   try {
-    const invoice = await agentPaymentsService.sendInvoice(req.params.id as string);
+    const invoice = await agentPaymentsService.sendInvoice(req.params.id as string, (req as any).clientId);
     res.json(invoice);
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Failed to send invoice' });
@@ -439,7 +439,7 @@ router.post('/payments/invoices/:id/send', async (req: Request, res: Response) =
 
 router.post('/payments/invoices/:id/mark-paid', async (req: Request, res: Response) => {
   try {
-    const invoice = await agentPaymentsService.markPaid(req.params.id as string);
+    const invoice = await agentPaymentsService.markPaid(req.params.id as string, (req as any).clientId);
     res.json(invoice);
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Failed to mark paid' });
@@ -557,7 +557,7 @@ router.post('/accounting/reports/generate', async (req: Request, res: Response) 
 router.post('/inventory/:id/usage', async (req: Request, res: Response) => {
   try {
     const { quantity, note } = req.body;
-    const item = await agentInventoryService.recordUsage(req.params.id as string, quantity, note);
+    const item = await agentInventoryService.recordUsage(req.params.id as string, (req as any).clientId, quantity, note);
     res.json(item);
   } catch (error: any) {
     res.status(400).json({ error: error.message || 'Failed to record usage' });
@@ -567,7 +567,7 @@ router.post('/inventory/:id/usage', async (req: Request, res: Response) => {
 router.post('/inventory/:id/restock', async (req: Request, res: Response) => {
   try {
     const { quantity, note } = req.body;
-    const item = await agentInventoryService.recordRestock(req.params.id as string, quantity, note);
+    const item = await agentInventoryService.recordRestock(req.params.id as string, (req as any).clientId, quantity, note);
     res.json(item);
   } catch (error: any) {
     res.status(500).json({ error: error.message || 'Failed to record restock' });
@@ -739,7 +739,7 @@ router.get('/marketing/activity', async (req: Request, res: Response) => {
   } catch { res.status(500).json({ error: 'Failed to list activity' }); }
 });
 router.post('/marketing/approve/:activityId', async (req: Request, res: Response) => {
-  try { res.json(await agentMarketingService.approve(req.params.activityId as string)); }
+  try { res.json(await agentMarketingService.approve(req.params.activityId as string, (req as any).clientId)); }
   catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 router.get('/marketing/dashboard', async (req: Request, res: Response) => {
@@ -778,7 +778,7 @@ router.get('/reputation/reviews', async (req: Request, res: Response) => {
   } catch { res.status(500).json({ error: 'Failed to list reviews' }); }
 });
 router.post('/reputation/send/:activityId', async (req: Request, res: Response) => {
-  try { res.json(await agentReputationService.send(req.params.activityId as string)); }
+  try { res.json(await agentReputationService.send(req.params.activityId as string, (req as any).clientId)); }
   catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 router.get('/reputation/dashboard', async (req: Request, res: Response) => {
@@ -852,7 +852,7 @@ router.get('/support/tickets', async (req: Request, res: Response) => {
   } catch { res.status(500).json({ error: 'Failed to list tickets' }); }
 });
 router.post('/support/send/:activityId', async (req: Request, res: Response) => {
-  try { res.json(await agentSupportService.sendReply(req.params.activityId as string)); }
+  try { res.json(await agentSupportService.sendReply(req.params.activityId as string, (req as any).clientId)); }
   catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 router.get('/support/dashboard', async (req: Request, res: Response) => {
@@ -946,11 +946,11 @@ router.post('/document/generate', async (req: Request, res: Response) => {
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 router.post('/document/send/:activityId', async (req: Request, res: Response) => {
-  try { res.json(await agentDocumentService.sendForSignature(req.params.activityId as string)); }
+  try { res.json(await agentDocumentService.sendForSignature(req.params.activityId as string, (req as any).clientId)); }
   catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 router.post('/document/sign/:activityId', async (req: Request, res: Response) => {
-  try { res.json(await agentDocumentService.markSigned(req.params.activityId as string)); }
+  try { res.json(await agentDocumentService.markSigned(req.params.activityId as string, (req as any).clientId)); }
   catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 router.get('/document/list', async (req: Request, res: Response) => {
@@ -1055,7 +1055,7 @@ router.post('/lead-gen/sequence/:prospectId', async (req: Request, res: Response
   } catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 router.post('/lead-gen/send/:activityId', async (req: Request, res: Response) => {
-  try { res.json(await agentLeadGenService.sendNextStep(req.params.activityId as string)); }
+  try { res.json(await agentLeadGenService.sendNextStep(req.params.activityId as string, (req as any).clientId)); }
   catch (e: any) { res.status(500).json({ error: e.message }); }
 });
 router.get('/lead-gen/stats', async (req: Request, res: Response) => {
