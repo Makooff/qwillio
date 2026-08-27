@@ -3,6 +3,7 @@ import type { ClientVoiceProfile } from './realtime-context.service';
 import { env } from '../../config/env';
 import { logger } from '../../config/logger';
 import { toE164 } from '../../utils/phone';
+import { wouldLoop } from './transfer-loop';
 
 /**
  * Tool schemas + contextual filler (Phase 4).
@@ -301,6 +302,21 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
   // number"). The transfer number is typed by hand in the settings screen, so
   // "06 12 34 56 78" is as likely as "+33612345678" — and one badly typed
   // number used to take down every call for that client, transfer or not.
+  /* Le garde-fou qui protège un appelant RÉEL, et le seul.
+     Le contrôle à l'enregistrement ne couvre pas les fiches réglées avant son
+     existence, ni un numéro posé à la main sur la fiche par un exploitant.
+     Retirer l'outil vaut mieux que boucler: l'agent prend un message au lieu de
+     transférer, ce qui est dégradé mais fini. */
+  if (wouldLoop(profile.transferNumber, {
+    vapiPhoneNumber: profile.inboundNumber,
+    declared: profile.inboundLines,
+  })) {
+    logger.error(
+      `[VoiceTools] transfert en BOUCLE pour ${profile.clientId}: le numéro de transfert `
+        + 'est renvoyé vers la réceptionniste. Outil retiré, l\'agent prendra un message.'
+    );
+  } else {
+
   const transferTo = toE164(profile.transferNumber, profile.country);
   if (profile.transferNumber && !transferTo) {
     logger.warn(
@@ -328,6 +344,7 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
         },
       ],
     });
+  }
   }
 
   return tools;

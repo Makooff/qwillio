@@ -11,6 +11,7 @@ import { listCharacters, resolveCharacter, CHARACTERS, isValidCharacterId, DEFAU
 import { buildVapiConfigPatch, parseFaq } from '../services/client-config.service';
 import { knowledgePreset } from '../config/knowledge-presets';
 import { clientMessage, type PhoneSetupState } from '../services/voice/phone-setup.service';
+import { wouldLoop, LOOP_MESSAGE } from '../services/voice/transfer-loop';
 
 // OAuth state: per-user, signed, short-lived — the callback verifies it was
 // minted for the same client that finishes the flow (CSRF protection).
@@ -327,7 +328,27 @@ export class ClientDashboardController {
     try {
       const body = req.body;
       const updateData: any = {};
-      if (body.transferNumber !== undefined) updateData.transferNumber = body.transferNumber || null;
+      if (body.transferNumber !== undefined) {
+        /* Refuser un transfert qui BOUCLE. Le numéro pro du client est renvoyé
+           vers l'IA: si l'IA transfère vers ce même numéro, l'appel repart vers
+           elle. L'appelant entend la réceptionniste se présenter en boucle, les
+           minutes se facturent, et personne ne décroche jamais.
+           Refusé à l'enregistrement pour que le client le comprenne devant son
+           écran, et non le jour où un appelant raccroche. */
+        if (body.transferNumber) {
+          const lignes = await prisma.client.findUnique({
+            where: { id: req.clientId },
+            select: { vapiPhoneNumber: true, phoneNumbers: { select: { number: true } } },
+          });
+          if (wouldLoop(body.transferNumber, {
+            vapiPhoneNumber: lignes?.vapiPhoneNumber,
+            declared: lignes?.phoneNumbers,
+          })) {
+            return res.status(400).json({ error: 'transfer_loop', message: LOOP_MESSAGE });
+          }
+        }
+        updateData.transferNumber = body.transferNumber || null;
+      }
       if (body.businessName !== undefined) updateData.businessName = body.businessName || null;
       if (body.businessType !== undefined) updateData.businessType = body.businessType || null;
       if (body.vapiPhoneNumber !== undefined) updateData.vapiPhoneNumber = body.vapiPhoneNumber || null;
