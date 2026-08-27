@@ -231,3 +231,32 @@ describe("ce que le CLIENT lit n'est pas ce que l'exploitant lit", () => {
     expect(r.reason).toMatch(/assistant/i);
   });
 });
+
+describe("le dossier réglementaire ne doit BLOQUER personne", () => {
+  /* Un numéro belge exige un dossier Twilio avec une adresse belge
+     correspondant à la localité du préfixe, validé en jusqu'à deux jours
+     ouvrables. Sans état dédié, on aurait le choix entre faire patienter le
+     client deux jours avant qu'il reçoive le moindre appel, ou lui promettre un
+     numéro qui n'existe pas encore. */
+
+  it("dit au client que sa ligne MARCHE pendant l'attente", () => {
+    /* C'est la moitié du message qui compte. Un client qui lit « en attente »
+       sans savoir que sa ligne fonctionne déjà appelle le support, ou pire,
+       n'ose pas donner son numéro à ses clients. */
+    const vu = clientMessage('pending_regulatory')!;
+    expect(vu).toMatch(/fonctionne/i);
+    expect(vu).toMatch(/renvoi d'appel/i);
+    expect(vu).toMatch(/ne manquez aucun appel/i);
+  });
+
+  it("annonce un délai, plutôt qu'un « bientôt » qui ne veut rien dire", () => {
+    expect(clientMessage('pending_regulatory')).toMatch(/deux jours ouvrables/i);
+  });
+
+  it("ne laisse fuir aucun terme interne, comme les autres états", () => {
+    const vu = clientMessage('pending_regulatory') ?? '';
+    for (const motif of [/Twilio/i, /dossier r[ée]glementaire/i, /bundle/i, /VAPI/i]) {
+      expect(motif.test(vu), `« ${vu} » laisse passer ${motif}`).toBe(false);
+    }
+  });
+});

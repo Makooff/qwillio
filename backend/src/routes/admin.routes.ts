@@ -690,11 +690,56 @@ router.get('/billing', async (_req: Request, res: Response) => {
  * n'a rien à faire ici, et une page qui les afficherait tous cacherait les
  * trois qui comptent.
  */
+/**
+ * PUT /api/admin/lignes/:clientId — consigner où en est la ligne d'un client.
+ *
+ * L'exploitant dépose le dossier réglementaire dans la console Twilio, puis
+ * pose l'état ici. Il n'y a PAS d'appel à Twilio dans ce code, et c'est
+ * volontaire: écrire une intégration qu'on ne peut pas exécuter produirait une
+ * fonctionnalité qui a l'air de marcher et qui ne marche pas. Le jour où le
+ * compte et le dossier existent, cette route devient le point d'accroche.
+ *
+ * Ce qu'elle permet aujourd'hui, et qui n'existait pas: dire au client que son
+ * numéro arrive, sans le faire attendre pour autant. Sa ligne partagée continue
+ * de fonctionner pendant les deux jours de validation.
+ */
+router.put('/lignes/:clientId', async (req: Request, res: Response) => {
+  try {
+    const { state, number, reason } = req.body ?? {};
+    const ETATS = ['none', 'shared', 'provisioning', 'pending_regulatory', 'active', 'failed'];
+    if (!ETATS.includes(String(state))) {
+      return res.status(400).json({ error: 'invalid_state', accepted: ETATS });
+    }
+    /* `active` sans numéro serait l'incohérence que `ensureLine` répare déjà
+       ensuite: autant la refuser ici, où l'on peut encore l'expliquer. */
+    if (state === 'active' && !String(number || '').trim()) {
+      return res.status(400).json({ error: 'number_required_for_active' });
+    }
+
+    const updated = await prisma.client.updateMany({
+      where: { id: String(req.params.clientId) },
+      data: {
+        phoneSetupState: String(state),
+        phoneSetupReason: reason ? String(reason).slice(0, 500) : null,
+        phoneSetupAt: new Date(),
+        ...(number ? { vapiPhoneNumber: String(number).trim() } : {}),
+      },
+    });
+    if (!updated.count) return res.status(404).json({ error: 'client_not_found' });
+
+    logger.info(`[Lignes] ${req.params.clientId} → ${state}${number ? ` (${number})` : ''}`);
+    res.json({ updated: true, state });
+  } catch (err: any) {
+    logger.error('[API] Lignes update error:', err);
+    res.status(500).json({ error: 'Failed to update line state' });
+  }
+});
+
 router.get('/lignes', async (_req: Request, res: Response) => {
   try {
     const clients = await prisma.client.findMany({
       where: {
-        phoneSetupState: { in: ['none', 'shared', 'provisioning', 'failed'] },
+        phoneSetupState: { in: ['none', 'shared', 'provisioning', 'pending_regulatory', 'failed'] },
         subscriptionStatus: { in: ['active', 'trialing'] },
       },
       select: {
@@ -714,9 +759,14 @@ router.get('/lignes', async (_req: Request, res: Response) => {
     /* `failed` d'abord: c'est le seul état où un appelant tombe dans le vide.
        `shared` sur un abonnement PAYÉ vient ensuite, parce que ce client a
        droit à sa ligne et ne l'a pas. */
+    /* `pending_regulatory` descend APRÈS les abonnés restés en partagé: le
+       dossier suit son cours, il n'y a rien à faire tant que Twilio n'a pas
+       répondu. Le mettre en tête ferait paraître urgent ce qui ne l'est pas, et
+       noierait les échecs, qui le sont. */
     const rank = (c: (typeof clients)[number]) =>
       c.phoneSetupState === 'failed' ? 0
         : c.phoneSetupState === 'shared' && c.subscriptionStatus === 'active' ? 1
+        : c.phoneSetupState === 'pending_regulatory' ? 3
         : 2;
 
     res.json({ total: clients.length, clients: clients.sort((a, b) => rank(a) - rank(b)) });

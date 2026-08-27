@@ -37,7 +37,28 @@ import { autoProvisionNumber, autoProvisionEnabled } from './phone-provisioning.
  * C'est le scénario « double activation » et il doit être un non-évènement.
  */
 
-export type PhoneSetupState = 'none' | 'shared' | 'provisioning' | 'active' | 'failed';
+export type PhoneSetupState =
+  | 'none'
+  | 'shared'
+  | 'provisioning'
+  /**
+   * Le dossier réglementaire est déposé, le numéro dédié arrive.
+   *
+   * Cet état existe pour que l'attente ne BLOQUE rien. Un numéro belge exige un
+   * dossier Twilio avec une adresse belge correspondant à la localité du
+   * préfixe, et sa validation prend jusqu'à deux jours ouvrables. Sans cet
+   * état, on aurait le choix entre faire patienter le client deux jours avant
+   * qu'il puisse recevoir le moindre appel, ou lui promettre un numéro qui
+   * n'existe pas encore.
+   *
+   * Ici il fait les deux: sa ligne partagée FONCTIONNE pendant ce temps, avec
+   * son renvoi d'appel, et son numéro dédié le remplace dès qu'il arrive. Il
+   * n'attend jamais, il paie seulement le renvoi international deux jours au
+   * lieu de toujours.
+   */
+  | 'pending_regulatory'
+  | 'active'
+  | 'failed';
 
 export interface LineOutcome {
   state: PhoneSetupState;
@@ -83,6 +104,13 @@ export function clientMessage(state: PhoneSetupState): string | null {
         + 'attribué dès le passage à un abonnement.';
     case 'provisioning':
       return 'Attribution de votre numéro en cours.';
+    case 'pending_regulatory':
+      /* Dit ce qui se passe ET que ça ne l'empêche de rien. Un client qui lit
+         « en attente » sans savoir que sa ligne marche déjà appelle le
+         support, ou pire, n'ose pas donner son numéro à ses clients. */
+      return 'Votre numéro belge est en cours d\'attribution, comptez deux jours ouvrables. '
+        + 'En attendant, votre ligne actuelle fonctionne : gardez le renvoi d\'appel actif, '
+        + 'vous ne manquez aucun appel.';
     case 'failed':
       /* Ni faux ni technique: le client sait à quoi s'en tenir et qui agit.
          Écrire « en cours de traitement » sur un échec serait un mensonge
