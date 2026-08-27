@@ -69,6 +69,15 @@ export interface ClientVoiceProfile {
    * (seulement pendant les heures d'ouverture), `never` (message toujours).
    */
   transferMode?: 'always' | 'hours' | 'never';
+  /**
+   * Les numéros de CE client qui aboutissent à la réceptionniste.
+   *
+   * Portés sur le profil et non relus au moment du transfert: `buildVoiceTools`
+   * est synchrone et sur le chemin critique de l'appel. Ils servent à refuser un
+   * transfert qui BOUCLERAIT, c'est-à-dire vers une ligne qui renvoie vers nous.
+   */
+  inboundNumber?: string | null;
+  inboundLines?: Array<{ number: string }>;
   /** Free-text client instructions from onboarding ("never quote prices"). */
   instructions: string | null;
   services: string[];
@@ -250,6 +259,10 @@ class RealtimeContextService {
         agentLanguage: true,
         country: true,
         transferNumber: true,
+        // Les lignes qui aboutissent à la réceptionniste, pour refuser un
+        // transfert qui bouclerait vers elle. Voir `transfer-loop.ts`.
+        vapiPhoneNumber: true,
+        phoneNumbers: { where: { isActive: true }, select: { number: true } },
         planType: true,
         onboardingData: true,
         googleCalendarRefreshToken: true,
@@ -281,6 +294,8 @@ class RealtimeContextService {
       language,
       timezone: onboarding.timezone || (language === 'fr' ? 'Europe/Paris' : 'America/New_York'),
       transferNumber: client.transferNumber,
+      inboundNumber: client.vapiPhoneNumber,
+      inboundLines: client.phoneNumbers ?? [],
       transferMode: ['always', 'hours', 'never'].includes(String(vapiConfig.transferMode))
         ? (vapiConfig.transferMode as 'always' | 'hours' | 'never')
         : 'always',
