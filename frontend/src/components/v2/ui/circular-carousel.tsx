@@ -12,7 +12,7 @@ import { ChevronLeft, ChevronRight } from '../../icons';
 
    Seuls écarts, tous actés avec l'utilisateur :
    - `cn` remplacé par un join local (pas de lib/utils ici), "use client" retiré ;
-   - l'item porte un avatar rond + nom + tag (contenu Qwillio) et les couleurs
+   - l'item porte un avatar rond (contenu Qwillio) et les couleurs
      passent aux tokens q2 clairs (méthode : « reprendre les designs, juste
      ajuster avec mes couleurs et typo ») ;
    - UNE ligne d'échelle : l'actif reste à la formule (=1), les autres prennent
@@ -29,7 +29,6 @@ export interface CarouselItem {
   id: string;
   title: string;
   description: string;
-  tag?: string;
   avatar?: string;
 }
 
@@ -266,12 +265,17 @@ export function CircularCarousel({
                 onClick={() => goTo(i)}
                 aria-label={item.title}
                 aria-current={isActive}
-                className={cn(
-                  'absolute left-1/2 top-[164px] flex h-28 w-28 cursor-pointer flex-col items-center justify-center gap-1 rounded-2xl border border-q2-plate bg-q2-canvas p-2 transition-shadow duration-300',
-                  isActive
-                    ? 'shadow-[0_20px_60px_-12px_rgba(20,16,50,0.28)]'
-                    : 'shadow-[0_8px_24px_-4px_rgba(20,16,50,0.12)] hover:shadow-[0_12px_32px_-4px_rgba(20,16,50,0.18)]',
-                )}
+                /* RIEN QUE LE ROND (demande utilisateur: « enlève les noms et
+                   les Bienveillante en dessous, garde uniquement les ronds des
+                   perso »).
+                   La carte qui les entourait part avec: son cadre, son fond, et
+                   surtout ses ombres. Celles-ci étaient teintées (20,16,50), un
+                   bleu-violet étalé sur 60 px: sur le fond noir, ça ne se lisait
+                   pas comme une ombre mais comme la lueur mauve autour du
+                   personnage actif. C'est l'échelle, pas une lumière, qui dit
+                   désormais lequel est choisi. */
+                className="absolute left-1/2 top-[164px] flex h-28 w-28 cursor-pointer items-center justify-center rounded-full"
+                title={item.title}
                 /* Les classes -translate-x/y-1/2 du fichier sont écrasées par le
                    transform que framer écrit pour x/y : sans ça chaque carte
                    pend en bas à droite de son point d'orbite. Les marges
@@ -284,23 +288,13 @@ export function CircularCarousel({
                     src={item.avatar}
                     alt=""
                     loading={i < 4 ? 'eager' : 'lazy'}
-                    width={64}
-                    height={64}
-                    className="h-14 w-14 rounded-full object-cover bg-q2-band"
+                    width={112}
+                    height={112}
+                    /* Le rond occupe la place que prenait la carte: sans nom ni
+                       étiquette à loger, il n'y a plus de raison de le tenir à
+                       56 px dans un cadre de 112. */
+                    className="h-full w-full rounded-full object-cover bg-q2-band"
                   />
-                )}
-                <span
-                  className={cn(
-                    'leading-tight transition-colors duration-300',
-                    isActive ? 'text-q2-ink text-[13px]' : 'text-q2-graphite text-[12px]',
-                  )}
-                >
-                  {item.title}
-                </span>
-                {item.tag && (
-                  <span className="rounded-full bg-q2-band px-1.5 py-0.5 text-[8px] font-semibold uppercase tracking-[0.1em] text-q2-indigo">
-                    {item.tag}
-                  </span>
                 )}
               </motion.button>
             );

@@ -882,11 +882,17 @@ export default function HeroPhone3D({ isFr }: { isFr: boolean }) {
               className="relative w-[290px] rounded-[52px] p-[3px] sm:w-[320px]"
               style={{
                 background: 'linear-gradient(155deg, #6b6b70 0%, #2c2c30 18%, #1a1a1d 45%, #3b3b40 78%, #757579 100%)',
+                /* OMBRES NEUTRES (demande utilisateur: « enlève la lueur mauve
+                   derrière »). La dernière ligne était un halo indigo de 110 px
+                   sous le châssis: sur le fond noir, c'est elle qu'on voyait
+                   comme une lueur, et non une ombre. Celle du dessus tirait sur
+                   le bleu (20,16,50) pour la même raison de marque.
+                   Une ombre sert à poser l'objet: elle assombrit, elle ne
+                   colore pas. */
                 boxShadow: [
                   'inset 0 1px 1px rgba(255,255,255,0.28)',
                   'inset 0 -1px 1px rgba(0,0,0,0.55)',
-                  '0 30px 60px -18px rgba(20,16,50,0.45)',
-                  '0 70px 110px -30px rgba(122,95,255,0.28)',
+                  '0 30px 60px -18px rgba(0,0,0,0.55)',
                 ].join(', '),
                 backfaceVisibility: 'hidden',
               }}
@@ -1043,7 +1049,9 @@ export default function HeroPhone3D({ isFr }: { isFr: boolean }) {
           {/* Floor shadow */}
           <motion.div
             className="mx-auto mt-9 h-6 w-[210px] rounded-full blur-xl"
-            style={{ background: 'rgba(24,20,55,0.38)', scaleX: reduced ? 1 : shadowScale }}
+            /* Neutre elle aussi: (24,20,55) est un bleu-violet sombre, visible
+               comme une tache colorée au pied de l'appareil. */
+            style={{ background: 'rgba(0,0,0,0.45)', scaleX: reduced ? 1 : shadowScale }}
           />
         </div>
       </div>

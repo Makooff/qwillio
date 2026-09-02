@@ -214,7 +214,6 @@ export default function CircularReceptionists({ isFr }: { isFr: boolean }) {
         id: p.id,
         title: p.name,
         description: isFr ? p.descFr : p.descEn,
-        tag: isFr ? p.personalityFr : p.personalityEn,
         avatar: `/characters/${p.id}.webp`,
       })),
     [isFr],
