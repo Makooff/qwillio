@@ -58,5 +58,11 @@ export default {
       },
     },
   },
-  plugins: [],
+  /* Les variantes de conteneur (`@lg:`, `@xl:`), utilisées par le carrousel
+     `components/ui/carousel-squeeze`. En Tailwind 3 elles n'existent pas sans
+     ce greffon: les classes seraient purement et simplement ABSENTES du CSS
+     produit, sans la moindre erreur, et la mise en page ne changerait jamais.
+     Les unités `cqi` employées en style en ligne, elles, sont natives et n'ont
+     jamais eu besoin de lui. */
+  plugins: [require('@tailwindcss/container-queries')],
 };

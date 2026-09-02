@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import type { CSSProperties } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import {
@@ -25,6 +25,7 @@ import TextReveal from '../../components/v2/motion/TextReveal';
 import Magnetic from '../../components/v2/motion/Magnetic';
 import PinnedScene from '../../components/v2/motion/PinnedScene';
 import { useContainerScrollMotion } from '../../components/ui/container-scroll-animation';
+import { SqueezeCarousel, type SqueezeSlide } from '../../components/ui/carousel-squeeze';
 import { prefersReducedMotion } from '../../components/v2/motion/reducedMotion';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -125,6 +126,25 @@ const HERO_MASK_BAS =
    par un aplat. */
 const HERO_TOP_HAZE =
   'linear-gradient(to bottom, #000 0%, #000 34%, rgba(0,0,0,0.82) 52%, rgba(0,0,0,0.52) 70%, rgba(0,0,0,0.22) 86%, transparent 100%)';
+
+/* Les quatre panneaux du carrousel du bas. Aucune photographie: il n'existe
+   pas d'image honnête pour « Contact » ou « Affiliation », et en fabriquer une
+   reviendrait à illustrer une page avec ce qu'elle ne contient pas. Ce sont
+   donc quatre fonds du registre drenched, tous différents par leur géométrie
+   (d'où la lumière vient) et non par une simple variation de teinte: quatre
+   dégradés identiques feraient exactement la grille de cartes jumelles que la
+   charte interdit. Ils ne basculent pas avec le thème, comme tout le registre
+   drenched.
+   Ils sont FRANCHEMENT éclairés, et c'est un correctif: en quasi-noir, les trois
+   panneaux repliés passaient SOUS le fond de la bande en thème sombre (#111111),
+   et se lisaient comme des trous plutôt que comme des cartes. Un panneau doit
+   être plus clair que la page qui le porte, pas plus sombre. */
+const EXPLORE_BACKS = [
+  'radial-gradient(125% 145% at 18% 118%, #7A5FFF 0%, #4720B0 40%, #161718 80%)',
+  'linear-gradient(112deg, #161718 0%, #2E1478 52%, #7349FE 108%)',
+  'radial-gradient(115% 135% at 86% -12%, #CD6BFB 0%, #7349FE 44%, #161718 84%)',
+  'radial-gradient(80% 100% at 4% 4%, #7A5FFF 0%, rgba(122,95,255,0) 60%), radial-gradient(80% 100% at 96% 96%, #CD6BFB 0%, rgba(205,107,251,0) 60%), #2E1478',
+];
 
 function HeroBackdrop() {
   const [photoFailed, setPhotoFailed] = useState(false);
@@ -537,6 +557,43 @@ export default function Home() {
   /* Repère du cadre qui passe d'une étape à l'autre dans « Pendant l'appel ». */
   const duringRef = useRef<HTMLDivElement>(null);
   const isFr = lang === 'fr';
+  /* Le carrousel du bas mène à quatre pages du site. `href` reste posé pour que
+     le lien s'ouvre dans un onglet, se copie et se lise comme un lien; la
+     navigation, elle, passe par le routeur, sinon un clic rechargerait toute
+     l'application pour changer de page. */
+  const navigate = useNavigate();
+  const exploreSlides = useMemo<SqueezeSlide[]>(() => {
+    const rows = isFr
+      ? [
+          { to: '/about', name: 'À propos', title: 'À propos.', desc: 'Qui construit Qwillio, et depuis où.', action: 'Faire connaissance' },
+          { to: '/blog', name: 'Blog', title: 'Blog.', desc: 'Ce qu’on apprend en faisant décrocher une IA.', action: 'Lire le blog' },
+          { to: '/contact', name: 'Contact', title: 'Contact.', desc: 'Une question, une démo, un devis.', action: 'Nous écrire' },
+          { to: '/affiliate', name: 'Affiliation', title: 'Affiliation.', desc: 'Recommandez Qwillio, touchez une commission récurrente.', action: 'Devenir affilié' },
+        ]
+      : [
+          { to: '/about', name: 'About', title: 'About.', desc: 'Who builds Qwillio, and from where.', action: 'Get acquainted' },
+          { to: '/blog', name: 'Blog', title: 'Blog.', desc: 'What we learn making an AI pick up the phone.', action: 'Read the blog' },
+          { to: '/contact', name: 'Contact', title: 'Contact.', desc: 'A question, a demo, a quote.', action: 'Write to us' },
+          { to: '/affiliate', name: 'Affiliate', title: 'Affiliate.', desc: 'Recommend Qwillio, earn a recurring commission.', action: 'Become an affiliate' },
+        ];
+
+    return rows.map((row, i) => ({
+      id: row.to,
+      title: row.title,
+      description: row.desc,
+      background: EXPLORE_BACKS[i],
+      overlay: (
+        <span className="text-sm font-medium tracking-tight text-white">{row.name}</span>
+      ),
+      action: row.action,
+      href: row.to,
+      onAction: (event) => {
+        if (event.metaKey || event.ctrlKey || event.shiftKey || event.button !== 0) return;
+        event.preventDefault();
+        navigate(row.to);
+      },
+    }));
+  }, [isFr, navigate]);
 
   useSEO({
     title: isFr
@@ -1284,6 +1341,43 @@ export default function Home() {
           </RevealV2>
           <RevealV2 index={1}>
             <IntegrationsOrbit isFr={isFr} />
+          </RevealV2>
+        </Container>
+      </Section>
+
+      {/* ── LE RESTE DU SITE, carrousel « squeeze » ──
+          Placé AVANT l'appel à l'action final, pas après: ces quatre liens sont
+          une sortie latérale, et les mettre en dernier reviendrait à enterrer le
+          bouton d'essai sous eux. En bande pour se détacher de la section
+          canvas qui précède. */}
+      <Section variant="band" hairline aria-labelledby="explore-heading" className="relative">
+        <Container className="relative z-10">
+          <RevealV2 className="max-w-[520px] mb-8 sm:mb-12">
+            <Eyebrow tone="violet" className="mb-3 sm:mb-4">
+              {isFr ? 'Le reste' : 'The rest'}
+            </Eyebrow>
+            <H2 id="explore-heading">
+              <TextReveal>
+                {isFr ? (
+                  <>
+                    Il y a plus à voir <SerifWord>par ici.</SerifWord>
+                  </>
+                ) : (
+                  <>
+                    There is more to see <SerifWord>over here.</SerifWord>
+                  </>
+                )}
+              </TextReveal>
+            </H2>
+          </RevealV2>
+          <RevealV2 index={1}>
+            <SqueezeCarousel
+              slides={exploreSlides}
+              label={isFr ? 'Le reste du site' : 'The rest of the site'}
+              height="clamp(200px, 30cqi, 320px)"
+              accent="#7A5FFF"
+              accentForeground="#FFFFFF"
+            />
           </RevealV2>
         </Container>
       </Section>
