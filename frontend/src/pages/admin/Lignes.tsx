@@ -18,7 +18,7 @@ import { PageHeader, Card, SectionHead, Pill, IconBtn } from '../../components/p
  * inaperçu jusqu'à ce qu'un appelant se plaigne.
  */
 
-type State = 'none' | 'shared' | 'provisioning' | 'failed';
+type State = 'none' | 'shared' | 'provisioning' | 'pending_regulatory' | 'failed';
 
 interface Ligne {
   id: string;
@@ -33,10 +33,14 @@ interface Ligne {
 
 /** L'état, dit en un mot, avec sa gravité. */
 const ETATS: Record<State, { label: string; color: 'bad' | 'warn' | 'info' | 'neutral' }> = {
-  failed:       { label: 'Sans ligne',     color: 'bad' },
-  none:         { label: 'Rien de posé',   color: 'warn' },
-  provisioning: { label: 'Achat en cours', color: 'info' },
-  shared:       { label: 'Ligne partagée', color: 'neutral' },
+  failed:       { label: 'Sans ligne',      color: 'bad' },
+  none:         { label: 'Rien de posé',    color: 'warn' },
+  provisioning: { label: 'Achat en cours',  color: 'info' },
+  shared:       { label: 'Ligne partagée',  color: 'neutral' },
+  /* Neutre et non « info »: le dossier suit son cours chez Twilio, il n'y a
+     rien à faire tant qu'il n'a pas répondu. Le peindre comme une alerte ferait
+     paraître urgent ce qui ne l'est pas, et noierait les échecs, qui le sont. */
+  pending_regulatory: { label: 'Dossier en cours', color: 'neutral' },
 };
 
 export default function Lignes() {
