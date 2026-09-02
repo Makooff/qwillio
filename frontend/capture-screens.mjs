@@ -395,13 +395,6 @@ await shoot({
        script de capture au lieu de rendre une image. */
     const drawer = page.locator('[role="dialog"][aria-modal="true"]').first();
     await drawer.waitFor({ state: 'visible', timeout: 10_000 });
-    /* DEUX passes, et la seconde n'est pas une superstition: le panneau entre
-       par une transition à ressort, sa hauteur grandit encore quand la première
-       s'exécute, et `scrollHeight` vaut alors moins que la valeur finale. Le
-       panneau s'arrêtait donc à quelques dizaines de pixels du bas, et la
-       capture coupait la dernière réplique en deux au ras de l'image. */
-    await drawer.evaluate(el => { el.scrollTop = el.scrollHeight; });
-    await page.waitForTimeout(600);
     await drawer.evaluate(el => { el.scrollTop = el.scrollHeight; });
     await page.waitForTimeout(400);
   },
