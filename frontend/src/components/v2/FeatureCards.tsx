@@ -112,10 +112,14 @@ export default function FeatureCards({ isFr }: { isFr: boolean }) {
                   elle reste une boîte pleine largeur autour d'un visuel étroit
                   et centré, et ce sont ses marges qu'on voit, pas le visuel
                   (retour utilisateur: « les bords de la carte sont trop
-                  larges »). Le rembourrage baisse avec, pour la même raison. */}
+                  larges »). Le rembourrage, lui, reste CELUI DE L'AUTRE RANGÉE
+                  (`p-4 sm:p-8 lg:p-10`): c'est la largeur de la plate qui était
+                  en cause, pas sa marge, et deux rangées voisines qui
+                  respirent différemment se voient (demande utilisateur: « mets
+                  la même taille de marge que celle-ci »). */}
               <div
-                className={`q2-card-hover min-w-0 rounded-[24px] sm:rounded-[28px] bg-q2-plate ${
-                  f.portrait ? 'mx-auto max-w-[420px] p-4 sm:p-5' : 'p-4 sm:p-8 lg:p-10'
+                className={`q2-card-hover min-w-0 rounded-[24px] sm:rounded-[28px] bg-q2-plate p-4 sm:p-8 lg:p-10 ${
+                  f.portrait ? 'mx-auto max-w-[420px]' : ''
                 } ${flipped ? 'lg:order-1' : ''}`}
               >
                 {/* Une capture en PORTRAIT est bridée en largeur et centrée.
