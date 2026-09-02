@@ -75,15 +75,19 @@ export default function ThemeToggle({ onDark = false }: { onDark?: boolean }) {
              Le `backdrop-blur` est admis ici sans déroger au bandissement du
              glassmorphisme: CLAUDE.md en excepte explicitement le chrome de la
              barre, et c'est précisément lui.
-             Le filet monte à 45 %: sans fond pour porter le contraste, c'est
-             lui seul qui doit rester lisible sur le verre. */
+             PLUS DE FILET (demande utilisateur: « enlève le contour blanc du
+             toggle »). C'était lui, le petit anneau clair autour du curseur.
+             Le retirer sans rien mettre à la place rendrait le curseur
+             invisible: à 6 % d'opacité il n'a pas de fond pour se porter, et
+             c'est le filet qui le dessinait. Le voile monte donc là où était
+             le filet: un disque doux au lieu d'un cerclé net, même lisibilité
+             sans trait. */
           onDark
-            ? 'bg-white/[0.06] backdrop-blur-md text-white ring-1 ring-white/45'
+            ? 'bg-white/25 backdrop-blur-md text-white'
             /* Sur clair aussi (retour utilisateur): le curseur était un disque
                NOIR plein, une pastille opaque au milieu d'une barre en verre.
-               Même traitement que sur sombre, avec les valeurs inversées: un
-               voile d'encre à 6 %, un filet d'encre, et l'icône en encre. */
-            : 'bg-q2-ink/[0.06] backdrop-blur-md text-q2-ink ring-1 ring-q2-ink/25'
+               Même traitement que sur sombre, valeurs inversées. */
+            : 'bg-q2-ink/15 backdrop-blur-md text-q2-ink'
         }`}
         style={{ transform: dark ? 'translateX(19px)' : 'translateX(0)' }}
       >
