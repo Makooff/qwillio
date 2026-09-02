@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { motion } from 'framer-motion';
 import type { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import gsap from 'gsap';
@@ -23,6 +24,7 @@ import ImpactStats from '../../components/v2/ImpactStats';
 import TextReveal from '../../components/v2/motion/TextReveal';
 import Magnetic from '../../components/v2/motion/Magnetic';
 import PinnedScene from '../../components/v2/motion/PinnedScene';
+import { useContainerScrollMotion } from '../../components/ui/container-scroll-animation';
 import { prefersReducedMotion } from '../../components/v2/motion/reducedMotion';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -358,34 +360,34 @@ const MASK_V = 'linear-gradient(to bottom, #000 0%, #000 calc(91% - 1cm), rgba(0
 
 function HeroDashboardShot({ isFr }: { isFr: boolean }) {
   const wrapRef = useRef<HTMLDivElement>(null);
-  const frameRef = useRef<HTMLDivElement>(null);
+
+  /* LE REDRESSEMENT VIENT DE `components/ui/container-scroll-animation`.
+   *
+   * L'inclinaison était de 4 degrés en GSAP; elle passe à 20, avec l'échelle
+   * qui l'accompagne, parce que c'est ce mouvement-là qui a été demandé.
+   *
+   * Et il change de moteur, ce qui n'est pas un caprice: GSAP écrivait
+   * `transform` sur ce noeud, framer-motion aussi. Deux moteurs sur la même
+   * propriété se battent image par image, et le dernier qui écrit gagne. Un
+   * seul les tient donc désormais.
+   *
+   * L'`offset` n'est pas celui par défaut, et c'est le point délicat. Le
+   * réglage d'origine suppose un élément qui ENTRE par le bas de la fenêtre;
+   * ici la maquette est déjà visible au chargement, donc la progression
+   * démarrerait à mi-course et il n'y aurait presque plus d'inclinaison à
+   * voir. Les bornes reprennent la plage de l'ancien `scrollTrigger`
+   * (`top 92%` à `bottom 30%`): la fenêtre arrive inclinée et se redresse en
+   * défilant.
+   *
+   * L'entrée (fondu) reste en GSAP mais sur le CONTENEUR, pas sur le cadre:
+   * elle ne touche que l'opacité, donc elle ne dispute plus le `transform`. */
+  const { rotate, scale } = useContainerScrollMotion(wrapRef, ['start 0.92', 'end 0.3']);
 
   useEffect(() => {
     const wrap = wrapRef.current;
-    const frame = frameRef.current;
-    if (!wrap || !frame || prefersReducedMotion()) return;
+    if (!wrap || prefersReducedMotion()) return;
     const ctx = gsap.context(() => {
-      gsap.from(frame, { y: 46, opacity: 0, duration: 0.9, ease: 'expo.out', delay: 0.2 });
-
-      /* Le redressement, et le PARALLAXE (demande utilisateur).
-       *
-       * Trois changements, tous sur la même timeline pour qu'ils partagent une
-       * seule lecture du scroll — trois `scrollTrigger` séparés se
-       * recalculeraient chacun de leur côté et se décaleraient d'une image.
-       *
-       * `scrub: 1` plutôt que `0.6`: le scrub EST le lissage. Il dit en
-       * combien de secondes l'animation rattrape la position du scroll, et
-       * c'est ce délai qui donne le glissé au lieu du collé-au-doigt. Au
-       * dessus de ~1,5 s on décroche du geste et ça flotte.
-       *
-       * La fenêtre remonte plus lentement que la page (`yPercent: -6`): c'est
-       * tout le parallaxe. Il reste petit à dessein — le hero n'a pas de
-       * profondeur à raconter, il a juste à ne pas être plat. */
-      gsap.timeline({
-        scrollTrigger: { trigger: wrap, start: 'top 92%', end: 'bottom 30%', scrub: 1 },
-      })
-        .fromTo(frame, { rotateX: 4 }, { rotateX: 0, ease: 'none' }, 0)
-        .fromTo(frame, { yPercent: 0 }, { yPercent: -6, ease: 'none' }, 0);
+      gsap.from(wrap, { opacity: 0, duration: 0.9, ease: 'expo.out', delay: 0.2 });
     }, wrap);
     return () => ctx.revert();
   }, []);
@@ -397,13 +399,18 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
           déposait la frange mauve visible sous le bord bas de la maquette.
           Elle servait à décoller la capture du fond: ce rôle revient au cadre
           de la maquette elle-même, qui porte sa propre bordure. */}
-      <div
-        ref={frameRef}
+      <motion.div
         className="relative"
         /* Surface sombre : la nav doit passer en verre noir quand elle la
            survole, sinon on lit du texte foncé sur la capture du dashboard. */
         data-nav-dark=""
         style={{
+          /* Le redressement au défilement, piloté par
+             `useContainerScrollMotion`. Les deux valeurs vivent dans le MÊME
+             objet `style` que le reste: deux attributs `style` sur un même
+             élément, et le second efface le premier. */
+          rotateX: rotate,
+          scale,
           /* Le PNG porte sa propre marge transparente autour de la fenêtre —
              3,62 %, la même cote que `screen.left`, c'est la même arête. Sans
              la compenser, la fenêtre visible tombe 40 px à droite du titre
@@ -486,7 +493,7 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
             qwillio.com/dashboard
           </text>
         </svg>
-      </div>
+      </motion.div>
 
       {/* Le bas de la fenêtre: dégradé ET flou (demande utilisateur).
           Le masque seul effaçait déjà l'arête, mais il laissait une image
