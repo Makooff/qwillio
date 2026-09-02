@@ -1,13 +1,18 @@
 # Decks commerciaux
 
-Un PDF de vente par métier, au format 16:9, dans le registre « Papier & Signal »
-de la V2. Ils servent en pièce jointe d'un e-mail de prospection ou en support
-d'un rendez-vous.
+Un PDF de vente par métier, dans le registre « Papier & Signal » de la V2, et
+dans deux formats.
+
+| Format | Fichier | Pour quoi |
+|---|---|---|
+| 16:9 | `pdf/qwillio-<métier>.pdf` | À projeter, à dérouler à l'écran, à envoyer en pièce jointe |
+| A4 portrait | `pdf/qwillio-<métier>-a4.pdf` | À imprimer, à laisser sur un bureau, à joindre à un devis |
 
 ```bash
-npm run decks                       # les quatre PDF, dans presentations/pdf/
-node presentations/build.mjs bar    # un seul métier
-node presentations/build.mjs --png  # en plus, une image par planche, pour relire
+npm run decks                        # les huit PDF, dans presentations/pdf/
+node presentations/build.mjs bar     # un seul métier, les deux formats
+node presentations/build.mjs --a4    # un seul format
+node presentations/build.mjs --png   # en plus, une image par planche, pour relire
 ```
 
 Les PDF produits sont dans `pdf/`. Le dossier `build/` est jetable (il est
@@ -33,9 +38,24 @@ gains sont ceux du concessionnaire, du pâtissier, du bar ou de la parfumerie.
 |---|---|
 | `content.mjs` | Tout le texte. Un métier, un objet. C'est le seul fichier à ouvrir pour changer un argument. |
 | `render.mjs` | Le gabarit. Une fonction par type de planche, plus les espaces insécables du français. |
-| `assets/deck.css` | La charte, recopiée depuis `DA/` et `frontend/src/styles/v2.css`. |
+| `assets/deck.css` | La charte et la mise en page 16:9, recopiées depuis `DA/` et `frontend/src/styles/v2.css`. |
+| `assets/deck-a4.css` | La variante portrait. Importe `deck.css` et ne redéfinit que ce que la page A4 change. |
 | `assets/fonts.css` | Outfit en base64, régénéré par `fetch-fonts.mjs`. |
 | `build.mjs` | Écrit le HTML, appelle Chromium en mode impression. |
+
+## Un contenu, deux mises en page
+
+Le même HTML sert aux deux formats : seule la feuille de style change. Ce n'est
+pas une mise à l'échelle, c'est une autre composition. En 16:9 la ressource
+abondante est la largeur, donc les blocs se rangent en colonnes et les listes
+se centrent dans une hauteur courte. En A4 c'est l'inverse : la largeur tombe
+de 1 104 à 666 px, donc chaque paire de colonnes devient une pile, l'escalier
+de la mise en route se décale au lieu de descendre, la colonne d'annotations de
+la conversation passe sous chaque réplique, et le corps de texte remonte d'un
+cran parce qu'une page A4 se lit de près.
+
+La couverture, elle, change d'ancrage : centrée en 16:9, calée en bas en A4,
+comme une couverture de document.
 
 ## Trois décisions qui expliquent le reste
 

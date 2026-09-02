@@ -1,8 +1,9 @@
 /**
- * Genere un PDF par secteur.
+ * Genere les PDF : un par metier, dans chaque format.
  *
- *   node presentations/build.mjs            les quatre decks
- *   node presentations/build.mjs bar        un seul
+ *   node presentations/build.mjs            tout
+ *   node presentations/build.mjs bar        un seul metier
+ *   node presentations/build.mjs --a4       un seul format
  *   node presentations/build.mjs --png      en plus, une image par planche
  *
  * Le rendu passe par Chromium en mode impression : c'est le seul moteur
@@ -35,9 +36,23 @@ const FLAGS = [
   '--virtual-time-budget=3000',
 ];
 
+/**
+ * Les deux formats livres.
+ *
+ * `shot` est la taille de fenetre des images de relecture : Chromium reserve
+ * 87 px de barre invisible en mode headless, donc la hauteur demandee est
+ * celle de la planche PLUS cette barre, faute de quoi le bas est rogne.
+ */
+const FORMATS = [
+  { id: '16-9', label: '16:9', css: '../assets/deck.css', suffix: '', shot: [1280, 807] },
+  { id: 'a4', label: 'A4', css: '../assets/deck-a4.css', suffix: '-a4', shot: [794, 1210] },
+];
+
 const today = new Intl.DateTimeFormat('fr-FR', { month: 'long', year: 'numeric' }).format(new Date());
 const args = process.argv.slice(2);
 const wantPng = args.includes('--png');
+const askedFormats = FORMATS.filter((f) => args.includes(`--${f.id}`));
+const formats = askedFormats.length ? askedFormats : FORMATS;
 const only = args.filter((a) => !a.startsWith('--'));
 
 const targets = only.length ? SECTORS.filter((s) => only.includes(s.slug)) : SECTORS;
@@ -52,34 +67,42 @@ mkdirSync(PDF, { recursive: true });
 
 const chrome = (extra) => execFileSync(CHROME, [...FLAGS, ...extra], { stdio: ['ignore', 'ignore', 'pipe'] });
 
-for (const sector of targets) {
-  const html = renderDeck(sector, { today, cssHref: '../assets/deck.css' });
-  const htmlPath = join(BUILD, `${sector.slug}.html`);
-  writeFileSync(htmlPath, html);
+for (const format of formats) {
+  for (const sector of targets) {
+    const name = `${sector.slug}${format.suffix}`;
+    const html = renderDeck(sector, { today, cssHref: format.css });
+    const htmlPath = join(BUILD, `${name}.html`);
+    writeFileSync(htmlPath, html);
 
-  const pdfPath = join(PDF, `qwillio-${sector.slug}.pdf`);
-  chrome([`--print-to-pdf=${pdfPath}`, `file://${htmlPath}`]);
-  console.log(`${sector.label} → ${pdfPath.replace(`${HERE}/`, '')}`);
+    const pdfPath = join(PDF, `qwillio-${name}.pdf`);
+    chrome([`--print-to-pdf=${pdfPath}`, `file://${htmlPath}`]);
+    console.log(`${format.label.padEnd(4)} ${sector.label} → ${pdfPath.replace(`${HERE}/`, '')}`);
 
-  if (wantPng) {
-    /* Une planche par image, pour relire la mise en page sans ouvrir le PDF.
-       Le document est redecoupe sur ses <section> plutot que capture d'un
-       seul bloc : une capture pleine hauteur ne se relit pas. */
-    const shots = join(BUILD, 'png', sector.slug);
-    mkdirSync(shots, { recursive: true });
-    const headEnd = html.indexOf('<body>') + '<body>'.length;
-    const headHtml = html.slice(0, headEnd).replace('../assets/deck.css', '../../../assets/deck.css');
-    const sections = html.slice(headEnd).split('<section ').slice(1);
-    sections.forEach((sec, i) => {
-      const page = join(shots, `${String(i + 1).padStart(2, '0')}.html`);
-      writeFileSync(page, `${headHtml}<style>.slide{margin:0!important;box-shadow:none!important}</style><section ${sec.split('</section>')[0]}</section></body></html>`);
-      chrome([
-        '--window-size=1280,807', /* la fenetre inclut une barre invisible de 87 px en mode headless */
-        '--hide-scrollbars',
-        `--screenshot=${page.replace('.html', '.png')}`,
-        `file://${page}`,
-      ]);
-    });
-    console.log(`  ${sections.length} images dans ${shots.replace(`${HERE}/`, '')}`);
+    if (wantPng) {
+      /* Une planche par image, pour relire la mise en page sans ouvrir le
+         PDF. Le document est redecoupe sur ses <section> plutot que capture
+         d'un seul bloc : une capture pleine hauteur ne se relit pas. */
+      const shots = join(BUILD, 'png', name);
+      mkdirSync(shots, { recursive: true });
+      const headEnd = html.indexOf('<body>') + '<body>'.length;
+      const headHtml = html.slice(0, headEnd).replace('../assets/', '../../../assets/');
+      const sections = html.slice(headEnd).split('<section ').slice(1);
+      sections.forEach((sec, i) => {
+        const page = join(shots, `${String(i + 1).padStart(2, '0')}.html`);
+        writeFileSync(
+          page,
+          `${headHtml}<style>.slide{margin:0!important;box-shadow:none!important}</style><section ${
+            sec.split('</section>')[0]
+          }</section></body></html>`
+        );
+        chrome([
+          `--window-size=${format.shot[0]},${format.shot[1]}`,
+          '--hide-scrollbars',
+          `--screenshot=${page.replace('.html', '.png')}`,
+          `file://${page}`,
+        ]);
+      });
+      console.log(`     ${sections.length} images dans ${shots.replace(`${HERE}/`, '')}`);
+    }
   }
 }

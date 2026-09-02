@@ -295,6 +295,29 @@ body {
 
 /* ── Pieces ─────────────────────────────────────────────── */
 
+/* Entete de planche : le titre a gauche, une note breve a droite. Quatre
+   planches le partagent, d'ou la classe plutot qu'un style en ligne : la
+   variante A4 doit pouvoir empiler les deux, ce qu'un style en ligne
+   interdirait. */
+.head-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 48px;
+}
+
+.head-row__note {
+  /* 270 et pas davantage : au-dela, la note reprend assez de largeur pour
+     faire passer le titre le plus long (« Elle ne sonne pas comme un serveur
+     vocal. ») sur deux lignes. */
+  max-width: 270px;
+  text-align: right;
+}
+
+.slide--dark .head-row__note {
+  color: var(--fog);
+}
+
 .rule {
   height: 1px;
   background: var(--plate);

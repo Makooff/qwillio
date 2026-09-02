@@ -58,9 +58,6 @@ function spaceText(t) {
   );
 }
 
-/* `toLocaleString` sépare les milliers par une espace fine, invisible aux
-   tailles d'affichage du deck. Elle est remplacée par une insécable
-   normale, comme partout ailleurs dans les textes. */
 /**
  * Le mot en serif italique des titres.
  *
@@ -80,6 +77,9 @@ const serifWords = (html) =>
     .replace(/<i>/g, '<span class="serif">')
     .replace(/<\/i>/g, '</span>');
 
+/* `toLocaleString` sépare les milliers par une espace fine, invisible aux
+   tailles d'affichage du deck. Elle est remplacée par une insécable
+   normale, comme partout ailleurs dans les textes. */
 const eur = (n) => `${n.toLocaleString('fr-FR').replace(/\u202F/g, NBSP)} €`;
 
 /* ── Ossature d'une planche ─────────────────────────────────────────── */
@@ -266,12 +266,12 @@ function during(s, n, total) {
     label: s.label,
     veil: 'soft',
     body: `
-    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:48px;margin-bottom:26px">
+    <div class="head-row" style="margin-bottom:26px">
       <div>
         <p class="eyebrow">${s.during.eyebrow}</p>
         <h2 class="h2">${s.during.title}</h2>
       </div>
-      <p class="small" style="max-width:250px;text-align:right">Chacune de ces lignes est une action du logiciel, pas une intention.</p>
+      <p class="small head-row__note">Chacune de ces lignes est une action du logiciel, pas une intention.</p>
     </div>
     <div class="ladder">
 ${s.during.items
@@ -296,12 +296,12 @@ function natural(s, n, total) {
     total,
     label: s.label,
     body: `
-    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:48px;margin-bottom:24px">
+    <div class="head-row" style="margin-bottom:24px">
       <div>
         <p class="eyebrow">${c.eyebrow}</p>
         <h2 class="h2">${c.title}</h2>
       </div>
-      <p class="small" style="max-width:280px;text-align:right">${c.lead}</p>
+      <p class="small head-row__note">${c.lead}</p>
     </div>
     <div class="bento">
 ${c.items
@@ -346,7 +346,7 @@ function after(s, n, total) {
 ${s.record.lines.map((l) => `          <span class="record__note">${l}</span>`).join('\n')}
         </div>
         </div>
-        <p class="small" style="margin-top:16px;max-width:520px">Reçue par e-mail et posée dans votre agenda pendant que l’appelant raccroche, sans une seule saisie de votre part.</p>
+        <p class="small record__caption">Reçue par e-mail et posée dans votre agenda pendant que l’appelant raccroche, sans une seule saisie de votre part.</p>
       </div>
       <div class="stack" style="justify-content:center">
         <p class="eyebrow">${c.eyebrow}</p>
@@ -379,7 +379,7 @@ function setup(s, n, total) {
     label: s.label,
     veil: 'soft',
     body: `
-    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:48px;margin-bottom:6px">
+    <div class="head-row" style="margin-bottom:6px">
       <div>
         <p class="eyebrow">${c.eyebrow}</p>
         <h2 class="h2">${c.title}</h2>
@@ -437,12 +437,12 @@ function truth(s, n, total) {
     label: s.label,
     tone: 'slide--dark',
     body: `
-    <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:56px">
+    <div class="head-row">
       <div>
         <p class="eyebrow">${c.eyebrow}</p>
         <h2 class="h2">${c.title}</h2>
       </div>
-      <p class="small" style="max-width:330px;text-align:right;color:var(--fog)">${c.lead}</p>
+      <p class="small head-row__note">${c.lead}</p>
     </div>
     <div class="cols">
 ${c.items
