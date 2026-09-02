@@ -112,7 +112,7 @@ export function TagInput({
             <span
               key={tag}
               className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium"
-              style={{ background: 'oklch(56% 0.02 265 / 0.15)', color: 'oklch(74% 0.02 265)' }}
+              style={{ background: 'oklch(60.4% 0.213 285.5 / 0.15)', color: 'oklch(74% 0.15 305)' }}
             >
               {tag}
               <button

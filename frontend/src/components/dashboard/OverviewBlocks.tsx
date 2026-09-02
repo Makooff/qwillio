@@ -268,7 +268,7 @@ export function RadialGauge({
             <line
               key={i}
               x1={tk.x1} y1={tk.y1} x2={tk.x2} y2={tk.y2}
-              stroke={tk.on ? pro.text : 'oklch(30% 0.01 265)'}
+              stroke={tk.on ? pro.text : 'oklch(30% 0 0)'}
               strokeWidth={2}
               strokeLinecap="round"
             />
@@ -294,7 +294,7 @@ export function RadialGauge({
             <span key={i} className="inline-flex items-center gap-2 text-[11.5px]" style={{ color: pro.textSec }}>
               <span
                 className="w-2 h-2 rounded-full"
-                style={{ background: l.bright ? pro.text : 'oklch(40% 0.01 265)' }}
+                style={{ background: l.bright ? pro.text : 'oklch(40% 0 0)' }}
               />
               {l.label}
               <span className="font-semibold tabular-nums" style={{ color: pro.text }}>{l.value}</span>
@@ -344,7 +344,7 @@ export function TallyMeter({
             className="flex-1 rounded-full"
             style={{
               height: i % 4 === 0 ? '100%' : '64%',
-              background: i < lit ? pro.text : 'oklch(28% 0.01 265)',
+              background: i < lit ? pro.text : 'oklch(28% 0 0)',
             }}
           />
         ))}
@@ -356,7 +356,7 @@ export function TallyMeter({
             <span key={i} className="inline-flex items-center gap-2 text-[11.5px]" style={{ color: pro.textSec }}>
               <span
                 className="w-2 h-2 rounded-full"
-                style={{ background: l.bright ? pro.text : 'oklch(40% 0.01 265)' }}
+                style={{ background: l.bright ? pro.text : 'oklch(40% 0 0)' }}
               />
               {l.label}
             </span>
@@ -498,7 +498,7 @@ export function SegmentBar({
             className="h-2 rounded-full"
             style={{
               width: `${s.pct}%`,
-              background: s.bright ? pro.text : 'oklch(32% 0.01 265)',
+              background: s.bright ? pro.text : 'oklch(32% 0 0)',
               minWidth: s.pct > 0 ? 4 : 0,
             }}
           />
@@ -509,7 +509,7 @@ export function SegmentBar({
           <span key={i} className="inline-flex items-center gap-2 text-[11.5px]" style={{ color: pro.textSec }}>
             <span
               className="w-2 h-2 rounded-full"
-              style={{ background: s.bright ? pro.text : 'oklch(40% 0.01 265)' }}
+              style={{ background: s.bright ? pro.text : 'oklch(40% 0 0)' }}
             />
             {s.label}
           </span>

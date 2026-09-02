@@ -142,6 +142,12 @@ const OVERVIEW = {
 const USER = {
   id: 'u-demo', email: 'elodie@clinique-leopold.be', name: 'Élodie Vermeulen',
   role: 'client', clientId: 'demo', emailVerified: true, onboardingCompleted: true,
+  /* Le FORFAIT, et pas seulement dans `overview`. Le menu du portail lit
+     `planType` sur l'utilisateur (`ClientLayout`, via `planAllows`), pas sur
+     le client de la vue d'ensemble: absent, il vaut `null`, et « Analytique »,
+     « Pipeline » et « Activité » disparaissent de la barre latérale. La
+     capture montrait alors un produit amputé de trois pages que le site vend. */
+  planType: 'pro',
 };
 
 function mockFor(pathname, search) {
@@ -291,7 +297,7 @@ async function shoot({ name, path, width, height, scale, statusBar, prepare, web
          celle de la page: laissée au fond du document, elle sortait BLANCHE
          au-dessus d'un portail sombre, et la maquette aurait montré un
          bandeau clair sous l'heure. */
-      content: `html,body{background:#0a0a0c!important}body{padding-top:${statusBar}px!important}`,
+      content: `html,body{background:#0a0a0a!important}body{padding-top:${statusBar}px!important}`,
     });
     await page.waitForTimeout(400);
   }
@@ -389,6 +395,13 @@ await shoot({
        script de capture au lieu de rendre une image. */
     const drawer = page.locator('[role="dialog"][aria-modal="true"]').first();
     await drawer.waitFor({ state: 'visible', timeout: 10_000 });
+    /* DEUX passes, et la seconde n'est pas une superstition: le panneau entre
+       par une transition à ressort, sa hauteur grandit encore quand la première
+       s'exécute, et `scrollHeight` vaut alors moins que la valeur finale. Le
+       panneau s'arrêtait donc à quelques dizaines de pixels du bas, et la
+       capture coupait la dernière réplique en deux au ras de l'image. */
+    await drawer.evaluate(el => { el.scrollTop = el.scrollHeight; });
+    await page.waitForTimeout(600);
     await drawer.evaluate(el => { el.scrollTop = el.scrollHeight; });
     await page.waitForTimeout(400);
   },

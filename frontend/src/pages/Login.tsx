@@ -13,17 +13,17 @@ import { useSEO } from '../hooks/useSEO';
  */
 
 const D = {
-  bg:        'oklch(8% 0.009 265)',
-  panel:     'oklch(11% 0.013 265)',
-  inset:     'oklch(6% 0.007 265)',
-  border:    'oklch(22% 0.012 265 / 0.55)',
-  text:      'oklch(95% 0.004 265)',
-  text2:     'oklch(65% 0.007 265)',
-  text3:     'oklch(42% 0.006 265)',
-  accent:    'oklch(56% 0.02 265)',
-  accentHi:  'oklch(63% 0.02 265)',
-  accentDim: 'oklch(56% 0.02 265 / 0.10)',
-  accentBrd: 'oklch(56% 0.02 265 / 0.22)',
+  bg:        'oklch(8% 0 0)',
+  panel:     'oklch(11% 0 0)',
+  inset:     'oklch(6% 0 0)',
+  border:    'oklch(22% 0 0 / 0.55)',
+  text:      'oklch(95% 0 0)',
+  text2:     'oklch(65% 0 0)',
+  text3:     'oklch(42% 0 0)',
+  accent:    'oklch(60.4% 0.213 285.5)',
+  accentHi:  'oklch(66% 0.19 286)',
+  accentDim: 'oklch(60.4% 0.213 285.5 / 0.10)',
+  accentBrd: 'oklch(60.4% 0.213 285.5 / 0.22)',
   bad:       'oklch(65% 0.22 25)',
   badDim:    'oklch(65% 0.22 25 / 0.10)',
 } as const;
@@ -32,7 +32,7 @@ const D = {
 function GlassInput({ children }: { children: React.ReactNode }) {
   return (
     <div
-      className="rounded-2xl border bg-[oklch(6%_0.007_265)] transition-colors focus-within:border-[oklch(56%_0.22_158/0.55)] focus-within:bg-[oklch(56%_0.22_158/0.06)]"
+      className="rounded-2xl border bg-[oklch(6%_0_0)] transition-colors focus-within:border-[oklch(56%_0.22_158/0.55)] focus-within:bg-[oklch(56%_0.22_158/0.06)]"
       style={{ borderColor: D.border }}
     >
       {children}
@@ -41,9 +41,9 @@ function GlassInput({ children }: { children: React.ReactNode }) {
 }
 
 const fieldCls =
-  'w-full bg-transparent text-[15px] px-4 py-[14px] rounded-2xl outline-none placeholder:text-[oklch(35%_0.006_265)] font-[Outfit,system-ui,sans-serif]';
+  'w-full bg-transparent text-[15px] px-4 py-[14px] rounded-2xl outline-none placeholder:text-[oklch(35%_0_0)] font-[Outfit,system-ui,sans-serif]';
 const labelCls =
-  'block text-[12px] font-medium mb-1.5 text-[oklch(65%_0.007_265)]';
+  'block text-[12px] font-medium mb-1.5 text-[oklch(65%_0_0)]';
 
 export default function Login() {
   useSEO({ title: 'Connexion — Qwillio', noindex: true });
@@ -174,7 +174,7 @@ export default function Login() {
                 type="submit"
                 disabled={loading}
                 className="auth-in auth-d6 w-full rounded-full px-4 py-4 text-base font-medium border-none cursor-pointer flex items-center justify-center gap-2 transition-colors active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed bg-white text-[#1d1d1f] hover:bg-[#7a5fff] hover:text-white"
-                style={loading ? { background: 'oklch(40% 0.02 265)', color: D.text2 } : undefined}
+                style={loading ? { background: 'oklch(40% 0 0)', color: D.text2 } : undefined}
               >
                 {loading ? 'Connexion…' : 'Se connecter'}
                 {!loading && <ArrowRight size={16} />}

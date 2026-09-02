@@ -4,7 +4,7 @@
  * La barre du site et celle du tableau de bord sont le même objet: une pilule
  * flottante en verre, posée sur du sombre. Elles avaient pourtant deux
  * recettes. Celle du tableau de bord partait d'un GRIS bleuté dense
- * (`oklch(30% 0.01 265 / 0.14)` jusqu'à `0.24`, repli à 60-74 %), exactement
+ * (`oklch(30% 0 0 / 0.14)` jusqu'à `0.24`, repli à 60-74 %), exactement
  * l'erreur déjà corrigée sur le site: à cette densité la barre ne se lit plus
  * comme du verre mais comme une plaque grise posée sur du noir.
  *

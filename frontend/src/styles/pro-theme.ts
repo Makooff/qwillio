@@ -1,8 +1,8 @@
 /**
  * Qwillio Design Tokens — Signal Dark v3
  * OKLCH. Indigo-tinted dark base — logo Q-circle primary.
- * Primary: oklch(56% 0.02 265)  ≈ #7A5FFF (logo indigo)
- * Violet:  oklch(67% 0.03 265)  ≈ #CD6AFB (logo violet)
+ * Primary: oklch(60.4% 0.213 285.5)  ≈ #7A5FFF (logo indigo)
+ * Violet:  oklch(70.5% 0.213 316)  ≈ #CD6AFB (logo violet)
  * Skills: taste-skill, emil-design-eng, impeccable
  */
 
@@ -31,9 +31,9 @@ export const pro = {
   accentBrd:  'rgba(115,73,254,0.42)',
 
   // ── Violet — logo W-circle (secondary) ───────────────────────────────────
-  violet:     'oklch(67% 0.03 265)',
-  violetDim:  'oklch(67% 0.03 265 / 0.12)',
-  violetGlow: 'oklch(67% 0.03 265 / 0.20)',
+  violet:     'oklch(70.5% 0.213 316)',
+  violetDim:  'oklch(70.5% 0.213 316 / 0.12)',
+  violetGlow: 'oklch(70.5% 0.213 316 / 0.20)',
 
   // ── Status ───────────────────────────────────────────────────────────────
   ok:   'oklch(72% 0.18 145)',
@@ -64,7 +64,7 @@ export const proCard = {
 
 export const proPrimaryBtn = {
   background: pro.accentGrad,
-  color:      'oklch(98% 0.004 265)',
+  color:      'oklch(98% 0 0)',
   boxShadow:  proShadow.btn,
 } as const;
 

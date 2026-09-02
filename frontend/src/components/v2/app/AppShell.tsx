@@ -111,7 +111,7 @@ function MobileBottomNav({
           className="absolute inset-0 rounded-full pointer-events-none"
           style={{
             background:
-              'linear-gradient(180deg, oklch(30% 0.01 265 / 0.22) 0%, oklch(16% 0.01 265 / 0.34) 100%)',
+              'linear-gradient(180deg, oklch(30% 0 0 / 0.22) 0%, oklch(16% 0 0 / 0.34) 100%)',
             backdropFilter: 'blur(28px) saturate(1.6)',
             WebkitBackdropFilter: 'blur(28px) saturate(1.6)',
             border: '1px solid rgba(255,255,255,0.12)',

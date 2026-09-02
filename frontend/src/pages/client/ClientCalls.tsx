@@ -484,12 +484,16 @@ export default function ClientCalls() {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-[oklch(10%_0.012_265)] border-l border-white/[0.07] shadow-2xl z-50 overflow-y-auto"
+              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-[oklch(10%_0_0)] border-l border-white/[0.07] shadow-2xl z-50 overflow-y-auto"
               role="dialog"
               aria-modal="true"
               aria-label="Détails de l'appel"
             >
-              <div className="sticky top-0 bg-[oklch(10%_0.012_265/90%)] backdrop-blur-xl border-b border-white/[0.07] px-6 py-4 flex items-center justify-between">
+              {/* Entête OPAQUE, et non à 90 %: le panneau défile SOUS elle, et les 10 %
+                  restants laissaient lire des mots fantômes derrière le titre. Un flou
+                  ne rattrape pas ça, il les rend seulement illisibles au lieu de les
+                  cacher. Le fond est celui du panneau, donc rien ne se voit du raccord. */}
+              <div className="sticky top-0 z-10 bg-[oklch(10%_0_0)] border-b border-white/[0.07] px-6 py-4 flex items-center justify-between">
                 <h2 className="text-base font-semibold text-[#F5F5F7]">Détails de l'appel</h2>
                 <button
                   type="button"
