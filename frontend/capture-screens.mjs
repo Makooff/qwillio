@@ -142,6 +142,12 @@ const OVERVIEW = {
 const USER = {
   id: 'u-demo', email: 'elodie@clinique-leopold.be', name: 'Élodie Vermeulen',
   role: 'client', clientId: 'demo', emailVerified: true, onboardingCompleted: true,
+  /* Le FORFAIT, et pas seulement dans `overview`. Le menu du portail lit
+     `planType` sur l'utilisateur (`ClientLayout`, via `planAllows`), pas sur
+     le client de la vue d'ensemble: absent, il vaut `null`, et « Analytique »,
+     « Pipeline » et « Activité » disparaissent de la barre latérale. La
+     capture montrait alors un produit amputé de trois pages que le site vend. */
+  planType: 'pro',
 };
 
 function mockFor(pathname, search) {
@@ -291,7 +297,7 @@ async function shoot({ name, path, width, height, scale, statusBar, prepare, web
          celle de la page: laissée au fond du document, elle sortait BLANCHE
          au-dessus d'un portail sombre, et la maquette aurait montré un
          bandeau clair sous l'heure. */
-      content: `html,body{background:#0a0a0c!important}body{padding-top:${statusBar}px!important}`,
+      content: `html,body{background:#0a0a0a!important}body{padding-top:${statusBar}px!important}`,
     });
     await page.waitForTimeout(400);
   }

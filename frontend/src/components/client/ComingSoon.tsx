@@ -11,25 +11,25 @@ export default function ComingSoon({ module }: { module: string }) {
     <div className="min-h-[60vh] flex items-center justify-center px-6">
       <div
         className="max-w-md w-full rounded-2xl p-8 text-center"
-        style={{ background: 'oklch(11% 0.013 265)', border: '1px solid oklch(20% 0.02 265)' }}
+        style={{ background: 'oklch(11% 0 0)', border: '1px solid oklch(20% 0 0)' }}
       >
         <div
           className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto mb-5"
-          style={{ background: 'oklch(67% 0.03 265 / 0.12)' }}
+          style={{ background: 'oklch(70.5% 0.213 316 / 0.12)' }}
         >
-          <Clock size={22} style={{ color: 'oklch(67% 0.03 265)' }} aria-hidden="true" />
+          <Clock size={22} style={{ color: 'oklch(70.5% 0.213 316)' }} aria-hidden="true" />
         </div>
-        <h1 className="text-lg font-semibold mb-2" style={{ color: 'oklch(95% 0.004 265)' }}>
+        <h1 className="text-lg font-semibold mb-2" style={{ color: 'oklch(95% 0 0)' }}>
           {module} — bientôt disponible
         </h1>
-        <p className="text-[13px] leading-relaxed mb-6" style={{ color: 'oklch(65% 0.007 265)' }}>
+        <p className="text-[13px] leading-relaxed mb-6" style={{ color: 'oklch(65% 0 0)' }}>
           Ce module de la suite agent arrive prochainement. Votre réceptionniste IA, elle, est déjà
           active et répond à vos appels 24 h/24.
         </p>
         <Link
           to="/dashboard/agent"
           className="inline-flex items-center gap-1.5 text-[13px] font-medium hover:underline"
-          style={{ color: 'oklch(63% 0.02 265)' }}
+          style={{ color: 'oklch(66% 0.19 286)' }}
         >
           <ArrowLeft size={14} aria-hidden="true" /> Retour à la suite agent
         </Link>

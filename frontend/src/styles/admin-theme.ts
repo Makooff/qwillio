@@ -1,8 +1,8 @@
 ﻿/**
  * Qwillio Admin — Signal Dark v3
  * OKLCH. Indigo-tinted dark base — logo Q-circle primary.
- * Primary: oklch(56% 0.02 265)  ≈ #7A5FFF (logo indigo)
- * Violet:  oklch(67% 0.03 265)  ≈ #CD6AFB (logo violet)
+ * Primary: oklch(60.4% 0.213 285.5)  ≈ #7A5FFF (logo indigo)
+ * Violet:  oklch(70.5% 0.213 316)  ≈ #CD6AFB (logo violet)
  *
  * Usage: import { t } from '../styles/admin-theme';
  */
@@ -30,7 +30,7 @@ export const t = {
   // ── Brand — mauve #7349fe ─────────────────────────────────────────────
   brand:  '#7349fe',
   brandHi:'#8a6fff',
-  violet: 'oklch(67% 0.03 265)',
+  violet: 'oklch(70.5% 0.213 316)',
   live:   'oklch(72% 0.18 145)',
 
   // ── Accent system ─────────────────────────────────────────────────────────
@@ -41,7 +41,7 @@ export const t = {
   accentMid:  'rgba(115,73,254,0.10)',
   accentDim:  'rgba(115,73,254,0.14)',
   accentBrd:  'rgba(115,73,254,0.42)',
-  violetGlow: 'oklch(67% 0.03 265 / 0.20)',
+  violetGlow: 'oklch(70.5% 0.213 316 / 0.20)',
   okGlow:     'oklch(72% 0.18 145 / 0.18)',
 
   // ── Ambient — disabled (flat surfaces, hairline separation) ───────────────

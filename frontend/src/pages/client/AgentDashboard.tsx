@@ -39,8 +39,8 @@ interface DashboardSettings {
 const ICON_STYLES: Record<string, { color: string; background: string }> = {
   blue:       { color: 'oklch(60% 0.20 230)', background: 'oklch(60% 0.20 230 / 0.12)' },
   emerald:    { color: 'oklch(65% 0.17 162)', background: 'oklch(65% 0.17 162 / 0.12)' },
-  indigo:     { color: 'oklch(56% 0.02 265)', background: 'oklch(56% 0.02 265 / 0.12)' },
-  violet:     { color: 'oklch(67% 0.03 265)', background: 'oklch(67% 0.03 265 / 0.12)' },
+  indigo:     { color: 'oklch(60.4% 0.213 285.5)', background: 'oklch(60.4% 0.213 285.5 / 0.12)' },
+  violet:     { color: 'oklch(70.5% 0.213 316)', background: 'oklch(70.5% 0.213 316 / 0.12)' },
   amber:      { color: 'oklch(75% 0.18 85)',  background: 'oklch(75% 0.18 85 / 0.12)'  },
 };
 
@@ -200,13 +200,13 @@ const STATUS_CONFIG: Record<ModuleStatus, { label: string; dotColor: string; lab
   paused:         { label: 'En pause',       dotColor: 'oklch(55% 0.00 0)',          labelColor: 'oklch(60% 0.00 0)',          bgColor: 'oklch(55% 0.00 0 / 0.10)'   },
 };
 
-const SURFACE  = 'oklch(8% 0.009 265)';
+const SURFACE  = 'oklch(8% 0 0)';
 const CARD_BG  = 'rgba(255,255,255,0.025)';
 const CARD_BORDER = 'rgba(255,255,255,0.07)';
 const TEXT_PRIMARY   = '#F2F2F2';
 const TEXT_SECONDARY = '#9A9AA5';
-const INDIGO = 'oklch(56% 0.02 265)';
-const INDIGO_HOVER = 'oklch(50% 0.02 265)';
+const INDIGO = 'oklch(60.4% 0.213 285.5)';
+const INDIGO_HOVER = 'oklch(52% 0.21 285)';
 
 export default function AgentDashboard() {
   const [modules, setModules] = useState<Module[]>(INITIAL_MODULES);

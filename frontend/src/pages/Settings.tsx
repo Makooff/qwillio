@@ -238,7 +238,7 @@ export default function Settings() {
       <div className="flex items-center justify-center h-64" role="status" aria-label="Chargement">
         <div
           className="w-9 h-9 rounded-full border-2 border-transparent animate-spin"
-          style={{ borderTopColor: 'oklch(56% 0.02 265)', borderRightColor: 'oklch(56% 0.02 265)' }}
+          style={{ borderTopColor: 'oklch(60.4% 0.213 285.5)', borderRightColor: 'oklch(60.4% 0.213 285.5)' }}
         />
       </div>
     );
@@ -276,7 +276,7 @@ export default function Settings() {
         className="rounded-2xl border border-white/[0.06] bg-white/[0.02] p-5 space-y-5"
       >
         <h2 id="bot-control-heading" className="text-base font-semibold text-white flex items-center gap-2">
-          <Bot className="w-5 h-5" style={{ color: 'oklch(67% 0.03 265)' }} aria-hidden="true" />
+          <Bot className="w-5 h-5" style={{ color: 'oklch(70.5% 0.213 316)' }} aria-hidden="true" />
           Contrôle du Bot
         </h2>
 
@@ -286,7 +286,7 @@ export default function Settings() {
             <span
               aria-hidden="true"
               className={`w-3 h-3 rounded-full flex-shrink-0 ${isActive ? 'animate-pulse' : ''}`}
-              style={{ background: isActive ? 'oklch(74% 0.18 155)' : 'oklch(50% 0 0)' }}
+              style={{ background: isActive ? 'oklch(74% 0.18 155)' : 'oklch(52% 0.21 285)' }}
             />
             <div>
               <p className="text-sm font-semibold text-white">
@@ -304,7 +304,7 @@ export default function Settings() {
             aria-label={isActive ? 'Arrêter le bot' : 'Démarrer le bot'}
             className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-white transition-colors disabled:opacity-50"
             style={{
-              background: isActive ? 'oklch(60% 0.22 25)' : 'oklch(56% 0.02 265)',
+              background: isActive ? 'oklch(60% 0.22 25)' : 'oklch(60.4% 0.213 285.5)',
             }}
           >
             {toggling
@@ -335,12 +335,12 @@ export default function Settings() {
                     background: isRunning
                       ? 'oklch(74% 0.18 155 / 0.06)'
                       : isIdle
-                        ? 'oklch(56% 0.02 265 / 0.06)'
-                        : 'oklch(50% 0 0 / 0.06)',
+                        ? 'oklch(60.4% 0.213 285.5 / 0.06)'
+                        : 'oklch(52% 0.21 285 / 0.06)',
                     borderColor: isRunning
                       ? 'oklch(74% 0.18 155 / 0.2)'
                       : isIdle
-                        ? 'oklch(56% 0.02 265 / 0.2)'
+                        ? 'oklch(60.4% 0.213 285.5 / 0.2)'
                         : 'oklch(100% 0 0 / 0.06)',
                   }}
                 >
@@ -350,8 +350,8 @@ export default function Settings() {
                       background: isRunning
                         ? 'oklch(74% 0.18 155)'
                         : isIdle
-                          ? 'oklch(56% 0.02 265)'
-                          : 'oklch(50% 0 0)',
+                          ? 'oklch(60.4% 0.213 285.5)'
+                          : 'oklch(52% 0.21 285)',
                     }}
                   />
                   <p className="text-xs font-medium text-white/70 truncate capitalize">{name}</p>
@@ -360,8 +360,8 @@ export default function Settings() {
                       color: isRunning
                         ? 'oklch(74% 0.18 155)'
                         : isIdle
-                          ? 'oklch(74% 0.02 265)'
-                          : 'oklch(50% 0 0)',
+                          ? 'oklch(74% 0.15 305)'
+                          : 'oklch(52% 0.21 285)',
                     }}
                   >
                     {isRunning ? 'Actif' : isIdle ? 'En attente' : 'Inactif'}
@@ -435,7 +435,7 @@ export default function Settings() {
             >
               <div
                 className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 mt-0.5"
-                style={{ background: 'oklch(56% 0.02 265 / 0.12)', color: 'oklch(74% 0.02 265)' }}
+                style={{ background: 'oklch(60.4% 0.213 285.5 / 0.12)', color: 'oklch(74% 0.15 305)' }}
               >
                 {triggerLoading === action
                   ? <Loader2 className="w-4 h-4" aria-hidden="true" />
@@ -487,7 +487,7 @@ export default function Settings() {
           <div className="flex items-center gap-3">
             <div
               className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0"
-              style={{ background: 'oklch(67% 0.03 265 / 0.12)', color: 'oklch(67% 0.03 265)' }}
+              style={{ background: 'oklch(70.5% 0.213 316 / 0.12)', color: 'oklch(70.5% 0.213 316)' }}
             >
               <Radio className="w-5 h-5" aria-hidden="true" />
             </div>
@@ -508,7 +508,7 @@ export default function Settings() {
               <div className="flex items-center justify-center py-10" role="status" aria-label="Chargement">
                 <div
                   className="w-8 h-8 rounded-full border-2 border-transparent animate-spin"
-                  style={{ borderTopColor: 'oklch(56% 0.02 265)' }}
+                  style={{ borderTopColor: 'oklch(60.4% 0.213 285.5)' }}
                 />
               </div>
             ) : (
@@ -569,9 +569,9 @@ export default function Settings() {
                             aria-pressed={active}
                             className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border"
                             style={{
-                              background: active ? 'oklch(56% 0.02 265)' : 'oklch(100% 0 0 / 0.04)',
-                              borderColor: active ? 'oklch(56% 0.02 265)' : 'oklch(100% 0 0 / 0.08)',
-                              color: active ? 'oklch(98% 0.004 265)' : 'oklch(70% 0 0)',
+                              background: active ? 'oklch(60.4% 0.213 285.5)' : 'oklch(100% 0 0 / 0.04)',
+                              borderColor: active ? 'oklch(60.4% 0.213 285.5)' : 'oklch(100% 0 0 / 0.08)',
+                              color: active ? 'oklch(98% 0 0)' : 'oklch(70% 0 0)',
                             }}
                           >
                             {DAY_LABELS[day]}
@@ -674,9 +674,9 @@ export default function Settings() {
                             aria-pressed={selected}
                             className="px-3 py-1.5 rounded-lg text-xs font-medium transition-colors border"
                             style={{
-                              background: selected ? 'oklch(67% 0.03 265)' : 'oklch(100% 0 0 / 0.04)',
-                              borderColor: selected ? 'oklch(67% 0.03 265)' : 'oklch(100% 0 0 / 0.08)',
-                              color: selected ? 'oklch(98% 0.004 265)' : 'oklch(70% 0 0)',
+                              background: selected ? 'oklch(70.5% 0.213 316)' : 'oklch(100% 0 0 / 0.04)',
+                              borderColor: selected ? 'oklch(70.5% 0.213 316)' : 'oklch(100% 0 0 / 0.08)',
+                              color: selected ? 'oklch(98% 0 0)' : 'oklch(70% 0 0)',
                             }}
                           >
                             {n.label}

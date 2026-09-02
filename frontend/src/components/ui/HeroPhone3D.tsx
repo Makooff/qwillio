@@ -61,7 +61,7 @@ const PRO = {
   textSec: 'oklch(65% 0 0)',
   textTer: 'oklch(42% 0 0)',
   ok: 'oklch(72% 0.18 145)',
-  tickOff: 'oklch(28% 0.01 265)',
+  tickOff: 'oklch(28% 0 0)',
   line: 'oklch(90% 0 0)',
 };
 
@@ -143,7 +143,7 @@ function SceneHome({ isFr }: { isFr: boolean }) {
   return (
     <div className="absolute inset-0 overflow-hidden">
       {/* Brand aurora wallpaper */}
-      <div className="absolute inset-0" style={{ background: 'oklch(9% 0.012 265)' }} />
+      <div className="absolute inset-0" style={{ background: 'oklch(9% 0 0)' }} />
       <motion.div
         aria-hidden="true"
         className="absolute -left-16 bottom-[-25%] h-[65%] w-[130%] rounded-full blur-2xl"
@@ -396,7 +396,7 @@ function SceneOverview({ isFr, tick, callsMonth, leadsMonth, sentiment }: {
             transition={{ duration: 0.6, ease: EASE }}
             style={{ background: PRO.line }}
           />
-          <div className="h-[4px] flex-1 rounded-full" style={{ background: 'oklch(32% 0.01 265)' }} />
+          <div className="h-[4px] flex-1 rounded-full" style={{ background: 'oklch(32% 0 0)' }} />
         </div>
       </div>
 
@@ -688,7 +688,7 @@ function SceneAnalytics({ isFr, callsMonth, sentiment }: { isFr: boolean; callsM
             <motion.span
               key={i}
               className="flex-1 rounded-t-[2px]"
-              style={{ background: h >= 22 ? PRO.line : 'oklch(34% 0.01 265)' }}
+              style={{ background: h >= 22 ? PRO.line : 'oklch(34% 0 0)' }}
               initial={{ height: 0 }}
               animate={{ height: `${(h / 24) * 100}%` }}
               transition={{ duration: 0.5, delay: 0.5 + i * 0.05, ease: EASE }}
@@ -719,7 +719,7 @@ function SceneAnalytics({ isFr, callsMonth, sentiment }: { isFr: boolean; callsM
               >
                 <p className="text-[11px] font-semibold leading-none tabular-nums text-white">{f.v}</p>
                 <p className="mt-0.5 text-[6px] leading-tight text-white/40">{f.stage}</p>
-                <div className="mt-1 h-[3px] overflow-hidden rounded-full" style={{ background: 'oklch(28% 0.01 265)' }}>
+                <div className="mt-1 h-[3px] overflow-hidden rounded-full" style={{ background: 'oklch(28% 0 0)' }}>
                   <motion.div
                     className="h-full rounded-full"
                     style={{ background: PRO.line }}
