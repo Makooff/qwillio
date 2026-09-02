@@ -3,6 +3,8 @@
   "private": true,
   "scripts": {
     "sync:templates": "node scripts/sync-templates.mjs",
-    "check:templates": "node scripts/sync-templates.mjs --check"
+    "check:templates": "node scripts/sync-templates.mjs --check",
+    "decks": "node presentations/build.mjs",
+    "decks:fonts": "node presentations/fetch-fonts.mjs"
   }
 }
