@@ -29,6 +29,8 @@ import ScreenShot from './ScreenShot';
 interface Feature {
   /** Nom du fichier dans `public/screens`, sans extension. */
   key: string;
+  /** La capture est en PORTRAIT et doit être bridée en largeur. Voir plus bas. */
+  portrait?: boolean;
   altFr: string;
   altEn: string;
   titleFr: string;
@@ -43,6 +45,7 @@ const FEATURES: Feature[] = [
        transcript et le lecteur d'enregistrement dont parle le texte. La liste
        ne montrait qu'appelant, durée et sentiment (retour utilisateur). */
     key: 'fiche-appel',
+    portrait: true,
     altFr: 'La fiche d’un appel dans le portail: résumé, score du lead, coordonnées.',
     altEn: 'A call record in the portal: summary, lead score, contact details.',
     titleFr: 'Chaque appel documenté',
@@ -110,9 +113,23 @@ export default function FeatureCards({ isFr }: { isFr: boolean }) {
                   flipped ? 'lg:order-1' : ''
                 }`}
               >
+                {/* Une capture en PORTRAIT est bridée en largeur et centrée.
+                    La fiche d'appel fait 896 x 1280: étalée sur toute la
+                    colonne large, elle sortait à plus de 800 px de haut, et un
+                    panneau de cette taille flottant dans une carte ne se lit
+                    plus comme une copie d'écran mais comme une maquette
+                    fabriquée (retour utilisateur: « trop IA et trop grand »).
+                    À sa taille réelle, elle redevient ce qu'elle est.
+                    Elle ne déborde pas non plus par le côté: le débordement
+                    sert à faire sortir un visuel LARGE de son conteneur, il
+                    n'a aucun sens sur un visuel centré plus étroit que lui. */}
                 <div
                   className={`rounded-[16px] border border-q2-plate bg-q2-carbon overflow-hidden shadow-[var(--q2-shadow-whisper)] ${
-                    flipped ? 'lg:-ml-6' : 'lg:-mr-6'
+                    f.portrait
+                      ? 'mx-auto w-full max-w-[300px] sm:max-w-[330px]'
+                      : flipped
+                        ? 'lg:-ml-6'
+                        : 'lg:-mr-6'
                   }`}
                 >
                   <ScreenShot name={f.key} alt={isFr ? f.altFr : f.altEn} />
