@@ -166,14 +166,15 @@ function HeroBackdrop() {
          Les angles arrondis partent avec le cadre: un rayon n'a de sens que sur
          une forme qui a des bords, et il n'en reste plus. */
       className="absolute inset-x-0 top-0 aspect-[3528/2348] overflow-hidden pointer-events-none"
-      /* SURFACE SOMBRE POUR LA NAV (retour utilisateur: « Produit, Société,
-         Tarifs, EN|FR, Connexion ne sont pas assez visibles »).
-         Seule la maquette du tableau de bord portait ce marqueur, pas la vidéo
-         au-dessus d'elle. En thème clair, la barre restait donc en version
-         claire par-dessus une vidéo sombre: du gris #44403B sur des sapins,
-         illisible. Le marqueur la fait basculer en version sombre, texte blanc,
-         comme elle le fait déjà sur les sections drenched. */
-      data-nav-dark=""
+      /* PAS de `data-nav-dark` ici, et c'est un choix, pas un oubli.
+         Le marqueur y a été posé un temps: il basculait la barre en version
+         sombre (texte blanc) au-dessus de la vidéo. La direction retenue est
+         l'inverse (demande utilisateur: « mets un dégradé blanc et l'écriture
+         en noir »): la barre reste en version claire, et c'est le voile blanc
+         de l'entête qui porte la lisibilité du texte noir.
+         La maquette du tableau de bord, elle, garde le marqueur: elle est
+         beaucoup plus sombre que la vidéo, et aucun voile blanc raisonnable
+         n'y ferait tenir du texte noir. */
       aria-hidden="true"
       /* LE FONDU, en MASQUE et non en couche peinte par-dessus.
          Peindre la couleur du canvas au-dessus du décor, c'est poser un aplat

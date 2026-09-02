@@ -21,9 +21,21 @@ export const DARK_GLASS = {
   border: 'rgba(255,255,255,0.10)',
 } as const;
 
-/** La même chose sur fond clair, pour la barre du site au repos. */
+/**
+ * La même chose sur fond clair.
+ *
+ * Elle sert la bulle flottante AU-DESSUS DE LA VIDÉO du hero, et c'est ce qui
+ * a fixé ses valeurs. À 14 % puis 4 %, le verre ne portait rien: le texte de la
+ * barre, qui est en encre sur ce registre, tombait directement sur des sapins.
+ * Il monte donc là où il faut pour que du noir tienne dessus, et reste un
+ * dégradé descendant: dense sous le texte, plus léger vers le bas de la bulle,
+ * pour ne pas devenir une pastille blanche opaque.
+ *
+ * Le repli (WebKit sans filtre SVG) va plus haut encore: sans flou, la seule
+ * chose qui sépare le texte de l'image est cette teinte.
+ */
 export const LIGHT_GLASS = {
-  tint: 'linear-gradient(180deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0.04) 100%)',
-  tintFallback: 'linear-gradient(180deg, rgba(255,255,255,0.52) 0%, rgb(var(--q2-canvas) / 0.40) 100%)',
+  tint: 'linear-gradient(180deg, rgba(255,255,255,0.72) 0%, rgba(255,255,255,0.58) 100%)',
+  tintFallback: 'linear-gradient(180deg, rgba(255,255,255,0.88) 0%, rgb(var(--q2-canvas) / 0.78) 100%)',
   border: 'rgba(255,255,255,0.40)',
 } as const;

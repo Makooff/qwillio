@@ -205,7 +205,7 @@ function NavPanel({ label, links, aside, open, hovered, onDark, onOpen, onClose,
         className={`flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors duration-150 focus:outline-none ${
           onDark
             ? 'text-white/90 hover:text-white focus-visible:text-white'
-            : 'text-q2-graphite hover:text-q2-ink focus-visible:text-q2-ink'
+            : 'text-q2-ink hover:text-q2-ink focus-visible:text-q2-ink'
         }`}
       >
         {label}
@@ -584,9 +584,7 @@ export default function NavV2() {
             height: '160%',
             opacity: floating || menuOpen ? 0 : 1,
             transition: 'opacity 320ms cubic-bezier(0.16, 1, 0.3, 1)',
-            /* Le masque évite le bord franc sous l'entête. La COULEUR, elle,
-               ne se dégrade pas (demande utilisateur) : teinte unie, c'est le
-               verre qui travaille. */
+            /* Le masque évite le bord franc sous l'entête. */
             maskImage: 'linear-gradient(to bottom, black 30%, rgba(0,0,0,0.55) 62%, transparent 100%)',
             WebkitMaskImage: 'linear-gradient(to bottom, black 30%, rgba(0,0,0,0.55) 62%, transparent 100%)',
           }}
@@ -600,9 +598,24 @@ export default function NavV2() {
                  Safari ne connaît pas cette valeur comme indice et la couche
                  restait photographiée au montage, donc figée au défilement. */
               transform: 'translateZ(0)',
+              /* UN DÉGRADÉ BLANC SUR CLAIR (demande utilisateur: « mets un
+                 dégradé blanc et l'écriture en noir »).
+                 C'était une teinte UNIE, et à 12 % en mode liquide elle ne
+                 portait rien: le texte noir de la barre tombait sur la vidéo
+                 du hero, sapins compris. Un dégradé dense en haut, éteint en
+                 bas, donne au texte le fond qu'il lui faut là où il est, sans
+                 poser une bande blanche en travers de l'image.
+                 Le mode liquide reste plus léger que le repli: le flou y fait
+                 déjà une part du travail.
+                 Sur sombre, rien ne change: le voile reste noir et le texte
+                 blanc. */
               background: liquid
-                ? (overDark ? 'rgba(8, 9, 10, 0.12)' : 'rgb(var(--q2-canvas) / 0.12)')
-                : (overDark ? 'rgba(8, 9, 10, 0.58)' : 'rgb(var(--q2-canvas) / 0.56)'),
+                ? (overDark
+                    ? 'rgba(8, 9, 10, 0.12)'
+                    : 'linear-gradient(to bottom, rgb(var(--q2-canvas) / 0.86) 0%, rgb(var(--q2-canvas) / 0.52) 55%, rgb(var(--q2-canvas) / 0) 100%)')
+                : (overDark
+                    ? 'rgba(8, 9, 10, 0.58)'
+                    : 'linear-gradient(to bottom, rgb(var(--q2-canvas) / 0.95) 0%, rgb(var(--q2-canvas) / 0.68) 55%, rgb(var(--q2-canvas) / 0) 100%)'),
             }}
           />
         </div>
@@ -710,7 +723,7 @@ export default function NavV2() {
               <Link
                 to="/pricing"
                 className={`block px-3 py-1.5 text-sm transition-colors duration-150 ${
-                  overDark ? 'text-white/90 hover:text-white' : 'text-q2-graphite hover:text-q2-ink'
+                  overDark ? 'text-white/90 hover:text-white' : 'text-q2-ink hover:opacity-75'
                 }`}
               >
                 {isFr ? 'Tarifs' : 'Pricing'}
@@ -724,7 +737,7 @@ export default function NavV2() {
             <Link
               to="/login"
               className={`text-sm transition-colors duration-150 px-2 ${
-                overDark ? 'text-white/90 hover:text-white' : 'text-q2-graphite hover:text-q2-ink'
+                overDark ? 'text-white/90 hover:text-white' : 'text-q2-ink hover:opacity-75'
               }`}
             >
               {isFr ? 'Connexion' : 'Log in'}
