@@ -1,0 +1,1214 @@
+/* ============================================================
+   Deck commercial Qwillio, registre « Papier & Signal ».
+
+   Les valeurs viennent de DA/v2-direction.md et de
+   frontend/src/styles/v2.css. Elles y sont recopiees, pas importees:
+   la feuille du site est ecrite pour Tailwind (canaux RVB, modificateurs
+   d'opacite) et pour un thème basculable, alors qu'un PDF n'a qu'un
+   registre et doit se rendre sans build. Si un jeton change dans la V2,
+   il se change ici aussi, et c'est le seul endroit.
+
+   Page: 1280 x 720 px a 96 ppp, soit 960 x 540 pt, soit du 16:9 exact.
+   ============================================================ */
+
+@import url('fonts.css');
+
+:root {
+  /* Registre clair */
+  --canvas: #fdfcfc;
+  --band: #f5f3f1;
+  --plate: #ebe8e4;
+  --ink: #1d1d1f;
+  --graphite: #44403b;
+  --body: #777169;
+  --faint: #a59f97;
+
+  /* Marque, quatre couleurs du logo (DA/couleurs.md) */
+  --indigo: #7a5fff;
+  --violet: #cd6bfb;
+  --deep: #7349fe;
+  --lift: #b9a8ff;
+  --lift-soft: #d8d0ff;
+
+  /* Registre drenched, sombre dans tous les cas: c'est son role */
+  --void: #08090a;
+  --carbon: #0f1011;
+  --obsidian: #161718;
+  --border-d: #23252a;
+  --mist: #d0d6e0;
+  --fog: #8a8f98;
+
+  --hairline: 1px solid var(--plate);
+
+  /* Marges de page. Le pied mange 76 px, le contenu vit au-dessus. */
+  --gutter: 88px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  background: #2a2a2e; /* visible seulement a l'ecran, entre deux planches */
+}
+
+body {
+  font-family: 'Outfit', system-ui, -apple-system, sans-serif;
+  font-weight: 400;
+  color: var(--ink);
+  font-feature-settings: 'kern' 1, 'liga' 1;
+  /* Sans quoi Chromium imprime les aplats en blanc: un deck sans ses fonds
+     n'est plus le deck. */
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+@page {
+  size: 338.667mm 190.5mm;
+  margin: 0;
+}
+
+/* ── La planche ─────────────────────────────────────────── */
+
+.slide {
+  position: relative;
+  width: 1280px;
+  height: 720px;
+  overflow: hidden;
+  background: var(--canvas);
+  color: var(--ink);
+  display: flex;
+  flex-direction: column;
+  page-break-after: always;
+  break-after: page;
+}
+
+.slide:last-child {
+  page-break-after: auto;
+  break-after: auto;
+}
+
+/* A l'ecran seulement: les planches se lisent empilees, avec un liseré.
+   L'impression ignore la regle, donc le PDF reste bord a bord. */
+@media screen {
+  .slide {
+    margin: 24px auto;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, 0.45);
+  }
+}
+
+.slide__body {
+  position: relative;
+  z-index: 2;
+  flex: 1;
+  min-height: 0;
+  padding: 60px var(--gutter) 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.slide__foot {
+  position: relative;
+  z-index: 2;
+  height: 76px;
+  padding: 0 var(--gutter) 34px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.slide__foot-left {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.slide__foot .mark {
+  width: 15px;
+  height: 15px;
+  opacity: 0.85;
+}
+
+.slide__num {
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.1em;
+}
+
+/* Registre drenched: sombre dans les deux sens, il porte les moments
+   d'appui du recit et ne suit aucun theme. */
+.slide--dark {
+  background: var(--void);
+  color: #f5f4f2;
+}
+
+.slide--dark .slide__foot {
+  color: #56585e;
+}
+
+.slide--band {
+  background: var(--band);
+}
+
+/* ── Decor. Un seul voile, jamais deux sur la meme planche. ── */
+
+.veil {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.veil--lilac {
+  background:
+    radial-gradient(120% 90% at 82% 8%, rgba(205, 107, 251, 0.16) 0%, rgba(205, 107, 251, 0) 58%),
+    radial-gradient(90% 80% at 6% 96%, rgba(122, 95, 255, 0.13) 0%, rgba(122, 95, 255, 0) 62%);
+}
+
+.veil--soft {
+  background: radial-gradient(80% 70% at 100% 0%, rgba(122, 95, 255, 0.08) 0%, rgba(122, 95, 255, 0) 60%);
+}
+
+.veil--glow {
+  background:
+    radial-gradient(70% 85% at 78% 18%, rgba(122, 95, 255, 0.22) 0%, rgba(122, 95, 255, 0) 55%),
+    radial-gradient(60% 70% at 12% 100%, rgba(205, 107, 251, 0.14) 0%, rgba(205, 107, 251, 0) 60%);
+}
+
+/* ── Typographie ────────────────────────────────────────── */
+
+.eyebrow {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--indigo);
+  margin: 0 0 18px;
+}
+
+.eyebrow--muted {
+  color: var(--faint);
+}
+
+.slide--dark .eyebrow {
+  color: var(--lift);
+}
+
+.display {
+  font-size: 68px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 0.98;
+  margin: 0;
+}
+
+.h2 {
+  font-size: 44px;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  line-height: 1.05;
+  margin: 0;
+}
+
+.h3 {
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.h4 {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  margin: 0;
+}
+
+.lead {
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1.55;
+  color: var(--graphite);
+  margin: 0;
+  max-width: 560px;
+}
+
+.slide--dark .lead {
+  color: var(--mist);
+}
+
+.body {
+  font-size: 14.5px;
+  line-height: 1.62;
+  color: var(--body);
+  margin: 0;
+}
+
+.slide--dark .body {
+  color: var(--fog);
+}
+
+.small {
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--faint);
+  margin: 0;
+}
+
+/* Une seule exception a Outfit: un mot, en serif italique, en couleur
+   pleine. Jamais deux dans la meme phrase. */
+.serif {
+  font-family: 'Iowan Old Style', 'Palatino Linotype', 'Bitstream Charter', 'Liberation Serif', serif;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--indigo);
+  /* Pas de tracking negatif ici, contrairement au reste des titres : le
+     serif italique a ses propres chasses, et un resserrement mangeait
+     l'espace du mot suivant. Une marge droite le rendrait, mais elle
+     ecarterait aussi le point final, ce qui se voit davantage. */
+  letter-spacing: 0;
+  /* Le mot ne se coupe jamais : « rendez-vous » tombait sur deux lignes, ce
+     qui casse le seul effet typographique de la charte. */
+  white-space: nowrap;
+}
+
+.serif--tight {
+  margin-right: -0.07em;
+}
+
+.slide--dark .serif {
+  color: var(--lift);
+}
+
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ── Pieces ─────────────────────────────────────────────── */
+
+/* Entete de planche : le titre a gauche, une note breve a droite. Quatre
+   planches le partagent, d'ou la classe plutot qu'un style en ligne : la
+   variante A4 doit pouvoir empiler les deux, ce qu'un style en ligne
+   interdirait. */
+.head-row {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 48px;
+}
+
+.head-row__note {
+  /* 270 et pas davantage : au-dela, la note reprend assez de largeur pour
+     faire passer le titre le plus long (« Elle ne sonne pas comme un serveur
+     vocal. ») sur deux lignes. */
+  max-width: 270px;
+  text-align: right;
+}
+
+.slide--dark .head-row__note {
+  color: var(--fog);
+}
+
+.rule {
+  height: 1px;
+  background: var(--plate);
+  border: 0;
+  margin: 0;
+}
+
+.slide--dark .rule {
+  background: var(--border-d);
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 14px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--plate);
+  background: rgba(255, 255, 255, 0.6);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--graphite);
+}
+
+.chip--lit {
+  border-color: rgba(122, 95, 255, 0.28);
+  background: rgba(122, 95, 255, 0.07);
+  color: var(--deep);
+}
+
+.slide--dark .chip {
+  border-color: var(--border-d);
+  background: rgba(255, 255, 255, 0.03);
+  color: var(--mist);
+}
+
+.dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--indigo);
+  flex: none;
+}
+
+.card {
+  border-radius: 20px;
+  border: var(--hairline);
+  background: var(--band);
+  padding: 26px 28px;
+}
+
+.card--plain {
+  background: var(--canvas);
+}
+
+.card--ink {
+  background: var(--carbon);
+  border-color: rgba(255, 255, 255, 0.07);
+  color: #f5f4f2;
+}
+
+.card--indigo {
+  background: var(--indigo);
+  border-color: transparent;
+  color: #fff;
+}
+
+.card--outline {
+  background: transparent;
+}
+
+.card--ink .body,
+.card--indigo .body {
+  color: rgba(255, 255, 255, 0.74);
+}
+
+.card--indigo .h3,
+.card--ink .h3,
+.card--indigo .h4,
+.card--ink .h4 {
+  color: #fff;
+}
+
+.slide--dark .card {
+  background: var(--carbon);
+  border-color: var(--border-d);
+  color: #f5f4f2;
+}
+
+.slide--dark .card .h3,
+.slide--dark .card .h4 {
+  color: #f5f4f2;
+}
+
+/* Etiquette de rang, l'index editorial du deck */
+.rank {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.slide--dark .rank {
+  color: #56585e;
+}
+
+/* ── Mises en page ──────────────────────────────────────── */
+
+.split {
+  display: grid;
+  gap: 56px;
+  flex: 1;
+  min-height: 0;
+  /* Les deux colonnes se centrent l'une par rapport a l'autre : sans cela, un
+     bloc de titre court laisse un vide en bas de planche et la composition
+     part vers le haut. */
+  align-items: center;
+}
+
+.split--38 {
+  grid-template-columns: 38fr 62fr;
+}
+
+.split--45 {
+  grid-template-columns: 45fr 55fr;
+}
+
+.split--55 {
+  grid-template-columns: 55fr 45fr;
+}
+
+.stack {
+  display: flex;
+  flex-direction: column;
+}
+
+.grow {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ============================================================
+   Mises en page, une par type de planche.
+
+   Chaque planche a la SIENNE, et c'est voulu : quatre listes de cartes
+   identiques a la suite, c'est ce que la charte range parmi les grilles
+   interdites (CLAUDE.md, « no identical card grids »). Le deck alterne donc
+   liste numérotée, bento, quadrant et colonnes.
+   ============================================================ */
+
+/* ── 01. Couverture ─────────────────────────────────────── */
+
+.cover .slide__body {
+  padding-top: 56px;
+  justify-content: space-between;
+}
+
+.lockup {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.lockup__mark {
+  width: 34px;
+  height: 34px;
+}
+
+.lockup__word {
+  font-size: 21px;
+  font-weight: 600;
+  letter-spacing: -0.035em;
+  color: var(--ink);
+}
+
+.slide--dark .lockup__word {
+  color: #f5f4f2;
+}
+
+.cover__mid {
+  padding-bottom: 4px;
+}
+
+.cover .display {
+  font-size: 66px;
+  max-width: 940px;
+}
+
+.cover__lead {
+  margin-top: 26px;
+  max-width: 620px;
+  font-size: 17px;
+}
+
+.cover__meta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 24px;
+  padding-top: 18px;
+  border-top: var(--hairline);
+  font-size: 12px;
+  color: var(--body);
+}
+
+.cover__meta strong {
+  font-weight: 500;
+  color: var(--graphite);
+}
+
+/* ── 02. Le problème, minuterie ─────────────────────────── */
+
+.timeline {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0;
+}
+
+.timeline__row {
+  display: grid;
+  grid-template-columns: 92px 1fr;
+  gap: 22px;
+  padding: 19px 0;
+  border-bottom: var(--hairline);
+  align-items: baseline;
+}
+
+.timeline__row:first-child {
+  border-top: var(--hairline);
+}
+
+.timeline__mark {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--indigo);
+  font-variant-numeric: tabular-nums;
+}
+
+.timeline__row:last-child .timeline__mark {
+  color: var(--faint);
+}
+
+.timeline__text {
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--graphite);
+}
+
+/* ── 03. Le calcul ──────────────────────────────────────── */
+
+.calc {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1.25fr;
+  gap: 0;
+  border-top: var(--hairline);
+  border-bottom: var(--hairline);
+  margin-top: 30px;
+}
+
+.calc__cell {
+  padding: 26px 30px 26px 0;
+}
+
+.calc__cell + .calc__cell {
+  padding-left: 34px;
+  border-left: var(--hairline);
+}
+
+.calc__value {
+  font-size: 52px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+}
+
+.calc__unit {
+  font-size: 20px;
+  font-weight: 500;
+  color: var(--faint);
+  letter-spacing: -0.02em;
+}
+
+.calc__label {
+  margin-top: 12px;
+  font-size: 13px;
+  line-height: 1.45;
+  color: var(--body);
+  max-width: 250px;
+}
+
+.result {
+  margin-top: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 40px;
+  padding: 26px 32px;
+  border-radius: 20px;
+  background: var(--void);
+  color: #f5f4f2;
+}
+
+.result__num {
+  font-size: 46px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.result__num em {
+  font-style: normal;
+  color: var(--lift);
+}
+
+.result__text {
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--fog);
+  max-width: 560px;
+}
+
+/* ── 04. Qwillio, registre drenched ─────────────────────── */
+
+.points {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.points__row {
+  display: grid;
+  grid-template-columns: 46px 1fr;
+  gap: 18px;
+  padding: 22px 0;
+  border-top: 1px solid var(--border-d);
+  align-items: start;
+}
+
+.points__row:last-child {
+  border-bottom: 1px solid var(--border-d);
+}
+
+.slide:not(.slide--dark) .points__row {
+  border-color: var(--plate);
+}
+
+.points__index {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--lift);
+  font-variant-numeric: tabular-nums;
+  padding-top: 3px;
+}
+
+.points__body {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--fog);
+  margin-top: 7px;
+}
+
+/* ── 05. La conversation ────────────────────────────────── */
+
+.chat {
+  display: grid;
+  grid-template-columns: 1fr 268px;
+  column-gap: 30px;
+  row-gap: 9px;
+  align-content: center;
+}
+
+.bubble {
+  padding: 11px 16px 12px;
+  border-radius: 16px;
+  font-size: 13.5px;
+  line-height: 1.5;
+  max-width: 620px;
+}
+
+.bubble__who {
+  display: block;
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.bubble--caller {
+  background: var(--band);
+  border: var(--hairline);
+  border-bottom-left-radius: 5px;
+  color: var(--graphite);
+}
+
+.bubble--caller .bubble__who {
+  color: var(--faint);
+}
+
+.bubble--agent {
+  background: rgba(122, 95, 255, 0.07);
+  border: 1px solid rgba(122, 95, 255, 0.24);
+  border-bottom-right-radius: 5px;
+  color: var(--ink);
+  margin-left: 46px;
+}
+
+.bubble--agent .bubble__who {
+  color: var(--deep);
+}
+
+.chat__note {
+  align-self: center;
+  padding-left: 15px;
+  border-left: 2px solid rgba(122, 95, 255, 0.3);
+  font-size: 11.5px;
+  line-height: 1.5;
+  color: var(--body);
+}
+
+/* ── 06. Pendant l'appel, liste numérotée ───────────────── */
+
+.ladder {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+}
+
+.ladder__row {
+  display: grid;
+  grid-template-columns: 74px 300px 1fr;
+  gap: 26px;
+  align-items: baseline;
+  padding: 21px 0;
+  border-top: var(--hairline);
+}
+
+.ladder__row:last-child {
+  border-bottom: var(--hairline);
+}
+
+/* Le retrait se creuse en descendant : quatre lignes au cordeau
+   redeviendraient une grille. */
+.ladder__row:nth-child(2) {
+  padding-left: 18px;
+}
+.ladder__row:nth-child(3) {
+  padding-left: 36px;
+}
+.ladder__row:nth-child(4) {
+  padding-left: 54px;
+}
+
+.ladder__index {
+  font-size: 30px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  color: var(--plate);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.ladder__row:first-child .ladder__index {
+  color: var(--lift);
+}
+
+/* ── 07. Au naturel, bento ──────────────────────────────── */
+
+.bento {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  grid-template-rows: 1fr 1.12fr;
+  gap: 16px;
+  flex: 1;
+  min-height: 0;
+}
+
+.bento__cell {
+  border-radius: 20px;
+  padding: 24px 26px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+}
+
+.bento__cell:nth-child(1) {
+  grid-column: 1 / span 5;
+  background: var(--carbon);
+  color: #fff;
+}
+.bento__cell:nth-child(2) {
+  grid-column: 6 / span 7;
+  background: var(--band);
+  border: var(--hairline);
+}
+.bento__cell:nth-child(3) {
+  grid-column: 1 / span 7;
+  background: var(--band);
+  border: var(--hairline);
+  padding: 28px 32px;
+}
+.bento__cell:nth-child(4) {
+  grid-column: 8 / span 5;
+  background: var(--indigo);
+  color: #fff;
+  padding: 30px 32px;
+}
+
+.bento__cell .h3 {
+  font-size: 20px;
+}
+
+.bento__cell:nth-child(3) .h3 {
+  font-size: 23px;
+}
+
+.bento__body {
+  margin-top: 10px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--body);
+  max-width: 420px;
+}
+
+.bento__cell:nth-child(1) .h3,
+.bento__cell:nth-child(4) .h3 {
+  color: #fff;
+}
+
+.bento__cell:nth-child(1) .bento__body,
+.bento__cell:nth-child(4) .bento__body {
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.bento__tick {
+  width: 22px;
+  height: 2px;
+  background: var(--lift);
+  margin-bottom: 16px;
+}
+
+.bento__cell:nth-child(2) .bento__tick,
+.bento__cell:nth-child(3) .bento__tick {
+  background: var(--indigo);
+}
+
+.bento__cell:nth-child(4) .bento__tick {
+  background: rgba(255, 255, 255, 0.62);
+}
+
+/* ── 08. Après l'appel, la fiche ────────────────────────── */
+
+.record {
+  border-radius: 20px;
+  background: var(--void);
+  color: #f5f4f2;
+  padding: 26px 28px 24px;
+  align-self: center;
+  width: 100%;
+}
+
+.record__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 16px;
+  border-bottom: 1px solid var(--border-d);
+}
+
+.record__title {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.record__dur {
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--fog);
+  font-variant-numeric: tabular-nums;
+  border: 1px solid var(--border-d);
+  border-radius: 999px;
+  padding: 4px 10px;
+}
+
+.record__row {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 16px;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--border-d);
+  font-size: 13px;
+  align-items: baseline;
+}
+
+.record__key {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #56585e;
+}
+
+.record__val {
+  color: #f5f4f2;
+  line-height: 1.5;
+}
+
+.record__val--ok {
+  color: #8ee0b4;
+}
+
+.record__notes {
+  padding-top: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 7px;
+}
+
+.record__note {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  font-size: 12.5px;
+  color: var(--mist);
+}
+
+.record__note::before {
+  content: '';
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--lift);
+  flex: none;
+  transform: translateY(-3px);
+}
+
+/* ── 09. Mise en route, trois marches ───────────────────── */
+
+.steps {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 22px;
+  align-items: start;
+  margin-top: 8px;
+}
+
+.step {
+  border-radius: 20px;
+  border: var(--hairline);
+  background: var(--band);
+  padding: 26px 26px 28px;
+  /* Le numero en haut, le texte en bas : la carte se remplit au lieu de
+     laisser un fond vide sous trois lignes. */
+  display: flex;
+  flex-direction: column;
+  min-height: 200px;
+}
+
+/* Trois marches, trois hauteurs : la respiration s'allonge en descendant, et
+   l'escalier descend assez bas pour que la planche ne se termine pas sur un
+   trou entre les cartes et la note. */
+.step:nth-child(2) {
+  margin-top: 42px;
+  padding-bottom: 34px;
+  min-height: 222px;
+}
+.step:nth-child(3) {
+  margin-top: 84px;
+  padding-bottom: 40px;
+  min-height: 244px;
+  background: var(--indigo);
+  border-color: transparent;
+  color: #fff;
+}
+
+.step__index {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--indigo);
+  font-variant-numeric: tabular-nums;
+}
+
+.step:nth-child(3) .step__index {
+  color: rgba(255, 255, 255, 0.66);
+}
+
+.step .h3 {
+  margin-top: auto;
+  padding-top: 22px;
+  font-size: 19px;
+}
+
+.step:nth-child(3) .h3 {
+  color: #fff;
+}
+
+.step__body {
+  margin-top: 10px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--body);
+}
+
+.step:nth-child(3) .step__body {
+  color: rgba(255, 255, 255, 0.76);
+}
+
+.setup__note {
+  margin-top: 30px;
+  padding-top: 18px;
+  border-top: var(--hairline);
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--body);
+  max-width: 760px;
+}
+
+/* ── 10. Ce que ça change, quadrant ─────────────────────── */
+
+.quad {
+  display: grid;
+  grid-template-columns: 1.15fr 1fr;
+  flex: 1;
+  min-height: 0;
+  margin-top: 4px;
+}
+
+.quad__cell {
+  padding: 26px 40px 26px 0;
+  border-top: var(--hairline);
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.quad__cell:nth-child(even) {
+  padding-left: 40px;
+  border-left: var(--hairline);
+}
+
+.quad__cell:nth-child(3),
+.quad__cell:nth-child(4) {
+  border-bottom: var(--hairline);
+}
+
+.quad__head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.quad__body {
+  margin-top: 9px;
+  font-size: 13.5px;
+  line-height: 1.58;
+  color: var(--body);
+  max-width: 460px;
+}
+
+.close-line {
+  margin-top: 24px;
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  line-height: 1.35;
+  color: var(--deep);
+  max-width: 860px;
+}
+
+/* ── 11. Sans détour, trois colonnes ────────────────────── */
+
+.cols {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0;
+  flex: 1;
+  min-height: 0;
+  /* Etire, et non cale en haut : les filets verticaux tiennent alors toute la
+     hauteur et la planche ne se termine plus sur 300 px de noir vide. */
+  align-items: stretch;
+  margin-top: 30px;
+}
+
+.cols__cell {
+  padding: 28px 30px 30px 0;
+  border-top: 1px solid var(--border-d);
+}
+
+.cols__cell + .cols__cell {
+  padding-left: 34px;
+  border-left: 1px solid var(--border-d);
+}
+
+.cols__index {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--lift);
+  font-variant-numeric: tabular-nums;
+}
+
+.cols__cell .h3 {
+  margin-top: 14px;
+  font-size: 19px;
+  color: #f5f4f2;
+}
+
+.cols__body {
+  margin-top: 11px;
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--fog);
+}
+
+/* ── 12. Prochaine étape ────────────────────────────────── */
+
+.cta__grid {
+  display: grid;
+  grid-template-columns: 47fr 53fr;
+  gap: 56px;
+  flex: 1;
+  min-height: 0;
+  align-items: center;
+}
+
+.cta__steps {
+  display: flex;
+  flex-direction: column;
+}
+
+.cta__step {
+  display: grid;
+  grid-template-columns: 38px 1fr;
+  gap: 16px;
+  padding: 18px 0;
+  border-top: var(--hairline);
+  align-items: baseline;
+}
+
+.cta__step:last-child {
+  border-bottom: var(--hairline);
+}
+
+.cta__index {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--indigo);
+  font-variant-numeric: tabular-nums;
+}
+
+.cta__body {
+  margin-top: 6px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--body);
+}
+
+.contact {
+  margin-top: 26px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.contact__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 16px 11px;
+  border-radius: 999px;
+  background: var(--band);
+  border: var(--hairline);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--graphite);
+}
+
+.contact__item--lit {
+  background: var(--indigo);
+  border-color: transparent;
+  color: #fff;
+}

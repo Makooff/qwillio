@@ -1,0 +1,373 @@
+/* ============================================================
+   Variante A4 portrait du deck.
+
+   Même contenu, même HTML, même charte : seule la mise en page change.
+   Un PDF 16:9 imprimé sur A4 laisse deux bandes blanches et un corps de
+   texte trop petit ; l'inverse, une page A4 projetée, ne se lit pas de
+   loin. Les deux formats ont donc chacun leur feuille, et une seule
+   source de contenu.
+
+   Ce qui change en portrait, et pourquoi :
+   - la largeur tombe de 1104 à 666 px, donc toutes les colonnes se
+     rangent en lignes et l'échelle typographique descend d'un cran ;
+   - la hauteur passe de 584 à 963 px, donc les listes respirent
+     davantage plutôt que de se centrer dans un vide.
+   ============================================================ */
+
+@import url('deck.css');
+
+/* Déclaré APRÈS l'import, donc il l'emporte sur le format 16:9. */
+@page {
+  size: A4;
+  margin: 0;
+}
+
+:root {
+  --gutter: 64px;
+}
+
+.slide {
+  /* 296,7 mm et non 297 : Chromium arrondit la hauteur de page au point,
+     et un bloc rigoureusement égal à la page déborde d'un demi-point sur
+     une planche blanche supplémentaire. */
+  width: 210mm;
+  height: 296.7mm;
+}
+
+.slide__body {
+  padding: 54px var(--gutter) 0;
+  /* Le bloc de contenu se centre dans la hauteur de la page. Les planches
+     dont un enfant grandit (la conversation, la liste numerotee) ne sont pas
+     touchees : elles occupent deja toute la hauteur. */
+  justify-content: center;
+}
+
+.slide__foot {
+  height: 68px;
+  padding: 0 var(--gutter) 32px;
+}
+
+/* ── Échelle typographique du portrait ──────────────────── */
+
+.display,
+.cover .display {
+  font-size: 42px;
+  max-width: none;
+}
+
+.h2 {
+  font-size: 33px;
+}
+
+.h3 {
+  font-size: 19px;
+}
+
+.h4 {
+  font-size: 15px;
+}
+
+.lead,
+.cover__lead {
+  font-size: 16px;
+  max-width: none;
+}
+
+.body {
+  font-size: 13.5px;
+}
+
+.small {
+  font-size: 12px;
+}
+
+/* ── Les colonnes deviennent des lignes ─────────────────── */
+
+.split {
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+  /* Centre, et non cale en haut. Une page A4 porte moins de contenu qu'une
+     planche 16:9 n'en porte de large : cale en haut, chaque page finissait
+     sur un tiers de blanc qui se lit comme un oubli, alors que la meme
+     hauteur repartie de part et d'autre se lit comme une marge. */
+  justify-content: center;
+  align-items: stretch;
+}
+
+.split > * {
+  flex: none;
+}
+
+.head-row {
+  flex-direction: column;
+  align-items: flex-start;
+  /* Sur une seule colonne, la note passe sous le titre : sans un ecart
+     franc elle se lit comme une sous-ligne du titre. */
+  gap: 18px;
+}
+
+.head-row__note {
+  text-align: left;
+  max-width: 560px;
+}
+
+/* ── 01. Couverture ─────────────────────────────────────── */
+
+.cover .slide__body {
+  padding-top: 62px;
+  justify-content: flex-end;
+}
+
+.cover .lockup {
+  margin-bottom: auto;
+}
+
+.cover__mid {
+  margin-bottom: 76px;
+}
+
+.cover__meta {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+/* ── 02. Le problème ────────────────────────────────────── */
+
+.timeline__row {
+  grid-template-columns: 88px 1fr;
+  padding: 28px 0;
+}
+
+.timeline__text {
+  font-size: 14.5px;
+}
+
+/* ── 03. Le calcul ──────────────────────────────────────── */
+
+.calc__value {
+  font-size: 40px;
+}
+
+.calc__unit {
+  font-size: 17px;
+}
+
+.calc__cell {
+  padding: 24px 18px 24px 0;
+}
+
+.calc__cell + .calc__cell {
+  padding-left: 22px;
+}
+
+.calc__label {
+  font-size: 12px;
+  max-width: none;
+}
+
+.result {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 24px 28px 26px;
+}
+
+.result__num {
+  font-size: 38px;
+}
+
+.result__text {
+  max-width: none;
+}
+
+/* ── 04. Qwillio, 08. Après l'appel ─────────────────────── */
+
+.points__row {
+  padding: 26px 0;
+}
+
+.points__body {
+  font-size: 13.5px;
+}
+
+.record__caption {
+  max-width: none;
+}
+
+/* ── 05. La conversation ────────────────────────────────── */
+
+.chat {
+  grid-template-columns: 1fr;
+  row-gap: 8px;
+  /* Ni l'un ni l'autre ne grandit en portrait : c'est le corps de la page
+     qui centre l'ensemble titre plus contenu. Laisses en flex:1, ils
+     centraient leurs lignes dans toute la hauteur restante et ouvraient un
+     trou sous le titre. */
+  flex: none;
+  align-content: start;
+}
+
+/* Les cellules vides tenaient la place de la colonne d'annotations :
+   sans colonne, elles ne feraient plus qu'ajouter des trous. */
+.chat > span:empty {
+  display: none;
+}
+
+.bubble {
+  max-width: none;
+}
+
+.chat__note {
+  margin: 3px 0 9px 46px;
+  align-self: start;
+}
+
+/* ── 06. Pendant l'appel ────────────────────────────────── */
+
+.ladder {
+  flex: none;
+  justify-content: flex-start;
+  margin-top: 6px;
+}
+
+.ladder__row {
+  grid-template-columns: 56px 1fr;
+  gap: 8px 22px;
+  padding: 26px 0;
+}
+
+.ladder__row .body {
+  grid-column: 2;
+}
+
+.ladder__index {
+  font-size: 26px;
+  grid-row: span 2;
+}
+
+/* Le retrait en escalier tenait sur 1 104 px ; sur 666 il mangerait la
+   colonne de texte. */
+.ladder__row:nth-child(2),
+.ladder__row:nth-child(3),
+.ladder__row:nth-child(4) {
+  padding-left: 0;
+}
+
+/* ── 07. Au naturel ─────────────────────────────────────── */
+
+.bento {
+  grid-template-columns: repeat(2, 1fr);
+  grid-template-rows: 1fr 1.1fr;
+  flex: none;
+  height: 430px;
+  gap: 14px;
+}
+
+.slide .bento__cell:nth-child(1),
+.slide .bento__cell:nth-child(3) {
+  grid-column: 1;
+}
+
+.slide .bento__cell:nth-child(2),
+.slide .bento__cell:nth-child(4) {
+  grid-column: 2;
+}
+
+.slide .bento__cell {
+  padding: 22px 24px;
+}
+
+.bento__cell .h3,
+.bento__cell:nth-child(3) .h3 {
+  font-size: 18px;
+}
+
+/* ── 09. Mise en route ──────────────────────────────────── */
+
+.steps {
+  grid-template-columns: 1fr;
+  gap: 16px;
+}
+
+/* L'escalier ne descend plus, il se décale : en portrait la hauteur est la
+   ressource abondante, la largeur celle qui manque. */
+.step,
+.step:nth-child(2),
+.step:nth-child(3) {
+  margin-top: 0;
+  min-height: 0;
+  padding: 22px 26px 24px;
+}
+
+.step:nth-child(2) {
+  margin-left: 30px;
+}
+
+.step:nth-child(3) {
+  margin-left: 60px;
+}
+
+.step .h3 {
+  margin-top: 0;
+  padding-top: 12px;
+}
+
+.setup__note {
+  margin-top: 30px;
+  max-width: none;
+}
+
+/* ── 10. Ce que ça change ───────────────────────────────── */
+
+.quad {
+  grid-template-columns: 1fr 1fr;
+  flex: none;
+  margin-top: 18px;
+}
+
+.quad__cell {
+  padding: 22px 24px 24px 0;
+}
+
+.quad__cell:nth-child(even) {
+  padding-left: 26px;
+}
+
+.quad__body {
+  max-width: none;
+}
+
+.close-line {
+  font-size: 17px;
+  max-width: none;
+}
+
+/* ── 11. Sans détour ────────────────────────────────────── */
+
+.cols {
+  grid-template-columns: 1fr;
+  margin-top: 26px;
+  flex: none;
+}
+
+.cols__cell,
+.cols__cell + .cols__cell {
+  padding: 22px 0 24px;
+  border-left: 0;
+}
+
+.cols__cell:last-child {
+  border-bottom: 1px solid var(--border-d);
+}
+
+/* ── 12. Prochaine étape ────────────────────────────────── */
+
+.cta__grid {
+  display: flex;
+  flex-direction: column;
+  gap: 34px;
+  align-items: stretch;
+  justify-content: center;
+}
