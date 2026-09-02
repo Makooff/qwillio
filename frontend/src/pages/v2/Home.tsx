@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, useScroll, useTransform } from 'framer-motion';
 import type { CSSProperties } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import gsap from 'gsap';
@@ -24,7 +24,6 @@ import ImpactStats from '../../components/v2/ImpactStats';
 import TextReveal from '../../components/v2/motion/TextReveal';
 import Magnetic from '../../components/v2/motion/Magnetic';
 import PinnedScene from '../../components/v2/motion/PinnedScene';
-import { useContainerScrollMotion } from '../../components/ui/container-scroll-animation';
 import { SqueezeCarousel, type SqueezeSlide } from '../../components/ui/carousel-squeeze';
 import { prefersReducedMotion } from '../../components/v2/motion/reducedMotion';
 
@@ -388,27 +387,31 @@ const MASK_V = 'linear-gradient(to bottom, #000 0%, #000 calc(91% - 1cm), rgba(0
 function HeroDashboardShot({ isFr }: { isFr: boolean }) {
   const wrapRef = useRef<HTMLDivElement>(null);
 
-  /* LE REDRESSEMENT VIENT DE `components/ui/container-scroll-animation`.
+  /* UNE PARALLAXE, ET RIEN D'AUTRE (demande utilisateur: « enlève l'effet sur
+   * la fenêtre Safari, mets un simple effet parallaxe au scroll »).
    *
-   * L'inclinaison était de 4 degrés en GSAP; elle passe à 20, avec l'échelle
-   * qui l'accompagne, parce que c'est ce mouvement-là qui a été demandé.
+   * Ce qui part: le redressement 3D de `useContainerScrollMotion`, vingt degrés
+   * de `rotateX` accompagnés d'une mise à l'échelle. Il donnait à la maquette
+   * une perspective qui se corrigeait au défilement.
    *
-   * Et il change de moteur, ce qui n'est pas un caprice: GSAP écrivait
-   * `transform` sur ce noeud, framer-motion aussi. Deux moteurs sur la même
-   * propriété se battent image par image, et le dernier qui écrit gagne. Un
-   * seul les tient donc désormais.
+   * Ce qui reste: la fenêtre descend de 90 px pendant que la page en parcourt
+   * la hauteur, donc elle défile plus LENTEMENT que ce qui l'entoure. C'est
+   * tout ce que fait une parallaxe, et c'est le seul mouvement qui ne demande
+   * ni perspective ni transformation du plan.
    *
-   * L'`offset` n'est pas celui par défaut, et c'est le point délicat. Le
-   * réglage d'origine suppose un élément qui ENTRE par le bas de la fenêtre;
-   * ici la maquette est déjà visible au chargement, donc la progression
-   * démarrerait à mi-course et il n'y aurait presque plus d'inclinaison à
-   * voir. Les bornes reprennent la plage de l'ancien `scrollTrigger`
-   * (`top 92%` à `bottom 30%`): la fenêtre arrive inclinée et se redresse en
-   * défilant.
+   * `['start end', 'end start']`: la course couvre toute la traversée de la
+   * fenêtre du navigateur, du moment où le cadre entre par le bas à celui où
+   * il sort par le haut. Le réglage précédent partait d'une plage étroite
+   * parce qu'un redressement doit finir avant qu'on ne l'ait dépassé; une
+   * parallaxe, elle, n'a pas de fin à atteindre.
    *
-   * L'entrée (fondu) reste en GSAP mais sur le CONTENEUR, pas sur le cadre:
-   * elle ne touche que l'opacité, donc elle ne dispute plus le `transform`. */
-  const { rotate, scale } = useContainerScrollMotion(wrapRef, ['start 0.92', 'end 0.3']);
+   * `prefers-reduced-motion` annule la course plutôt que le rendu: la maquette
+   * reste à sa place, le composant garde ses hooks. */
+  const { scrollYProgress } = useScroll({
+    target: wrapRef,
+    offset: ['start end', 'end start'],
+  });
+  const parallax = useTransform(scrollYProgress, [0, 1], prefersReducedMotion() ? [0, 0] : [0, 90]);
 
   useEffect(() => {
     const wrap = wrapRef.current;
@@ -420,7 +423,9 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
   }, []);
 
   return (
-    <div ref={wrapRef} className="relative mt-10 sm:mt-14 md:mt-20" style={{ perspective: '1800px' }}>
+    // Plus de `perspective` sur ce conteneur: elle n'existait que pour le
+    // `rotateX` du redressement, et une parallaxe se joue dans le plan.
+    <div ref={wrapRef} className="relative mt-10 sm:mt-14 md:mt-20">
       {/* Plus de nappe indigo derrière la capture (demande utilisateur: « la
           lueur du hero aussi », puis « enlève le mauve »). C'est elle qui
           déposait la frange mauve visible sous le bord bas de la maquette.
@@ -432,12 +437,10 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
            survole, sinon on lit du texte foncé sur la capture du dashboard. */
         data-nav-dark=""
         style={{
-          /* Le redressement au défilement, piloté par
-             `useContainerScrollMotion`. Les deux valeurs vivent dans le MÊME
-             objet `style` que le reste: deux attributs `style` sur un même
-             élément, et le second efface le premier. */
-          rotateX: rotate,
-          scale,
+          /* La parallaxe. Elle vit dans le MÊME objet `style` que le reste:
+             deux attributs `style` sur un même élément, et le second efface
+             le premier. */
+          y: parallax,
           /* Le PNG porte sa propre marge transparente autour de la fenêtre —
              3,62 %, la même cote que `screen.left`, c'est la même arête. Sans
              la compenser, la fenêtre visible tombe 40 px à droite du titre
