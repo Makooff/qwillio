@@ -27,8 +27,6 @@ import { prefersReducedMotion } from '../../components/v2/motion/reducedMotion';
 
 gsap.registerPlugin(ScrollTrigger);
 
-/* Intensité d'un halo décoratif (.q2-halo, v2.css), en variable CSS */
-const halo = (opacity: number) => ({ '--q2-halo-o': String(opacity) }) as CSSProperties;
 
 /* Cadre du hero : le PNG livré par l'utilisateur (export Figma du kit « macOS
    Browser UI Kit — Big Sur »), posé tel quel, ombre portée comprise. Les cotes
@@ -385,14 +383,11 @@ function HeroDashboardShot({ isFr }: { isFr: boolean }) {
 
   return (
     <div ref={wrapRef} className="relative mt-10 sm:mt-14 md:mt-20" style={{ perspective: '1800px' }}>
-      {/* Une seule nappe, large et froide, qui décolle la capture du fond. La
-          lueur mauve qui traînait sous le bord bas a sauté (retour
-          utilisateur). Aucune ombre portée: la profondeur vient de la lueur. */}
-      <div
-        aria-hidden="true"
-        className="q2-halo -inset-x-4 sm:-inset-x-16 -top-10 bottom-0 rounded-[64px]"
-        style={halo(0.2)}
-      />
+      {/* Plus de nappe indigo derrière la capture (demande utilisateur: « la
+          lueur du hero aussi », puis « enlève le mauve »). C'est elle qui
+          déposait la frange mauve visible sous le bord bas de la maquette.
+          Elle servait à décoller la capture du fond: ce rôle revient au cadre
+          de la maquette elle-même, qui porte sa propre bordure. */}
       <div
         ref={frameRef}
         className="relative"

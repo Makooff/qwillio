@@ -18,7 +18,6 @@ import HeroPhone3D from '../../components/ui/HeroPhone3D';
 import VoiceCard, { type VoiceData } from '../../components/landing/VoiceCard';
 import TryVoiceButton from '../../components/v2/TryVoiceButton';
 import StepFrame from '../../components/v2/motion/StepFrame';
-import ShapeDrift from '../../components/v2/motion/ShapeDrift';
 
 /* Réceptionniste V2 « Papier & Signal » (DA/v2-direction.md).
    Récit: un réceptionniste qui agit pendant l'appel. Indigo = ce qui décroche
@@ -27,8 +26,6 @@ import ShapeDrift from '../../components/v2/motion/ShapeDrift';
 
 const NB = '\u00A0';
 
-/* Intensit\u00E9 d'un halo d\u00E9coratif (.q2-halo, v2.css), en variable CSS */
-const halo = (opacity: number) => ({ '--q2-halo-o': String(opacity) }) as CSSProperties;
 
 interface Pillar {
   icon: LucideIcon;
@@ -428,7 +425,6 @@ export default function Receptionist() {
 
       {/* PILIERS 1 à 4, rangées éditoriales alternées (jamais une grille de cards identiques) */}
       <Section hairline aria-labelledby="pillars-heading" className="relative">
-        <ShapeDrift shapes={[{ kind: 'disc', x: '-11%', y: '26%', size: 265, drift: -80, opacity: 0.22 }]} />
         <Container>
           <RevealV2 className="mb-4 md:mb-10">
             <div className="grid lg:grid-cols-[1fr_1fr] gap-6 sm:gap-8 lg:gap-16 items-end">
@@ -598,13 +594,8 @@ export default function Receptionist() {
                 grille de gris; le cadrage sur le haut de l'image règle ce
                 point sans avoir à redessiner l'écran. */}
             <figure className="relative">
-              {/* Même traitement que le suivi d'appel sur la Home: la capture
-                  est posée dans une lueur, jamais découpée dans le noir */}
-              <div
-                aria-hidden="true"
-                className="q2-halo q2-halo-dark -inset-6 sm:-inset-10 rounded-[64px]"
-                style={halo(0.24)}
-              />
+              {/* Même traitement que la Home: la nappe indigo a sauté (demande
+                  utilisateur). La capture tient sur sa propre bordure. */}
               <div className="relative q2-lit rounded-xl overflow-hidden border border-q2-graphite-d bg-q2-carbon">
                 <ScreenShot
                   name="chat-config"
@@ -849,7 +840,6 @@ export default function Receptionist() {
 
       {/* PILIERS 7 à 9, bande taupe: ce qui revient au patron et ce qui est cadré */}
       <Section variant="band" hairline aria-labelledby="after-heading" className="relative">
-        <ShapeDrift shapes={[{ kind: 'discCut', x: '87%', y: '44%', size: 185, drift: 75, opacity: 0.2 }]} />
         <Container className="grid lg:grid-cols-[1.5fr_1fr] gap-9 sm:gap-12 lg:gap-20 items-start">
           <RevealV2>
             <Eyebrow tone="indigo" className="mb-3 sm:mb-4">
@@ -918,11 +908,7 @@ export default function Receptionist() {
         className="relative overflow-hidden border-t border-q2-graphite-d"
       >
         <div aria-hidden="true" className="q2-hairline-lit absolute inset-x-0 top-0" />
-        <div
-          aria-hidden="true"
-          className="q2-halo q2-halo-violet absolute left-1/2 -translate-x-1/2 -bottom-40 w-[760px] h-[320px]"
-          style={halo(0.3)}
-        />
+        {/* Plus de lueur mauve en clôture, comme sur la Home. */}
         <Container className="relative grid lg:grid-cols-[1.5fr_1fr] gap-8 sm:gap-10 items-end">
           <RevealV2>
             <Display as="h2" onDark>

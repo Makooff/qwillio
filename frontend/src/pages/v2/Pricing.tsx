@@ -9,7 +9,6 @@ import { PillLink, PillButton } from '../../components/v2/Button';
 import RevealV2 from '../../components/v2/RevealV2';
 import CardV2 from '../../components/v2/CardV2';
 import FaqAccordion from '../../components/v2/FaqAccordion';
-import ShapeDrift from '../../components/v2/motion/ShapeDrift';
 
 /* Pricing V2 « Papier & Signal », voir DA/v2-direction.md.
    Copie FR/EN, tarifs et calcul ROI portés de la V1 (pages/Pricing.tsx). */
@@ -389,7 +388,6 @@ export default function Pricing() {
 
       {/* TARIFS: Pro en grande card, les trois autres en rangées hairline */}
       <Section aria-label={isFr ? 'Plans tarifaires' : 'Pricing plans'} className="relative !pt-0">
-        <ShapeDrift shapes={[{ kind: 'twin', x: '86%', y: '16%', size: 230, drift: 85, opacity: 0.24 }]} />
         <Container>
           {/* Le sélecteur est fréquent: il ne s'anime pas (DA motion) */}
           <div
@@ -585,7 +583,6 @@ export default function Pricing() {
 
       {/* COMPARATIF: groupes repliables, table sémantique */}
       <Section aria-labelledby="compare-heading" hairline className="relative">
-        <ShapeDrift shapes={[{ kind: 'columnAlt', x: '-6%', y: '30%', size: 145, drift: -80, opacity: 0.22 }]} />
         <Container>
           <RevealV2 className="mb-10">
             <H2 id="compare-heading" className="max-w-[640px]">
