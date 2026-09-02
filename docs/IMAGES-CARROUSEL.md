@@ -1,10 +1,36 @@
 # Les quatre images du carrousel de l'accueil
 
-Le carrousel du bas de `pages/v2/Home.tsx` cherche quatre fichiers. Tant qu'ils
-n'existent pas, chaque panneau garde son dégradé et **rien ne casse**: le repli
-est dans le composant (`components/ui/carousel-squeeze.tsx`, fonction `Picture`,
-`onError`). Déposer un fichier suffit à le faire apparaître, il n'y a pas une
-ligne de code à changer.
+Les quatre images **existent** et sont livrées. Elles ne sont pas
+photographiques et ne sortent pas d'un générateur: elles sont **dessinées**, par
+`frontend/generate-carousel.mjs`, et se refont d'une commande:
+
+```bash
+cd frontend && node generate-carousel.mjs
+```
+
+C'est un choix, pas un pis-aller. Le registre drenched de la charte est
+graphique, et une photo de banque d'images sortie d'un générateur est
+exactement ce qui a été refusé ailleurs sur cette page (« trop IA »). Chaque
+panneau se distingue des trois autres par sa GÉOMÉTRIE, jamais par une simple
+variation de teinte: quatre dégradés jumeaux seraient la grille de cartes
+identiques que la charte interdit.
+
+Ce que chacune montre:
+
+| Panneau | Le dessin | Ce qu'il dit |
+|---|---|---|
+| À propos | une verrière vue de face, la dernière lumière derrière, la pluie dessus | qui, et depuis où: un atelier, le soir, personne au premier plan |
+| Blog | une page d'écriture manuscrite, une rature, des annotations en marge | on apprend en faisant, et on note |
+| Contact | le fil spiralé d'un combiné, qui traverse le cadre | on décroche: le produit en un objet |
+| Affiliation | deux liens noués, un indigo, un violet, sortant par des bords opposés | une recommandation qui dure, pas une poignée de main |
+
+Le repli reste en place si un fichier venait à manquer: le composant
+(`components/ui/carousel-squeeze.tsx`, fonction `Picture`, `onError`) retombe
+sur le dégradé du panneau. Rien ne casse, et déposer un fichier suffit à le
+faire réapparaître.
+
+Les recettes en langage naturel plus bas restent valables si vous préférez
+générer les images ailleurs.
 
 ## Où, et à quelle taille
 

@@ -108,10 +108,15 @@ export default function FeatureCards({ isFr }: { isFr: boolean }) {
               </div>
 
               {/* La plate, et le cadre qui en sort par le haut */}
+              {/* La plate d'une capture PORTRAIT se resserre sur elle: sinon
+                  elle reste une boîte pleine largeur autour d'un visuel étroit
+                  et centré, et ce sont ses marges qu'on voit, pas le visuel
+                  (retour utilisateur: « les bords de la carte sont trop
+                  larges »). Le rembourrage baisse avec, pour la même raison. */}
               <div
-                className={`q2-card-hover min-w-0 rounded-[24px] sm:rounded-[28px] bg-q2-plate p-4 sm:p-8 lg:p-10 ${
-                  flipped ? 'lg:order-1' : ''
-                }`}
+                className={`q2-card-hover min-w-0 rounded-[24px] sm:rounded-[28px] bg-q2-plate ${
+                  f.portrait ? 'mx-auto max-w-[420px] p-4 sm:p-5' : 'p-4 sm:p-8 lg:p-10'
+                } ${flipped ? 'lg:order-1' : ''}`}
               >
                 {/* Une capture en PORTRAIT est bridée en largeur et centrée.
                     La fiche d'appel fait 896 x 1280: étalée sur toute la
@@ -123,13 +128,16 @@ export default function FeatureCards({ isFr }: { isFr: boolean }) {
                     Elle ne déborde pas non plus par le côté: le débordement
                     sert à faire sortir un visuel LARGE de son conteneur, il
                     n'a aucun sens sur un visuel centré plus étroit que lui. */}
+                {/* Le liseré de la capture portrait est CLAIR et non couleur
+                    plate: le panneau photographié est à #171717 et la plate à
+                    #1a1a1a, donc un liseré de la plate sur le panneau ne
+                    séparait rien du tout et les deux se confondaient en une
+                    seule tache noire. */}
                 <div
-                  className={`rounded-[16px] border border-q2-plate bg-q2-carbon overflow-hidden shadow-[var(--q2-shadow-whisper)] ${
+                  className={`rounded-[16px] overflow-hidden shadow-[var(--q2-shadow-whisper)] ${
                     f.portrait
-                      ? 'mx-auto w-full max-w-[300px] sm:max-w-[330px]'
-                      : flipped
-                        ? 'lg:-ml-6'
-                        : 'lg:-mr-6'
+                      ? 'mx-auto w-full border border-white/10'
+                      : `border border-q2-plate bg-q2-carbon ${flipped ? 'lg:-ml-6' : 'lg:-mr-6'}`
                   }`}
                 >
                   <ScreenShot name={f.key} alt={isFr ? f.altFr : f.altEn} />
