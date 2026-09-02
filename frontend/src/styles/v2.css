@@ -35,14 +35,27 @@
   --q2-lift-soft: #d8d0ff;
 
   /* Registre drenched */
-  --q2-void: #08090a;
-  --q2-carbon: #0f1011;
-  --q2-obsidian: #161718;
-  --q2-border-d: #23252a;
+  /* DEUX NOIRS, ET RIEN ENTRE LES DEUX (demande utilisateur: « les couleurs de
+     fond, les gris, remplace-les par ces deux couleurs #111111 et plus sombre
+     #0a0a0a »). Les valeurs portaient toutes une pointe de bleu (#08090a,
+     #0f1011, #161718): sur un grand aplat, cette pointe se lit comme un gris
+     froid, et c'est elle qu'on voyait. Elles sont neutres désormais.
+     `obsidian` reste au-dessus des deux: c'est une SURFACE posée sur le fond
+     (cartes, puces), pas un fond. L'aplatir sur #111111 ferait disparaître
+     toute carte posée sur une bande. */
+  --q2-void: #0a0a0a;
+  --q2-carbon: #111111;
+  --q2-obsidian: #1a1a1a;
+  --q2-border-d: #1f1f1f;
   --q2-mist: #d0d6e0;
   --q2-fog: #8a8f98;
-  /* Voile de marque: le noir Qwillio n'est jamais neutre */
-  --q2-void-tint: oklch(10% 0.015 285);
+  /* PLUS DE VOILE DE MARQUE (demande utilisateur: « enlève la lueur mauve »).
+     Ce jeton teintait le bas de chaque section drenched vers l'indigo, et c'est
+     lui qui produisait la lueur mauve en fin de page. Il vaut maintenant le
+     même noir que le haut: le dégradé existe encore dans la feuille, il ne
+     déplace simplement plus la couleur. Le garder plutôt que de le retirer
+     évite de toucher les deux règles qui l'emploient. */
+  --q2-void-tint: #0a0a0a;
 
   /* Ombres, la seule autorisée sur clair est diffuse et teintée */
   --q2-shadow-whisper: rgba(0, 0, 0, 0.4) 0 0 1px, rgba(0, 0, 0, 0.04) 0 1px 1px,
@@ -81,7 +94,7 @@
    À ne pas confondre avec les sections « drenched », qui sont sombres dans les
    deux thèmes: elles restent le point d'orgue du récit, et gardent donc leurs
    valeurs Linear. Le fond sombre du site est posé un cran AU-DESSUS du void
-   drenched (#0E0F11 contre #08090A), sans quoi les deux registres se
+   drenched (#0A0A0A contre #111111), sans quoi les deux registres se
    confondraient et la page perdrait son rythme.
 
    Les teintes gardent la dérive indigo de la marque (le noir Qwillio n'est
@@ -89,9 +102,9 @@
    vers le vert.
    ============================================================ */
 :root[data-theme='dark'] {
-  --q2-canvas: 14 15 17;
-  --q2-band: 19 20 23;
-  --q2-plate: 35 37 41;
+  --q2-canvas: 10 10 10;
+  --q2-band: 17 17 17;
+  --q2-plate: 26 26 26;
   --q2-ink: 245 244 242;
   --q2-graphite: 201 198 193;
   --q2-body: 152 148 142;
@@ -130,9 +143,9 @@
    fait, `data-theme` est posé sur la racine et prime sur la requête média. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme='light']) {
-    --q2-canvas: 14 15 17;
-    --q2-band: 19 20 23;
-    --q2-plate: 35 37 41;
+    --q2-canvas: 10 10 10;
+    --q2-band: 17 17 17;
+    --q2-plate: 26 26 26;
     --q2-ink: 245 244 242;
     --q2-graphite: 201 198 193;
     --q2-body: 152 148 142;
@@ -240,7 +253,9 @@ html {
 
 /* Variante violette: même noir, voile tiré vers la teinte du cercle W */
 .q2-drenched-violet {
-  background: linear-gradient(180deg, var(--q2-void) 0%, oklch(10% 0.015 320) 100%);
+  /* Même noir de bout en bout: la « variante violette » ne tire plus vers le
+     mauve (demande utilisateur). */
+  background: var(--q2-void);
 }
 
 /* --- Entrées (RevealV2 s'appuie sur framer-motion; keyframes de secours CSS) --- */
@@ -277,30 +292,16 @@ html {
    uniquement, chaque effet retombe à plat en reduced-motion.
    ============================================================ */
 
-/* Halo indigo qui suit le pointeur (GlowCard, CardV2 `glow`, actes de
-   PinnedScene). Les coordonnées arrivent en variables CSS écrites une fois
-   par frame en JS, donc aucun re-render.
-   z-index -1 + isolation: le halo se peint au-dessus du fond de la surface
-   et sous son contenu, sans avoir à repositionner les enfants. */
+/* PLUS DE HALO AU POINTEUR (demande utilisateur: « la lueur au curseur,
+   enlève-la »).
+   Il reste un `position: relative` parce que des enfants en absolu s'y
+   accrochent: retirer la classe des dizaines de surfaces qui la portent
+   déplacerait leur contenu, pour un effet qu'on veut seulement éteindre.
+   Le pseudo-élément qui peignait le halo, lui, disparaît vraiment, et
+   `attachGlow` ne pose plus d'écouteur (motion/GlowCard.tsx): rien ne tourne
+   en fond pour une lumière qui n'existe plus. */
 .q2-glow {
   position: relative;
-  isolation: isolate;
-}
-
-.q2-glow::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  border-radius: inherit;
-  pointer-events: none;
-  opacity: var(--q2-glow-o, 0);
-  transition: opacity 220ms cubic-bezier(0.16, 1, 0.3, 1);
-  background: radial-gradient(
-    240px circle at var(--q2-glow-x, 50%) var(--q2-glow-y, 50%),
-    rgba(122, 95, 255, 0.08),
-    rgba(122, 95, 255, 0) 68%
-  );
 }
 
 /* Pilules: relance de 1px au survol, retour à plat au press.

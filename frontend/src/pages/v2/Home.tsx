@@ -23,7 +23,6 @@ import ImpactStats from '../../components/v2/ImpactStats';
 import TextReveal from '../../components/v2/motion/TextReveal';
 import Magnetic from '../../components/v2/motion/Magnetic';
 import PinnedScene from '../../components/v2/motion/PinnedScene';
-import ShapeDrift from '../../components/v2/motion/ShapeDrift';
 import { prefersReducedMotion } from '../../components/v2/motion/reducedMotion';
 
 gsap.registerPlugin(ScrollTrigger);
@@ -602,7 +601,7 @@ export default function Home() {
       minH: 208,
       edge: 'mr-5 sm:mr-0',
       /* Le seul bloc à porter un filet, et il lui faut: en thème sombre son
-         noir (#0F1011) et le fond de la page (#0E0F11) ne sont séparés que par
+         noir (#111111) et le fond de la page (#0A0A0A) ne sont séparés que par
          un point de luminance, donc sans arête il n'existe plus. Les trois
          autres se détachent tout seuls. */
       ring: 'ring-1 ring-white/[0.07]',
@@ -851,10 +850,6 @@ export default function Home() {
           qu'entassées à deux endroits (retour utilisateur). Toutes sous la
           fenêtre du hero, jamais dedans. */}
       <Section variant="band" hairline aria-labelledby="during-heading" className="relative">
-        <ShapeDrift
-          className="hidden md:block"
-          shapes={[{ kind: 'column', x: '-7%', y: '16%', size: 175, drift: -95, opacity: 0.34 }]}
-        />
         {/* Le cadre voyage dans CE repère: il est posé en absolu sur le
             conteneur et mesure les étapes qui s'y trouvent. */}
         <Container className="relative z-10">
@@ -931,11 +926,6 @@ export default function Home() {
 
       {/* ── VOS RÉCEPTIONNISTES, galerie de presets ── */}
       <Section aria-labelledby="team-heading" className="relative">
-        <ShapeDrift
-          className="hidden lg:block"
-          shapes={[{ kind: 'quarters', x: '86%', y: '14%', size: 235, drift: 90, opacity: 0.28 },
-            { kind: 'core', x: '-8%', y: '58%', size: 200, drift: -70, opacity: 0.2 }]}
-        />
         <Container className="relative z-10">
           <RevealV2 className="mb-8 sm:mb-12 max-w-[640px]">
             <Eyebrow tone="indigo" className="mb-3 sm:mb-4">
@@ -974,10 +964,6 @@ export default function Home() {
           gauche. Les formes se découpent toutes seules, leur calque est déjà
           en `absolute inset-0 overflow-hidden`. */}
       <Section aria-labelledby="conv-heading" hairline className="relative">
-        <ShapeDrift
-          className="hidden lg:block"
-          shapes={[{ kind: 'disc', x: '-12%', y: '32%', size: 300, drift: 85, opacity: 0.26 }]}
-        />
         <Container className="relative z-10 grid lg:grid-cols-[1fr_1.6fr] gap-10 md:gap-16 lg:gap-24 items-start">
           {/* La colonne reste au regard pendant que les blocs défilent: c'est
               ce qui fait tenir la comparaison entre le titre et les quatre
@@ -1094,18 +1080,6 @@ export default function Home() {
 
       {/* ── CONFIGUREZ-LA EN LUI PARLANT ── */}
       <Section aria-labelledby="setup-heading" className="relative">
-        <ShapeDrift
-          className="hidden md:block"
-          /* La forme de droite change (demande utilisateur). `twinMirror` est
-             un disque plein fendu: à 225 px et posé au milieu des étapes, il
-             se lisait comme une tache, et sa fente tombait pile sur les filets
-             de la scène. `column` est une barre verticale, plus discrète et
-             plus haute que large: elle accompagne la colonne des étapes au
-             lieu de la traverser. Elle passe aussi plus bas et se rétrécit,
-             pour laisser les titres respirer. */
-          shapes={[{ kind: 'column', x: '88%', y: '44%', size: 130, drift: -85, opacity: 0.2 },
-            { kind: 'pair', x: '-6%', y: '8%', size: 155, drift: 70, opacity: 0.2 }]}
-        />
         {/* MÊME SCÈNE AU SCROLL que « Tout se passe en ligne » (demande
             utilisateur): le titre reste épinglé à gauche pendant que les étapes
             défilent à droite, et l'étape courante s'allume.
@@ -1184,13 +1158,10 @@ export default function Home() {
       <ImpactStats isFr={isFr} />
 
       {/* ── L'APP DANS VOTRE POCHE, le téléphone quitte le hero ── */}
-      {/* overflow-hidden: le halo ambiant de HeroPhone3D fait 420px de large et
-          dépasserait la colonne sur un écran de 390px */}
+      {/* `overflow-hidden` reste après le retrait du halo de HeroPhone3D: la
+          maquette du téléphone est inclinée en 3D, et ses angles dépassent
+          encore la colonne sur un écran de 390 px. */}
       <Section aria-labelledby="pocket-heading" className="relative overflow-hidden">
-        <ShapeDrift
-          className="hidden lg:block"
-          shapes={[{ kind: 'columnAlt', x: '46%', y: '10%', size: 150, drift: 95, opacity: 0.2 }]}
-        />
         <Container className="relative z-10 grid lg:grid-cols-[1fr_1fr] gap-8 sm:gap-14 lg:gap-20 items-center [&>*]:min-w-0">
           <RevealV2>
             <Eyebrow tone="indigo" className="mb-3 sm:mb-4">
@@ -1229,11 +1200,6 @@ export default function Home() {
 
       {/* ── APRÈS L'APPEL + CONFIANCE, bande taupe ── */}
       <Section variant="band" hairline aria-labelledby="after-heading" className="relative">
-        <ShapeDrift
-          className="hidden lg:block"
-          shapes={[{ kind: 'twin', x: '-9%', y: '38%', size: 240, drift: -80, opacity: 0.26 },
-            { kind: 'discCut', x: '84%', y: '8%', size: 185, drift: 85, opacity: 0.2 }]}
-        />
         <Container className="relative z-10">
           <RevealV2 className="mb-8 sm:mb-12 max-w-[640px]">
             <Eyebrow tone="neutral" className="mb-3 sm:mb-4">
@@ -1281,10 +1247,6 @@ export default function Home() {
 
       {/* ── CE À QUOI ELLE EST BRANCHÉE, orbite d'intégrations ── */}
       <Section aria-labelledby="integrations-heading" className="relative">
-        <ShapeDrift
-          className="hidden lg:block"
-          shapes={[{ kind: 'quartersMirror', x: '85%', y: '20%', size: 225, drift: 80, opacity: 0.24 }]}
-        />
         <Container className="relative z-10 grid lg:grid-cols-[1fr_1.1fr] gap-9 sm:gap-14 items-center [&>*]:min-w-0">
           <RevealV2 className="max-w-[440px]">
             <Eyebrow tone="violet" className="mb-3 sm:mb-4">
@@ -1322,13 +1284,11 @@ export default function Home() {
         className="relative overflow-hidden"
       >
         <div aria-hidden="true" className="q2-hairline-lit absolute inset-x-0 top-0" />
-        {/* Lueur d'assise sous la clôture: la page se termine sur une lumière,
-            pas sur un aplat qui s'éteint */}
-        <div
-          aria-hidden="true"
-          className="q2-halo q2-halo-violet absolute left-1/2 -translate-x-1/2 -bottom-40 w-[760px] h-[320px]"
-          style={halo(0.3)}
-        />
+        {/* Plus de lueur d'assise (demande utilisateur: « enlève la lueur mauve
+            en bas de la page »). Elle voulait finir la page sur une lumière;
+            vue en plein écran, c'était une tache mauve sous le dernier bouton.
+            Le filet lumineux du haut de section reste: il sépare, il n'éclaire
+            pas. */}
         <Container className="relative z-10">
           <RevealV2 className="max-w-[720px] mb-10 sm:mb-16">
             <Eyebrow tone="violet" className="mb-4 sm:mb-6">

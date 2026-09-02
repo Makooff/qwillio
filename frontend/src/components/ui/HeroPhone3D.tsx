@@ -835,12 +835,11 @@ export default function HeroPhone3D({ isFr }: { isFr: boolean }) {
         ? 'iPhone affichant iOS avec notifications Qwillio, puis la visite animée du dashboard client : vue d\'ensemble, appels, analytics'
         : 'iPhone showing iOS with Qwillio notifications, then an animated tour of the client dashboard: overview, calls, analytics'}
     >
-      {/* Ambient brand glow behind the device */}
-      <div
-        aria-hidden="true"
-        className="absolute left-1/2 top-1/2 h-[420px] w-[420px] -translate-x-1/2 -translate-y-1/2 rounded-full opacity-60 blur-3xl"
-        style={{ background: 'radial-gradient(circle, rgba(122,95,255,0.22) 0%, rgba(205,106,251,0.12) 45%, transparent 70%)' }}
-      />
+      {/* Plus de halo de marque derrière l'appareil (demande utilisateur:
+          « enlève la lueur autour du tel »). C'était un disque de 420 px en
+          indigo/violet flouté: sur le fond noir de la page il formait exactement
+          l'auréole qu'on voulait retirer. L'ombre portée au sol reste, elle
+          pose l'appareil au lieu de l'éclairer. */}
 
       <div aria-hidden="true">
         {/* Static stage — no idle float: the device is immobile, only the tilt follows the cursor */}
