@@ -288,11 +288,9 @@ export default function IntegrationsOrbit({ isFr }: { isFr: boolean }) {
         )}
       </svg>
 
-      {/* Lueur du centre: le hub est la source, les traits en partent */}
-      <div
-        aria-hidden="true"
-        className="q2-halo absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[280px] h-[280px] sm:w-[380px] sm:h-[380px]"
-      />
+      {/* Plus de lueur au centre (demande utilisateur: « enlève le mauve »).
+          Le hub reste la source des traits: c'est le tracé qui le dit, pas une
+          nappe indigo derrière lui. */}
 
       {/* Le hub: le logo tel quel, jamais redessiné */}
       <div

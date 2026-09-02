@@ -7,7 +7,6 @@ import { Container, Section, Eyebrow, Display, H2, Lead, SerifWord } from '../..
 import { PillLink } from '../../components/v2/Button';
 import RevealV2 from '../../components/v2/RevealV2';
 import FaqAccordion from '../../components/v2/FaqAccordion';
-import ShapeDrift from '../../components/v2/motion/ShapeDrift';
 
 /* FAQ V2. Le mur de texte déplié de la V1 devient un accordéon replié.
    L'injection JSON-LD FAQPage reste identique et couvre la totalité des
@@ -154,7 +153,6 @@ export default function Faq() {
   return (
     <PublicShell>
       <Section aria-label={isFr ? 'Questions fréquentes' : 'Frequently asked questions'} className="relative !pt-16 md:!pt-24 !pb-0">
-        <ShapeDrift shapes={[{ kind: 'pair', x: '-7%', y: '24%', size: 165, drift: -75, opacity: 0.22 }]} />
         <Container className="grid lg:grid-cols-[1.2fr_1fr] gap-10 lg:gap-20 items-end">
           <RevealV2>
             <Eyebrow tone="indigo" className="mb-6">

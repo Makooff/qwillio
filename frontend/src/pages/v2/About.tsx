@@ -6,7 +6,6 @@ import PublicShell from '../../components/v2/PublicShell';
 import { Container, Section, Eyebrow, Display, H2, Lead, SerifWord } from '../../components/v2/Primitives';
 import { PillLink } from '../../components/v2/Button';
 import RevealV2 from '../../components/v2/RevealV2';
-import ShapeDrift from '../../components/v2/motion/ShapeDrift';
 
 /* About V2 « Papier & Signal », voir DA/v2-direction.md.
    Seule page « À propos » du site (la copie V1 a été supprimée le 16/08/2026). */
@@ -132,7 +131,6 @@ export default function About() {
 
       {/* HISTOIRE: deux colonnes, intitulé à gauche, récit à droite */}
       <Section variant="band" hairline aria-labelledby="story-heading" className="relative">
-        <ShapeDrift shapes={[{ kind: 'discCut', x: '85%', y: '18%', size: 210, drift: 80, opacity: 0.22 }]} />
         <Container className="grid lg:grid-cols-[1fr_1.5fr] gap-10 lg:gap-20 items-start">
           <RevealV2>
             <Eyebrow tone="neutral" className="mb-4">
@@ -236,7 +234,6 @@ export default function About() {
 
       {/* MOT DU FONDATEUR: bande taupe, prose éditoriale */}
       <Section variant="band" hairline aria-labelledby="founder-heading" className="relative">
-        <ShapeDrift shapes={[{ kind: 'column', x: '-6%', y: '34%', size: 145, drift: -85, opacity: 0.22 }]} />
         <Container className="grid lg:grid-cols-[1fr_1.5fr] gap-10 lg:gap-20 items-start">
           <RevealV2>
             <Eyebrow tone="violet" className="mb-4">

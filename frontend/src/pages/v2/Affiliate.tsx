@@ -6,7 +6,6 @@ import { Container, Section, Eyebrow, Display, H2, Lead, SerifWord } from '../..
 import { PillLink } from '../../components/v2/Button';
 import RevealV2 from '../../components/v2/RevealV2';
 import FaqAccordion, { type FaqEntry } from '../../components/v2/FaqAccordion';
-import ShapeDrift from '../../components/v2/motion/ShapeDrift';
 
 /* Affiliate V2 « Papier & Signal », voir DA/v2-direction.md.
    Copie FR/EN, useSEO, paliers et FAQ portés de la V1 (pages/Affiliate.tsx).
@@ -134,7 +133,6 @@ export default function Affiliate() {
 
       {/* FONCTIONNEMENT: rangées hairline numérotées */}
       <Section variant="band" hairline aria-labelledby="how-heading" className="relative">
-        <ShapeDrift shapes={[{ kind: 'quarters', x: '86%', y: '26%', size: 220, drift: 80, opacity: 0.22 }]} />
         <Container>
           <RevealV2 className="mb-14">
             <Eyebrow tone="neutral" className="mb-4">

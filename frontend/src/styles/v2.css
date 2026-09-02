@@ -29,11 +29,6 @@
   --q2-violet: #cd6bfb;
   --q2-deep: #7349fe;
   --q2-lift: #b9a8ff;
-  /* Le `lift` éclairci vers le blanc, pour les aplats de décor qui doivent
-     rester du FOND. Il vit ici et non en dur dans `ShapeDrift`: une teinte
-     écrite dans un composant est une teinte que personne ne retrouvera. */
-  --q2-lift-soft: #d8d0ff;
-
   /* Registre drenched */
   /* DEUX NOIRS, ET RIEN ENTRE LES DEUX (demande utilisateur: « les couleurs de
      fond, les gris, remplace-les par ces deux couleurs #111111 et plus sombre
@@ -360,36 +355,6 @@ html {
    sans pouvoir le nommer. Tout est statique, donc rien à neutraliser
    en reduced-motion.
    ============================================================ */
-
-/* Halo décoratif, enfant aria-hidden d'un parent positionné. Le
-   dégradé closest-side est déjà doux: aucun filter: blur à payer. */
-.q2-halo {
-  position: absolute;
-  pointer-events: none;
-  border-radius: 9999px;
-  background: radial-gradient(
-    closest-side,
-    rgba(122, 95, 255, var(--q2-halo-o, 0.16)),
-    rgba(122, 95, 255, 0) 100%
-  );
-}
-
-.q2-halo-violet {
-  background: radial-gradient(
-    closest-side,
-    rgba(205, 107, 251, var(--q2-halo-o, 0.15)),
-    rgba(205, 107, 251, 0) 100%
-  );
-}
-
-/* Sur drenched le halo porte plus loin: le noir absorbe. */
-.q2-halo-dark {
-  background: radial-gradient(
-    closest-side,
-    rgba(122, 95, 255, var(--q2-halo-o, 0.3)),
-    rgba(122, 95, 255, 0) 100%
-  );
-}
 
 /* Liseré lumineux au survol d'une surface déjà bordée (panneaux du
    registre drenched, cadres de captures). */

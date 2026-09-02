@@ -7,7 +7,6 @@ import { Container, Section, Eyebrow, Display, SerifWord } from '../../component
 import { PillButton } from '../../components/v2/Button';
 import RevealV2 from '../../components/v2/RevealV2';
 import CardV2 from '../../components/v2/CardV2';
-import ShapeDrift from '../../components/v2/motion/ShapeDrift';
 import api from '../../services/api';
 
 /* Contact V2 « Papier & Signal », voir DA/v2-direction.md.
@@ -114,7 +113,6 @@ export default function Contact() {
     <PublicShell>
       {/* HERO: titre whisper asymétrique */}
       <Section aria-label="Contact" className="relative !pt-16 md:!pt-24 !pb-12 md:!pb-16">
-        <ShapeDrift shapes={[{ kind: 'twinMirror', x: '84%', y: '22%', size: 225, drift: 80, opacity: 0.22 }]} />
         <Container className="grid lg:grid-cols-[1.4fr_1fr] gap-10 lg:gap-16 items-end">
           <RevealV2>
             <Eyebrow tone="indigo" className="mb-6">
