@@ -133,7 +133,7 @@ export type SqueezeCarouselProps = {
   slatGap?: Size;
   /** Espace entre les quatre colonnes. Par défaut `16`. */
   gap?: Size;
-  /** Arrondi d'un panneau. Par défaut `6`. */
+  /** Arrondi d'un panneau. Par défaut `20`. */
   radius?: Size;
   /** Durée du glissement, en millisecondes. Par défaut `1000`. */
   duration?: number;
@@ -168,7 +168,7 @@ export function SqueezeCarousel({
   slatWidth = 8,
   slatGap = 8,
   gap = 16,
-  radius = 6,
+  radius = 20,
   duration = 1000,
   hoverGrow = true,
   autoplay = false,
@@ -492,17 +492,28 @@ export function SqueezeCarousel({
  * qu'on en voit.
  */
 function Picture({ slide }: { slide: SqueezeSlide }) {
+  /* Une image absente REVIENT au fond, elle ne laisse pas une icône cassée.
+     C'est ce qui permet de désigner les fichiers avant de les avoir: tant que
+     `public/carousel/*.webp` n'existe pas, le panneau garde son dégradé, et il
+     se peuple de lui-même à mesure que les images arrivent. Sans ce repli, il
+     faudrait modifier le code à chaque fichier déposé. */
+  const [failed, setFailed] = useState(false);
+
+  // Changer d'image doit redonner sa chance au nouveau fichier.
+  useEffect(() => setFailed(false), [slide.image]);
+
   const box = {
     width: 'var(--sq-hero)',
     minWidth: '100%',
   } as const;
 
-  if (slide.image) {
+  if (slide.image && !failed) {
     return (
       <img
         src={slide.image}
         alt={slide.imageAlt ?? ''}
         draggable={false}
+        onError={() => setFailed(true)}
         className="absolute inset-y-0 left-1/2 h-full max-w-none -translate-x-1/2 object-cover"
         style={box}
       />
@@ -533,7 +544,11 @@ function Arrow({
       aria-label={label}
       onClick={onClick}
       className={cn(
-        'grid size-9 cursor-pointer place-items-center rounded-md',
+        /* Ronde et à 44 px: la charte du site ne connaît qu'une forme de
+           bouton, la pilule (9999px, DA/v2-direction.md), et 44 px est la
+           cible de frappe minimale que toutes les autres respectent. Le carré
+           de 36 px de la source était le seul angle vif de la page. */
+        'q2-pill grid size-11 cursor-pointer place-items-center rounded-full',
         'bg-[var(--sq-fill)] text-[var(--sq-on-fill)]',
         'outline-none transition-opacity hover:opacity-85',
         'focus-visible:ring-2 focus-visible:ring-[var(--sq-fill)]',
@@ -578,8 +593,11 @@ function Action({ slide, shown }: { slide: SqueezeSlide; shown: boolean }) {
   );
 
   const dress = cn(
-    'group/sq-action inline-flex shrink-0 cursor-pointer items-center gap-2 rounded-md',
-    'bg-[var(--sq-fill)] px-4 py-2.5 text-sm font-medium text-[var(--sq-on-fill)]',
+    /* Même pilule que `components/v2/Button`: rayon plein, 44 px de haut,
+       `px-5 py-2.5` et `text-sm font-medium`. Deux boutons voisins qui ne
+       s'arrondissent pas pareil se voient tout de suite. */
+    'q2-pill group/sq-action inline-flex min-h-[44px] shrink-0 cursor-pointer items-center gap-2 rounded-full',
+    'bg-[var(--sq-fill)] px-5 py-2.5 text-sm font-medium text-[var(--sq-on-fill)]',
     'outline-none transition-opacity hover:opacity-85',
     'focus-visible:ring-2 focus-visible:ring-[var(--sq-fill)]',
     'focus-visible:ring-offset-2 focus-visible:ring-offset-q2-canvas',

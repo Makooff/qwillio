@@ -139,6 +139,13 @@ const HERO_TOP_HAZE =
    panneaux repliés passaient SOUS le fond de la bande en thème sombre (#111111),
    et se lisaient comme des trous plutôt que comme des cartes. Un panneau doit
    être plus clair que la page qui le porte, pas plus sombre. */
+const EXPLORE_IMAGES = [
+  '/carousel/a-propos.webp',
+  '/carousel/blog.webp',
+  '/carousel/contact.webp',
+  '/carousel/affiliation.webp',
+];
+
 const EXPLORE_BACKS = [
   'radial-gradient(125% 145% at 18% 118%, #7A5FFF 0%, #4720B0 40%, #161718 80%)',
   'linear-gradient(112deg, #161718 0%, #2E1478 52%, #7349FE 108%)',
@@ -565,22 +572,29 @@ export default function Home() {
   const exploreSlides = useMemo<SqueezeSlide[]>(() => {
     const rows = isFr
       ? [
-          { to: '/about', name: 'À propos', title: 'À propos.', desc: 'Qui construit Qwillio, et depuis où.', action: 'Faire connaissance' },
-          { to: '/blog', name: 'Blog', title: 'Blog.', desc: 'Ce qu’on apprend en faisant décrocher une IA.', action: 'Lire le blog' },
-          { to: '/contact', name: 'Contact', title: 'Contact.', desc: 'Une question, une démo, un devis.', action: 'Nous écrire' },
-          { to: '/affiliate', name: 'Affiliation', title: 'Affiliation.', desc: 'Recommandez Qwillio, touchez une commission récurrente.', action: 'Devenir affilié' },
+          { to: '/about', name: 'À propos', title: 'À propos.', desc: 'Qui construit Qwillio, et depuis où.', action: 'Faire connaissance', alt: 'Un bureau bruxellois en fin de journée, deux personnes qui travaillent' },
+          { to: '/blog', name: 'Blog', title: 'Blog.', desc: 'Ce qu’on apprend en faisant décrocher une IA.', action: 'Lire le blog', alt: 'Des notes manuscrites et un carnet ouvert sur un plan de travail' },
+          { to: '/contact', name: 'Contact', title: 'Contact.', desc: 'Une question, une démo, un devis.', action: 'Nous écrire', alt: 'Un combiné de téléphone décroché, posé sur un bureau clair' },
+          { to: '/affiliate', name: 'Affiliation', title: 'Affiliation.', desc: 'Recommandez Qwillio, touchez une commission récurrente.', action: 'Devenir affilié', alt: 'Deux mains qui se serrent au-dessus d’une table de réunion' },
         ]
       : [
-          { to: '/about', name: 'About', title: 'About.', desc: 'Who builds Qwillio, and from where.', action: 'Get acquainted' },
-          { to: '/blog', name: 'Blog', title: 'Blog.', desc: 'What we learn making an AI pick up the phone.', action: 'Read the blog' },
-          { to: '/contact', name: 'Contact', title: 'Contact.', desc: 'A question, a demo, a quote.', action: 'Write to us' },
-          { to: '/affiliate', name: 'Affiliate', title: 'Affiliate.', desc: 'Recommend Qwillio, earn a recurring commission.', action: 'Become an affiliate' },
+          { to: '/about', name: 'About', title: 'About.', desc: 'Who builds Qwillio, and from where.', action: 'Get acquainted', alt: 'A Brussels office late in the day, two people at work' },
+          { to: '/blog', name: 'Blog', title: 'Blog.', desc: 'What we learn making an AI pick up the phone.', action: 'Read the blog', alt: 'Handwritten notes and an open notebook on a worktop' },
+          { to: '/contact', name: 'Contact', title: 'Contact.', desc: 'A question, a demo, a quote.', action: 'Write to us', alt: 'A telephone handset off the hook on a pale desk' },
+          { to: '/affiliate', name: 'Affiliate', title: 'Affiliate.', desc: 'Recommend Qwillio, earn a recurring commission.', action: 'Become an affiliate', alt: 'Two hands shaking over a meeting table' },
         ];
 
     return rows.map((row, i) => ({
       id: row.to,
       title: row.title,
       description: row.desc,
+      /* Les fichiers n'existent pas encore: les recettes pour les produire
+         sont dans `docs/IMAGES-CARROUSEL.md`. Tant qu'ils manquent, le
+         composant retombe sur le dégradé (voir son `Picture`), donc désigner
+         le chemin d'avance ne casse rien et le panneau se peuple tout seul le
+         jour où le fichier est déposé. */
+      image: EXPLORE_IMAGES[i],
+      imageAlt: row.alt,
       background: EXPLORE_BACKS[i],
       overlay: (
         <span className="text-sm font-medium tracking-tight text-white">{row.name}</span>
@@ -1374,7 +1388,23 @@ export default function Home() {
             <SqueezeCarousel
               slides={exploreSlides}
               label={isFr ? 'Le reste du site' : 'The rest of the site'}
-              height="clamp(200px, 30cqi, 320px)"
+              /* Les cotes de la référence: hauteur 190, écart 10, lattes de 8
+                 espacées de 5, rayon 20. La hauteur seule est reprise en
+                 PROPORTION plutôt qu'en pixels: 190 px dans un cadre de 890
+                 font 21 cqi, et c'est ce rapport qui donne la rangée basse et
+                 large de la référence. Figée à 190, elle ne l'aurait donné
+                 qu'à cette largeur-là et se serait aplatie sur un grand écran,
+                 où les quatre colonnes se partagent bien plus de place.
+                 24 cqi et non les 21 du rapport d'origine: en dessous, la
+                 carte OUVERTE devenait plus étroite que sa voisine (379 contre
+                 402 px relevés), parce que la carte ouverte part d'un bloc 16:9
+                 tandis que les trois autres se partagent tout le reste. Elle
+                 doit dominer, sinon on ne voit plus laquelle est ouverte. */
+              height="clamp(160px, 24cqi, 290px)"
+              gap={10}
+              slatGap={5}
+              slatWidth={8}
+              radius={20}
               accent="#7A5FFF"
               accentForeground="#FFFFFF"
             />
