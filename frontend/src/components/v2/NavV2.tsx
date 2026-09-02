@@ -204,7 +204,7 @@ function NavPanel({ label, links, aside, open, hovered, onDark, onOpen, onClose,
         aria-controls={id}
         className={`flex items-center gap-1.5 px-3 py-1.5 text-sm transition-colors duration-150 focus:outline-none ${
           onDark
-            ? 'text-white/75 hover:text-white focus-visible:text-white'
+            ? 'text-white/90 hover:text-white focus-visible:text-white'
             : 'text-q2-graphite hover:text-q2-ink focus-visible:text-q2-ink'
         }`}
       >
@@ -622,13 +622,15 @@ export default function NavV2() {
           style={{
             transition: 'border-color 260ms cubic-bezier(0.16, 1, 0.3, 1)',
           }}
-          className={`relative mx-auto px-6 lg:px-10 flex items-center justify-between gap-6 border ${
-            floating
-              ? overDark
-                ? 'border-white/10'
-                : 'border-white/40'
-              : 'border-transparent'
-          }`}
+          /* PLUS DE FILET BLANC (demande utilisateur: « enlève le contour
+             blanc »). Il cerclait la bulle d'un trait clair qui, sur la vidéo
+             du hero, se lisait comme un anneau posé par-dessus l'image. Le
+             verre se signale par sa matière (flou, teinte), il n'a pas besoin
+             d'être souligné.
+             La bordure transparente reste: elle vaut 1px de géométrie, et la
+             retirer décalerait le contenu de la barre au moment où elle se
+             détache. */
+          className="relative mx-auto px-6 lg:px-10 flex items-center justify-between gap-6 border border-transparent"
         >
           {/* Peau de verre liquide : le fond derrière la bulle est déformé par
               le filtre SVG, pas seulement flouté, et le biseau vient des
@@ -708,7 +710,7 @@ export default function NavV2() {
               <Link
                 to="/pricing"
                 className={`block px-3 py-1.5 text-sm transition-colors duration-150 ${
-                  overDark ? 'text-white/75 hover:text-white' : 'text-q2-graphite hover:text-q2-ink'
+                  overDark ? 'text-white/90 hover:text-white' : 'text-q2-graphite hover:text-q2-ink'
                 }`}
               >
                 {isFr ? 'Tarifs' : 'Pricing'}
@@ -722,7 +724,7 @@ export default function NavV2() {
             <Link
               to="/login"
               className={`text-sm transition-colors duration-150 px-2 ${
-                overDark ? 'text-white/75 hover:text-white' : 'text-q2-graphite hover:text-q2-ink'
+                overDark ? 'text-white/90 hover:text-white' : 'text-q2-graphite hover:text-q2-ink'
               }`}
             >
               {isFr ? 'Connexion' : 'Log in'}
