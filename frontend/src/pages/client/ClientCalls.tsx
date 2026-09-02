@@ -617,10 +617,17 @@ export default function ClientCalls() {
                   <div>
                     <p className="text-xs text-[#A1A1A8] mb-2">Enregistrement</p>
                     <div className="rounded-xl bg-white/[0.04] border border-white/[0.07] p-4">
+                      {/* La PILULE du site, pas un lien souligné. Le portail
+                          garde son registre sombre, mais la forme d'un bouton
+                          est la même partout: 9999 px, 40 px de haut, encre
+                          pleine (demande utilisateur: « même design que le
+                          bouton Essayer sur l'accueil »). Un lien mauve
+                          souligné au milieu d'une carte ne se lisait pas comme
+                          l'action principale du bloc. */}
                       <button
                         type="button"
                         onClick={() => setPlayingId(playingId === selectedCall.id ? null : selectedCall.id)}
-                        className="inline-flex items-center gap-2 text-sm font-medium text-[#7349fe] hover:underline mb-2"
+                        className="mb-2 inline-flex min-h-[40px] items-center gap-2 rounded-full bg-white px-5 text-sm font-medium text-[#0a0a0a] transition-opacity hover:opacity-90"
                       >
                         {playingId === selectedCall.id
                           ? <><Pause size={14} aria-hidden="true" /> Pause</>
