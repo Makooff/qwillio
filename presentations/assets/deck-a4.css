@@ -514,3 +514,33 @@
 .track__step {
   padding-top: 18px;
 }
+
+/* ── Version courte, en portrait ────────────────────────── */
+
+.big {
+  font-size: 44px;
+}
+
+.verbs__row {
+  grid-template-columns: 46px 1fr;
+  gap: 8px 22px;
+  padding: 22px 0;
+}
+
+.verbs__body {
+  grid-column: 2;
+}
+
+.verbs__title {
+  font-size: 21px;
+}
+
+.mini__row {
+  grid-template-columns: 84px 1fr;
+  gap: 18px;
+  padding: 13px 0;
+}
+
+.mini__line {
+  font-size: 15px;
+}

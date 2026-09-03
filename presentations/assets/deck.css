@@ -1735,3 +1735,129 @@ body {
   line-height: 1.6;
   color: var(--body);
 }
+
+/* ============================================================
+   Pièces de la version courte. Cinq planches qui se feuillettent
+   en trente secondes : des énoncés en corps de titre, une idée
+   par planche, et une dernière planche entièrement mauve.
+   ============================================================ */
+
+.big {
+  font-size: 60px;
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+}
+
+/* Planche de marque : le mauve occupe tout, et c'est le seul endroit du
+   corpus où il le fait. Réservé à la dernière planche de la version courte. */
+.slide--brand {
+  background: var(--indigo);
+  color: #fff;
+}
+
+.slide--brand .h2,
+.slide--brand .display {
+  color: #fff;
+}
+
+.slide--brand .eyebrow {
+  color: rgba(255, 255, 255, 0.66);
+}
+
+.slide--brand .lead {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.slide--brand .serif {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.slide--brand .slide__foot {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+/* La marque du pied disparaît sur le mauve : ses trois lobes SONT ce mauve.
+   La recolorer par un filtre effacerait aussi le lettrage, qui est une
+   réserve. Elle cède donc la place au mot, et la couverture s'en charge. */
+.slide--brand .slide__foot .mark {
+  display: none;
+}
+
+.slide--brand .contact__item {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff;
+}
+
+/* ── Trois énoncés ──────────────────────────────────────── */
+
+.verbs__row {
+  display: grid;
+  grid-template-columns: 54px 1fr 1fr;
+  gap: 32px;
+  align-items: baseline;
+  padding: 26px 0;
+  border-top: var(--hairline);
+}
+
+.verbs__row:last-child {
+  border-bottom: var(--hairline);
+}
+
+.verbs__index {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.verbs__title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+.verbs__body {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--body);
+}
+
+/* ── L'appel, en six lignes ─────────────────────────────── */
+
+.mini__row {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 26px;
+  align-items: baseline;
+  padding: 15px 0;
+  border-top: var(--hairline);
+}
+
+.mini__row:last-child {
+  border-bottom: var(--hairline);
+}
+
+.mini__who {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.mini__who--agent {
+  color: var(--deep);
+}
+
+.mini__line {
+  font-size: 17px;
+  line-height: 1.45;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}

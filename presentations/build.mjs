@@ -19,6 +19,7 @@ import { dirname, join } from 'node:path';
 import { renderDeck, SECTORS } from './render.mjs';
 import { renderGroupDeck, GROUP } from './group.mjs';
 import { renderOverviewDeck, OVERVIEW } from './overview.mjs';
+import { renderCompactDeck, COMPACT } from './compact.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BUILD = join(HERE, 'build');
@@ -60,7 +61,7 @@ const only = args.filter((a) => !a.startsWith('--'));
 /* La proposition de groupe est un document a part : meme charte, meme
    contenu de base, mais un recit qui lui est propre (un proprietaire, quatre
    maisons). Elle se demande par son slug comme un metier. */
-const ALL = [OVERVIEW, ...SECTORS, GROUP];
+const ALL = [COMPACT, OVERVIEW, ...SECTORS, GROUP];
 const targets = only.length ? ALL.filter((s) => only.includes(s.slug)) : ALL;
 if (!targets.length) {
   console.error(`Document inconnu. Disponibles : ${ALL.map((s) => s.slug).join(', ')}`);
@@ -77,7 +78,9 @@ for (const format of formats) {
   for (const sector of targets) {
     const name = `${sector.slug}${format.suffix}`;
     const html =
-      sector === OVERVIEW
+      sector === COMPACT
+        ? renderCompactDeck({ today, cssHref: format.css })
+        : sector === OVERVIEW
         ? renderOverviewDeck({ today, cssHref: format.css })
         : sector === GROUP
           ? renderGroupDeck({ today, cssHref: format.css })

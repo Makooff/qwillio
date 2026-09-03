@@ -1,9 +1,9 @@
 # Decks commerciaux
 
-Trois familles de documents, toutes dans le registre « Papier & Signal » de la
+Quatre familles de documents, toutes dans le registre « Papier & Signal » de la
 V2 et dans deux formats : un PDF de vente par métier, une proposition de groupe
-pour un propriétaire qui possède plusieurs de ces commerces, et une
-présentation générale de Qwillio.
+pour un propriétaire qui possède plusieurs de ces commerces, une présentation
+générale de Qwillio, et sa version courte.
 
 | Format | Fichier | Pour quoi |
 |---|---|---|
@@ -21,6 +21,18 @@ node presentations/build.mjs --png     # en plus, une image par planche, pour re
 Les PDF produits sont dans `pdf/`. Le dossier `build/` est jetable (il est
 ignoré par git) : il ne contient que le HTML intermédiaire et les images de
 relecture.
+
+## La version courte
+
+`compact` tient en cinq planches et se feuillette en trente secondes : la
+marque, ce qu'elle fait en trois énoncés, un appel en six répliques, ce qui
+reste le lendemain matin, et comment commencer. C'est le document qu'on joint à
+un premier courriel ou qu'on tend au comptoir.
+
+Elle existe **à côté** de la présentation générale, pas à sa place : l'une
+explique le mécanisme à qui veut comprendre, l'autre convainc en trente
+secondes. Sa dernière planche est entièrement mauve, et c'est le seul endroit du
+corpus où le mauve occupe toute la page.
 
 ## La présentation générale
 

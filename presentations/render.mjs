@@ -95,7 +95,7 @@ ${body}
     foot
       ? `<div class="slide__foot">
     <span class="slide__foot-left">${mark('mark')}<span>${BRAND.name} &nbsp;·&nbsp; ${label}</span></span>
-    <span class="slide__num">${String(n).padStart(2, '0')} / ${total}</span>
+    <span class="slide__num">${String(n).padStart(2, '0')} / ${String(total).padStart(2, '0')}</span>
   </div>`
       : '<div class="slide__foot"></div>'
   }
