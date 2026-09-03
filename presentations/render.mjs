@@ -20,7 +20,7 @@ const LOGO_SVG = readFileSync(new URL('../frontend/public/qwillio-logo-512.svg',
   .replace(/<\/?svg[^>]*>/g, (tag) => (tag.startsWith('</') ? tag : tag.replace('<svg', '<svg class="mark"')))
   .trim();
 
-const mark = (cls) => LOGO_SVG.replace('class="mark"', `class="${cls}"`);
+export const mark = (cls) => LOGO_SVG.replace('class="mark"', `class="${cls}"`);
 
 /* ── Typographie francaise ──────────────────────────────────────────── */
 
@@ -67,7 +67,7 @@ function spaceText(t) {
  * donne un faux italique gris : l'effet passe inapercu, et c'est exactement
  * ce qu'il ne doit pas faire.
  */
-const serifWords = (html) =>
+export const serifWords = (html) =>
   String(html)
     /* Un mot en italique suivi d'un point laisse un blanc : la chasse de
        l'italique compte le debord du jambage, que la ponctuation droite ne
@@ -80,11 +80,11 @@ const serifWords = (html) =>
 /* `toLocaleString` sépare les milliers par une espace fine, invisible aux
    tailles d'affichage du deck. Elle est remplacée par une insécable
    normale, comme partout ailleurs dans les textes. */
-const eur = (n) => `${n.toLocaleString('fr-FR').replace(/\u202F/g, NBSP)} €`;
+export const eur = (n) => `${n.toLocaleString('fr-FR').replace(/\u202F/g, NBSP)} €`;
 
 /* ── Ossature d'une planche ─────────────────────────────────────────── */
 
-function frame({ n, total, label, tone = '', veil = '', body, foot = true }) {
+export function frame({ n, total, label, tone = '', veil = '', body, foot = true }) {
   return `
 <section class="slide${tone ? ` ${tone}` : ''}">
   ${veil ? `<div class="veil veil--${veil}"></div>` : ''}
@@ -95,7 +95,7 @@ ${body}
     foot
       ? `<div class="slide__foot">
     <span class="slide__foot-left">${mark('mark')}<span>${BRAND.name} &nbsp;·&nbsp; ${label}</span></span>
-    <span class="slide__num">${String(n).padStart(2, '0')} / ${total}</span>
+    <span class="slide__num">${String(n).padStart(2, '0')} / ${String(total).padStart(2, '0')}</span>
   </div>`
       : '<div class="slide__foot"></div>'
   }
@@ -103,7 +103,7 @@ ${body}
 }
 
 /* Bloc de titre gauche, commun a la moitie des planches. */
-const head = ({ eyebrow, title, lead, muted = false }) => `
+export const head = ({ eyebrow, title, lead, muted = false }) => `
       <div>
         <p class="eyebrow${muted ? ' eyebrow--muted' : ''}">${eyebrow}</p>
         <h2 class="h2">${title}</h2>

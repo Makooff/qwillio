@@ -371,3 +371,176 @@
   align-items: stretch;
   justify-content: center;
 }
+
+/* ── Proposition de groupe, en portrait ─────────────────── */
+
+.curves__axis {
+  margin-left: 128px;
+}
+
+.curves__row {
+  grid-template-columns: 128px 1fr;
+  padding: 10px 0;
+}
+
+.curves__label {
+  font-size: 12.5px;
+}
+
+.curves__track {
+  height: 28px;
+}
+
+.curves__bar em {
+  font-size: 9.5px;
+}
+
+.crew {
+  /* Quatre cartes sur 666 px donneraient 150 px de large : deux rangées de
+     deux, et le zigzag saute avec elles. */
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.crew__card:nth-child(even) {
+  margin-top: 0;
+}
+
+.crew__card {
+  min-height: 0;
+  padding: 20px 22px 22px;
+}
+
+.crew__avatar {
+  width: 70px;
+  height: 70px;
+  margin-bottom: 14px;
+}
+
+.crew__name {
+  font-size: 23px;
+}
+
+/* Sans hauteur imposée, le `margin: auto` du 16:9 ne pousse plus rien : le
+   filet remontait contre la ligne de voix et se lisait comme un soulignement. */
+.crew__transfer {
+  margin-top: 15px;
+}
+
+.tally__row {
+  grid-template-columns: 1.15fr 0.95fr 0.8fr 0.7fr 0.95fr;
+  gap: 10px;
+  font-size: 11.5px;
+  padding: 13px 0;
+}
+
+.tally__house {
+  font-size: 13px;
+}
+
+.tally__row--total .tally__sum {
+  font-size: 19px;
+}
+
+.quad__quote {
+  font-size: 13.5px;
+  max-width: none;
+}
+
+.cols--4 {
+  grid-template-columns: 1fr;
+}
+
+.cols--4 .cols__cell,
+.cols--4 .cols__cell + .cols__cell {
+  padding: 20px 0 22px;
+}
+
+.cols--4 .cols__cell .h3 {
+  font-size: 18px;
+}
+
+/* ── Présentation générale, en portrait ─────────────────── */
+
+.rail {
+  margin-bottom: 38px;
+}
+
+.beat {
+  /* Le récit se lit de haut en bas en portrait : le minutage et la réplique
+     d'abord, la mécanique ensuite. */
+  grid-template-columns: 1fr;
+  gap: 34px;
+  align-content: center;
+}
+
+.beat__time {
+  font-size: 42px;
+}
+
+.beat__line {
+  font-size: 18px;
+  max-width: none;
+}
+
+.beat__mech {
+  padding: 22px 24px 24px;
+}
+
+.done__item {
+  font-size: 14px;
+  padding: 15px 0 15px 28px;
+}
+
+.done__item::before {
+  top: 21px;
+}
+
+.edges__row {
+  grid-template-columns: 1fr;
+  gap: 7px;
+  padding: 20px 0;
+}
+
+.edges__case {
+  font-size: 16px;
+}
+
+.track {
+  grid-template-columns: 1fr;
+  gap: 22px;
+}
+
+.track__step {
+  padding-top: 18px;
+}
+
+/* ── Version courte, en portrait ────────────────────────── */
+
+.big {
+  font-size: 44px;
+}
+
+.verbs__row {
+  grid-template-columns: 46px 1fr;
+  gap: 8px 22px;
+  padding: 22px 0;
+}
+
+.verbs__body {
+  grid-column: 2;
+}
+
+.verbs__title {
+  font-size: 21px;
+}
+
+.mini__row {
+  grid-template-columns: 84px 1fr;
+  gap: 18px;
+  padding: 13px 0;
+}
+
+.mini__line {
+  font-size: 15px;
+}

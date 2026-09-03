@@ -1,7 +1,9 @@
 # Decks commerciaux
 
-Un PDF de vente par métier, dans le registre « Papier & Signal » de la V2, et
-dans deux formats.
+Quatre familles de documents, toutes dans le registre « Papier & Signal » de la
+V2 et dans deux formats : un PDF de vente par métier, une proposition de groupe
+pour un propriétaire qui possède plusieurs de ces commerces, une présentation
+générale de Qwillio, et sa version courte.
 
 | Format | Fichier | Pour quoi |
 |---|---|---|
@@ -9,17 +11,79 @@ dans deux formats.
 | A4 portrait | `pdf/qwillio-<métier>-a4.pdf` | À imprimer, à laisser sur un bureau, à joindre à un devis |
 
 ```bash
-npm run decks                        # les huit PDF, dans presentations/pdf/
-node presentations/build.mjs bar     # un seul métier, les deux formats
-node presentations/build.mjs --a4    # un seul format
-node presentations/build.mjs --png   # en plus, une image par planche, pour relire
+npm run decks                          # les dix PDF, dans presentations/pdf/
+node presentations/build.mjs bar       # un seul document, les deux formats
+node presentations/build.mjs groupe    # la proposition de groupe
+node presentations/build.mjs --a4      # un seul format
+node presentations/build.mjs --png     # en plus, une image par planche, pour relire
 ```
 
 Les PDF produits sont dans `pdf/`. Le dossier `build/` est jetable (il est
 ignoré par git) : il ne contient que le HTML intermédiaire et les images de
 relecture.
 
-## Ce qu'il y a dans un deck
+## La version courte
+
+`compact` tient en cinq planches et se feuillette en trente secondes : la
+marque, ce qu'elle fait en trois énoncés, un appel en six répliques, ce qui
+reste le lendemain matin, et comment commencer. C'est le document qu'on joint à
+un premier courriel ou qu'on tend au comptoir.
+
+Elle existe **à côté** de la présentation générale, pas à sa place : l'une
+explique le mécanisme à qui veut comprendre, l'autre convainc en trente
+secondes. Sa dernière planche est entièrement mauve, et c'est le seul endroit du
+corpus où le mauve occupe toute la page.
+
+## La présentation générale
+
+`presentation` ne suit pas le déroulé des decks métier, et c'est le point. Une
+première version le faisait : mêmes planches, mêmes pièces, mêmes mots à
+peine changés, et le document n'existait pas par lui-même.
+
+Celle-ci a son propre fil : **un seul appel, raconté seconde par seconde**, de
+la première sonnerie au SMS. Chaque planche est un instant de cet appel, porte
+son minutage, une réplique de la conversation, et ce que le logiciel fait à ce
+moment-là. Le lecteur n'avale pas un argumentaire, il écoute un appel.
+
+Ce qui en découle, et qu'il ne faut pas « harmoniser » avec les autres
+documents : une frise de progression revient sur chaque planche (c'est elle qui
+tient le tout), la couverture et le dénouement sont en registre sombre alors que
+les decks métier sont clairs de bout en bout, et il n'y a ici ni bento, ni
+quadrant, ni bulles de conversation.
+
+La planche « les appels qui ne ressemblent pas à celui-là » existe pour la même
+raison que « ce que nous ne promettons pas » : un produit qui ne montre que son
+cas idéal ne se croit pas.
+
+## La proposition de groupe
+
+`groupe` est un document à part, pas la concaténation des quatre. Quatorze
+planches pour un propriétaire qui possède plusieurs commerces, et il vend **une
+réceptionniste par maison**, pas un abonnement groupé. L'argument tient en une
+phrase, posée sous la frise des heures : *aucune de ses affaires ne justifie une
+réceptionniste à plein temps, et chacune en mérite une quand même.*
+
+Trois planches lui sont propres. La frise des heures où chacun de ses quatre
+téléphones sonne, qui montre que les coups de feu ne tombent pas ensemble. Les
+quatre réceptionnistes, avec leur visage, leur nom, leur voix et leur phrase
+d'accueil. Et l'addition des quatre fuites en un tableau, calculée depuis les
+mêmes hypothèses que les decks métier (le total sort du code, il n'est pas
+écrit à la main).
+
+Les visages et les noms ne sont pas décoratifs : ce sont les personnages réels
+du catalogue de voix (`backend/src/config/voice-characters.ts` et
+`frontend/public/characters`), avec leur `taglineFr`. Le client verra les mêmes
+en choisissant.
+
+Ce qui y est affirmé sur le produit est vérifié dans le schéma :
+`ClientPhoneNumber` porte bien un nom d'agent, une phrase d'accueil, une voix,
+des consignes et un numéro de transfert **par ligne**, en surcharge de la
+configuration du client. C'est ce qui rend « une réceptionniste par maison »
+vrai plutôt que commercial. Ce qui n'existe pas encore, la comparaison chiffrée
+entre établissements dans le portail, est écrit dans la planche « Sans détour »
+plutôt que passé sous silence.
+
+## Ce qu'il y a dans un deck métier
 
 Douze planches, toujours dans le même ordre : couverture, le problème du
 métier, le calcul du manque à gagner, ce qu'est Qwillio, un appel joué de bout
@@ -36,7 +100,8 @@ gains sont ceux du concessionnaire, du pâtissier, du bar ou de la parfumerie.
 
 | Fichier | Rôle |
 |---|---|
-| `content.mjs` | Tout le texte. Un métier, un objet. C'est le seul fichier à ouvrir pour changer un argument. |
+| `content.mjs` | Tout le texte des decks métier. Un métier, un objet. C'est le seul fichier à ouvrir pour changer un argument. |
+| `group.mjs` | Le contenu ET les planches de la proposition de groupe. Elle réutilise l'ossature de `render.mjs` et les arguments produit de `content.mjs`. |
 | `render.mjs` | Le gabarit. Une fonction par type de planche, plus les espaces insécables du français. |
 | `assets/deck.css` | La charte et la mise en page 16:9, recopiées depuis `DA/` et `frontend/src/styles/v2.css`. |
 | `assets/deck-a4.css` | La variante portrait. Importe `deck.css` et ne redéfinit que ce que la page A4 change. |
@@ -90,6 +155,12 @@ région bascule un jour, c'est cette planche qu'il faut corriger en premier.
 **Aucune statistique de marché.** Le calcul du manque à gagner est présenté
 comme une illustration à remplir avec les chiffres du client, jamais comme une
 étude. Une source inventée se retourne contre vous au premier rendez-vous.
+
+## Nommer le client
+
+Les documents sont écrits au générique (« la concession », « la pâtisserie »).
+Pour une proposition nominative, les libellés vivent dans `CREW`, `CURVES` et
+`CATCHES` de `group.mjs`, et dans `label` de chaque secteur de `content.mjs`.
 
 ## Ajouter un métier
 
