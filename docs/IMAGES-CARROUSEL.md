@@ -10,19 +10,28 @@ cd frontend && node generate-carousel.mjs
 
 C'est un choix, pas un pis-aller. Le registre drenched de la charte est
 graphique, et une photo de banque d'images sortie d'un générateur est
-exactement ce qui a été refusé ailleurs sur cette page (« trop IA »). Chaque
-panneau se distingue des trois autres par sa GÉOMÉTRIE, jamais par une simple
-variation de teinte: quatre dégradés jumeaux seraient la grille de cartes
-identiques que la charte interdit.
+exactement ce qui a été refusé ailleurs sur cette page (« trop IA »).
 
-Ce que chacune montre:
+**Deux règles**, et elles viennent chacune d'un retour:
 
-| Panneau | Le dessin | Ce qu'il dit |
+1. **Le fond est GRIS, pas noir.** Il vaut `#1A1A1A`, c'est-à-dire
+   `--q2-obsidian`, un cran au-dessus de la bande qui porte le carrousel
+   (`--q2-band`, `#111111` en thème sombre). Un panneau doit être plus clair que
+   la page qui le tient, sinon il se lit comme un trou et non comme une carte.
+2. **Rien de figuratif.** Une première version dessinait une verrière, une page
+   manuscrite, un fil de combiné et un nœud. Un dessin qui n'est pas tenu par un
+   illustrateur se lit comme une image d'agrafe, et c'est ce qui a été dit.
+
+Ce sont donc quatre champs de lumière, distincts par leur GÉOMÉTRIE, jamais par
+une simple variation de teinte: quatre dégradés jumeaux seraient la grille de
+cartes identiques que la charte interdit.
+
+| Panneau | La composition | Ce qu'elle dit |
 |---|---|---|
-| À propos | une verrière vue de face, la dernière lumière derrière, la pluie dessus | qui, et depuis où: un atelier, le soir, personne au premier plan |
-| Blog | une page d'écriture manuscrite, une rature, des annotations en marge | on apprend en faisant, et on note |
-| Contact | le fil spiralé d'un combiné, qui traverse le cadre | on décroche: le produit en un objet |
-| Affiliation | deux liens noués, un indigo, un violet, sortant par des bords opposés | une recommandation qui dure, pas une poignée de main |
+| À propos | une large colonne de lumière qui monte du bas, traversée de strates | une pièce, une présence, sans montrer personne |
+| Blog | des lignes serrées au centre, qui s'éteignent aux deux bouts | le rythme d'un texte, sans écrire un mot |
+| Contact | des arcs concentriques qui s'éloignent du centre en s'affinant | un signal qui part, ce que fait une ligne qui sonne |
+| Affiliation | deux champs qui se rejoignent au centre et s'y additionnent | deux parties, un intérêt commun |
 
 Le repli reste en place si un fichier venait à manquer: le composant
 (`components/ui/carousel-squeeze.tsx`, fonction `Picture`, `onError`) retombe

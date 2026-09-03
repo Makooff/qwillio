@@ -1,3 +1,12 @@
+/**
+ * ⚠️ PLUS UTILISÉ PAR LA PAGE D'ACCUEIL.
+ *
+ * Le hero portait ce redressement 3D sur la fenêtre Safari; il a été remplacé
+ * par une simple parallaxe (`Home.tsx`, `HeroDashboardShot`), à la demande.
+ * Le composant reste ici parce que c'est une primitive de `components/ui`,
+ * complète et testée au rendu, prête à resservir. Si personne ne l'a repris
+ * d'ici la prochaine revue, il part.
+ */
 import React, { useRef } from 'react';
 import type { RefObject } from 'react';
 import { useScroll, useTransform, motion, type MotionValue, type UseScrollOptions } from 'framer-motion';

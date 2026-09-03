@@ -1,16 +1,27 @@
 /**
  * Fabrique les quatre visuels du carrousel de l'accueil.
  *
- * Ce ne sont PAS des photographies générées: le registre drenched de la charte
- * est graphique, et une photo de banque d'images sortie d'un générateur est
- * exactement ce qui a été refusé ailleurs sur la page (« trop IA »). Chaque
- * panneau est donc une composition dessinée, à une seule source de lumière,
- * distincte des trois autres par sa GÉOMÉTRIE et non par sa teinte.
+ *   node generate-carousel.mjs
+ *
+ * Deux règles, et elles sont le résultat de deux retours successifs.
+ *
+ * 1. LE FOND EST GRIS, pas noir. Il vaut #1A1A1A, c'est-à-dire `--q2-obsidian`,
+ *    un cran AU-DESSUS de la bande qui porte le carrousel (`--q2-band`, à
+ *    #111111 en thème sombre). Un panneau doit être plus clair que la page qui
+ *    le tient, sinon il se lit comme un trou et non comme une carte. Le noir
+ *    #0A0A0A d'une première version faisait exactement ça.
+ *
+ * 2. RIEN DE FIGURATIF. La verrière, la page manuscrite, le fil de combiné et
+ *    le nœud d'une première version étaient des dessins, et un dessin qui n'est
+ *    pas tenu par un illustrateur se lit comme une image d'agrafe. Ce sont
+ *    maintenant quatre champs de lumière, distincts par leur GÉOMÉTRIE (d'où
+ *    la lumière vient, et comment elle se structure) et jamais par une simple
+ *    variation de teinte: quatre dégradés jumeaux seraient la grille de cartes
+ *    identiques que la charte interdit.
  *
  * Le sujet vit au centre: une latte repliée ne montre qu'une bande verticale de
- * 8 px prise au milieu, et un sujet posé sur un bord y donnerait un aplat.
- *
- *   node .gen-carousel.mjs
+ * 8 px prise au milieu, et une composition posée sur un bord y donnerait un
+ * aplat.
  */
 import { chromium } from 'playwright';
 import sharp from 'sharp';
@@ -20,256 +31,161 @@ const W = 1600, H = 900;
 const OUT = new URL('./public/carousel/', import.meta.url).pathname;
 mkdirSync(OUT, { recursive: true });
 
-const INDIGO = '#7A5FFF', VIOLET = '#CD6BFB', VOID = '#0A0A0A', CARBON = '#161718';
+const INDIGO = '#7A5FFF', VIOLET = '#CD6BFB', DEEP = '#7349FE';
+/* La base: `--q2-obsidian`. Voir la règle 1 plus haut. */
+const BASE = '#1A1A1A';
 
-/* Le grain et la vignette, communs aux quatre. Le grain casse le lissé des
-   dégradés, qui est ce qui trahit une image faite à la machine; la vignette
-   ramène l'oeil au centre, là où la latte coupera. */
+/* Le grain casse le lissé des dégradés, qui est ce qui trahit une image faite à
+   la machine. La vignette ramène l'oeil au centre, là où la latte coupera. */
 const FILM = `
   <filter id="grain" x="0" y="0" width="100%" height="100%">
-    <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="3" seed="7" result="n"/>
+    <feTurbulence type="fractalNoise" baseFrequency="0.85" numOctaves="3" seed="11" result="n"/>
     <feColorMatrix in="n" type="saturate" values="0"/>
-    <feComponentTransfer><feFuncA type="linear" slope="0.055"/></feComponentTransfer>
+    <feComponentTransfer><feFuncA type="linear" slope="0.05"/></feComponentTransfer>
   </filter>
-  <radialGradient id="vig" cx="50%" cy="50%" r="72%">
-    <stop offset="55%" stop-color="#000" stop-opacity="0"/>
-    <stop offset="100%" stop-color="#000" stop-opacity="0.62"/>
-  </radialGradient>`;
+  <radialGradient id="vig" cx="50%" cy="50%" r="78%">
+    <stop offset="50%" stop-color="#000" stop-opacity="0"/>
+    <stop offset="100%" stop-color="#000" stop-opacity="0.42"/>
+  </radialGradient>
+  <!-- La RÉGION est déclarée, et ce n'est pas décoratif: par défaut un filtre
+       ne déborde que de 10 % de la boîte de l'objet, si bien qu'un halo large
+       se retrouve tranché net et laisse un rectangle visible autour de lui.
+       C'est ce qui cernait le point central et la couture d'une version. -->
+  <filter id="blur60" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="60"/></filter>
+  <filter id="blur28" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="28"/></filter>
+  <filter id="blur14" x="-60%" y="-60%" width="220%" height="220%"><feGaussianBlur stdDeviation="14"/></filter>`;
 
 const frame = (defs, body) => `
 <svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}">
   <defs>${FILM}${defs}</defs>
-  <rect width="${W}" height="${H}" fill="${VOID}"/>
+  <rect width="${W}" height="${H}" fill="${BASE}"/>
   ${body}
   <rect width="${W}" height="${H}" fill="url(#vig)"/>
   <rect width="${W}" height="${H}" filter="url(#grain)" opacity="0.9"/>
 </svg>`;
 
-/* ── 1. À PROPOS — la fenêtre ─────────────────────────────────────────────
-   Une verrière vue de face, la dernière lumière du jour derrière. Qui, et
-   depuis où: un atelier, le soir, personne au premier plan. */
+/* ── 1. À PROPOS ──────────────────────────────────────────────────────────
+   Une colonne de lumière qui monte du bas, traversée de strates fines. La
+   lumière d'une pièce, à la verticale, sans rien dessiner de la pièce. */
 function aPropos() {
-  const cols = 5, rows = 4;
-  const gw = 720, gh = 470, gx = (W - gw) / 2, gy = (H - gh) / 2 - 30;
-  const cw = gw / cols, ch = gh / rows;
-  let panes = '';
-  for (let r = 0; r < rows; r++) {
-    for (let c = 0; c < cols; c++) {
-      // La lumière tombe du bas-centre: les carreaux du bas sont les plus vifs.
-      const dx = (c + 0.5) / cols - 0.5, dy = (r + 0.5) / rows;
-      const lit = Math.max(0, 1 - Math.hypot(dx * 1.5, dy - 0.92) * 1.45);
-      panes += `<rect x="${gx + c * cw + 5}" y="${gy + r * ch + 5}" width="${cw - 10}" height="${ch - 10}"
-        fill="url(#sky)" opacity="${(0.16 + lit * 0.84).toFixed(3)}"/>`;
-    }
+  let strata = '';
+  for (let i = 0; i < 26; i++) {
+    const y = 250 + i * 26;
+    const o = 0.10 + Math.max(0, 1 - Math.abs(i - 18) / 16) * 0.20;
+    strata += `<rect x="${W / 2 - 470}" y="${y}" width="940" height="2"
+      fill="#DCD6FF" opacity="${(o * 1.9).toFixed(3)}"/>`;
   }
-  let bars = '';
-  for (let c = 1; c < cols; c++) bars += `<rect x="${gx + c * cw - 3}" y="${gy}" width="6" height="${gh}" fill="${VOID}"/>`;
-  for (let r = 1; r < rows; r++) bars += `<rect x="${gx}" y="${gy + r * ch - 3}" width="${gw}" height="6" fill="${VOID}"/>`;
-
-  // La pluie: des traits fins, verticaux, seulement sur les carreaux.
-  let rain = '';
-  for (let i = 0; i < 90; i++) {
-    const x = gx + Math.random() * gw, y = gy + Math.random() * gh, l = 14 + Math.random() * 46;
-    rain += `<line x1="${x.toFixed(1)}" y1="${y.toFixed(1)}" x2="${(x + 2).toFixed(1)}" y2="${(y + l).toFixed(1)}"
-      stroke="#fff" stroke-opacity="${(0.05 + Math.random() * 0.1).toFixed(3)}" stroke-width="1.2"/>`;
-  }
-
   return frame(`
-    <linearGradient id="sky" x1="0" y1="1" x2="0.25" y2="0">
-      <stop offset="0%" stop-color="${INDIGO}"/>
-      <stop offset="42%" stop-color="#3A2C7A"/>
-      <stop offset="100%" stop-color="${CARBON}"/>
+    <linearGradient id="shaft" x1="0" y1="1" x2="0" y2="0">
+      <stop offset="0%" stop-color="${INDIGO}" stop-opacity="0.80"/>
+      <stop offset="45%" stop-color="${DEEP}" stop-opacity="0.34"/>
+      <stop offset="100%" stop-color="${DEEP}" stop-opacity="0"/>
     </linearGradient>
-    <linearGradient id="floor" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0%" stop-color="${INDIGO}" stop-opacity="0.22"/>
-      <stop offset="100%" stop-color="${VOID}" stop-opacity="0"/>
-    </linearGradient>`,
-    `<g clip-path="none">${panes}</g>
-     ${bars}
-     ${rain}
-     <rect x="${gx - 14}" y="${gy - 14}" width="${gw + 28}" height="${gh + 28}" fill="none" stroke="#2A2C31" stroke-width="10"/>
-     <!-- La lumière qui tombe au sol, sous la verrière: c'est elle qui pose la pièce -->
-     <path d="M ${gx - 120} ${H} L ${gx + 40} ${gy + gh} L ${gx + gw - 40} ${gy + gh} L ${gx + gw + 120} ${H} Z" fill="url(#floor)"/>
-     <rect x="0" y="${H - 118}" width="${W}" height="118" fill="${VOID}" opacity="0.86"/>`);
+    <radialGradient id="pool1" cx="50%" cy="100%" r="62%">
+      <stop offset="0%" stop-color="${INDIGO}" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="${INDIGO}" stop-opacity="0"/>
+    </radialGradient>`,
+    `<ellipse cx="${W / 2}" cy="${H - 30}" rx="820" ry="380" fill="url(#pool1)"/>
+     <!-- Large, et non une colonne étroite: la carte ouverte du carrousel est
+          BASSE ET LARGE, et une verticale fine s'y perdait dans deux tiers de
+          vide. La composition doit tenir dans le cadrage où elle sera vue. -->
+     <path d="M ${W / 2 - 560} ${H} L ${W / 2 - 300} 90 L ${W / 2 + 300} 90 L ${W / 2 + 560} ${H} Z"
+       fill="url(#shaft)" filter="url(#blur28)"/>
+     <g filter="url(#blur14)">${strata}</g>
+     <!-- L'arête de la flaque, au sol: c'est elle qui donne une assise à la
+          colonne, sans quoi la lumière flotte et l'image reste molle. -->
+     <ellipse cx="${W / 2}" cy="${H - 14}" rx="520" ry="40" fill="#B9A8FF" opacity="0.55" filter="url(#blur28)"/>`);
 }
 
-/* ── 2. BLOG — la page ────────────────────────────────────────────────────
-   Des lignes d'écriture, une rature, une marge. Aucun mot lisible: un texte
-   serait tranché par le repli du panneau, et daterait l'image. */
+/* ── 2. BLOG ──────────────────────────────────────────────────────────────
+   Des lignes serrées au centre, longues et fines, qui s'éteignent aux deux
+   bouts. Le rythme d'un texte, sans écrire un mot. */
 function blog() {
-  /* De la VRAIE écriture, pas des barres arrondies: des rectangles de longueurs
-     variables sont le vocabulaire d'un squelette de chargement, et c'est
-     exactement ce qu'ils donnaient à lire. Chaque ligne est donc un tracé
-     cursif, irrégulier, coupé en mots. Illisible par construction: un texte
-     lisible serait tranché par le repli du panneau, et daterait l'image. */
-  let seed = 20260902;
-  const rnd = () => (seed = (seed * 1103515245 + 12345) % 2147483648) / 2147483648;
-
-  const bx = 470, bw = 700, top = 200, lh = 52;
-  const lines = [0.97, 0.9, 1, 0.74, 0.95, 1, 0.63, 0.92, 0.98, 0.5];
-
-  /** Un mot: des boucles de HAUTEURS très inégales, avec des hampes et des
-      jambages. Des sinusoïdes régulières se lisaient comme un motif décoratif,
-      pas comme une main qui écrit: c'est l'irrégularité qui fait l'écriture. */
-  const word = (x, y, w) => {
-    // Chaque mot dérive un peu de sa ligne, comme une main qui n'est pas réglée.
-    const drift = (rnd() - 0.5) * 4;
-    let d = `M ${x.toFixed(1)} ${(y + drift).toFixed(1)}`;
-    let cx = x;
-    let up = rnd() > 0.5;
-    let i = 0;
-    while (cx < x + w) {
-      const step = 8 + rnd() * 15;
-      // Une lettre sur cinq porte une hampe ou un jambage, deux à trois fois
-      // plus haut que le corps: c'est ce qui casse la vague.
-      const tall = rnd() < 0.22;
-      const amp = (tall ? 20 + rnd() * 16 : 4 + rnd() * 7) * (up ? -1 : 1);
-      const y2 = y + drift + (rnd() - 0.5) * 4;
-      d += ` C ${(cx + step * (0.2 + rnd() * 0.2)).toFixed(1)} ${(y + drift + amp).toFixed(1)},` +
-           ` ${(cx + step * (0.6 + rnd() * 0.25)).toFixed(1)} ${(y + drift + amp).toFixed(1)},` +
-           ` ${(cx + step).toFixed(1)} ${y2.toFixed(1)}`;
-      cx += step;
-      // Deux bosses du même côté de temps en temps: sans cela, l'alternance
-      // stricte redonne une vague.
-      if (rnd() > 0.28) up = !up;
-      i++;
-    }
-    return d;
-  };
-
-  let ink = '';
-  lines.forEach((len, i) => {
-    const y = top + i * lh;
-    const width = bw * len;
-    let x = bx;
-    // Des mots, séparés par des blancs: c'est le rythme qui fait lire « écrit ».
-    while (x < bx + width - 20) {
-      const w = 34 + rnd() * 96;
-      const draw = Math.min(w, bx + width - x);
-      ink += `<path d="${word(x, y, draw)}" fill="none" stroke="#E8E4DE"` +
-             ` stroke-opacity="${(0.34 + rnd() * 0.3).toFixed(3)}"` +
-             ` stroke-width="${(2.4 + rnd() * 1.4).toFixed(2)}" stroke-linecap="round"/>`;
-      x += draw + 14 + rnd() * 20;
-    }
-  });
-
-  // Le titre: plus gros, plus appuyé, et plus court que les lignes.
-  const title = `<path d="${word(bx, top - 78, 300)}" fill="none" stroke="#F7F5F2"
-    stroke-opacity="0.92" stroke-width="6" stroke-linecap="round"/>`;
-
-  // La rature: un aller-retour sur la ligne 7, en violet.
-  const sy = top + 6 * lh;
-  const strike = `<path d="M ${bx - 12} ${sy + 2} C ${bx + 200} ${sy - 6}, ${bx + 320} ${sy + 8}, ${bx + bw * 0.63 + 14} ${sy - 1}
-                          C ${bx + 300} ${sy + 6}, ${bx + 160} ${sy - 4}, ${bx - 4} ${sy + 5}"
-    fill="none" stroke="${VIOLET}" stroke-opacity="0.9" stroke-width="3.4" stroke-linecap="round"/>`;
-
-  // La marge: trois annotations courtes, de la même main, en indigo.
-  let marg = '';
-  [1, 5, 8].forEach(i => {
-    marg += `<path d="${word(bx - 92, top + i * lh, 58)}" fill="none" stroke="${INDIGO}"
-      stroke-opacity="0.78" stroke-width="2.6" stroke-linecap="round"/>`;
-  });
-
-  return frame(`
-    <linearGradient id="lamp" x1="0.05" y1="0" x2="0.85" y2="1">
-      <stop offset="0%" stop-color="${INDIGO}" stop-opacity="0.26"/>
-      <stop offset="50%" stop-color="${INDIGO}" stop-opacity="0.04"/>
-      <stop offset="100%" stop-color="${VOID}" stop-opacity="0"/>
-    </linearGradient>
-    <linearGradient id="sheet" x1="0" y1="0" x2="0.6" y2="1">
-      <stop offset="0%" stop-color="#1C1D21"/>
-      <stop offset="100%" stop-color="#101113"/>
-    </linearGradient>`,
-    `<rect width="${W}" height="${H}" fill="url(#lamp)"/>
-     <rect x="${bx - 150}" y="70" width="${bw + 300}" height="${H - 90}" rx="10" fill="url(#sheet)"/>
-     <!-- Le pli central du carnet, une seule arête -->
-     <rect x="${bx - 150}" y="70" width="3" height="${H - 90}" fill="#000" opacity="0.5"/>
-     <g transform="rotate(-0.8 ${W / 2} ${H / 2}) skewX(-4)">${title}${marg}${ink}${strike}</g>
-     <g transform="rotate(-21 ${bx + bw - 60} ${H - 150})">
-       <rect x="${bx + bw - 250}" y="${H - 156}" width="250" height="10" rx="5" fill="#26282D"/>
-       <rect x="${bx + bw - 250}" y="${H - 156}" width="250" height="4" rx="2" fill="#3A3D44"/>
-       <path d="M ${bx + bw} ${H - 156} l 34 5 l -34 5 z" fill="${VIOLET}" opacity="0.92"/>
-     </g>`);
-}
-
-/* ── 3. CONTACT — le cordon ───────────────────────────────────────────────
-   Le fil spiralé d'un combiné, qui traverse le cadre. Le seul des quatre qui a
-   le droit d'être littéral: c'est le produit en un objet. */
-function contact() {
-  const cy = H / 2, coils = 26, span = 1180, x0 = (W - span) / 2;
-  let path = '';
-  for (let i = 0; i <= coils; i++) {
-    const t = i / coils;
-    const x = x0 + span * t;
-    // L'amplitude enfle au centre et retombe aux bords: le fil s'éloigne.
-    const amp = 96 * Math.sin(Math.PI * t) + 26;
-    const step = span / coils;
-    path += `${i === 0 ? `M ${x} ${cy}` : ''} C ${x + step * 0.28} ${cy - amp}, ${x + step * 0.72} ${cy - amp}, ${x + step} ${cy}` +
-            ` C ${x + step * 1.28} ${cy + amp}, ${x + step * 1.72} ${cy + amp}, ${x + step * 2} ${cy}`;
-    if (i > coils - 2) break;
+  let rules = '';
+  const n = 22;
+  for (let i = 0; i < n; i++) {
+    const y = 190 + i * 24;
+    const t = i / (n - 1);
+    // Les longueurs varient comme des lignes de paragraphe, la dernière courte.
+    const len = (0.62 + Math.sin(i * 1.7) * 0.16 + (i === n - 1 ? -0.28 : 0)) * W;
+    rules += `<rect x="${(W - len) / 2}" y="${y}" width="${len.toFixed(0)}" height="3" rx="1.5"
+      fill="url(#rule)" opacity="${(0.30 + Math.sin(t * Math.PI) * 0.55).toFixed(3)}"/>`;
   }
   return frame(`
-    <linearGradient id="cord" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="${INDIGO}" stop-opacity="0"/>
-      <stop offset="22%" stop-color="${INDIGO}" stop-opacity="0.95"/>
-      <stop offset="55%" stop-color="#B79BFF"/>
-      <stop offset="78%" stop-color="${VIOLET}" stop-opacity="0.95"/>
-      <stop offset="100%" stop-color="${VIOLET}" stop-opacity="0"/>
+    <linearGradient id="rule" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0%" stop-color="#EDE9FF" stop-opacity="0"/>
+      <stop offset="28%" stop-color="#EDE9FF" stop-opacity="0.9"/>
+      <stop offset="72%" stop-color="#EDE9FF" stop-opacity="0.9"/>
+      <stop offset="100%" stop-color="#EDE9FF" stop-opacity="0"/>
     </linearGradient>
-    <radialGradient id="pool" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="${INDIGO}" stop-opacity="0.34"/>
-      <stop offset="100%" stop-color="${INDIGO}" stop-opacity="0"/>
-    </radialGradient>
-    <filter id="soft" x="-30%" y="-60%" width="160%" height="220%">
-      <feGaussianBlur stdDeviation="16"/>
-    </filter>`,
-    `<ellipse cx="${W / 2}" cy="${cy}" rx="620" ry="300" fill="url(#pool)"/>
-     <!-- L'ombre portée du fil, décalée: elle donne le sol -->
-     <path d="${path}" fill="none" stroke="#000" stroke-opacity="0.55" stroke-width="26"
-       stroke-linecap="round" transform="translate(0 34)" filter="url(#soft)"/>
-     <path d="${path}" fill="none" stroke="url(#cord)" stroke-width="19" stroke-linecap="round"/>
-     <!-- Le liseré du dessus: une seule source, en haut à gauche -->
-     <path d="${path}" fill="none" stroke="#FFFFFF" stroke-opacity="0.30" stroke-width="4"
-       stroke-linecap="round" transform="translate(-3 -5)"/>`);
+    <linearGradient id="wash2" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="${DEEP}" stop-opacity="0.40"/>
+      <stop offset="60%" stop-color="${VIOLET}" stop-opacity="0.10"/>
+      <stop offset="100%" stop-color="${BASE}" stop-opacity="0"/>
+    </linearGradient>`,
+    `<rect width="${W}" height="${H}" fill="url(#wash2)"/>
+     <!-- Une seule ligne tenue, plus haute et plus vive: le titre -->
+     <rect x="${W / 2 - 260}" y="120" width="520" height="7" rx="3.5" fill="#FFFFFF" opacity="0.9"/>
+     ${rules}`);
 }
 
-/* ── 4. AFFILIATION — le nœud ─────────────────────────────────────────────
-   Deux liens noués, chacun sortant par un bord opposé. Le nœud plutôt que la
-   poignée de main: la commission est récurrente, elle ne se conclut pas en
-   une fois. */
-function affiliation() {
+/* ── 3. CONTACT ───────────────────────────────────────────────────────────
+   Des arcs concentriques qui s'éloignent du centre en s'affinant. Un signal
+   qui part, ce que fait une ligne quand elle sonne. */
+function contact() {
   const cx = W / 2, cy = H / 2;
-  const a = `M -40 ${cy + 210} C ${cx - 430} ${cy + 120}, ${cx - 250} ${cy - 190}, ${cx - 20} ${cy - 40}
-             C ${cx + 210} ${cy + 110}, ${cx + 300} ${cy - 150}, ${W + 40} ${cy - 200}`;
-  const b = `M -40 ${cy - 210} C ${cx - 430} ${cy - 120}, ${cx - 250} ${cy + 190}, ${cx - 20} ${cy + 40}
-             C ${cx + 210} ${cy - 110}, ${cx + 300} ${cy + 150}, ${W + 40} ${cy + 200}`;
-  const strand = (d, grad, w) =>
-    `<path d="${d}" fill="none" stroke="#000" stroke-opacity="0.6" stroke-width="${w + 10}" transform="translate(0 26)" filter="url(#soft2)"/>
-     <path d="${d}" fill="none" stroke="url(#${grad})" stroke-width="${w}" stroke-linecap="round"/>
-     <path d="${d}" fill="none" stroke="#fff" stroke-opacity="0.22" stroke-width="3" transform="translate(0 -6)"/>`;
+  let arcs = '';
+  for (let i = 1; i <= 9; i++) {
+    const r = i * 78;
+    arcs += `<ellipse cx="${cx}" cy="${cy}" rx="${r}" ry="${(r * 0.62).toFixed(0)}"
+      fill="none" stroke="url(#ring)" stroke-width="${(7 - i * 0.6).toFixed(2)}"
+      opacity="${(0.9 - i * 0.085).toFixed(3)}"/>`;
+  }
   return frame(`
-    <linearGradient id="ga" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="${INDIGO}" stop-opacity="0"/>
-      <stop offset="30%" stop-color="${INDIGO}"/>
-      <stop offset="70%" stop-color="${INDIGO}"/>
+    <linearGradient id="ring" x1="0" y1="0" x2="1" y2="0.4">
+      <stop offset="0%" stop-color="${INDIGO}" stop-opacity="0.15"/>
+      <stop offset="35%" stop-color="#B9A8FF"/>
+      <stop offset="65%" stop-color="${VIOLET}"/>
+      <stop offset="100%" stop-color="${VIOLET}" stop-opacity="0.15"/>
+    </linearGradient>
+    <radialGradient id="core" cx="50%" cy="50%" r="50%">
+      <stop offset="0%" stop-color="#D8CCFF" stop-opacity="0.95"/>
+      <stop offset="40%" stop-color="${INDIGO}" stop-opacity="0.45"/>
       <stop offset="100%" stop-color="${INDIGO}" stop-opacity="0"/>
-    </linearGradient>
-    <linearGradient id="gb" x1="0" y1="0" x2="1" y2="0">
-      <stop offset="0%" stop-color="${VIOLET}" stop-opacity="0"/>
-      <stop offset="30%" stop-color="${VIOLET}"/>
-      <stop offset="70%" stop-color="${VIOLET}"/>
-      <stop offset="100%" stop-color="${VIOLET}" stop-opacity="0"/>
-    </linearGradient>
-    <radialGradient id="knotglow" cx="50%" cy="50%" r="50%">
-      <stop offset="0%" stop-color="#8E76FF" stop-opacity="0.30"/>
-      <stop offset="100%" stop-color="#8E76FF" stop-opacity="0"/>
+    </radialGradient>`,
+    `<ellipse cx="${cx}" cy="${cy}" rx="560" ry="360" fill="url(#core)" filter="url(#blur60)"/>
+     <g filter="url(#blur14)" opacity="0.55">${arcs}</g>
+     ${arcs}
+     <circle cx="${cx}" cy="${cy}" r="26" fill="#EFEAFF" opacity="0.95"/>
+     <circle cx="${cx}" cy="${cy}" r="26" fill="#FFFFFF" filter="url(#blur28)"/>`);
+}
+
+/* ── 4. AFFILIATION ───────────────────────────────────────────────────────
+   Deux champs qui se rejoignent au centre et s'y additionnent, indigo d'un
+   côté, violet de l'autre. Deux parties, un intérêt commun. */
+function affiliation() {
+  return frame(`
+    <radialGradient id="left" cx="24%" cy="50%" r="46%">
+      <stop offset="0%" stop-color="${INDIGO}" stop-opacity="0.95"/>
+      <stop offset="45%" stop-color="${DEEP}" stop-opacity="0.42"/>
+      <stop offset="100%" stop-color="${DEEP}" stop-opacity="0"/>
     </radialGradient>
-    <filter id="soft2" x="-30%" y="-60%" width="160%" height="220%">
-      <feGaussianBlur stdDeviation="18"/>
-    </filter>`,
-    `<ellipse cx="${cx}" cy="${cy}" rx="520" ry="330" fill="url(#knotglow)"/>
-     ${strand(a, 'ga', 22)}
-     ${strand(b, 'gb', 22)}`);
+    <radialGradient id="right" cx="76%" cy="50%" r="46%">
+      <stop offset="0%" stop-color="${VIOLET}" stop-opacity="0.95"/>
+      <stop offset="45%" stop-color="${VIOLET}" stop-opacity="0.40"/>
+      <stop offset="100%" stop-color="${VIOLET}" stop-opacity="0"/>
+    </radialGradient>`,
+    /* Les deux champs se rejoignent AU CENTRE, et c'est là que l'image est la
+       plus vive: c'est le recouvrement qui est le sujet. Une version les avait
+       repoussés aux deux bords avec une couture blanche au milieu; le centre y
+       était devenu gris, or c'est précisément la bande que montre une latte
+       repliée, et la latte sortait donc en aplat neutre.
+       `screen` et non une superposition simple: deux lumières qui se croisent
+       s'ADDITIONNENT, elles ne se cachent pas l'une l'autre. */
+    `<g style="mix-blend-mode:screen">
+       <rect width="${W}" height="${H}" fill="url(#left)"/>
+       <rect width="${W}" height="${H}" fill="url(#right)"/>
+     </g>`);
 }
 
 const SHEETS = [
@@ -286,7 +202,7 @@ const page = await browser.newPage({ viewport: { width: W, height: H }, deviceSc
 
 for (const [name, svg] of SHEETS) {
   await page.setContent(
-    `<style>html,body{margin:0;background:${VOID}}svg{display:block}</style>${svg}`,
+    `<style>html,body{margin:0;background:${BASE}}svg{display:block}</style>${svg}`,
     { waitUntil: 'load' },
   );
   await page.waitForTimeout(250);
