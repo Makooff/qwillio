@@ -1466,3 +1466,53 @@ body {
 .cols--4 .cols__body {
   font-size: 12.5px;
 }
+
+/* ── Intégrations : deux niveaux, et la différence compte ─ */
+
+.wired__group {
+  display: grid;
+  grid-template-columns: 340px 1fr;
+  gap: 40px;
+  align-items: center;
+  padding: 26px 0;
+  border-top: var(--hairline);
+}
+
+.wired__group:last-of-type {
+  border-bottom: var(--hairline);
+}
+
+.wired__head .body {
+  margin-top: 7px;
+  max-width: 300px;
+}
+
+.wired__items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+/* ── Les métiers ────────────────────────────────────────── */
+
+.trades {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0 56px;
+}
+
+.trades__item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 0;
+  border-bottom: var(--hairline);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--graphite);
+}
+
+.trades__item:nth-child(1),
+.trades__item:nth-child(2) {
+  border-top: var(--hairline);
+}

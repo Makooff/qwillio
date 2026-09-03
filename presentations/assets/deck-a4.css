@@ -459,3 +459,28 @@
 .cols--4 .cols__cell .h3 {
   font-size: 18px;
 }
+
+/* ── Présentation générale, en portrait ─────────────────── */
+
+.wired__group {
+  grid-template-columns: 1fr;
+  gap: 14px;
+  padding: 22px 0;
+}
+
+.wired__head .body {
+  max-width: none;
+}
+
+.trades {
+  grid-template-columns: 1fr;
+}
+
+.trades__item {
+  padding: 13px 0;
+  font-size: 14px;
+}
+
+.trades__item:nth-child(2) {
+  border-top: 0;
+}
