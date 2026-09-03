@@ -1212,3 +1212,215 @@ body {
   border-color: transparent;
   color: #fff;
 }
+
+/* ============================================================
+   Pièces propres à la proposition de GROUPE (un propriétaire,
+   plusieurs établissements). Elles vivent ici et pas dans une
+   troisième feuille : ce sont les mêmes jetons, le même registre,
+   et une feuille de plus se serait désynchronisée au premier
+   changement de charte.
+   ============================================================ */
+
+/* ── Les heures où chaque téléphone sonne ───────────────── */
+
+.curves {
+  margin-top: 4px;
+}
+
+.curves__axis {
+  position: relative;
+  height: 20px;
+  margin-left: 158px;
+}
+
+.curves__tick {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.curves__row {
+  display: grid;
+  grid-template-columns: 158px 1fr;
+  align-items: center;
+  gap: 0;
+  padding: 11px 0;
+  border-top: var(--hairline);
+}
+
+.curves__row:last-child {
+  border-bottom: var(--hairline);
+}
+
+.curves__label {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--graphite);
+}
+
+.curves__track {
+  position: relative;
+  display: block;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--band);
+}
+
+.curves__bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  overflow: hidden;
+}
+
+/* Une seule teinte, deux intensités. Quatre couleurs pour quatre maisons
+   auraient été décoratives : ici la couleur dit « appel entrant », et c'est
+   la POSITION qui porte l'information. */
+.curves__bar--soft {
+  background: rgba(122, 95, 255, 0.15);
+}
+
+.curves__bar--peak {
+  background: var(--indigo);
+}
+
+.curves__bar em {
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.92);
+  white-space: nowrap;
+}
+
+/* ── Les lignes du compte ───────────────────────────────── */
+
+.lines {
+  margin-top: 2px;
+}
+
+.lines__row {
+  display: grid;
+  grid-template-columns: 200px 250px 1fr;
+  gap: 28px;
+  align-items: baseline;
+  padding: 20px 0;
+  border-top: var(--hairline);
+}
+
+.lines__row:last-child {
+  border-bottom: var(--hairline);
+}
+
+.lines__house {
+  font-size: 16px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+
+.lines__greeting {
+  font-size: 14px;
+  color: var(--deep);
+}
+
+.lines__transfer {
+  font-size: 13.5px;
+  color: var(--body);
+}
+
+/* ── La citation dans un quadrant ───────────────────────── */
+
+.quad__quote {
+  margin: 11px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--deep);
+  max-width: 440px;
+}
+
+.quad__quote + .quad__body {
+  margin-top: 8px;
+}
+
+/* ── L'addition des quatre maisons ──────────────────────── */
+
+.tally {
+  margin-top: 24px;
+}
+
+.tally__row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 0.9fr 0.8fr 1fr;
+  gap: 20px;
+  align-items: baseline;
+  padding: 16px 0;
+  border-top: var(--hairline);
+  font-size: 13.5px;
+  color: var(--body);
+  font-variant-numeric: tabular-nums;
+}
+
+.tally__row--head {
+  border-top: 0;
+  padding-bottom: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.tally__house {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+
+.tally__sum {
+  text-align: right;
+  font-weight: 600;
+  color: var(--graphite);
+}
+
+.tally__row--total {
+  border-top: 1px solid var(--graphite);
+  padding-top: 20px;
+}
+
+.tally__row--total .tally__sum {
+  font-size: 24px;
+  letter-spacing: -0.03em;
+  color: var(--deep);
+}
+
+/* ── Quatre colonnes plutôt que trois ───────────────────── */
+
+.cols--4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.cols--4 .cols__cell {
+  padding-right: 24px;
+}
+
+.cols--4 .cols__cell + .cols__cell {
+  padding-left: 26px;
+}
+
+.cols--4 .cols__cell .h3 {
+  font-size: 17px;
+}
+
+.cols--4 .cols__body {
+  font-size: 12.5px;
+}

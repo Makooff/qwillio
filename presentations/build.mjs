@@ -17,6 +17,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 
 import { renderDeck, SECTORS } from './render.mjs';
+import { renderGroupDeck, GROUP } from './group.mjs';
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const BUILD = join(HERE, 'build');
@@ -55,9 +56,13 @@ const askedFormats = FORMATS.filter((f) => args.includes(`--${f.id}`));
 const formats = askedFormats.length ? askedFormats : FORMATS;
 const only = args.filter((a) => !a.startsWith('--'));
 
-const targets = only.length ? SECTORS.filter((s) => only.includes(s.slug)) : SECTORS;
+/* La proposition de groupe est un document a part : meme charte, meme
+   contenu de base, mais un recit qui lui est propre (un proprietaire, quatre
+   maisons). Elle se demande par son slug comme un metier. */
+const ALL = [...SECTORS, GROUP];
+const targets = only.length ? ALL.filter((s) => only.includes(s.slug)) : ALL;
 if (!targets.length) {
-  console.error(`Secteur inconnu. Disponibles : ${SECTORS.map((s) => s.slug).join(', ')}`);
+  console.error(`Document inconnu. Disponibles : ${ALL.map((s) => s.slug).join(', ')}`);
   process.exit(1);
 }
 
@@ -70,7 +75,10 @@ const chrome = (extra) => execFileSync(CHROME, [...FLAGS, ...extra], { stdio: ['
 for (const format of formats) {
   for (const sector of targets) {
     const name = `${sector.slug}${format.suffix}`;
-    const html = renderDeck(sector, { today, cssHref: format.css });
+    const html =
+      sector === GROUP
+        ? renderGroupDeck({ today, cssHref: format.css })
+        : renderDeck(sector, { today, cssHref: format.css });
     const htmlPath = join(BUILD, `${name}.html`);
     writeFileSync(htmlPath, html);
 

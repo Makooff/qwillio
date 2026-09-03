@@ -1,7 +1,8 @@
 # Decks commerciaux
 
-Un PDF de vente par métier, dans le registre « Papier & Signal » de la V2, et
-dans deux formats.
+Un PDF de vente par métier, plus une proposition de groupe pour un
+propriétaire qui possède plusieurs de ces commerces. Le tout dans le registre
+« Papier & Signal » de la V2, et dans deux formats.
 
 | Format | Fichier | Pour quoi |
 |---|---|---|
@@ -9,17 +10,40 @@ dans deux formats.
 | A4 portrait | `pdf/qwillio-<métier>-a4.pdf` | À imprimer, à laisser sur un bureau, à joindre à un devis |
 
 ```bash
-npm run decks                        # les huit PDF, dans presentations/pdf/
-node presentations/build.mjs bar     # un seul métier, les deux formats
-node presentations/build.mjs --a4    # un seul format
-node presentations/build.mjs --png   # en plus, une image par planche, pour relire
+npm run decks                          # les dix PDF, dans presentations/pdf/
+node presentations/build.mjs bar       # un seul document, les deux formats
+node presentations/build.mjs groupe    # la proposition de groupe
+node presentations/build.mjs --a4      # un seul format
+node presentations/build.mjs --png     # en plus, une image par planche, pour relire
 ```
 
 Les PDF produits sont dans `pdf/`. Le dossier `build/` est jetable (il est
 ignoré par git) : il ne contient que le HTML intermédiaire et les images de
 relecture.
 
-## Ce qu'il y a dans un deck
+## La proposition de groupe
+
+`groupe` est un document à part, pas la concaténation des quatre. Quinze
+planches pour un propriétaire qui possède les quatre commerces, et un argument
+qui n'existe pas dans les decks métier : **pris séparément, aucun de ses
+commerces ne justifie une réceptionniste ; pris ensemble, ils la justifient
+largement, mais une personne ne se partage pas en quatre comptoirs.**
+
+Trois planches lui sont propres. Une frise des heures où chacun de ses quatre
+téléphones sonne, qui montre que les coups de feu ne tombent pas ensemble. Le
+réglage réel du compte, une ligne par maison. Et l'addition des quatre fuites
+en un seul tableau, calculée depuis les mêmes hypothèses que les decks métier
+(le total sort du code, il n'est pas écrit à la main).
+
+Ce qui y est affirmé sur le produit est vérifié dans le schéma :
+`ClientPhoneNumber` porte bien un libellé, une phrase d'accueil, une voix, des
+consignes et un numéro de transfert **par ligne**, en surcharge de la
+configuration du client, et le quota de minutes est compté par compte, donc
+mutualisé entre les lignes. Ce qui n'existe pas encore, la comparaison chiffrée
+entre établissements dans le portail, est écrit dans la planche « Sans détour »
+plutôt que passé sous silence.
+
+## Ce qu'il y a dans un deck métier
 
 Douze planches, toujours dans le même ordre : couverture, le problème du
 métier, le calcul du manque à gagner, ce qu'est Qwillio, un appel joué de bout
@@ -36,7 +60,8 @@ gains sont ceux du concessionnaire, du pâtissier, du bar ou de la parfumerie.
 
 | Fichier | Rôle |
 |---|---|
-| `content.mjs` | Tout le texte. Un métier, un objet. C'est le seul fichier à ouvrir pour changer un argument. |
+| `content.mjs` | Tout le texte des decks métier. Un métier, un objet. C'est le seul fichier à ouvrir pour changer un argument. |
+| `group.mjs` | Le contenu ET les planches de la proposition de groupe. Elle réutilise l'ossature de `render.mjs` et les arguments produit de `content.mjs`. |
 | `render.mjs` | Le gabarit. Une fonction par type de planche, plus les espaces insécables du français. |
 | `assets/deck.css` | La charte et la mise en page 16:9, recopiées depuis `DA/` et `frontend/src/styles/v2.css`. |
 | `assets/deck-a4.css` | La variante portrait. Importe `deck.css` et ne redéfinit que ce que la page A4 change. |
@@ -90,6 +115,12 @@ région bascule un jour, c'est cette planche qu'il faut corriger en premier.
 **Aucune statistique de marché.** Le calcul du manque à gagner est présenté
 comme une illustration à remplir avec les chiffres du client, jamais comme une
 étude. Une source inventée se retourne contre vous au premier rendez-vous.
+
+## Nommer le client
+
+Les documents sont écrits au générique (« la concession », « le laboratoire »).
+Pour une proposition nominative, les libellés vivent dans `LINES`, `CURVES` et
+`HOUSES` de `group.mjs`, et dans `label` de chaque secteur de `content.mjs`.
 
 ## Ajouter un métier
 
