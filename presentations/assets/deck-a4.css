@@ -462,25 +462,55 @@
 
 /* ── Présentation générale, en portrait ─────────────────── */
 
-.wired__group {
-  grid-template-columns: 1fr;
-  gap: 14px;
-  padding: 22px 0;
+.rail {
+  margin-bottom: 38px;
 }
 
-.wired__head .body {
+.beat {
+  /* Le récit se lit de haut en bas en portrait : le minutage et la réplique
+     d'abord, la mécanique ensuite. */
+  grid-template-columns: 1fr;
+  gap: 34px;
+  align-content: center;
+}
+
+.beat__time {
+  font-size: 42px;
+}
+
+.beat__line {
+  font-size: 18px;
   max-width: none;
 }
 
-.trades {
-  grid-template-columns: 1fr;
+.beat__mech {
+  padding: 22px 24px 24px;
 }
 
-.trades__item {
-  padding: 13px 0;
+.done__item {
   font-size: 14px;
+  padding: 15px 0 15px 28px;
 }
 
-.trades__item:nth-child(2) {
-  border-top: 0;
+.done__item::before {
+  top: 21px;
+}
+
+.edges__row {
+  grid-template-columns: 1fr;
+  gap: 7px;
+  padding: 20px 0;
+}
+
+.edges__case {
+  font-size: 16px;
+}
+
+.track {
+  grid-template-columns: 1fr;
+  gap: 22px;
+}
+
+.track__step {
+  padding-top: 18px;
 }

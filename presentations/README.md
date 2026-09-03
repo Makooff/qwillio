@@ -1,8 +1,9 @@
 # Decks commerciaux
 
-Un PDF de vente par métier, plus une proposition de groupe pour un
-propriétaire qui possède plusieurs de ces commerces. Le tout dans le registre
-« Papier & Signal » de la V2, et dans deux formats.
+Trois familles de documents, toutes dans le registre « Papier & Signal » de la
+V2 et dans deux formats : un PDF de vente par métier, une proposition de groupe
+pour un propriétaire qui possède plusieurs de ces commerces, et une
+présentation générale de Qwillio.
 
 | Format | Fichier | Pour quoi |
 |---|---|---|
@@ -20,6 +21,27 @@ node presentations/build.mjs --png     # en plus, une image par planche, pour re
 Les PDF produits sont dans `pdf/`. Le dossier `build/` est jetable (il est
 ignoré par git) : il ne contient que le HTML intermédiaire et les images de
 relecture.
+
+## La présentation générale
+
+`presentation` ne suit pas le déroulé des decks métier, et c'est le point. Une
+première version le faisait : mêmes planches, mêmes pièces, mêmes mots à
+peine changés, et le document n'existait pas par lui-même.
+
+Celle-ci a son propre fil : **un seul appel, raconté seconde par seconde**, de
+la première sonnerie au SMS. Chaque planche est un instant de cet appel, porte
+son minutage, une réplique de la conversation, et ce que le logiciel fait à ce
+moment-là. Le lecteur n'avale pas un argumentaire, il écoute un appel.
+
+Ce qui en découle, et qu'il ne faut pas « harmoniser » avec les autres
+documents : une frise de progression revient sur chaque planche (c'est elle qui
+tient le tout), la couverture et le dénouement sont en registre sombre alors que
+les decks métier sont clairs de bout en bout, et il n'y a ici ni bento, ni
+quadrant, ni bulles de conversation.
+
+La planche « les appels qui ne ressemblent pas à celui-là » existe pour la même
+raison que « ce que nous ne promettons pas » : un produit qui ne montre que son
+cas idéal ne se croit pas.
 
 ## La proposition de groupe
 

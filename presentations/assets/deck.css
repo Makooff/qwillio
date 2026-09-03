@@ -529,6 +529,18 @@ body {
   color: var(--graphite);
 }
 
+/* Couverture en registre sombre : les sept jetons de texte ne basculent pas
+   tout seuls, ils sont clairs par défaut. Sans ces trois lignes, le pied de
+   couverture est du gris foncé sur du noir. */
+.slide--dark .cover__meta {
+  color: var(--fog);
+  border-top-color: var(--border-d);
+}
+
+.slide--dark .cover__meta strong {
+  color: var(--mist);
+}
+
 /* ── 02. Le problème, minuterie ─────────────────────────── */
 
 .timeline {
@@ -1467,52 +1479,259 @@ body {
   font-size: 12.5px;
 }
 
-/* ── Intégrations : deux niveaux, et la différence compte ─ */
+/* ============================================================
+   Pièces de la présentation générale, qui raconte UN appel
+   seconde par seconde. Rien de tout cela ne sert aux decks
+   métier : c'est ce qui empêche les deux documents de se
+   ressembler.
+   ============================================================ */
 
-.wired__group {
-  display: grid;
-  grid-template-columns: 340px 1fr;
-  gap: 40px;
-  align-items: center;
-  padding: 26px 0;
-  border-top: var(--hairline);
-}
+/* ── La frise de l'appel, sur chaque planche ────────────── */
 
-.wired__group:last-of-type {
-  border-bottom: var(--hairline);
-}
-
-.wired__head .body {
-  margin-top: 7px;
-  max-width: 300px;
-}
-
-.wired__items {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-/* ── Les métiers ────────────────────────────────────────── */
-
-.trades {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0 56px;
-}
-
-.trades__item {
+.rail {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 15px 0;
-  border-bottom: var(--hairline);
-  font-size: 15px;
-  font-weight: 500;
+  gap: 16px;
+  margin-bottom: 46px;
+}
+
+.rail__end {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.rail__track {
+  position: relative;
+  flex: 1;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--plate);
+}
+
+.rail__fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 2px;
+  background: var(--indigo);
+}
+
+.rail__dot {
+  position: absolute;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  margin: -5.5px 0 0 -5.5px;
+  border-radius: 50%;
+  background: var(--indigo);
+  /* Un anneau de la couleur du fond : sans lui, le point se confond avec le
+     trait au lieu de se poser dessus. */
+  box-shadow: 0 0 0 5px var(--canvas);
+}
+
+.slide--dark .rail__track {
+  background: var(--border-d);
+}
+
+.slide--dark .rail__fill,
+.slide--dark .rail__dot {
+  background: var(--lift);
+}
+
+.slide--dark .rail__dot {
+  box-shadow: 0 0 0 5px var(--void);
+}
+
+/* ── Un instant de l'appel ──────────────────────────────── */
+
+.beat {
+  display: grid;
+  grid-template-columns: 57fr 43fr;
+  gap: 60px;
+  flex: 1;
+  min-height: 0;
+  align-items: center;
+}
+
+.beat__time {
+  margin: 0 0 14px;
+  font-size: 50px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--indigo);
+}
+
+.slide--dark .beat__time {
+  color: var(--lift);
+}
+
+/* La réplique, en exergue et non en bulle : les bulles appartiennent aux
+   decks métier, et deux documents qui se ressemblent n'en font qu'un. */
+.beat__line {
+  margin: 28px 0 0;
+  padding-left: 20px;
+  border-left: 2px solid var(--plate);
+  font-size: 20px;
+  line-height: 1.45;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  max-width: 540px;
+}
+
+.beat__line--agent {
+  border-left-color: var(--indigo);
+}
+
+.beat__who {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.beat__line--agent .beat__who {
+  color: var(--deep);
+}
+
+.beat__mech {
+  border-radius: 20px;
+  border: var(--hairline);
+  background: var(--band);
+  padding: 26px 28px 28px;
+}
+
+.beat__mech-label {
+  margin: 0 0 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.beat__mech-item {
+  margin: 0;
+  padding: 16px 0 0;
+  font-size: 13.5px;
+  line-height: 1.6;
   color: var(--graphite);
 }
 
-.trades__item:nth-child(1),
-.trades__item:nth-child(2) {
+.beat__mech-item + .beat__mech-item {
+  margin-top: 16px;
   border-top: var(--hairline);
+}
+
+/* ── Le dénouement ──────────────────────────────────────── */
+
+.done {
+  display: flex;
+  flex-direction: column;
+}
+
+.done__item {
+  margin: 0;
+  padding: 17px 0 17px 30px;
+  position: relative;
+  border-top: 1px solid var(--border-d);
+  font-size: 15px;
+  line-height: 1.4;
+  color: #f5f4f2;
+}
+
+.done__item:last-child {
+  border-bottom: 1px solid var(--border-d);
+}
+
+.done__item::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 24px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--lift);
+}
+
+/* ── Les appels qui sortent du cas idéal ────────────────── */
+
+.edges {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+}
+
+.edges__row {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 40px;
+  align-items: baseline;
+  padding: 24px 0;
+  border-top: var(--hairline);
+}
+
+.edges__row:last-child {
+  border-bottom: var(--hairline);
+}
+
+.edges__case {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.edges__behaviour {
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--body);
+}
+
+/* ── Mise en route, en trois colonnes nues ──────────────── */
+
+.track {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 44px;
+}
+
+.track__step {
+  padding-top: 22px;
+  border-top: 2px solid var(--plate);
+}
+
+.track__step:first-child {
+  border-top-color: var(--indigo);
+}
+
+.track__index {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.track__step .h3 {
+  margin-top: 12px;
+  font-size: 19px;
+}
+
+.track__body {
+  margin: 10px 0 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--body);
 }
