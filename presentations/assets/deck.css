@@ -1301,39 +1301,81 @@ body {
   white-space: nowrap;
 }
 
-/* ── Les lignes du compte ───────────────────────────────── */
+/* ── Les quatre réceptionnistes ─────────────────────────── */
 
-.lines {
-  margin-top: 2px;
-}
-
-.lines__row {
+.crew {
   display: grid;
-  grid-template-columns: 200px 250px 1fr;
-  gap: 28px;
-  align-items: baseline;
-  padding: 20px 0;
-  border-top: var(--hairline);
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  align-items: start;
 }
 
-.lines__row:last-child {
-  border-bottom: var(--hairline);
+.crew__card {
+  border-radius: 20px;
+  border: var(--hairline);
+  background: var(--band);
+  padding: 22px 22px 24px;
+  display: flex;
+  flex-direction: column;
+  min-height: 322px;
 }
 
-.lines__house {
-  font-size: 16px;
+/* Un zigzag plutôt qu'un alignement au cordeau : quatre cartes de même
+   gabarit posées côte à côte, c'est la grille de cartes identiques que la
+   charte interdit, et une équipe se présente mieux en quinconce. */
+.crew__card:nth-child(even) {
+  margin-top: 26px;
+}
+
+.crew__avatar {
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--lift-soft);
+  margin-bottom: 16px;
+}
+
+.crew__house {
+  margin: 0;
+  font-size: 10px;
   font-weight: 600;
-  letter-spacing: -0.015em;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.crew__name {
+  margin: 7px 0 0;
+  font-size: 25px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
   color: var(--ink);
 }
 
-.lines__greeting {
-  font-size: 14px;
+.crew__greeting {
+  margin: 12px 0 0;
+  font-size: 13.5px;
+  line-height: 1.45;
   color: var(--deep);
 }
 
-.lines__transfer {
-  font-size: 13.5px;
+.crew__voice {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--body);
+}
+
+.crew__transfer {
+  margin: auto 0 0;
+  padding-top: 16px;
+  border-top: var(--hairline);
+  font-size: 12px;
+  line-height: 1.4;
+  /* Pas `faint` : c'est un argument de vente (« elle ne vous dérange que
+     pour un devis à valider »), pas une mention légale. */
   color: var(--body);
 }
 

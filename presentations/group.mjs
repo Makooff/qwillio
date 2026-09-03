@@ -1,50 +1,87 @@
 /**
- * La proposition de GROUPE : un seul propriétaire, quatre établissements,
- * un seul document.
+ * La proposition pour un propriétaire qui possède plusieurs commerces.
  *
- * Ce n'est pas la concaténation des quatre decks. L'argument change de nature :
- * pris séparément, aucun des quatre commerces ne justifie une réceptionniste à
- * lui seul ; pris ensemble, ils la justifient largement, mais une personne ne
- * se partage pas en quatre comptoirs. C'est exactement ce qu'une ligne par
- * maison sur un seul compte sait faire, et c'est le fil du document.
+ * Ce n'est pas la concaténation des decks métier, et ce n'est pas non plus une
+ * offre groupée au rabais : on vend UNE RÉCEPTIONNISTE PAR MAISON. C'est ce que
+ * le produit fait réellement (`ClientPhoneNumber` porte un nom d'agent, une
+ * voix, une phrase d'accueil, des consignes et un numéro de transfert PAR
+ * LIGNE), et c'est aussi ce qui se défend le mieux : un client de la parfumerie
+ * ne doit pas entendre la personne qui répond au bar.
  *
- * Tout ce qui est affirmé ici sur le produit est vérifié dans le code :
- * `ClientPhoneNumber` porte bien un libellé, une phrase d'accueil, une voix,
- * des consignes et un numéro de transfert PAR LIGNE, en surcharge de la
- * configuration du client ; le quota de minutes est compté par COMPTE, donc
- * mutualisé entre les lignes. Ce qui n'existe pas encore, la comparaison
- * chiffrée entre établissements dans le portail, est écrit noir sur blanc dans
- * la planche « Sans détour » plutôt que passé sous silence.
+ * L'argument central tient en une phrase, posée sur la frise des heures :
+ * aucune de ses affaires ne justifie une réceptionniste à plein temps, et
+ * chacune en mérite une quand même.
+ *
+ * Le document doit se comprendre en le feuilletant. Chaque planche porte donc
+ * UNE idée, et les textes tiennent en deux lignes. Ce qui impressionne n'est
+ * pas la densité : c'est la frise, les quatre visages et l'addition.
  */
 
+import { readFileSync } from 'node:fs';
 import { BRAND, COMMON, SECTORS } from './content.mjs';
 import { frame, head, mark, frenchSpacing, serifWords, eur } from './render.mjs';
 
-const LABEL = 'Groupe, quatre établissements';
+const LABEL = 'Quatre commerces, un propriétaire';
 
-const byslug = Object.fromEntries(SECTORS.map((s) => [s.slug, s]));
-const CONCESSION = byslug['concession-automobile'];
-const PATISSERIE = byslug['patisserie-trompe-loeil'];
-const BAR = byslug['bar'];
-const PARFUMERIE = byslug['parfumerie'];
-
-/* Les quatre maisons, dans l'ordre où elles apparaissent partout ensuite. */
-const HOUSES = [
-  { key: 'concession', short: 'La concession', sector: CONCESSION, tint: 'indigo' },
-  { key: 'patisserie', short: 'Le laboratoire', sector: PATISSERIE, tint: 'violet' },
-  { key: 'bar', short: 'Le bar', sector: BAR, tint: 'deep' },
-  { key: 'parfumerie', short: 'La parfumerie', sector: PARFUMERIE, tint: 'lift' },
-];
+const bySlug = Object.fromEntries(SECTORS.map((s) => [s.slug, s]));
+const CONCESSION = bySlug['concession-automobile'];
+const PATISSERIE = bySlug['patisserie-trompe-loeil'];
+const BAR = bySlug['bar'];
+const PARFUMERIE = bySlug['parfumerie'];
 
 /**
- * Quand chaque téléphone sonne, sur une journée de 8 h à 2 h.
- *
- * Les bornes sont des heures d'ouverture et de coup de feu, pas des mesures :
- * la planche le dit, et le client corrigera de mémoire en les lisant. C'est
- * justement ce qu'on veut qu'il fasse.
+ * Les portraits viennent du catalogue de voix du produit
+ * (`backend/src/config/voice-characters.ts` et `frontend/public/characters`),
+ * ils ne sont pas illustratifs : ce sont les visages que le client verra en
+ * choisissant, et les phrases qui les décrivent sont leurs `taglineFr`.
+ * Embarqués en base64 pour la même raison que la police : un PDF qui dépend
+ * d'un fichier voisin finit par s'ouvrir sans ses images.
  */
+const portrait = (id) =>
+  `data:image/webp;base64,${readFileSync(
+    new URL(`../frontend/public/characters/${id}.webp`, import.meta.url)
+  ).toString('base64')}`;
+
+const CREW = [
+  {
+    house: 'La concession',
+    voice: 'lucas',
+    name: 'Lucas',
+    tagline: 'Posé et professionnel, direct et rassurant.',
+    greeting: '« Concession, bonjour. »',
+    transfer: 'Passe à la vente, à l’atelier ou aux pièces',
+  },
+  {
+    house: 'La pâtisserie',
+    voice: 'marie',
+    name: 'Marie',
+    tagline: 'Chaleureuse et accueillante, sourire dans la voix.',
+    greeting: '« Pâtisserie, bonjour. »',
+    transfer: 'Ne vous dérange que pour un devis à valider',
+  },
+  {
+    house: 'Le bar',
+    voice: 'hugo',
+    name: 'Hugo',
+    tagline: 'Détendu et direct, comme un collègue au comptoir.',
+    greeting: '« Le comptoir, bonjour. »',
+    transfer: 'Passe au responsable de salle, après 18 h',
+  },
+  {
+    house: 'La parfumerie',
+    voice: 'camille',
+    name: 'Camille',
+    tagline: 'Soignée et raffinée, pour une image premium.',
+    greeting: '« Parfumerie, bonjour. »',
+    transfer: 'Passe à la boutique, jamais pendant un conseil',
+  },
+];
+
+/* Quand chaque téléphone sonne, sur une journée de 8 h à 2 h. Ce sont des
+   heures d'ouverture et de coup de feu, pas des mesures : la planche le dit,
+   et le client les corrigera de mémoire. C'est ce qu'on veut qu'il fasse. */
 const DAY_START = 8;
-const DAY_END = 26; // 2 h du matin
+const DAY_END = 26;
 const HOURS = [8, 12, 16, 20, 24];
 
 const CURVES = [
@@ -56,7 +93,7 @@ const CURVES = [
     ],
   },
   {
-    house: 'Le laboratoire',
+    house: 'La pâtisserie',
     bars: [
       { from: 10, to: 12.5, level: 'soft' },
       { from: 15, to: 18.5, level: 'peak', note: 'commandes' },
@@ -78,76 +115,46 @@ const CURVES = [
   },
 ];
 
-/* Les quatre lignes du compte, telles qu'elles se règlent réellement
-   (`ClientPhoneNumber` : libellé, accueil, voix, transfert). */
-const LINES = [
-  {
-    house: 'La concession',
-    greeting: '« Concession, bonjour. »',
-    transfer: 'Vente, atelier ou pièces, selon la demande',
-  },
-  {
-    house: 'Le laboratoire',
-    greeting: '« Atelier, bonjour. »',
-    transfer: 'Vous, seulement pour un devis à valider',
-  },
-  {
-    house: 'Le bar',
-    greeting: '« Le comptoir, bonjour. »',
-    transfer: 'Le responsable de salle, après 18 h',
-  },
-  {
-    house: 'La parfumerie',
-    greeting: '« Parfumerie, bonjour. »',
-    transfer: 'La boutique, hors conseil en cabine',
-  },
-];
-
-/* Ce qu'elle attrape dans chaque maison : une réplique, un gain. Les répliques
-   sont reprises des scénarios de chaque deck, pas réécrites. */
 const CATCHES = [
   {
     house: 'La concession',
-    line: '« La Golf grise annoncée à 18 900 €, elle est toujours disponible ? »',
-    gain: 'Elle propose l’essai, note la reprise, pose le rendez-vous. Votre vendeur ouvre le dossier en sachant.',
+    line: '« La Golf grise à 18 900 €, elle est toujours disponible ? »',
+    gain: 'Essai proposé, reprise notée, rendez-vous posé.',
   },
   {
-    house: 'Le laboratoire',
-    line: '« Je voudrais un gâteau qui ressemble à un sac à main, pour le 24. »',
-    gain: 'Date, parts, thème, allergies, photo d’inspiration par SMS. Le brief est complet avant que vous ouvriez la fiche.',
+    house: 'La pâtisserie',
+    line: '« Un gâteau qui ressemble à un sac à main, pour le 24. »',
+    gain: 'Date, parts, thème, allergies, photo par SMS. Le brief est complet.',
   },
   {
     house: 'Le bar',
     line: '« Vous avez de la place vendredi pour quinze personnes ? »',
-    gain: 'La demande de groupe est qualifiée et confirmée par SMS sans que personne quitte le comptoir.',
+    gain: 'Groupe qualifié et confirmé sans quitter le comptoir.',
   },
   {
     house: 'La parfumerie',
-    line: '« Vous avez encore le coffret en 100 ml ? Et vous faites la gravure ? »',
-    gain: 'Le produit est mis de côté à un nom, un créneau conseil est posé. L’appel finit en visite, pas en commande en ligne.',
+    line: '« Vous avez encore le coffret 100 ml ? Et la gravure ? »',
+    gain: 'Produit mis de côté à un nom, créneau conseil posé.',
   },
 ];
 
 const GROUP_GAINS = [
   {
     title: 'Vous n’êtes plus le standard',
-    body:
-      'Aujourd’hui, ce qu’aucune des quatre maisons ne sait traiter remonte à vous. Elle filtre, et ce qui vous parvient arrive avec son brief : qui appelle, pour laquelle de vos affaires, et pourquoi.',
+    body: 'Ce qui vous parvient arrive avec son brief : qui appelle, pour quelle maison, et pourquoi.',
   },
   {
-    title: 'Les minutes se mutualisent',
+    title: 'Chaque maison garde sa voix',
     body:
-      'Un seul compte, un seul volume de minutes pour les quatre lignes. Le mois creux du laboratoire paie le décembre de la parfumerie, sans que vous ayez à arbitrer.',
+      'Un client de la parfumerie n’entend pas celle qui répond au bar. C’est votre image, pas un centre d’appels.',
   },
   {
-    title: 'Une facture, un interlocuteur',
-    body:
-      'Pas quatre abonnements à suivre ni quatre prestataires à rappeler. Un compte, un contrat, une personne à qui parler quand quelque chose cloche.',
+    title: 'Quatre réceptionnistes, un seul écran',
+    body: 'Vous les réglez toutes au même endroit, et vous recevez une facture, pas quatre.',
   },
   {
-    title: 'La cinquième ligne se règle en une heure',
-    body:
-      'Ce qui a été appris sur la première maison sert aux suivantes. Un rachat, une deuxième boutique, une ligne saisonnière : c’est un réglage, pas un projet.',
+    title: 'La cinquième prend une heure',
+    body: 'Un rachat, une deuxième boutique, une ligne saisonnière : c’est un réglage, pas un projet.',
   },
 ];
 
@@ -156,7 +163,7 @@ const GROUP_TRUTH = [
   {
     title: 'Le portail ne compare pas encore vos quatre affaires',
     body:
-      'Chaque appel est enregistré, résumé et cherchable, mais le tableau de bord ne met pas encore les quatre établissements côte à côte. Nous le construirons, et vous serez le premier à en avoir besoin : autant que vous le sachiez avant de signer plutôt qu’au premier lundi matin.',
+      'Chaque appel est enregistré, résumé et cherchable. Mais les quatre maisons ne sont pas encore côte à côte dans un même écran. Nous le construirons.',
   },
 ];
 
@@ -171,9 +178,9 @@ function cover(today) {
     body: `
     <div class="lockup">${mark('lockup__mark')}<span class="lockup__word">${BRAND.name}</span></div>
     <div class="cover__mid">
-      <p class="eyebrow">Proposition &nbsp;·&nbsp; quatre établissements, un seul propriétaire</p>
-      <h1 class="display">Quatre maisons.<br>Une seule qui <i>décroche</i>.</h1>
-      <p class="lead cover__lead">Une concession, un laboratoire de pâtisserie, un bar, une parfumerie. Quatre lignes, quatre publics, quatre façons de sonner au mauvais moment. Voici ce qu’une seule réceptionniste peut faire pour les quatre.</p>
+      <p class="eyebrow">Proposition &nbsp;·&nbsp; quatre commerces, un propriétaire</p>
+      <h1 class="display">Quatre maisons.<br>Quatre <i>réceptionnistes</i>.</h1>
+      <p class="lead cover__lead">Une concession, une pâtisserie en trompe-l’œil, un bar, une parfumerie. Chacune a son téléphone, son public et ses heures de pointe. Chacune aura la sienne.</p>
     </div>
     <div class="cover__meta">
       <span><strong>${BRAND.site}</strong> &nbsp;·&nbsp; ${BRAND.email} &nbsp;·&nbsp; ${BRAND.phone}</span>
@@ -184,9 +191,9 @@ function cover(today) {
 
 function problem(n, total) {
   const day = [
-    { mark: '9 h 10', text: 'La concession vous appelle : un client demande si la grise est encore là.' },
-    { mark: '14 h 30', text: 'Le laboratoire vous appelle : une cliente veut une pièce pour le 24, et personne n’ose annoncer le délai.' },
-    { mark: '18 h 45', text: 'La parfumerie vous appelle : on demande si vous faites la gravure.' },
+    { mark: '9 h 10', text: 'La concession vous appelle : la grise est-elle encore là ?' },
+    { mark: '14 h 30', text: 'La pâtisserie vous appelle : une pièce pour le 24, et personne n’ose annoncer le délai.' },
+    { mark: '18 h 45', text: 'La parfumerie vous appelle : faites-vous la gravure ?' },
     { mark: '21 h 20', text: 'Le bar ne vous appelle pas. Personne n’a entendu le téléphone, et la table de quinze est partie ailleurs.' },
   ];
   return frame({
@@ -199,8 +206,7 @@ function problem(n, total) {
       ${head({
         eyebrow: 'Le problème',
         title: 'Le standard de vos quatre affaires,<br>c’est <i>vous</i>.',
-        lead:
-          'Un gérant peut apprendre quatre métiers. Il ne peut pas tenir quatre comptoirs à la même heure, et c’est pourtant ce que quatre lignes lui demandent tous les jours.',
+        lead: 'Tout ce qu’aucune des quatre ne sait traiter finit sur votre portable. Une journée ordinaire ressemble à ceci.',
       })}
       <div class="timeline">
 ${day
@@ -226,10 +232,10 @@ function curves(n, total) {
     <div class="stack grow" style="justify-content:center">
     <div class="head-row" style="margin-bottom:30px">
       <div>
-        <p class="eyebrow">Ce que personne ne voit</p>
-        <h2 class="h2">Vos quatre téléphones ne sonnent pas<br>aux mêmes <i>heures</i>.</h2>
+        <p class="eyebrow">Ce que personne ne regarde</p>
+        <h2 class="h2">Vos quatre téléphones sonnent<br>à des <i>heures</i> différentes.</h2>
       </div>
-      <p class="small head-row__note">Heures d’ouverture et coups de feu, de mémoire. Corrigez-les, le raisonnement tient quand même.</p>
+      <p class="small head-row__note">Heures d’ouverture et coups de feu, de mémoire. Corrigez-les, le raisonnement tient.</p>
     </div>
     <div class="curves">
       <div class="curves__axis">
@@ -251,7 +257,7 @@ ${row.bars
       </div>`
 ).join('\n')}
     </div>
-    <p class="close-line">Aucune de vos quatre affaires ne justifie une réceptionniste à elle seule. Les quatre ensemble, oui, mais une personne ne se partage pas en quatre comptoirs.</p>
+    <p class="close-line">Aucune de vos affaires ne justifie une réceptionniste à plein temps. Chacune en mérite une quand même.</p>
     </div>`,
   });
 }
@@ -288,32 +294,33 @@ ${c.points
   });
 }
 
-function lines(n, total) {
+function crew(n, total) {
   return frame({
     n,
     total,
     label: LABEL,
     veil: 'soft',
     body: `
-    <div class="stack grow" style="justify-content:center">
-    <div class="head-row" style="margin-bottom:26px">
+    <div class="head-row" style="margin-bottom:28px">
       <div>
-        <p class="eyebrow">Comment ça se règle</p>
-        <h2 class="h2">Un compte, quatre lignes,<br>quatre <i>réceptionnistes</i>.</h2>
+        <p class="eyebrow">Votre équipe</p>
+        <h2 class="h2">Voici vos quatre <i>réceptionnistes</i>.</h2>
       </div>
-      <p class="small head-row__note">Chaque ligne porte sa voix, son accueil, ses consignes et son transfert. Ce qui est commun reste commun.</p>
+      <p class="small head-row__note">Le nom, la voix et la phrase d’accueil se choisissent maison par maison.</p>
     </div>
-    <div class="lines">
-${LINES.map(
-  (l) => `      <div class="lines__row">
-        <span class="lines__house">${l.house}</span>
-        <span class="lines__greeting">${l.greeting}</span>
-        <span class="lines__transfer">${l.transfer}</span>
+    <div class="crew">
+${CREW.map(
+  (c) => `      <div class="crew__card">
+        <img class="crew__avatar" src="${portrait(c.voice)}" alt="">
+        <p class="crew__house">${c.house}</p>
+        <p class="crew__name">${c.name}</p>
+        <p class="crew__greeting">${c.greeting}</p>
+        <p class="crew__voice">${c.tagline}</p>
+        <p class="crew__transfer">${c.transfer}</p>
       </div>`
 ).join('\n')}
     </div>
-    <p class="small" style="margin-top:22px;max-width:820px">Un appelant qui compose la concession n’entend jamais parler du bar. Vous, vous n’avez qu’un identifiant, qu’un tableau de bord et qu’un volume de minutes pour les quatre.</p>
-    </div>`,
+    <p class="close-line" style="margin-top:26px">Elles ne partagent ni la voix, ni les règles, ni le numéro. Vous, vous n’avez qu’un tableau de bord.</p>`,
   });
 }
 
@@ -348,68 +355,18 @@ function call(n, total) {
     body: `
     <div class="head-row" style="margin-bottom:22px">
       <div>
-        <p class="eyebrow">Un appel en entier, ${s.call.eyebrow.replace('Un appel, ', '')}</p>
+        <p class="eyebrow">Un appel en entier, samedi 11 h 04</p>
         <h2 class="h2">Elle ne note pas la demande.<br>Elle la <i>traite</i>.</h2>
       </div>
-      <p class="small head-row__note">L’exemple est pris à la concession, celle où un appel manqué coûte le plus cher.</p>
+      <p class="small head-row__note">Pris à la concession, celle où un appel manqué coûte le plus cher.</p>
     </div>
     <div class="chat grow">
 ${s.call.lines
   .map(
     (l) => `      <div class="bubble bubble--${l.who === 'agent' ? 'agent' : 'caller'}">
-        <span class="bubble__who">${l.who === 'agent' ? BRAND.name : 'Client'}</span>${l.text}
+        <span class="bubble__who">${l.who === 'agent' ? 'Lucas' : 'Client'}</span>${l.text}
       </div>
       ${l.note ? `<p class="chat__note">${l.note}</p>` : '<span></span>'}`
-  )
-  .join('\n')}
-    </div>`,
-  });
-}
-
-function during(n, total) {
-  const items = [
-    {
-      title: 'Elle sait de quelle maison il s’agit',
-      body:
-        'Le numéro composé décide de tout : l’accueil, la voix, les règles, le transfert. Elle n’a pas à demander à l’appelant où il croit avoir appelé.',
-    },
-    {
-      title: 'Elle lit le bon agenda',
-      body:
-        'Un essai à la concession, un créneau conseil à la parfumerie, une table au bar : chaque ligne écrit dans le planning de sa maison.',
-    },
-    {
-      title: 'Elle transfère au bon poste',
-      body:
-        'L’atelier, le responsable de salle, la boutique, ou vous. Chaque ligne a son numéro de secours, et vous n’êtes plus celui par défaut.',
-    },
-    {
-      title: 'Elle vous briefe avant de vous passer l’appel',
-      body:
-        'À l’oral et par SMS : qui appelle, pour laquelle de vos affaires, et ce qu’il veut. Vous décrochez en sachant, ou vous ne décrochez pas.',
-    },
-  ];
-  return frame({
-    n,
-    total,
-    label: LABEL,
-    veil: 'soft',
-    body: `
-    <div class="head-row" style="margin-bottom:26px">
-      <div>
-        <p class="eyebrow">Pendant l’appel</p>
-        <h2 class="h2">Quatre lignes, aucune <i>confusion</i>.</h2>
-      </div>
-      <p class="small head-row__note">Chacune de ces lignes est un réglage du logiciel, pas une intention.</p>
-    </div>
-    <div class="ladder">
-${items
-  .map(
-    (it, i) => `      <div class="ladder__row">
-        <span class="ladder__index">${String(i + 1).padStart(2, '0')}</span>
-        <h3 class="h3">${it.title}</h3>
-        <p class="body">${it.body}</p>
-      </div>`
   )
   .join('\n')}
     </div>`,
@@ -428,7 +385,7 @@ function natural(n, total) {
         <p class="eyebrow">${c.eyebrow}</p>
         <h2 class="h2">${c.title}</h2>
       </div>
-      <p class="small head-row__note">${c.lead}</p>
+      <p class="small head-row__note">Quatre comportements qui séparent une machine de quelqu’un qui répond.</p>
     </div>
     <div class="bento">
 ${c.items
@@ -457,7 +414,7 @@ function after(n, total) {
         <p class="eyebrow eyebrow--muted" style="margin-bottom:14px">La fiche d’appel</p>
         <div class="record">
           <div class="record__head">
-            <span class="record__title">Ligne « La concession »</span>
+            <span class="record__title">Ligne « La concession », par Lucas</span>
             <span class="record__dur">${s.record.duration}</span>
           </div>
           <div class="record__row">
@@ -472,7 +429,7 @@ function after(n, total) {
 ${s.record.lines.map((l) => `            <span class="record__note">${l}</span>`).join('\n')}
           </div>
         </div>
-        <p class="small record__caption">La ligne appelée est en tête de fiche : vous savez de quelle maison vient l’appel avant d’avoir lu la première ligne.</p>
+        <p class="small record__caption">La maison est en tête de fiche : vous savez d’où vient l’appel avant d’avoir lu la première ligne.</p>
       </div>
       <div class="stack" style="justify-content:center">
         <p class="eyebrow">${c.eyebrow}</p>
@@ -517,12 +474,17 @@ ${GROUP_GAINS.map(
 }
 
 function tally(n, total) {
-  const rows = HOUSES.map(({ short, sector }) => {
+  const rows = [
+    { short: 'La concession', sector: CONCESSION },
+    { short: 'La pâtisserie', sector: PATISSERIE },
+    { short: 'Le bar', sector: BAR },
+    { short: 'La parfumerie', sector: PARFUMERIE },
+  ].map(({ short, sector }) => {
     const { missed, oneIn, value } = sector.cost;
     const occasions = Math.round((missed * BRAND.weeksPerYear) / oneIn);
     return { short, missed, oneIn, value, lost: occasions * value };
   });
-  const total_eur = rows.reduce((sum, r) => sum + r.lost, 0);
+  const lostTotal = rows.reduce((sum, r) => sum + r.lost, 0);
 
   return frame({
     n,
@@ -552,28 +514,19 @@ ${rows
   .join('\n')}
         <div class="tally__row tally__row--total">
           <span class="tally__house">Les quatre</span><span></span><span></span><span></span>
-          <span class="tally__sum">≈ ${eur(total_eur)}</span>
+          <span class="tally__sum">≈ ${eur(lostTotal)}</span>
         </div>
       </div>
-      <p class="small" style="margin-top:20px;max-width:900px">Hypothèses volontairement basses, sur ${BRAND.weeksPerYear} semaines d’activité. Remplacez chaque ligne par vos chiffres : c’est la structure du calcul qui compte, et elle ne change pas. Aucun de ces montants n’apparaît dans votre comptabilité, puisqu’un appel manqué ne laisse aucune trace.</p>
+      <p class="small" style="margin-top:20px;max-width:860px">Hypothèses volontairement basses, sur ${BRAND.weeksPerYear} semaines. Remplacez-les par vos chiffres : la structure du calcul ne change pas.</p>
     </div>`,
   });
 }
 
 function setup(n, total) {
   const steps = [
-    {
-      title: 'On branche une seule maison',
-      body: 'Celle qui perd le plus d’appels. Le renvoi se pose en une manipulation, sans changer de numéro.',
-    },
-    {
-      title: 'Sept jours pour écouter',
-      body: 'Vous lisez les transcriptions réelles de votre propre ligne, pas une démonstration. On corrige ce qui doit l’être.',
-    },
-    {
-      title: 'On duplique sur les trois autres',
-      body: 'Chaque ligne garde sa voix, son accueil et son transfert. Ce qui a été appris sur la première sert aux suivantes.',
-    },
+    { title: 'Une maison d’abord', body: 'Celle qui perd le plus d’appels. Le renvoi se pose en une manipulation, sans changer de numéro.' },
+    { title: 'Sept jours pour écouter', body: 'Vous lisez les appels réels de votre propre ligne. On corrige ce qui doit l’être.' },
+    { title: 'Puis les trois autres', body: 'Chacune reçoit sa voix, son accueil et son transfert. Ce qui a été appris sert aux suivantes.' },
   ];
   return frame({
     n,
@@ -615,7 +568,7 @@ function truth(n, total) {
         <p class="eyebrow">${COMMON.truth.eyebrow}</p>
         <h2 class="h2">${COMMON.truth.title}</h2>
       </div>
-      <p class="small head-row__note">Quatre choses qu’un commercial vous dirait autrement, et qu’il vaut mieux lire ici que découvrir dans trois mois.</p>
+      <p class="small head-row__note">Quatre choses qu’il vaut mieux lire ici que découvrir dans trois mois.</p>
     </div>
     <div class="cols cols--4">
 ${GROUP_TRUTH.map(
@@ -632,12 +585,9 @@ ${GROUP_TRUTH.map(
 function cta(n, total) {
   const c = COMMON.cta;
   const steps = [
-    {
-      title: 'Un appel de démonstration',
-      body: 'Vous l’appelez, configurée pour celle de vos quatre maisons que vous voulez tester. Dix minutes suffisent pour juger.',
-    },
-    { title: 'Sept jours d’essai sur une ligne', body: 'Votre vrai numéro, vos vraies règles, sans frais d’installation.' },
-    { title: 'Les trois autres quand vous le dites', body: 'Une par une ou toutes ensemble. Vous coupez le renvoi quand vous voulez, il n’y a rien à désinstaller.' },
+    { title: 'Un appel de démonstration', body: 'Vous appelez celle de votre choix. Dix minutes suffisent pour juger.' },
+    { title: 'Sept jours d’essai', body: 'Sur une vraie ligne, avec vos vraies règles, sans frais d’installation.' },
+    { title: 'Les trois autres quand vous le dites', body: 'Vous coupez le renvoi quand vous voulez. Il n’y a rien à désinstaller.' },
   ];
   return frame({
     n,
@@ -649,7 +599,7 @@ function cta(n, total) {
       <div>
         <p class="eyebrow">${c.eyebrow}</p>
         <h2 class="h2">${c.title}</h2>
-        <p class="lead" style="margin-top:24px">On commence par la maison de votre choix, et vous jugez sur ce que vous entendez, pas sur ce qui est écrit dans ces pages.</p>
+        <p class="lead" style="margin-top:24px">On commence par la maison de votre choix. Vous jugez sur ce que vous entendez, pas sur ce qui est écrit ici.</p>
       </div>
       <div>
         <div class="cta__steps">
@@ -675,7 +625,11 @@ ${steps
   });
 }
 
-const BUILDERS = [problem, curves, intro, lines, catches, call, during, natural, after, groupGains, tally, setup, truth, cta];
+/* Quatorze planches, une idée par planche. La liste numérotée « pendant
+   l'appel » a sauté : ce qu'elle disait (elle sait quelle maison, elle
+   transfère au bon poste) se lit déjà sur les fiches des quatre
+   réceptionnistes et dans l'appel joué. */
+const BUILDERS = [problem, curves, intro, crew, catches, call, natural, after, groupGains, tally, setup, truth, cta];
 
 export const GROUP = { slug: 'groupe', label: LABEL };
 
@@ -688,7 +642,7 @@ export function renderGroupDeck({ today, cssHref = 'assets/deck.css' }) {
 <html lang="fr">
 <head>
 <meta charset="utf-8">
-<title>Qwillio · proposition de groupe</title>
+<title>Qwillio · quatre réceptionnistes</title>
 <link rel="stylesheet" href="${cssHref}">
 </head>
 <body>

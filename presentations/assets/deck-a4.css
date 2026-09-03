@@ -395,17 +395,36 @@
   font-size: 9.5px;
 }
 
-.lines__row {
-  /* Trois colonnes sur 666 px donneraient trois colonnes de 200 px et un
-     transfert sur quatre lignes. La maison garde sa colonne, l'accueil et le
-     transfert s'empilent dans la seconde. */
-  grid-template-columns: 170px 1fr;
-  gap: 5px 24px;
-  padding: 18px 0;
+.crew {
+  /* Quatre cartes sur 666 px donneraient 150 px de large : deux rangées de
+     deux, et le zigzag saute avec elles. */
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
 }
 
-.lines__transfer {
-  grid-column: 2;
+.crew__card:nth-child(even) {
+  margin-top: 0;
+}
+
+.crew__card {
+  min-height: 0;
+  padding: 20px 22px 22px;
+}
+
+.crew__avatar {
+  width: 70px;
+  height: 70px;
+  margin-bottom: 14px;
+}
+
+.crew__name {
+  font-size: 23px;
+}
+
+/* Sans hauteur imposée, le `margin: auto` du 16:9 ne pousse plus rien : le
+   filet remontait contre la ligne de voix et se lisait comme un soulignement. */
+.crew__transfer {
+  margin-top: 15px;
 }
 
 .tally__row {

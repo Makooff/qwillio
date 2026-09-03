@@ -23,23 +23,29 @@ relecture.
 
 ## La proposition de groupe
 
-`groupe` est un document à part, pas la concaténation des quatre. Quinze
-planches pour un propriétaire qui possède les quatre commerces, et un argument
-qui n'existe pas dans les decks métier : **pris séparément, aucun de ses
-commerces ne justifie une réceptionniste ; pris ensemble, ils la justifient
-largement, mais une personne ne se partage pas en quatre comptoirs.**
+`groupe` est un document à part, pas la concaténation des quatre. Quatorze
+planches pour un propriétaire qui possède plusieurs commerces, et il vend **une
+réceptionniste par maison**, pas un abonnement groupé. L'argument tient en une
+phrase, posée sous la frise des heures : *aucune de ses affaires ne justifie une
+réceptionniste à plein temps, et chacune en mérite une quand même.*
 
-Trois planches lui sont propres. Une frise des heures où chacun de ses quatre
-téléphones sonne, qui montre que les coups de feu ne tombent pas ensemble. Le
-réglage réel du compte, une ligne par maison. Et l'addition des quatre fuites
-en un seul tableau, calculée depuis les mêmes hypothèses que les decks métier
-(le total sort du code, il n'est pas écrit à la main).
+Trois planches lui sont propres. La frise des heures où chacun de ses quatre
+téléphones sonne, qui montre que les coups de feu ne tombent pas ensemble. Les
+quatre réceptionnistes, avec leur visage, leur nom, leur voix et leur phrase
+d'accueil. Et l'addition des quatre fuites en un tableau, calculée depuis les
+mêmes hypothèses que les decks métier (le total sort du code, il n'est pas
+écrit à la main).
+
+Les visages et les noms ne sont pas décoratifs : ce sont les personnages réels
+du catalogue de voix (`backend/src/config/voice-characters.ts` et
+`frontend/public/characters`), avec leur `taglineFr`. Le client verra les mêmes
+en choisissant.
 
 Ce qui y est affirmé sur le produit est vérifié dans le schéma :
-`ClientPhoneNumber` porte bien un libellé, une phrase d'accueil, une voix, des
-consignes et un numéro de transfert **par ligne**, en surcharge de la
-configuration du client, et le quota de minutes est compté par compte, donc
-mutualisé entre les lignes. Ce qui n'existe pas encore, la comparaison chiffrée
+`ClientPhoneNumber` porte bien un nom d'agent, une phrase d'accueil, une voix,
+des consignes et un numéro de transfert **par ligne**, en surcharge de la
+configuration du client. C'est ce qui rend « une réceptionniste par maison »
+vrai plutôt que commercial. Ce qui n'existe pas encore, la comparaison chiffrée
 entre établissements dans le portail, est écrit dans la planche « Sans détour »
 plutôt que passé sous silence.
 
@@ -118,9 +124,9 @@ comme une illustration à remplir avec les chiffres du client, jamais comme une
 
 ## Nommer le client
 
-Les documents sont écrits au générique (« la concession », « le laboratoire »).
-Pour une proposition nominative, les libellés vivent dans `LINES`, `CURVES` et
-`HOUSES` de `group.mjs`, et dans `label` de chaque secteur de `content.mjs`.
+Les documents sont écrits au générique (« la concession », « la pâtisserie »).
+Pour une proposition nominative, les libellés vivent dans `CREW`, `CURVES` et
+`CATCHES` de `group.mjs`, et dans `label` de chaque secteur de `content.mjs`.
 
 ## Ajouter un métier
 
