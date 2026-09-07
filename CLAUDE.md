@@ -325,18 +325,30 @@ sur le portail Stripe.
 
 ## Le stock de numéros belges (07/09/2026)
 
-Le dossier réglementaire Twilio est **approuvé**, au nom de Mathieu Pollé, pour des
-numéros **belges locaux** (géographiques). Ce qu'il faut savoir avant d'y toucher :
-
+- **C'est MOBILE qu'il faut acheter, pas local.** Twilio ne propose que `mobile` et
+  `toll_free` en Belgique sur ce compte : `AvailablePhoneNumbers/BE/Local` répond
+  404. Vérifié le 07/09, et vérifiable à tout moment — `npm run phone:buy` interroge
+  Twilio et affiche les types réellement disponibles au lieu de les supposer.
+  Les numéros mobiles belges (04xx) coûtent 1,25 $ par mois, portent la voix et le
+  SMS, et sont facturés normalement à l'appelant. Le toll-free (0800) est à écarter :
+  c'est NOUS qui paierions chaque minute entrante.
+- **Un bundle est lié à UN type de numéro.** Une régulation Twilio est unique par
+  pays + type de numéro + type d'utilisateur final. Le premier dossier a été
+  approuvé en **Local**, donc inutilisable : `Bundle [...] does not have the correct
+  regulation type to provision this number`. L'échec arrive AVANT l'achat, donc il
+  ne coûte rien — mais il coûte les deux jours d'approbation du mauvais dossier.
 - **Le dossier ne se refait jamais par client.** Il est ouvert une fois pour Qwillio
   et couvre tout le lot. Le client ne fournit aucune pièce : il reçoit une ligne
   déjà achetée. Trois rejets ont appris la règle : le nom saisi, le numéro de la
   pièce d'identité et le justificatif d'adresse doivent désigner **la même
-  personne**, sinon rejet automatique.
-- **Local, jamais National.** Un numéro national belge (078) est surtaxé pour
-  l'APPELANT, ce qui annule la raison même d'avoir un numéro belge.
-- **Acheter une fournée** : `npm run phone:buy` (simulation) puis
-  `-- --confirm` pour acheter réellement. `npm run phone:stock` dit ce qu'il reste.
+  personne**, sinon rejet automatique. Et dans le formulaire : « Client direct »
+  (jamais Revendeur/ISV, qui exigerait un profil par client final), sous-attribution
+  **Non**, et « Particulier » comme répondant — « Entreprise » réclame une TVA belge
+  que Qwillio n'a pas.
+- **National, jamais.** Un numéro national belge (078) est surtaxé pour l'APPELANT,
+  ce qui annule la raison même d'avoir un numéro belge.
+- **Acheter une fournée** : `npm run phone:buy -- --type=mobile` (simulation) puis
+  `--confirm` pour acheter réellement. `npm run phone:stock` dit ce qu'il reste.
 - **Un numéro acheté chez Twilio mais non importé chez Vapi est facturé sans être
   joignable.** C'est la seule anomalie que le rapport de stock signale en majuscules,
   et le stock refuse d'attribuer une telle ligne plutôt que de la faire passer pour
