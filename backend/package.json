@@ -24,7 +24,8 @@
     "lint": "eslint src",
     "evals": "tsx src/evals/run-evals.ts",
     "phone:buy": "tsx src/scripts/buy-belgian-numbers.ts",
-    "phone:stock": "tsx src/scripts/phone-stock-report.ts"
+    "phone:stock": "tsx src/scripts/phone-stock-report.ts",
+    "db:unlock": "tsx src/scripts/unlock-migrate.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",
