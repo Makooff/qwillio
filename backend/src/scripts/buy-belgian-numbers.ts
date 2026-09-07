@@ -28,9 +28,23 @@ import { prisma } from '../config/database';
 import { env } from '../config/env';
 import { vapiClient } from '../config/vapi';
 
+/**
+ * Les types que Twilio expose par pays, et ce qu'ils coûtent À L'APPELANT.
+ *
+ * `local` d'abord: géographique (02 Bruxelles, 03 Anvers…), facturé comme un
+ * appel normal. `mobile` (04xx) reste acceptable. `national` est le piège: en
+ * Belgique c'est la plage 078, SURTAXÉE pour l'appelant, ce qui annule la
+ * raison même d'avoir un numéro belge — il n'est proposé ici que parce qu'un
+ * compte peut n'avoir que celui-là, et le choisir doit alors être un geste
+ * conscient.
+ */
+const TYPES = ['local', 'mobile', 'national', 'tollFree'] as const;
+type NumberType = (typeof TYPES)[number];
+
 interface Args {
   count: number;
   confirm: boolean;
+  type: NumberType;
   areaCode?: string;
 }
 
@@ -40,7 +54,15 @@ function parseArgs(argv: string[]): Args {
   /* Une borne haute volontaire: une faute de frappe sur `--count` ne doit pas
      pouvoir acheter cent lignes. */
   const count = Number.isFinite(rawCount) ? Math.min(Math.max(Math.trunc(rawCount), 1), 25) : 10;
-  return { count, confirm: argv.includes('--confirm'), areaCode: get('area') };
+
+  const rawType = get('type') ?? 'local';
+  const type = TYPES.find(t => t.toLowerCase() === rawType.toLowerCase());
+  if (!type) {
+    console.error(`--type inconnu: « ${rawType} ». Attendu: ${TYPES.join(', ')}.`);
+    process.exit(1);
+  }
+
+  return { count, confirm: argv.includes('--confirm'), type, areaCode: get('area') };
 }
 
 function twilioClient() {
@@ -58,6 +80,36 @@ interface Bought {
   error?: string;
 }
 
+/**
+ * Ce que Twilio propose RÉELLEMENT en Belgique pour ce compte.
+ *
+ * La ressource pays porte un `subresourceUris` qui nomme les types
+ * disponibles. C'est la seule source qui fasse autorité: la documentation
+ * décrit ce que Twilio vend en général, pas ce que ce compte peut acheter.
+ */
+async function printAvailableTypes(client: any): Promise<void> {
+  try {
+    const country = await client.availablePhoneNumbers('BE').fetch();
+    const types = Object.keys(country?.subresourceUris ?? {});
+    if (types.length === 0) {
+      console.error(
+        'Twilio ne déclare AUCUN type de numéro pour la Belgique sur ce compte.\n' +
+          "C'est un blocage côté compte (pays non ouvert), à régler avec le support Twilio.",
+      );
+      return;
+    }
+    console.error(`\nTypes réellement disponibles en Belgique: ${types.join(', ')}.`);
+    console.error('Relancer avec par exemple: npm run phone:buy -- --type=mobile');
+    console.error(
+      'À savoir avant de choisir: « national » en Belgique, c\'est la plage 078,\n' +
+        "SURTAXÉE pour l'appelant — elle annule la raison d'avoir un numéro belge.\n" +
+        '« mobile » (04xx) reste facturé normalement et fait un repli acceptable.',
+    );
+  } catch (e) {
+    console.error(`Impossible de lister les types disponibles: ${(e as Error).message}`);
+  }
+}
+
 async function main() {
   const args = parseArgs(process.argv.slice(2));
 
@@ -72,22 +124,20 @@ async function main() {
 
   const client = twilioClient();
 
-  /* Local, jamais National: un numéro national belge (078) est SURTAXÉ pour
-     l'appelant, ce qui annule la raison d'avoir un numéro belge. */
   let available: { phoneNumber: string }[];
   try {
-    available = await client
-      .availablePhoneNumbers('BE')
-      .local.list({
-        voiceEnabled: true,
-        limit: args.count,
-        ...(args.areaCode ? { areaCode: args.areaCode } : {}),
-      });
+    const country = client.availablePhoneNumbers('BE');
+    available = await country[args.type].list({
+      voiceEnabled: true,
+      limit: args.count,
+      ...(args.areaCode ? { areaCode: args.areaCode } : {}),
+    });
   } catch (e) {
     /* Une trace brute de RestException n'apprend rien à qui lit la sortie.
-       Les deux causes qui arrivent réellement ici se disent en une phrase, et
-       aucune des deux ne se corrige dans le code. */
+       Les trois causes qui arrivent réellement ici se disent en une phrase, et
+       aucune ne se corrige dans le code. */
     const err = e as { status?: number; code?: number; message?: string };
+
     if (err.status === 401 || err.code === 20003) {
       console.error(
         "\nTwilio refuse l'authentification (20003).\n" +
@@ -99,6 +149,16 @@ async function main() {
       );
       process.exit(1);
     }
+
+    if (err.status === 404 || err.code === 20404) {
+      /* Le type demandé n'existe pas pour ce pays sur ce compte. Plutôt que
+         de laisser deviner lequel essayer, on demande à Twilio la liste et on
+         l'affiche: une exécution suffit alors à trancher. */
+      console.error(`\nTwilio ne propose pas de numéro « ${args.type} » en Belgique sur ce compte (20404).`);
+      await printAvailableTypes(client);
+      process.exit(1);
+    }
+
     throw e;
   }
 
@@ -118,7 +178,7 @@ async function main() {
     .filter((n: string) => !known.has(n))
     .slice(0, args.count);
 
-  console.log(`\n${candidates.length} numéro(s) belge(s) local(aux) retenus:`);
+  console.log(`\n${candidates.length} numéro(s) belge(s) « ${args.type} » retenus:`);
   candidates.forEach((n: string) => console.log(`  ${n}`));
 
   if (!args.confirm) {
@@ -165,7 +225,7 @@ async function main() {
         data: {
           number: phoneNumber,
           country: 'BE',
-          numberType: 'local',
+          numberType: args.type,
           twilioSid: bought.sid,
           vapiNumberId,
           bundleSid: env.TWILIO_BE_BUNDLE_SID,
