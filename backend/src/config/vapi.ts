@@ -85,6 +85,41 @@ class VapiClient {
     return this.request('/phone-number');
   }
 
+  /**
+   * Déclare chez Vapi un numéro que NOUS possédons déjà chez Twilio.
+   *
+   * À ne pas confondre avec `buyPhoneNumber`, qui achète sur la place de marché
+   * de Vapi (et donc sur le compte Twilio de Vapi, sans notre dossier
+   * réglementaire belge). Ici la ligne reste la nôtre: Vapi ne reçoit que de
+   * quoi la piloter.
+   *
+   * Vapi accepte les deux formes d'authentification Twilio. On préfère la paire
+   * clé d'API / secret, qui est révocable seule; le jeton de compte ouvre TOUT
+   * le compte Twilio et ne sert que si la paire n'est pas configurée.
+   */
+  async importTwilioNumber(data: {
+    number: string;
+    twilioAccountSid: string;
+    twilioApiKey?: string;
+    twilioApiSecret?: string;
+    twilioAuthToken?: string;
+    assistantId?: string;
+    name?: string;
+  }) {
+    return this.request('/phone-number', {
+      method: 'POST',
+      body: JSON.stringify({ provider: 'twilio', ...data }),
+    });
+  }
+
+  /** Rattache (ou détache) l'assistant qui décroche sur ce numéro. */
+  async updatePhoneNumber(phoneNumberId: string, data: Record<string, any>) {
+    return this.request(`/phone-number/${phoneNumberId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    });
+  }
+
   async getAssistant(assistantId: string) {
     return this.request(`/assistant/${assistantId}`);
   }

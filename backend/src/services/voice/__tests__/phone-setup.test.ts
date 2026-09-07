@@ -30,6 +30,11 @@ vi.mock('../phone-provisioning.service', () => ({
   autoProvisionEnabled: () => autoProvisionEnabled(),
 }));
 
+const claimNumberForClient = vi.fn();
+vi.mock('../phone-stock.service', () => ({
+  claimNumberForClient: (...a: unknown[]) => claimNumberForClient(...a),
+}));
+
 const { phoneSetupService, hasPaidSubscription, clientMessage } = await import('../phone-setup.service');
 
 /** Un client tel que le `select` de `ensureLine` le rend. */
@@ -52,6 +57,53 @@ beforeEach(() => {
   vi.clearAllMocks();
   autoProvisionEnabled.mockReturnValue(true);
   update.mockResolvedValue({});
+  /* Défaut des tests existants: stock vide, donc les chemins d'achat et de
+     ligne partagée gardent exactement le comportement qu'ils décrivent. Les
+     tests du stock le remplacent explicitement. */
+  claimNumberForClient.mockResolvedValue({ kind: 'empty' });
+});
+
+describe('le stock sert avant tout achat', () => {
+  it("attribue un numéro déjà acheté, sans passer par le fournisseur", async () => {
+    /* C'est l'intérêt du lot: le dossier réglementaire belge est ouvert une
+       fois pour Qwillio, donc l'activation ne demande rien au client et
+       n'attend aucune validation. */
+    findUnique.mockResolvedValue(client());
+    claimNumberForClient.mockResolvedValue({
+      kind: 'claimed', number: '+3223334455', vapiNumberId: 'pn_1', reused: false,
+    });
+
+    const r = await phoneSetupService.ensureLine('c1');
+
+    expect(r).toMatchObject({ state: 'active', number: '+3223334455', numberId: 'pn_1' });
+    expect(autoProvisionNumber).not.toHaveBeenCalled();
+    expect(allocateInboundNumber).not.toHaveBeenCalled();
+  });
+
+  it("retombe sur la ligne partagée quand le numéro du stock ne sonnerait chez personne", async () => {
+    // Un client « actif » sur une ligne muette découvre la panne par un
+    // appelant: on préfère le dire, et lui laisser le renvoi d'appel.
+    findUnique.mockResolvedValue(client());
+    claimNumberForClient.mockResolvedValue({ kind: 'failed', reason: 'Rattachement Vapi refusé: 403' });
+    allocateInboundNumber.mockResolvedValue({ kind: 'allocated', number: '+3280000000', numberId: null });
+
+    const r = await phoneSetupService.ensureLine('c1');
+
+    expect(r.state).toBe('shared');
+    expect(r.reason).toMatch(/stock inutilisable/i);
+  });
+
+  it("garde les autres chemins quand le stock est indisponible", async () => {
+    /* Le stock est un chemin en PLUS: une panne de base à cet endroit ne doit
+       pas priver le client de l'achat ni de la ligne partagée. */
+    findUnique.mockResolvedValue(client());
+    claimNumberForClient.mockRejectedValue(new Error('base indisponible'));
+    autoProvisionNumber.mockResolvedValue({ number: '+3225550011', numberId: 'pn_1' });
+
+    const r = await phoneSetupService.ensureLine('c1');
+
+    expect(r).toMatchObject({ state: 'active', number: '+3225550011' });
+  });
 });
 
 describe('un abonné payant reçoit sa propre ligne', () => {

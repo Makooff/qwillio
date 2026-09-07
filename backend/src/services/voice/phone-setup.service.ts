@@ -2,6 +2,7 @@ import { prisma } from '../../config/database';
 import { logger } from '../../config/logger';
 import { allocateInboundNumber, normalizeNumber } from './phone-allocation.service';
 import { autoProvisionNumber, autoProvisionEnabled } from './phone-provisioning.service';
+import { claimNumberForClient, type StockClaim } from './phone-stock.service';
 
 /**
  * Qui obtient quelle ligne entrante, et pourquoi.
@@ -176,8 +177,15 @@ class PhoneSetupService {
       // une ligne qui sonne dans le vide, et facturée.
       return this.fail(clientId, "L'assistant n'est pas encore créé. La ligne sera attribuée juste après.");
     }
+    /* Le stock d'abord: ces numéros sont DÉJÀ achetés et déjà couverts par le
+       dossier réglementaire belge, donc l'attribution est immédiate et ne
+       dépend d'aucune validation externe. Les deux chemins suivants ne servent
+       plus que lorsque le lot est épuisé. */
+    const fromStock = await this.takeFromStock(clientId, assistantId);
+    if (fromStock) return fromStock;
+
     if (!autoProvisionEnabled()) {
-      return this.fallBackToShared(clientId, "L'achat automatique de numéro est désactivé (PHONE_AUTO_PROVISION). Ligne partagée en attendant.");
+      return this.fallBackToShared(clientId, "Stock de numéros épuisé et achat automatique désactivé (PHONE_AUTO_PROVISION). Ligne partagée en attendant.");
     }
 
     await this.write(clientId, 'provisioning', null);
@@ -198,6 +206,57 @@ class PhoneSetupService {
     await this.write(clientId, 'active', null);
     logger.info(`[PhoneSetup] ${clientId}: ligne dédiée ${bought.number}`);
     return { state: 'active', number: bought.number, numberId: bought.numberId, reason: null, unchanged: false };
+  }
+
+  /**
+   * Prend un numéro du stock belge, s'il en reste un.
+   *
+   * Rend `null` quand le stock ne peut PAS servir — et seulement dans ce cas,
+   * pour que l'appelant enchaîne sur les chemins suivants. Un stock vide n'est
+   * pas un échec: c'est un lot à racheter, et le client garde une ligne
+   * partagée en attendant.
+   */
+  private async takeFromStock(clientId: string, assistantId: string): Promise<LineOutcome | null> {
+    let claim: StockClaim;
+    try {
+      claim = await claimNumberForClient(clientId, assistantId);
+    } catch (error) {
+      /* Le stock est un chemin en plus, pas un point de rupture: une base
+         indisponible ici ne doit pas priver le client des deux autres. */
+      logger.error(`[PhoneSetup] ${clientId}: stock indisponible: ${(error as Error).message}`);
+      return null;
+    }
+
+    if (claim.kind === 'empty') return null;
+
+    if (claim.kind === 'failed') {
+      /* Le numéro existe mais ne sonnerait chez personne (import Vapi
+         incomplet, rattachement refusé). Il a déjà été rendu au stock par le
+         service; on n'écrit surtout pas `active` sur une ligne muette. */
+      return this.fallBackToShared(
+        clientId,
+        `Numéro du stock inutilisable (${claim.reason}). Ligne partagée en service, avec renvoi d'appel.`,
+      );
+    }
+
+    await prisma.client.update({
+      where: { id: clientId },
+      data: { vapiPhoneNumber: claim.number },
+    });
+    await this.write(clientId, 'active', null);
+    logger.info(
+      `[PhoneSetup] ${clientId}: ligne dédiée ${claim.number} (stock${claim.reused ? ', déjà tenue' : ''})`,
+    );
+    /* `unchanged: false` même quand le numéro était déjà tenu: on arrive ici
+       parce que l'état n'était PAS `active` (sinon `ensureLine` serait déjà
+       sorti), donc ce passage corrige quelque chose. */
+    return {
+      state: 'active',
+      number: claim.number,
+      numberId: claim.vapiNumberId,
+      reason: null,
+      unchanged: false,
+    };
   }
 
   /**

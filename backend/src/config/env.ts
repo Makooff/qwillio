@@ -418,6 +418,16 @@ export const env = {
   PHONE_AUTO_PROVISION: process.env.PHONE_AUTO_PROVISION || '',
   /** Indicatif souhaité pour l'achat (dépend du pays du compte Twilio). */
   PHONE_PROVISION_AREA_CODE: process.env.PHONE_PROVISION_AREA_CODE || '',
+  /* Le dossier réglementaire belge approuvé, et l'adresse qui lui est liée.
+   * Ouverts UNE fois au nom de Qwillio, ils couvrent tout le lot: c'est ce qui
+   * permet d'acheter dix numéros d'un coup sans rien demander à un client.
+   * Sans eux, l'achat d'un numéro belge est refusé par Twilio. */
+  TWILIO_BE_BUNDLE_SID: process.env.TWILIO_BE_BUNDLE_SID || '',
+  TWILIO_BE_ADDRESS_SID: process.env.TWILIO_BE_ADDRESS_SID || '',
+  /* En-dessous de ce nombre de numéros libres, le stock est signalé comme bas.
+   * Il ne déclenche AUCUN achat: racheter une fournée reste une décision
+   * d'exploitation, comme PHONE_AUTO_PROVISION. */
+  PHONE_STOCK_LOW_THRESHOLD: Number(process.env.PHONE_STOCK_LOW_THRESHOLD || 3),
   /**
    * Custom-LLM path for every client. ON by default: it is what makes the
    * intent router actually skip the model instead of only counting the turns it
