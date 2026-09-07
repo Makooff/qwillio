@@ -27,6 +27,11 @@ Le scraping Google Maps est derrière un bouton séparé avec un avertissement d
 
 **N'utilise pas de CSV en parallèle.** Tout ce qui est appelé doit laisser une trace dans le dashboard, sinon la boucle d'apprentissage ne sert à rien.
 
+> Pour la vente en présentiel (services à domicile, Bruxelles et Brabant
+> wallon) : la génération de la liste, le script orienté rendez-vous physique et
+> le déroulé de la visite sont dans
+> [`playbook-rdv-presentiel.md`](playbook-rdv-presentiel.md).
+
 ## Le script d'appel
 
 Objectif de l'appel : **obtenir un rendez-vous, pas vendre**. Un appel à froid qui essaie de closer échoue.
@@ -82,7 +87,7 @@ Deux créneaux, pas « quand êtes-vous disponible ».
 | Objection | Réponse |
 |---|---|
 | **C'est cher** | « Par rapport à quoi ? Une secrétaire à mi-temps, c'est combien chez vous ? » Ramener à l'ancre salaire, jamais à un autre logiciel. |
-| **Sylen est à 49 €** | « Oui, et en français seul, hébergé où ? Nous c'est bilingue sur le même appel et hébergé en Europe. Si le français seul vous suffit, prenez Sylen, franchement. » Concéder ce qui est vrai rend crédible le reste. |
+| **Sylen est à 49 €** | « Oui. Regardez ce que les 49 € contiennent en minutes, c'est là que les offres se séparent. Et si le moins cher vous suffit, prenez le, franchement. » Concéder ce qui est vrai rend crédible le reste. **Ne compare ni l'hébergement ni le bilinguisme** : les serveurs sont aux États-Unis et une ligne porte une seule langue. Les deux phrases que portait cette case étaient fausses, voir `playbook-rdv-presentiel.md`, section 1. |
 | **Je préfère les vraies personnes** | « Bien sûr. La question n'est pas IA contre humain, c'est IA contre répondeur. Aujourd'hui à 19 h, c'est qui qui décroche ? » |
 | **On a déjà une secrétaire** | « Parfait, gardez-la. Qwillio prend les débordements, l'après 18 h et le week-end. Elle garde le relationnel, vous ne perdez plus les appels du soir. » |
 | **Mes clients vont détecter l'IA** | « Écoutez la démo et jugez. Et s'ils la détectent : ils préfèrent quoi, une IA qui décroche ou un répondeur ? » |

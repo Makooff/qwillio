@@ -185,4 +185,21 @@ export const CITIES_COORDINATES: Record<string, { lat: number; lng: number; coun
   'Mons':          { lat: 50.4542,  lng: 3.9520,    country: 'BE', timezone: 'Europe/Brussels'     },
   'La Louvière':   { lat: 50.4784,  lng: 4.1869,    country: 'BE', timezone: 'Europe/Brussels'     },
   'Tournai':       { lat: 50.6056,  lng: 3.3881,    country: 'BE', timezone: 'Europe/Brussels'     },
+  // ── Brabant wallon + périphérie bruxelloise ───────────────
+  // Zone de vente en présentiel: tout est à moins de 45 min de Bruxelles.
+  // Elles doivent figurer ICI et pas seulement dans BE_CITIES: getCityMeta()
+  // consulte cette table en premier, et une ville absente des trois tables
+  // retombe sur les États-Unis. « Waterloo » interrogeait alors Google Maps
+  // en anglais avec un biais géo américain (Waterloo, Iowa), et les numéros
+  // belges passaient dans toE164(..., 'US'), qui les rejette ou les préfixe +1.
+  'Wavre':         { lat: 50.7171,  lng: 4.6118,    country: 'BE', timezone: 'Europe/Brussels'     },
+  'Nivelles':      { lat: 50.5977,  lng: 4.3286,    country: 'BE', timezone: 'Europe/Brussels'     },
+  'Waterloo':      { lat: 50.7147,  lng: 4.3990,    country: 'BE', timezone: 'Europe/Brussels'     },
+  'Braine-l\'Alleud': { lat: 50.6839, lng: 4.3714,  country: 'BE', timezone: 'Europe/Brussels'     },
+  'Ottignies-Louvain-la-Neuve': { lat: 50.6650, lng: 4.5700, country: 'BE', timezone: 'Europe/Brussels' },
+  'Rixensart':     { lat: 50.7147,  lng: 4.5289,    country: 'BE', timezone: 'Europe/Brussels'     },
+  'Tubize':        { lat: 50.6919,  lng: 4.2028,    country: 'BE', timezone: 'Europe/Brussels'     },
+  'Genappe':       { lat: 50.6103,  lng: 4.4517,    country: 'BE', timezone: 'Europe/Brussels'     },
+  'La Hulpe':      { lat: 50.7297,  lng: 4.4867,    country: 'BE', timezone: 'Europe/Brussels'     },
+  'Jodoigne':      { lat: 50.7233,  lng: 4.8683,    country: 'BE', timezone: 'Europe/Brussels'     },
 };
