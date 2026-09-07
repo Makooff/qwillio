@@ -44,6 +44,62 @@ describe('CallLatencyTracker — stage attribution', () => {
   });
 });
 
+describe('CallLatencyTracker — clause streaming', () => {
+  /**
+   * The case the instrument used to erase. When streaming works, audio starts
+   * before the completion ends, so there is no last delta yet to measure TTS
+   * from — and the turn produced no number at all. The metric therefore
+   * described only the turns where streaming had failed.
+   */
+  it('still measures a turn whose audio starts before the last token', () => {
+    const t = new CallLatencyTracker();
+    t.markCallerSpeechEnd(0);
+    t.markTranscriptFinal(100);
+    t.markLlmStart(100);
+    t.markLlmFirstDelta(200);
+    t.markAssistantSpeechStart(380); // first sound, generation still running
+    t.markLlmEnd(900);               // completion finishes afterwards
+
+    const r = t.report();
+    expect(r.ttfa?.median).toBe(180);
+    expect(r.total?.median).toBe(380);
+    // TTS stays absent: there was no "text complete" moment to measure from.
+    expect(r.tts).toBeUndefined();
+  });
+
+  it('counts the turns where the first sound beat the last token', () => {
+    // LAT-5's acceptance criterion, stated as a count instead of an assertion.
+    const t = new CallLatencyTracker();
+    // Streamed: audio before markLlmEnd.
+    t.markCallerSpeechEnd(0); t.markLlmStart(0); t.markLlmFirstDelta(50); t.markAssistantSpeechStart(200);
+    // Buffered: the completion ended first.
+    playTurn(t, { speechEnd: 1000, llmStart: 1000, firstDelta: 1050, lastDelta: 1400, audio: 1475 });
+
+    expect(t.streamingSplit()).toEqual({ streamed: 1, buffered: 1 });
+    expect(t.summaryLine()).toContain('clause-stream 1/2');
+  });
+
+  it('claims nothing about streaming on turns where it never saw the LLM', () => {
+    /* Vapi's own OpenAI path: there is no last delta to miss, so calling the
+       turn "streamed" would invent a result out of an absence. */
+    const t = new CallLatencyTracker();
+    playTurn(t, { speechEnd: 0, transcript: 120, audio: 400 });
+
+    expect(t.streamingSplit()).toEqual({ streamed: 0, buffered: 0 });
+    expect(t.snapshot().streaming).toBeUndefined();
+    expect(t.summaryLine()).not.toContain('clause-stream');
+  });
+
+  it('measures TTFA even when the completion ended first', () => {
+    // Both numbers exist on a buffered turn, and they measure different things.
+    const t = new CallLatencyTracker();
+    playTurn(t, { speechEnd: 0, transcript: 10, llmStart: 10, firstDelta: 50, lastDelta: 900, audio: 975 });
+
+    expect(t.report().ttfa?.median).toBe(925);
+    expect(t.report().tts?.median).toBe(75);
+  });
+});
+
 describe('CallLatencyTracker — missing and out-of-order events', () => {
   it('reports a stage as absent rather than guessing it', () => {
     const t = new CallLatencyTracker();
@@ -137,6 +193,7 @@ describe('CallLatencyTracker — aggregation', () => {
     expect(line).toContain('STT 150ms');
     expect(line).toContain('LLM 90ms');
     expect(line).toContain('TTS 75ms');
+    expect(line).toContain('TTFA 135ms');
     expect(line).toContain('total 375ms');
   });
 

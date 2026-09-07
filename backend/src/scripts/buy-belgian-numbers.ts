@@ -74,13 +74,33 @@ async function main() {
 
   /* Local, jamais National: un numéro national belge (078) est SURTAXÉ pour
      l'appelant, ce qui annule la raison d'avoir un numéro belge. */
-  const available = await client
-    .availablePhoneNumbers('BE')
-    .local.list({
-      voiceEnabled: true,
-      limit: args.count,
-      ...(args.areaCode ? { areaCode: args.areaCode } : {}),
-    });
+  let available: { phoneNumber: string }[];
+  try {
+    available = await client
+      .availablePhoneNumbers('BE')
+      .local.list({
+        voiceEnabled: true,
+        limit: args.count,
+        ...(args.areaCode ? { areaCode: args.areaCode } : {}),
+      });
+  } catch (e) {
+    /* Une trace brute de RestException n'apprend rien à qui lit la sortie.
+       Les deux causes qui arrivent réellement ici se disent en une phrase, et
+       aucune des deux ne se corrige dans le code. */
+    const err = e as { status?: number; code?: number; message?: string };
+    if (err.status === 401 || err.code === 20003) {
+      console.error(
+        "\nTwilio refuse l'authentification (20003).\n" +
+          "Si le message parle d'un compte « not active », c'est un compte d'essai\n" +
+          'épuisé ou suspendu, PAS un problème de clés: un compte d\'essai ne peut de\n' +
+          "toute façon pas acheter de numéro réglementé belge.\n" +
+          'À faire: passer le compte en payant (Upgrade dans la console Twilio).\n' +
+          `\nMessage de Twilio: ${err.message ?? 'inconnu'}\n`,
+      );
+      process.exit(1);
+    }
+    throw e;
+  }
 
   if (available.length === 0) {
     console.error("Aucun numéro belge local disponible chez Twilio pour ces critères.");
