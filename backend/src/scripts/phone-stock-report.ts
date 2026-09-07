@@ -28,8 +28,11 @@ async function main() {
     return;
   }
 
-  const available = rows.filter(r => r.status === 'available');
-  const assigned = rows.filter(r => r.status === 'assigned');
+  /* Sur le propriétaire, comme la prise: un numéro sans client est
+     attribuable, même s'il porte encore l'étiquette `assigned` (ce que laisse
+     la suppression d'un client). */
+  const available = rows.filter(r => !r.client && r.status !== 'retired');
+  const assigned = rows.filter(r => r.client);
   /* Acheté donc facturé, mais sans identifiant Vapi: il ne sonnera chez
      personne et le stock refusera de l'attribuer. C'est la seule anomalie que
      ce rapport doit rendre impossible à manquer. */
@@ -44,7 +47,12 @@ async function main() {
   for (const r of rows) {
     const holder = r.client?.businessName ? ` → ${r.client.businessName}` : '';
     const broken = r.vapiNumberId ? '' : '  [NON IMPORTÉ CHEZ VAPI]';
-    console.log(`  ${r.number.padEnd(16)} ${r.status.padEnd(10)}${holder}${broken}`);
+    /* L'étiquette affichée suit le propriétaire et non la colonne `status`,
+       sinon un numéro rendu par la suppression d'un client s'afficherait
+       « assigned » sans nom en face, ce qui se lit comme une anomalie alors
+       qu'il est bel et bien réattribuable. */
+    const label = r.status === 'retired' ? 'retired' : r.client ? 'assigned' : 'available';
+    console.log(`  ${r.number.padEnd(16)} ${label.padEnd(10)}${holder}${broken}`);
     if (r.notes) console.log(`      ${r.notes}`);
   }
 

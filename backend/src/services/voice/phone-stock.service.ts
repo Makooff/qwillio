@@ -68,13 +68,21 @@ export async function claimNumberForClient(clientId: string, assistantId: string
   /* Une seule instruction SQL: le verrou de ligne et l'écriture sont pris
      ensemble, donc deux activations simultanées ne peuvent pas élire le même
      numéro. `SKIP LOCKED` fait que la seconde prend le suivant plutôt que
-     d'attendre la première. */
+     d'attendre la première.
+
+     Le critère est `client_id IS NULL`, et NON `status = 'available'`. C'est
+     le propriétaire qui dit si un numéro est libre, le statut n'est qu'une
+     étiquette — et les deux peuvent diverger: la suppression d'un client vide
+     `client_id` par la contrainte (`ON DELETE SET NULL`) sans toucher au
+     statut, laissant un numéro `assigned` que plus personne ne tient. Lire le
+     statut ferait sortir cette ligne du lot POUR TOUJOURS, ce qui est
+     précisément la fuite que ce module existe pour empêcher. */
   const rows = await prisma.$queryRaw<ClaimedRow[]>`
     UPDATE phone_number_stock
        SET status = 'assigned', client_id = ${clientId}::uuid, assigned_at = NOW(), released_at = NULL
      WHERE id = (
        SELECT id FROM phone_number_stock
-        WHERE status = 'available' AND client_id IS NULL
+        WHERE client_id IS NULL AND status <> 'retired'
         ORDER BY purchased_at ASC
         LIMIT 1
         FOR UPDATE SKIP LOCKED
@@ -147,11 +155,18 @@ export interface StockLevel {
   low: boolean;
 }
 
-/** De quoi répondre « combien nous en reste-t-il » sans ouvrir la console Twilio. */
+/**
+ * De quoi répondre « combien nous en reste-t-il » sans ouvrir la console Twilio.
+ *
+ * Compte sur le PROPRIÉTAIRE, comme la prise, et non sur le statut: un numéro
+ * sans propriétaire est attribuable, quelle que soit l'étiquette qu'il porte.
+ * Compter autrement afficherait un stock plus bas que la réalité et ferait
+ * racheter une fournée pour rien.
+ */
 export async function stockLevel(): Promise<StockLevel> {
   const [available, assigned] = await Promise.all([
-    prisma.phoneNumberStock.count({ where: { status: 'available' } }),
-    prisma.phoneNumberStock.count({ where: { status: 'assigned' } }),
+    prisma.phoneNumberStock.count({ where: { clientId: null, status: { not: 'retired' } } }),
+    prisma.phoneNumberStock.count({ where: { clientId: { not: null } } }),
   ]);
   return { available, assigned, low: available < env.PHONE_STOCK_LOW_THRESHOLD };
 }

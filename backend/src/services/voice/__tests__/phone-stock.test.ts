@@ -144,4 +144,37 @@ describe('stockLevel', () => {
     count.mockResolvedValueOnce(7).mockResolvedValueOnce(3);
     expect(await stockLevel()).toEqual({ available: 7, assigned: 3, low: false });
   });
+
+  it('compte sur le propriétaire et non sur le statut', async () => {
+    /* La suppression d'un client vide `client_id` par la contrainte sans
+       toucher au statut. Compter les `status = 'available'` afficherait donc
+       un stock plus bas que la réalité, et ferait racheter pour rien. */
+    count.mockResolvedValue(0);
+    await stockLevel();
+    expect(count).toHaveBeenCalledWith({ where: { clientId: null, status: { not: 'retired' } } });
+    expect(count).toHaveBeenCalledWith({ where: { clientId: { not: null } } });
+  });
+});
+
+describe('la prise se fait sur le propriétaire, pas sur le statut', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    findFirst.mockResolvedValue(null);
+    count.mockResolvedValue(5);
+    updatePhoneNumber.mockResolvedValue({});
+  });
+
+  it("cherche les numéros sans propriétaire, y compris ceux restés étiquetés « assigned »", async () => {
+    /* Vérifié contre un vrai PostgreSQL: `ON DELETE SET NULL` laisse un numéro
+       `assigned` sans client quand un client est SUPPRIMÉ (et non résilié).
+       Filtrer sur `status = 'available'` sortirait cette ligne du lot pour
+       toujours — la fuite exacte que ce module existe pour empêcher. */
+    queryRaw.mockResolvedValue([{ id: 's1', number: '+3223334455', vapiNumberId: 'pn_1' }]);
+
+    await claimNumberForClient('c1', 'asst_1');
+
+    const sql = (queryRaw.mock.calls[0][0] as string[]).join('?');
+    expect(sql).toMatch(/client_id IS NULL AND status <> 'retired'/);
+    expect(sql).toMatch(/FOR UPDATE SKIP LOCKED/);
+  });
 });
