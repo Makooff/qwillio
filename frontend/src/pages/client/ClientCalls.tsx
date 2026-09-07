@@ -484,14 +484,20 @@ export default function ClientCalls() {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              /* GRIS, pas noir. Le panneau valait `oklch(10% 0 0)`, soit #171717, qui
-                  se lit comme du noir: posé sur une page à #0a0a0a il ne se
-                  détachait pas, et la capture qui en est tirée pour l'accueil
-                  tombait dans une plate à #1a1a1a sans qu'on voie où l'une
-                  finissait et l'autre commençait. #1A1A1A est `--q-bg3`, le
-                  gris de surface du produit, et c'est lui qu'un panneau flottant
-                  doit porter. */
-              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-[#1A1A1A] border-l border-white/[0.07] shadow-2xl z-50 overflow-y-auto"
+              /* #131313, ET CE N'EST PAS UNE VALEUR CHOISIE À L'OEIL: c'est ce que
+                  donne `bg-white/[0.04]` posé sur le fond du portail (#0a0a0a),
+                  autrement dit la surface EXACTE des cartes de la page
+                  Analytique. Les deux rangées produit de l'accueil montrent une
+                  capture chacune; si les deux panneaux photographiés n'ont pas
+                  le même gris, la page le montre.
+                  La couleur est écrite composée plutôt qu'en `bg-white/[0.04]`
+                  parce que ce panneau flotte au-dessus d'un voile assombri: une
+                  translucidité laisserait voir ce voile au travers, et le gris
+                  ne serait plus le même.
+                  Historique, pour ne pas refaire le tour: `oklch(10% 0 0)`
+                  (#171717) se lisait comme du noir; #1a1a1a, essayé ensuite,
+                  était le bon registre mais pas la bonne valeur. */
+              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-[#131313] border-l border-white/[0.07] shadow-2xl z-50 overflow-y-auto"
               role="dialog"
               aria-modal="true"
               aria-label="Détails de l'appel"
@@ -500,7 +506,7 @@ export default function ClientCalls() {
                   restants laissaient lire des mots fantômes derrière le titre. Un flou
                   ne rattrape pas ça, il les rend seulement illisibles au lieu de les
                   cacher. Le fond est celui du panneau, donc rien ne se voit du raccord. */}
-              <div className="sticky top-0 z-10 bg-[#1A1A1A] border-b border-white/[0.07] px-6 py-4 flex items-center justify-between">
+              <div className="sticky top-0 z-10 bg-[#131313] border-b border-white/[0.07] px-6 py-4 flex items-center justify-between">
                 <h2 className="text-base font-semibold text-[#F5F5F7]">Détails de l'appel</h2>
                 <button
                   type="button"

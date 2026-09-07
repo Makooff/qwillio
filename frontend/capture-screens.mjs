@@ -319,9 +319,18 @@ async function shoot({ name, path, width, height, scale, statusBar, prepare, web
      mégaoctets par carte se paierait sur chaque visite. Les rendus de maquette,
      eux, restent en PNG: ils vont dans Figma, pas sur le web. */
   if (webp) {
-    const { execFileSync } = await import('node:child_process');
-    execFileSync('ffmpeg', ['-y', '-v', 'error', '-i', file, '-vf', `scale=${webp.width}:-2:flags=lanczos`,
-      '-quality', '84', '-compression_level', '6', `${SITE}/${webp.name}.webp`]);
+    /* La conversion passe par `sharp`, une DÉPENDANCE DU PROJET, et non plus par
+       un `ffmpeg` attendu sur le PATH. Le script tombait entièrement quand la
+       machine n'en avait pas: pas une capture rendue, et une erreur qui parle de
+       `spawnSync` sans dire lequel des deux manque. Une régénération de visuels
+       ne doit pas dépendre d'un binaire système que rien n'installe.
+       Même rendu: rééchantillonnage lanczos3 (le défaut de sharp) à la largeur
+       demandée, hauteur déduite, qualité 84. */
+    const sharp = (await import('sharp')).default;
+    await sharp(file)
+      .resize({ width: webp.width, kernel: 'lanczos3' })
+      .webp({ quality: 84 })
+      .toFile(`${SITE}/${webp.name}.webp`);
     console.log('  →', `${SITE}/${webp.name}.webp`);
   }
   await context.close();
