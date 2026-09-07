@@ -55,7 +55,12 @@ function parseArgs(argv: string[]): Args {
      pouvoir acheter cent lignes. */
   const count = Number.isFinite(rawCount) ? Math.min(Math.max(Math.trunc(rawCount), 1), 25) : 10;
 
-  const rawType = get('type') ?? 'local';
+  /* `mobile` par défaut, et non `local`: Twilio ne propose PAS de numéro local
+     en Belgique sur ce compte (`AvailablePhoneNumbers/BE/Local` répond 404,
+     vérifié le 07/09). Garder `local` par défaut ferait échouer chaque fournée
+     une première fois pour rien. Le mobile belge (04xx) est facturé
+     normalement à l'appelant, ce qui préserve la raison d'être du numéro. */
+  const rawType = get('type') ?? 'mobile';
   const type = TYPES.find(t => t.toLowerCase() === rawType.toLowerCase());
   if (!type) {
     console.error(`--type inconnu: « ${rawType} ». Attendu: ${TYPES.join(', ')}.`);
@@ -185,7 +190,7 @@ async function main() {
     console.log(
       `\nSIMULATION — rien n'a été acheté.\n` +
         `Relancer avec --confirm pour acheter ces ${candidates.length} numéros ` +
-        `(dépense récurrente, environ 1 à 3 € par mois et par ligne).\n`,
+        `(dépense récurrente: 1,25 $ par mois et par ligne au tarif belge mobile).\n`,
     );
     return;
   }
