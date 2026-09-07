@@ -1283,8 +1283,17 @@ export default function Home() {
         </Container>
       </Section>
 
-      {/* ── APRÈS L'APPEL + CONFIANCE, bande taupe ── */}
-      <Section variant="band" hairline aria-labelledby="after-heading" className="relative">
+      {/* ── APRÈS L'APPEL + CONFIANCE ──
+          Sur le FOND DE PAGE, plus sur la bande. La bande vaut #111111 en thème
+          sombre et les plates des rangées produit #1a1a1a: neuf valeurs d'écart,
+          c'est-à-dire rien à l'oeil, et les cartes ne se lisaient plus comme des
+          cartes (retour utilisateur: « le fond de la section ne doit pas être de
+          la couleur de la carte »). Sur le fond de page à #0a0a0a, l'écart passe
+          à seize valeurs et elles se détachent.
+          Le filet du haut (`hairline`) reste, et c'est lui qui porte désormais la
+          séparation d'avec la section précédente: sans la bande, deux sections
+          canvas voisines se toucheraient sans rien entre elles. */}
+      <Section hairline aria-labelledby="after-heading" className="relative">
         <Container className="relative z-10">
           <RevealV2 className="mb-8 sm:mb-12 max-w-[640px]">
             <Eyebrow tone="neutral" className="mb-3 sm:mb-4">
