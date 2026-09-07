@@ -13,6 +13,7 @@ import { toE164 } from '../utils/phone';
 import { resolveNiche } from '../config/niches';
 import { knowledgePreset } from '../config/knowledge-presets';
 import { phoneSetupService } from './voice/phone-setup.service';
+import { releaseClientNumbers } from './voice/phone-stock.service';
 import { clientPortalUrl } from '../utils/urls';
 
 const MAX_RETRIES = 3;
@@ -290,6 +291,25 @@ export class OnboardingService {
           onboardingStatus: 'deactivated',
         },
       });
+
+      /* 3. Rendre le numéro du stock, s'il en tenait un.
+       *
+       * C'est ici que ça compte: l'assistant vient d'être SUPPRIMÉ, donc un
+       * numéro qui resterait attribué sonnerait dans le vide tout en étant
+       * compté comme pris. Le numéro n'est pas rendu à Twilio (il est payé et
+       * couvert par le dossier), il redevient simplement attribuable.
+       *
+       * Ne concerne pas la ligne partagée, qui n'appartient à personne et que
+       * `vapiPhoneNumber` garde volontairement pour référence. */
+      try {
+        const released = await releaseClientNumbers(clientId);
+        if (released > 0) logger.info(`${released} numéro(s) rendu(s) au stock par ${client.businessName}`);
+      } catch (error) {
+        /* Une désactivation qui échoue laisse un client à moitié coupé, ce qui
+           est pire qu'un numéro coincé: `npm run phone:stock` le montre et il
+           se libère à la main. */
+        logger.error(`Libération du numéro échouée pour ${client.businessName}:`, error);
+      }
 
       logger.info(`Client ${client.businessName} deactivated (assistant deleted, shared number preserved)`);
     } catch (error) {

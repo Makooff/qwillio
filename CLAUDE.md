@@ -303,9 +303,11 @@ les trois. La marche à suivre est écrite dans `docs/PROTOCOLE-TEST-MOTEURS.md`
 
 Trois lots livrés (PR #118). Ce qu'il faut en retenir pour ne pas défaire le travail :
 
-- **Un numéro entrant appartient à UN client.** `services/voice/phone-allocation.service.ts`
-  est le seul endroit qui attribue une ligne. Recopier `VAPI_PHONE_NUMBER` dans une
-  fiche client rendrait de nouveau les deux clients injoignables.
+- **Un numéro entrant appartient à UN client.** Recopier `VAPI_PHONE_NUMBER` dans une
+  fiche client rendrait de nouveau les deux clients injoignables. Deux endroits
+  attribuent une ligne, et un seul répond au cas courant : `phone-stock.service.ts`
+  pioche dans le lot de numéros belges achetés d'avance (voir ci-dessous), et
+  `phone-allocation.service.ts` ne sert plus qu'à la ligne partagée des essais.
 - **`VAPI_WEBHOOK_SECRET` et `RESEND_API_KEY` refusent le démarrage en production.**
   Soupape : `ALLOW_DEGRADED_BOOT=1`.
 - **Tout lien public écrit par le backend passe par `utils/urls.ts`.** `FRONTEND_URL`
@@ -318,5 +320,27 @@ Trois lots livrés (PR #118). Ce qu'il faut en retenir pour ne pas défaire le t
   production). C'est ce qui donne un tableau de bord peuplé pour une démonstration.
 
 Toujours à faire, et qui ne dépend pas du code : publier l'app Google en Production,
-acheter le numéro belge, passer deux appels de test (`realtime` et `classic`),
-et cliquer une première fois sur le portail Stripe.
+passer deux appels de test (`realtime` et `classic`), et cliquer une première fois
+sur le portail Stripe.
+
+## Le stock de numéros belges (07/09/2026)
+
+Le dossier réglementaire Twilio est **approuvé**, au nom de Mathieu Pollé, pour des
+numéros **belges locaux** (géographiques). Ce qu'il faut savoir avant d'y toucher :
+
+- **Le dossier ne se refait jamais par client.** Il est ouvert une fois pour Qwillio
+  et couvre tout le lot. Le client ne fournit aucune pièce : il reçoit une ligne
+  déjà achetée. Trois rejets ont appris la règle : le nom saisi, le numéro de la
+  pièce d'identité et le justificatif d'adresse doivent désigner **la même
+  personne**, sinon rejet automatique.
+- **Local, jamais National.** Un numéro national belge (078) est surtaxé pour
+  l'APPELANT, ce qui annule la raison même d'avoir un numéro belge.
+- **Acheter une fournée** : `npm run phone:buy` (simulation) puis
+  `-- --confirm` pour acheter réellement. `npm run phone:stock` dit ce qu'il reste.
+- **Un numéro acheté chez Twilio mais non importé chez Vapi est facturé sans être
+  joignable.** C'est la seule anomalie que le rapport de stock signale en majuscules,
+  et le stock refuse d'attribuer une telle ligne plutôt que de la faire passer pour
+  active.
+- **Une résiliation rend le numéro au lot**, elle ne le rend pas à Twilio : il est
+  déjà payé et déjà couvert. Sans ce geste, chaque départ retirerait une ligne du
+  stock pour toujours.

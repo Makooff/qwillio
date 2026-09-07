@@ -8,6 +8,7 @@ import { getPlan, annualPriceEur, type BillingPeriod } from '../config/plans';
 import { discordService } from './discord.service';
 import { emailService } from './email.service';
 import { onboardingService } from './onboarding.service';
+import { releaseClientNumbers } from './voice/phone-stock.service';
 
 export class StripeService {
   async handleCheckoutCompleted(session: any) {
@@ -383,7 +384,26 @@ export class StripeService {
       where: { id: client.id },
       data: { subscriptionStatus: 'canceled', cancellationDate: new Date() },
     });
-    await discordService.notify(`❌ SUBSCRIPTION CANCELED\n\nClient: ${client.businessName}\nPlan: ${client.planType}\nSubscription: ${subscription.id}`);
+
+    /* Le numéro belge retourne au stock. Sans ce geste, chaque résiliation
+       retirerait une ligne du lot pour toujours: elle resterait facturée chez
+       Twilio, attribuée à un client parti, et invisible dans le compte des
+       numéros libres. Le numéro n'est PAS rendu à Twilio — il est déjà payé et
+       déjà couvert par le dossier réglementaire, il sert au client suivant. */
+    let released = 0;
+    try {
+      released = await releaseClientNumbers(client.id);
+    } catch (error) {
+      /* Une résiliation ne doit jamais échouer pour cette raison: le paiement
+         est déjà arrêté côté Stripe, et un numéro coincé se rattrape à la main
+         (`npm run phone:stock` le montre). */
+      logger.error(`[Stripe] libération du numéro de ${client.id} échouée: ${(error as Error).message}`);
+    }
+
+    await discordService.notify(
+      `❌ SUBSCRIPTION CANCELED\n\nClient: ${client.businessName}\nPlan: ${client.planType}\nSubscription: ${subscription.id}` +
+        (released > 0 ? `\nNuméro(s) rendu(s) au stock: ${released}` : ''),
+    );
   }
 
   // ═══════════════════════════════════════════════════════════

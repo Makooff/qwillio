@@ -374,6 +374,7 @@ model Client {
   forwardingVerifiedAt       DateTime?                 @map("forwarding_verified_at")
   activities                 Activity[]
   phoneNumbers               ClientPhoneNumber[]
+  stockNumbers               PhoneNumberStock[]
   agentAccounting            AgentAccounting?
   agentEmailConfigs          AgentEmailConfig?
   agentEmails                AgentEmail[]
@@ -1882,6 +1883,54 @@ model ClientPhoneNumber {
 
   @@index([clientId])
   @@map("client_phone_numbers")
+}
+
+/// Le STOCK de numéros achetés d'avance, avant qu'un client les demande.
+///
+/// Le dossier réglementaire belge (identité + adresse, validé une fois par
+/// Twilio) couvre TOUT le lot: il est ouvert au nom de Qwillio, jamais au nom
+/// d'un client. C'est ce qui rend l'attribution instantanée — le client ne
+/// fournit aucune pièce, il reçoit une ligne déjà achetée et déjà importée
+/// chez Vapi.
+///
+/// Pourquoi une table à part et non `ClientPhoneNumber`: celle-là décrit une
+/// ligne SUPPLÉMENTAIRE d'un client existant, donc elle exige un `clientId`.
+/// Un numéro en stock n'a précisément pas de propriétaire, et c'est son état
+/// normal, pas une anomalie à contourner avec un client fictif.
+model PhoneNumberStock {
+  id           String    @id @default(uuid()) @db.Uuid
+  /// E.164, tel qu'il apparaît chez Twilio ET chez Vapi. Unique: un même
+  /// numéro acheté deux fois serait deux lignes facturées pour un seul appel.
+  number       String    @unique @db.VarChar(50)
+  country      String    @default("BE") @db.VarChar(2)
+  /// `local` (géographique, tarif d'appel normal), `mobile`, `national`.
+  /// On achète du local: un numéro national belge est surtaxé pour l'APPELANT,
+  /// ce qui annule la raison même d'avoir un numéro belge.
+  numberType   String    @default("local") @map("number_type") @db.VarChar(20)
+  /// `PN...` chez Twilio, qui possède réellement la ligne, et `...` chez Vapi,
+  /// qui l'exploite. Les deux, parce qu'une ligne achetée mais non importée est
+  /// facturée sans être joignable, et que seul l'écart entre ces deux colonnes
+  /// permet de le voir.
+  twilioSid    String?   @unique @map("twilio_sid") @db.VarChar(64)
+  vapiNumberId String?   @unique @map("vapi_number_id") @db.VarChar(64)
+  /// Le bundle réglementaire qui a autorisé l'achat. Conservé pour l'audit:
+  /// un bundle expiré ou révoqué met en cause tous les numéros qu'il couvre.
+  bundleSid    String?   @map("bundle_sid") @db.VarChar(64)
+  /// `available` | `assigned` | `retired`. `retired` = numéro rendu à Twilio,
+  /// gardé en base pour l'historique plutôt que supprimé.
+  status       String    @default("available") @db.VarChar(20)
+  clientId     String?   @map("client_id") @db.Uuid
+  client       Client?   @relation(fields: [clientId], references: [id], onDelete: SetNull)
+  purchasedAt  DateTime  @default(now()) @map("purchased_at")
+  assignedAt   DateTime? @map("assigned_at")
+  releasedAt   DateTime? @map("released_at")
+  notes        String?
+
+  /// L'index sur `status` sert la seule requête chaude: prendre le plus ancien
+  /// numéro libre. Il est partiel de fait (peu de lignes `available`).
+  @@index([status])
+  @@index([clientId])
+  @@map("phone_number_stock")
 }
 
 model ApiKey {
