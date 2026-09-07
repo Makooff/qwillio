@@ -5,9 +5,21 @@
  * was slow, which makes every tuning decision downstream a guess. This module
  * splits one turn into the three stages that can actually be acted on:
  *
- *   STT  caller stops speaking      → final transcript emitted
- *   LLM  request enters our handler → first delta written back
- *   TTS  last delta written         → assistant audio starts
+ *   STT   caller stops speaking      → final transcript emitted
+ *   LLM   request enters our handler → first delta written back
+ *   TTS   last delta written         → assistant audio starts
+ *   TTFA  first delta written        → assistant audio starts
+ *
+ * TTS and TTFA measure the same end, from two different starts, because clause
+ * streaming makes only one of them exist at a time. When the synthesiser waits
+ * for the whole completion, TTS is the number that means something. When it
+ * starts speaking on the first clause — the behaviour we are trying to get —
+ * the last delta has not happened yet when audio starts, so TTS has no start
+ * to measure from and is simply absent. TTFA always has one.
+ *
+ * Keeping only TTS is what made the metric lie by omission: it reported a
+ * number exactly when the pipeline was slow, and nothing at all when it was
+ * fast, so the median described the bad path alone.
  *
  * The stages are measured from events we genuinely observe, not derived from
  * each other, so a missing event yields a missing stage rather than a wrong
@@ -20,7 +32,7 @@
  * reason to keep custom-LLM on.
  */
 
-export type LatencyStage = 'stt' | 'llm' | 'tts' | 'total';
+export type LatencyStage = 'stt' | 'llm' | 'tts' | 'ttfa' | 'total';
 
 export interface StageStats {
   count: number;
@@ -45,7 +57,16 @@ interface TurnMarks {
  * call session — nothing here touches I/O or shared state.
  */
 export class CallLatencyTracker {
-  private samples: Record<LatencyStage, number[]> = { stt: [], llm: [], tts: [], total: [] };
+  private samples: Record<LatencyStage, number[]> = { stt: [], llm: [], tts: [], ttfa: [], total: [] };
+  /**
+   * How each turn's audio started, counted only on turns where we saw the LLM.
+   *
+   * `streamed` = audio began before the completion ended, which is LAT-5's
+   * acceptance criterion stated verbatim ("first audio before the last
+   * token"). Counting it is what turns that criterion from an assertion into
+   * a measurement.
+   */
+  private turnStarts = { streamed: 0, buffered: 0 };
   private marks: TurnMarks = {
     callerSpeechEndedAt: null,
     transcriptFinalAt: null,
@@ -102,13 +123,37 @@ export class CallLatencyTracker {
    * the wrong stage.
    */
   markAssistantSpeechStart(at = Date.now()): void {
-    if (this.marks.lastDeltaAt !== null) {
-      this.push('tts', at - this.marks.lastDeltaAt);
+    /* TTFA first: it is the one that survives clause streaming, and the one
+       the TTS-model criteria are written against ("TTFA p50 under 300ms"). */
+    if (this.marks.llmFirstDeltaAt !== null) {
+      this.push('ttfa', at - this.marks.llmFirstDeltaAt);
     }
+
+    /* Which of the two shapes this turn had. Only meaningful when we saw the
+       request at all: on Vapi's own OpenAI path there is no last delta to
+       miss, and calling that "streamed" would invent a result. */
+    if (this.marks.llmStartedAt !== null) {
+      if (this.marks.lastDeltaAt !== null) {
+        this.turnStarts.buffered++;
+        this.push('tts', at - this.marks.lastDeltaAt);
+      } else {
+        // Audio before the completion ended: the clause streaming worked.
+        this.turnStarts.streamed++;
+      }
+    }
+
     if (this.marks.callerSpeechEndedAt !== null) {
       this.push('total', at - this.marks.callerSpeechEndedAt);
       this.marks.callerSpeechEndedAt = null;
     }
+  }
+
+  /**
+   * Turns whose audio started before the completion ended, against those that
+   * waited for it. LAT-5's criterion reads directly off this pair.
+   */
+  streamingSplit(): { streamed: number; buffered: number } {
+    return { ...this.turnStarts };
   }
 
   /** `performanceMetrics` from the end-of-call report, when Vapi sends them. */
@@ -125,7 +170,7 @@ export class CallLatencyTracker {
 
   report(): LatencyReport {
     const out: LatencyReport = {};
-    for (const stage of ['stt', 'llm', 'tts', 'total'] as LatencyStage[]) {
+    for (const stage of ['stt', 'llm', 'tts', 'ttfa', 'total'] as LatencyStage[]) {
       const stats = summarise(this.samples[stage]);
       if (stats) out[stage] = stats;
     }
@@ -135,7 +180,14 @@ export class CallLatencyTracker {
   /** Full payload for persistence, ours plus the vendor's. */
   snapshot(): Record<string, unknown> {
     const report = this.report();
-    return this.vendorMetrics ? { ...report, vendor: this.vendorMetrics } : report;
+    const out: Record<string, unknown> = { ...report };
+    const { streamed, buffered } = this.turnStarts;
+    /* Omitted rather than written as zeros when no turn was observed: a stored
+       `0/0` reads as "streaming never worked", which is a different claim from
+       "we never saw the LLM on this call". */
+    if (streamed + buffered > 0) out.streaming = { streamed, buffered };
+    if (this.vendorMetrics) out.vendor = this.vendorMetrics;
+    return out;
   }
 
   /**
@@ -145,7 +197,12 @@ export class CallLatencyTracker {
   summaryLine(): string {
     const r = this.report();
     const part = (name: string, s?: StageStats) => (s ? `${name} ${s.median}ms (p95 ${s.p95})` : `${name} n/a`);
-    return [part('STT', r.stt), part('LLM', r.llm), part('TTS', r.tts), part('total', r.total)].join(' | ');
+    const { streamed, buffered } = this.turnStarts;
+    const parts = [part('STT', r.stt), part('LLM', r.llm), part('TTS', r.tts), part('TTFA', r.ttfa), part('total', r.total)];
+    /* Reads as « on how many turns did the first sound beat the last token »,
+       which is the one thing LAT-5 asks and the one thing a median hides. */
+    if (streamed + buffered > 0) parts.push(`clause-stream ${streamed}/${streamed + buffered}`);
+    return parts.join(' | ');
   }
 }
 

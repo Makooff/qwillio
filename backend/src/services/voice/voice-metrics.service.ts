@@ -49,10 +49,10 @@ export interface FleetMetricsSummary {
   meetsObjective: boolean | null;
 }
 
-const STAGES: LatencyStage[] = ['stt', 'llm', 'tts', 'total'];
+const STAGES: LatencyStage[] = ['stt', 'llm', 'tts', 'ttfa', 'total'];
 
 export class VoiceMetricsService {
-  private samples: Record<LatencyStage, number[]> = { stt: [], llm: [], tts: [], total: [] };
+  private samples: Record<LatencyStage, number[]> = { stt: [], llm: [], tts: [], ttfa: [], total: [] };
   private costsUsd: number[] = [];
   private calls = 0;
   private windowStartedAt = Date.now();
@@ -120,7 +120,7 @@ export class VoiceMetricsService {
 
   /** Test seam. */
   reset(): void {
-    this.samples = { stt: [], llm: [], tts: [], total: [] };
+    this.samples = { stt: [], llm: [], tts: [], ttfa: [], total: [] };
     this.costsUsd = [];
     this.calls = 0;
     this.windowStartedAt = Date.now();
