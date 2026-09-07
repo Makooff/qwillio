@@ -5,6 +5,19 @@ generator client {
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  /// Les MIGRATIONS passent par la connexion non poolée, l'application garde
+  /// le pooler.
+  ///
+  /// `prisma migrate` prend un verrou d'avis Postgres, qui appartient à la
+  /// SESSION. Le pooler Neon en mode transaction donne une connexion
+  /// différente à chaque instruction et garde ses connexions en vie: le verrou
+  /// ne peut donc être ni tenu de façon fiable, ni relâché quand un `migrate`
+  /// meurt en cours de route. Une session zombie le garde alors pour toujours,
+  /// et TOUS les déploiements suivants échouent en P1002 — ce qui est arrivé
+  /// le 07/09, deux fois de suite, après vingt-deux migrations passées.
+  ///
+  /// C'est la même URL Neon SANS `-pooler` dans le nom d'hôte.
+  directUrl = env("DATABASE_URL_UNPOOLED")
 }
 
 model User {
