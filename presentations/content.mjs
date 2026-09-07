@@ -400,10 +400,10 @@ export const SECTORS = [
     },
     gains: {
       eyebrow: 'Ce que ça change',
-      title: 'Pour un <i>laboratoire</i>, précisément.',
+      title: 'Pour une <i>pâtisserie</i>, précisément.',
       items: [
         {
-          title: 'Le labo n’est plus interrompu',
+          title: 'L’atelier n’est plus interrompu',
           body:
             'Vous ne choisissez plus entre finir une pièce et prendre une commande. Les deux se font, et aucune ne se fait à moitié.',
         },
@@ -422,7 +422,7 @@ export const SECTORS = [
       ],
     },
     closeLine:
-      'Vous pouvez continuer à choisir entre le labo et le téléphone. Ou arrêter d’avoir à choisir.',
+      'Vous pouvez continuer à choisir entre l’atelier et le téléphone. Ou arrêter d’avoir à choisir.',
   },
 
   {

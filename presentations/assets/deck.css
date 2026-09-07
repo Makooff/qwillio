@@ -529,6 +529,18 @@ body {
   color: var(--graphite);
 }
 
+/* Couverture en registre sombre : les sept jetons de texte ne basculent pas
+   tout seuls, ils sont clairs par défaut. Sans ces trois lignes, le pied de
+   couverture est du gris foncé sur du noir. */
+.slide--dark .cover__meta {
+  color: var(--fog);
+  border-top-color: var(--border-d);
+}
+
+.slide--dark .cover__meta strong {
+  color: var(--mist);
+}
+
 /* ── 02. Le problème, minuterie ─────────────────────────── */
 
 .timeline {
@@ -1211,4 +1223,641 @@ body {
   background: var(--indigo);
   border-color: transparent;
   color: #fff;
+}
+
+/* ============================================================
+   Pièces propres à la proposition de GROUPE (un propriétaire,
+   plusieurs établissements). Elles vivent ici et pas dans une
+   troisième feuille : ce sont les mêmes jetons, le même registre,
+   et une feuille de plus se serait désynchronisée au premier
+   changement de charte.
+   ============================================================ */
+
+/* ── Les heures où chaque téléphone sonne ───────────────── */
+
+.curves {
+  margin-top: 4px;
+}
+
+.curves__axis {
+  position: relative;
+  height: 20px;
+  margin-left: 158px;
+}
+
+.curves__tick {
+  position: absolute;
+  transform: translateX(-50%);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.curves__row {
+  display: grid;
+  grid-template-columns: 158px 1fr;
+  align-items: center;
+  gap: 0;
+  padding: 11px 0;
+  border-top: var(--hairline);
+}
+
+.curves__row:last-child {
+  border-bottom: var(--hairline);
+}
+
+.curves__label {
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--graphite);
+}
+
+.curves__track {
+  position: relative;
+  display: block;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--band);
+}
+
+.curves__bar {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  overflow: hidden;
+}
+
+/* Une seule teinte, deux intensités. Quatre couleurs pour quatre maisons
+   auraient été décoratives : ici la couleur dit « appel entrant », et c'est
+   la POSITION qui porte l'information. */
+.curves__bar--soft {
+  background: rgba(122, 95, 255, 0.15);
+}
+
+.curves__bar--peak {
+  background: var(--indigo);
+}
+
+.curves__bar em {
+  font-style: normal;
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: rgba(255, 255, 255, 0.92);
+  white-space: nowrap;
+}
+
+/* ── Les quatre réceptionnistes ─────────────────────────── */
+
+.crew {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.crew__card {
+  border-radius: 20px;
+  border: var(--hairline);
+  background: var(--band);
+  padding: 22px 22px 24px;
+  display: flex;
+  flex-direction: column;
+  min-height: 322px;
+}
+
+/* Un zigzag plutôt qu'un alignement au cordeau : quatre cartes de même
+   gabarit posées côte à côte, c'est la grille de cartes identiques que la
+   charte interdit, et une équipe se présente mieux en quinconce. */
+.crew__card:nth-child(even) {
+  margin-top: 26px;
+}
+
+.crew__avatar {
+  width: 78px;
+  height: 78px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--lift-soft);
+  margin-bottom: 16px;
+}
+
+.crew__house {
+  margin: 0;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.crew__name {
+  margin: 7px 0 0;
+  font-size: 25px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1;
+  color: var(--ink);
+}
+
+.crew__greeting {
+  margin: 12px 0 0;
+  font-size: 13.5px;
+  line-height: 1.45;
+  color: var(--deep);
+}
+
+.crew__voice {
+  margin: 8px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--body);
+}
+
+.crew__transfer {
+  margin: auto 0 0;
+  padding-top: 16px;
+  border-top: var(--hairline);
+  font-size: 12px;
+  line-height: 1.4;
+  /* Pas `faint` : c'est un argument de vente (« elle ne vous dérange que
+     pour un devis à valider »), pas une mention légale. */
+  color: var(--body);
+}
+
+/* ── La citation dans un quadrant ───────────────────────── */
+
+.quad__quote {
+  margin: 11px 0 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--deep);
+  max-width: 440px;
+}
+
+.quad__quote + .quad__body {
+  margin-top: 8px;
+}
+
+/* ── L'addition des quatre maisons ──────────────────────── */
+
+.tally {
+  margin-top: 24px;
+}
+
+.tally__row {
+  display: grid;
+  grid-template-columns: 1.2fr 1fr 0.9fr 0.8fr 1fr;
+  gap: 20px;
+  align-items: baseline;
+  padding: 16px 0;
+  border-top: var(--hairline);
+  font-size: 13.5px;
+  color: var(--body);
+  font-variant-numeric: tabular-nums;
+}
+
+.tally__row--head {
+  border-top: 0;
+  padding-bottom: 10px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.tally__house {
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+}
+
+.tally__sum {
+  text-align: right;
+  font-weight: 600;
+  color: var(--graphite);
+}
+
+.tally__row--total {
+  border-top: 1px solid var(--graphite);
+  padding-top: 20px;
+}
+
+.tally__row--total .tally__sum {
+  font-size: 24px;
+  letter-spacing: -0.03em;
+  color: var(--deep);
+}
+
+/* ── Quatre colonnes plutôt que trois ───────────────────── */
+
+.cols--4 {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.cols--4 .cols__cell {
+  padding-right: 24px;
+}
+
+.cols--4 .cols__cell + .cols__cell {
+  padding-left: 26px;
+}
+
+.cols--4 .cols__cell .h3 {
+  font-size: 17px;
+}
+
+.cols--4 .cols__body {
+  font-size: 12.5px;
+}
+
+/* ============================================================
+   Pièces de la présentation générale, qui raconte UN appel
+   seconde par seconde. Rien de tout cela ne sert aux decks
+   métier : c'est ce qui empêche les deux documents de se
+   ressembler.
+   ============================================================ */
+
+/* ── La frise de l'appel, sur chaque planche ────────────── */
+
+.rail {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 46px;
+}
+
+.rail__end {
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.rail__track {
+  position: relative;
+  flex: 1;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--plate);
+}
+
+.rail__fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  border-radius: 2px;
+  background: var(--indigo);
+}
+
+.rail__dot {
+  position: absolute;
+  top: 50%;
+  width: 11px;
+  height: 11px;
+  margin: -5.5px 0 0 -5.5px;
+  border-radius: 50%;
+  background: var(--indigo);
+  /* Un anneau de la couleur du fond : sans lui, le point se confond avec le
+     trait au lieu de se poser dessus. */
+  box-shadow: 0 0 0 5px var(--canvas);
+}
+
+.slide--dark .rail__track {
+  background: var(--border-d);
+}
+
+.slide--dark .rail__fill,
+.slide--dark .rail__dot {
+  background: var(--lift);
+}
+
+.slide--dark .rail__dot {
+  box-shadow: 0 0 0 5px var(--void);
+}
+
+/* ── Un instant de l'appel ──────────────────────────────── */
+
+.beat {
+  display: grid;
+  grid-template-columns: 57fr 43fr;
+  gap: 60px;
+  flex: 1;
+  min-height: 0;
+  align-items: center;
+}
+
+.beat__time {
+  margin: 0 0 14px;
+  font-size: 50px;
+  font-weight: 600;
+  letter-spacing: -0.04em;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  color: var(--indigo);
+}
+
+.slide--dark .beat__time {
+  color: var(--lift);
+}
+
+/* La réplique, en exergue et non en bulle : les bulles appartiennent aux
+   decks métier, et deux documents qui se ressemblent n'en font qu'un. */
+.beat__line {
+  margin: 28px 0 0;
+  padding-left: 20px;
+  border-left: 2px solid var(--plate);
+  font-size: 20px;
+  line-height: 1.45;
+  letter-spacing: -0.015em;
+  color: var(--ink);
+  max-width: 540px;
+}
+
+.beat__line--agent {
+  border-left-color: var(--indigo);
+}
+
+.beat__who {
+  display: block;
+  margin-bottom: 8px;
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.beat__line--agent .beat__who {
+  color: var(--deep);
+}
+
+.beat__mech {
+  border-radius: 20px;
+  border: var(--hairline);
+  background: var(--band);
+  padding: 26px 28px 28px;
+}
+
+.beat__mech-label {
+  margin: 0 0 6px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.beat__mech-item {
+  margin: 0;
+  padding: 16px 0 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--graphite);
+}
+
+.beat__mech-item + .beat__mech-item {
+  margin-top: 16px;
+  border-top: var(--hairline);
+}
+
+/* ── Le dénouement ──────────────────────────────────────── */
+
+.done {
+  display: flex;
+  flex-direction: column;
+}
+
+.done__item {
+  margin: 0;
+  padding: 17px 0 17px 30px;
+  position: relative;
+  border-top: 1px solid var(--border-d);
+  font-size: 15px;
+  line-height: 1.4;
+  color: #f5f4f2;
+}
+
+.done__item:last-child {
+  border-bottom: 1px solid var(--border-d);
+}
+
+.done__item::before {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 24px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--lift);
+}
+
+/* ── Les appels qui sortent du cas idéal ────────────────── */
+
+.edges {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  flex: 1;
+  min-height: 0;
+}
+
+.edges__row {
+  display: grid;
+  grid-template-columns: 320px 1fr;
+  gap: 40px;
+  align-items: baseline;
+  padding: 24px 0;
+  border-top: var(--hairline);
+}
+
+.edges__row:last-child {
+  border-bottom: var(--hairline);
+}
+
+.edges__case {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+}
+
+.edges__behaviour {
+  font-size: 14.5px;
+  line-height: 1.55;
+  color: var(--body);
+}
+
+/* ── Mise en route, en trois colonnes nues ──────────────── */
+
+.track {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 44px;
+}
+
+.track__step {
+  padding-top: 22px;
+  border-top: 2px solid var(--plate);
+}
+
+.track__step:first-child {
+  border-top-color: var(--indigo);
+}
+
+.track__index {
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.track__step .h3 {
+  margin-top: 12px;
+  font-size: 19px;
+}
+
+.track__body {
+  margin: 10px 0 0;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--body);
+}
+
+/* ============================================================
+   Pièces de la version courte. Cinq planches qui se feuillettent
+   en trente secondes : des énoncés en corps de titre, une idée
+   par planche, et une dernière planche entièrement mauve.
+   ============================================================ */
+
+.big {
+  font-size: 60px;
+  line-height: 1.02;
+  letter-spacing: -0.045em;
+}
+
+/* Planche de marque : le mauve occupe tout, et c'est le seul endroit du
+   corpus où il le fait. Réservé à la dernière planche de la version courte. */
+.slide--brand {
+  background: var(--indigo);
+  color: #fff;
+}
+
+.slide--brand .h2,
+.slide--brand .display {
+  color: #fff;
+}
+
+.slide--brand .eyebrow {
+  color: rgba(255, 255, 255, 0.66);
+}
+
+.slide--brand .lead {
+  color: rgba(255, 255, 255, 0.82);
+}
+
+.slide--brand .serif {
+  color: rgba(255, 255, 255, 0.92);
+}
+
+.slide--brand .slide__foot {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+/* La marque du pied disparaît sur le mauve : ses trois lobes SONT ce mauve.
+   La recolorer par un filtre effacerait aussi le lettrage, qui est une
+   réserve. Elle cède donc la place au mot, et la couverture s'en charge. */
+.slide--brand .slide__foot .mark {
+  display: none;
+}
+
+.slide--brand .contact__item {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: rgba(255, 255, 255, 0.28);
+  color: #fff;
+}
+
+/* ── Trois énoncés ──────────────────────────────────────── */
+
+.verbs__row {
+  display: grid;
+  grid-template-columns: 54px 1fr 1fr;
+  gap: 32px;
+  align-items: baseline;
+  padding: 26px 0;
+  border-top: var(--hairline);
+}
+
+.verbs__row:last-child {
+  border-bottom: var(--hairline);
+}
+
+.verbs__index {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  color: var(--faint);
+  font-variant-numeric: tabular-nums;
+}
+
+.verbs__title {
+  margin: 0;
+  font-size: 24px;
+  font-weight: 600;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--ink);
+}
+
+.verbs__body {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--body);
+}
+
+/* ── L'appel, en six lignes ─────────────────────────────── */
+
+.mini__row {
+  display: grid;
+  grid-template-columns: 96px 1fr;
+  gap: 26px;
+  align-items: baseline;
+  padding: 15px 0;
+  border-top: var(--hairline);
+}
+
+.mini__row:last-child {
+  border-bottom: var(--hairline);
+}
+
+.mini__who {
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+
+.mini__who--agent {
+  color: var(--deep);
+}
+
+.mini__line {
+  font-size: 17px;
+  line-height: 1.45;
+  letter-spacing: -0.015em;
+  color: var(--ink);
 }
