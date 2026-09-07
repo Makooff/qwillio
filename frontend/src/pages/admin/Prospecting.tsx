@@ -46,6 +46,11 @@ const CITIES_FR = [
 ];
 const CITIES_BE = [
   'Bruxelles', 'Liège', 'Charleroi', 'Namur', 'Mons', 'La Louvière', 'Tournai',
+  // Brabant wallon: la zone où le rendez-vous en présentiel tient dans la
+  // journée. Chaque nom doit exister dans CITIES_COORDINATES côté backend,
+  // sinon le scrape part en anglais sur un biais géo américain.
+  'Wavre', 'Nivelles', 'Waterloo', "Braine-l'Alleud", 'Ottignies-Louvain-la-Neuve',
+  'Rixensart', 'Tubize', 'Genappe', 'La Hulpe', 'Jodoigne',
 ];
 
 interface TriggerAction {

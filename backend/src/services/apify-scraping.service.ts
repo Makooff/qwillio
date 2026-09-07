@@ -10,7 +10,13 @@ import { prospectScoringService } from './prospect-scoring.service';
 import { phoneValidationService } from './phone-validation.service';
 import { CITIES_COORDINATES } from '../utils/constants';
 
+/** Requêtes maximum par couple niche/ville, pour tenir les crédits Apify. */
+const MAX_QUERIES_PER_CITY = 3;
+
 // ─── Belgian cities (no state abbreviation in query strings) ─
+// Repli seulement: getCityMeta() consulte CITIES_COORDINATES en premier, et
+// c'est LÀ qu'une nouvelle ville doit être ajoutée. Une ville absente des deux
+// est traitée comme américaine (voir le commentaire de la table).
 const BE_CITIES = new Set([
   'Bruxelles', 'Liège', 'Charleroi', 'Namur', 'Mons', 'La Louvière', 'Tournai',
 ]);
@@ -33,6 +39,22 @@ function getCityMeta(cityName: string): { country: string; timezone: string } {
   if (BE_CITIES.has(cityName)) return { country: 'BE', timezone: 'Europe/Brussels' };
   if (FR_CITIES.has(cityName)) return { country: 'FR', timezone: 'Europe/Paris' };
   return { country: 'US', timezone: 'America/New_York' };
+}
+
+/**
+ * Les requêtes envoyées à l'acteur pour un couple niche/ville, dans l'ordre.
+ *
+ * Pure et exportée pour être vérifiable, parce que la règle qu'elle porte
+ * n'est pas évidente: le plafond existe pour tenir les crédits Apify, et il
+ * doit tomber sur les requêtes par défaut, jamais sur le mot-clé que
+ * l'opérateur vient de taper dans l'admin.
+ */
+export function buildScrapeQueries(
+  baseQueries: string[],
+  extraQueries: string[] = [],
+  cap = 3,
+): string[] {
+  return [...extraQueries, ...baseQueries].slice(0, cap);
 }
 
 // ─── Niche query map ─────────────────────────────────────
@@ -678,14 +700,19 @@ export class ApifyScrapingService {
 
     for (const niche of params.niches) {
       const baseQueries = NICHE_QUERIES[niche] ?? [niche];
-      const queries = [...baseQueries, ...(params.extraQueries ?? [])];
+      /* Le mot-clé saisi passe DEVANT les requêtes par défaut, et c'est un
+         correctif, pas une préférence: le plafond existe pour tenir les
+         crédits, et une niche qui déclare déjà dix requêtes (home_services)
+         écartait donc systématiquement celui que l'opérateur venait de taper.
+         Le champ existait dans l'admin et ne faisait rien. */
+      const queries = buildScrapeQueries(baseQueries, params.extraQueries, MAX_QUERIES_PER_CITY);
 
       for (const city of params.cities) {
         const { country: countryCode, timezone } = getCityMeta(city);
         const actorLang = countryCode === 'US' ? 'en' : 'fr';
         const actorCountry = countryCode.toLowerCase();
 
-        for (const query of queries.slice(0, 3)) { // max 3 queries per niche/city to control credits
+        for (const query of queries) {
           try {
             const searchStr = `${query} ${city}`;
             logger.info(`[Apify/Custom] Scraping: "${searchStr}"`);
