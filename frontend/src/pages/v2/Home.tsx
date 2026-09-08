@@ -575,16 +575,16 @@ export default function Home() {
   const exploreSlides = useMemo<SqueezeSlide[]>(() => {
     const rows = isFr
       ? [
-          { to: '/about', name: 'À propos', title: 'À propos.', desc: 'Qui construit Qwillio, et depuis où.', action: 'Faire connaissance', alt: 'Un bureau bruxellois en fin de journée, deux personnes qui travaillent' },
-          { to: '/blog', name: 'Blog', title: 'Blog.', desc: 'Ce qu’on apprend en faisant décrocher une IA.', action: 'Lire le blog', alt: 'Des notes manuscrites et un carnet ouvert sur un plan de travail' },
-          { to: '/contact', name: 'Contact', title: 'Contact.', desc: 'Une question, une démo, un devis.', action: 'Nous écrire', alt: 'Un combiné de téléphone décroché, posé sur un bureau clair' },
-          { to: '/affiliate', name: 'Affiliation', title: 'Affiliation.', desc: 'Recommandez Qwillio, touchez une commission récurrente.', action: 'Devenir affilié', alt: 'Deux mains qui se serrent au-dessus d’une table de réunion' },
+          { to: '/about', name: 'À propos', title: 'À propos.', desc: 'Qui construit Qwillio, et depuis où.', action: 'Faire connaissance', alt: 'Des crêtes boisées émergeant d’une mer de nuages, au petit jour' },
+          { to: '/blog', name: 'Blog', title: 'Blog.', desc: 'Ce qu’on apprend en faisant décrocher une IA.', action: 'Lire le blog', alt: 'Une route de montagne serpentant dans une forêt de conifères, vue du ciel' },
+          { to: '/contact', name: 'Contact', title: 'Contact.', desc: 'Une question, une démo, un devis.', action: 'Nous écrire', alt: 'Un échangeur autoroutier de nuit, vu à la verticale, traversé de traînées lumineuses' },
+          { to: '/affiliate', name: 'Affiliation', title: 'Affiliation.', desc: 'Recommandez Qwillio, touchez une commission récurrente.', action: 'Devenir affilié', alt: 'Deux rivières glaciaires qui se rejoignent, vues du ciel, sur du sable noir' },
         ]
       : [
-          { to: '/about', name: 'About', title: 'About.', desc: 'Who builds Qwillio, and from where.', action: 'Get acquainted', alt: 'A Brussels office late in the day, two people at work' },
-          { to: '/blog', name: 'Blog', title: 'Blog.', desc: 'What we learn making an AI pick up the phone.', action: 'Read the blog', alt: 'Handwritten notes and an open notebook on a worktop' },
-          { to: '/contact', name: 'Contact', title: 'Contact.', desc: 'A question, a demo, a quote.', action: 'Write to us', alt: 'A telephone handset off the hook on a pale desk' },
-          { to: '/affiliate', name: 'Affiliate', title: 'Affiliate.', desc: 'Recommend Qwillio, earn a recurring commission.', action: 'Become an affiliate', alt: 'Two hands shaking over a meeting table' },
+          { to: '/about', name: 'About', title: 'About.', desc: 'Who builds Qwillio, and from where.', action: 'Get acquainted', alt: 'Forested ridges emerging from a sea of cloud at first light' },
+          { to: '/blog', name: 'Blog', title: 'Blog.', desc: 'What we learn making an AI pick up the phone.', action: 'Read the blog', alt: 'A mountain road winding through conifer forest, seen from above' },
+          { to: '/contact', name: 'Contact', title: 'Contact.', desc: 'A question, a demo, a quote.', action: 'Write to us', alt: 'A motorway interchange at night from directly above, traced by light trails' },
+          { to: '/affiliate', name: 'Affiliate', title: 'Affiliate.', desc: 'Recommend Qwillio, earn a recurring commission.', action: 'Become an affiliate', alt: 'Two glacial rivers converging over black sand, seen from above' },
         ];
 
     return rows.map((row, i) => ({

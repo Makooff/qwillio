@@ -1,45 +1,14 @@
 # Les quatre images du carrousel de l'accueil
 
-Les quatre images **existent** et sont livrées. Elles ne sont pas
-photographiques et ne sortent pas d'un générateur: elles sont **dessinées**, par
-`frontend/generate-carousel.mjs`, et se refont d'une commande:
+Ce sont des **photographies**, générées localement avec FLUX.1-dev sur ComfyUI,
+puis converties. Elles ont remplacé des visuels dessinés (colonnes de lumière,
+arcs concentriques) qui ne tenaient pas: un dessin qui n'est pas tenu par un
+illustrateur se lit comme une image d'agrafe.
 
-```bash
-cd frontend && node generate-carousel.mjs
-```
-
-C'est un choix, pas un pis-aller. Le registre drenched de la charte est
-graphique, et une photo de banque d'images sortie d'un générateur est
-exactement ce qui a été refusé ailleurs sur cette page (« trop IA »).
-
-**Deux règles**, et elles viennent chacune d'un retour:
-
-1. **Le fond est GRIS, pas noir.** Il vaut `#1A1A1A`, c'est-à-dire
-   `--q2-obsidian`, un cran au-dessus de la bande qui porte le carrousel
-   (`--q2-band`, `#111111` en thème sombre). Un panneau doit être plus clair que
-   la page qui le tient, sinon il se lit comme un trou et non comme une carte.
-2. **Rien de figuratif.** Une première version dessinait une verrière, une page
-   manuscrite, un fil de combiné et un nœud. Un dessin qui n'est pas tenu par un
-   illustrateur se lit comme une image d'agrafe, et c'est ce qui a été dit.
-
-Ce sont donc quatre champs de lumière, distincts par leur GÉOMÉTRIE, jamais par
-une simple variation de teinte: quatre dégradés jumeaux seraient la grille de
-cartes identiques que la charte interdit.
-
-| Panneau | La composition | Ce qu'elle dit |
-|---|---|---|
-| À propos | une large colonne de lumière qui monte du bas, traversée de strates | une pièce, une présence, sans montrer personne |
-| Blog | des lignes serrées au centre, qui s'éteignent aux deux bouts | le rythme d'un texte, sans écrire un mot |
-| Contact | des arcs concentriques qui s'éloignent du centre en s'affinant | un signal qui part, ce que fait une ligne qui sonne |
-| Affiliation | deux champs qui se rejoignent au centre et s'y additionnent | deux parties, un intérêt commun |
-
-Le repli reste en place si un fichier venait à manquer: le composant
-(`components/ui/carousel-squeeze.tsx`, fonction `Picture`, `onError`) retombe
-sur le dégradé du panneau. Rien ne casse, et déposer un fichier suffit à le
-faire réapparaître.
-
-Les recettes en langage naturel plus bas restent valables si vous préférez
-générer les images ailleurs.
+Le script qui produisait ces visuels dessinés, `frontend/generate-carousel.mjs`,
+a été **supprimé avec eux**. Le garder aurait été un piège: il écrit aux mêmes
+quatre chemins, et le premier qui l'aurait lancé aurait effacé les photographies
+sans un avertissement.
 
 ## Où, et à quelle taille
 
@@ -50,96 +19,79 @@ générer les images ailleurs.
 | `frontend/public/carousel/contact.webp` | Contact | `/contact` |
 | `frontend/public/carousel/affiliation.webp` | Affiliation | `/affiliate` |
 
-**1600 × 900** (16:9), exporté en **WebP qualité 80**, sous 150 ko.
+**1600 × 900**, WebP qualité 84. Les fichiers actuels pèsent de 29 à 166 ko.
 
 Le 16:9 n'est pas décoratif: le composant dessine chaque image dans un bloc 16:9
-fixe et centré, puis n'en montre qu'une part quand le panneau rétrécit. Un autre
-rapport serait recadré, et le sujet doit donc vivre au **centre** de l'image, pas
-sur un bord. Une latte de 8 px ne laisse voir qu'une bande verticale du milieu.
+fixe et centré, puis n'en montre qu'une part quand le panneau rétrécit. Le sujet
+doit donc vivre au **centre** — une latte repliée ne laisse voir qu'une bande
+verticale de 8 px prise au milieu, et un sujet posé sur un bord y donnerait un
+aplat.
 
-Conversion, une fois les PNG sortis du générateur:
+Tant qu'un fichier manque, le panneau garde son dégradé de repli: le composant
+retombe dessus au premier `onError` (`components/ui/carousel-squeeze.tsx`,
+fonction `Picture`). Déposer un fichier suffit à le faire apparaître, il n'y a
+pas une ligne de code à changer.
+
+## Le registre
+
+Celui de la **vidéo du hero**: un lac alpin dans la brume, crêtes en couches,
+vert-gris désaturé, contraste bas, lumière couverte. Pas de mauve de marque dans
+ces images, pas de personne reconnaissable, aucun texte lisible — le panneau
+porte déjà son mot en surimpression, et un texte dans l'image serait coupé en
+deux dès que la carte se replie.
+
+Les quatre se distinguent par **d'où on regarde**, jamais par une variation de
+teinte: de face dans la brume, à la verticale de jour, à la verticale de nuit, à
+la verticale sur l'eau.
+
+| Panneau | La photographie |
+|---|---|
+| À propos | des crêtes boisées émergeant d'une mer de nuages, au petit jour |
+| Blog | une route de montagne serpentant dans une forêt de conifères, vue du ciel |
+| Contact | un échangeur autoroutier de nuit, à la verticale, traversé de traînées lumineuses |
+| Affiliation | deux rivières glaciaires qui se rejoignent sur du sable noir, vues du ciel |
+
+## En refaire une
+
+Modèle: **FLUX.1-dev** en GGUF `Q6_K` (≈ 9,8 Go), qui tient sur 12 Go de VRAM.
+Encodeur de texte `t5xxl_fp8_e4m3fn` + `clip_l`, VAE `ae.safetensors`. Le nœud
+**ComfyUI-GGUF** est nécessaire pour charger le `.gguf`.
+
+Rendu en **1344 × 768**, 28 pas, sampler `euler`, scheduler `simple`,
+guidance 3.5. Puis agrandissement lanczos et recadrage en 1600 × 900.
+
+Suffixe commun aux quatre prompts:
+
+> landscape photograph, 16:9, telephoto compression, heavy atmospheric haze,
+> desaturated cool colour grade, low contrast, soft overcast light, fine 35mm
+> grain, subject centred in frame, no text, no signage, no logos, no watermark,
+> no people.
+
+À bannir, parce que c'est ce que les générateurs sortent par défaut: le casque de
+téléopérateur, le globe en fil de fer, le cerveau lumineux, la poignée de main en
+costume, le bureau avec un ordinateur portable et une tasse.
+
+## Conversion
+
+Les PNG sortis du générateur ne sont pas versionnés (2 à 4 Mo pièce, et rien ne
+les sert). Seuls les WebP entrent dans `public/`:
 
 ```bash
-cd frontend/public/carousel
-for f in *.png; do cwebp -q 80 -resize 1600 900 "$f" -o "${f%.png}.webp"; done
+cd frontend
+node -e "
+const sharp = require('sharp');
+sharp('source.png').resize({ width: 1600, height: 900, kernel: 'lanczos3' })
+  .webp({ quality: 84 }).toFile('public/carousel/blog.webp');
+"
 ```
 
-## La règle avant les recettes
+`sharp` est une dépendance du projet. Ne pas compter sur `ffmpeg`: il n'est pas
+garanti présent, et c'est ce qui avait cassé `capture-screens.mjs`.
 
-Ces quatre images vivent dans le **registre drenched** de la charte: fond très
-sombre, lumière rasante, une seule source. Elles ne sont pas des photos de
-banque d'images, et elles ne montrent **jamais** de visage reconnaissable, de
-logo, ni de texte lisible: le panneau porte déjà son mot en surimpression, et
-un texte dans l'image se retrouverait coupé en deux dès que la carte se replie.
+## Après avoir déposé une image
 
-Palette imposée, ce sont les couleurs de la marque:
-indigo `#7A5FFF`, violet `#CD6BFB`, noirs `#0A0A0A` et `#161718`.
-
-À bannir, parce que c'est ce que tous les générateurs sortent par défaut: le
-casque de téléavertisseur, le globe en fil de fer, le cerveau lumineux, les
-graphiques flottants, la poignée de main en costume, le sourire vers l'objectif.
-
-## Les quatre recettes
-
-Chacune est faite pour être collée telle quelle. Le suffixe technique commun
-est rappelé une fois, à ajouter à la fin de chaque recette:
-
-> **Suffixe commun** — cinematic still, 16:9, shot on 35mm, shallow depth of
-> field, single raking light source, deep near-black background (#0A0A0A),
-> subtle indigo (#7A5FFF) and violet (#CD6BFB) rim light, fine film grain,
-> no text, no logo, no watermark, no recognizable faces, muted contrast,
-> subject centred in frame.
-
-### 1. À propos — `a-propos.webp`
-
-> A small Brussels workspace at dusk, seen from across the room. Two silhouetted
-> figures at a long wooden desk, turned away from camera, one standing. Tall
-> nineteenth-century windows on the left, the last cold daylight coming through
-> them; a single warm desk lamp on the right. Rain on the glass. Bare brick and
-> a plant. Quiet, worked-in, not staged.
-
-Ce qu'elle doit dire: **qui**, et **depuis où**. Bruxelles, une petite équipe,
-le soir. De dos, parce que la page dit « jeune et construit ici », pas
-« regardez-nous ».
-
-### 2. Blog — `blog.webp`
-
-> An open notebook on a dark worktop, filled with handwriting and a crossed-out
-> diagram, a fountain pen laid across it. Beside it a cold cup of coffee and a
-> stack of loose printed pages annotated in the margins. Overhead light falling
-> at a low angle from the left, most of the frame in shadow. The handwriting is
-> illegible, an impression of writing rather than words.
-
-Ce qu'elle doit dire: on **apprend en faisant**, et on note. L'écriture
-illisible est délibérée: un texte lisible serait tranché par le repli du
-panneau, et daterait l'image.
-
-### 3. Contact — `contact.webp`
-
-> A vintage telephone handset lifted off its cradle, resting on a pale concrete
-> desk, its coiled cord curling out of frame. Shot close, slightly from above.
-> A single indigo light source behind it throws a long soft shadow toward the
-> camera. Everything else falls into darkness.
-
-Ce qu'elle doit dire: **on décroche**. C'est le produit tout entier en un objet,
-et le seul des quatre panneaux qui a le droit d'être littéral.
-
-### 4. Affiliation — `affiliation.webp`
-
-> Two dark cords on a black surface, tied together in a single clean knot at the
-> centre of the frame, each running out of opposite edges. One cord catches an
-> indigo rim light, the other a violet one. Macro, shot from directly above,
-> the knot sharp and the ends falling out of focus.
-
-Ce qu'elle doit dire: une **recommandation**, et un lien qui **dure**. Le nœud
-plutôt que la poignée de main: la commission est récurrente, elle ne se conclut
-pas en une fois. Et les deux teintes de la marque rendent les deux parties
-lisibles sans montrer personne.
-
-## Après les avoir déposées
-
-Relire le rendu, en clair ET en sombre: les fonds drenched ne basculent pas avec
-le thème, donc une image trop claire s'imposerait dans une page blanche autant
-que dans une page noire. Vérifier aussi la latte: elle ne montre qu'une bande
-verticale de 8 px prise au milieu, et si le sujet n'y est pas, la latte est un
-aplat gris.
+Relire le rendu **en clair ET en sombre**: ces images ne basculent pas avec le
+thème, donc une image trop claire s'imposerait dans une page blanche autant que
+dans une page noire. Vérifier aussi le coin **bas-gauche**: c'est là que le nom
+du panneau s'écrit en blanc, sur un dégradé sombre. Les quatre actuelles y sont
+foncées; une image claire à cet endroit demanderait de renforcer le dégradé.
