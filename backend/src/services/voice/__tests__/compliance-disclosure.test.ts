@@ -177,3 +177,52 @@ describe('ensureDisclosure — l\'accueil de ligne ne peut plus faire sauter l\'
     expect(hasAiDisclosure('Garage Dupont, bonjour !', 'fr')).toBe(false);
   });
 });
+
+/**
+ * LEG-5, le parcours complet. Le mode sans enregistrement se joue à TROIS
+ * endroits qui ne se parlent pas: le drapeau posé sur l'assistant, la phrase
+ * d'accueil qui promet (ou non) l'enregistrement, et la fin d'appel qui garde
+ * (ou non) l'URL. Chacun est testé de son côté; leur ACCORD ne l'était pas.
+ *
+ * Or le désaccord n'est pas théorique. Un assistant périmé chez Vapi, un
+ * réglage changé en cours d'appel, une surcharge d'escouade: dans chacun de
+ * ces cas l'URL arrive alors que l'appelant vient d'entendre qu'il n'est pas
+ * enregistré. Garder cette URL fait mentir la phrase.
+ */
+describe('le mode sans enregistrement, de bout en bout', () => {
+  const silent: ClientVoiceProfile = { ...profile, recordCalls: false };
+
+  it('la décision est la même aux trois endroits', () => {
+    expect(shouldRecord(silent)).toBe(false);
+    expect(shouldRecord(profile)).toBe(true);
+  });
+
+  it('l\'accueil ne promet pas un enregistrement qui n\'a pas lieu', () => {
+    for (const greeting of firstMessageVariants(silent, null)) {
+      expect(/enregistr/i.test(greeting)).toBe(false);
+    }
+  });
+
+  /**
+   * L'invariant que ce parcours existe pour protéger: couper l'enregistrement
+   * ne coupe PAS l'annonce IA. Les deux obligations sont distinctes, elles
+   * viennent de deux textes différents, et les confondre ferait sauter la plus
+   * lourde des deux en changeant une case à cocher de confort.
+   */
+  it('couper l\'enregistrement ne fait pas sauter l\'annonce IA', () => {
+    for (const greeting of firstMessageVariants(silent, null)) {
+      expect(hasAiDisclosure(greeting, 'fr')).toBe(true);
+    }
+  });
+
+  it('un client qui enregistre l\'annonce, lui', () => {
+    for (const greeting of firstMessageVariants(profile, null)) {
+      expect(/enregistr/i.test(greeting)).toBe(true);
+      expect(hasAiDisclosure(greeting, 'fr')).toBe(true);
+    }
+  });
+
+  it('le prompt ne réintroduit pas la notice quand elle ne s\'applique pas', () => {
+    expect(/enregistr/i.test(buildSystemPrompt(silent, newCaller))).toBe(false);
+  });
+});

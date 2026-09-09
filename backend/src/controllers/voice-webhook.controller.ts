@@ -189,7 +189,24 @@ export class VoiceWebhookController {
     );
 
     const vapiCallId = event.message?.call?.id || event.call?.id;
-    const recordingUrl = event.message?.recordingUrl || event.recordingUrl;
+    /* L'URL d'enregistrement, REFUSÉE si ce client a coupé l'enregistrement
+       (LEG-5). L'assistant porte déjà `recordingEnabled: false` et l'accueil
+       ne dit pas que l'appel est enregistré: si une URL arrive quand même —
+       assistant périmé chez Vapi, réglage changé en cours d'appel, surcharge
+       d'escouade — la garder ferait mentir la phrase que l'appelant a
+       entendue. La consigne et la conservation doivent tomber du même côté,
+       et c'est ici que ça se décide pour de bon.
+       Journalisé et pas seulement écarté: une URL qui arrive alors qu'elle ne
+       devrait pas dit que la configuration distante ne correspond plus. */
+    const offeredRecordingUrl = event.message?.recordingUrl || event.recordingUrl;
+    if (offeredRecordingUrl && !finalized.recordingAllowed) {
+      logger.warn(
+        `[Voice] enregistrement REFUSÉ pour ${clientId} (appel ${vapiCallId}): ` +
+          `le client a coupé l'enregistrement, mais Vapi a renvoyé une URL. ` +
+          `Vérifier que l'assistant distant est à jour.`,
+      );
+    }
+    const recordingUrl = finalized.recordingAllowed ? offeredRecordingUrl : undefined;
     const endedReason = event.message?.endedReason || event.endedReason || '';
 
     // Voicemail / no-answer: nothing to analyse, and paying GPT-4 to summarise

@@ -518,7 +518,24 @@ class RealtimeOrchestratorService {
       voiceModeSource: typeof decided === 'boolean' ? 'session' : profile ? 'profile' : 'unknown',
     };
 
-    return { transcript, durationSeconds, callerNumber: callerNumberOf(event), metrics, billing, voiceMode };
+    /* Ce client accepte-t-il d'être enregistré (LEG-5) ?
+       Rendu ICI parce que le profil est déjà chargé, et parce que le seul
+       autre endroit qui le sait est la construction de l'assistant, en début
+       d'appel. Sans ce drapeau, la fin d'appel écrit l'URL que Vapi lui donne,
+       quelle qu'elle soit.
+       `true` quand le profil est illisible: le doute penche du côté où l'on
+       garde une preuve, jamais du côté où l'on en fabrique une en cachette. */
+    const recordingAllowed = profile ? shouldRecord(profile) : true;
+
+    return {
+      transcript,
+      durationSeconds,
+      callerNumber: callerNumberOf(event),
+      metrics,
+      billing,
+      voiceMode,
+      recordingAllowed,
+    };
   }
 
   /**
