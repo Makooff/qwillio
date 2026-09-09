@@ -16,6 +16,7 @@ const {
   clientCreate,
   checkoutCreate,
   pricesList,
+  pricesRetrieve,
   analyticsUpsert,
 } = vi.hoisted(() => ({
   userFindUnique: vi.fn(),
@@ -25,6 +26,7 @@ const {
   clientCreate: vi.fn(),
   checkoutCreate: vi.fn(),
   pricesList: vi.fn(),
+  pricesRetrieve: vi.fn(),
   analyticsUpsert: vi.fn(),
 }));
 
@@ -41,7 +43,7 @@ vi.mock('../../config/logger', () => ({
 vi.mock('../../config/stripe', () => ({
   stripe: {
     checkout: { sessions: { create: checkoutCreate } },
-    prices: { list: pricesList, create: vi.fn() },
+    prices: { list: pricesList, retrieve: pricesRetrieve, create: vi.fn() },
   },
 }));
 vi.mock('../discord.service', () => ({ discordService: { notify: vi.fn() } }));
@@ -81,6 +83,15 @@ beforeEach(() => {
   userFindUnique.mockResolvedValue(CONFIRMED_USER);
   clientFindUnique.mockResolvedValue(null);
   pricesList.mockResolvedValue({ data: [{ id: 'price_live' }] });
+  /* Un prix retrouvé par clé de recherche a pu être créé sous une tarification
+     précédente: la caisse le RELIT et refuse d'ouvrir s'il ne correspond plus au
+     plan (voir stripe-price-guard.test.ts). Ici il correspond, 599 €/mois. */
+  pricesRetrieve.mockResolvedValue({
+    unit_amount: 59900,
+    currency: 'eur',
+    recurring: { interval: 'month' },
+    active: true,
+  });
   checkoutCreate.mockResolvedValue({ id: 'cs_1', url: 'https://checkout.stripe.com/c/pay/cs_1' });
 });
 
