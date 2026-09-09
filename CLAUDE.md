@@ -343,11 +343,13 @@ jamais eu d'assistant du tout. `services/voice/vapi-limits.ts` coupe désormais
 l'entreprise plutôt que l'agent, et `config/vapi.ts` repose la borne sur le
 passage obligé, pour que le prochain appelant qui composera un nom ne retombe pas
 dans le même mur.
-Les autres champs du 09/09 (`firstMessageInterruptionsEnabled`,
-`customEndpointingRules`, `transferPlan.dialTimeout`, `keyterm`/`keywords`)
-n'ont encore rien prouvé : le refus portait sur le nom et sur les délimiteurs,
-et Vapi rend ses erreurs par lot, donc un champ tu n'est pas un champ accepté.
-Ils ne seront validés qu'au passage suivant du script.
+Le second passage, une fois ces deux-là corrigés, a **accepté les six
+variantes**. Les autres champs du 09/09 (`firstMessageInterruptionsEnabled`,
+`customEndpointingRules`, `transferPlan.dialTimeout`, `keyterm`/`keywords`, et
+`keypadInputPlan` sous sa forme corrigée) sont donc vus et acceptés par l'API
+vivante, pas seulement par nos tests. Le premier passage ne le disait pas : Vapi
+rend ses erreurs par lot, donc un champ tu n'est pas un champ accepté, et il
+faut relancer le script jusqu'au vert avant de conclure quoi que ce soit.
 **Piège Deepgram** : `keyterm` n'existe que sur Nova-3, `keywords` sur Nova-2 et
 en dessous, et nos langues ne tournent pas sur le même modèle (fr/en en Nova-3,
 nl en Nova-2). Le champ se choisit par modèle, jamais globalement.

@@ -61,6 +61,50 @@ describe('handleCheckoutCompleted — idempotency', () => {
   });
 });
 
+/**
+ * Le garde-fou se retournait contre le paiement qu'il devait protéger.
+ *
+ * Une session en mode abonnement n'a pas d'intention de paiement, elle a une
+ * facture. Prisma traduit `{ stripePaymentIntentId: null }` en `IS NULL`, et
+ * TOUTES nos lignes de paiement sont écrites sans intention: la requête
+ * retrouvait donc la première venue et déclarait « déjà traitée » une session
+ * qui ne l'était pas. Dès la première mensualité encaissée de la flotte, plus
+ * une seule conversion d'essai ne passait par ce chemin, en silence.
+ */
+describe('handleCheckoutCompleted — une session sans intention de paiement', () => {
+  it('ne prend pas une ligne de paiement quelconque pour elle-même', async () => {
+    // Une ligne existe déjà en base, sans intention (cas de toutes les nôtres).
+    paymentFindFirst.mockResolvedValue({ id: 'p_mensualite' });
+    clientFindUnique.mockResolvedValue({ id: 'client_1', isTrial: false });
+
+    await stripeService.handleCheckoutCompleted({
+      id: 's3',
+      payment_intent: null,
+      client_reference_id: 'client_1',
+      metadata: {},
+    });
+
+    // Le garde-fou ne s'applique pas: il n'y a rien à comparer.
+    expect(paymentFindFirst).not.toHaveBeenCalled();
+    // Et le traitement continue.
+    expect(clientFindUnique).toHaveBeenCalledWith({ where: { id: 'client_1' } });
+  });
+
+  it('garde le garde-fou quand la session porte bien une intention', async () => {
+    paymentFindFirst.mockResolvedValue({ id: 'p_existing' });
+
+    await stripeService.handleCheckoutCompleted({
+      id: 's4',
+      payment_intent: 'pi_2',
+      client_reference_id: 'client_1',
+      metadata: {},
+    });
+
+    expect(paymentFindFirst).toHaveBeenCalledWith({ where: { stripePaymentIntentId: 'pi_2' } });
+    expect(clientFindUnique).not.toHaveBeenCalled();
+  });
+});
+
 describe('handleSelfOnboardingCheckout — idempotency', () => {
   it('does not re-create a Client that already exists for the user', async () => {
     clientFindUnique.mockResolvedValue({ id: 'client_existing', userId: 'u1' });
