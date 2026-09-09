@@ -26,13 +26,27 @@ export class StripeService {
       return;
     }
 
-    // Idempotency: check if this session was already processed
-    const existingPayment = await prisma.payment.findFirst({
-      where: { stripePaymentIntentId: session.payment_intent },
-    });
-    if (existingPayment) {
-      logger.info(`Session ${session.id} already processed (payment ${existingPayment.id}), skipping`);
-      return;
+    /* Rejeu: on ne garde que si la session PORTE une intention de paiement.
+       En SQL, `WHERE colonne = NULL` ne matche rien, mais Prisma traduit
+       `{ stripePaymentIntentId: null }` en `IS NULL` — et une session en mode
+       abonnement n'a pas d'intention de paiement, elle a une facture. La
+       requête retrouvait donc la première ligne de paiement venue (toutes sont
+       écrites sans intention, seulement avec un identifiant de facture) et
+       déclarait « déjà traitée » une session qui ne l'était pas. Dès la
+       première mensualité encaissée de la flotte, ce chemin refusait toutes les
+       conversions d'essai, en silence, avec un journal qui disait le contraire.
+       La protection contre le rejeu de ce chemin-là ne venait de toute façon
+       pas d'ici: il n'écrit aucune ligne de paiement. C'est `isTrial` qui la
+       porte, ci-dessous — la conversion le passe à faux, donc un rejeu ne
+       rentre plus. */
+    if (typeof session.payment_intent === 'string' && session.payment_intent) {
+      const existingPayment = await prisma.payment.findFirst({
+        where: { stripePaymentIntentId: session.payment_intent },
+      });
+      if (existingPayment) {
+        logger.info(`Session ${session.id} already processed (payment ${existingPayment.id}), skipping`);
+        return;
+      }
     }
 
     const referenceId = session.client_reference_id || session.metadata?.quote_id;
