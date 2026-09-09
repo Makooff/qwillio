@@ -145,3 +145,66 @@ describe('analyseClient — tools and cost', () => {
     expect(await codes(calls(10, { callerTurns: 5 }))).not.toContain('cache_missing');
   });
 });
+
+/**
+ * TST-9: un taux d'abandon global ne dit rien d'exploitable.
+ *
+ * Il mélange l'appelant qui raccroche en entendant une voix de synthèse et
+ * celui qui décroche au moment de donner sa carte. Découpé par tour, il pointe
+ * l'endroit exact où l'agent perd les gens — et cet endroit désigne une cause
+ * différente à chaque fois.
+ */
+describe('analyseClient — l\'abandon par index de tour', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  /** N appels abandonnés au tour donné. */
+  const lost = (n: number, callerTurns: number, outcome: string | null = 'missed') =>
+    Array.from({ length: n }, () => ({ metadata: { realtime: { callerTurns } }, outcome }));
+
+  it('découpe les abandons par tour et nomme le pire', async () => {
+    findMany.mockResolvedValue([...lost(8, 1), ...lost(2, 5)]);
+    const report = await receptionistLearningService.analyseClient('client_1');
+    const finding = report.findings.find(f => f.code === 'abandon_by_turn')!;
+
+    expect(finding.detail).toContain('tour 1: 8');
+    expect(finding.detail).toContain('tours 4-6: 2');
+    expect(finding.subject).toBe('tour 1');
+  });
+
+  it('donne une action DIFFÉRENTE selon l\'endroit où ils partent', async () => {
+    findMany.mockResolvedValue(lost(10, 1));
+    const early = (await receptionistLearningService.analyseClient('c')).findings
+      .find(f => f.code === 'abandon_by_turn')!;
+    // Au premier tour ils n'ont entendu que l'accueil.
+    expect(early.action).toMatch(/accueil/);
+
+    findMany.mockResolvedValue(lost(10, 8));
+    const late = (await receptionistLearningService.analyseClient('c')).findings
+      .find(f => f.code === 'abandon_by_turn')!;
+    // Au huitième ils étaient engagés: c'est la prise de rendez-vous.
+    expect(late.action).toMatch(/rendez-vous|collecte/);
+  });
+
+  /**
+   * Une liste POSITIVE d'issues d'abandon, et pas « tout ce qui n'est pas un
+   * succès »: une issue inconnue comptée comme un abandon ferait crier au loup
+   * sur toute la flotte, et un rapport qui se trompe une fois est un rapport
+   * qu'on cesse de lire.
+   */
+  it('ne compte pas comme abandon une issue qu\'il ne connaît pas', async () => {
+    findMany.mockResolvedValue(lost(12, 1, 'un_nouveau_statut'));
+    const codes = (await receptionistLearningService.analyseClient('c')).findings.map(f => f.code);
+    expect(codes).not.toContain('abandon_by_turn');
+  });
+
+  it('ne compte ni la plainte ni le transfert, qui sont de vraies conversations', async () => {
+    findMany.mockResolvedValue([...lost(6, 2, 'complaint'), ...lost(6, 2, 'transferred')]);
+    const codes = (await receptionistLearningService.analyseClient('c')).findings.map(f => f.code);
+    expect(codes).not.toContain('abandon_by_turn');
+  });
+
+  it('se tait en dessous du plancher de bruit', async () => {
+    findMany.mockResolvedValue(lost(3, 1));
+    expect((await receptionistLearningService.analyseClient('c')).findings).toEqual([]);
+  });
+});

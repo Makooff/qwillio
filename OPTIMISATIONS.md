@@ -664,8 +664,10 @@ Le meilleur signal neutre du domaine est EVA-Bench : sur douze systèmes évalu�
 
 ### TST-9 — Suivre l'abandon par index de tour
 
-- **Statut** : `ABSENT`
-- **Preuve** : Le nombre de tours de l'appelant est bien conservé par appel (`callerTurns`, `backend/src/services/voice/call-session.store.ts:52`, persisté dans `metadata.realtime`), mais rien ne croise l'abandon avec l'index du tour : aucun histogramme, aucune vue hebdomadaire, et le tableau de bord client n'affiche que des issues d'appel.
+- **Statut** : `PARTIEL`
+- **Preuve** : L'abandon est découpé par index de tour et remonte dans le rapport hebdomadaire (`receptionist-learning.service.ts`, code `abandon_by_turn`) : histogramme tour 1 / 2 / 3 / 4-6 / 7+, le pire tour nommé, et surtout une ACTION différente selon l'endroit où ils partent — au tour 1 ils n'ont entendu que l'accueil, aux tours 2-3 la première réponse n'a pas suffi, plus tard c'est la prise de rendez-vous qui les perd. Confondre les trois est précisément ce qui rend un taux global inexploitable. 5 tests.
+- **Le choix qui protège le rapport** : la liste des issues « sans résultat » est POSITIVE (`missed`, `other`, ou rien). Compter comme abandon « tout ce qui n'est pas un succès » ferait crier au loup dès qu'une issue nouvelle apparaîtrait dans le vocabulaire, et un rapport hebdomadaire qui se trompe une fois est un rapport qu'on cesse de lire.
+- **Ce qui manque** : l'histogramme n'est pas AFFICHÉ dans le tableau de bord, il est écrit dans le rapport hebdomadaire. Et il n'a encore rien à décrire : aucun appel entrant réel.
 - **Action** : Un abandon au tour 1 et un abandon au tour 7 n'ont pas les mêmes causes.
 - **Pourquoi** : Le taux d'abandon global ne dit rien d'exploitable. Découpé par tour, il pointe directement l'endroit où l'agent perd les gens.
 - **Critère d'acceptation** : Histogramme dans le tableau de bord, revu chaque semaine.
@@ -687,6 +689,7 @@ Le meilleur signal neutre du domaine est EVA-Bench : sur douze systèmes évalu�
 
 | Date | Ligne | De → vers | Commit | Note |
 |---|---|---|---|---|
+| 2026-09-09 | TST-9 | `ABSENT` → `PARTIEL` | `claude/optimisations-audit-vocal-68tgg2` | Abandon découpé par index de tour dans le rapport hebdomadaire, avec une action différente selon l'endroit où l'appelant part. Reste l'affichage au tableau de bord, et des appels à décrire. |
 | 2026-09-09 | REL-5 | preuve complétée, reste `PARTIEL` | `claude/optimisations-audit-vocal-68tgg2` | « Dans le doute, c'est un humain » écrit en tête du bloc de détection, marqueur « voix trop parfaite » retiré (c'est la description d'une secrétaire expérimentée), et la règle sort des deux prompts pour vivre dans un seul module. |
 | 2026-09-09 | LEG-4 | preuve complétée, reste `PARTIEL` | `claude/optimisations-audit-vocal-68tgg2` | Chaque appel porte sa date limite, posée à l'écriture; la purge efface au premier des deux termes échus. Le plafond à cinq ans reste une décision à prendre, pas un correctif. |
 | 2026-09-09 | REL-3 | `PARTIEL` → `DÉJÀ FAIT` | `claude/optimisations-audit-vocal-68tgg2` | Le plafond sur le premier token descend de 4 s à 2,5 s, réglable, et un test bloque le modèle pour vérifier que la phrase de secours part avant trois secondes. Phrase de secours ajoutée en néerlandais. |
