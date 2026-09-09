@@ -6,6 +6,8 @@ import { useLang } from '../../../stores/langStore';
 import { useAuthStore } from '../../../stores/authStore';
 import api from '../../../services/api';
 import { captureBillingPeriod, clearBillingPeriod, readBillingPeriod } from '../../../lib/billingPeriod';
+import type { BillingPeriod } from '../../../lib/billingPeriod';
+import { annualTotalEur, annualMonthlyEquivalentEur } from '../../../lib/pricing';
 import AuthShell, { AUTH_ALERT, AUTH_FIELD, AUTH_LABEL, AUTH_SUBMIT } from './AuthShell';
 
 /**
@@ -41,11 +43,22 @@ export default function Subscribe() {
   const [businessName, setBusinessName] = useState('');
   const [industry, setIndustry] = useState('');
   const [selectedPlan, setSelectedPlan] = useState('pro');
+  /* Le choix fait sur la page tarifs sert de DÉFAUT, pas de verdict: on arrive
+     aussi ici par « Essayer » dans la nav, sans être passé par les tarifs. Sans
+     ce sélecteur, cette page affichait des prix mensuels tout en pouvant
+     facturer douze mois d'un coup — le même écart entre l'annoncé et le
+     prélevé que la caisse a produit le 09/09. */
+  const [billing, setBilling] = useState<BillingPeriod>('monthly');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
-  /* On peut aussi atterrir directement ici depuis un lien tarifaire. */
-  useEffect(() => captureBillingPeriod(window.location.search), []);
+  /* On peut aussi atterrir directement ici depuis un lien tarifaire. La
+     capture d'abord, la lecture ensuite: l'ordre décide si `?billing=annual`
+     est vu ou perdu. */
+  useEffect(() => {
+    captureBillingPeriod(window.location.search);
+    setBilling(readBillingPeriod());
+  }, []);
 
   useEffect(() => {
     if (searchParams.get('payment') === 'cancelled') {
@@ -64,9 +77,11 @@ export default function Subscribe() {
         businessName: businessName.trim(),
         industry: industry || null,
         planType: selectedPlan,
-        /* Choisie sur la page tarifs, portée jusqu'ici. Le back refait le
-           contrôle: seul « annual » vaut annuel. */
-        billingPeriod: readBillingPeriod(),
+        /* Ce que l'écran AFFICHE, pas ce que le stockage retient: les deux
+           coïncident tant que personne ne touche au sélecteur, et c'est le
+           sélecteur qui a raison. Le back refait le contrôle: seul « annual »
+           vaut annuel. */
+        billingPeriod: billing,
       });
       if (data?.checkoutUrl) {
         /* Le choix a servi: le laisser traîner ferait basculer en annuel une
@@ -97,7 +112,9 @@ export default function Subscribe() {
       title={isFr ? 'Votre forfait' : 'Your plan'}
       subtitle={isFr
         ? `${TRIAL_DAYS} jours d'essai. Carte requise, rien n'est débité avant la fin de l'essai.`
-        : `${TRIAL_DAYS}-day trial. Card required, nothing is charged until the trial ends.`}
+          + (billing === 'annual' ? ' Ensuite, douze mois prélevés en une fois.' : '')
+        : `${TRIAL_DAYS}-day trial. Card required, nothing is charged until the trial ends.`
+          + (billing === 'annual' ? ' After that, twelve months are charged at once.' : '')}
       headerRight={
         <>
           <span className="text-sm text-q2-body">{isFr ? 'Étape 1 / 2' : 'Step 1 / 2'}</span>
@@ -144,6 +161,42 @@ export default function Subscribe() {
         </select>
       </label>
 
+      {/* Même vocabulaire que le sélecteur de la page tarifs, et comme lui il ne
+          s'anime PAS: un choix qu'on bascule pour comparer doit répondre à
+          l'instant, pas jouer une transition à chaque aller-retour. */}
+      <div
+        role="group"
+        aria-label={isFr ? 'Fréquence de facturation' : 'Billing frequency'}
+        className="inline-flex items-center gap-1 p-1 mb-4 rounded-full border border-q2-plate bg-q2-band"
+      >
+        {(['monthly', 'annual'] as const).map(période => (
+          <button
+            key={période}
+            type="button"
+            onClick={() => setBilling(période)}
+            aria-pressed={billing === période}
+            className={`inline-flex items-center gap-2 px-5 py-2 rounded-full text-[13px] font-medium transition-none focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 active:scale-[0.97] ${
+              billing === période
+                ? 'bg-q2-ink text-q2-canvas'
+                : 'text-q2-body hover:bg-q2-plate'
+            }`}
+          >
+            {période === 'monthly'
+              ? (isFr ? 'Mensuel' : 'Monthly')
+              : (isFr ? 'Annuel' : 'Annual')}
+            {période === 'annual' && (
+              <span
+                className={`text-[10px] font-semibold tracking-[0.08em] uppercase px-1.5 py-0.5 rounded-full ${
+                  billing === 'annual' ? 'bg-white/15 text-q2-canvas' : 'bg-q2-plate text-q2-graphite'
+                }`}
+              >
+                −20&nbsp;%
+              </span>
+            )}
+          </button>
+        ))}
+      </div>
+
       <div className="space-y-3">
         {PLANS.map(plan => (
           <button
@@ -181,8 +234,19 @@ export default function Subscribe() {
             </span>
 
             <span className="flex-shrink-0 text-right leading-tight whitespace-nowrap">
-              <span className="text-lg font-light text-q2-ink tabular-nums">{plan.price}&nbsp;€</span>
+              <span className="text-lg font-light text-q2-ink tabular-nums">
+                {(billing === 'annual' ? annualMonthlyEquivalentEur(plan.price) : plan.price)}&nbsp;€
+              </span>
               <span className="text-sm text-q2-body">{isFr ? '/mois' : '/mo'}</span>
+              {billing === 'annual' && (
+                /* Le montant réellement prélevé, en une fois. L'équivalent
+                   mensuel au-dessus aide à comparer, celui-ci engage. */
+                <span className="block text-[11px] text-q2-body mt-1 tabular-nums">
+                  {isFr
+                    ? `Facturé ${annualTotalEur(plan.price).toLocaleString('fr-FR')} €/an`
+                    : `Billed €${annualTotalEur(plan.price).toLocaleString('fr-FR')}/yr`}
+                </span>
+              )}
             </span>
           </button>
         ))}

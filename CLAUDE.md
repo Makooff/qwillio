@@ -391,6 +391,51 @@ et en SQL un NULL ne matche aucune comparaison. Ces lignes n'étaient donc échu
 purge porte ce piège** : il ne se voit pas, la requête réussit et ne supprime
 simplement rien.
 
+### 6duodecies. Le prix AFFICHÉ et le prix PRÉLEVÉ sont deux objets sans lien (09/09/2026)
+La page annonçait 599 €/mois, la caisse Stripe ouverte depuis cette page disait
+« Qwillio Pro, 1297,00 € par mois ». `config/plans.ts` décide de l'affichage, un
+objet Price chez Stripe décide du prélèvement, et **`STRIPE_PRICE_<PLAN>_MONTHLY`
+court-circuite même le tarif du code** sans rien vérifier : la variable pointait
+un prix d'une tarification précédente (497 / 1297 / 2497).
+Un client aurait signé pour 599 et payé 1297. Ce n'est pas un défaut d'affichage,
+c'est le mauvais montant sur une vraie carte, invisible jusqu'au premier relevé.
+La caisse **relit** désormais le prix et REFUSE de s'ouvrir en cas d'écart, sur le
+montant, la devise ou la période — un prix annuel sur un plan mensuel prélèverait
+douze mois d'un coup au bon montant unitaire, seul l'intervalle le trahit. Un prix
+créé à l'instant depuis `plans.ts` n'est pas relu : il est juste par construction.
+`npm run stripe:prices` pose la même question pour toute la grille, en lecture
+seule.
+**Ne jamais créer un produit à la main dans le tableau de bord Stripe** : c'est
+exactement ce qui a produit le 1297. Le code crée ses prix depuis `plans.ts` et
+les retrouve par clé de recherche (`qwillio_<plan>_<période>_eur`). Le geste de
+réparation n'est donc pas « corriger le prix », c'est **retirer la variable**.
+
+### 6terdecies. Un code promo Stripe ne contient QUE des lettres et des chiffres (09/09/2026)
+`stripe/types/PromotionCodesResource.d.ts`, champ `code` : « Valid characters are
+lower case letters (a-z), upper case letters (A-Z), and digits (0-9). » Ni point,
+ni tiret, ni espace. L'exemple que le script donnait lui-même
+(`QWILLIO-TEST-2026`) envoyait donc dans le mur, et Stripe répond en nommant le
+champ sans nommer le caractère fautif. La vérification a lieu avant le moindre
+appel réseau, et pour une seconde raison : la création se fait en DEUX temps,
+coupon puis code, et échouer au second laissait un coupon à 100 % **orphelin**,
+sans code, invisible dans le parcours mais applicable à la main depuis le tableau
+de bord. Chaque tentative ratée en ajoutait un.
+Le code se saisit **une seule fois**, au passage en caisse qui convertit l'essai :
+avec `max_redemptions: 1`, le saisir à l'inscription l'épuiserait avant le moment
+qui compte, et rien n'est prélevé pendant l'essai de toute façon.
+
+### 6quaterdecies. Vérifier SUR QUEL COMPTE Stripe on travaille (09/09/2026)
+Deux comptes existaient : « Pulse » (`acct_1SpyVdLn8Jp3Hstt`), qui portait
+l'ancienne grille et servait la production, et « Qwillio »
+(`acct_1TO2L5BFji4kf0Gb`), vide. La caisse affichait donc **« Pulse »** au client,
+et l'ancienne grille avec. Un compte se change en cinq gestes, pas un :
+la clé (`STRIPE_SECRET_KEY`), les quatre variables de prix à **supprimer**, un
+nouveau point de terminaison webhook vers `/api/webhooks/stripe` avec ses six
+événements et son secret (`STRIPE_WEBHOOK_SECRET`), le **nom public** du compte,
+et les coupons à recréer — un coupon appartient à un compte.
+Sans le webhook, un paiement réussit et ne crée RIEN : ni client, ni assistant,
+ni numéro. C'est le geste qu'on oublie, parce que la caisse, elle, marche.
+
 ### 6undecies. Un changement d'offre REMPLACE l'essai, il ne s'y ajoute pas (09/09/2026)
 Le bouton « Upgrader » du portail ouvre une caisse Stripe, et une caisse crée un
 **nouvel** abonnement. L'essai, lui, restait ouvert : même client, même carte,
