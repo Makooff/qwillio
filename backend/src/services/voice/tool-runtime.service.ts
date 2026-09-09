@@ -8,6 +8,7 @@ import { callerMemoryService } from './caller-memory.service';
 import { businessMemoryService } from './business-memory.service';
 import { availabilitySpeculator } from './availability-speculator';
 import { parseSpokenPhone } from '../../utils/phone-spoken';
+import { phoneWords } from '../../utils/text-for-speech';
 
 /**
  * Tool runtime (Phase 4).
@@ -63,14 +64,33 @@ function parseDate(raw: unknown): Date | null {
  * relecture est aussi la seule chose qui lève une ambiguïté que la machine ne
  * voit pas (un mobile belge et un fixe français peuvent avoir la même suite).
  */
-const RETRY_PHONE: Record<string, string> = {
-  fr: 'NUMÉRO NON RECONNU. Le reste de la fiche est noté. Relis le numéro chiffre par chiffre à l\'appelant, '
-    + 'demande-lui de confirmer, puis rappelle captureLead avec le numéro corrigé.',
-  en: 'PHONE NOT RECOGNISED. The rest of the lead is saved. Read the number back digit by digit, '
-    + 'ask the caller to confirm, then call captureLead again with the corrected number.',
-  nl: 'NUMMER NIET HERKEND. De rest van de fiche is genoteerd. Lees het nummer cijfer voor cijfer terug, '
-    + 'vraag de beller om te bevestigen, en roep captureLead opnieuw aan met het juiste nummer.',
-};
+function retryPhone(lang: string, heard: string): string {
+  /* Les chiffres ENTENDUS sont rendus à l'agent en toutes lettres, et c'est le
+     cœur du geste: relire un numéro faux est précisément ce qui permet à
+     l'appelant de repérer LEQUEL de ses chiffres a été mal compris. Lui
+     demander de tout redicter à l'aveugle recommence la même erreur.
+     En toutes lettres, parce qu'une suite de chiffres bruts envoyée au
+     synthétiseur se prononce d'une façon qu'on ne contrôle pas (BEL-12). */
+  const spelled = heard ? phoneWords(heard) : '';
+  const readBack = {
+    fr: spelled ? ` J'ai entendu: ${spelled}.` : '',
+    en: spelled ? ` What I heard: ${spelled}.` : '',
+    nl: spelled ? ` Wat ik hoorde: ${spelled}.` : '',
+  };
+
+  const base: Record<string, string> = {
+    fr: 'NUMÉRO NON RECONNU. Le reste de la fiche est noté.' + readBack.fr
+      + ' Relis-le à l\'appelant chiffre par chiffre, demande-lui de corriger, '
+      + 'puis rappelle captureLead avec le numéro corrigé.',
+    en: 'PHONE NOT RECOGNISED. The rest of the lead is saved.' + readBack.en
+      + ' Read it back digit by digit, ask the caller to correct it, '
+      + 'then call captureLead again with the corrected number.',
+    nl: 'NUMMER NIET HERKEND. De rest van de fiche is genoteerd.' + readBack.nl
+      + ' Lees het cijfer voor cijfer terug, vraag de beller om te corrigeren, '
+      + 'en roep captureLead opnieuw aan met het juiste nummer.',
+  };
+  return base[lang] ?? base.en;
+}
 
 /** "14:30" → 870 minutes. Returns null on anything that is not a 24h clock. */
 function parseTimeToMinutes(raw: unknown): number | null {
@@ -452,7 +472,7 @@ class ToolRuntimeService {
       /* La consigne nomme le geste attendu, elle ne décrit pas l'erreur: un
          modèle à qui l'on dit « invalide » s'excuse, un modèle à qui l'on dit
          « relis chiffre par chiffre et redemande » le fait. */
-      return RETRY_PHONE[profile.language] ?? RETRY_PHONE.en;
+      return retryPhone(profile.language, dictated.digits);
     }
 
     return profile.language === 'fr' ? 'NOTE. Continue la conversation.' : 'NOTED. Continue the conversation.';

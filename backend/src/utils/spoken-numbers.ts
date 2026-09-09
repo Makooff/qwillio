@@ -143,7 +143,7 @@ function readTeen(tokens: string[], k: number): { value: number; next: number } 
  * chiffre au milieu d'un numéro.
  */
 export function spokenDigits(raw: string): string {
-  const tokens = tokenize(raw);
+  const tokens = tokenize(raw ?? '');
   let out = '';
 
   for (let i = 0; i < tokens.length; ) {

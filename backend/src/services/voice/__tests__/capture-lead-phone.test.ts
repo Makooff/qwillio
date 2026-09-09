@@ -89,8 +89,21 @@ describe('captureLead — le numéro que l\'appelant dicte', () => {
     // chiffre douteux perdrait tout ce que l'appelant vient de donner.
     expect(create).toHaveBeenCalledTimes(1);
     // Et la consigne nomme le geste attendu, pas l'erreur.
-    expect(r.result).toMatch(/relis le numéro chiffre par chiffre/i);
+    expect(r.result).toMatch(/relis-le à l'appelant chiffre par chiffre/i);
     expect(r.result).toMatch(/captureLead/);
+  });
+
+  /**
+   * Relire un numéro FAUX est ce qui permet à l'appelant de repérer lequel de
+   * ses chiffres a été mal compris. Lui demander de tout redicter à l'aveugle
+   * recommence la même erreur.
+   */
+  it('rend à l\'agent les chiffres entendus, en toutes lettres', async () => {
+    const r = await capture({ reason: 'devis', phone: 'zéro quatre septante-cinq douze' });
+    expect(r.result).toContain('zéro quatre sept cinq un deux');
+    // En toutes lettres et pas en chiffres bruts: une suite de chiffres
+    // envoyée au synthétiseur se prononce d'une façon qu'on ne contrôle pas.
+    expect(r.result).not.toContain('047512');
   });
 
   it('ne demande rien de plus quand aucun numéro n\'a été proposé', async () => {
