@@ -421,8 +421,10 @@ Les fils de support des plateformes sont la source la plus honnête de tout ce d
 
 ### REL-3 — Un détecteur de silence
 
-- **Statut** : `PARTIEL`
-- **Preuve** : Deux garde-temps existent : un plafond de 4 s sur le premier token, qui bascule sur une phrase parlée (`backend/src/services/voice/llm-stream.service.ts:64` et `:200`), et le plan de relance de Vapi à 8 s (`speech-plans.ts:724`, `env.ts:385`, plancher Vapi 5 s — `conversational-repair.ts:97`). Ce qui manque : aucun des deux ne part avant 3 secondes, aucun ne surveille le silence de l'agent hors de ces deux chemins précis, et aucun test ne bloque le LLM pour le vérifier.
+- **Statut** : `DÉJÀ FAIT` (chemin custom-LLM)
+- **Preuve** : Le plafond sur le premier token passe de 4 s à **2,5 s** et devient réglable sans déploiement (`VOICE_FIRST_TOKEN_TIMEOUT_MS`, lu à chaque tour dans `llm-stream.service.ts`). Le test demandé existe : il bloque le modèle pour de bon (une promesse qui ne se résout jamais, rejetée sur l'abandon), avance l'horloge à 2,9 s et vérifie que la phrase de secours est DÉJÀ partie (`__tests__/llm-stream.test.ts`). La phrase existe aussi en néerlandais, sans quoi un appelant flamand s'entendait répondre en anglais au moment précis où quelque chose venait de mal se passer.
+- **Le compromis, assumé** : un modèle lent mais vivant se fait couper, et l'appelant entend « pouvez-vous répéter ? » au lieu de la vraie réponse. Entre les deux, une phrase de trop vaut mieux qu'un silence de trop.
+- **Portée** : le chemin custom-LLM, donc toute la flotte. En parole-à-parole, le garde-temps reste celui de Vapi.
 - **Action** : Un silence de l'agent supérieur à 3 secondes déclenche une action, sans attendre le timeout du fournisseur.
 - **Pourquoi** : Le silence est le mode d'échec le plus fréquent et le plus dommageable. Personne ne le surveille activement.
 - **Critère d'acceptation** : Test : bloquer artificiellement le LLM. Une phrase de secours part avant 3 secondes.
@@ -678,6 +680,7 @@ Le meilleur signal neutre du domaine est EVA-Bench : sur douze systèmes évalu�
 
 | Date | Ligne | De → vers | Commit | Note |
 |---|---|---|---|---|
+| 2026-09-09 | REL-3 | `PARTIEL` → `DÉJÀ FAIT` | `claude/optimisations-audit-vocal-68tgg2` | Le plafond sur le premier token descend de 4 s à 2,5 s, réglable, et un test bloque le modèle pour vérifier que la phrase de secours part avant trois secondes. Phrase de secours ajoutée en néerlandais. |
 | 2026-09-09 | TUR-7, TUR-10 | preuve complétée, restent `PARTIEL` | `claude/optimisations-audit-vocal-68tgg2` | Mots d'arrêt et acquiescements réglables par client puis par environnement, dédoublonnés (Vapi refuse l'assistant entier sur une répétition) et jamais vides. Les deux critères demandent une mesure sur appel réel. |
 | 2026-09-09 | BEL-12 | preuve complétée, reste `PARTIEL` | `claude/optimisations-audit-vocal-68tgg2` | Normaliseur de sortie écrit et testé (30 numéros, 20 adresses), vérifié par aller-retour contre le lecteur de BEL-1. Le flux du modèle n'est pas encore normalisé : ce chemin porte la latence, et aucune mesure n'existe pour arbitrer. |
 | 2026-09-09 | BEL-1, BEL-2, BEL-3, BEL-8 | `ABSENT` → `DÉJÀ FAIT` | `claude/optimisations-audit-vocal-68tgg2` | La chaîne complète du numéro dicté : « septante-cinq » lu en chiffres, gabarits belges par libphonenumber (métadonnée complète, pas réduite), validation avant écriture avec relance, et les belgicismes appris au modèle. Aucun numéro dicté n'était capté nulle part avant. |

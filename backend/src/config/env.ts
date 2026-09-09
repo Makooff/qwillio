@@ -191,6 +191,22 @@ export const env = {
    */
   VOICE_ACKNOWLEDGEMENT_PHRASES: (process.env.VOICE_ACKNOWLEDGEMENT_PHRASES || '')
     .split(',').map(s => s.trim().toLowerCase()).filter(Boolean),
+  /**
+   * Le temps qu'on accorde au modèle pour son PREMIER token, avant de parler à
+   * sa place.
+   *
+   * 2,5 s et non 4: le silence est le mode d'échec le plus fréquent et le plus
+   * dommageable d'un appel, et trois secondes sans réponse s'entendent comme
+   * une ligne coupée. Le coût du compromis est réel et assumé: un modèle lent
+   * mais vivant se fait couper, et l'appelant entend « pouvez-vous répéter ? »
+   * au lieu de la vraie réponse. Entre les deux, on préfère une phrase de trop
+   * à un silence de trop.
+   * Au-delà du premier token la limite ne s'applique plus: le tour est vivant.
+   */
+  VOICE_FIRST_TOKEN_TIMEOUT_MS: Math.max(
+    500,
+    parseInt(process.env.VOICE_FIRST_TOKEN_TIMEOUT_MS || '2500', 10) || 2500,
+  ),
   /** First TTS chunk size — smaller means audio starts sooner. */
   /**
    * Taille du PREMIER morceau de texte envoyé au synthétiseur.

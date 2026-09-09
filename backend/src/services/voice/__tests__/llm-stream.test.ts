@@ -224,6 +224,66 @@ describe('llmStreamService.handle — proxied turns', () => {
  * tour repart chez le modèle le transfert redevient une décision de modèle,
  * c'est-à-dire ce que cette ligne existe pour supprimer.
  */
+/**
+ * REL-3: le silence est le mode d'échec le plus fréquent et le plus
+ * dommageable d'un appel, et personne ne le surveille activement.
+ *
+ * Trois secondes sans un son s'entendent comme une ligne coupée. Le test bloque
+ * donc le modèle pour de bon, et vérifie qu'une phrase part AVANT.
+ */
+describe('llmStreamService — un modèle qui ne répond pas', () => {
+  it('parle avant trois secondes plutôt que de laisser le silence', async () => {
+    vi.useFakeTimers();
+    const started = Date.now();
+
+    // Un modèle qui ne rendra jamais la main: seul l'abandon peut sauver le
+    // tour, et c'est exactement ce qu'on veut voir arriver.
+    vi.spyOn(globalThis, 'fetch').mockImplementation(
+      (_url, init) =>
+        new Promise((_resolve, reject) => {
+          (init as RequestInit)?.signal?.addEventListener('abort', () =>
+            reject(Object.assign(new Error('aborted'), { name: 'AbortError' })),
+          );
+        }) as Promise<Response>,
+    );
+
+    const stream = makeStream();
+    const handling = llmStreamService.handle(
+      'client_1',
+      null,
+      'fr',
+      { messages: [systemTurn, userTurn('je voudrais un rendez-vous la semaine prochaine')] },
+      stream.handle,
+    );
+
+    /* On avance JUSTE en dessous de la barre des trois secondes: si la phrase
+       est déjà partie à ce moment-là, le critère est tenu, et l'assertion ne
+       dépend d'aucune mesure de durée réelle. */
+    await vi.advanceTimersByTimeAsync(2_900);
+    await handling;
+
+    expect(Date.now() - started).toBeLessThan(3_000);
+    expect(stream.text()).toMatch(/répéter/i);
+    expect(stream.ended).toBe(true);
+    vi.useRealTimers();
+  });
+
+  it('répond en néerlandais à un appelant flamand', async () => {
+    // Sans cette ligne, il s'entend répondre en anglais au moment précis où
+    // quelque chose vient de mal se passer.
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('down'));
+    const stream = makeStream();
+    await llmStreamService.handle(
+      'client_1',
+      null,
+      'nl',
+      { messages: [systemTurn, userTurn('ik wil graag een afspraak maken volgende week')] },
+      stream.handle,
+    );
+    expect(stream.text()).toMatch(/herhalen/i);
+  });
+});
+
 describe('llmStreamService — transfert demandé explicitement', () => {
   const transferTool = { type: 'function', function: { name: 'transferCall' } };
 

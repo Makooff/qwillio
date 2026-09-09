@@ -60,8 +60,6 @@ const TIER = {
 };
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
-/** Ceiling on time-to-first-token before we speak a fallback instead. */
-const FIRST_TOKEN_TIMEOUT_MS = 4_000;
 /**
  * OpenAI only caches a prefix once it is long enough to be worth caching.
  * Below this the cache never engages and the bookkeeping is pure overhead.
@@ -332,7 +330,12 @@ class LlmStreamService {
     vapiCallId: string | null,
   ): Promise<void> {
     const controller = new AbortController();
-    const firstTokenTimer = setTimeout(() => controller.abort(), FIRST_TOKEN_TIMEOUT_MS);
+    /* Le plafond sur le PREMIER token, relu à chaque tour et non figé au
+       chargement du module: il se règle sans déploiement, et c'est le seul
+       garde-fou contre le mode d'échec le plus dommageable d'un appel — le
+       silence. Trois secondes sans réponse s'entendent comme une ligne coupée,
+       donc le défaut est en dessous. */
+    const firstTokenTimer = setTimeout(() => controller.abort(), env.VOICE_FIRST_TOKEN_TIMEOUT_MS);
 
     let response: Response;
     try {
@@ -395,9 +398,11 @@ class LlmStreamService {
 
   /** Spoken when the model is unreachable. Never mentions a technical fault. */
   private fallbackLine(lang: VoiceLanguage): string {
-    return lang === 'fr'
-      ? 'Pardon, je vous ai mal entendu. Vous pouvez répéter ?'
-      : 'Sorry, I did not catch that. Could you say it again?';
+    // Le néerlandais aussi: sans lui, un appelant flamand s'entend répondre en
+    // anglais au moment précis où quelque chose vient de mal se passer.
+    if (lang === 'fr') return 'Pardon, je vous ai mal entendu. Vous pouvez répéter ?';
+    if (lang === 'nl') return 'Sorry, ik heb u niet goed verstaan. Kunt u het herhalen?';
+    return 'Sorry, I did not catch that. Could you say it again?';
   }
 }
 
