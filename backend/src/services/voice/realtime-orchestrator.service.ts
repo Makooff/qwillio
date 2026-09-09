@@ -198,7 +198,14 @@ class RealtimeOrchestratorService {
       model,
       voice,
       firstMessage,
-      ...buildRealtimePlans(profile.language, speechToSpeech),
+      /* Les mots du client soufflés au transcripteur (BEL-5 / BEL-7): son nom,
+         celui de l'agent et les intitulés de prestations. Ce sont ceux qu'un
+         appelant prononce et qu'un modèle générique écrit de travers, parce
+         qu'ils ne figurent dans aucun corpus. Ils sont déjà en mémoire, la
+         liste ne coûte donc aucune requête sur le chemin de l'appel. */
+      ...buildRealtimePlans(profile.language, speechToSpeech, {
+        vocabulary: [profile.businessName, profile.agentName, ...(profile.services ?? [])],
+      }),
       serverUrl: `${env.API_BASE_URL}/api/webhooks/vapi/client/${clientId}`,
       // Suit la notice du premier message: un appel enregistré est un appel
       // annoncé comme tel, et réciproquement. Voir `shouldRecord`.

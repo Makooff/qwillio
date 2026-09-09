@@ -440,3 +440,72 @@ describe('la patience posée par question', () => {
     }
   });
 });
+
+/**
+ * BEL-5 / BEL-7. `buildTranscriber` n'envoyait aucun mot-clé: le nom de
+ * l'entreprise, celui de l'agent et les intitulés de prestations sont pourtant
+ * exactement ce qu'un appelant prononce et qu'un modèle générique écrit de
+ * travers, faute de figurer dans un corpus.
+ */
+describe('les mots du client soufflés au transcripteur', () => {
+  const field = (lang: 'fr' | 'en' | 'nl', vocabulary: string[]) =>
+    buildTranscriber(lang, { vocabulary }) as Record<string, unknown>;
+
+  /**
+   * LE piège de cette ligne. Vapi n'expose pas le même champ selon le modèle:
+   * `keyterm` n'existe que sur Nova-3, `keywords` couvre Nova-2 et en dessous.
+   * Nos langues ne tournent pas sur le même modèle, et envoyer le mauvais
+   * champ ferait refuser l'assistant ENTIER, donc tous les appels.
+   */
+  it('envoie keyterm en Nova-3, keywords en Nova-2', () => {
+    for (const lang of ['fr', 'en'] as const) {
+      const t = field(lang, ['Chez Marie']);
+      expect(t.model).toBe('nova-3');
+      expect(t.keyterm).toBeDefined();
+      expect(t.keywords).toBeUndefined();
+    }
+    const nl = field('nl', ['Chez Marie']);
+    expect(nl.model).toBe('nova-2');
+    expect(nl.keywords).toBeDefined();
+    expect(nl.keyterm).toBeUndefined();
+  });
+
+  it('garde l\'expression entière en Nova-3, la découpe en Nova-2', () => {
+    // `keywords` ne prend que des mots seuls: une expression y serait au mieux
+    // ignorée.
+    expect(field('fr', ['Chez Marie']).keyterm).toEqual(['Chez Marie']);
+    expect(field('nl', ['Chez Marie']).keywords).toEqual(['Chez', 'Marie']);
+  });
+
+  it('n\'envoie AUCUN champ quand il n\'y a rien à souffler', () => {
+    // Le schéma envoyé à Vapi doit rester identique à celui qui tourne
+    // aujourd'hui: un champ vide est un changement, pas une absence.
+    for (const vocab of [[], ['  '], ['de', 'le'], ['a']]) {
+      const t = field('fr', vocab);
+      expect('keyterm' in t).toBe(false);
+      expect('keywords' in t).toBe(false);
+    }
+  });
+
+  it('conserve la casse, que Deepgram utilise', () => {
+    // La documentation demande « correct spelling and capitalization »: un nom
+    // propre en minuscules souffle au modèle la mauvaise graphie.
+    expect(field('fr', ['Dupont-Lefèvre']).keyterm).toEqual(['Dupont-Lefèvre']);
+  });
+
+  it('dédoublonne sans se laisser tromper par la ponctuation', () => {
+    expect(field('fr', ['Chez Marie', 'chez marie,', 'Chez  Marie']).keyterm).toEqual(['Chez Marie']);
+  });
+
+  it('écarte les mots vides et les fragments trop courts', () => {
+    const out = field('fr', ['Le Comptoir', 'de', 'et', 'ok']).keyterm as string[];
+    expect(out).toEqual(['Le Comptoir']);
+  });
+
+  it('plafonne la fenêtre plutôt que de tout souffler', () => {
+    // Souffler tout le catalogue revient à ne rien souffler, en dégradant le
+    // reste au passage.
+    const many = Array.from({ length: 500 }, (_, i) => `Prestation${i}`);
+    expect((field('fr', many).keyterm as string[]).length).toBeLessThanOrEqual(60);
+  });
+});

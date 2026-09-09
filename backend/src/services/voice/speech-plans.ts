@@ -90,6 +90,83 @@ function fallbackTranscriber(provider: string, lang: VoiceLanguage) {
 export interface SpeechOptions {
   /** `false` sur les appels navigateur: on paie l'attente, pas le risque. */
   fallbacks?: boolean;
+  /**
+   * Les mots propres à CE client, à souffler au transcripteur (BEL-5 / BEL-7).
+   *
+   * Nom de l'entreprise, nom de l'agent, intitulés de prestations: ce sont
+   * exactement les mots qu'un appelant prononce et qu'un modèle générique
+   * écrit de travers, parce qu'ils ne figurent dans aucun corpus. Absent ou
+   * vide, aucun champ n'est envoyé et le schéma reste celui d'aujourd'hui.
+   */
+  vocabulary?: string[];
+}
+
+/**
+ * Le plafond de la fenêtre de biasing.
+ *
+ * Deepgram dégrade au-delà d'une centaine de termes, et la documentation de
+ * Vapi le dit autrement: « start with minimal boosting, focus on uncommon
+ * domain-specific terms ». Souffler tout le catalogue d'un client reviendrait
+ * à ne rien souffler du tout, en dégradant le reste au passage.
+ */
+const MAX_KEYTERMS = 60;
+
+/** Les mots trop courants pour valoir un boost, et trop courts pour aider. */
+const VOCAB_STOPWORDS = new Set([
+  'de', 'du', 'des', 'le', 'la', 'les', 'un', 'une', 'et', 'ou', 'au', 'aux',
+  'the', 'and', 'of', 'for', 'to', 'a', 'an',
+  'van', 'de', 'het', 'een', 'en',
+]);
+
+/**
+ * Nettoie une liste de termes: sans doublon, sans ponctuation, sans mot vide.
+ *
+ * La casse est CONSERVÉE: la documentation de Vapi demande explicitement
+ * « ensuring correct spelling and capitalization », un nom propre écrit en
+ * minuscules soufflant au modèle la mauvaise graphie.
+ */
+function cleanVocabulary(terms: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of terms) {
+    if (typeof raw !== 'string') continue;
+    // La ponctuation d'abord: « Chez Marie, » et « Chez Marie » sont un doublon
+    // que le dédoublonnage ne verrait pas autrement.
+    const term = raw.replace(/[^\p{L}\p{N}\s'-]/gu, ' ').replace(/\s+/g, ' ').trim();
+    if (term.length < 3) continue;
+    if (VOCAB_STOPWORDS.has(term.toLowerCase())) continue;
+    const key = term.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(term);
+    if (out.length >= MAX_KEYTERMS) break;
+  }
+  return out;
+}
+
+/**
+ * Le champ de biasing, choisi PAR MODÈLE. C'est le piège de cette ligne.
+ *
+ * Vapi n'expose pas le même champ selon le modèle Deepgram: `keyterm` accepte
+ * des expressions et n'existe que sur Nova-3; `keywords` ne prend que des mots
+ * SEULS et couvre Nova-2, Nova-1, Enhanced et Base. Or nos langues ne tournent
+ * pas toutes sur le même modèle — français et anglais en Nova-3, néerlandais
+ * en Nova-2. Envoyer le mauvais champ ferait refuser l'assistant entier, donc
+ * tous les appels de la flotte.
+ *
+ * D'où la découpe en mots sur Nova-2: « Chez Marie » y devient deux entrées,
+ * parce qu'une expression y serait au mieux ignorée.
+ */
+export function buildVocabularyField(model: string, terms: string[]): Record<string, string[]> {
+  const clean = cleanVocabulary(terms);
+  // Rien à souffler: pas de champ du tout, pour que le schéma envoyé reste
+  // identique à celui qui tourne aujourd'hui.
+  if (!clean.length) return {};
+
+  if (model.startsWith('nova-3')) return { keyterm: clean };
+
+  const words = cleanVocabulary(clean.flatMap(t => t.split(' ')));
+  return words.length ? { keywords: words } : {};
 }
 
 /**
@@ -171,6 +248,12 @@ export function buildTranscriber(lang: VoiceLanguage, opts: SpeechOptions = {}) 
     // Emit interim results so the orchestrator can react (barge-in bookkeeping,
     // filler timing) before the final transcript lands.
     endpointing: env.VOICE_ENDPOINTING_MS,
+    /* Les mots propres au client, soufflés au transcripteur (BEL-5 / BEL-7).
+       Le nom de l'entreprise et les intitulés de prestations sont exactement
+       ce qu'un appelant prononce et qu'un modèle générique écrit de travers,
+       faute de figurer dans un corpus. Le CHAMP dépend du modèle: voir
+       `buildVocabularyField`. */
+    ...buildVocabularyField(DEEPGRAM_MODEL[lang], opts.vocabulary ?? []),
     /* Panne Deepgram = panne totale tant qu'aucun secours n'est déclaré.
        Opt-in par env (voir le commentaire dans env.ts): le champ n'existe pas
        du tout tant que la variable est vide, pour que le schéma envoyé à Vapi
