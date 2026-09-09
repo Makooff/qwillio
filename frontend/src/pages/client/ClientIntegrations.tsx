@@ -55,6 +55,15 @@ const SECTIONS: { verb: Verb; icon: typeof PhoneCall; title: string; blurb: stri
   },
 ];
 
+/**
+ * Google Agenda, nommé une fois.
+ *
+ * C'est la seule entrée du catalogue dont le branchement ne passe pas par la
+ * route CRM: son jeton vit sur la fiche client, posé par un tour OAuth, et
+ * quatre endroits de cette page doivent le savoir.
+ */
+const GCAL = 'google-calendar';
+
 /** L'état réel, dit en un mot. Aucun n'est décoratif. */
 function badge(entry: Entry): { label: string; cls: string; icon: typeof Check } {
   if (entry.connected) {
@@ -77,31 +86,84 @@ export default function ClientIntegrations() {
      formulaire tient dans la carte plutôt que dans une fenêtre, parce qu'on
      colle une URL et qu'ouvrir une modale pour un champ est disproportionné. */
   const [opening, setOpening] = useState<string | null>(null);
-  const [url, setUrl] = useState('');
+  const [secret, setSecret] = useState('');
   const [saving, setSaving] = useState(false);
-  const [problem, setProblem] = useState('');
+  /* L'erreur porte l'identifiant de la carte qui l'a produite.
+     Google Agenda part chez Google sans ouvrir de formulaire: une erreur
+     globale s'afficherait donc sous une carte qui n'a rien demandé, ou nulle
+     part. Attachée à sa carte, elle se lit là où le clic a eu lieu. */
+  const [problem, setProblem] = useState<{ id: string; text: string } | null>(null);
 
-  useEffect(() => {
+  const load = () => {
     api.get('/crm/integrations/catalog')
       .then(r => setEntries(r.data.integrations ?? []))
       .catch(() => setFailed(true))
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(load, []);
+
+  /** Le message du serveur, qui sait pourquoi il refuse, sinon un repli. */
+  const serverSaid = (e: unknown, fallback: string): string => {
+    const data = (e as { response?: { data?: { error?: string; requiredPlan?: string } } })?.response?.data;
+    /* Le seul code qu'on traduit ici: le serveur répond `plan_required`, qui
+       n'est pas une phrase, et l'afficher tel quel serait un cul-de-sac. */
+    if (data?.error === 'plan_required') {
+      const plan = data.requiredPlan ? data.requiredPlan.charAt(0).toUpperCase() + data.requiredPlan.slice(1) : 'Pro';
+      return `Cette intégration est incluse à partir du forfait ${plan}.`;
+    }
+    return data?.error || fallback;
+  };
+
+  /**
+   * Google Agenda, qui ne se branche comme aucune autre.
+   *
+   * Les autres cartes reçoivent un secret qu'on poste. Celle-ci part chez
+   * Google, revient sur l'adresse déclarée dans sa console (la réceptionniste,
+   * et elle seule), et c'est cette page-là qui termine la poignée de main puis
+   * nous renvoie ici. D'où l'adresse de départ déposée avant le saut: sans
+   * elle, le client revient d'un tour d'OAuth réussi sur un écran qui ne parle
+   * pas d'agenda.
+   */
+  const connectGoogleCalendar = async () => {
+    setSaving(true);
+    setProblem(null);
+    try {
+      const { data } = await api.get('/my-dashboard/integrations/google-calendar/auth-url');
+      sessionStorage.setItem('gcalReturnTo', window.location.pathname);
+      /* L'adresse de retour est retenue AVANT de partir: si Google refuse pour
+         `redirect_uri_mismatch`, il ne dit jamais laquelle il a reçue, et le
+         refus s'affiche sur SA page, d'où l'on ne peut plus rien montrer. */
+      if (data.redirectUri) sessionStorage.setItem('gcalRedirectUri', data.redirectUri);
+      window.location.href = data.url;
+    } catch (e: unknown) {
+      setProblem({ id: GCAL, text: serverSaid(e, "La connexion à Google n'a pas abouti.") });
+      setSaving(false);
+    }
+  };
 
   const connect = async (entry: Entry) => {
+    if (entry.id === GCAL) return connectGoogleCalendar();
+
     setSaving(true);
-    setProblem('');
+    setProblem(null);
     try {
-      await api.post(`/crm/integrations/${entry.id}/connect`, { config: { webhookUrl: url.trim() } });
+      /* Une URL et une clé d'API ne voyagent pas dans le même champ: le
+         serveur valide l'URL (une adresse interne serait appelée toutes les
+         quinze minutes depuis notre propre serveur) et range la clé comme un
+         jeton. Les confondre ferait refuser les deux. */
+      const payload = entry.setup === 'apiKey'
+        ? { accessToken: secret.trim() }
+        : { config: { webhookUrl: secret.trim() } };
+      await api.post(`/crm/integrations/${entry.id}/connect`, payload);
       setEntries(list => list.map(e => (e.id === entry.id ? { ...e, connected: true } : e)));
       setOpening(null);
-      setUrl('');
+      setSecret('');
     } catch (e: unknown) {
       /* Le message du serveur tel quel: c'est lui qui sait pourquoi une URL est
          refusée (adresse interne, absence de HTTPS), et le réécrire ici ferait
          diverger les deux au premier changement de règle. */
-      const detail = (e as { response?: { data?: { error?: string } } })?.response?.data?.error;
-      setProblem(detail || "La connexion n'a pas abouti.");
+      setProblem({ id: entry.id, text: serverSaid(e, "La connexion n'a pas abouti.") });
     } finally {
       setSaving(false);
     }
@@ -110,7 +172,8 @@ export default function ClientIntegrations() {
   const disconnect = async (entry: Entry) => {
     setEntries(list => list.map(e => (e.id === entry.id ? { ...e, connected: false } : e)));
     try {
-      await api.post(`/crm/integrations/${entry.id}/disconnect`);
+      if (entry.id === GCAL) await api.delete('/my-dashboard/integrations/google-calendar');
+      else await api.post(`/crm/integrations/${entry.id}/disconnect`);
     } catch {
       // Remettre l'état vrai plutôt que laisser croire à une déconnexion.
       setEntries(list => list.map(e => (e.id === entry.id ? { ...e, connected: true } : e)));
@@ -164,7 +227,14 @@ export default function ClientIntegrations() {
               {mine.map((entry, i) => {
                 const b = badge(entry);
                 const BadgeIcon = b.icon;
-                const canOpen = entry.setup === 'url' && !entry.connected && entry.transport !== 'planned';
+                /* Ce qui décide du bouton, c'est d'avoir un chemin de
+                   branchement, pas la forme du secret. `setup === 'url'` seul
+                   laissait Google Agenda et HubSpot affichés « disponible »
+                   sans aucun bouton: deux intégrations natives, terminées côté
+                   serveur, et injoignables depuis l'écran qui les annonce. */
+                const canOpen = entry.transport !== 'planned' && entry.setup !== 'none' && !entry.connected;
+                const oauth = entry.setup === 'oauth';
+                const err = problem?.id === entry.id ? problem.text : null;
 
                 return (
                   <motion.li
@@ -196,10 +266,19 @@ export default function ClientIntegrations() {
                       <div className="mt-3 flex items-center gap-3">
                         {canOpen && opening !== entry.id && (
                           <button
-                            onClick={() => { setOpening(entry.id); setUrl(''); setProblem(''); }}
-                            className="text-[13px] font-medium text-[#7349fe] hover:text-[#8f6dff] transition-colors"
+                            /* Un tour OAuth n'a pas de champ à remplir: le
+                               bouton part chez le fournisseur au lieu
+                               d'ouvrir un formulaire vide. */
+                            onClick={() => {
+                              if (oauth) { connect(entry); return; }
+                              setOpening(entry.id);
+                              setSecret('');
+                              setProblem(null);
+                            }}
+                            disabled={saving && oauth}
+                            className="text-[13px] font-medium text-[#7349fe] hover:text-[#8f6dff] disabled:opacity-40 transition-colors"
                           >
-                            Brancher
+                            {oauth ? (saving ? 'Ouverture de Google' : `Connecter ${entry.name}`) : 'Brancher'}
                           </button>
                         )}
                         {entry.connected && (
@@ -215,37 +294,44 @@ export default function ClientIntegrations() {
 
                     {opening === entry.id && (
                       <div className="mt-3 space-y-2">
-                        <label htmlFor={`url-${entry.id}`} className="block text-[12px] text-[#8B8BA7]">
-                          {entry.transport === 'relay'
-                            ? `L'URL du scénario Make, Zapier ou n8n qui reçoit vos appels pour ${entry.name}`
-                            : "L'URL qui recevra vos appels"}
+                        <label htmlFor={`secret-${entry.id}`} className="block text-[12px] text-[#8B8BA7]">
+                          {entry.setup === 'apiKey'
+                            ? `La clé d'API ${entry.name}, prise dans votre compte ${entry.name}`
+                            : entry.transport === 'relay'
+                              ? `L'URL du scénario Make, Zapier ou n8n qui reçoit vos appels pour ${entry.name}`
+                              : "L'URL qui recevra vos appels"}
                         </label>
                         <div className="flex gap-2">
                           <input
-                            id={`url-${entry.id}`}
-                            value={url}
-                            onChange={e => setUrl(e.target.value)}
-                            placeholder="https://hook.eu2.make.com/..."
+                            id={`secret-${entry.id}`}
+                            /* Une clé d'API est un secret: elle se masque, et
+                               le gestionnaire de mots de passe la reconnaît. */
+                            type={entry.setup === 'apiKey' ? 'password' : 'url'}
+                            autoComplete={entry.setup === 'apiKey' ? 'off' : undefined}
+                            value={secret}
+                            onChange={e => setSecret(e.target.value)}
+                            placeholder={entry.setup === 'apiKey' ? 'pat-eu1-...' : 'https://hook.eu2.make.com/...'}
                             className="flex-1 min-w-0 rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-2 text-[13px] text-[#F5F5F7] placeholder-[#5c5c73] focus:border-[#7349fe]/50 focus:outline-none transition-colors"
                           />
                           <button
                             onClick={() => connect(entry)}
-                            disabled={saving || !url.trim()}
+                            disabled={saving || !secret.trim()}
                             className="shrink-0 rounded-lg bg-[#7349fe] px-3.5 py-2 text-[13px] font-medium text-white disabled:opacity-40 hover:bg-[#8f6dff] transition-colors"
                           >
                             {saving ? 'Connexion' : 'Connecter'}
                           </button>
                           <button
-                            onClick={() => { setOpening(null); setProblem(''); }}
+                            onClick={() => { setOpening(null); setProblem(null); }}
                             aria-label="Annuler"
                             className="shrink-0 rounded-lg border border-white/[0.07] px-2 text-[#8B8BA7] hover:text-[#F5F5F7] transition-colors"
                           >
                             <X className="w-3.5 h-3.5" />
                           </button>
                         </div>
-                        {problem && <p className="text-[12px] text-[#f87171]">{problem}</p>}
                       </div>
                     )}
+
+                    {err && <p className="mt-2 text-[12px] text-[#f87171]">{err}</p>}
                   </motion.li>
                 );
               })}

@@ -10,8 +10,22 @@ const router = Router();
 router.use(authMiddleware);
 router.use(clientMiddleware);
 /* « Intégrations CRM natives », vendues à partir de Pro. Posé sur le routeur
-   entier: une route CRM ajoutée demain hérite du contrôle sans y penser. */
-router.use(requireCapability('crm'));
+   entier: une route CRM ajoutée demain hérite du contrôle sans y penser.
+
+   Une seule exception, et elle est nommée ici plutôt que laissée à l'ordre de
+   déclaration: le CATALOGUE se lit sans forfait Pro. Il ne donne accès à rien,
+   il dit ce qui existe — et la porte fermée dessus produisait un écran mort
+   (« la liste n'a pas pu être chargée »), là où le client Solo devrait au
+   contraire voir ce qu'il gagnerait à monter. Google Agenda achève de le
+   justifier: il figure au catalogue, il se branche par une route
+   `my-dashboard` qui n'a jamais été réservée à Pro, et le gardien du CRM le
+   rendait invisible à ceux qui y ont droit. */
+const crmGate = requireCapability('crm');
+router.use((req, res, next) =>
+  req.method === 'GET' && req.path === '/integrations/catalog'
+    ? next()
+    : crmGate(req, res, next),
+);
 
 // ─── Contacts ────────────────────────────────────────────
 
@@ -442,7 +456,10 @@ router.get('/integrations/catalog', async (req: Request, res: Response) => {
     const clientId = (req as any).clientId as string;
 
     const [client, connected] = await Promise.all([
-      prisma.client.findUnique({ where: { id: clientId }, select: { businessType: true } }),
+      prisma.client.findUnique({
+        where: { id: clientId },
+        select: { businessType: true, googleCalendarRefreshToken: true },
+      }),
       prisma.crmIntegration.findMany({
         where: { clientId },
         select: { provider: true, config: true, syncStatus: true, lastSync: true },
@@ -450,6 +467,16 @@ router.get('/integrations/catalog', async (req: Request, res: Response) => {
     ]);
 
     const connectedIds = new Set(connected.map(row => row.provider));
+
+    /* Google Agenda ne se range PAS dans `crmIntegration`.
+     *
+     * Son jeton vit sur la fiche client (`googleCalendarRefreshToken`), posé
+     * là par le tour OAuth bien avant que ce catalogue existe. Le catalogue,
+     * lui, ne regardait que les lignes `crmIntegration`: l'agenda s'affichait
+     * donc « disponible » à un client qui l'avait déjà branché la veille, et
+     * aucun état de cette page ne pouvait devenir « connecté ». Deux magasins
+     * pour un même fait, et l'écran lisait le mauvais. */
+    if (client?.googleCalendarRefreshToken) connectedIds.add('google-calendar');
 
     const catalogue = catalogueForBusinessType(client?.businessType).map(entry => ({
       ...entry,

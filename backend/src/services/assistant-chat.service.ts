@@ -319,6 +319,11 @@ export class AssistantChatService {
     if (mode === 'onboarding') {
       base.push(
         `ONBOARDING MODE: proactively guide the owner through first-time setup. Check what's missing — a chosen character/voice, opening hours, services & prices, FAQ, a transfer number — and walk them through it ONE step at a time, asking a single clear question each turn. Apply each answer with update_config as you go, then move to the next missing piece. Celebrate progress briefly.`,
+        /* Une liste de dix voix n'est pas une question, c'est un mur: l'owner
+           doit lire dix libellés pour répondre à « laquelle ». Trois options
+           tiennent dans une phrase et se comparent d'un coup d'œil, et le
+           reste existe toujours pour qui demande. */
+        `NEVER list more than THREE options in one turn, even when the catalogue holds more. Name three that fit what the owner just said, in one short sentence each, and add that others exist if none suits. The same rule applies to hours, plans and anything else with many possible values.`,
       );
     } else {
       base.push(

@@ -471,7 +471,22 @@ export default function ClientReceptionist() {
     window.history.replaceState({}, '', window.location.pathname);
     setGcalBusy(true);
     api.post('/my-dashboard/integrations/google-calendar/callback', { code, state })
-      .then(() => load())
+      .then(() => {
+        /* Google ne revient QUE sur l'adresse déclarée dans sa console, et
+           c'est celle-ci. Un client parti depuis « Intégrations » atterrissait
+           donc sur la réceptionniste, agenda branché, sans rien qui le dise:
+           il repartait chercher son bouton là où il l'avait laissé, et le
+           trouvait inchangé. La page de départ est retenue avant le saut et
+           rendue ici, plutôt que d'ajouter une seconde adresse de retour dans
+           la console Google, qui suppose un geste hors du dépôt. */
+        const back = sessionStorage.getItem('gcalReturnTo');
+        sessionStorage.removeItem('gcalReturnTo');
+        if (back && back.startsWith('/dashboard/') && back !== window.location.pathname) {
+          window.location.replace(back);
+          return;
+        }
+        return load();
+      })
       .catch(() => setError('Échec de la connexion Google Calendar'))
       .finally(() => setGcalBusy(false));
   }, [load]);

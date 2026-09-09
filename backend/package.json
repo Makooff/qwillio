@@ -30,6 +30,7 @@
     "voice:greetings": "tsx src/scripts/regenerate-greetings.ts",
     "phone:assign": "tsx src/scripts/assign-stock-numbers.ts",
     "voice:validate": "tsx src/scripts/validate-assistant.ts",
+    "voice:doctor": "tsx src/scripts/diagnose-inbound.ts",
     "stripe:promo": "tsx src/scripts/create-promo-code.ts",
     "stripe:prices": "tsx src/scripts/audit-prices.ts"
   },

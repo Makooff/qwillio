@@ -2156,12 +2156,30 @@ export class ClientDashboardController {
       const validPlans = ['solo', 'starter', 'pro', 'enterprise'];
       if (!validPlans.includes(planType)) return res.status(400).json({ error: 'Invalid plan' });
 
+      /* Une valeur inattendue ne vaut pas « annuel »: on prélève moins souvent,
+         jamais douze mois d'un coup par accident. Et une période ABSENTE n'est
+         pas « mensuel »: c'est « ne change rien », donc le client garde la
+         sienne. Les deux se distinguent, sinon un appel sans période ferait
+         basculer en mensuel un client annuel qui change juste de forfait. */
+      const requestedPeriod =
+        req.body?.billingPeriod === 'annual' ? 'annual'
+        : req.body?.billingPeriod === 'monthly' ? 'monthly'
+        : undefined;
+
       const client = await prisma.client.findUnique({ where: { id: req.clientId } });
       if (!client) return res.status(404).json({ error: 'Client not found' });
-      if (client.planType === planType) return res.status(400).json({ error: 'Already on this plan' });
+
+      /* « Déjà sur ce forfait » ne vaut que si la PÉRIODE ne bouge pas non plus.
+         Sans cette nuance, passer de Solo mensuel à Solo annuel était refusé,
+         et le client n'avait aucun moyen d'obtenir la remise sans changer de
+         forfait — un refus qui coûte une vente. */
+      const currentPeriod = (client.vapiConfig as any)?.billingPeriod === 'annual' ? 'annual' : 'monthly';
+      const samePlan = client.planType === planType;
+      const samePeriod = !requestedPeriod || requestedPeriod === currentPeriod;
+      if (samePlan && samePeriod) return res.status(400).json({ error: 'Already on this plan' });
 
       const { stripeService } = await import('../services/stripe.service');
-      const checkoutUrl = await stripeService.createUpgradeCheckout(client, planType);
+      const checkoutUrl = await stripeService.createUpgradeCheckout(client, planType, requestedPeriod);
       res.json({ success: true, checkoutUrl });
     } catch (error: any) {
       res.status(500).json({ error: error.message });

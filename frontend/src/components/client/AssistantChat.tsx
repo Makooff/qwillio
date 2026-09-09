@@ -26,9 +26,14 @@ interface Msg { role: 'user' | 'assistant'; content: string }
 
 function greetingFor(mode: Mode, isFr: boolean): string {
   if (mode === 'onboarding') {
+    /* La première phrase POSE la première question au lieu de demander la
+       permission de commencer. « On commence ? » coûtait un aller-retour pour
+       n'apprendre rien: personne n'arrive sur cet écran pour répondre non. Elle
+       annonce aussi ce qui va être demandé, parce qu'un questionnaire dont on
+       ne voit pas la fin se quitte avant la fin. */
     return isFr
-      ? 'On configure ta réceptionniste ensemble, étape par étape. On commence ?'
-      : "Let's set up your receptionist together, step by step. Ready?";
+      ? 'Je remplis ta réceptionniste avec toi, en quatre questions : la voix qui répond, tes horaires, ce que tu proposes, et vers qui transférer un appel. Chaque réponse est enregistrée au fur et à mesure.\n\nOn commence par la voix. Tu la veux plutôt chaleureuse, posée, ou dynamique ?'
+      : "I'll fill in your receptionist with you, in four questions: the voice that answers, your opening hours, what you offer, and who to transfer a call to. Every answer is saved as we go.\n\nLet's start with the voice. Would you rather it sounds warm, calm, or energetic?";
   }
   if (mode === 'receptionist') {
     return isFr
@@ -174,7 +179,7 @@ function TranscribingCard({ isFr, reduceMotion }: { isFr: boolean; reduceMotion:
  * tell at a glance whether anything is being captured. The bars used to be
  * Math.random(), which looked alive even when the mic was dead.
  */
-function VoiceViz({ isFr, analyser }: { isFr: boolean; analyser: AnalyserNode | null }) {
+function VoiceViz({ isFr, analyser, preview }: { isFr: boolean; analyser: AnalyserNode | null; preview: string }) {
   const BARS = 32;
   const [t, setT] = useState(0);
   const [levels, setLevels] = useState<number[]>(() => Array(BARS).fill(0));
@@ -230,6 +235,25 @@ function VoiceViz({ isFr, analyser }: { isFr: boolean; analyser: AnalyserNode | 
         <span className="font-mono text-xs text-white/70">{mm}:{ss}</span>
         <span className="text-[11px] text-white/50">{isFr ? '· parlez…' : '· speak…'}</span>
       </div>
+
+      {/* Les mots pendant qu'ils sont dits.
+          Ce texte est un APERÇU, pas la transcription: il vient du moteur du
+          navigateur, tandis que le message envoyé vient de Whisper, à la fin.
+          Les deux peuvent différer d'un mot, et c'est le prix à payer pour voir
+          quelque chose s'écrire tout de suite plutôt que d'attendre en regardant
+          des barres bouger.
+          `aria-live="polite"` pour que le lecteur d'écran suive sans couper la
+          parole, et un plafond de hauteur pour qu'une longue dictée ne pousse
+          jamais les boutons hors de l'écran. */}
+      {preview && (
+        <p
+          aria-live="polite"
+          className="w-full max-h-24 overflow-y-auto px-4 pb-2 text-center text-[14px] font-light leading-relaxed text-white/80"
+        >
+          {preview}
+        </p>
+      )}
+
       <div className="w-full h-8 flex items-center justify-center gap-0.5 px-4" aria-hidden="true">
         {levels.map((v, i) => (
           <span
@@ -319,6 +343,10 @@ export default function AssistantChat({
   const [input, setInput] = useState('');
   const [sending, setSending] = useState(false);
   const [listening, setListening] = useState(false);
+  /* Ce que le NAVIGATEUR entend, montré pendant que ça se dit. Whisper reste
+     seul juge du texte envoyé: cet aperçu est jeté à l'arrêt de la dictée. */
+  const [livePreview, setLivePreview] = useState('');
+  const speechRef = useRef<any>(null);
   const [micSupported, setMicSupported] = useState(false);
   const [transcribing, setTranscribing] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -517,7 +545,53 @@ export default function AssistantChat({
   const notify = (fr: string, en: string) =>
     setMessages(m => [...m, { role: 'assistant', content: isFr ? fr : en }]);
 
+  /**
+   * L'aperçu en direct, par le moteur du navigateur.
+   *
+   * Il N'EST PAS la transcription: le message envoyé vient de Whisper, à la fin
+   * de l'enregistrement, comme avant. Celui-ci ne sert qu'à voir les mots
+   * apparaître pendant qu'on parle, au lieu de fixer des barres qui bougent.
+   * La distinction porte tout: le moteur du navigateur n'existe pas sur Firefox
+   * et se trompe plus souvent, ce qui serait rédhibitoire pour un message
+   * envoyé, et sans conséquence pour un aperçu qu'on jette.
+   *
+   * Tout échoue en silence: pas de moteur, pas d'aperçu, et la dictée se
+   * comporte exactement comme aujourd'hui.
+   */
+  const startLivePreview = () => {
+    const Recognition: any =
+      (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+    if (!Recognition) return;
+    try {
+      const engine = new Recognition();
+      engine.lang = dictationLang === 'fr' ? 'fr-FR' : 'en-US';
+      engine.continuous = true;
+      engine.interimResults = true;
+      /* Les résultats arrivent par tranches, chacune définitive ou provisoire.
+         On recompose la phrase entière à chaque fois plutôt que d'accumuler:
+         une tranche provisoire est REMPLACÉE par sa version définitive, et
+         concaténer ferait bégayer le texte à l'écran. */
+      engine.onresult = (event: any) => {
+        let phrase = '';
+        for (let i = 0; i < event.results.length; i++) phrase += event.results[i][0].transcript;
+        setLivePreview(phrase.trim());
+      };
+      engine.onerror = () => { /* l'aperçu disparaît, la dictée continue */ };
+      engine.start();
+      speechRef.current = engine;
+    } catch {
+      /* Un moteur indisponible ne doit pas empêcher d'enregistrer. */
+    }
+  };
+
+  const stopLivePreview = () => {
+    try { speechRef.current?.stop(); } catch { /* déjà arrêté */ }
+    speechRef.current = null;
+    setLivePreview('');
+  };
+
   const releaseMic = () => {
+    stopLivePreview();
     streamRef.current?.getTracks().forEach(t => t.stop());
     streamRef.current = null;
     void audioCtxRef.current?.close().catch(() => { /* noop */ });
@@ -637,6 +711,8 @@ export default function AssistantChat({
         setAnalyser(node);
       }
 
+      startLivePreview();
+
       const mimeType = pickAudioMime();
       const rec = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       chunksRef.current = [];
@@ -750,7 +826,13 @@ export default function AssistantChat({
              En CLASSES et non en `style`: une hauteur par point de rupture,
              ce qu'un style en ligne ne sait pas exprimer, et qu'il écraserait. */
           ? 'h-[max(320px,calc(100dvh-160px))] lg:h-[calc(100dvh-64px)]'
-          : 'h-[480px]'
+          /* Sans entête, c'est l'inscription: la carte est le SEUL contenu de
+             l'écran, et 480 px en dur y laissaient une fenêtre de trois
+             messages au milieu du vide. Elle prend maintenant la hauteur
+             disponible, avec un plancher pour le paysage sur téléphone et un
+             plafond pour que la ligne de saisie ne parte pas à un mètre du
+             texte sur un grand écran. */
+          : 'h-[max(420px,min(72dvh,720px))]'
       }`}
     >
       {/* Header: who you are talking to, the AI number, and the live test call.
@@ -1087,7 +1169,7 @@ export default function AssistantChat({
           }}
         >
           {listening ? (
-            <VoiceViz isFr={isFr} analyser={analyser} />
+            <VoiceViz isFr={isFr} analyser={analyser} preview={livePreview} />
           ) : (
             <textarea
               ref={taRef}

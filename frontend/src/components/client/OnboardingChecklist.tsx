@@ -64,9 +64,18 @@ export default function OnboardingChecklist({ client, onDismiss }: Props) {
       icon:  PhoneForwarded,
     },
     {
-      label: 'Configurer votre numéro de contact',
-      hint:  'Ajoutez le numéro interne vers lequel transférer les urgences',
-      done:  !!(client.transferNumber || client.vapiPhoneNumber),
+      /* L'étape qui était TOUJOURS verte, et qui ne devait pas l'être.
+         Sa condition acceptait `vapiPhoneNumber`, or ce numéro-là est attribué
+         d'office à l'inscription: l'étape se cochait donc seule, pour tout le
+         monde, avant que quiconque ait donné le moindre numéro. Elle ne
+         demandait jamais rien, et un appelant qui demandait à parler à un
+         humain s'entendait répondre qu'on prendrait son message — l'agent
+         n'ayant aucun numéro vers lequel basculer.
+         Les deux numéros ne sont pas le même: celui de Qwillio est celui qu'on
+         COMPOSE, celui-ci est celui vers lequel on TRANSFÈRE. */
+      label: 'Indiquer vers qui transférer',
+      hint:  'Votre ligne, pour les appelants qui demandent un humain',
+      done:  !!client.transferNumber,
       to:    '/dashboard/receptionist#transfer',
       icon:  Phone,
     },

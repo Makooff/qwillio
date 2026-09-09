@@ -9,6 +9,7 @@ import { getPersonaPrompt, PERSONALITY_PROMPTS } from '../config/personalities';
 import { buildRealtimePlans, buildVoice } from './voice/speech-plans';
 import { fitAssistantName } from './voice/vapi-limits';
 import { realtimeContextService } from './voice/realtime-context.service';
+import { buildVoiceTools } from './voice/voice-tools';
 import { greetingAudioService } from './voice/greeting-audio.service';
 import { toE164 } from '../utils/phone';
 import { resolveNiche } from '../config/niches';
@@ -56,21 +57,15 @@ export class OnboardingService {
         country: client.country,
       });
 
-      // Build tools array — add transferCall if client has a transfer number
       const isFrClient = this.isFrenchClient(client);
-      const tools: any[] = [];
-      if (client.transferNumber) {
-        tools.push({
-          type: 'transferCall',
-          destinations: [{
-            type: 'number',
-            number: client.transferNumber,
-            message: isFrClient
-              ? 'Bien sûr, je vous mets en relation avec quelqu\'un de l\'équipe tout de suite. Un instant, s\'il vous plaît.'
-              : 'Of course, let me connect you with someone from the team right now. One moment please.',
-          }],
-        });
-      }
+      /* Les outils viennent du MÊME constructeur que l'appel lui-même.
+         Ce qu'il y avait ici était un `transferCall` écrit à la main, posé
+         seulement `if (client.transferNumber)` — c'est-à-dire jamais, puisque
+         personne ne connaît son numéro de transfert au moment de s'inscrire.
+         L'assistant naissait donc SANS AUCUN OUTIL, et comme c'est lui qui
+         décroche (le numéro entrant porte son identifiant), il n'en gagnait
+         aucun ensuite. Voir le commentaire de `syncVapiAssistant`. */
+      const tools = await this.buildAssistantTools(client.id);
 
       const assistantData: any = {
         name: fitAssistantName('Receptionist', client.businessName),
@@ -762,6 +757,52 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
 5. Ask if they have any special requirements or questions`;
   }
 
+  /**
+   * Les outils de l'assistant ENREGISTRÉ, construits comme ceux de l'appel.
+   *
+   * ── Le défaut que cette fonction répare ────────────────────────────────────
+   *
+   * Il y a deux assistants dans ce dépôt, et un seul décroche.
+   *
+   * Le premier est bâti par `buildAssistantForCall`: il porte les outils
+   * (`transferCall`, `captureLead`, `lookupKnowledge`, la disponibilité et la
+   * réservation), la base de connaissances, la mémoire de l'appelant, le plan
+   * de clavier. Il ne sert qu'à répondre à `assistant-request`, l'événement que
+   * Vapi envoie quand le numéro appelé ne désigne AUCUN assistant.
+   *
+   * Le second est celui qu'on enregistre chez Vapi à l'inscription, et c'est
+   * lui que `attachAssistant` épingle sur le numéro entrant. Donc c'est lui, et
+   * lui seul, qui décroche: `assistant-request` n'est jamais émis.
+   *
+   * Or il naissait sans outils, et `syncVapiAssistant` n'en envoyait pas non
+   * plus: le champ `tools` n'y figurait tout simplement pas. Conséquence,
+   * vérifiée sur un vrai appel entrant le 09/09: l'agent ne peut pas
+   * transférer (il propose de prendre un message, ce qui ressemble à un choix
+   * et n'en est pas un), ne peut pas enregistrer de lead, donc aucune alerte ne
+   * part — `leadAlertService.notify` sort sur `no_lead` — et ne peut pas lire
+   * la base de connaissances. Quatre pannes, une cause.
+   *
+   * D'où cette fonction, appelée aux DEUX endroits qui écrivent l'assistant.
+   * Un seul constructeur pour les deux chemins: deux listes d'outils écrites à
+   * la main divergeraient au premier outil ajouté, et c'est déjà ce qui était
+   * arrivé.
+   *
+   * Le cache est vidé AVANT la lecture du profil, jamais après: le profil porte
+   * le numéro de transfert et l'état de l'agenda, et c'est justement le
+   * réglage qu'on vient de changer. Lu depuis le cache, il construirait les
+   * outils d'AVANT l'enregistrement, et le client devrait sauver deux fois pour
+   * que son numéro prenne effet.
+   */
+  private async buildAssistantTools(clientId: string): Promise<any[]> {
+    await realtimeContextService.invalidateClient(clientId);
+    const profile = await realtimeContextService.getClientProfile(clientId);
+    if (!profile) {
+      logger.warn(`[Vapi] profil introuvable pour ${clientId}: assistant sans outils.`);
+      return [];
+    }
+    return buildVoiceTools(profile) as any[];
+  }
+
   // ═══════════════════════════════════════════════════════════
   // SYNC VAPI ASSISTANT — Called when client updates settings
   // Reads current client record and pushes updated config to VAPI
@@ -800,6 +841,14 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
       firstMessage: this.generateFirstMessage(client, this.isFrenchClient(client)),
       ...buildRealtimePlans(this.isFrenchClient(client) ? 'fr' : 'en'),
       serverUrl: `${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`,
+      /* Les outils, qui manquaient. Envoyés à CHAQUE synchronisation et non
+         seulement à la création: c'est ici que le numéro de transfert saisi
+         après l'inscription devient un outil de transfert, et c'est ici que
+         l'agenda branché la semaine suivante ouvre la prise de rendez-vous.
+         Un tableau vide est envoyé quand il n'y a rien à offrir, jamais rien:
+         omettre le champ laisserait chez Vapi les outils d'une configuration
+         qu'on vient d'annuler. */
+      tools: await this.buildAssistantTools(client.id),
     };
 
     // Update transfer destinations if transferNumber changed. E.164 or nothing:

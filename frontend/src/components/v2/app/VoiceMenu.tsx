@@ -64,7 +64,6 @@ export default function VoiceMenu({
   const reduce = useReducedMotion();
   const [query, setQuery] = useState('');
   const [gender, setGender] = useState<GenderFilter>('all');
-  const [clonedOnly, setClonedOnly] = useState(false);
   const [voices, setVoices] = useState<CatalogVoice[] | null>(null);
   const [failed, setFailed] = useState(false);
   const searchRef = useRef<HTMLInputElement | null>(null);
@@ -86,22 +85,34 @@ export default function VoiceMenu({
 
   const shownCharacters = useMemo(
     () => characters.filter(c => {
-      if (clonedOnly) return false;
       if (gender !== 'all' && c.gender !== gender) return false;
       if (!q) return true;
       return fold(`${c.name} ${c.accent} ${(isFr ? c.taglineFr : c.taglineEn) || ''}`).includes(q);
     }),
-    [characters, clonedOnly, gender, q, isFr],
+    [characters, gender, q, isFr],
   );
 
+  /**
+   * Seules les voix CLONÉES du client apparaissent ici.
+   *
+   * Le compte de synthèse porte aussi des dizaines de voix de catalogue —
+   * « Skylar · Approachable American female », « Archie · Warm British male » —
+   * qui n'ont rien à faire dans ce menu: elles sont anglaises, elles ne portent
+   * aucun de nos personnages, et un client qui en choisit une obtient une
+   * réceptionniste française avec un accent américain. Les proposer, c'est
+   * proposer une erreur.
+   *
+   * Ce qui reste est ce que le client a lui-même enregistré, et qui n'existe
+   * nulle part ailleurs dans l'interface: la retirer supprimerait le clonage,
+   * qui est vendu deux blocs plus bas.
+   */
   const shownVoices = useMemo(
     () => (voices ?? []).filter(v => {
-      if (clonedOnly && !v.cloned) return false;
-      if (gender !== 'all' && genderOf(v) !== gender) return false;
+      if (!v.cloned) return false;
       if (!q) return true;
       return fold(`${v.name} ${v.accent || ''} ${v.description || ''}`).includes(q);
     }),
-    [voices, clonedOnly, gender, q],
+    [voices, q],
   );
 
   const empty = !shownCharacters.length && !shownVoices.length;
@@ -165,16 +176,9 @@ export default function VoiceMenu({
                 {label}
               </button>
             ))}
-            <button
-              type="button"
-              onClick={() => setClonedOnly(o => !o)}
-              aria-pressed={clonedOnly}
-              className={`ml-auto rounded-full px-3 py-1.5 text-[12px] transition-colors duration-150 ${
-                clonedOnly ? 'bg-q2-indigo/25 text-white' : 'text-q2-fog hover:text-white'
-              }`}
-            >
-              {isFr ? 'Clonées' : 'Cloned'}
-            </button>
+            {/* Le filtre « Clonées » a disparu avec les voix de catalogue: il
+                ne reste que des voix clonées, un filtre qui ne filtre rien
+                donne l'impression qu'on cache quelque chose. */}
           </div>
         </div>
 
@@ -215,10 +219,13 @@ export default function VoiceMenu({
             </>
           )}
 
-          {/* Voix du compte */}
-          <p className="px-1.5 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-q2-fog">
-            {isFr ? 'Voix du compte' : 'Account voices'}
-          </p>
+          {/* La voix du client, s'il en a enregistré une. Pas de titre quand il
+              n'y a rien dessous: une section vide fait chercher ce qui manque. */}
+          {(shownVoices.length > 0 || (voices === null && !failed)) && (
+            <p className="px-1.5 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-q2-fog">
+              {isFr ? 'Votre voix' : 'Your voice'}
+            </p>
+          )}
 
           {voices === null && !failed && (
             <p className="flex items-center gap-2 px-1.5 py-2 text-[11.5px] text-q2-fog">
