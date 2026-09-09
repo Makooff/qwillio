@@ -212,6 +212,33 @@ describe('les règles de transfert, réglées par le client', () => {
  * Ces mots sont parfaitement transcrits: c'est leur SENS qui diffère. Deux
  * d'entre eux coûtent un rendez-vous chacun, et se trompent en silence.
  */
+/**
+ * Le registre, et pourquoi il doit être dit.
+ *
+ * Tout le prompt s'adresse au modèle en « tu », comme une consigne s'écrit. Le
+ * modèle reprend ce registre et le retourne à l'appelant: « c'est quoi ton
+ * nom ? », relevé sur un vrai scénario d'évaluation. Un réceptionniste qui
+ * tutoie un inconnu s'entend en une seconde.
+ */
+describe('buildSystemPrompt — le vouvoiement', () => {
+  it('demande explicitement de vouvoyer, en français', () => {
+    expect(buildSystemPrompt(profile, newCaller)).toMatch(/Vouvoie toujours l'appelant/);
+  });
+
+  it('demande « u » en néerlandais, où le piège est le même', () => {
+    expect(buildSystemPrompt({ ...profile, language: 'nl' }, newCaller)).toMatch(/altijd aan met « u »/);
+  });
+
+  it('reste au-dessus du client, qui peut demander l\'inverse', () => {
+    // Les consignes du client passent avant le métier: un coiffeur qui tutoie
+    // sa clientèle est un choix, pas un défaut.
+    const p = buildSystemPrompt({ ...profile, instructions: 'Tutoyer les clients, on est un skate shop.' }, newCaller);
+    expect(p).toMatch(/Vouvoie toujours l'appelant/);
+    expect(p).toMatch(/Tutoyer les clients/);
+    expect(p.indexOf('Vouvoie toujours')).toBeLessThan(p.indexOf('Tutoyer les clients'));
+  });
+});
+
 describe('buildSystemPrompt — français de Belgique', () => {
   const be = (over: Record<string, unknown> = {}) =>
     buildSystemPrompt({ ...profile, country: 'BE', ...over }, newCaller);

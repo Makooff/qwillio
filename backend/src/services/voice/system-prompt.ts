@@ -116,6 +116,15 @@ export function buildSystemPrompt(
            s'entend comme une annonce. */
         '- Débit d\'une conversation, pas d\'une annonce: varie le rythme, laisse la voix retomber en fin de phrase.',
         '- Ne répète pas ce que la personne vient de dire.',
+        /* Le VOUVOIEMENT, dit explicitement, et il ne va pas de soi.
+           Tout ce prompt s'adresse au modèle en « tu », comme une consigne
+           s'écrit; le modèle reprend ce registre et le retourne à l'appelant
+           (« c'est quoi ton nom ? », relevé sur un scénario d'évaluation). Un
+           réceptionniste qui tutoie un inconnu au téléphone, en français comme
+           en néerlandais, s'entend en une seconde et ne se rattrape pas. Un
+           client peut toujours demander l'inverse dans ses consignes, qui
+           passent avant le métier. */
+        '- Vouvoie toujours l\'appelant, même s\'il te tutoie.',
         '- Si on te coupe, arrête-toi et écoute.',
         '- Ne prononce jamais de balise technique, de code, ni de contenu entre crochets.',
       ].join('\n'),
@@ -134,6 +143,8 @@ export function buildSystemPrompt(
         '- Spreektaal, natuurlijk Nederlands: laat woorden in elkaar overlopen, articuleer niet overdreven.',
         '- Gesprekstempo, geen omroepbericht: varieer je ritme, laat je stem dalen aan het eind van een zin.',
         '- Herhaal niet wat de beller net zei.',
+        // Même règle, même raison: « u » et non « je », même si la personne tutoie.
+        '- Spreek de beller altijd aan met « u », ook als hij je tutoyeert.',
         '- Word je onderbroken, stop dan en luister.',
         '- Spreek nooit een technische tag, code of iets tussen haakjes uit.',
       ].join('\n'),

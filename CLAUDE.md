@@ -303,6 +303,14 @@ Deux pièges qui reviendront : 60 et 80 absorbent une dizaine (« soixante-douze
 `0475 12 34 56` est un mobile belge ET un fixe français du Sud-Est, tranché par
 le pays de la ligne appelante, jamais par le numéro seul.
 
+### 6quater. Le vouvoiement se dit, il ne va pas de soi (09/09/2026)
+Tout le prompt s'adresse au modèle en « tu », comme une consigne s'écrit, et le
+modèle retournait ce registre à l'appelant : « c'est quoi ton nom ? », relevé sur
+un scénario d'évaluation. Une règle explicite est posée dans les règles de parole
+(français et néerlandais), au-dessus des consignes du client, qui peuvent toujours
+demander l'inverse. Un scénario d'éval le vérifie sans coûter un tour de modèle de
+plus, en s'accrochant à `fr-divulgation-ia`.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).
