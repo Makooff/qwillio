@@ -349,7 +349,14 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
           // Warm: Vapi speaks a summary to the operator before bridging. The
           // per-call summary comes from the transfer-destination-request
           // handler; this static plan is the fallback when that is not reached.
-          transferPlan: { mode: 'warm-transfer-say-summary', summaryPlan: { enabled: true } },
+          transferPlan: {
+            mode: 'warm-transfer-say-summary',
+            // La même borne de sonnerie que le plan par appel: ce chemin-ci est
+            // le repli, et un repli qui sonne trois fois plus longtemps que le
+            // chemin normal est un piège, pas un repli (REL-6).
+            dialTimeout: env.VOICE_TRANSFER_RING_SECONDS,
+            summaryPlan: { enabled: true },
+          },
         },
       ],
     });

@@ -251,6 +251,19 @@ export const env = {
     1,
     Math.max(0.01, parseFloat(process.env.VOICE_FALLBACK_ALERT_RATE || '0.2') || 0.2),
   ),
+  /**
+   * Secondes de sonnerie avant d'abandonner le transfert (REL-6).
+   *
+   * 20 et non les 60 du défaut de Vapi. Une minute d'attente pendant qu'un
+   * mobile sonne dans le vide est une éternité pour l'appelant, et il aura
+   * raccroché bien avant: ce qui se perd alors n'est pas un transfert raté,
+   * c'est l'appel entier, sans message ni trace. Vingt secondes font quatre
+   * sonneries, de quoi décrocher si on le peut.
+   */
+  VOICE_TRANSFER_RING_SECONDS: Math.min(
+    60,
+    Math.max(10, parseInt(process.env.VOICE_TRANSFER_RING_SECONDS || '20', 10) || 20),
+  ),
   /** First TTS chunk size — smaller means audio starts sooner. */
   /**
    * Taille du PREMIER morceau de texte envoyé au synthétiseur.

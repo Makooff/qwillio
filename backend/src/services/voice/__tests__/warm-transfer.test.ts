@@ -5,6 +5,7 @@ vi.mock('../../sms.service', () => ({ smsService: { sendSMS: (...a: unknown[]) =
 
 const { warmTransferService } = await import('../warm-transfer.service');
 const { callSessionStore } = await import('../call-session.store');
+const { buildVoiceTools } = await import('../voice-tools');
 
 const profile: any = {
   clientId: 'client_1',
@@ -129,5 +130,41 @@ describe('warmTransferService.destination', () => {
     expect(dest.transferPlan.summaryPlan.enabled).toBe(true);
     expect(dest.transferPlan.summaryPlan.messages[0].content).toBe(brief.spoken);
     expect(dest.number).toBe('+33123456789');
+  });
+});
+
+/**
+ * REL-6. Vapi sonne 60 secondes par défaut. Une minute d'attente pendant qu'un
+ * mobile sonne dans le vide est une éternité pour l'appelant, et il aura
+ * raccroché avant la fin: ce qui se perd alors n'est pas un transfert raté,
+ * c'est l'appel entier, sans message ni trace.
+ */
+describe('la durée de sonnerie du transfert', () => {
+  /** Le plan tel qu'il partirait sur un vrai appel. */
+  function plan() {
+    startCall(['user|je veux parler a un responsable']);
+    const brief = warmTransferService.brief(profile, 'c1');
+    return (warmTransferService.destination(profile, brief) as any).transferPlan;
+  }
+
+  it('borne la sonnerie du plan par appel', () => {
+    expect(plan().dialTimeout).toBeLessThanOrEqual(20);
+    expect(plan().dialTimeout).toBeGreaterThanOrEqual(10);
+  });
+
+  it('borne aussi celle de l\'outil, qui est le repli', () => {
+    // Un repli qui sonne trois fois plus longtemps que le chemin normal est un
+    // piège, pas un repli.
+    const tools = buildVoiceTools({ ...profile, country: 'BE' } as never) as any[];
+    const transfer = tools.find(t => t.type === 'transferCall');
+    expect(transfer.destinations[0].transferPlan.dialTimeout).toBe(plan().dialTimeout);
+  });
+
+  it('n\'annonce pas une reprise en main qu\'on n\'a pas', () => {
+    // `fallbackPlan` est réservé par Vapi à `warm-transfer-experimental` et aux
+    // transferts aveugles: l'envoyer sur ce mode serait accepté par le schéma
+    // et ignoré à l'exécution, donc afficher une reprise qu'on n'obtient pas.
+    expect(plan().mode).toBe('warm-transfer-say-summary');
+    expect('fallbackPlan' in plan()).toBe(false);
   });
 });
