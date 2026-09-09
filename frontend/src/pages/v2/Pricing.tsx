@@ -28,6 +28,7 @@ export const HUMAN_PART_TIME_MONTHLY = 2300;
    Ré-exportés parce que la page Partenaires les lit depuis ce module. */
 export { PLAN_MONTHLY_EUR, PLAN_MINUTES, effectivePerMinute } from './pricing-plans';
 import { PLAN_MONTHLY_EUR, PLAN_MINUTES, effectivePerMinute } from './pricing-plans';
+import { annualTotalEur, annualMonthlyEquivalentEur } from '../../lib/pricing';
 
 interface Tier {
   id: string;
@@ -55,9 +56,12 @@ export default function Pricing() {
   const isFr = lang === 'fr';
   const [billing, setBilling] = useState<'monthly' | 'annual'>('monthly');
 
-  const ANNUAL_DISCOUNT = 0.20;
+  /* Le mensuel ÉQUIVALENT en annuel se dérive du total réellement prélevé, il
+     ne se recalcule pas: « arrondir le mensuel remisé puis multiplier par
+     douze » et « remiser le total puis arrondir » ne tombent pas au même
+     endroit, et Solo était annoncé 948 € pour un prélèvement de 950 €. */
   const priceFor = (monthlyPrice: number): number =>
-    billing === 'annual' ? Math.round(monthlyPrice * (1 - ANNUAL_DISCOUNT)) : monthlyPrice;
+    billing === 'annual' ? annualMonthlyEquivalentEur(monthlyPrice) : monthlyPrice;
   const perLabel = isFr ? 'mois' : 'month';
 
   /**
@@ -340,10 +344,12 @@ export default function Pricing() {
       ? `Soit ${perMinute(t)}\u00a0la minute incluse`
       : `That is €${effectivePerMinute(priceFor(t.monthly), t.minutes).toFixed(2)} per included minute`;
 
+  /* Le montant que Stripe prélève réellement, pas douze fois l'équivalent
+     mensuel affiché au-dessus. C'est la ligne qui engage. */
   const annualLine = (monthlyPrice: number) =>
     isFr
-      ? `Facturé ${(priceFor(monthlyPrice) * 12).toLocaleString('fr-FR')} €/an`
-      : `Billed ${(priceFor(monthlyPrice) * 12).toLocaleString('fr-FR')} €/yr`;
+      ? `Facturé ${annualTotalEur(monthlyPrice).toLocaleString('fr-FR')} €/an`
+      : `Billed ${annualTotalEur(monthlyPrice).toLocaleString('fr-FR')} €/yr`;
 
   return (
     <PublicShell>
