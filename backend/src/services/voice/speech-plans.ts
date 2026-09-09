@@ -35,6 +35,24 @@ const DEEPGRAM_LANG: Record<VoiceLanguage, string> = { fr: 'fr', en: 'en-US', nl
 const DEEPGRAM_MODEL: Record<VoiceLanguage, string> = { fr: 'nova-3', en: 'nova-3', nl: 'nova-2' };
 
 /**
+ * Le modèle et la langue à envoyer, selon qu'on suit une langue ou toutes
+ * (BEL-11).
+ *
+ * En mode multilingue, Nova-3 suit un basculement de langue EN COURS DE
+ * PHRASE, ce qui est la norme à Bruxelles et ce qu'aucun réglage épinglé ne
+ * peut faire: sur `language: 'fr'`, le néerlandais ressort en charabia
+ * français et l'agent répond à côté.
+ *
+ * Le néerlandais y passe de nova-2 à nova-3, forcément: `multi` n'existe pas
+ * sur nova-2. C'est un effet de bord assumé du drapeau, pas une décision
+ * séparée, et c'est pour ça que les deux ne se règlent pas indépendamment.
+ */
+function deepgramFor(lang: VoiceLanguage): { model: string; language: string } {
+  if (env.VOICE_STT_MULTILINGUAL) return { model: 'nova-3', language: 'multi' };
+  return { model: DEEPGRAM_MODEL[lang], language: DEEPGRAM_LANG[lang] };
+}
+
+/**
  * Transcriber tuned for conversational endpointing rather than transcription
  * accuracy on long-form audio. `endpointing` is the silence (ms) after speech
  * before a final transcript is flushed — the single biggest lever on turn
@@ -240,10 +258,11 @@ export function resolveTuning(t: VoiceTuning = {}) {
 export type ResolvedTuning = ReturnType<typeof resolveTuning>;
 
 export function buildTranscriber(lang: VoiceLanguage, opts: SpeechOptions = {}) {
+  const deepgram = deepgramFor(lang);
   return {
     provider: 'deepgram',
-    model: DEEPGRAM_MODEL[lang],
-    language: DEEPGRAM_LANG[lang],
+    model: deepgram.model,
+    language: deepgram.language,
     smartFormat: true,
     // Emit interim results so the orchestrator can react (barge-in bookkeeping,
     // filler timing) before the final transcript lands.
@@ -253,7 +272,7 @@ export function buildTranscriber(lang: VoiceLanguage, opts: SpeechOptions = {}) 
        ce qu'un appelant prononce et qu'un modèle générique écrit de travers,
        faute de figurer dans un corpus. Le CHAMP dépend du modèle: voir
        `buildVocabularyField`. */
-    ...buildVocabularyField(DEEPGRAM_MODEL[lang], opts.vocabulary ?? []),
+    ...buildVocabularyField(deepgram.model, opts.vocabulary ?? []),
     /* Panne Deepgram = panne totale tant qu'aucun secours n'est déclaré.
        Opt-in par env (voir le commentaire dans env.ts): le champ n'existe pas
        du tout tant que la variable est vide, pour que le schéma envoyé à Vapi

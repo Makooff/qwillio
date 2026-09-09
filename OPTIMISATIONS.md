@@ -389,7 +389,10 @@ Il n'existe aucun corpus public de français belge téléphonique en 8 kHz, aucu
 
 ### BEL-11 — Contraindre le code-switching à FR et NL uniquement
 
-- **Statut** : `ABSENT`
+- **Statut** : `PARTIEL`
+- **Ce qui a changé, et c'est une bonne nouvelle** : cette ligne était classée « décision fournisseur » à tort. **Deepgram Nova-3 fait déjà le code-switching en TEMPS RÉEL entre dix langues, français et néerlandais compris**, et Vapi l'expose via `transcriber.language: 'multi'`. Pas de changement de fournisseur, pas de changement de tarif, pas de perte de latence (sub-300 ms annoncés). C'est un réglage, pas un achat.
+- **Preuve** : `deepgramFor()` dans `backend/src/services/voice/speech-plans.ts`, derrière `VOICE_STT_MULTILINGUAL`. Tests : `__tests__/speech-plans.test.ts`, 4 cas dont celui qui vérifie que le champ de biasing suit le modèle (`keyterm` en nova-3, `keywords` en nova-2).
+- **Éteint par défaut, et c'est le point qui reste** : un modèle épinglé sur une langue est en général MEILLEUR sur cette langue qu'un modèle multilingue. Allumer partout améliorerait les appels bruxellois bilingues et pourrait dégrader la majorité, qui est en français pur. Personne n'a le chiffre, et le seul moyen de l'avoir est de comparer sur de vrais appels. Le drapeau existe pour rendre la comparaison possible sans déploiement ; il passera `DÉJÀ FAIT` quand la mesure aura tranché.
 - **Preuve** : Une seule langue par client, figée à la construction du profil (`backend/src/services/voice/realtime-context.service.ts:268-274`), et un seul code envoyé au transcripteur (`speech-plans.ts:29` et `:158`). Aucun `language_codes`, aucun mode `multi`, aucune détection au mot, ni AssemblyAI. Un appel bruxellois qui alterne FR et NL est transcrit dans une seule des deux langues.
 - **Action** : AssemblyAI Universal-3.5 Pro permet de passer `language_codes: ["fr","nl"]` et de contraindre le modèle à ne basculer qu'entre ces deux langues. Deepgram Flux Multilingual fait de la détection au niveau du mot, français et néerlandais inclus.
 - **Pourquoi** : C'est exactement ce qu'il faut pour Bruxelles : on élimine d'un coup les confusions avec l'allemand, l'anglais et le danois. Attention au piège de version : Universal-3 Pro streaming ne couvrait que six langues, sans néerlandais. Il faut la 3.5.

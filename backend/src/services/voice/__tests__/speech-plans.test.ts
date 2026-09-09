@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi, afterEach } from 'vitest';
 import { env } from '../../../config/env';
 import {
   buildRealtimePlans,
@@ -525,5 +525,55 @@ describe('les mots du client soufflés au transcripteur', () => {
     // reste au passage.
     const many = Array.from({ length: 500 }, (_, i) => `Prestation${i}`);
     expect((field('fr', many).keyterm as string[]).length).toBeLessThanOrEqual(60);
+  });
+});
+
+/**
+ * BEL-11. À Bruxelles une phrase passe du français au néerlandais et revient.
+ * Un transcripteur épinglé sur `fr` écrit le néerlandais en charabia français,
+ * et l'agent répond à côté. Nova-3 suit ce basculement en temps réel, sans
+ * changer de fournisseur ni de tarif.
+ */
+describe('le mode multilingue du transcripteur', () => {
+  const withFlag = async (on: boolean) => {
+    vi.resetModules();
+    process.env.VOICE_STT_MULTILINGUAL = on ? '1' : '';
+    const mod = await import('../speech-plans');
+    return mod.buildTranscriber;
+  };
+
+  afterEach(() => {
+    delete process.env.VOICE_STT_MULTILINGUAL;
+    vi.resetModules();
+  });
+
+  it('reste épinglé sur une langue par défaut', async () => {
+    // Un modèle épinglé est en général meilleur sur SA langue. Basculer toute
+    // la flotte sans mesure améliorerait Bruxelles et pourrait dégrader la
+    // majorité, qui est en français pur.
+    const build = await withFlag(false);
+    expect(build('fr')).toMatchObject({ model: 'nova-3', language: 'fr' });
+    expect(build('nl')).toMatchObject({ model: 'nova-2', language: 'nl' });
+  });
+
+  it('suit toutes les langues quand le drapeau est levé', async () => {
+    const build = await withFlag(true);
+    for (const lang of ['fr', 'en', 'nl'] as const) {
+      expect(build(lang)).toMatchObject({ model: 'nova-3', language: 'multi' });
+    }
+  });
+
+  it('emporte le néerlandais en nova-3, parce que multi n\'existe pas sur nova-2', async () => {
+    const build = await withFlag(true);
+    expect((build('nl') as Record<string, unknown>).model).toBe('nova-3');
+  });
+
+  it('fait suivre le champ de biasing, qui dépend du modèle', async () => {
+    // nova-2 prend `keywords`, nova-3 prend `keyterm`. Envoyer le mauvais
+    // ferait refuser l'assistant entier.
+    const off = await withFlag(false);
+    expect((off('nl', { vocabulary: ['Chez Marie'] }) as Record<string, unknown>).keywords).toBeDefined();
+    const on = await withFlag(true);
+    expect((on('nl', { vocabulary: ['Chez Marie'] }) as Record<string, unknown>).keyterm).toBeDefined();
   });
 });
