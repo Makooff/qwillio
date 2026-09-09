@@ -7,6 +7,7 @@ import { discordService } from './discord.service';
 import { resolveCharacter } from '../config/voice-characters';
 import { getPersonaPrompt, PERSONALITY_PROMPTS } from '../config/personalities';
 import { buildRealtimePlans, buildVoice } from './voice/speech-plans';
+import { fitAssistantName } from './voice/vapi-limits';
 import { realtimeContextService } from './voice/realtime-context.service';
 import { greetingAudioService } from './voice/greeting-audio.service';
 import { toE164 } from '../utils/phone';
@@ -72,7 +73,7 @@ export class OnboardingService {
       }
 
       const assistantData: any = {
-        name: `Receptionist - ${client.businessName}`,
+        name: fitAssistantName('Receptionist', client.businessName),
         model: {
           provider: 'openai',
           model: env.VAPI_MODEL,
@@ -781,7 +782,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
     });
 
     const updatedConfig: any = {
-      name: `${client.agentName || 'Receptionist'} — ${client.businessName}`,
+      name: fitAssistantName(client.agentName || 'Receptionist', client.businessName),
       model: {
         provider: 'openai',
         model: env.VAPI_MODEL,

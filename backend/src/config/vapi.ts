@@ -1,4 +1,5 @@
 import { env } from './env';
+import { fitAssistantLabel } from '../services/voice/vapi-limits';
 
 class VapiClient {
   private baseUrl: string;
@@ -65,9 +66,14 @@ class VapiClient {
     endCallFunctionEnabled?: boolean;
     recordingEnabled?: boolean;
   }) {
+    /* Le nom repasse par la borne ici, et pas seulement chez l'appelant.
+       Vapi refuse au-delà de 40 caractères, et ce refus ne dégrade rien: il
+       annule la création. Un appelant futur qui composerait un nom à partir
+       d'un champ client retomberait sur ce mur sans le savoir, comme
+       « Receptionist - <nom commercial> » l'a fait. */
     return this.request('/assistant', {
       method: 'POST',
-      body: JSON.stringify(data),
+      body: JSON.stringify({ ...data, name: fitAssistantLabel(data.name) }),
     });
   }
 
@@ -131,9 +137,12 @@ class VapiClient {
   }
 
   async updateAssistant(assistantId: string, data: Record<string, any>) {
+    // Même borne qu'à la création: une synchronisation refusée laisse
+    // l'assistant DISTANT sur son ancienne configuration, en silence.
+    const body = typeof data.name === 'string' ? { ...data, name: fitAssistantLabel(data.name) } : data;
     return this.request(`/assistant/${assistantId}`, {
       method: 'PATCH',
-      body: JSON.stringify(data),
+      body: JSON.stringify(body),
     });
   }
 

@@ -31,14 +31,21 @@
  */
 import { env } from '../config/env';
 import { buildRealtimePlans, buildVoice, type VoiceLanguage } from '../services/voice/speech-plans';
+import { fitAssistantLabel } from '../services/voice/vapi-limits';
 
-const PREFIX = '__qwillio-validation';
+/* 13 caractères, et c'est un compte, pas un goût: le nom complet vaut
+   `PREFIX-fr-classic-<Date.now()>`, soit 38 avec ce préfixe et 45 avec
+   `__qwillio-validation`, que Vapi a refusé (« name must be shorter than or
+   equal to 40 characters », 09/09/2026). Le balayage des assistants oubliés
+   compare sur ce préfixe, qui est aussi un préfixe de l'ancien: un jeton laissé
+   par une version précédente est donc ramassé lui aussi. */
+const PREFIX = '__qwillio-val';
 const LANGS: VoiceLanguage[] = ['fr', 'en', 'nl'];
 
 /** Un assistant minimal mais COMPLET: les plans sont ce qu'on teste. */
 function candidate(lang: VoiceLanguage, speechToSpeech: boolean) {
   return {
-    name: `${PREFIX}-${lang}-${speechToSpeech ? 's2s' : 'classic'}-${Date.now()}`,
+    name: fitAssistantLabel(`${PREFIX}-${lang}-${speechToSpeech ? 's2s' : 'classic'}-${Date.now()}`),
     model: {
       provider: 'openai',
       model: env.VAPI_MODEL,

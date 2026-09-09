@@ -311,9 +311,12 @@ bougeant pas entre deux essais.
 Deux choses à ne pas défaire. Le plan `keypadInputPlan` est armé sur **tous** les
 appels et pas seulement après un échec : il se déclare à la construction de
 l'assistant, et l'assistant ne se reconstruit pas en cours d'appel. Et
-`delimiters` est une **chaîne** (`'#'`), pas un tableau : le tableau vient d'un
-changelog de 2025, la référence d'API courante donne la chaîne, et se tromper de
-type ferait refuser l'assistant ENTIER, donc tous les appels de la flotte.
+`delimiters` est un **tableau** (`['#']`), et c'est l'API vivante qui l'a dit, pas
+la doc : la référence écrite donne `"#"` aux trois endroits où elle décrit le
+plan, cette lecture a été suivie, et le premier POST réel a répondu
+« keypadInputPlan.delimiters must be an array » sur les **six** variantes. Ne pas
+le repasser en chaîne sur la foi de la documentation : relancer
+`npm run voice:validate`, seule chose qui interroge l'API.
 Ce que ça change à la réception : Vapi remonte les touches comme un message
 utilisateur fait de chiffres propres, au lieu de laisser le STT transcrire les
 tonalités en charabia. Elles apparaissent donc au transcript, proprement — ce
@@ -329,10 +332,22 @@ est un 400 de Vapi que personne ne lit, puisque le code a l'air correct.
 prochaine, il ne parle pas à Vapi. Le script, si : il POSTe un assistant jetable
 pour les **six** variantes (trois langues × deux moteurs, dont les plans
 diffèrent) et le supprime. Un 400 ne crée rien, Vapi validant avant d'écrire.
-Cinq champs ajoutés le 09/09 n'ont jamais été vus par l'API vivante :
-`keypadInputPlan`, `firstMessageInterruptionsEnabled`, `customEndpointingRules`,
-`transferPlan.dialTimeout`, et `keyterm`/`keywords`. Les faire valider est la
-première chose à faire, avant même le premier appel de test.
+Le premier passage réel, le 09/09 au soir, a refusé les six variantes pour
+**deux** raisons, dont aucune n'était devinable en lisant le code :
+`keypadInputPlan.delimiters` veut un tableau (voir 6septies), et **le nom d'un
+assistant ne peut pas dépasser 40 caractères**. Le nom, justement, était le seul
+champ que personne ne surveillait : la production le compose en
+`Receptionist - <nom commercial>`, donc n'importe quelle entreprise au nom un peu
+long (« Boulangerie Saint-Michel Uccle », 45 caractères avec le préfixe) n'aurait
+jamais eu d'assistant du tout. `services/voice/vapi-limits.ts` coupe désormais
+l'entreprise plutôt que l'agent, et `config/vapi.ts` repose la borne sur le
+passage obligé, pour que le prochain appelant qui composera un nom ne retombe pas
+dans le même mur.
+Les autres champs du 09/09 (`firstMessageInterruptionsEnabled`,
+`customEndpointingRules`, `transferPlan.dialTimeout`, `keyterm`/`keywords`)
+n'ont encore rien prouvé : le refus portait sur le nom et sur les délimiteurs,
+et Vapi rend ses erreurs par lot, donc un champ tu n'est pas un champ accepté.
+Ils ne seront validés qu'au passage suivant du script.
 **Piège Deepgram** : `keyterm` n'existe que sur Nova-3, `keywords` sur Nova-2 et
 en dessous, et nos langues ne tournent pas sur le même modèle (fr/en en Nova-3,
 nl en Nova-2). Le champ se choisit par modèle, jamais globalement.
@@ -373,6 +388,24 @@ et en SQL un NULL ne matche aucune comparaison. Ces lignes n'étaient donc échu
 `createdAt` en repli. **Toute colonne de date nullable utilisée comme filtre de
 purge porte ce piège** : il ne se voit pas, la requête réussit et ne supprime
 simplement rien.
+
+### 6undecies. Un changement d'offre REMPLACE l'essai, il ne s'y ajoute pas (09/09/2026)
+Le bouton « Upgrader » du portail ouvre une caisse Stripe, et une caisse crée un
+**nouvel** abonnement. L'essai, lui, restait ouvert : même client, même carte,
+plan d'origine. À la fin de l'essai, Stripe facturait **les deux**, et Qwillio ne
+pointait plus que le second : aucun chemin du produit n'aurait annulé le premier
+ni signalé son existence, seule une lecture du tableau de bord Stripe l'aurait
+montré, après le prélèvement.
+`handlePlanUpgradeCheckout` annule donc l'ancien, et **l'ordre est la moitié du
+correctif** : `customer.subscription.deleted` retrouve le client par son
+`stripeSubscriptionId`, donc annuler AVANT la mise à jour ferait trouver ce
+client-là, passerait son statut à `canceled` et **rendrait son numéro belge au
+stock** quelques secondes après le lui avoir attribué. Annulé après, l'ancien
+identifiant ne désigne plus personne et l'événement est ignoré, ce qui est
+exactement ce qu'on veut.
+C'est le chemin exact du compte de test gratuit (inscription, puis second
+passage en caisse pour convertir) : le premier à rencontrer ce défaut aurait été
+nous, sur notre propre carte.
 
 ### 6quinquies. Un glossaire de prompt ne contient AUCUN verbe d'action (09/09/2026)
 Le bloc belgicismes a fait échouer `fr-discipline-agenda`, un scénario sans aucun

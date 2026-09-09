@@ -941,10 +941,17 @@ export function buildRealtimePlans(
     keypadInputPlan: {
       enabled: true,
       timeoutSeconds: env.VOICE_KEYPAD_TIMEOUT_SECONDS,
-      // Chaîne et non tableau: le tableau vient d'un changelog de 2025, la
-      // référence d'API courante donne `"delimiters": "#"`. Se tromper de type
-      // ici ferait refuser l'assistant ENTIER, donc tous les appels.
-      delimiters: '#',
+      /* TABLEAU, et c'est l'API vivante qui l'a tranché le 09/09/2026:
+           "keypadInputPlan.delimiters must be an array"
+         La référence écrite dit `"delimiters": "#"` aux trois endroits où elle
+         décrit ce plan, et c'est sur cette lecture que la chaîne avait été
+         posée. La documentation avait tort, ou l'API a changé sans elle: dans
+         les deux cas, seul un POST réel pouvait le dire, et il a refusé les SIX
+         variantes d'un coup. Un champ mal typé ne dégrade pas un appel, il fait
+         refuser l'assistant ENTIER.
+         Ne pas « corriger » ce tableau en chaîne sur la foi de la doc:
+         relancer `npm run voice:validate`, qui interroge l'API. */
+      delimiters: ['#'],
     },
     backchannelingEnabled: env.VOICE_BACKCHANNEL_ENABLED,
     // No backchannelPlan here. Vapi rejects the whole assistant with
