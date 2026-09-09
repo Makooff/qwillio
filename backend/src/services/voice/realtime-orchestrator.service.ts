@@ -6,7 +6,7 @@ import { realtimeContextService, shouldRecord, type ClientVoiceProfile } from '.
 import { callSessionStore } from './call-session.store';
 import { buildRealtimePlans, buildSpeech, useSpeechToSpeech } from './speech-plans';
 import { buildVoiceTools } from './voice-tools';
-import { buildSystemPrompt, firstMessageVariants } from './system-prompt';
+import { buildSystemPrompt, firstMessageVariants, ensureDisclosure, hasAiDisclosure } from './system-prompt';
 import { greetingAudioService } from './greeting-audio.service';
 import { routeIntent } from './intent-router';
 import { assessMood } from './caller-mood';
@@ -165,9 +165,33 @@ class RealtimeOrchestratorService {
 
     // Après `buildSpeech`: l'accueil dépend du mode retenu.
     /* L'accueil de la ligne passe devant celui calculé: le client l'a écrit
-       pour CETTE ligne, et c'est la première seconde de l'appel. */
-    const firstMessage = line?.greeting
-      || (await this.resolveFirstMessage(profile, caller.knownName, speechToSpeech));
+       pour CETTE ligne, et c'est la première seconde de l'appel.
+       Mais il ne peut pas faire sauter l'annonce IA (LEG-1): l'article 50 de
+       l'AI Act vise le FOURNISSEUR du système, pas le commerçant qui l'utilise,
+       et un champ de texte libre de 400 caractères le remplaçait en entier. On
+       complète donc sa phrase au lieu de l'écarter. */
+    const custom = line?.greeting ? ensureDisclosure(line.greeting, profile) : null;
+    if (custom?.added.length) {
+      logger.info(
+        `[Voice] accueil de ligne complété pour ${profile.businessName}: ${custom.added.join(', ')} ajouté(s)`,
+      );
+    }
+    const firstMessage = custom?.text
+      ?? (await this.resolveFirstMessage(profile, caller.knownName, speechToSpeech));
+
+    /* Le booléen que le plan demande, consigné sur CHAQUE appel: sans lui,
+       « l'annonce a-t-elle été faite » ne se répond qu'en réécoutant l'audio,
+       c'est-à-dire jamais. Faux ne peut plus arriver que si quelqu'un a éteint
+       la conformité pour toute la flotte, ce qui mérite exactement ce niveau
+       d'alerte. */
+    const disclosed = hasAiDisclosure(firstMessage, profile.language);
+    callSessionStore.setDisclosure(vapiCallId, disclosed);
+    if (!disclosed) {
+      logger.error(
+        `[Voice] CRITIQUE: appel ${vapiCallId} démarré SANS annonce IA (${profile.businessName}). ` +
+          'AI Act art. 50: l\'obligation pèse sur nous, pas sur le client. Vérifier VOICE_COMPLIANCE_GREETING.',
+      );
+    }
 
     const assistant = {
       name: `Receptionist - ${profile.businessName}`,
@@ -425,6 +449,9 @@ class RealtimeOrchestratorService {
           leadActivityId: session.leadActivityId,
           medianTurnLatencyMs: median(session.turnLatencies),
           latency: session.latency.snapshot(),
+          /* L'annonce IA, consignée sur la ligne de l'appel: c'est la seule
+             forme dans laquelle elle est vérifiable après coup (LEG-1). */
+          disclosureSpoken: session.disclosureSpoken,
         }
       : null;
 

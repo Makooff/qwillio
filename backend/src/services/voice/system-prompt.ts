@@ -406,6 +406,84 @@ export function buildSystemPrompt(
 }
 
 /**
+ * L'annonce obligatoire, et la garantie qu'elle est bien là (LEG-1).
+ *
+ * ── Le trou que ceci bouche ────────────────────────────────────────────────
+ *
+ * Chaque variante d'accueil porte l'annonce IA, et un test l'empêche de
+ * disparaître. Mais un accueil PAR LIGNE, écrit librement par le client dans
+ * un champ de 400 caractères, REMPLACE purement et simplement l'accueil
+ * conforme. Un client qui écrit « Garage Dupont bonjour ! » fait donc sauter,
+ * sans le savoir, l'obligation qui pèse sur NOUS: l'article 50 de l'AI Act vise
+ * le fournisseur du système, pas le commerçant qui l'utilise.
+ *
+ * ── Compléter, pas remplacer ───────────────────────────────────────────────
+ *
+ * On n'écarte pas la phrase du client: il l'a écrite pour cette ligne, et c'est
+ * la première seconde de son appel. On y AJOUTE ce qui manque, et rien d'autre.
+ * Un accueil qui dit déjà « assistant IA » n'est pas retouché.
+ */
+const AI_MARKERS: Record<VoiceLanguage, RegExp> = {
+  fr: /\b(ia|i\.a\.|intelligence artificielle|assistante? (?:ia|vocale?|virtuelle?|automatis))/i,
+  en: /\b(ai|a\.i\.|artificial intelligence|virtual assistant|automated assistant)/i,
+  nl: /\b(ai|kunstmatige intelligentie|virtuele assistent|automatische assistent)/i,
+};
+
+const RECORDING_MARKERS: Record<VoiceLanguage, RegExp> = {
+  fr: /enregistr/i,
+  en: /record/i,
+  nl: /opgenomen|opname/i,
+};
+
+export function hasAiDisclosure(text: string, lang: VoiceLanguage): boolean {
+  return AI_MARKERS[lang].test(text ?? '');
+}
+
+export function hasRecordingNotice(text: string, lang: VoiceLanguage): boolean {
+  return RECORDING_MARKERS[lang].test(text ?? '');
+}
+
+export interface DisclosureResult {
+  /** L'accueil réellement prononcé. */
+  text: string;
+  /** Ce qui a dû être ajouté, pour le journal. */
+  added: Array<'ai' | 'recording'>;
+}
+
+/**
+ * Rend l'accueil d'une ligne conforme, en n'ajoutant que ce qui manque.
+ *
+ * La notice d'enregistrement n'est ajoutée que si l'appel est RÉELLEMENT
+ * enregistré: annoncer un enregistrement qui n'a pas lieu est un mensonge de
+ * confort, et il se retourne aussi bien qu'une annonce manquante.
+ */
+export function ensureDisclosure(greeting: string, profile: ClientVoiceProfile): DisclosureResult {
+  const lang = profile.language;
+  const t = <T>(fr: T, en: T, nl: T): T => pickLang(lang, fr, en, nl);
+  const added: Array<'ai' | 'recording'> = [];
+
+  if (!env.VOICE_COMPLIANCE_GREETING) return { text: greeting, added };
+
+  let text = greeting.trim();
+
+  if (!hasAiDisclosure(text, lang)) {
+    added.push('ai');
+    text += t(
+      ` Je suis ${profile.agentName}, l'assistant IA de l'accueil.`,
+      ` I'm ${profile.agentName}, the AI assistant on reception.`,
+      ` Ik ben ${profile.agentName}, de AI-assistent van het onthaal.`,
+    );
+  }
+
+  if (shouldRecord(profile) && !hasRecordingNotice(text, lang)) {
+    added.push('recording');
+    text += t(' Cet appel est enregistré.', ' This call is recorded.', ' Dit gesprek wordt opgenomen.');
+  }
+
+  return { text, added };
+}
+
+/**
  * Opening lines. Short: the caller is waiting for a human-sounding hello.
  *
  * Three variants rather than one, because a regular who phones twice a week

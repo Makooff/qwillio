@@ -531,9 +531,9 @@ L'obligation de transparence pèse sur le fournisseur du système d'IA — c'est
 
 ### LEG-1 — Annoncer l'IA dès la première interaction
 
-- **Statut** : `PARTIEL`
-- **Preuve** : L'annonce EST dans chaque variante d'accueil, dans les trois langues, et un test l'interdit de disparaître (`backend/src/services/voice/system-prompt.ts:372-413` ; `__tests__/compliance-disclosure.test.ts:52-65`), le prompt interdit de nier (`system-prompt.ts:89-95`, testé `:96-104`), et un test de dépôt interdit tout script de déni de revenir (`compliance-disclosure.test.ts:106-131`). Trois trous, dont un sérieux : (1) aucun booléen « annonce prononcée » n'est loggé par appel, donc aucune alerte possible ; (2) un accueil PAR LIGNE écrit librement par le client REMPLACE l'accueil conforme, sans aucune validation (`realtime-orchestrator.service.ts:169`, écriture `client-dashboard.controller.ts:1240`, 400 caractères de texte libre) ; (3) `VOICE_COMPLIANCE_GREETING=off` retire l'annonce pour toute la flotte (`env.ts:395`).
-  **Relevé de production (27/08)** : `VOICE_COMPLIANCE_GREETING` n'est pas posée, donc elle vaut `on` — l'annonce IA est bien active en production. Le trou (2), l'accueil de ligne en texte libre, reste entier.
+- **Statut** : `DÉJÀ FAIT`
+- **Preuve** : Les trois trous sont bouchés. (1) Le booléen est consigné sur CHAQUE appel (`callSessionStore.setDisclosure`, persisté dans `metadata.realtime.disclosureSpoken`) et une alerte de niveau critique part quand il est faux (`realtime-orchestrator.service.ts`). (2) L'accueil PAR LIGNE ne peut plus remplacer l'annonce : `ensureDisclosure` COMPLÈTE la phrase du client au lieu de l'écarter — il l'a écrite pour cette ligne, et c'est la première seconde de son appel — et n'y touche pas quand elle annonce déjà l'IA. (3) `VOICE_COMPLIANCE_GREETING=off` reste le seul chemin qui peut rendre le booléen faux, et c'est exactement le cas que l'alerte critique nomme. 4 tests de plus dans `__tests__/compliance-disclosure.test.ts`.
+- **Le détail qui compte** : la notice d'enregistrement n'est ajoutée que si l'appel est RÉELLEMENT enregistré. Annoncer un enregistrement qui n'a pas lieu est un mensonge de confort, et il se retourne aussi bien qu'une annonce manquante.
 - **Action** : De manière claire et distinguable, dès le début. Pas au milieu, pas en petits caractères sur le site.
 - **Pourquoi** : Article 50(1) de l'AI Act, applicable depuis le 2 août 2026. L'obligation pèse sur le fournisseur : si tu vends l'agent à un commerçant, c'est toi.
 - **Critère d'acceptation** : Un booléen « annonce IA prononcée » est loggé sur chaque appel. Une alerte de niveau critique se déclenche s'il est faux.
@@ -689,6 +689,7 @@ Le meilleur signal neutre du domaine est EVA-Bench : sur douze systèmes évalu�
 
 | Date | Ligne | De → vers | Commit | Note |
 |---|---|---|---|---|
+| 2026-09-09 | LEG-1 | `PARTIEL` → `DÉJÀ FAIT` | `claude/optimisations-audit-vocal-68tgg2` | Un accueil de ligne en texte libre ne peut plus faire sauter l'annonce IA: il est complété, pas écarté. Booléen consigné par appel et alerte critique s'il est faux. |
 | 2026-09-09 | TST-9 | `ABSENT` → `PARTIEL` | `claude/optimisations-audit-vocal-68tgg2` | Abandon découpé par index de tour dans le rapport hebdomadaire, avec une action différente selon l'endroit où l'appelant part. Reste l'affichage au tableau de bord, et des appels à décrire. |
 | 2026-09-09 | REL-5 | preuve complétée, reste `PARTIEL` | `claude/optimisations-audit-vocal-68tgg2` | « Dans le doute, c'est un humain » écrit en tête du bloc de détection, marqueur « voix trop parfaite » retiré (c'est la description d'une secrétaire expérimentée), et la règle sort des deux prompts pour vivre dans un seul module. |
 | 2026-09-09 | LEG-4 | preuve complétée, reste `PARTIEL` | `claude/optimisations-audit-vocal-68tgg2` | Chaque appel porte sa date limite, posée à l'écriture; la purge efface au premier des deux termes échus. Le plafond à cinq ans reste une décision à prendre, pas un correctif. |

@@ -46,6 +46,14 @@ export interface CallSession {
    * ayant enregistré sa voix. `null` tant que l'assistant n'est pas construit.
    */
   speechToSpeech: boolean | null;
+  /**
+   * L'annonce IA a-t-elle été prononcée sur cet appel (LEG-1) ?
+   *
+   * Consignée par appel parce que le critère l'exige, et parce qu'autrement
+   * « l'annonce a-t-elle été faite » ne se répond qu'en réécoutant l'audio,
+   * c'est-à-dire jamais.
+   */
+  disclosureSpoken: boolean | null;
   /** Rolling transcript, appended per final utterance. */
   transcript: string[];
   /** How many caller turns we have seen — drives first-turn intent rules. */
@@ -139,6 +147,7 @@ class CallSessionStore {
       language: input.language,
       clientCallId: null,
       speechToSpeech: null,
+      disclosureSpoken: null,
       transcript: [],
       callerTurns: 0,
       deflectedTurns: 0,
@@ -170,6 +179,11 @@ class CallSessionStore {
   setSpeechToSpeech(vapiCallId: string | null, speechToSpeech: boolean): void {
     const session = this.get(vapiCallId);
     if (session) session.speechToSpeech = speechToSpeech;
+  }
+
+  setDisclosure(vapiCallId: string | null, spoken: boolean): void {
+    const session = this.get(vapiCallId);
+    if (session) session.disclosureSpoken = spoken;
   }
 
   get(vapiCallId: string | null): CallSession | null {
