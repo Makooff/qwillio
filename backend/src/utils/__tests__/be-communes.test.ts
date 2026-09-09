@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { canonicalCommune, findCommune, normaliseAddress, COMMUNE_COUNT } from '../be-communes';
+import { canonicalCommune, findCommune, normaliseAddress, COMMUNES, COMMUNE_COUNT } from '../be-communes';
 
 /**
  * BEL-6. Ixelles et Elsene sont le même endroit et deux noms également
@@ -10,6 +10,20 @@ import { canonicalCommune, findCommune, normaliseAddress, COMMUNE_COUNT } from '
 describe('les communes qui portent deux noms', () => {
   it('couvre les dix-neuf bruxelloises qui diffèrent, la périphérie et les grandes villes', () => {
     expect(COMMUNE_COUNT).toBeGreaterThanOrEqual(40);
+  });
+
+  /**
+   * L'invariant que le module se donne, et qu'il faut tenir.
+   *
+   * Une entrée dont les deux noms sont IDENTIQUES ne change aucune sortie:
+   * remplacer « Wezembeek-Oppem » par « Wezembeek-Oppem » est un non-geste. Elle
+   * ne coûte donc que de la maintenance, et elle brouille la règle qui décide
+   * ce qui mérite d'entrer ici. Une telle ligne s'était glissée dans la
+   * périphérie; ce test est ce qui l'a fait sortir.
+   */
+  it('ne garde que des paires dont les deux noms diffèrent', () => {
+    const identiques = COMMUNES.filter(c => c.fr === c.nl);
+    expect(identiques).toEqual([]);
   });
 
   it('ramène les deux noms au même endroit', () => {

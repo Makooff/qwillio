@@ -16,7 +16,7 @@ import { businessMemoryService } from './business-memory.service';
 import { callerMemoryService } from './caller-memory.service';
 import { toolRuntimeService, type ToolCallInput, type ToolCallResult } from './tool-runtime.service';
 import { resolveCharacter } from '../../config/voice-characters';
-import { type LineAgent } from './inbound-routing.service';
+import { callerIdentity, type LineAgent } from './inbound-routing.service';
 
 /**
  * Real-time call orchestrator (Phases 1, 2, 3).
@@ -49,9 +49,17 @@ function callIdOf(event: VapiEvent): string | null {
   return msg.call?.id ?? event.call?.id ?? null;
 }
 
+/**
+ * Le numéro de l'appelant, ou `null` quand il ne désigne personne.
+ *
+ * Passe par `callerIdentity` plutôt que de lire `customer.number` directement:
+ * sur un appel renvoyé, certains opérateurs y mettent le numéro de la ligne qui
+ * renvoie, c'est-à-dire celui du commerce. Écrire une mémoire d'appelant ou une
+ * OPPOSITION sous ce numéro-là les appliquerait à tous les appelants du client
+ * d'un coup (REL-11). Ici, un numéro faux est pire qu'un numéro absent.
+ */
 function callerNumberOf(event: VapiEvent): string | null {
-  const msg = unwrap(event);
-  return msg.call?.customer?.number ?? event.call?.customer?.number ?? null;
+  return callerIdentity(event).number;
 }
 
 /**

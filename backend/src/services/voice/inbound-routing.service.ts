@@ -105,13 +105,14 @@ function numberFromHeader(raw: unknown): string | null {
   return normalizeNumber(candidate);
 }
 
-export function divertedNumber(event: any): string | null {
-  const call = event?.message?.call ?? event?.call ?? event?.message ?? null;
-  if (!call || typeof call !== 'object') return null;
-
-  /* Plusieurs sacs possibles, tous parcourus: en-têtes SIP nommés, détails du
-     fournisseur téléphonique, en-têtes personnalisés. Le premier qui rend un
-     numéro exploitable gagne. */
+/**
+ * Cherche un numéro dans les en-têtes, quel que soit le sac qui les porte.
+ *
+ * Plusieurs sacs possibles, tous parcourus: en-têtes SIP nommés, détails du
+ * fournisseur téléphonique, en-têtes personnalisés. Le premier qui rend un
+ * numéro exploitable gagne.
+ */
+function headerNumber(call: any, keys: string[]): string | null {
   const bags: any[] = [
     call.sipHeaders,
     call.customSipHeaders,
@@ -123,12 +124,88 @@ export function divertedNumber(event: any): string | null {
   for (const bag of bags) {
     if (!bag || typeof bag !== 'object') continue;
     for (const [key, value] of Object.entries(bag)) {
-      if (!DIVERSION_KEYS.includes(key.toLowerCase())) continue;
+      if (!keys.includes(key.toLowerCase())) continue;
       const found = numberFromHeader(value);
       if (found) return found;
     }
   }
   return null;
+}
+
+function callOf(event: any): any {
+  const call = event?.message?.call ?? event?.call ?? event?.message ?? null;
+  return call && typeof call === 'object' ? call : null;
+}
+
+export function divertedNumber(event: any): string | null {
+  const call = callOf(event);
+  if (!call) return null;
+  return headerNumber(call, DIVERSION_KEYS);
+}
+
+/**
+ * QUI appelle, sur un appel renvoyé (REL-11).
+ *
+ * `divertedNumber` répond à « quel client a été appelé ». Celle-ci répond à
+ * l'autre question, et c'est la dangereuse: certains opérateurs remplacent le
+ * numéro de l'appelant par celui de la ligne qui renvoie. L'agent voit alors
+ * arriver, à chaque appel, le numéro du commerce lui-même.
+ *
+ * Ce que ça casse n'est pas un confort. Le numéro de l'appelant est la CLÉ de
+ * la mémoire d'appelant, du rappel promis, et surtout de l'opposition: un
+ * « ne me rappelez jamais » enregistré sous le numéro du commerce mettrait
+ * TOUS ses appelants sur liste d'opposition, d'un coup. Un numéro faux est ici
+ * pire qu'un numéro absent.
+ *
+ * D'où la règle: quand le numéro présenté est exactement celui qui a renvoyé,
+ * il ne désigne personne. On cherche alors l'appelant dans les en-têtes que
+ * les opérateurs utilisent pour le transporter, et si aucun ne le porte, on
+ * rend `null` — l'appel se déroule normalement, simplement sans mémoire.
+ *
+ * `businessPhone` est accepté en second recours pour le cas où l'en-tête de
+ * renvoi manque alors que la substitution a bien eu lieu: on connaît par la
+ * fiche client le numéro qui renvoie.
+ */
+const CALLER_KEYS = [
+  'p-asserted-identity',
+  'remote-party-id',
+  'x-original-caller',
+  'x-caller-number',
+  'x-original-from',
+];
+
+export interface CallerIdentity {
+  /** Le numéro exploitable, ou `null` s'il ne désigne personne. */
+  number: string | null;
+  /** D'où il vient: le champ habituel, un en-tête, ou nulle part. */
+  source: 'customer' | 'header' | 'none';
+  /** Vrai quand le numéro présenté était celui de la ligne qui renvoie. */
+  substituted: boolean;
+}
+
+export function callerIdentity(event: any, businessPhone?: string | null): CallerIdentity {
+  const call = callOf(event);
+  const presented = normalizeNumber(call?.customer?.number ?? null);
+  if (!presented) return { number: null, source: 'none', substituted: false };
+
+  const forwarder = divertedNumber(event) ?? normalizeNumber(businessPhone ?? null);
+  if (!forwarder || presented !== forwarder) {
+    return { number: presented, source: 'customer', substituted: false };
+  }
+
+  /* Substitution avérée: le numéro présenté EST la ligne qui renvoie. */
+  const fromHeader = headerNumber(call, CALLER_KEYS);
+  if (fromHeader && fromHeader !== forwarder) {
+    return { number: fromHeader, source: 'header', substituted: true };
+  }
+
+  /* Dit une fois par appel, et pas en silence: c'est un défaut d'opérateur,
+     pas un défaut de code, et il se corrige chez l'opérateur du client. */
+  logger.warn(
+    `[Inbound] appel renvoyé sans identité d'appelant: le numéro présenté (${presented}) est la ligne qui renvoie. ` +
+      'Mémoire d\'appelant et opposition désactivées pour cet appel.',
+  );
+  return { number: null, source: 'none', substituted: true };
 }
 
 /* `normalizeNumber` vient de l'attribution, et non d'une copie locale: l'un

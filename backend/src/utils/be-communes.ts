@@ -36,7 +36,7 @@ export interface Commune {
  * facilités de la périphérie, puis les villes que l'on nomme couramment dans
  * l'autre langue. L'ordre est documentaire: la recherche passe par un index.
  */
-const COMMUNES: Commune[] = [
+export const COMMUNES: Commune[] = [
   // ── Bruxelles: les 19, moins celles dont le nom ne change pas ──
   { fr: 'Auderghem', nl: 'Oudergem', region: 'bruxelles' },
   { fr: 'Berchem-Sainte-Agathe', nl: 'Sint-Agatha-Berchem', region: 'bruxelles' },
@@ -55,7 +55,6 @@ const COMMUNES: Commune[] = [
   // ── Périphérie: les communes à facilités, où les deux langues se croisent ──
   { fr: 'Crainhem', nl: 'Kraainem', region: 'peripherie' },
   { fr: 'Rhode-Saint-Genèse', nl: 'Sint-Genesius-Rode', region: 'peripherie' },
-  { fr: 'Wezembeek-Oppem', nl: 'Wezembeek-Oppem', region: 'peripherie' },
 
   // ── Flandre: ce qu'un francophone nomme spontanément en français ──
   { fr: 'Alost', nl: 'Aalst', region: 'flandre' },
