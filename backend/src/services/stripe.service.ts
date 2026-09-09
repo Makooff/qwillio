@@ -150,6 +150,39 @@ export class StripeService {
     // only picks up `retry_pending`, so a client left at `pending` stays put.
   }
 
+  /**
+   * Donne sa ligne dédiée à un client qui vient de devenir payant.
+   *
+   * Passe par `ensureLine`, la MÊME fonction que l'inscription: le stock
+   * d'abord, l'achat automatique ensuite s'il est activé, la ligne partagée en
+   * dernier recours. Une seconde règle d'attribution écrite ici finirait par
+   * diverger de celle qui fait foi.
+   *
+   * N'échoue jamais vers l'appelant: un webhook Stripe qui lève est rejoué par
+   * Stripe, et une panne Vapi ferait alors reconvertir l'abonnement en boucle.
+   * Le client garde sa ligne partagée en attendant, et `npm run phone:assign`
+   * rattrape le cas — c'est exactement ce pour quoi ce script existe.
+   */
+  private async provisionLineAfterPayment(clientId: string, businessName: string): Promise<void> {
+    try {
+      const { phoneSetupService } = await import('./voice/phone-setup.service');
+      const line = await phoneSetupService.ensureLine(clientId);
+      if (line.state === 'active' && line.number) {
+        logger.info(`[Stripe] ${businessName}: ligne dédiée ${line.number} attribuée après paiement`);
+      } else {
+        /* Pas une erreur: stock vide, achat automatique éteint, ou assistant
+           pas encore créé. Le client est joignable, mais sur la ligne
+           partagée, et il PAIE. C'est un rattrapage à faire, donc c'est dit. */
+        logger.warn(
+          `[Stripe] ${businessName}: pas de ligne dédiée après paiement (${line.state})` +
+            `${line.reason ? ` — ${line.reason}` : ''}. Rattrapage: npm run phone:assign`,
+        );
+      }
+    } catch (error) {
+      logger.error(`[Stripe] ${businessName}: attribution de ligne impossible: ${(error as Error).message}`);
+    }
+  }
+
   private async handleTrialConversion(client: any, session: any) {
     logger.info(`Trial conversion for ${client.businessName}`);
 
@@ -167,6 +200,21 @@ export class StripeService {
         monthlyMinutesQuota: plan.includedMinutes,
       },
     });
+
+    /* La ligne dédiée, MAINTENANT qu'il paie.
+       C'était le trou: `ensureLine` n'est appelée qu'à l'inscription, où le
+       client est encore en essai et reçoit donc la ligne PARTAGÉE. La
+       conversion passait le statut à `active` et s'arrêtait là. Le client
+       payait, un numéro du stock l'attendait en base, et il restait sur la
+       ligne partagée pour toujours — jusqu'à ce que quelqu'un pense à lancer
+       `phone:assign` à la main.
+       Attendue et non détachée: obtenir sa ligne fait partie de devenir
+       client, et un numéro attribué trente secondes plus tard vaut mieux
+       qu'une réponse Stripe trente millisecondes plus tôt.
+       Le `catch` est là parce qu'un webhook Stripe qui lève est rejoué: une
+       panne Vapi ferait alors reconvertir l'abonnement en boucle. `ensureLine`
+       est idempotente, donc le rejeu la reprend sans risque. */
+    await this.provisionLineAfterPayment(client.id, client.businessName);
 
     // Cancel all pending trial reminders
     await prisma.reminder.updateMany({
@@ -573,6 +621,10 @@ export class StripeService {
       },
     });
 
+    // Même raison qu'à la conversion: un client qui monte d'offre depuis un
+    // essai devient payant, et devait déjà repartir sans sa ligne dédiée.
+    await this.provisionLineAfterPayment(clientId, client.businessName);
+
     await prisma.reminder.updateMany({
       where: { targetId: clientId, targetType: 'client', status: 'pending' },
       data: { status: 'canceled' },
@@ -619,6 +671,17 @@ export class StripeService {
       line_items: [{ price: priceId, quantity: 1 }],
       subscription_data: { trial_period_days: plan.trialDays, metadata: { billingPeriod: period } },
       payment_method_collection: 'always',
+      /* Le champ code promo à la caisse.
+         Deux usages, et le second est la raison de l'écrire aujourd'hui: une
+         remise commerciale sur un prospect, et un compte de test qui suit le
+         VRAI parcours sans qu'un euro bouge. Un coupon à 100 % vaut mieux
+         qu'un prix à 0 € créé pour l'occasion: il ne vit que sur ce client-là,
+         il expire, et il ne peut pas être choisi par quelqu'un d'autre dans la
+         liste des tarifs.
+         Le parcours reste identique en tout point: même caisse, mêmes
+         webhooks, même conversion, même attribution de ligne. C'est ce qui en
+         fait un test et pas une imitation. */
+      allow_promotion_codes: true,
       success_url: `${frontendUrl}/onboard?payment=success`,
       cancel_url: `${frontendUrl}/subscribe?payment=cancelled`,
       client_reference_id: user.id,
@@ -677,6 +740,9 @@ export class StripeService {
       mode: 'subscription',
       ...(client.stripeCustomerId ? { customer: client.stripeCustomerId } : {}),
       line_items: [{ price: priceId, quantity: 1 }],
+      // Même raison qu'à l'inscription: c'est CE passage en caisse qui
+      // déclenche la conversion d'un essai en client payant.
+      allow_promotion_codes: true,
       success_url: `${frontendUrl}/dashboard/billing?payment=success`,
       cancel_url: `${frontendUrl}/dashboard/billing`,
       metadata: {
