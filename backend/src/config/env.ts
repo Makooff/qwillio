@@ -264,6 +264,28 @@ export const env = {
     60,
     Math.max(10, parseInt(process.env.VOICE_TRANSFER_RING_SECONDS || '20', 10) || 20),
   ),
+  /**
+   * Le mode MULTILINGUE du transcripteur (BEL-11), éteint par défaut.
+   *
+   * À Bruxelles, une phrase passe du français au néerlandais et revient. Un
+   * transcripteur épinglé sur `fr` écrit le néerlandais en charabia français,
+   * et l'agent répond à côté. Nova-3 sait suivre ce basculement en temps réel
+   * entre dix langues, français et néerlandais compris, sans changer de
+   * fournisseur ni de tarif — c'est le même Deepgram, le même modèle, un autre
+   * réglage de `language`.
+   *
+   * Pourquoi ce n'est PAS le défaut: un modèle épinglé sur une langue est en
+   * général meilleur sur cette langue qu'un modèle multilingue. Basculer toute
+   * la flotte améliorerait les appels bruxellois bilingues et pourrait dégrader
+   * la majorité, qui est en français pur. Personne ici n'a le chiffre, et le
+   * seul moyen de l'avoir est de comparer sur de vrais appels.
+   * Ce drapeau existe pour rendre cette comparaison possible sans déploiement.
+   *
+   * Il emporte le néerlandais avec lui: en mode multi tout le monde passe en
+   * nova-3, donc le champ de biasing devient `keyterm` au lieu de `keywords`.
+   * `buildVocabularyField` le suit tout seul, il choisit par modèle.
+   */
+  VOICE_STT_MULTILINGUAL: process.env.VOICE_STT_MULTILINGUAL === '1',
   /** First TTS chunk size — smaller means audio starts sooner. */
   /**
    * Taille du PREMIER morceau de texte envoyé au synthétiseur.

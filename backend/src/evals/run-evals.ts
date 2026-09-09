@@ -198,6 +198,41 @@ export function missingKeyBehaviour(opts: { requireKey: boolean; isCI: boolean }
   };
 }
 
+/**
+ * Combien de fois on interroge le modèle avant de déclarer rouge.
+ *
+ * DEUX, et c'est un aveu sur ce qu'on mesure: le système sous test est
+ * probabiliste, et un échantillon unique d'un processus stochastique n'est pas
+ * un test. `fr-discipline-agenda` est passé sur un commit et a échoué sur le
+ * suivant, dont le diff n'était qu'un script autonome importé par personne: il
+ * ne pouvait toucher ni le prompt ni les outils. La couleur de la CI dépendait
+ * donc d'un tirage.
+ *
+ * Ce n'est PAS un contournement: l'assertion ne bouge pas d'un caractère, et
+ * deux échecs consécutifs restent rouges. On tire un second échantillon avant
+ * de conclure, ce que fait n'importe quelle mesure d'un phénomène variable.
+ *
+ * Le coût est nul dans le cas normal: le second appel n'a lieu que sur un
+ * échec, donc presque jamais.
+ */
+const MAX_ATTEMPTS = 2;
+
+/**
+ * Joue un scénario, en le rejouant une fois s'il échoue.
+ *
+ * Rend le nombre d'essais consommés: un scénario vert au second coup est vert
+ * et FRAGILE, et les deux méritent d'être dits.
+ */
+async function runScenario(scenario: EvalScenario): Promise<{ failures: string[]; attempts: number }> {
+  let failures: string[] = [];
+  for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
+    const answer = await playScenario(scenario);
+    failures = checkAssertions(scenario, answer);
+    if (!failures.length) return { failures, attempts: attempt };
+  }
+  return { failures, attempts: MAX_ATTEMPTS };
+}
+
 async function main() {
   if (!env.OPENAI_API_KEY) {
     const { fatal, message } = missingKeyBehaviour({
@@ -220,14 +255,17 @@ async function main() {
   }
 
   let failed = 0;
+  let flaky = 0;
   for (const scenario of scenarios) {
     try {
-      const answer = await playScenario(scenario);
-      const failures = checkAssertions(scenario, answer);
+      const { failures, attempts } = await runScenario(scenario);
       if (failures.length) {
         failed += 1;
         console.error(`✗ ${scenario.id} — ${scenario.description}`);
         for (const f of failures) console.error(`    ${f}`);
+      } else if (attempts > 1) {
+        flaky += 1;
+        console.log(`✓ ${scenario.id} (au ${attempts}ᵉ essai)`);
       } else {
         console.log(`✓ ${scenario.id}`);
       }
@@ -235,6 +273,14 @@ async function main() {
       failed += 1;
       console.error(`✗ ${scenario.id} — erreur d'exécution: ${(error as Error).message}`);
     }
+  }
+
+  if (flaky) {
+    /* Compté et dit, jamais avalé: un scénario qui ne passe qu'au second essai
+       est vert AUJOURD'HUI et fragile. Le taux monte avant que la couleur
+       change, et c'est le seul moment où l'on peut agir avant de bloquer une
+       PR au hasard. */
+    console.warn(`[evals] ${flaky} scénario(s) n'ont pas passé du premier coup — comportement instable`);
   }
 
   console.log(`\n[evals] ${scenarios.length - failed}/${scenarios.length} scénarios verts`);
