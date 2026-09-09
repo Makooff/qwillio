@@ -320,6 +320,23 @@ tonalités en charabia. Elles apparaissent donc au transcript, proprement — ce
 n'est pas « absent du transcript » comme l'écrivait REL-8, mais c'est le contraire
 du bug visé.
 
+### 6octies. `npm run voice:validate` avant tout déploiement qui touche l'assistant (09/09/2026)
+Un champ inconnu ne dégrade pas un appel : il fait refuser l'assistant **entier**,
+et tous les appels de la flotte tombent d'un coup. C'est arrivé deux fois
+(`backchannelPlan`, `voice.chunkPlan.punctuationBoundaries`), et la seule trace
+est un 400 de Vapi que personne ne lit, puisque le code a l'air correct.
+`vapi-schema.test.ts` fige les leçons déjà payées ; il ne peut pas prédire la
+prochaine, il ne parle pas à Vapi. Le script, si : il POSTe un assistant jetable
+pour les **six** variantes (trois langues × deux moteurs, dont les plans
+diffèrent) et le supprime. Un 400 ne crée rien, Vapi validant avant d'écrire.
+Cinq champs ajoutés le 09/09 n'ont jamais été vus par l'API vivante :
+`keypadInputPlan`, `firstMessageInterruptionsEnabled`, `customEndpointingRules`,
+`transferPlan.dialTimeout`, et `keyterm`/`keywords`. Les faire valider est la
+première chose à faire, avant même le premier appel de test.
+**Piège Deepgram** : `keyterm` n'existe que sur Nova-3, `keywords` sur Nova-2 et
+en dessous, et nos langues ne tournent pas sur le même modèle (fr/en en Nova-3,
+nl en Nova-2). Le champ se choisit par modèle, jamais globalement.
+
 ### 6quinquies. Un glossaire de prompt ne contient AUCUN verbe d'action (09/09/2026)
 Le bloc belgicismes a fait échouer `fr-discipline-agenda`, un scénario sans aucun
 rapport avec la Belgique, **deux fois de suite** et pour la même raison de forme.
