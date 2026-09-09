@@ -1,5 +1,6 @@
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
+import { retainUntilFor } from './data-retention.service';
 import { discordService } from './discord.service';
 import { smsService } from './sms.service';
 import { callNotificationService } from './call-notification.service';
@@ -75,6 +76,12 @@ export class ClientCallService {
         spamScore: spam.score,
         spamReasons: spam.reasons,
         tags: spam.isSpam ? ['spam', ...spam.reasons] : (analysis.tags || []),
+        /* L'échéance est posée MAINTENANT, pas recalculée à chaque purge
+           (LEG-4): sans elle, « jusqu'à quand gardez-vous cet appel » n'a pas
+           de réponse vérifiable, ce qui est précisément ce que la CNIL demande
+           de pouvoir montrer. Elle ne prolonge rien: la purge efface au premier
+           des deux termes échus, celui-ci ou le réglage courant. */
+        retainUntil: retainUntilFor(client.retentionDays),
       },
     });
 

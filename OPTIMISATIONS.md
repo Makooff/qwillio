@@ -562,7 +562,11 @@ L'obligation de transparence pèse sur le fournisseur du système d'IA — c'est
 ### LEG-4 — Purger les enregistrements à six mois
 
 - **Statut** : `PARTIEL`
-- **Preuve** : La purge existe, elle est automatique, quotidienne, journalisée, et elle efface AUSSI l'audio distant chez Vapi avant la ligne locale (`backend/src/services/data-retention.service.ts:73-167`, cron 04h15 `jobs/bot-loop.ts:964`), avec effacement à la demande par appelant (`data-retention.service.ts:174`). Ce qui ne passe pas : le défaut est 90 jours mais le PLAFOND est `MAX_RETENTION_DAYS = 1825`, soit 5 ans (`data-retention.service.ts:30`), réglable par le client (`client-dashboard.controller.ts:1606-1620`) — donc au-dessus des six mois CNIL ; aucun enregistrement ne porte sa date limite (elle est recalculée à chaque passage) ; et le corpus de tests de régression, que la ligne vise explicitement, n'existe pas encore (voir TST-5).
+- **Preuve** : La purge existe, automatique, quotidienne, journalisée, et elle efface l'audio distant chez Vapi avant la ligne locale (`data-retention.service.ts`, cron 04h15).
+
+  **Chaque appel porte désormais sa date limite** (`ClientCall.retainUntil`, migration `20260909150000`), posée à l'ÉCRITURE et non recalculée à chaque passage : « jusqu'à quand gardez-vous cet appel » a maintenant une réponse vérifiable, ce qui est précisément ce que la CNIL demande de pouvoir montrer. La purge efface au PREMIER des deux termes échus, la date posée ou le calcul courant : un client qui RALLONGE sa conservation ne prolonge pas les appels déjà enregistrés, un client qui la RACCOURCIT les efface plus tôt. Les deux vont dans le sens de l'appelant. Un `AND` explicite sépare l'échéance de la forme de la ligne, sans quoi les deux `OR` fondus effaceraient des appels non échus. 3 tests, migration vérifiée sur un vrai Postgres sans dérive.
+
+- **Ce qui reste, et qui n'est pas à moi** : le PLAFOND est toujours à 1825 jours (5 ans, `MAX_RETENTION_DAYS`), au-dessus des six mois CNIL. Le baisser supprimerait des enregistrements chez les clients qui ont réglé plus haut : c'est une décision d'exploitation, pas un correctif, et la règle 7 du plan dit de s'arrêter et de demander. Le corpus de régression que cette ligne vise (TST-5) n'existe toujours pas.
 - **Action** : La CNIL plafonne la conservation des enregistrements à six mois, et un an pour les documents d'analyse.
 - **Pourquoi** : Cela s'applique aussi à ton corpus de tests de régression, qui est constitué de données personnelles.
 - **Critère d'acceptation** : Purge automatique, datée, loggée. Chaque enregistrement porte sa date limite.
@@ -680,6 +684,7 @@ Le meilleur signal neutre du domaine est EVA-Bench : sur douze systèmes évalu�
 
 | Date | Ligne | De → vers | Commit | Note |
 |---|---|---|---|---|
+| 2026-09-09 | LEG-4 | preuve complétée, reste `PARTIEL` | `claude/optimisations-audit-vocal-68tgg2` | Chaque appel porte sa date limite, posée à l'écriture; la purge efface au premier des deux termes échus. Le plafond à cinq ans reste une décision à prendre, pas un correctif. |
 | 2026-09-09 | REL-3 | `PARTIEL` → `DÉJÀ FAIT` | `claude/optimisations-audit-vocal-68tgg2` | Le plafond sur le premier token descend de 4 s à 2,5 s, réglable, et un test bloque le modèle pour vérifier que la phrase de secours part avant trois secondes. Phrase de secours ajoutée en néerlandais. |
 | 2026-09-09 | TUR-7, TUR-10 | preuve complétée, restent `PARTIEL` | `claude/optimisations-audit-vocal-68tgg2` | Mots d'arrêt et acquiescements réglables par client puis par environnement, dédoublonnés (Vapi refuse l'assistant entier sur une répétition) et jamais vides. Les deux critères demandent une mesure sur appel réel. |
 | 2026-09-09 | BEL-12 | preuve complétée, reste `PARTIEL` | `claude/optimisations-audit-vocal-68tgg2` | Normaliseur de sortie écrit et testé (30 numéros, 20 adresses), vérifié par aller-retour contre le lecteur de BEL-1. Le flux du modèle n'est pas encore normalisé : ce chemin porte la latence, et aucune mesure n'existe pour arbitrer. |

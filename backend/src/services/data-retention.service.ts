@@ -42,6 +42,33 @@ export function cutoffFor(days: number, now: Date = new Date()): Date {
   return new Date(now.getTime() - days * 86_400_000);
 }
 
+/**
+ * La date limite d'un appel qu'on enregistre à l'instant (LEG-4).
+ *
+ * Posée à l'ÉCRITURE et non recalculée à chaque purge: un enregistrement doit
+ * porter son échéance, sinon « jusqu'à quand gardez-vous cet appel » n'a pas de
+ * réponse vérifiable. C'est ce que la CNIL demande de pouvoir montrer, et une
+ * date recalculée depuis un réglage qui a pu changer entre-temps ne le montre
+ * pas.
+ */
+export function retainUntilFor(retentionDays: number | null | undefined, now: Date = new Date()): Date {
+  return new Date(now.getTime() + resolveRetentionDays(retentionDays) * 86_400_000);
+}
+
+/**
+ * « Cet appel est-il échu ? », dans le langage de Prisma.
+ *
+ * Deux termes, et l'effacement part au PREMIER des deux. La date posée à
+ * l'écriture empêche un client de PROLONGER ce qui est déjà enregistré en
+ * rallongeant son réglage; le calcul courant lui permet de le RACCOURCIR. Les
+ * deux vont dans le sens de l'appelant, ce qui est le seul sens qui compte ici.
+ * Les lignes antérieures à la colonne n'ont pas de date: seul le calcul les
+ * régit, et il suffit.
+ */
+function expired(cutoff: Date, now: Date) {
+  return { OR: [{ createdAt: { lt: cutoff } }, { retainUntil: { lte: now } }] };
+}
+
 /** Les champs de ClientCall qui portent du personnel appelant. */
 const CLIENT_CALL_ERASURE = {
   transcript: null,
@@ -93,7 +120,7 @@ class DataRetentionService {
       //    ligne locale garde son URL et sera retentée demain.
       if (vapiBudget > 0) {
         const withRecordings = await prisma.clientCall.findMany({
-          where: { clientId: client.id, createdAt: { lt: cutoff }, recordingUrl: { not: null }, vapiCallId: { not: null } },
+          where: { clientId: client.id, ...expired(cutoff, now), recordingUrl: { not: null }, vapiCallId: { not: null } },
           select: { id: true, vapiCallId: true },
           take: vapiBudget,
         });
@@ -119,15 +146,22 @@ class DataRetentionService {
       const purged = await prisma.clientCall.updateMany({
         where: {
           clientId: client.id,
-          createdAt: { lt: cutoff },
-          OR: [
-            { recordingUrl: null, transcript: { not: null } },
-            { recordingUrl: null, callerNumber: { not: null } },
-            { recordingUrl: null, callerName: { not: null } },
-            { recordingUrl: null, nameCollected: { not: null } },
-            { recordingUrl: null, emailCollected: { not: null } },
-            { recordingUrl: null, summary: { not: null } },
-            { recordingUrl: { not: null }, vapiCallId: null },
+          /* `AND` explicite: l'échéance et la forme de la ligne portent chacune
+             leur propre `OR`, et les fondre en un seul effacerait des appels
+             non échus. */
+          AND: [
+            expired(cutoff, now),
+            {
+              OR: [
+                { recordingUrl: null, transcript: { not: null } },
+                { recordingUrl: null, callerNumber: { not: null } },
+                { recordingUrl: null, callerName: { not: null } },
+                { recordingUrl: null, nameCollected: { not: null } },
+                { recordingUrl: null, emailCollected: { not: null } },
+                { recordingUrl: null, summary: { not: null } },
+                { recordingUrl: { not: null }, vapiCallId: null },
+              ],
+            },
           ],
         },
         data: CLIENT_CALL_ERASURE,
