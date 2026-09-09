@@ -223,6 +223,20 @@ export const env = {
     0.3,
     parseFloat(process.env.VOICE_ENDPOINTING_NUMBER_SECONDS || '1.0') || 1.0,
   ),
+  /**
+   * Le silence toléré entre deux touches du clavier, avant de traiter la saisie.
+   *
+   * Trois secondes et non deux (le défaut de Vapi): la bascule clavier n'arrive
+   * qu'après deux dictées ratées, donc à un appelant qui a déjà eu du mal. Il
+   * cherche ses touches, souvent en tenant le téléphone loin de l'oreille. À
+   * deux secondes sa saisie part coupée en deux, et il aura échoué trois fois.
+   * Le dièse termine la saisie tout de suite pour qui le connaît, donc les
+   * rapides ne paient pas cette seconde.
+   */
+  VOICE_KEYPAD_TIMEOUT_SECONDS: Math.min(
+    10,
+    Math.max(0.5, parseFloat(process.env.VOICE_KEYPAD_TIMEOUT_SECONDS || '3') || 3),
+  ),
   /** First TTS chunk size — smaller means audio starts sooner. */
   /**
    * Taille du PREMIER morceau de texte envoyé au synthétiseur.

@@ -80,6 +80,17 @@ export interface CallSession {
   mood: CallerMood;
   /** Token accounting, so the prompt cache is verified rather than assumed. */
   tokens: { input: number; cached: number; output: number };
+  /**
+   * Combien de fois le numéro dicté n'a rien donné, sur CET appel (BEL-4).
+   *
+   * Par appel et non par tour: c'est la répétition de l'échec qui décide de
+   * passer au clavier, et un compteur remis à zéro à chaque tentative ne
+   * compterait jamais jusqu'à deux. Il ne redescend pas non plus après un
+   * succès: un appelant qui a raté deux fois puis réussi n'a plus à être
+   * renvoyé au clavier, mais le fait qu'il ait ramé reste vrai pour la suite
+   * de l'appel.
+   */
+  phoneCaptureFailures: number;
 }
 
 /** A slot promised on a live call, so a parallel call cannot double-book it. */
@@ -163,6 +174,7 @@ class CallSessionStore {
       hardBargeIns: 0,
       mood: 'neutral',
       tokens: { input: 0, cached: 0, output: 0 },
+      phoneCaptureFailures: 0,
     };
     this.sessions.set(input.vapiCallId, session);
     this.notePeak(input.clientId);
@@ -239,6 +251,23 @@ class CallSessionStore {
     session.tokens.input += usage.input;
     session.tokens.cached += usage.cached;
     session.tokens.output += usage.output;
+  }
+
+  /**
+   * Compte un numéro dicté illisible et rend le total pour cet appel.
+   *
+   * Rend le compte plutôt que de le stocker en silence, parce que l'appelant
+   * est en ligne: c'est ce nombre, et lui seul, qui décide entre « relis-lui
+   * les chiffres » et « propose le clavier ». Sur un appel inconnu (session
+   * balayée, processus redémarré) il rend 1, donc la relecture: proposer le
+   * clavier à quelqu'un qui n'a encore rien raté serait pire que de le
+   * refaire dicter une fois.
+   */
+  recordPhoneCaptureFailure(vapiCallId: string | null): number {
+    const session = this.get(vapiCallId);
+    if (!session) return 1;
+    session.phoneCaptureFailures++;
+    return session.phoneCaptureFailures;
   }
 
   recordDeflection(vapiCallId: string | null): void {

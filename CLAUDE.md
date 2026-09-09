@@ -303,6 +303,23 @@ Deux pièges qui reviendront : 60 et 80 absorbent une dizaine (« soixante-douze
 `0475 12 34 56` est un mobile belge ET un fixe français du Sud-Est, tranché par
 le pays de la ligne appelante, jamais par le numéro seul.
 
+### 6septies. Le clavier est le seul canal sans erreur, et il s'arme d'avance (09/09/2026)
+Au **deuxième** numéro dicté illisible, l'agent ne fait plus redicter : il demande
+la saisie au clavier, terminée par dièse. Redemander une troisième dictée refait
+ce qui vient de rater deux fois, la cause (accent, ligne, chiffres collés) ne
+bougeant pas entre deux essais.
+Deux choses à ne pas défaire. Le plan `keypadInputPlan` est armé sur **tous** les
+appels et pas seulement après un échec : il se déclare à la construction de
+l'assistant, et l'assistant ne se reconstruit pas en cours d'appel. Et
+`delimiters` est une **chaîne** (`'#'`), pas un tableau : le tableau vient d'un
+changelog de 2025, la référence d'API courante donne la chaîne, et se tromper de
+type ferait refuser l'assistant ENTIER, donc tous les appels de la flotte.
+Ce que ça change à la réception : Vapi remonte les touches comme un message
+utilisateur fait de chiffres propres, au lieu de laisser le STT transcrire les
+tonalités en charabia. Elles apparaissent donc au transcript, proprement — ce
+n'est pas « absent du transcript » comme l'écrivait REL-8, mais c'est le contraire
+du bug visé.
+
 ### 6quinquies. Un glossaire de prompt ne contient AUCUN verbe d'action (09/09/2026)
 Le bloc belgicismes a fait échouer `fr-discipline-agenda`, un scénario sans aucun
 rapport avec la Belgique, **deux fois de suite** et pour la même raison de forme.

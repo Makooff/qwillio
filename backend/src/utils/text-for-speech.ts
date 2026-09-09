@@ -101,7 +101,9 @@ export function numberWords(n: number, variant: FrenchVariant = 'be'): string {
  * (`0475 12 34 56`), qui est celui que l'appelant a en tête.
  */
 export function phoneWords(national: string): string {
-  const groups = national.trim().split(/[\s. ]+/).filter(Boolean);
+  // \u00A0 en toutes lettres: l'espace insécable des groupes à la française est
+  // invisible dans le source, et un jour quelqu'un la retape en espace normale.
+  const groups = national.trim().split(/[\s.\u00A0]+/).filter(Boolean);
   if (!groups.length) return '';
   return groups
     .map(group =>

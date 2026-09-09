@@ -1,11 +1,12 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { create, getProfile, session, recordLead, remember } = vi.hoisted(() => ({
+const { create, getProfile, session, recordLead, remember, failures } = vi.hoisted(() => ({
   create: vi.fn(),
   getProfile: vi.fn(),
   session: vi.fn(),
   recordLead: vi.fn(),
   remember: vi.fn(),
+  failures: vi.fn(),
 }));
 
 vi.mock('../../../config/database', () => ({ prisma: { agentCrmActivity: { create } } }));
@@ -21,6 +22,7 @@ vi.mock('../call-session.store', () => ({
     recordLead,
     markLeadActivity: vi.fn(),
     recordToolCall: vi.fn(),
+    recordPhoneCaptureFailure: failures,
   },
 }));
 vi.mock('../caller-memory.service', () => ({ callerMemoryService: { remember } }));
@@ -47,6 +49,8 @@ beforeEach(() => {
   create.mockResolvedValue({ id: 'act_1' });
   remember.mockResolvedValue(undefined);
   session.mockReturnValue({ callerNumber: '+32475987654' });
+  // Le vrai compteur vit dans la session; ici on décide du rang de l'échec.
+  failures.mockReturnValue(1);
 });
 
 /**
@@ -109,5 +113,58 @@ describe('captureLead — le numéro que l\'appelant dicte', () => {
   it('ne demande rien de plus quand aucun numéro n\'a été proposé', async () => {
     const r = await capture({ reason: 'question tarif' });
     expect(r.result).not.toMatch(/relis/i);
+  });
+});
+
+/**
+ * BEL-4. Redemander une troisième dictée après deux échecs refait ce qui vient
+ * de rater deux fois: la cause (accent, ligne, chiffres collés) ne bouge pas
+ * entre deux essais. Le clavier ne passe pas par la reconnaissance vocale, donc
+ * il ne se trompe pas — c'est lui qui sauve l'appel.
+ */
+describe('captureLead — la bascule clavier au deuxième échec', () => {
+  it('fait relire au premier échec, sans parler du clavier', async () => {
+    failures.mockReturnValue(1);
+    const r = await capture({ reason: 'devis', phone: 'zéro quatre septante-cinq douze' });
+    expect(r.result).toMatch(/relis-le à l'appelant chiffre par chiffre/i);
+    expect(r.result).not.toMatch(/clavier/i);
+  });
+
+  it('propose le clavier au deuxième échec, et interdit une troisième dictée', async () => {
+    failures.mockReturnValue(2);
+    const r = await capture({ reason: 'devis', phone: 'zéro quatre septante-cinq douze' });
+    expect(r.result).toMatch(/clavier/i);
+    expect(r.result).toMatch(/dièse/i);
+    expect(r.result).toMatch(/redicter une troisième fois/i);
+  });
+
+  it('reste sur le clavier aux échecs suivants', async () => {
+    failures.mockReturnValue(4);
+    const r = await capture({ reason: 'devis', phone: 'zéro quatre septante-cinq douze' });
+    expect(r.result).toMatch(/clavier/i);
+  });
+
+  it('relit quand même les chiffres entendus avant de basculer', async () => {
+    // L'appelant doit pouvoir dire « non, c'est un huit » avant de taper.
+    failures.mockReturnValue(2);
+    const r = await capture({ reason: 'devis', phone: 'zéro quatre septante-cinq douze' });
+    expect(r.result).toContain('zéro quatre sept cinq un deux');
+  });
+
+  it('garde la fiche, comme au premier échec', async () => {
+    failures.mockReturnValue(2);
+    await capture({ name: 'Dupont', reason: 'devis toiture', phone: 'zéro quatre septante-cinq douze' });
+    expect(create).toHaveBeenCalledTimes(1);
+  });
+
+  it('ne compte un échec QUE sur un numéro illisible', async () => {
+    await capture({ reason: 'devis', phone: 'zéro quatre septante-cinq douze trente-quatre cinquante-six' });
+    expect(failures).not.toHaveBeenCalled();
+  });
+
+  it('accepte les chiffres tapés, qui reviennent bruts et sans mots', async () => {
+    // C'est la forme que Vapi remonte après une saisie clavier: des chiffres.
+    await capture({ reason: 'devis', phone: '0475123456' });
+    expect(storedPhone()).toBe('+32475123456');
   });
 });

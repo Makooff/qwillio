@@ -41,6 +41,31 @@ describe('what Vapi refuses to accept', () => {
     expect('backchannelingEnabled' in plans).toBe(true);
   });
 
+  /**
+   * `delimiters` est une CHAÎNE, pas un tableau (BEL-4).
+   *
+   * Le changelog de février 2025 montre `["#"]`; la référence d'API courante
+   * donne `"#"` aux trois endroits où elle décrit le plan. Se tromper de type
+   * ferait refuser l'assistant ENTIER, donc tous les appels de la flotte — le
+   * mode d'échec que ce fichier existe pour attraper.
+   */
+  it('déclare le clavier avec un délimiteur en chaîne', () => {
+    const plan = (buildRealtimePlans('fr') as Record<string, any>).keypadInputPlan;
+    expect(plan.enabled).toBe(true);
+    expect(typeof plan.delimiters).toBe('string');
+    expect(plan.timeoutSeconds).toBeGreaterThanOrEqual(0.5);
+    expect(plan.timeoutSeconds).toBeLessThanOrEqual(10);
+  });
+
+  it('arme le clavier dans les deux moteurs, y compris en parole-à-parole', () => {
+    // Le clavier se lit sur le transport, pas sur le transcripteur: le retirer
+    // en parole-à-parole priverait ce mode du seul canal sans erreur.
+    for (const s2s of [false, true]) {
+      const plans = buildRealtimePlans('fr', s2s) as Record<string, any>;
+      expect(plans.keypadInputPlan?.enabled).toBe(true);
+    }
+  });
+
   it('sends the transfer destination in E.164', () => {
     // "each value in destinations.number must be a valid phone number"
     const tools = buildVoiceTools(profile({ transferNumber: '06 12 34 56 78' })) as any[];

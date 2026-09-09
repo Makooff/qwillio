@@ -92,6 +92,43 @@ function retryPhone(lang: string, heard: string): string {
   return base[lang] ?? base.en;
 }
 
+/**
+ * Le repli clavier, au DEUXIÈME échec (BEL-4).
+ *
+ * Redemander une troisième dictée après deux échecs, c'est refaire ce qui
+ * vient de rater deux fois: si le transcripteur n'entend pas ce numéro, il ne
+ * l'entendra pas mieux au troisième essai — accent, ligne bruyante, chiffres
+ * collés, la cause ne bouge pas. Les touches, elles, ne passent pas par la
+ * reconnaissance vocale du tout: c'est le seul canal du téléphone qui ne se
+ * trompe jamais, et c'est ce qui sauve l'appel au lieu de le faire abandonner.
+ *
+ * La phrase dit à l'appelant de terminer par dièse, et c'est utile aux deux
+ * bouts: lui sait quand il a fini, et la saisie part sans attendre le délai.
+ */
+function keypadFallback(lang: string, heard: string): string {
+  const spelled = heard ? phoneWords(heard) : '';
+  const readBack = {
+    fr: spelled ? ` J'ai entendu: ${spelled}.` : '',
+    en: spelled ? ` What I heard: ${spelled}.` : '',
+    nl: spelled ? ` Wat ik hoorde: ${spelled}.` : '',
+  };
+  const base: Record<string, string> = {
+    fr: 'DEUXIÈME ÉCHEC SUR LE NUMÉRO. Le reste de la fiche est noté.' + readBack.fr
+      + ' Ne le fais PAS redicter une troisième fois. Excuse-toi brièvement de la ligne, '
+      + 'et demande-lui de composer son numéro sur le clavier du téléphone, puis dièse. '
+      + 'Les chiffres tapés te reviendront comme un message: rappelle alors captureLead avec eux.',
+    en: 'SECOND FAILURE ON THE PHONE NUMBER. The rest of the lead is saved.' + readBack.en
+      + ' Do NOT ask them to say it a third time. Apologise briefly for the line, '
+      + 'and ask them to key the number in on their phone keypad, then hash. '
+      + 'The typed digits come back to you as a message: call captureLead again with them.',
+    nl: 'TWEEDE MISLUKKING OP HET NUMMER. De rest van de fiche is genoteerd.' + readBack.nl
+      + ' Vraag het GEEN derde keer. Verontschuldig je kort voor de lijn, '
+      + 'en vraag om het nummer op het toetsenbord in te tikken, gevolgd door hekje. '
+      + 'De ingetikte cijfers komen als bericht terug: roep captureLead dan opnieuw aan.',
+  };
+  return base[lang] ?? base.en;
+}
+
 /** "14:30" → 870 minutes. Returns null on anything that is not a 24h clock. */
 function parseTimeToMinutes(raw: unknown): number | null {
   if (typeof raw !== 'string') return null;
@@ -471,8 +508,12 @@ class ToolRuntimeService {
     if (dictated && !dictated.ok && dictated.reason === 'invalid') {
       /* La consigne nomme le geste attendu, elle ne décrit pas l'erreur: un
          modèle à qui l'on dit « invalide » s'excuse, un modèle à qui l'on dit
-         « relis chiffre par chiffre et redemande » le fait. */
-      return retryPhone(profile.language, dictated.digits);
+         « relis chiffre par chiffre et redemande » le fait.
+         Au deuxième échec, le geste change de nature: on quitte la voix. */
+      const failures = callSessionStore.recordPhoneCaptureFailure(vapiCallId);
+      return failures >= 2
+        ? keypadFallback(profile.language, dictated.digits)
+        : retryPhone(profile.language, dictated.digits);
     }
 
     return profile.language === 'fr' ? 'NOTE. Continue la conversation.' : 'NOTED. Continue the conversation.';

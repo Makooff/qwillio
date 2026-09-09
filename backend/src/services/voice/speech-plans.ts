@@ -755,6 +755,26 @@ export function buildRealtimePlans(
           startSpeakingPlan: buildStartSpeakingPlan(lang),
           stopSpeakingPlan: buildStopSpeakingPlan(tuning),
         }),
+    /* Le clavier, seul canal à 0 % d'erreur (BEL-4 / REL-8).
+       Il est armé sur TOUS les appels, pas seulement après un échec: le plan
+       se déclare à la construction de l'assistant, et un appelant qui bute sur
+       son numéro au troisième tour ne peut pas attendre qu'on reconstruise
+       l'assistant. Armé, il ne coûte rien tant que personne n'appuie.
+       Ce que ça change à la réception: les touches remontent comme un message
+       « utilisateur » fait de chiffres propres, au lieu d'être transcrites par
+       le STT comme de la parole — c'est le bug classique du DTMF en bande, où
+       les tonalités entrent dans le contexte du modèle sous forme de charabia.
+       Hors du bloc conditionnel parole-à-parole, volontairement: le clavier se
+       lit sur le transport, pas sur le transcripteur, donc les deux moteurs en
+       profitent. */
+    keypadInputPlan: {
+      enabled: true,
+      timeoutSeconds: env.VOICE_KEYPAD_TIMEOUT_SECONDS,
+      // Chaîne et non tableau: le tableau vient d'un changelog de 2025, la
+      // référence d'API courante donne `"delimiters": "#"`. Se tromper de type
+      // ici ferait refuser l'assistant ENTIER, donc tous les appels.
+      delimiters: '#',
+    },
     backchannelingEnabled: env.VOICE_BACKCHANNEL_ENABLED,
     // No backchannelPlan here. Vapi rejects the whole assistant with
     // "assistant.property backchannelPlan should not exist", which took down

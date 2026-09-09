@@ -154,3 +154,36 @@ describe('callSessionStore', () => {
     });
   });
 });
+
+/**
+ * BEL-4. Le compteur décide entre « relis-lui les chiffres » et « propose le
+ * clavier »; il est donc lu pendant que l'appelant attend, et sa valeur sur un
+ * appel inconnu compte autant que sur un appel connu.
+ */
+describe('les échecs de capture du numéro', () => {
+  it('compte par appel, et cumule', () => {
+    callSessionStore.reset();
+    callSessionStore.start({ vapiCallId: 'c1', clientId: 'cl1', callerNumber: null, language: 'fr' });
+    expect(callSessionStore.recordPhoneCaptureFailure('c1')).toBe(1);
+    expect(callSessionStore.recordPhoneCaptureFailure('c1')).toBe(2);
+    expect(callSessionStore.recordPhoneCaptureFailure('c1')).toBe(3);
+  });
+
+  it('ne mélange pas deux appels simultanés', () => {
+    callSessionStore.reset();
+    callSessionStore.start({ vapiCallId: 'a', clientId: 'cl1', callerNumber: null, language: 'fr' });
+    callSessionStore.start({ vapiCallId: 'b', clientId: 'cl1', callerNumber: null, language: 'fr' });
+    callSessionStore.recordPhoneCaptureFailure('a');
+    callSessionStore.recordPhoneCaptureFailure('a');
+    // Le deuxième appelant n'a encore rien raté: le clavier serait une insulte.
+    expect(callSessionStore.recordPhoneCaptureFailure('b')).toBe(1);
+  });
+
+  it('rend 1 sur un appel inconnu, donc la relecture et pas le clavier', () => {
+    // Session balayée ou processus redémarré: proposer le clavier à quelqu'un
+    // qui n'a encore rien raté serait pire que de le refaire dicter une fois.
+    callSessionStore.reset();
+    expect(callSessionStore.recordPhoneCaptureFailure('jamais-vu')).toBe(1);
+    expect(callSessionStore.recordPhoneCaptureFailure(null)).toBe(1);
+  });
+});

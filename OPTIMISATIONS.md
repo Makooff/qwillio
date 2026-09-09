@@ -312,8 +312,9 @@ Il n'existe aucun corpus public de français belge téléphonique en 8 kHz, aucu
 
 ### BEL-4 — Relire systématiquement, et basculer en DTMF au deuxième échec
 
-- **Statut** : `ABSENT`
-- **Preuve** : Aucune relecture par paires n'est demandée dans le prompt (`backend/src/services/voice/system-prompt.ts`, aucune règle de confirmation de chiffres), aucun compteur d'échec de capture, et aucun DTMF : le `switch` du webhook n'a pas de branche `dtmf` (`backend/src/controllers/voice-webhook.controller.ts:64-133`). Il n'y a donc ni relecture, ni repli clavier.
+- **Statut** : `PARTIEL`
+- **Preuve** : Les trois pièces existent et sont testées. La relecture : `retryPhone` rend à l'agent les chiffres ENTENDUS en toutes lettres (`backend/src/services/voice/tool-runtime.service.ts:67`), ce qui est ce qui permet à l'appelant de repérer LEQUEL de ses chiffres a été mal compris. Le compteur : `callSessionStore.recordPhoneCaptureFailure` compte par appel et rend le rang de l'échec (`call-session.store.ts`). La bascule : `keypadFallback` au deuxième échec interdit explicitement une troisième dictée et demande la saisie clavier terminée par dièse (`tool-runtime.service.ts`). Le clavier lui-même est armé sur TOUS les appels via `keypadInputPlan` (`speech-plans.ts`, dans `buildRealtimePlans`, hors du bloc parole-à-parole), donc il est prêt avant qu'on en ait besoin — l'assistant ne se reconstruit pas en cours d'appel. Tests : `__tests__/capture-lead-phone.test.ts` (« la bascule clavier au deuxième échec », 8 cas), `__tests__/call-session.store.test.ts` (3 cas), `__tests__/vapi-schema.test.ts` (2 cas, dont le type de `delimiters`).
+- **Ce qui manque pour `DÉJÀ FAIT`** : la moitié du critère qui ne s'écrit pas ici. « Les tonalités sont reçues en RFC 4733 et ne polluent pas le transcript » se vérifie sur un appel réel : le SDP appartient à Vapi/Twilio, et la documentation Vapi dit que les chiffres traités sont ajoutés à la conversation comme message utilisateur, donc ils APPARAISSENT au transcript — proprement, en chiffres, ce qui est le contraire du bug visé (des tonalités transcrites en charabia par le STT), mais ce n'est pas « absent du transcript ». À trancher sur le premier appel réel.
 - **Action** : Relecture par paires à l'appelant. Si la confirmation échoue deux fois, proposer la saisie au clavier.
 - **Pourquoi** : Le DTMF est le seul canal à 0 % de taux d'erreur. C'est le repli qui sauve l'appel — et personne ne le fait.
 - **Critère d'acceptation** : Test : deux échecs de capture consécutifs déclenchent la bascule DTMF. Les tonalités sont reçues en RFC 4733 et ne polluent pas le transcript.
@@ -473,8 +474,8 @@ Les fils de support des plateformes sont la source la plus honnête de tout ce d
 
 ### REL-8 — DTMF hors bande uniquement
 
-- **Statut** : `ABSENT`
-- **Preuve** : Aucun DTMF, ni en bande ni hors bande : pas de branche `dtmf` dans le webhook (`backend/src/controllers/voice-webhook.controller.ts:64-133`), aucune négociation SDP (le leg SIP appartient à Vapi/Twilio), aucun `telephone-event` dans le dépôt.
+- **Statut** : `PARTIEL`
+- **Preuve** : Le DTMF est désormais reçu, par `keypadInputPlan` (`backend/src/services/voice/speech-plans.ts`, `buildRealtimePlans`) : Vapi remonte les touches comme un message utilisateur fait de chiffres propres, au lieu de laisser le STT transcrire les tonalités comme de la parole — c'est exactement le bug que cette ligne vise. Ce qui reste hors de portée du code d'ici : la négociation SDP elle-même. Le leg SIP appartient à Vapi/Twilio, aucun `telephone-event` ne se déclare depuis ce dépôt, et rien ici ne peut imposer le RFC 4733 ni le repli SIP INFO. Vérifiable seulement sur un appel réel, en lisant le transcript après une séquence de touches.
 - **Action** : Négocier le RFC 4733 (`telephone-event/8000`) dans le SDP. Repli SIP INFO si l'opérateur ne le supporte pas. Jamais en bande.
 - **Pourquoi** : En bande, le STT transcrit les tonalités comme de la parole et pollue le contexte du LLM. C'est le bug classique.
 - **Critère d'acceptation** : Test : envoyer une séquence DTMF pendant que l'agent parle. Elle est reçue comme événement et n'apparaît pas dans le transcript.
