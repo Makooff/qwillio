@@ -363,6 +363,15 @@ async function runBootstrap() {
   // Bring the schema up to date before anything reads or writes through it.
   await applyPendingMigrations();
 
+  /* Reprendre la fenêtre de latence là où le déploiement précédent l'a laissée.
+     La mesure de chaque appel est en base; seul l'agrégat vivait en mémoire, et
+     Render redéploie plusieurs fois par jour — l'indicateur ne disait donc
+     jamais autre chose que « depuis le dernier déploiement ». Non bloquant: un
+     indicateur ne retarde pas un démarrage. */
+  void import('./services/voice/voice-metrics.service')
+    .then(({ voiceMetricsService }) => voiceMetricsService.hydrate())
+    .catch(e => logger.warn(`[bootstrap] reprise des métriques voix impossible: ${e.message}`));
+
   // DB log persistence is currently disabled (see logger.ts comment).
   // The in-memory 500-entry ring buffer is what /admin/logs reads.
 

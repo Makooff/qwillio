@@ -1,3 +1,5 @@
+import { Prisma } from '@prisma/client';
+import { prisma } from '../../config/database';
 import { logger } from '../../config/logger';
 import type { LatencyStage } from './latency-tracker';
 
@@ -15,11 +17,15 @@ import type { LatencyStage } from './latency-tracker';
  * a-t-elle ralenti ? » — et rend la fenêtre bornée en mémoire par
  * construction.
  *
- * Tout est en mémoire process, comme le reste de la couche voix (sessions,
- * holds de créneaux): un redémarrage remet la fenêtre à zéro, ce qui est un
- * comportement acceptable pour un indicateur glissant. L'export vers un vrai
- * backend de télémétrie (Langfuse/OTel) est le niveau 2 de la roadmap; ce
- * module en est l'alimentation, pas le remplacement.
+ * La fenêtre vit en mémoire process, mais elle ne PART PLUS de zéro: `hydrate()`
+ * la remplit au démarrage depuis `ClientCall.metadata.realtime.latency`, où
+ * chaque appel a déjà écrit sa mesure. Sans ça, un redéploiement effaçait
+ * l'indicateur, et Render en fait plusieurs par jour: la fenêtre ne disait
+ * jamais autre chose que « depuis le dernier déploiement », ce qui est la seule
+ * période où l'on est certain qu'il ne s'est presque rien passé.
+ *
+ * L'export vers un vrai backend de télémétrie (Langfuse/OTel) est le niveau 2
+ * de la roadmap; ce module en est l'alimentation, pas le remplacement.
  */
 
 /** Objectif produit: latence voix-à-voix sous 1,1 s (état de l'art 2026). */
@@ -30,6 +36,15 @@ const MAX_SAMPLES = 1000;
 
 /** Un récapitulatif dans les logs au plus une fois par heure. */
 const LOG_INTERVAL_MS = 60 * 60 * 1000;
+
+/**
+ * Combien d'appels passés relire au démarrage.
+ *
+ * Plus haut que `MAX_SAMPLES` ne servirait à rien (la fenêtre coupe par le
+ * début), plus bas ferait mentir la reprise. C'est une seule requête, bornée,
+ * hors du chemin d'un appel.
+ */
+const HYDRATE_CALLS = MAX_SAMPLES;
 
 export interface FleetStageStats {
   count: number;
@@ -116,6 +131,69 @@ export class VoiceMetricsService {
       voiceToVoiceObjectiveMs: VOICE_TO_VOICE_OBJECTIVE_MS,
       meetsObjective: total ? total.p95 <= VOICE_TO_VOICE_OBJECTIVE_MS : null,
     };
+  }
+
+  /**
+   * Remplit la fenêtre depuis les appels déjà en base, au démarrage.
+   *
+   * La mesure n'a jamais été perdue: `persistMetrics` l'écrit dans
+   * `ClientCall.metadata.realtime.latency` à la fin de chaque appel. Ce qui
+   * était perdu, c'est l'agrégat — et donc toute comparaison qui traverse un
+   * déploiement, c'est-à-dire toutes celles qui comptent.
+   *
+   * Ne fait rien si des appels ont déjà alimenté la fenêtre: rejouer par-dessus
+   * compterait deux fois les mêmes appels.
+   */
+  async hydrate(): Promise<number> {
+    if (this.calls > 0) return 0;
+
+    try {
+      const rows = await prisma.clientCall.findMany({
+        where: { metadata: { not: Prisma.DbNull } },
+        orderBy: { createdAt: 'desc' },
+        take: HYDRATE_CALLS,
+        select: { createdAt: true, metadata: true },
+      });
+
+      let oldest: Date | null = null;
+      let counted = 0;
+
+      /* Du plus ancien au plus récent: la fenêtre coupe par le début, donc
+         l'ordre décide de ce qui survit quand il y a plus d'appels que de
+         places. */
+      for (const row of rows.reverse()) {
+        const meta = row.metadata as {
+          realtime?: { latency?: Record<string, unknown> } | null;
+          billing?: { costUsd?: number | null } | null;
+        } | null;
+
+        const latency = meta?.realtime?.latency;
+        const billing = meta?.billing;
+        if (!latency && typeof billing?.costUsd !== 'number') continue;
+
+        const before = this.calls;
+        this.record(latency ? { latency } : null, billing ?? null);
+        if (this.calls > before) {
+          counted++;
+          oldest = oldest ?? row.createdAt;
+        }
+      }
+
+      /* La fenêtre commence au premier appel relu, pas au démarrage: dater
+         l'agrégat du boot est précisément le mensonge qu'on répare. */
+      if (oldest) this.windowStartedAt = oldest.getTime();
+
+      if (counted) {
+        logger.info(`[VoiceMetrics] fenêtre reprise sur ${counted} appel(s) depuis ${oldest?.toISOString()}`);
+      } else {
+        logger.info("[VoiceMetrics] aucun appel mesuré en base — la fenêtre part vide");
+      }
+      return counted;
+    } catch (error) {
+      // Un indicateur ne fait pas échouer un démarrage.
+      logger.warn(`[VoiceMetrics] reprise de la fenêtre impossible: ${(error as Error).message}`);
+      return 0;
+    }
   }
 
   /** Test seam. */
