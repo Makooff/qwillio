@@ -337,6 +337,23 @@ première chose à faire, avant même le premier appel de test.
 en dessous, et nos langues ne tournent pas sur le même modèle (fr/en en Nova-3,
 nl en Nova-2). Le champ se choisit par modèle, jamais globalement.
 
+### 6nonies. Un refus de Vapi ne doit plus être silencieux (09/09/2026)
+`syncVapiAssistant` lève, et ses **deux** appelants attrapent pour écrire un
+`logger.warn` avant de répondre `success: true`. Le client enregistre un réglage,
+la base est à jour, l'interface dit que c'est fait, et l'assistant **distant**
+garde son ancienne configuration pour toujours. Tous les appels suivants passent
+par un agent périmé. C'est le mode d'échec des deux pannes de flotte, et il
+n'avait jamais été rendu bruyant, seulement documenté après coup.
+`reportAssistantSyncFailure` (`services/voice/vapi-error.ts`) alerte désormais sur
+Discord avec **le corps de la réponse**, qui nomme le champ fautif : c'est la
+seule chose que le code ne pouvait pas deviner.
+La distinction porte tout : un **4xx** dit que la charge est invalide, or elle est
+construite par le même code pour tout le monde, donc c'est un incident de FLOTTE
+même s'il se voit sur un compte. Un **5xx / réseau / 429** ne dit rien sur la
+charge et se retentera seul ; alerter dessus avec la même force apprendrait à
+ignorer l'alerte. 429 est un 4xx qui ne compte PAS comme refus : c'est un débit,
+pas une forme.
+
 ### 6quinquies. Un glossaire de prompt ne contient AUCUN verbe d'action (09/09/2026)
 Le bloc belgicismes a fait échouer `fr-discipline-agenda`, un scénario sans aucun
 rapport avec la Belgique, **deux fois de suite** et pour la même raison de forme.
