@@ -220,6 +220,26 @@ describe('les règles de transfert, réglées par le client', () => {
  * nom ? », relevé sur un vrai scénario d'évaluation. Un réceptionniste qui
  * tutoie un inconnu s'entend en une seconde.
  */
+/**
+ * La discipline d'agenda, dite explicitement.
+ *
+ * « Un rendez-vous demain matin » suffit pour consulter. Demander « le matin ou
+ * l'après-midi ? » avant d'avoir regardé coûte un tour entier à l'appelant et
+ * ne change rien à ce que l'agenda contient. Le scénario d'évaluation a attrapé
+ * ce comportement deux fois: la règle manquait, elle est maintenant écrite.
+ */
+describe('buildSystemPrompt — consulter avant de préciser', () => {
+  it('interdit de demander une précision avant de consulter l\'agenda', () => {
+    const prompt = buildSystemPrompt(profile, newCaller);
+    expect(prompt).toMatch(/checkAvailability AVANT de proposer une heure ou de demander une précision/);
+  });
+
+  it('le dit dans les trois langues', () => {
+    expect(buildSystemPrompt({ ...profile, language: 'en' }, newCaller)).toMatch(/Do not ask for more detail before checking/);
+    expect(buildSystemPrompt({ ...profile, language: 'nl' }, newCaller)).toMatch(/Vraag niet om meer details voor je controleert/);
+  });
+});
+
 describe('buildSystemPrompt — le vouvoiement', () => {
   it('demande explicitement de vouvoyer, en français', () => {
     expect(buildSystemPrompt(profile, newCaller)).toMatch(/Vouvoie toujours l'appelant/);

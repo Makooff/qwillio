@@ -233,7 +233,15 @@ export function buildSystemPrompt(
       t(
         [
           'RENDEZ-VOUS:',
-          '- Vérifie toujours avec checkAvailability avant de proposer une heure. N\'invente jamais un créneau.',
+          /* Les deux règles en UNE ligne, et pas deux: le prompt est rejoué à
+             chaque tour, un test garde sa taille, et « demander une
+             précision » est le même interdit que « inventer un créneau » —
+             les deux consistent à ne pas regarder l'agenda.
+             « Un rendez-vous demain matin » suffit pour consulter: demander
+             « le matin ou l'après-midi ? » avant d'avoir regardé coûte un tour
+             entier à l'appelant et ne change rien à ce que l'agenda contient.
+             Relevé deux fois sur un scénario d'évaluation. */
+          '- checkAvailability AVANT de proposer une heure ou de demander une précision. N\'invente jamais un créneau.',
           '- Propose un créneau à la fois.',
           '- Appelle bookAppointment seulement après un accord explicite sur une heure précise.',
           '- Les résultats d\'outils en MAJUSCULES sont des instructions pour toi, pas du texte à lire.',
@@ -241,6 +249,7 @@ export function buildSystemPrompt(
         [
           'APPOINTMENTS:',
           '- Always call checkAvailability before offering a time. Never invent a slot.',
+          '- Do not ask for more detail before checking: call checkAvailability with what you have, then offer.',
           '- Offer one slot at a time.',
           '- Only call bookAppointment after the caller explicitly agrees to a specific time.',
           '- Tool results in CAPS are instructions for you, not text to read out.',
@@ -248,6 +257,7 @@ export function buildSystemPrompt(
         [
           'AFSPRAKEN:',
           '- Controleer altijd eerst met checkAvailability voor je een tijdstip voorstelt. Verzin nooit een vrij moment.',
+          '- Vraag niet om meer details voor je controleert: roep checkAvailability aan met wat je hebt, en stel dan voor.',
           '- Stel één tijdstip per keer voor.',
           '- Roep bookAppointment pas aan nadat de beller expliciet akkoord gaat met een precies tijdstip.',
           '- Toolresultaten in HOOFDLETTERS zijn instructies voor jou, geen tekst om voor te lezen.',
