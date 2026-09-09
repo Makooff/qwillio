@@ -362,6 +362,11 @@ l'appelant redevenait rappelable : l'inverse exact de ce qu'il avait demandé.
 Le RGPD demande justement de CONSERVER une liste d'opposition, pour pouvoir
 l'honorer. La purge garde donc le strict nécessaire (le numéro et le drapeau) et
 efface tout le reste : nom, courriel, portrait, préférences, dernier résumé.
+Le **même** raisonnement vaut sur `eraseCaller`, la route d'effacement à la
+demande (`DELETE /my-dashboard/callers/:number`) : elle supprimait aussi la ligne
+entière. L'appelant aurait exercé un droit et récolté exactement ce qu'il
+refusait. Un numéro sur une liste d'opposition ne peut pas lui nuire, il ne sert
+qu'à ne pas l'appeler ; le supprimer, si.
 Second défaut au même endroit : `block()` crée une ligne **sans** `lastCallAt`,
 et en SQL un NULL ne matche aucune comparaison. Ces lignes n'étaient donc échues
 à aucun moment, et leur personnel restait indéfiniment. Le filtre lit désormais

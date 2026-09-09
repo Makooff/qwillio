@@ -267,7 +267,10 @@ class DataRetentionService {
    * données — l'appelant, pas le titulaire du compte). Toujours scopé
    * clientId: le même numéro chez un autre client est un autre dossier.
    */
-  async eraseCaller(clientId: string, callerNumber: string): Promise<{ calls: number; memoryDeleted: boolean }> {
+  async eraseCaller(
+    clientId: string,
+    callerNumber: string,
+  ): Promise<{ calls: number; memoryDeleted: boolean; optOutKept: boolean }> {
     const calls = await prisma.clientCall.findMany({
       where: { clientId, callerNumber },
       select: { id: true, vapiCallId: true, recordingUrl: true },
@@ -284,10 +287,46 @@ class DataRetentionService {
       data: CLIENT_CALL_ERASURE,
     });
 
-    const memory = await prisma.callerMemory.deleteMany({ where: { clientId, callerNumber } });
+    /* Une OPPOSITION survit à l'effacement, et c'est dans l'intérêt de la
+       personne qui le demande.
+       Supprimer la ligne entière effacerait le « ne me rappelez jamais » avec
+       le reste, et l'appelant redeviendrait rappelable: il aurait exercé un
+       droit et récolté exactement ce qu'il refusait. On garde donc le strict
+       minimum pour ne pas le rappeler — son numéro et le drapeau — et on efface
+       tout le reste. Un numéro sur une liste d'opposition ne peut lui nuire:
+       il ne sert qu'à ne pas l'appeler.
+       Sans opposition, la ligne n'est QUE du personnel: elle disparaît. */
+    const blocked = await prisma.callerMemory.findUnique({
+      where: { clientId_callerNumber: { clientId, callerNumber } },
+      select: { isBlocked: true },
+    });
 
-    logger.info(`[Retention] caller erased for client ${clientId}: ${updated.count} calls, memory=${memory.count > 0}`);
-    return { calls: updated.count, memoryDeleted: memory.count > 0 };
+    let memoryDeleted = false;
+    let optOutKept = false;
+    if (blocked?.isBlocked) {
+      await prisma.callerMemory.update({
+        where: { clientId_callerNumber: { clientId, callerNumber } },
+        data: {
+          knownName: null,
+          email: null,
+          profileSummary: null,
+          lastSummary: null,
+          lastOutcome: null,
+          facts: Prisma.DbNull,
+          preferences: [],
+        },
+      });
+      optOutKept = true;
+    } else {
+      const memory = await prisma.callerMemory.deleteMany({ where: { clientId, callerNumber } });
+      memoryDeleted = memory.count > 0;
+    }
+
+    logger.info(
+      `[Retention] caller erased for client ${clientId}: ${updated.count} calls, ` +
+        `memory=${memoryDeleted}${optOutKept ? ', opposition conservée' : ''}`,
+    );
+    return { calls: updated.count, memoryDeleted, optOutKept };
   }
 
   /** DELETE /call/{id} chez Vapi. Best-effort: un échec sera retenté demain. */

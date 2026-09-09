@@ -10,10 +10,12 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  */
 const {
   clientFindMany, clientCallFindMany, clientCallUpdate, clientCallUpdateMany,
-  callerMemoryDeleteMany, callerMemoryUpdateMany, callUpdateMany, prospectUpdateMany,
+  callerMemoryDeleteMany, callerMemoryUpdateMany, callerMemoryFindUnique, callerMemoryUpdate,
+  callUpdateMany, prospectUpdateMany,
 } = vi.hoisted(() => ({
   clientFindMany: vi.fn(), clientCallFindMany: vi.fn(), clientCallUpdate: vi.fn(),
   clientCallUpdateMany: vi.fn(), callerMemoryDeleteMany: vi.fn(), callerMemoryUpdateMany: vi.fn(),
+  callerMemoryFindUnique: vi.fn(), callerMemoryUpdate: vi.fn(),
   callUpdateMany: vi.fn(), prospectUpdateMany: vi.fn(),
 }));
 
@@ -21,7 +23,12 @@ vi.mock('../../config/database', () => ({
   prisma: {
     client: { findMany: clientFindMany },
     clientCall: { findMany: clientCallFindMany, update: clientCallUpdate, updateMany: clientCallUpdateMany },
-    callerMemory: { deleteMany: callerMemoryDeleteMany, updateMany: callerMemoryUpdateMany },
+    callerMemory: {
+      deleteMany: callerMemoryDeleteMany,
+      updateMany: callerMemoryUpdateMany,
+      findUnique: callerMemoryFindUnique,
+      update: callerMemoryUpdate,
+    },
     call: { updateMany: callUpdateMany },
     prospect: { updateMany: prospectUpdateMany },
   },
@@ -199,15 +206,50 @@ describe('eraseCaller — droit du sujet de données', () => {
     clientCallFindMany.mockResolvedValue([]);
     clientCallUpdateMany.mockResolvedValue({ count: 2 });
     callerMemoryDeleteMany.mockResolvedValue({ count: 1 });
+    callerMemoryUpdate.mockResolvedValue({});
+    callerMemoryFindUnique.mockResolvedValue({ isBlocked: false });
   });
 
   it('vide les appels ET supprime la mémoire, toujours scopé au client', async () => {
     const result = await dataRetentionService.eraseCaller('c1', '+32470000000');
-    expect(result).toEqual({ calls: 2, memoryDeleted: true });
+    expect(result).toEqual({ calls: 2, memoryDeleted: true, optOutKept: false });
     expect(clientCallUpdateMany).toHaveBeenCalledWith(
       expect.objectContaining({ where: { clientId: 'c1', callerNumber: '+32470000000' } })
     );
     expect(callerMemoryDeleteMany).toHaveBeenCalledWith({ where: { clientId: 'c1', callerNumber: '+32470000000' } });
+  });
+
+  /**
+   * Le même défaut que la purge, sur le chemin de l'effacement à la demande.
+   * Supprimer la ligne entière effacerait le « ne me rappelez jamais » avec le
+   * reste: l'appelant aurait exercé un droit et récolté exactement ce qu'il
+   * refusait. Un numéro sur une liste d'opposition ne peut pas lui nuire, il
+   * ne sert qu'à ne pas l'appeler.
+   */
+  it('garde l\'opposition, et n\'efface que le reste', async () => {
+    callerMemoryFindUnique.mockResolvedValue({ isBlocked: true });
+
+    const result = await dataRetentionService.eraseCaller('c1', '+32470000000');
+
+    expect(result).toEqual({ calls: 2, memoryDeleted: false, optOutKept: true });
+    // La ligne n'est PAS supprimée…
+    expect(callerMemoryDeleteMany).not.toHaveBeenCalled();
+    // …mais tout ce qui n'est pas nécessaire pour ne pas rappeler tombe.
+    const data = callerMemoryUpdate.mock.calls.at(-1)![0].data;
+    for (const field of ['knownName', 'email', 'profileSummary', 'lastSummary']) {
+      expect(data[field]).toBeNull();
+    }
+    expect(data.preferences).toEqual([]);
+    // Ni le numéro ni le drapeau ne sont touchés: ils SONT l'opposition.
+    expect(data.callerNumber).toBeUndefined();
+    expect(data.isBlocked).toBeUndefined();
+  });
+
+  it('supprime bien la ligne quand il n\'y a aucune opposition à honorer', async () => {
+    callerMemoryFindUnique.mockResolvedValue(null);
+    const result = await dataRetentionService.eraseCaller('c1', '+32470000000');
+    expect(result.optOutKept).toBe(false);
+    expect(callerMemoryUpdate).not.toHaveBeenCalled();
   });
 });
 
