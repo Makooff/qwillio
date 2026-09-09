@@ -469,8 +469,11 @@ Les fils de support des plateformes sont la source la plus honnête de tout ce d
 
 ### REL-7 — Tracer les codes de cause SIP toi-même
 
-- **Statut** : `ABSENT`
-- **Preuve** : Aucun code de cause SIP nulle part. `logTransfer` n'enregistre que nos propres libellés (`initiated` / `completed` / `failed`) et un `event.message.error` de forme libre (`backend/src/services/client-call.service.ts:370-390`). Aucun 486/408/480/603, aucun tableau de bord de tunnel tenté → sonne → décroché → abouti.
+- **Statut** : `PARTIEL`
+- **Le défaut réparé** : `logTransfer` écrivait `failedReason: 'No answer'` **en dur** dès qu'aucune erreur n'était jointe. Un poste occupé, un numéro refusé, un numéro faux et une boîte vocale produisaient donc tous la même phrase, fausse dans trois cas sur quatre — alors que c'est exactement la distinction qui décide de la suite : « occupé » se rappelle dans dix minutes, « numéro faux » se corrige dans les réglages du client, et personne ne peut agir sur « No answer ».
+- **Preuve** : `backend/src/services/voice/call-outcome.ts`. `readEndedReason` traduit l'énumération `Call.endedReason` de Vapi (relevée sur sa spécification OpenAPI, pas devinée) vers une cause : occupé, sans réponse, indisponible, refusé, boîte vocale, numéro faux, appelant qui raccroche, panne de pont. Câblé dans `logTransfer` (le `failedReason` et l'alerte Discord portent la cause) et l'entonnoir tenté → sonné → décroché → abouti est publié sur `/api/webhooks/vapi/health` sous `transfers`. Tests : `__tests__/call-outcome.test.ts`, 15 cas.
+- **Le code SIP est un ÉQUIVALENT, et le fichier l'écrit en toutes lettres** : Vapi ne transmet aucun code de cause, le leg téléphonique lui appartient. La table traduit ses libellés vers le code que l'opérateur a très probablement émis, parce que 486 et 408 se lisent d'un coup d'œil là où `call.in-progress.error-providerfault-outbound-sip-503-service-unavailable` ne se lit pas. Un test interdit d'inventer un code là où il n'y en a pas.
+- **Ce qui manque pour `DÉJÀ FAIT`** : le vrai code lu sur le fil, qui demande de le récupérer côté opérateur (Twilio), comme l'action le dit elle-même. Et le tableau de bord : les compteurs existent, l'écran non.
 - **Action** : 486 occupé, 408 timeout, 480 indisponible, 603 refusé. Les plateformes ne les exposent pas comme variables de branchement — il faut les récupérer côté opérateur.
 - **Pourquoi** : Sans eux, vous ne pouvez pas distinguer « il était occupé » de « le numéro est faux », donc pas décider quoi faire ensuite.
 - **Critère d'acceptation** : Chaque tentative de transfert est loggée avec son code de cause. Tableau de bord du tunnel : tenté → sonne → décroché → abouti.

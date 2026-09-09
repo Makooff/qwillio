@@ -6,6 +6,7 @@ import { smsService } from './sms.service';
 import { callNotificationService } from './call-notification.service';
 import { googleCalendarService } from './google-calendar.service';
 import { spamDetectionService } from './spam-detection.service';
+import { readEndedReason, transferFunnel } from './voice/call-outcome';
 
 export class ClientCallService {
 
@@ -382,6 +383,25 @@ Return a JSON object with:
       transferStatus = 'failed';
     }
 
+    /* La CAUSE, et non plus « No answer » écrit en dur (REL-7).
+       Un poste occupé, un numéro refusé, un numéro faux et une boîte vocale
+       produisaient tous la même phrase, et cette phrase était fausse trois
+       fois sur quatre. C'est pourtant elle qui décide de la suite: « occupé »
+       se rappelle dans dix minutes, « numéro faux » se corrige dans les
+       réglages du client, et personne ne peut agir sur « No answer ». */
+    const endedReason = event.message?.endedReason || event.endedReason || '';
+    const reading = readEndedReason(endedReason);
+    if (transferStatus === 'initiated') transferFunnel.attempt();
+    else transferFunnel.settle(reading);
+
+    /* L'erreur brute du fournisseur d'abord quand il en donne une: elle est
+       plus précise que toute classification. La cause lue ensuite, et le
+       libellé générique seulement quand les deux manquent. */
+    const failedReason =
+      transferStatus !== 'failed'
+        ? null
+        : event.message?.error || (reading.cause === 'other' ? 'cause inconnue' : reading.label);
+
     const transfer = await prisma.callTransfer.create({
       data: {
         clientId,
@@ -391,7 +411,7 @@ Return a JSON object with:
         triggerPhrase,
         preTransferMessage: 'Of course — let me connect you with someone from the team right now. One moment please.',
         transferStatus,
-        failedReason: transferStatus === 'failed' ? (event.message?.error || 'No answer') : null,
+        failedReason,
         callbackRequested: transferStatus === 'failed',
         callbackPriority: transferStatus === 'failed' ? 'high' : 'normal',
       },
@@ -399,8 +419,15 @@ Return a JSON object with:
 
     // Discord notification for transfers
     const emoji = transferStatus === 'completed' ? '🔄' : transferStatus === 'failed' ? '❌' : '📞';
+    /* La cause dans l'alerte, avec son équivalent SIP: c'est ce qui permet de
+       décider sans ouvrir la base. Le code est un ÉQUIVALENT déduit du libellé
+       Vapi, pas une lecture sur le fil — le leg téléphonique appartient à Vapi. */
+    const cause =
+      transferStatus === 'failed' && reading.cause !== 'other'
+        ? `\nCause: ${reading.label}${reading.sipEquivalent ? ` (SIP ${reading.sipEquivalent} équivalent)` : ''}`
+        : '';
     await discordService.notify(
-      `${emoji} CALL TRANSFER ${transferStatus.toUpperCase()}\n\nClient: ${client.businessName}\nTransfer to: ${transferNumber}\nReason: ${reason}\nVAPI Call: ${vapiCallId || 'N/A'}${transferStatus === 'failed' ? '\n⚠️ Callback requested (high priority)' : ''}`
+      `${emoji} CALL TRANSFER ${transferStatus.toUpperCase()}\n\nClient: ${client.businessName}\nTransfer to: ${transferNumber}\nReason: ${reason}${cause}\nVAPI Call: ${vapiCallId || 'N/A'}${transferStatus === 'failed' ? '\n⚠️ Callback requested (high priority)' : ''}`
     );
 
     logger.info(`Transfer logged for ${client.businessName}: ${transferStatus} → ${transferNumber}`);

@@ -8,6 +8,7 @@ import { realtimeOrchestratorService, type VapiEvent } from '../services/voice/r
 import { callSessionStore } from '../services/voice/call-session.store';
 import { voiceMetricsService } from '../services/voice/voice-metrics.service';
 import { fallbackWatchService } from '../services/voice/fallback-watch.service';
+import { transferFunnel } from '../services/voice/call-outcome';
 import { isVapiWebhookAuthorized } from '../utils/vapi-webhook-auth';
 import { leadAlertService, type LeadForAlert } from '../services/voice/lead-alert.service';
 
@@ -261,6 +262,9 @@ export class VoiceWebhookController {
          ni chez quel client. La dernière cause vient du fournisseur et décrit
          une panne, pas un appel. */
       modelFallbacks: fallbackWatchService.summary(),
+      /* L'entonnoir des transferts (REL-7): tenté → sonné → décroché → abouti.
+         Des compteurs, pas des appels: rien n'y identifie personne. */
+      transfers: transferFunnel.summary(),
     });
   }
 }
