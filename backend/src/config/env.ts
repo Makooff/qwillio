@@ -237,6 +237,20 @@ export const env = {
     10,
     Math.max(0.5, parseFloat(process.env.VOICE_KEYPAD_TIMEOUT_SECONDS || '3') || 3),
   ),
+  /**
+   * La part de tours en repli à partir de laquelle on alerte (TST-8).
+   *
+   * 0,2 et non 0,5: à la moitié des tours, la flotte est déjà morte pour
+   * l'appelant, et l'alerte n'apprend plus rien. Un cinquième des tours qui
+   * répondent « pouvez-vous répéter ? » est en revanche invisible à l'oreille
+   * et parfaitement anormal — c'est là que le canari sert.
+   * Le seuil ne suffit pas seul: il faut aussi un minimum de tours dans la
+   * fenêtre, sinon une nuit calme à deux appels alerte sur un accident.
+   */
+  VOICE_FALLBACK_ALERT_RATE: Math.min(
+    1,
+    Math.max(0.01, parseFloat(process.env.VOICE_FALLBACK_ALERT_RATE || '0.2') || 0.2),
+  ),
   /** First TTS chunk size — smaller means audio starts sooner. */
   /**
    * Taille du PREMIER morceau de texte envoyé au synthétiseur.

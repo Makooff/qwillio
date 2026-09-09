@@ -2,6 +2,7 @@ import { env } from '../../config/env';
 import { logger } from '../../config/logger';
 import { routeIntent, type IntentDecision } from './intent-router';
 import { callSessionStore } from './call-session.store';
+import { fallbackWatchService } from './fallback-watch.service';
 import { moodPromptBlock } from './caller-mood';
 import type { VoiceLanguage } from './speech-plans';
 
@@ -271,9 +272,18 @@ class LlmStreamService {
       const prepared = this.withCaching(this.withMood(request, vapiCallId, lang), vapiCallId);
       await this.proxy(prepared, plan.model, stream, vapiCallId);
       callSessionStore.markLatency(vapiCallId, 'llmEnd');
+      /* Le tour RÉUSSI compte autant que le raté: sans dénominateur il n'y a
+         pas de taux, seulement un compteur qui monte pour toujours (TST-8). */
+      fallbackWatchService.record(false);
       logger.debug(`[VoiceLLM] ${plan.model} turn for ${clientId} in ${Date.now() - started}ms`);
     } catch (error) {
-      logger.error(`[VoiceLLM] proxy failed for ${clientId}: ${(error as Error).message}`);
+      const reason = (error as Error).message;
+      logger.error(`[VoiceLLM] proxy failed for ${clientId}: ${reason}`);
+      /* La phrase de repli est bien choisie: elle ne nomme aucune panne. C'est
+         aussi ce qui la rend dangereuse — une flotte dont le modèle est mort
+         tient une conversation entière de « pouvez-vous répéter ? » sans
+         qu'aucun voyant ne s'allume. Le compteur est ce voyant. */
+      fallbackWatchService.record(true, reason);
       emitLocal(stream, this.fallbackLine(lang), plan.model);
       callSessionStore.markLatency(vapiCallId, 'llmEnd');
     }

@@ -7,6 +7,7 @@ import { clientCallService } from '../services/client-call.service';
 import { realtimeOrchestratorService, type VapiEvent } from '../services/voice/realtime-orchestrator.service';
 import { callSessionStore } from '../services/voice/call-session.store';
 import { voiceMetricsService } from '../services/voice/voice-metrics.service';
+import { fallbackWatchService } from '../services/voice/fallback-watch.service';
 import { isVapiWebhookAuthorized } from '../utils/vapi-webhook-auth';
 import { leadAlertService, type LeadForAlert } from '../services/voice/lead-alert.service';
 
@@ -255,6 +256,11 @@ export class VoiceWebhookController {
       bargeInBackoffSeconds: env.VOICE_BARGE_IN_BACKOFF_SECONDS,
       // P50/P95/P99 par étage + coût moyen, fenêtre glissante depuis le boot.
       fleetMetrics: voiceMetricsService.summary(),
+      /* Le canari (TST-8). Publiable ici sans authentification: ce sont des
+         compteurs de tours, ils ne disent rien de personne — ni qui a appelé,
+         ni chez quel client. La dernière cause vient du fournisseur et décrit
+         une panne, pas un appel. */
+      modelFallbacks: fallbackWatchService.summary(),
     });
   }
 }

@@ -660,8 +660,10 @@ Le meilleur signal neutre du domaine est EVA-Bench : sur douze systèmes évalu�
 
 ### TST-8 — Alerter sur le taux d'activation des replis
 
-- **Statut** : `ABSENT`
-- **Preuve** : Impossible en l'état, et rien ne l'approche : les bascules de secours sont décidées À L'INTÉRIEUR de Vapi à partir des `fallbackPlan` qu'on déclare (`speech-plans.ts:170`, `:469`, `:597`). Aucun événement ne nous en informe, rien ne les compte, donc il n'y a ni taux, ni seuil, ni destinataire d'alerte.
+- **Statut** : `PARTIEL`
+- **Preuve** : Le repli DONT NOUS SOMMES TÉMOINS est compté et alerté : `backend/src/services/voice/fallback-watch.service.ts`, alimenté aux deux sorties de `llmStreamService.handle` (le tour réussi compte comme dénominateur, le tour raté comme numérateur). Fenêtre glissante de 200 tours, plancher de 20 tours avant de parler, seuil `VOICE_FALLBACK_ALERT_RATE` (0,2), destinataire `discordService.notifyAlerts`, refroidissement d'une demi-heure, et une annonce de retour à la normale sans laquelle personne ne sait que c'est fini. Publié aussi sur `/api/webhooks/vapi/health` sous `modelFallbacks`. Tests : `__tests__/fallback-watch.test.ts`, 11 cas.
+- **Pourquoi ce repli-là d'abord** : c'est celui qui est arrivé. Le 09/09/2026, crédit OpenAI épuisé, chaque tour en repli — et la phrase de repli ne nomme aucune panne, donc la flotte tenait une conversation entière de « pouvez-vous répéter ? » sans qu'aucun voyant ne s'allume.
+- **Ce qui manque pour `DÉJÀ FAIT`** : les bascules internes de Vapi (les `fallbackPlan` du transcripteur et de la voix, `speech-plans.ts`) ne remontent toujours nulle part. Aucun événement ne nous en informe, donc les compter serait inventer un chiffre. Le taux publié dit « sur les tours que ce processus a servis », et le dit explicitement.
 - **Action** : C'est le canari : il monte avant que les clients se plaignent.
 - **Pourquoi** : Un fournisseur qui se dégrade se voit d'abord dans le taux de bascule, pas dans les réclamations.
 - **Critère d'acceptation** : Alerte configurée, avec seuil et destinataire.
