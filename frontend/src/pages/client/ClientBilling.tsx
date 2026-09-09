@@ -4,6 +4,7 @@ import { motion } from 'framer-motion';
 import { Check, AlertTriangle, Shield, Phone, FileText, Download, CreditCard } from '../../components/icons';
 import api from '../../services/api';
 import { formatDate } from '../../utils/format';
+import { annualTotalEur, annualMonthlyEquivalentEur } from '../../lib/pricing';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -16,6 +17,9 @@ interface BillingOverview {
   minutesLimit: number;
   trialEndsAt: string | null;
   isTrial: boolean;
+  /** Mensuel ou annuel. Décide des prix affichés ET de l'existence du bouton
+      « Passer à l'annuel » sur le forfait courant. */
+  billingPeriod?: 'monthly' | 'annual';
   /** La carte enregistrée chez Stripe. Absente si aucune, ou si Stripe ne
       répond pas: la ligne disparaît alors au lieu d'inventer une carte. */
   paymentMethod: { brand: string; last4: string; expMonth: number; expYear: number } | null;
@@ -150,6 +154,10 @@ export default function ClientBilling() {
   const [cancelError, setCancelError] = useState<string | null>(null);
   const [cancelInput, setCancelInput] = useState('');
   const [upgrading, setUpgrading] = useState<string | null>(null);
+  /* Le sélecteur s'ouvre sur la période du client, pas sur « mensuel » par
+     défaut: un client annuel qui arrive ici doit voir SES prix, pas ceux d'une
+     formule qu'il n'a pas prise. */
+  const [billingChoice, setBillingChoice] = useState<'monthly' | 'annual'>('monthly');
   const [openingPortal, setOpeningPortal] = useState(false);
   const [invoiceOpening, setInvoiceOpening] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -165,7 +173,13 @@ export default function ClientBilling() {
       api.get('/my-dashboard/payments'),
     ])
       .then(([billingRes, paymentsRes]) => {
-        if (billingRes.status === 'fulfilled') setOverview(billingRes.value.data);
+        if (billingRes.status === 'fulfilled') {
+          setOverview(billingRes.value.data);
+          /* Le sélecteur suit le client. Le poser après la réponse et non à
+             l'initialisation: à ce moment-là on ne savait pas encore ce qu'il
+             paie. */
+          if (billingRes.value.data?.billingPeriod === 'annual') setBillingChoice('annual');
+        }
         else setLoadError("Impossible de charger votre abonnement. Rechargez la page, ou contactez-nous si cela persiste.");
         if (paymentsRes.status === 'fulfilled') {
           const body = paymentsRes.value.data;
@@ -189,7 +203,14 @@ export default function ClientBilling() {
       // l'ancienne, il ne voyait aucun plan, répondait 400 « Invalid plan », et
       // la page rechargeait comme si de rien n'était — un bouton qui ne pouvait
       // pas marcher et ne le disait pas.
-      const { data } = await api.post('/my-dashboard/upgrade', { planType: planId });
+      const { data } = await api.post('/my-dashboard/upgrade', {
+        planType: planId,
+        /* Ce que l'écran AFFICHE part à la caisse. Sans cette clé, le serveur
+           gardait la période de la fiche, et un client mensuel n'avait aucun
+           chemin vers l'annuel: la remise de 20 % était vendue sur la page
+           tarifs et inatteignable depuis le portail. */
+        billingPeriod: billingChoice,
+      });
       // Le paiement se fait chez Stripe. Recharger la page à la place, c'est
       // ramener le client sur son ancien plan sans lui avoir rien demandé.
       if (data?.checkoutUrl) window.location.href = data.checkoutUrl;
@@ -408,10 +429,48 @@ export default function ClientBilling() {
 
       {/* Plan grid */}
       <div>
-        <h2 className="text-sm font-semibold text-[#F5F5F7] mb-4">Plans disponibles</h2>
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <h2 className="text-sm font-semibold text-[#F5F5F7]">Plans disponibles</h2>
+
+          {/* Même geste que le sélecteur de la page tarifs, et comme lui il ne
+              s'anime PAS: un contrôle qu'on bascule pour comparer doit répondre
+              à l'instant, pas jouer une transition à chaque aller-retour. */}
+          <div
+            role="group"
+            aria-label="Fréquence de facturation"
+            className="inline-flex items-center gap-1 p-1 rounded-full border"
+            style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}
+          >
+            {(['monthly', 'annual'] as const).map(période => (
+              <button
+                key={période}
+                type="button"
+                onClick={() => setBillingChoice(période)}
+                aria-pressed={billingChoice === période}
+                className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[12px] font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7349fe]/50 active:scale-[0.97] ${
+                  billingChoice === période ? 'text-white' : 'text-[#A1A1A8] hover:text-white'
+                }`}
+                style={billingChoice === période ? { background: '#7349fe' } : undefined}
+              >
+                {période === 'monthly' ? 'Mensuel' : 'Annuel'}
+                {période === 'annual' && (
+                  <span
+                    className="text-[10px] font-semibold tracking-[0.08em] uppercase px-1.5 py-0.5 rounded-full"
+                    style={billingChoice === 'annual'
+                      ? { background: 'rgba(255,255,255,0.16)', color: '#fff' }
+                      : { background: 'rgba(255,255,255,0.06)', color: '#A1A1A8' }}
+                  >
+                    −20&nbsp;%
+                  </span>
+                )}
+              </button>
+            ))}
+          </div>
+        </div>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {PLANS.map((plan, i) => {
             const isCurrent = plan.id === currentPlanId;
+            const currentPeriod = overview?.billingPeriod === 'annual' ? 'annual' : 'monthly';
             const isHigher = PLANS.indexOf(plan) > PLANS.indexOf(currentPlan);
             return (
               <motion.div
@@ -448,9 +507,20 @@ export default function ClientBilling() {
                 <div className="mb-4">
                   <p className="text-base font-bold text-[#F5F5F7] mb-1">{plan.name}</p>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-xl font-bold text-[#F5F5F7]">{plan.monthly.toLocaleString()}€</span>
+                    <span className="text-xl font-bold text-[#F5F5F7]">
+                      {(billingChoice === 'annual'
+                        ? annualMonthlyEquivalentEur(plan.monthly)
+                        : plan.monthly).toLocaleString()}€
+                    </span>
                     <span className="text-xs text-[#A1A1A8]">/mois</span>
                   </div>
+                  {billingChoice === 'annual' && (
+                    /* Le montant réellement prélevé, en une fois. L'équivalent
+                       mensuel au-dessus aide à comparer, celui-ci engage. */
+                    <p className="text-[11px] text-[#A1A1A8] mt-1">
+                      Facturé {annualTotalEur(plan.monthly).toLocaleString('fr-FR')} €/an
+                    </p>
+                  )}
                   <p className="text-[11px] text-[#A1A1A8] mt-1">
                     {plan.minutes.toLocaleString()} min · {plan.overage.toFixed(2).replace('.', ',')} €/min supp.
                   </p>
@@ -465,13 +535,21 @@ export default function ClientBilling() {
                   ))}
                 </ul>
 
-                {!isCurrent && (
+                {/* Le forfait COURANT garde un bouton quand la période choisie
+                    n'est pas la sienne: « passer à l'annuel » est un vrai
+                    changement, et le cacher laissait la remise de 20 % visible
+                    sur la page tarifs et inatteignable depuis le portail. */}
+                {(!isCurrent || billingChoice !== currentPeriod) && (
                   <button
                     onClick={() => handleUpgrade(plan.id)}
                     disabled={upgrading === plan.id}
                     className="w-full py-2 text-sm font-medium rounded-lg border border-[#7349fe] text-[#7349fe] hover:bg-[#7349fe] hover:text-white transition-colors disabled:opacity-50"
                   >
-                    {upgrading === plan.id ? 'Redirection…' : isHigher ? 'Upgrader' : 'Réduire'}
+                    {upgrading === plan.id
+                      ? 'Redirection…'
+                      : isCurrent
+                        ? (billingChoice === 'annual' ? 'Passer à l\'annuel' : 'Passer au mensuel')
+                        : isHigher ? 'Upgrader' : 'Réduire'}
                   </button>
                 )}
               </motion.div>

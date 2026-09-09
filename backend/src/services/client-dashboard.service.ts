@@ -53,6 +53,11 @@ export class ClientDashboardService {
       minutesLimit: client.monthlyMinutesQuota || plan.includedMinutes,
       trialEndsAt: client.trialEndDate,
       isTrial: client.isTrial,
+      /* Mensuel ou annuel. La page affichait des prix mensuels quelle que soit
+         la réalité du client, et n'avait aucun moyen de proposer le passage à
+         l'annuel: sans cette valeur, un bouton « passer à l'annuel » ne saurait
+         pas s'il doit exister. Le défaut est mensuel, comme partout ailleurs. */
+      billingPeriod: (client.vapiConfig as any)?.billingPeriod === 'annual' ? 'annual' : 'monthly',
       /* LA CARTE ENREGISTRÉE. La page annonçait le forfait et son prix, mais
          jamais ce qui allait être débité: le client devait ouvrir le portail
          Stripe pour savoir quelle carte paie son abonnement. Chez Stripe,

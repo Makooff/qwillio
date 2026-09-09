@@ -772,11 +772,20 @@ export class StripeService {
     return session.url;
   }
 
-  async createUpgradeCheckout(client: any, planType: string): Promise<string | null> {
+  async createUpgradeCheckout(
+    client: any,
+    planType: string,
+    requestedPeriod?: BillingPeriod,
+  ): Promise<string | null> {
     /* Un client déjà annuel qui change de forfait RESTE annuel. Résoudre le
        prix en mensuel d'office le ferait basculer sans rien lui demander, et
-       lui ferait perdre sa remise au passage. */
-    const period: BillingPeriod = client.vapiConfig?.billingPeriod === 'annual' ? 'annual' : 'monthly';
+       lui ferait perdre sa remise au passage.
+       Mais la période stockée ne peut pas être le dernier mot: sans choix
+       possible, un client mensuel n'avait AUCUN chemin vers l'annuel, dans un
+       produit qui vend l'annuel sur sa page tarifs. Le choix explicite gagne
+       donc, et son absence retombe sur ce que le client a déjà. */
+    const stored: BillingPeriod = client.vapiConfig?.billingPeriod === 'annual' ? 'annual' : 'monthly';
+    const period: BillingPeriod = requestedPeriod ?? stored;
     const priceId = await this.resolvePriceId(planType, period);
     if (!priceId) throw new Error(`No Stripe price configured for plan: ${planType}`);
     await this.assertPriceMatchesPlan(priceId, getPlan(planType), period);
