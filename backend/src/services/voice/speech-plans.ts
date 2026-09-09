@@ -227,7 +227,13 @@ export function buildStartSpeakingPlan(lang: VoiceLanguage) {
     transcriptionEndpointingPlan: {
       onPunctuationSeconds: 0.1,
       onNoPunctuationSeconds: 1.0,
-      onNumberSeconds: 0.5,
+      /* UNE SECONDE après un chiffre, et non une demi (TUR-3).
+         Un appelant qui dicte « zéro deux… cinq cent douze… trente-quatre… »
+         laisse 400 à 900 ms entre ses groupes: à 500 ms on le coupe après le
+         deuxième, et il doit tout redicter. C'est le mode d'échec le plus
+         fréquent et le plus irritant d'un agent de prise de rendez-vous, et
+         il annulerait à lui seul le travail de capture des numéros dictés. */
+      onNumberSeconds: env.VOICE_ENDPOINTING_NUMBER_SECONDS,
     },
   };
 }

@@ -207,6 +207,22 @@ export const env = {
     500,
     parseInt(process.env.VOICE_FIRST_TOKEN_TIMEOUT_MS || '2500', 10) || 2500,
   ),
+  /**
+   * Le silence toléré APRÈS un chiffre avant de considérer le tour fini.
+   *
+   * Une seconde, et non une demi: quelqu'un qui dicte « zéro deux… cinq cent
+   * douze… trente-quatre… » laisse 400 à 900 ms entre ses groupes. À 500 ms on
+   * le coupe après le deuxième, et c'est le mode d'échec le plus fréquent et le
+   * plus irritant d'un agent de prise de rendez-vous — celui qui oblige à tout
+   * redicter, souvent deux fois.
+   * Le coût est réel et local: quand l'appelant a VRAIMENT fini sur un chiffre,
+   * l'agent attend une demi-seconde de plus. Ça ne vaut que sur les tours qui
+   * contiennent des chiffres, et le silence y est le prix de la dictée.
+   */
+  VOICE_ENDPOINTING_NUMBER_SECONDS: Math.max(
+    0.3,
+    parseFloat(process.env.VOICE_ENDPOINTING_NUMBER_SECONDS || '1.0') || 1.0,
+  ),
   /** First TTS chunk size — smaller means audio starts sooner. */
   /**
    * Taille du PREMIER morceau de texte envoyé au synthétiseur.

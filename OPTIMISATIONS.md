@@ -173,7 +173,9 @@ Un VAD par énergie seul coupe la parole à l'appelant dans 55,6 % des cas quand
 ### TUR-3 — Adapter l'endpointing au slot attendu — le plus important pour un réceptionniste
 
 - **Statut** : `PARTIEL`
-- **Preuve** : Il existe UN seuil spécifique aux chiffres : `transcriptionEndpointingPlan.onNumberSeconds: 0.5` (`backend/src/services/voice/speech-plans.ts:220`). Ce qui manque : 500 ms est en dessous des pauses de 400 à 900 ms que le critère demande de survivre (un numéro dicté en trois groupes espacés de 800 ms serait coupé) ; il n'y a aucune table slot → seuil, rien pour les adresses, aucune bascule « mode patient » décidée par ce que l'agent vient de demander, et aucun test.
+- **Preuve** : Le seuil après un chiffre passe de 0,5 s à **1 s** et devient réglable (`VOICE_ENDPOINTING_NUMBER_SECONDS`, `speech-plans.ts`). C'était le point du critère qui coupait vraiment les appelants : un numéro dicté en trois groupes espacés de 800 ms était coupé après le deuxième, et il fallait tout redicter. Deux tests : le seuil survit à une pause de 900 ms, et il est plus long que celui de la ponctuation — une ponctuation dit que le tour est fini, un chiffre dit le contraire, et les deux seuils doivent aller dans des sens opposés.
+- **Le lien avec BEL-1/2/3** : capter un numéro dicté ne sert à rien si le transcripteur coupe l'appelant au milieu. Les deux lignes ne valent que prises ensemble.
+- **Ce qui manque** : la table complète slot → seuil. Vapi n'expose qu'un seuil « chiffres » global sur l'assistant, pas un mode patient décidé tour par tour selon ce que l'agent vient de demander ; les adresses n'ont donc pas de seuil propre. Il faudrait tenir la boucle de tour nous-mêmes, ce qui dépasse cette ligne.
 - **Action** : L'agent sait ce qu'il vient de demander. S'il attend un numéro de téléphone ou une adresse, il bascule en mode patient pour ce tour, puis revient au défaut.
 - **Pourquoi** : Un appelant qui dicte « zéro deux… cinq cent douze… trente-quatre… » produit des pauses de 400 à 900 ms entre groupes. Un endpointing à 500 ms le coupe après le deuxième groupe. C'est le mode d'échec le plus fréquent et le plus irritant d'un agent de prise de rendez-vous.
 - **Critère d'acceptation** : Une table de configuration lie chaque type de slot à un seuil : défaut ~500 ms, capture de chiffres ~1 000 ms, capture d'adresse ~1 000–1 500 ms. Test automatisé sur un numéro dicté en trois groupes espacés de 800 ms.
@@ -691,6 +693,7 @@ Le meilleur signal neutre du domaine est EVA-Bench : sur douze systèmes évalu�
 
 | Date | Ligne | De → vers | Commit | Note |
 |---|---|---|---|---|
+| 2026-09-09 | TUR-3 | preuve complétée, reste `PARTIEL` | `claude/optimisations-audit-vocal-68tgg2` | Le silence toléré après un chiffre passe de 0,5 s à 1 s: un numéro dicté en groupes espacés de 800 ms n'est plus coupé au milieu. La table slot → seuil complète demanderait de tenir la boucle de tour nous-mêmes. |
 | 2026-09-09 | LEG-5 | preuve complétée, reste `PARTIEL` | `claude/optimisations-audit-vocal-68tgg2` | Le mode sans enregistrement s'active par l'API. Et `vapiConfig` est fusionné au lieu d'être remplacé: le remplacement effaçait en silence tous les réglages absents de l'appel. |
 | 2026-09-09 | LEG-1 | `PARTIEL` → `DÉJÀ FAIT` | `claude/optimisations-audit-vocal-68tgg2` | Un accueil de ligne en texte libre ne peut plus faire sauter l'annonce IA: il est complété, pas écarté. Booléen consigné par appel et alerte critique s'il est faux. |
 | 2026-09-09 | TST-9 | `ABSENT` → `PARTIEL` | `claude/optimisations-audit-vocal-68tgg2` | Abandon découpé par index de tour dans le rapport hebdomadaire, avec une action différente selon l'endroit où l'appelant part. Reste l'affichage au tableau de bord, et des appels à décrire. |

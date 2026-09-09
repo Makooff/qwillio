@@ -22,6 +22,32 @@ describe('buildTranscriber', () => {
   });
 });
 
+/**
+ * TUR-3: le silence après un chiffre.
+ *
+ * Un appelant qui dicte « zéro deux… cinq cent douze… trente-quatre… » laisse
+ * 400 à 900 ms entre ses groupes. Le seuil doit survivre à la plus longue de
+ * ces pauses, sinon il coupe l'appelant au milieu de son numéro et l'oblige à
+ * tout redicter — le mode d'échec le plus fréquent et le plus irritant d'un
+ * agent de prise de rendez-vous.
+ */
+describe('buildStartSpeakingPlan — la dictée d\'un numéro', () => {
+  it('survit à une pause de 900 ms entre deux groupes', () => {
+    const plan = buildStartSpeakingPlan('fr') as { transcriptionEndpointingPlan: { onNumberSeconds: number } };
+    expect(plan.transcriptionEndpointingPlan.onNumberSeconds).toBeGreaterThanOrEqual(0.9);
+  });
+
+  it('attend plus longtemps après un chiffre qu\'après une ponctuation', () => {
+    // Une ponctuation dit que le tour est fini; un chiffre dit le contraire,
+    // et les deux seuils doivent aller dans des sens opposés.
+    const plan = buildStartSpeakingPlan('fr') as {
+      transcriptionEndpointingPlan: { onNumberSeconds: number; onPunctuationSeconds: number };
+    };
+    expect(plan.transcriptionEndpointingPlan.onNumberSeconds)
+      .toBeGreaterThan(plan.transcriptionEndpointingPlan.onPunctuationSeconds);
+  });
+});
+
 describe('buildStopSpeakingPlan — barge-in', () => {
   const plan = buildStopSpeakingPlan();
 
