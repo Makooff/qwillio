@@ -236,9 +236,22 @@ app.get('/api/unsubscribe/:token', async (req, res) => {
   }
 });
 
-// ─── Health Check ────────────────────────────────────────
+/* ─── Health Check ────────────────────────────────────────
+   Le COMMIT servi est publié ici, et ce n'est pas une coquetterie: sans lui,
+   « est-ce que le correctif est en ligne ? » n'a aucune réponse observable, et
+   toute enquête recommence par cette incertitude. C'est arrivé le 09/09 sur le
+   champ code promo, où rien ne permettait de distinguer « le code est mauvais »
+   de « Render sert encore la version d'avant ».
+   `RENDER_GIT_COMMIT` est posée par Render sur chaque déploiement. Ailleurs
+   (poste local, conteneur), elle est absente et l'on dit « inconnu » plutôt que
+   d'afficher une valeur qui pourrait passer pour vraie. Sept caractères: de quoi
+   comparer à un `git log`, pas de quoi encombrer. */
 app.get('/api/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+  res.json({
+    status: 'ok',
+    commit: process.env.RENDER_GIT_COMMIT?.slice(0, 7) || 'inconnu',
+    timestamp: new Date().toISOString(),
+  });
 });
 
 // Keep-warm probe for the voice path. Deliberately the cheapest endpoint in the

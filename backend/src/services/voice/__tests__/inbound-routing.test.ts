@@ -5,7 +5,7 @@ vi.mock('../../../config/database', () => ({
   prisma: { client: { findMany: (...a: unknown[]) => findMany(...a) } },
 }));
 
-const { inboundRoutingService, divertedNumber, lineAgentOf } = await import('../inbound-routing.service');
+const { inboundRoutingService, divertedNumber, callerIdentity, lineAgentOf } = await import('../inbound-routing.service');
 
 const client = (
   id: string,
@@ -185,6 +185,92 @@ describe('divertedNumber — le numéro réellement composé par l\'appelant', (
 
   it('ignore un en-tête présent mais inexploitable', () => {
     expect(divertedNumber({ call: { sipHeaders: { Diversion: 'anonymous' } } })).toBeNull();
+  });
+});
+
+/**
+ * REL-11. L'autre moitié de la question, et la dangereuse.
+ *
+ * `divertedNumber` dit QUEL client a été appelé. Ici on demande QUI appelle, et
+ * certains opérateurs répondent faux: sur un renvoi, ils remplacent le numéro
+ * de l'appelant par celui de la ligne qui renvoie. L'agent voit alors le numéro
+ * du commerce à chaque appel.
+ *
+ * Ce n'est pas un défaut d'affichage. Ce numéro est la clé de la mémoire
+ * d'appelant et de l'OPPOSITION: un « ne me rappelez jamais » enregistré là
+ * mettrait tous les appelants du client sur liste, d'un coup. Un numéro faux
+ * est pire qu'un numéro absent.
+ */
+describe("callerIdentity — qui appelle, sur un appel renvoyé", () => {
+  const forwarded = (customer: string, headers: Record<string, string> = {}) => ({
+    message: {
+      call: {
+        customer: { number: customer },
+        sipHeaders: { Diversion: '<sip:+3225550011@operateur.be>;reason=unconditional', ...headers },
+      },
+    },
+  });
+
+  it('rend le numéro présenté quand rien ne cloche', () => {
+    expect(callerIdentity(forwarded('+32470112233'))).toEqual({
+      number: '32470112233',
+      source: 'customer',
+      substituted: false,
+    });
+  });
+
+  it('ne rend AUCUN numéro quand le présenté est la ligne qui renvoie', () => {
+    // C'est le cas qui compte: sans ça, ce numéro serait écrit en mémoire et
+    // pourrait porter une opposition valant pour tous les appelants du client.
+    expect(callerIdentity(forwarded('+3225550011'))).toEqual({
+      number: null,
+      source: 'none',
+      substituted: true,
+    });
+  });
+
+  it("récupère l'appelant dans un en-tête quand l'opérateur l'y met", () => {
+    expect(callerIdentity(forwarded('+3225550011', {
+      'P-Asserted-Identity': '<sip:+32470112233@operateur.be>',
+    }))).toEqual({ number: '32470112233', source: 'header', substituted: true });
+  });
+
+  it("ignore un en-tête qui répète la ligne qui renvoie", () => {
+    expect(callerIdentity(forwarded('+3225550011', {
+      'Remote-Party-ID': '<sip:+3225550011@operateur.be>',
+    }))).toEqual({ number: null, source: 'none', substituted: true });
+  });
+
+  it("connaît la ligne qui renvoie par la fiche client quand l'en-tête manque", () => {
+    const sansEnTete = { message: { call: { customer: { number: '+3225550011' } } } };
+    expect(callerIdentity(sansEnTete, '+32 2 555 00 11')).toEqual({
+      number: null,
+      source: 'none',
+      substituted: true,
+    });
+  });
+
+  it('ne change rien au cas normal, sans renvoi', () => {
+    const direct = { message: { call: { customer: { number: '+32470112233' } } } };
+    expect(callerIdentity(direct)).toEqual({
+      number: '32470112233',
+      source: 'customer',
+      substituted: false,
+    });
+    expect(callerIdentity(direct, '+3225550011')).toEqual({
+      number: '32470112233',
+      source: 'customer',
+      substituted: false,
+    });
+  });
+
+  it("rend null sans rien inventer quand l'appel n'a pas de numéro", () => {
+    expect(callerIdentity({ message: { call: {} } })).toEqual({
+      number: null,
+      source: 'none',
+      substituted: false,
+    });
+    expect(callerIdentity(null)).toEqual({ number: null, source: 'none', substituted: false });
   });
 });
 

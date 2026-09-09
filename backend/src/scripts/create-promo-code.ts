@@ -44,9 +44,47 @@ function arg(name: string): string | undefined {
 /** Sept jours: assez pour un test, trop court pour être oublié utilement. */
 const DEFAULT_EXPIRY_DAYS = 7;
 
+/**
+ * Ce que Stripe accepte comme code, et rien d'autre.
+ *
+ * La contrainte est écrite dans le SDK lui-même
+ * (`node_modules/stripe/types/PromotionCodesResource.d.ts`, champ `code`):
+ *
+ *   « Valid characters are lower case letters (a-z), upper case letters (A-Z),
+ *     and digits (0-9). »
+ *
+ * Donc PAS de tiret, pas de point, pas d'espace. Ce n'est pas une préférence de
+ * style: `QWILLIO-TEST-2026` est refusé par l'API, et l'exemple que ce script
+ * donnait lui-même portait des tirets — il envoyait donc l'utilisateur droit
+ * dans le mur, avec pour seule trace un message d'erreur de Stripe qui parle de
+ * `code` sans dire quel caractère fâche.
+ *
+ * La vérification a lieu AVANT le moindre appel réseau, pour deux raisons: une
+ * faute de frappe ne doit rien coûter, et surtout la création se fait en deux
+ * temps (coupon puis code). Échouer au second temps laisserait un coupon à
+ * 100 % orphelin dans le compte.
+ */
+const CODE_OK = /^[A-Za-z0-9]+$/;
+
+export function checkCode(raw: string): { code: string; erreur: string | null } {
+  const code = raw.trim().toUpperCase();
+  if (!code) return { code, erreur: 'vide' };
+  if (CODE_OK.test(code)) return { code, erreur: null };
+
+  const fautifs = Array.from(new Set(code.split('').filter(c => !/[A-Za-z0-9]/.test(c))));
+  const propose = code.replace(/[^A-Za-z0-9]/g, '');
+  return {
+    code,
+    erreur:
+      `Stripe n'accepte que des lettres et des chiffres dans un code promo. ` +
+      `Caractère(s) refusé(s): ${fautifs.map(c => `« ${c} »`).join(', ')}.` +
+      (propose ? ` Essayez --code=${propose}` : ''),
+  };
+}
+
 async function main() {
   const confirm = process.argv.includes('--confirm');
-  const code = (arg('code') || '').trim().toUpperCase();
+  const { code, erreur: codeInvalide } = checkCode(arg('code') || '');
   const percent = Number(arg('percent') ?? 100);
   const redemptions = Number(arg('max') ?? 1);
   const days = Number(arg('days') ?? DEFAULT_EXPIRY_DAYS);
@@ -54,7 +92,12 @@ async function main() {
   if (!code) {
     console.error('\n--code= est obligatoire, et volontairement.');
     console.error('Un code promo se tape par un humain: il doit être choisi, pas engendré.');
-    console.error('Exemple: npm run stripe:promo -- --code=QWILLIO-TEST-2026\n');
+    console.error('Exemple: npm run stripe:promo -- --code=QWILLIOTEST2026\n');
+    process.exitCode = 1;
+    return;
+  }
+  if (codeInvalide) {
+    console.error(`\n${codeInvalide}\n`);
     process.exitCode = 1;
     return;
   }
@@ -116,24 +159,59 @@ async function main() {
     metadata: { createdBy: 'stripe:promo', purpose: percent === 100 ? 'test-account' : 'commercial' },
   });
 
-  const promo = await stripe.promotionCodes.create({
-    coupon: coupon.id,
-    code,
-    max_redemptions: redemptions,
-    expires_at: expiresAt,
-    metadata: { createdBy: 'stripe:promo' },
-  });
+  /* Le second temps peut échouer alors que le premier a réussi: code déjà pris,
+     caractère refusé qui aurait échappé au filtre. Sans ce rattrapage, chaque
+     tentative ratée laisserait dans le compte un coupon à 100 % sans code —
+     invisible dans le parcours, mais applicable à la main depuis le tableau de
+     bord Stripe, ce qui est précisément le genre de chose qu'on ne veut pas
+     laisser traîner. */
+  let promo;
+  try {
+    promo = await stripe.promotionCodes.create({
+      coupon: coupon.id,
+      code,
+      max_redemptions: redemptions,
+      expires_at: expiresAt,
+      metadata: { createdBy: 'stripe:promo' },
+    });
+  } catch (error) {
+    await stripe.coupons.del(coupon.id).catch(() => {
+      console.error(`⚠️  Coupon ${coupon.id} laissé derrière: à supprimer à la main dans Stripe.`);
+    });
+    throw error;
+  }
 
   console.log(`\n✅ Code ${promo.code} créé (coupon ${coupon.id}, promo ${promo.id}).`);
+  /* Le code se saisit UNE SEULE FOIS, et cette liste le disait deux fois.
+     Avec `max_redemptions: 1` — le défaut, et le garde-fou qui limite le coût
+     d'une fuite — la seconde saisie est refusée par Stripe. La recette écrite
+     ici envoyait donc l'utilisateur brûler son unique utilisation à
+     l'inscription, où rien n'est prélevé de toute façon, pour la découvrir
+     épuisée au passage qui compte. */
   console.log('\nÀ faire ensuite, pour tester le vrai parcours:');
-  console.log('  1. S\'inscrire normalement sur le site, saisir le code à la caisse.');
-  console.log('  2. Depuis le portail de facturation, refaire un passage en caisse');
-  console.log('     avec le même code: c\'est CE passage qui convertit l\'essai en payant.');
+  console.log(`  1. S'inscrire normalement sur le site, SANS le code: rien n'est`);
+  console.log('     prélevé pendant l\'essai, le code n\'y sert à rien.');
+  console.log('  2. Portail → Facturation → choisir un plan DIFFÉRENT de celui pris');
+  console.log(`     à l'inscription (le plan courant n'a pas de bouton), et saisir le`);
+  console.log('     code sur la page Stripe, via « Ajouter un code promotionnel ».');
+  console.log('     C\'est CE passage qui convertit l\'essai en payant.');
   console.log('  3. La ligne du stock est attribuée automatiquement à ce moment.');
   console.log('  4. `npm run phone:stock` pour confirmer, puis appeler.\n');
+  if (redemptions === 1) {
+    console.log(`  Ce code ne vaut qu'UNE utilisation: le saisir à l'inscription`);
+    console.log('  l\'épuiserait avant le passage qui compte.\n');
+  }
 }
 
-main().catch(err => {
-  console.error('Création impossible:', err instanceof Error ? err.message : err);
-  process.exitCode = 1;
-});
+/* Exécution directe seulement, comme le harnais d'évals.
+   Sans cette garde, importer le module pour tester `checkCode` LANCE le script:
+   il écrit son aide sur la sortie d'erreur et pose `process.exitCode = 1` parce
+   qu'aucun `--code` n'est passé. Vitest isole ses workers, donc la suite reste
+   verte aujourd'hui, mais un test qui laisse le processus dans un état d'échec
+   ne tient que par la grâce de son lanceur. */
+if (require.main === module) {
+  main().catch(err => {
+    console.error('Création impossible:', err instanceof Error ? err.message : err);
+    process.exitCode = 1;
+  });
+}
