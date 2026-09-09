@@ -585,6 +585,52 @@ export class StripeService {
     }
   }
 
+  /**
+   * Annule l'abonnement que le nouveau remplace.
+   *
+   * Le passage en caisse d'un changement d'offre crée un SECOND abonnement
+   * chez Stripe. Le client gardait donc les deux: l'essai (sa carte, son plan
+   * d'origine) et le nouveau. À la fin de l'essai, Stripe facturait les deux.
+   * Qwillio, lui, ne pointait plus que le second, donc aucun chemin du produit
+   * n'aurait annulé le premier ni même signalé son existence: seule une
+   * lecture du tableau de bord Stripe l'aurait montré, après le prélèvement.
+   *
+   * L'ORDRE fait la moitié du correctif et n'est pas interchangeable.
+   * `customer.subscription.deleted` retrouve le client par son
+   * `stripeSubscriptionId`: annuler AVANT la mise à jour ferait donc trouver
+   * CE client, passerait son statut à `canceled` et RENDRAIT SON NUMÉRO AU
+   * STOCK, quelques secondes après le lui avoir attribué. Annulé après,
+   * l'ancien identifiant ne désigne plus personne et l'événement est ignoré,
+   * ce qui est précisément ce qu'on veut.
+   *
+   * Rejeu: Stripe rejoue ses webhooks. Au second passage, le client pointe
+   * déjà le nouvel abonnement, les deux identifiants sont égaux, et rien n'est
+   * annulé.
+   */
+  private async cancelSupersededSubscription(
+    previousId: string | null | undefined,
+    nextId: string | null | undefined,
+    businessName: string,
+  ): Promise<void> {
+    if (!previousId || !nextId || previousId === nextId) return;
+    try {
+      await stripe.subscriptions.cancel(previousId);
+      logger.info(
+        `[Stripe] ${businessName}: ancien abonnement ${previousId} annulé, remplacé par ${nextId}`,
+      );
+    } catch (error) {
+      /* Ne fait pas échouer le webhook: Stripe le rejouerait, et le rejeu
+         reconvertirait un client déjà converti. Un abonnement déjà annulé
+         tombe ici aussi, et n'est pas un incident. Ce qui compte, c'est que le
+         cas où il RESTE facturable soit écrit noir sur blanc. */
+      logger.error(
+        `[Stripe] ${businessName}: annulation de l'ancien abonnement ${previousId} impossible: ` +
+          `${(error as Error).message}. À annuler à la main dans Stripe, sinon il sera ` +
+          'facturé à la fin de l\'essai.',
+      );
+    }
+  }
+
   // ═══════════════════════════════════════════════════════════════
   // PLAN UPGRADE — Via Stripe Checkout (trial clients)
   // ═══════════════════════════════════════════════════════════════
@@ -608,6 +654,8 @@ export class StripeService {
       return;
     }
 
+    const nextSubscriptionId = session.subscription || client.stripeSubscriptionId;
+
     await prisma.client.update({
       where: { id: clientId },
       data: {
@@ -617,9 +665,17 @@ export class StripeService {
         subscriptionStatus: 'active',
         trialConvertedAt: new Date(),
         stripeCustomerId: session.customer || client.stripeCustomerId,
-        stripeSubscriptionId: session.subscription || client.stripeSubscriptionId,
+        stripeSubscriptionId: nextSubscriptionId,
       },
     });
+
+    /* L'essai que ce passage en caisse vient de remplacer. APRÈS la mise à
+       jour, jamais avant: voir le commentaire de la méthode. */
+    await this.cancelSupersededSubscription(
+      client.stripeSubscriptionId,
+      nextSubscriptionId,
+      client.businessName,
+    );
 
     // Même raison qu'à la conversion: un client qui monte d'offre depuis un
     // essai devient payant, et devait déjà repartir sans sa ligne dédiée.

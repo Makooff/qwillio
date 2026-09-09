@@ -42,17 +42,20 @@ describe('what Vapi refuses to accept', () => {
   });
 
   /**
-   * `delimiters` est une CHAÎNE, pas un tableau (BEL-4).
+   * `delimiters` est un TABLEAU, et c'est l'API qui l'a dit, pas la doc.
    *
-   * Le changelog de février 2025 montre `["#"]`; la référence d'API courante
-   * donne `"#"` aux trois endroits où elle décrit le plan. Se tromper de type
-   * ferait refuser l'assistant ENTIER, donc tous les appels de la flotte — le
-   * mode d'échec que ce fichier existe pour attraper.
+   * Ce test affirmait le contraire, sur la foi de la référence écrite, qui
+   * donne `"#"` aux trois endroits où elle décrit le plan. Le premier POST réel
+   * (`npm run voice:validate`, 09/09/2026) a répondu « keypadInputPlan.
+   * delimiters must be an array » sur les six variantes. Un test vert contre
+   * une doc fausse: exactement ce que ce fichier ne peut pas attraper seul, et
+   * la raison pour laquelle le script de validation existe à côté de lui.
    */
-  it('déclare le clavier avec un délimiteur en chaîne', () => {
+  it('déclare le clavier avec un délimiteur en tableau', () => {
     const plan = (buildRealtimePlans('fr') as Record<string, any>).keypadInputPlan;
     expect(plan.enabled).toBe(true);
-    expect(typeof plan.delimiters).toBe('string');
+    expect(Array.isArray(plan.delimiters)).toBe(true);
+    expect(plan.delimiters).toEqual(['#']);
     expect(plan.timeoutSeconds).toBeGreaterThanOrEqual(0.5);
     expect(plan.timeoutSeconds).toBeLessThanOrEqual(10);
   });
