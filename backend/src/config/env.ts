@@ -169,6 +169,28 @@ export const env = {
   VOICE_BARGE_IN_WORDS: Math.max(0, parseInt(process.env.VOICE_BARGE_IN_WORDS || '2', 10) || 0),
   /** Silence the assistant keeps after being interrupted, before speaking again. */
   VOICE_BARGE_IN_BACKOFF_SECONDS: parseFloat(process.env.VOICE_BARGE_IN_BACKOFF_SECONDS || '1.0'),
+  /**
+   * Les mots qui coupent la parole IMMÉDIATEMENT, sans attendre les deux mots
+   * ni le seuil de voix.
+   *
+   * Réglables sans déploiement, et c'est le point: le complément de
+   * `VOICE_BARGE_IN_WORDS`, qui fait attendre deux mots pour trier le bruit,
+   * est qu'un « stop ! » monosyllabique passe quand même. Le jour où un métier
+   * a son propre mot d'arrêt, il s'ajoute ici plutôt qu'en redéployant.
+   * Vide = la liste par défaut du code, jamais une liste vide: sans mot
+   * d'arrêt, plus rien ne coupe une réceptionniste lancée.
+   */
+  VOICE_INTERRUPTION_PHRASES: (process.env.VOICE_INTERRUPTION_PHRASES || '')
+    .split(',').map(s => s.trim().toLowerCase()).filter(Boolean),
+  /**
+   * Les mots qui ne coupent PAS: « mm-hmm », « d'accord », « ja ».
+   *
+   * Même raison, sens inverse. Une liste trop courte fait taire l'agent au
+   * moindre signe d'écoute, ce qui est le défaut le plus caractéristique de la
+   * génération précédente.
+   */
+  VOICE_ACKNOWLEDGEMENT_PHRASES: (process.env.VOICE_ACKNOWLEDGEMENT_PHRASES || '')
+    .split(',').map(s => s.trim().toLowerCase()).filter(Boolean),
   /** First TTS chunk size — smaller means audio starts sooner. */
   /**
    * Taille du PREMIER morceau de texte envoyé au synthétiseur.

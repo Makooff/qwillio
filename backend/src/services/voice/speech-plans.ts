@@ -115,6 +115,10 @@ export interface VoiceTuning {
   bargeInVoiceSeconds?: number;
   backoffSeconds?: number;
   silenceTimeout?: number;
+  /** Les mots qui coupent tout de suite. Absents, ceux de l'environnement. */
+  interruptionPhrases?: string[];
+  /** Les mots qui ne coupent pas. Absents, ceux de l'environnement. */
+  acknowledgementPhrases?: string[];
   realtimeModel?: string;
   llmModel?: string;
   temperature?: number;
@@ -144,6 +148,12 @@ export function resolveTuning(t: VoiceTuning = {}) {
     // Le plancher de 10 s vient de `env.ts`: en dessous, la réceptionniste
     // raccroche au nez de quelqu'un qui réfléchit.
     silenceTimeout: Math.round(clamp(t.silenceTimeout, 10, 120, env.VAPI_SILENCE_TIMEOUT)),
+    /* Par client, puis par environnement, puis le code. Jamais une liste vide:
+       sans mot d'arrêt plus rien ne coupe une réceptionniste lancée, et sans
+       acquiescement elle se tait au premier « mm-hmm ». Un réglage qui peut
+       casser la conversation ne doit pas pouvoir la casser par omission. */
+    interruptionPhrases: phraseList(t.interruptionPhrases, env.VOICE_INTERRUPTION_PHRASES, DEFAULT_INTERRUPTION_PHRASES),
+    acknowledgementPhrases: phraseList(t.acknowledgementPhrases, env.VOICE_ACKNOWLEDGEMENT_PHRASES, DEFAULT_ACKNOWLEDGEMENT_PHRASES),
     realtimeModel: t.realtimeModel || env.VOICE_REALTIME_MODEL,
     llmModel: t.llmModel || env.VAPI_MODEL,
     temperature: clamp(t.temperature, 0, 1.2, 0.6),
@@ -269,26 +279,52 @@ export function buildRealtimeStopSpeakingPlan(tuning: ResolvedTuning = resolveTu
   };
 }
 
+/** Les acquiescements par défaut: des signaux d'écoute, pas des prises de tour. */
+const DEFAULT_ACKNOWLEDGEMENT_PHRASES = [
+  'i understand', 'ok', 'okay', 'right', 'yeah', 'yes', 'uh-huh', 'mm-hmm',
+  'd\'accord', 'ouais', 'oui', 'hm', 'mhm', 'je vois', 'très bien',
+  // NL — 'ja' et 'oké' sont les backchannels flamands les plus fréquents.
+  'ja', 'jaja', 'oké', 'begrepen', 'ik snap het',
+];
+
+/** Les mots d'arrêt par défaut: ils coupent sans attendre le seuil. */
+const DEFAULT_INTERRUPTION_PHRASES = [
+  'stop', 'wait', 'hold on', 'excuse me', 'actually', 'no no',
+  'attendez', 'attends', 'non non', 'pardon', 'en fait',
+  'wacht', 'wacht even', 'nee nee', 'eigenlijk', 'sorry hoor',
+];
+
+/**
+ * Une liste de phrases: celle du client, sinon celle de l'environnement, sinon
+ * celle du code — et JAMAIS vide.
+ *
+ * Les doublons sont retirés parce que Vapi refuse l'assistant entier sur une
+ * répétition (« stopSpeakingPlan.All interruptionPhrases's elements must be
+ * unique »), et que « stop » comme « pardon » s'écrivent pareil dans deux des
+ * trois langues servies. Une liste réglable rend ce doublon beaucoup plus
+ * probable qu'avec un tableau écrit à la main.
+ */
+function phraseList(perClient: string[] | undefined, fromEnv: string[], fallback: string[]): string[] {
+  /* Le nettoyage vient AVANT le choix, et c'est ce qui fait la garantie: une
+     liste de blancs a bien une longueur, et la retenir pour cette raison
+     rendrait une liste vide après nettoyage — exactement l'état que cette
+     fonction existe pour empêcher. */
+  const clean = (list: string[] | undefined): string[] =>
+    [...new Set((list ?? []).map(p => p.trim().toLowerCase()).filter(Boolean))];
+
+  for (const candidate of [clean(perClient), clean(fromEnv), clean(fallback)]) {
+    if (candidate.length) return candidate;
+  }
+  return clean(fallback);
+}
+
 export function buildStopSpeakingPlan(tuning: ResolvedTuning = resolveTuning()) {
   return {
     numWords: tuning.bargeInWords,
     voiceSeconds: tuning.bargeInVoiceSeconds,
     backoffSeconds: tuning.backoffSeconds,
-    acknowledgementPhrases: [
-      'i understand', 'ok', 'okay', 'right', 'yeah', 'yes', 'uh-huh', 'mm-hmm',
-      'd\'accord', 'ouais', 'oui', 'hm', 'mhm', 'je vois', 'très bien',
-      // NL — 'ja' et 'oké' sont les backchannels flamands les plus fréquents.
-      'ja', 'jaja', 'oké', 'begrepen', 'ik snap het',
-    ],
-    // Unique — Vapi rejects the whole assistant on a duplicate
-    // ("stopSpeakingPlan.All interruptionPhrases's elements must be unique"),
-    // and 'stop' is the same word in all three languages ('pardon' too:
-    // FR = NL, so it appears once and serves both).
-    interruptionPhrases: [
-      'stop', 'wait', 'hold on', 'excuse me', 'actually', 'no no',
-      'attendez', 'attends', 'non non', 'pardon', 'en fait',
-      'wacht', 'wacht even', 'nee nee', 'eigenlijk', 'sorry hoor',
-    ],
+    acknowledgementPhrases: tuning.acknowledgementPhrases,
+    interruptionPhrases: tuning.interruptionPhrases,
   };
 }
 

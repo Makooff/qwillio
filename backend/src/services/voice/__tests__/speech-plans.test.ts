@@ -7,6 +7,7 @@ import {
   buildStopSpeakingPlan,
   buildTranscriber,
   buildVoice,
+  resolveTuning,
 } from '../speech-plans';
 
 describe('buildTranscriber', () => {
@@ -52,6 +53,35 @@ describe('buildStopSpeakingPlan — barge-in', () => {
   it('knows backchannels in both languages', () => {
     expect(plan.acknowledgementPhrases).toContain('mm-hmm');
     expect(plan.acknowledgementPhrases).toContain('d\'accord');
+  });
+
+  /**
+   * TUR-7 et TUR-10: les deux listes se règlent sans déploiement.
+   *
+   * Le complément de « attendre deux mots pour trier le bruit », c'est qu'un
+   * « stop ! » monosyllabique passe quand même. Le jour où un métier a son
+   * propre mot d'arrêt, il s'ajoute sans toucher au code.
+   */
+  it('accepte une liste de mots d\'arrêt propre au client', () => {
+    const plan = buildStopSpeakingPlan(resolveTuning({ interruptionPhrases: ['halte', 'HALTE', ' minute '] }));
+    expect(plan.interruptionPhrases).toEqual(['halte', 'minute']);
+  });
+
+  it('dédoublonne, parce que Vapi refuse l\'assistant entier sur une répétition', () => {
+    // « stop » et « pardon » s'écrivent pareil dans deux des trois langues
+    // servies: une liste réglable rend le doublon bien plus probable qu'un
+    // tableau écrit à la main.
+    const plan = buildStopSpeakingPlan(resolveTuning({ interruptionPhrases: ['stop', 'Stop', 'stop '] }));
+    expect(plan.interruptionPhrases).toEqual(['stop']);
+  });
+
+  it('ne se retrouve JAMAIS avec une liste vide', () => {
+    // Sans mot d'arrêt, plus rien ne coupe une réceptionniste lancée; sans
+    // acquiescement, elle se tait au premier « mm-hmm ». Un réglage qui peut
+    // casser la conversation ne doit pas pouvoir la casser par omission.
+    const plan = buildStopSpeakingPlan(resolveTuning({ interruptionPhrases: [], acknowledgementPhrases: ['  '] }));
+    expect(plan.interruptionPhrases).toContain('attendez');
+    expect(plan.acknowledgementPhrases).toContain('mm-hmm');
   });
 });
 

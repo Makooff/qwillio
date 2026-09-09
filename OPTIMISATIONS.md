@@ -210,7 +210,8 @@ Un VAD par énergie seul coupe la parole à l'appelant dans 55,6 % des cas quand
 ### TUR-7 — Court-circuiter le seuil sur les mots d'arrêt
 
 - **Statut** : `PARTIEL`
-- **Preuve** : La liste existe et couvre les trois langues : `interruptionPhrases` (« stop », « attendez », « pardon », « wacht »…) en `backend/src/services/voice/speech-plans.ts:287-291`. Ce qui manque : elle est codée en dur, pas configurable (ni par client, ni par variable d'environnement) ; elle disparaît en parole-à-parole (`speech-plans.ts:262-270`) ; et aucun test ne mesure qu'« attendez » seul interrompt en moins de 300 ms.
+- **Preuve** : La liste est désormais RÉGLABLE, à trois niveaux et sans déploiement : par client (`VoiceTuning.interruptionPhrases`), par environnement (`VOICE_INTERRUPTION_PHRASES`), sinon celle du code (`speech-plans.ts`, `phraseList`). Elle est dédoublonnée et minusculée, parce que Vapi refuse l'assistant ENTIER sur une répétition et qu'une liste réglable rend le doublon bien plus probable qu'un tableau écrit à la main. Elle ne peut jamais finir vide : le nettoyage passe avant le choix, sans quoi une liste de blancs serait retenue pour sa longueur puis vidée — et sans mot d'arrêt, plus rien ne coupe une réceptionniste lancée. 3 tests.
+- **Ce qui manque** : la seconde moitié du critère est une MESURE (« attendez » seul interrompt en moins de 300 ms), donc un appel réel. Et la liste disparaît toujours en parole-à-parole, où Vapi n'expose pas ce plan.
 - **Action** : Une liste de mots — « attendez », « stop », « non », « pardon », « excusez-moi » — interrompt immédiatement, sans attendre les 2 mots ni les 500 ms.
 - **Pourquoi** : Sinon un « stop ! » monosyllabique ne passe plus. C'est le complément indispensable de TUR-5.
 - **Critère d'acceptation** : Liste configurable. Test : « attendez » seul interrompt en moins de 300 ms.
@@ -237,7 +238,8 @@ Un VAD par énergie seul coupe la parole à l'appelant dans 55,6 % des cas quand
 ### TUR-10 — Ne pas traiter les acquiescements comme des interruptions
 
 - **Statut** : `PARTIEL`
-- **Preuve** : Deux mécanismes existent : `acknowledgementPhrases` FR/EN/NL envoyées à Vapi (`backend/src/services/voice/speech-plans.ts:277-283`), et le routeur d'intention qui classe un acquiescement sans appeler le modèle et répond par le SILENCE (`intent-router.ts:53-71` et `llm-stream.service.ts:185`), avec en plus une distinction dur/mou à 900 ms (`call-session.store.ts:93` et `:256`). Ce qui manque : la liste n'est pas configurable, elle disparaît en parole-à-parole, et aucun test n'injecte un « hm-hm » pendant un énoncé pour vérifier que l'audio continue.
+- **Preuve** : Même mécanisme et mêmes garanties pour les acquiescements (`VOICE_ACKNOWLEDGEMENT_PHRASES`, `VoiceTuning.acknowledgementPhrases`), qui s'ajoutent aux deux mécanismes déjà là : la liste envoyée à Vapi et le routeur d'intention qui répond par le silence.
+- **Ce qui manque** : le test demandé injecte un « hm-hm » PENDANT un énoncé et vérifie que l'audio continue — c'est une mesure sur un appel, pas une assertion de configuration.
 - **Action** : « oui », « d'accord », « hm-hm », « mmh » sont des signaux d'écoute, pas des prises de tour. Ils ne doivent pas annuler l'audio en cours.
 - **Pourquoi** : L'agent qui s'arrête net à chaque « mm-hm » est un des défauts les plus caractéristiques de la génération précédente. Cela demande une classification sémantique des énoncés courts, pas un seuil de durée.
 - **Critère d'acceptation** : Liste d'acquiescements configurée. Test : injecter « hm-hm » pendant l'énoncé, l'agent continue.
@@ -676,6 +678,7 @@ Le meilleur signal neutre du domaine est EVA-Bench : sur douze systèmes évalu�
 
 | Date | Ligne | De → vers | Commit | Note |
 |---|---|---|---|---|
+| 2026-09-09 | TUR-7, TUR-10 | preuve complétée, restent `PARTIEL` | `claude/optimisations-audit-vocal-68tgg2` | Mots d'arrêt et acquiescements réglables par client puis par environnement, dédoublonnés (Vapi refuse l'assistant entier sur une répétition) et jamais vides. Les deux critères demandent une mesure sur appel réel. |
 | 2026-09-09 | BEL-12 | preuve complétée, reste `PARTIEL` | `claude/optimisations-audit-vocal-68tgg2` | Normaliseur de sortie écrit et testé (30 numéros, 20 adresses), vérifié par aller-retour contre le lecteur de BEL-1. Le flux du modèle n'est pas encore normalisé : ce chemin porte la latence, et aucune mesure n'existe pour arbitrer. |
 | 2026-09-09 | BEL-1, BEL-2, BEL-3, BEL-8 | `ABSENT` → `DÉJÀ FAIT` | `claude/optimisations-audit-vocal-68tgg2` | La chaîne complète du numéro dicté : « septante-cinq » lu en chiffres, gabarits belges par libphonenumber (métadonnée complète, pas réduite), validation avant écriture avec relance, et les belgicismes appris au modèle. Aucun numéro dicté n'était capté nulle part avant. |
 | 2026-09-09 | LEG-3 | reste `PARTIEL`, le mot déclenche le transfert | `claude/optimisations-audit-vocal-68tgg2` | Le routeur reconnaît la demande d'humain en trois langues et le chemin custom-LLM appelle `transferCall` lui-même, au lieu de s'en remettre au modèle. Reste la phrase d'accueil, qui ne propose pas encore la porte de sortie. |
