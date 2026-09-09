@@ -205,3 +205,48 @@ describe('les règles de transfert, réglées par le client', () => {
     expect(Math.max(...tailles) - Math.min(...tailles)).toBeLessThan(30);
   });
 });
+
+/**
+ * BEL-8: les belgicismes s'apprennent au MODÈLE, pas au transcripteur.
+ *
+ * Ces mots sont parfaitement transcrits: c'est leur SENS qui diffère. Deux
+ * d'entre eux coûtent un rendez-vous chacun, et se trompent en silence.
+ */
+describe('buildSystemPrompt — français de Belgique', () => {
+  const be = (over: Record<string, unknown> = {}) =>
+    buildSystemPrompt({ ...profile, country: 'BE', ...over }, newCaller);
+
+  /** Les quinze énoncés que le plan demande de couvrir, et ce qu'ils veulent dire. */
+  const belgicisms: Array<[string, RegExp]> = [
+    ['dîner = midi', /« dîner » = repas de MIDI/],
+    ['souper = soir', /« souper » = repas du soir/],
+    ['déjeuner = petit-déjeuner', /« déjeuner » = petit-déjeuner/],
+    ['je ne sais pas venir', /« je ne PEUX pas »/],
+    ['annulation annoncée', /annonce une annulation/],
+    ['septante', /« septante » = 70/],
+    ['nonante', /« nonante » = 90/],
+    ['septante-et-un', /« septante-et-un » = 71/],
+    ['nonante-et-un', /« nonante-et-un » = 91/],
+    ['s\'il vous plaît final', /ce n'est pas une demande/],
+    ['une fois', /tics de langage/],
+    ['GSM', /« GSM » = téléphone portable/],
+    ['quoi comme', /« quoi comme » = « quel »/],
+    ['à tantôt', /à tout à l'heure/],
+    ['faire la file', /faire la queue/],
+    ['ça va aller', /vaut acceptation/],
+    ['le doute se lève en demandant', /demande confirmation plutôt que de supposer/],
+  ];
+
+  for (const [label, pattern] of belgicisms) {
+    it(`apprend « ${label} » à l'agent`, () => {
+      expect(be()).toMatch(pattern);
+    });
+  }
+
+  it("ne sert ce bloc qu'aux appelants belges francophones", () => {
+    // Un commerce français n'a que faire de « septante », et un prompt
+    // néerlandophone encore moins: chaque ligne inutile dilue les autres.
+    expect(be({ country: 'FR' })).not.toMatch(/FRANÇAIS DE BELGIQUE/);
+    expect(be({ language: 'nl' })).not.toMatch(/FRANÇAIS DE BELGIQUE/);
+  });
+});

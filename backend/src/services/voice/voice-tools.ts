@@ -262,6 +262,15 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
         properties: {
           name: { type: 'string' },
           email: { type: 'string' },
+          /* Le numéro de RAPPEL, et il ne fait pas doublon avec l'identifiant
+             d'appelant: un appelant en numéro masqué n'en a pas, et celui qui
+             demande à être rappelé sur une autre ligne en donne un différent.
+             Jusqu'ici aucun numéro dicté n'était capté nulle part. */
+          phone: {
+            type: 'string',
+            description:
+              'Callback number, exactly as the caller said it, digits or words. Only when they give one.',
+          },
           reason: { type: 'string', description: 'Why they called, one sentence.' },
           urgency: { type: 'string', enum: ['low', 'normal', 'high'] },
         },

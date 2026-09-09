@@ -7,6 +7,7 @@ import { callSessionStore } from './call-session.store';
 import { callerMemoryService } from './caller-memory.service';
 import { businessMemoryService } from './business-memory.service';
 import { availabilitySpeculator } from './availability-speculator';
+import { parseSpokenPhone } from '../../utils/phone-spoken';
 
 /**
  * Tool runtime (Phase 4).
@@ -53,6 +54,23 @@ function parseDate(raw: unknown): Date | null {
   const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(raw.trim()) ? `${raw.trim()}T12:00:00Z` : raw);
   return Number.isNaN(date.getTime()) ? null : date;
 }
+
+/**
+ * Ce que l'agent doit FAIRE quand le numéro dicté ne tient pas debout.
+ *
+ * Formulé comme un geste et pas comme un diagnostic: « relis chiffre par
+ * chiffre et redemande » se joue, « numéro invalide » se commente. La
+ * relecture est aussi la seule chose qui lève une ambiguïté que la machine ne
+ * voit pas (un mobile belge et un fixe français peuvent avoir la même suite).
+ */
+const RETRY_PHONE: Record<string, string> = {
+  fr: 'NUMÉRO NON RECONNU. Le reste de la fiche est noté. Relis le numéro chiffre par chiffre à l\'appelant, '
+    + 'demande-lui de confirmer, puis rappelle captureLead avec le numéro corrigé.',
+  en: 'PHONE NOT RECOGNISED. The rest of the lead is saved. Read the number back digit by digit, '
+    + 'ask the caller to confirm, then call captureLead again with the corrected number.',
+  nl: 'NUMMER NIET HERKEND. De rest van de fiche is genoteerd. Lees het nummer cijfer voor cijfer terug, '
+    + 'vraag de beller om te bevestigen, en roep captureLead opnieuw aan met het juiste nummer.',
+};
 
 /** "14:30" → 870 minutes. Returns null on anything that is not a 24h clock. */
 function parseTimeToMinutes(raw: unknown): number | null {
@@ -369,7 +387,32 @@ class ToolRuntimeService {
 
     callSessionStore.recordLead(vapiCallId, lead);
 
-    const phone = session?.callerNumber ?? null;
+    /* Le numéro DICTÉ, validé avant d'être cru (BEL-3).
+       Sur une séquence structurée, un transcripteur est juste une fois sur
+       deux: enregistrer sans contrôle produit un rappel sur un chiffre faux,
+       c'est-à-dire un lead perdu que personne ne voit jamais.
+       Le pays de l'appelant vient de sa propre ligne quand elle est connue: il
+       tranche l'ambiguïté réelle entre un mobile belge et un fixe français du
+       Sud-Est, que le numéro seul ne permet pas de lever. */
+    const dictated =
+      typeof args.phone === 'string' && args.phone.trim()
+        ? parseSpokenPhone(args.phone, { country: profile.country, callerNumber: session?.callerNumber ?? null })
+        : null;
+
+    if (dictated && !dictated.ok && dictated.reason === 'invalid') {
+      /* Le LEAD est enregistré quand même, sans le numéro: refuser toute la
+         fiche pour un chiffre douteux perdrait le nom, le motif et l'urgence
+         que l'appelant vient de donner. Seul le numéro est écarté, et le
+         modèle sait qu'il doit le redemander. */
+      logger.info(
+        `[VoiceTools] numéro dicté refusé pour ${profile.businessName}: ` +
+          `${dictated.digits.length} chiffre(s) ne formant aucun numéro belge ni français`,
+      );
+    }
+
+    /* Un numéro donné de vive voix l'emporte sur l'identifiant d'appelant: si
+       l'appelant en dicte un autre, c'est là qu'il veut être rappelé. */
+    const phone = (dictated?.ok ? dictated.e164 : null) ?? session?.callerNumber ?? null;
 
     // Durable first, and awaited: the whole point is that this survives the
     // call. It is one indexed insert, well inside the tool budget.
@@ -404,6 +447,13 @@ class ToolRuntimeService {
         outcome: 'lead',
       })
       .catch(err => logger.warn(`[VoiceTools] caller memory write failed: ${err.message}`));
+
+    if (dictated && !dictated.ok && dictated.reason === 'invalid') {
+      /* La consigne nomme le geste attendu, elle ne décrit pas l'erreur: un
+         modèle à qui l'on dit « invalide » s'excuse, un modèle à qui l'on dit
+         « relis chiffre par chiffre et redemande » le fait. */
+      return RETRY_PHONE[profile.language] ?? RETRY_PHONE.en;
+    }
 
     return profile.language === 'fr' ? 'NOTE. Continue la conversation.' : 'NOTED. Continue the conversation.';
   }

@@ -203,4 +203,26 @@ export const SCENARIOS: EvalScenario[] = [
       { kind: 'calls-tool', value: 'bookAppointment', description: 'réserve après accord explicite' },
     ],
   },
+  /* Les deux belgicismes qui coûtent un rendez-vous chacun, et qui se trompent
+     en SILENCE: rien dans les journaux, un client qui se présente à la mauvaise
+     heure ou une annulation prise pour une confirmation. */
+  {
+    id: 'fr-be-diner-midi',
+    description: 'En Belgique, « dîner » est le repas de MIDI: ne pas proposer le soir.',
+    profileOverrides: { country: 'BE', businessType: 'restaurant', businessName: 'Le Comptoir' },
+    turns: [{ role: 'user', content: 'Bonjour, je voudrais réserver une table pour dîner jeudi, on sera quatre.' }],
+    assertions: [
+      { kind: 'reply-not-matches', value: '(19h|20h|21h|ce soir|le soir)', description: 'ne bascule pas au repas du soir' },
+    ],
+  },
+  {
+    id: 'fr-be-je-ne-sais-pas',
+    description: '« Je ne sais pas venir » annonce une annulation, pas une hésitation.',
+    profileOverrides: { country: 'BE' },
+    turns: [{ role: 'user', content: 'Bonjour, pour mon rendez-vous de mardi, je ne sais pas venir finalement.' }],
+    assertions: [
+      { kind: 'reply-matches', value: '(annul|report|décal|autre (moment|jour|date)|reprogramm)', description: 'traite la demande comme une annulation ou un report' },
+      { kind: 'does-not-call-tool', value: 'bookAppointment', description: 'ne réserve surtout pas' },
+    ],
+  },
 ];

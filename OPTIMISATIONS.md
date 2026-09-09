@@ -278,17 +278,19 @@ Il n'existe aucun corpus public de français belge téléphonique en 8 kHz, aucu
 
 ### BEL-1 — Écrire ton propre normaliseur de nombres FR-BE
 
-- **Statut** : `ABSENT`
-- **Preuve** : Aucune occurrence de `septante`, `nonante` ni d'un quelconque normaliseur de nombres dans tout le dépôt (grep sur `backend/src` et `frontend/src`). La seule normalisation est celle du fournisseur : `formatPlan: { enabled: true, numberToDigitsCutoff: 2025 }` (`backend/src/services/voice/speech-plans.ts:362`), c'est-à-dire le formateur de Vapi, sur lequel nous n'avons ni visibilité ni jeu de tests.
+- **Statut** : `DÉJÀ FAIT`
+- **Preuve** : `backend/src/utils/spoken-numbers.ts` (`spokenDigits`), descente récursive sur la grammaire française plutôt qu'une table de correspondances : les formes se composent (« quatre-vingt-dix-sept » vaut 80 + 10 + 7) et énumérer les compositions revient à écrire la grammaire en moins lisible. Test exhaustif `__tests__/spoken-numbers.test.ts` : **0 à 100 dans les deux variantes**, engendrés par la fonction inverse pour qu'il n'y ait aucun trou, plus les formes en « et un » que le normaliseur de référence rate (`septante-et-un`, `nonante-et-un`), plus huit dictées réelles. 13 tests verts.
+- **Le point qui décide** : 60 et 80 absorbent une dizaine complète (« soixante-douze »), 70 et 90 non — « septante-douze » ne se dit pas, et l'accepter fabriquerait un nombre là où l'appelant en dictait deux. Toute la différence entre la France et la Belgique tient dans cette condition.
 - **Action** : Le normaliseur de référence en français (NeMo) contient bien `septante` et `nonante`, mais il lui manque les formes en « et un » : ni `septante-et-un`, ni `nonante-et-un`. Or c'est exactement ce que dit un Belge.
 - **Pourquoi** : 71 et 91 en belge échouent silencieusement. C'est le genre de bug qui ne remonte jamais dans les logs mais fait rappeler le client.
 - **Critère d'acceptation** : Jeu de tests couvrant 0 à 100 en français de Belgique ET de France, plus les formes hybrides. 100 % de réussite.
-- **Impact / effort** : fort / moyen
+- **Impact / effort** : fort / court
 
 ### BEL-2 — Ajouter les gabarits de numéros belges
 
-- **Statut** : `ABSENT`
-- **Preuve** : Aucun gabarit de numéro belge. `backend/src/utils/phone.ts:16` (`toE164`) préfixe simplement +32/+33 après avoir retiré le zéro initial : il ne connaît ni les fixes à 9 chiffres, ni le groupement `02 512 34 56`, et il ne sert QUE le numéro de transfert saisi par le client (`voice-tools.ts:322`). Point plus lourd : aucun numéro dicté par un appelant n'est capté nulle part — le schéma de `captureLead` ne porte que `name`, `email`, `reason`, `urgency` (`voice-tools.ts:255-270`).
+- **Statut** : `DÉJÀ FAIT`
+- **Preuve** : `backend/src/utils/phone-spoken.ts` (`parseSpokenPhone`), et les gabarits ne sont **pas** écrits à la main : `libphonenumber-js/max` porte la table complète, tenue à jour par pays, y compris les préfixes ouverts l'an prochain. La métadonnée COMPLÈTE et non réduite, parce que la réduite valide sur la seule longueur et accepte `045123456` comme un mobile belge. Tests `__tests__/phone-spoken.test.ts` : les neuf préfixes principaux (Bruxelles, Anvers, Gand, Liège, Namur, Charleroi, Courtrai, deux mobiles) dictés dans les deux groupements, 20 tests verts.
+- **Le numéro dicté est enfin capté** : `captureLead` porte un champ `phone` (`voice-tools.ts`), validé avant écriture (`tool-runtime.service.ts`), et un numéro donné de vive voix l'emporte sur l'identifiant d'appelant — c'est là que l'appelant veut être rappelé.
 - **Action** : Le normaliseur téléphone français est câblé sur exactement cinq paires, soit dix chiffres. Les fixes belges en font neuf : `0x xxx xx xx` à Bruxelles, Anvers, Liège, Gand ; `0xx xx xx xx` à Namur, Charleroi, Courtrai. Les mobiles en font dix, en `04xx`.
 - **Pourquoi** : Les fixes belges ne sont tout simplement pas parsables par un normaliseur français. Et le groupement à trois chiffres (`02 512 34 56`, dicté « cinq cent douze ») n'existe pas dans le graphe français.
 - **Critère d'acceptation** : Jeu de tests avec des numéros réels des neuf préfixes principaux, dictés dans les deux groupements. 100 % de réussite.
@@ -296,8 +298,9 @@ Il n'existe aucun corpus public de français belge téléphonique en 8 kHz, aucu
 
 ### BEL-3 — Valider chaque numéro capté avec libphonenumber
 
-- **Statut** : `ABSENT`
-- **Preuve** : `libphonenumber` n'est pas une dépendance (`backend/package.json:27-53`), et aucune validation de numéro capté n'existe. La seule validation du dépôt porte sur le numéro de TRANSFERT du client, à la main (`backend/src/utils/phone.ts`), pas sur ce qu'un appelant dicte — que l'agent ne collecte pas (voir BEL-2).
+- **Statut** : `DÉJÀ FAIT`
+- **Preuve** : `libphonenumber-js` est une dépendance (`backend/package.json`), et aucun numéro n'est écrit sans avoir passé `parseSpokenPhone`. Un échec n'enregistre rien et rend une consigne de relance (`RETRY_PHONE`, `tool-runtime.service.ts`), formulée comme un geste (« relis chiffre par chiffre, redemande, rappelle captureLead ») et non comme un diagnostic : un modèle à qui l'on dit « invalide » s'excuse, un modèle à qui l'on dit quoi faire le fait. La FICHE, elle, est conservée : refuser le nom, le motif et l'urgence pour un chiffre douteux perdrait tout ce que l'appelant vient de donner. 6 tests (`__tests__/capture-lead-phone.test.ts`).
+- **L'ambiguïté qu'aucun code ne lève** : `0475 12 34 56` est un mobile belge ET un fixe français du Sud-Est, tous deux valides. Le contexte tranche, dans l'ordre où il est fiable : le pays lu sur la ligne de l'appelant, puis celui du commerce, puis BE et FR. C'est aussi la raison d'être de la relecture à l'appelant.
 - **Action** : Région BE en priorité, repli FR. Rejeter avant de relire à l'appelant.
 - **Pourquoi** : C'est la seule façon de détecter une capture erronée avant de la confirmer à voix haute. Sur des séquences alphanumériques structurées, les systèmes ASR commerciaux sont à 43–58 % de précision, contre 95–99 % sur la parole générale — l'ordre de grandeur du problème.
 - **Critère d'acceptation** : Aucun numéro n'est enregistré sans avoir passé la validation. Les échecs déclenchent une relance, pas un enregistrement.
@@ -341,8 +344,9 @@ Il n'existe aucun corpus public de français belge téléphonique en 8 kHz, aucu
 
 ### BEL-8 — Apprendre les belgicismes au LLM, pas à l'ASR
 
-- **Statut** : `ABSENT`
-- **Preuve** : `buildSystemPrompt` n'a aucune section belgicismes (`backend/src/services/voice/system-prompt.ts:65-346` : identité, règles de parole, faits, consignes client, outils, transfert, mémoire, autorité, sécurité). Le pays ne sert qu'à choisir la langue (`realtime-context.service.ts:270-274`) et éventuellement une voix (`voice-characters.ts:354`). « Dîner » et « je ne sais pas venir » sont donc interprétés au sens hexagonal.
+- **Statut** : `DÉJÀ FAIT`
+- **Preuve** : Section « FRANÇAIS DE BELGIQUE » dans `buildSystemPrompt` (`system-prompt.ts`), servie aux seuls appelants belges francophones — un commerce français n'a que faire de « septante », et chaque ligne inutile dilue les autres. 17 assertions de prompt (`__tests__/system-prompt.test.ts`) plus deux scénarios d'évaluation contre le vrai modèle : `fr-be-diner-midi` et `fr-be-je-ne-sais-pas`.
+- **Pourquoi au modèle et pas au transcripteur** : ces mots sont correctement TRANSCRITS, c'est leur sens qui diffère. Un biais de transcription ne réparerait rien.
 - **Action** : « Dîner » désigne le repas de midi en Belgique, « souper » celui du soir, « déjeuner » le petit-déjeuner. « Je ne sais pas venir » signifie « je ne peux pas venir ». « S'il vous plaît » en fin d'énoncé signifie souvent « voilà, tenez ».
 - **Pourquoi** : Un agent de prise de rendez-vous qui interprète « dîner » comme le repas du soir se trompera systématiquement de créneau en Belgique. Et « je ne sais pas venir » lu au premier degré par un LLM entraîné sur du français hexagonal donne une réponse absurde.
 - **Critère d'acceptation** : Section dédiée dans le prompt système. Jeu de tests avec 15 énoncés belges typiques et le comportement attendu.
@@ -669,6 +673,7 @@ Le meilleur signal neutre du domaine est EVA-Bench : sur douze systèmes évalu�
 
 | Date | Ligne | De → vers | Commit | Note |
 |---|---|---|---|---|
+| 2026-09-09 | BEL-1, BEL-2, BEL-3, BEL-8 | `ABSENT` → `DÉJÀ FAIT` | `claude/optimisations-audit-vocal-68tgg2` | La chaîne complète du numéro dicté : « septante-cinq » lu en chiffres, gabarits belges par libphonenumber (métadonnée complète, pas réduite), validation avant écriture avec relance, et les belgicismes appris au modèle. Aucun numéro dicté n'était capté nulle part avant. |
 | 2026-09-09 | LEG-3 | reste `PARTIEL`, le mot déclenche le transfert | `claude/optimisations-audit-vocal-68tgg2` | Le routeur reconnaît la demande d'humain en trois langues et le chemin custom-LLM appelle `transferCall` lui-même, au lieu de s'en remettre au modèle. Reste la phrase d'accueil, qui ne propose pas encore la porte de sortie. |
 | 2026-09-09 | LAT-9 | reste `PARTIEL`, la fenêtre survit aux déploiements | `claude/optimisations-audit-vocal-68tgg2` | L'agrégat de latence repartait de zéro à chaque redéploiement alors que chaque appel avait écrit sa mesure en base. `hydrate()` reprend la fenêtre au démarrage et la date du premier appel relu. Restent le tableau de bord et un destinataire pour l'alerte p95. |
 | 2026-09-09 | LAT-7 | reste `PARTIEL`, défaut de production corrigé | `claude/optimisations-audit-vocal-68tgg2` | L'accueil pré-enregistré suivait ElevenLabs seul (éteint depuis la bascule Cartesia) et servait quand même les lignes de l'ancienne voix. Chaque ligne porte désormais sa signature vocale, la lecture écarte ce qui ne correspond pas, et `npm run voice:greetings` refait la flotte. Le critère (dix phrases, PCMA 8 kHz, TTFA 0 ms) demande toujours un appel réel. |

@@ -292,6 +292,17 @@ Conséquence pratique : après un changement de voix de flotte, lancer
 `npm run voice:greetings` (simulation) puis `--confirm`, sinon l'optimisation
 reste éteinte jusqu'à ce qu'un réglage client bouge.
 
+### 6ter. Le numéro que l'appelant dicte (09/09/2026)
+Trois fichiers, une seule chaîne : `utils/spoken-numbers.ts` lit « septante-cinq »
+et « nonante-et-un » (0 à 100 testé dans les deux variantes), `utils/phone-spoken.ts`
+valide avec **libphonenumber-js/max** (la métadonnée complète : la réduite valide
+sur la longueur seule et accepte `045123456`), et `captureLead` porte enfin un
+champ `phone`. Avant, aucun numéro dicté n'était capté nulle part.
+Deux pièges qui reviendront : 60 et 80 absorbent une dizaine (« soixante-douze »),
+70 et 90 non, sinon on fabrique un nombre que personne n'a dit ; et
+`0475 12 34 56` est un mobile belge ET un fixe français du Sud-Est, tranché par
+le pays de la ligne appelante, jamais par le numéro seul.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

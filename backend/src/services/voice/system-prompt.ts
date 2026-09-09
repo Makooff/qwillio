@@ -140,6 +140,42 @@ export function buildSystemPrompt(
     )
   );
 
+  // ── Belgicismes ──
+  /* Le pays ne servait qu'à choisir une langue et une voix. Or le français de
+     Belgique n'est pas le français de France, et deux écarts coûtent un
+     rendez-vous chacun:
+
+     « dîner » désigne le repas de MIDI. Un agent entraîné sur du français
+     hexagonal comprend « le soir » et propose systématiquement le mauvais
+     créneau, sans que rien ne signale l'erreur avant que le client ne se
+     présente à la mauvaise heure.
+
+     « je ne sais pas venir » veut dire « je ne PEUX pas venir ». Lu au premier
+     degré, il produit une réponse absurde au moment précis où l'appelant
+     annonce qu'il annule.
+
+     C'est au MODÈLE qu'on les apprend, pas au transcripteur: ces mots sont
+     correctement transcrits, c'est leur sens qui diffère. Un biais de
+     transcription ne réparerait rien. */
+  if (lang === 'fr' && (profile.country || '').toUpperCase() === 'BE') {
+    lines.push(
+      [
+        'FRANÇAIS DE BELGIQUE (l\'appelant est belge, lis-le comme un Belge):',
+        '- « dîner » = repas de MIDI. « souper » = repas du soir. « déjeuner » = petit-déjeuner.',
+        '- « je ne sais pas » + verbe = « je ne PEUX pas ». « Je ne sais pas venir mardi » annonce une annulation.',
+        '- « septante » = 70, « nonante » = 90, « septante-et-un » = 71, « nonante-et-un » = 91.',
+        '- « s\'il vous plaît » en fin de phrase veut souvent dire « voilà, tenez »: ce n\'est pas une demande.',
+        '- « une fois » et « sais-tu » en fin de phrase sont des tics de langage, sans contenu.',
+        '- « GSM » = téléphone portable. « numéro de GSM » = numéro de portable.',
+        '- « quoi comme » = « quel »: « quoi comme heure ? » demande quelle heure.',
+        '- « à tantôt » = « à tout à l\'heure », aujourd\'hui même.',
+        '- « faire la file » = faire la queue. « aubette » = abribus. « farde » = classeur.',
+        '- « ça va aller » vaut acceptation, pas une inquiétude.',
+        '- En cas de doute sur un repas ou une heure, demande confirmation plutôt que de supposer.',
+      ].join('\n')
+    );
+  }
+
   // ── Business facts ──
   const facts: string[] = [];
   if (profile.openingHours) {
