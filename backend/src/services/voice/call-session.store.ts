@@ -2,6 +2,7 @@ import { logger } from '../../config/logger';
 import { CallLatencyTracker } from './latency-tracker';
 import type { VoiceLanguage } from './speech-plans';
 import type { CallerMood } from './caller-mood';
+import { newRepairState, recoveryLine, type RepairState } from './conversational-repair';
 
 /**
  * In-process state for calls that are currently on the line (Phase 1.3).
@@ -91,6 +92,18 @@ export interface CallSession {
    * de l'appel.
    */
   phoneCaptureFailures: number;
+  /**
+   * L'agent a-t-il été coupé au milieu d'une VRAIE phrase, sans avoir encore
+   * repris la parole depuis ? Posé par `recordBargeIn`, consommé au tour
+   * suivant.
+   *
+   * Un drapeau et pas un compteur: ce qui compte est « le dernier tour a-t-il
+   * été cassé », pas combien de fois l'appel l'a été. Le compte, avec sa
+   * retenue, vit dans `repair`.
+   */
+  pendingHardBargeIn: boolean;
+  /** La retenue de la phrase de reprise: au plus deux par appel, jamais deux d'affilée. */
+  repair: RepairState;
 }
 
 /** A slot promised on a live call, so a parallel call cannot double-book it. */
@@ -175,6 +188,8 @@ class CallSessionStore {
       mood: 'neutral',
       tokens: { input: 0, cached: 0, output: 0 },
       phoneCaptureFailures: 0,
+      pendingHardBargeIn: false,
+      repair: newRepairState(),
     };
     this.sessions.set(input.vapiCallId, session);
     this.notePeak(input.clientId);
@@ -303,9 +318,33 @@ class CallSessionStore {
 
     const speakingFor = session.assistantSpeakingSince === null ? 0 : at - session.assistantSpeakingSince;
     const isHard = speakingFor >= MIN_UTTERANCE_FOR_HARD_BARGE_IN_MS;
-    if (isHard) session.hardBargeIns++;
+    if (isHard) {
+      session.hardBargeIns++;
+      /* Ce qui manquait: le compteur montait, et rien ne s'en servait. Un tour
+         cassé se répare au tour SUIVANT, quand l'appelant a fini de parler —
+         d'où le drapeau plutôt qu'une action ici. */
+      session.pendingHardBargeIn = true;
+    }
     session.assistantSpeakingSince = null;
     return isHard;
+  }
+
+  /**
+   * La phrase à dire parce que le tour précédent a été cassé, ou `null`.
+   *
+   * « Take » et pas « get »: le drapeau est consommé à la lecture, sinon la
+   * même interruption se ferait excuser à chaque tour qui suit.
+   *
+   * La retenue appartient à `conversational-repair` et non à cet appelant: une
+   * phrase de reprise à CHAQUE interruption est pire que le silence, elle
+   * transforme un chevauchement naturel en échange d'excuses. Le module rend
+   * donc `null` la plupart du temps, et c'est le comportement voulu.
+   */
+  takeRecoveryLine(vapiCallId: string | null, lang: VoiceLanguage): string | null {
+    const session = this.get(vapiCallId);
+    if (!session || !session.pendingHardBargeIn) return null;
+    session.pendingHardBargeIn = false;
+    return recoveryLine(session.repair, true, session.callerTurns, lang);
   }
 
   recordToolCall(vapiCallId: string | null, name: string, ms: number): void {

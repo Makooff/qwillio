@@ -284,6 +284,90 @@ describe('llmStreamService — un modèle qui ne répond pas', () => {
   });
 });
 
+/**
+ * TUR-8. `recoveryLine` était écrite et testée mais appelée de nulle part.
+ * Ce bloc teste le bout de la chaîne: ce que le MODÈLE reçoit vraiment.
+ */
+describe('llmStreamService — reprendre après avoir été coupé', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    callSessionStore.reset();
+  });
+
+  function mockOpenAi() {
+    const encoder = new TextEncoder();
+    const payloads = ['data: {"choices":[{"delta":{"content":"Oui"}}]}\n\n', 'data: [DONE]\n\n'];
+    let i = 0;
+    return vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      body: {
+        getReader: () => ({
+          read: async () =>
+            i < payloads.length ? { done: false, value: encoder.encode(payloads[i++]) } : { done: true, value: undefined },
+          releaseLock: () => {},
+        }),
+      },
+    } as unknown as Response);
+  }
+
+  /** Les messages réellement envoyés à OpenAI sur le dernier appel. */
+  function sentMessages(spy: ReturnType<typeof mockOpenAi>): Array<{ role: string; content: string }> {
+    const body = (spy.mock.calls.at(-1)?.[1] as { body: string }).body;
+    return JSON.parse(body).messages;
+  }
+
+  async function turn(vapiCallId: string) {
+    const stream = makeStream();
+    await llmStreamService.handle(
+      'client_1',
+      vapiCallId,
+      'fr',
+      { messages: [systemTurn, userTurn('je voudrais reserver mardi')] },
+      stream.handle,
+    );
+  }
+
+  it('demande au modèle d\'ouvrir par une excuse, sans reprendre la phrase coupée', async () => {
+    const spy = mockOpenAi();
+    callSessionStore.start({ vapiCallId: 'c1', clientId: 'cl1', callerNumber: null, language: 'fr' });
+    const now = Date.now();
+    callSessionStore.assistantStartedSpeaking('c1', now - 3000);
+    callSessionStore.recordBargeIn('c1', now);
+
+    await turn('c1');
+
+    const last = sentMessages(spy).at(-1)!;
+    // En message système de QUEUE: le long préfixe doit rester identique d'un
+    // tour à l'autre, sinon le cache de préfixe ne mord plus.
+    expect(last.role).toBe('system');
+    expect(last.content).toMatch(/coupé au milieu/i);
+    expect(last.content).toMatch(/ne reprends pas la phrase interrompue/i);
+  });
+
+  it('n\'ajoute rien quand le tour précédent n\'a pas été cassé', async () => {
+    const spy = mockOpenAi();
+    callSessionStore.start({ vapiCallId: 'c2', clientId: 'cl1', callerNumber: null, language: 'fr' });
+
+    await turn('c2');
+
+    for (const m of sentMessages(spy)) expect(m.content).not.toMatch(/coupé au milieu/i);
+  });
+
+  it('ne s\'excuse qu\'une fois de la même coupure', async () => {
+    const spy = mockOpenAi();
+    callSessionStore.start({ vapiCallId: 'c3', clientId: 'cl1', callerNumber: null, language: 'fr' });
+    const now = Date.now();
+    callSessionStore.assistantStartedSpeaking('c3', now - 3000);
+    callSessionStore.recordBargeIn('c3', now);
+
+    await turn('c3');
+    await turn('c3');
+
+    for (const m of sentMessages(spy)) expect(m.content).not.toMatch(/coupé au milieu/i);
+  });
+});
+
 describe('llmStreamService — transfert demandé explicitement', () => {
   const transferTool = { type: 'function', function: { name: 'transferCall' } };
 

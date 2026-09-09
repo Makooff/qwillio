@@ -269,7 +269,10 @@ class LlmStreamService {
     try {
       // Order matters: mood is appended first so it lands after the stable
       // prefix, then the caching hint is attached to the finished request.
-      const prepared = this.withCaching(this.withMood(request, vapiCallId, lang), vapiCallId);
+      const prepared = this.withCaching(
+        this.withRecovery(this.withMood(request, vapiCallId, lang), vapiCallId, lang),
+        vapiCallId,
+      );
       await this.proxy(prepared, plan.model, stream, vapiCallId);
       callSessionStore.markLatency(vapiCallId, 'llmEnd');
       /* Le tour RÉUSSI compte autant que le raté: sans dénominateur il n'y a
@@ -325,6 +328,39 @@ class LlmStreamService {
     const mood = callSessionStore.get(vapiCallId)?.mood ?? 'neutral';
     const block = moodPromptBlock(mood, lang);
     if (!block) return request;
+    return { ...request, messages: [...request.messages, { role: 'system', content: block }] };
+  }
+
+  /**
+   * Ouvrir par une excuse quand le tour précédent a été coupé net (TUR-8).
+   *
+   * Sans ça, l'agent reprend au tour suivant comme si sa phrase tronquée
+   * n'avait jamais existé, ce qui est précisément ce qui fait qu'une
+   * interruption ressemble à une panne plutôt qu'à une conversation.
+   *
+   * En message système DE QUEUE, comme l'humeur, et pour la même raison: le
+   * long préfixe doit rester identique d'un tour à l'autre pour que le cache
+   * de préfixe morde. Et la consigne ne remplace pas la réponse, elle
+   * l'ouvre — l'appelant vient de parler, il attend un vrai contenu.
+   *
+   * Ce que ça ne fait PAS: reprendre l'énoncé là où il s'est arrêté après un
+   * FAUX déclenchement (du bruit, sans parole ensuite). Vapi n'expose aucun
+   * champ de reprise, et sans parole de l'appelant il n'y a pas de tour de
+   * modèle où se raccrocher. C'est le relais d'inactivité qui couvre ce cas.
+   */
+  private withRecovery(
+    request: ChatCompletionRequest,
+    vapiCallId: string | null,
+    lang: VoiceLanguage,
+  ): ChatCompletionRequest {
+    const line = callSessionStore.takeRecoveryLine(vapiCallId, lang);
+    if (!line) return request;
+    const block =
+      lang === 'fr'
+        ? `Tu as été coupé au milieu de ta phrase. Ouvre ta réponse par « ${line} », puis réponds normalement. Ne reprends pas la phrase interrompue.`
+        : lang === 'nl'
+          ? `Je werd midden in je zin onderbroken. Begin je antwoord met « ${line} » en antwoord dan normaal. Herhaal de onderbroken zin niet.`
+          : `You were cut off mid-sentence. Open your reply with "${line}", then answer normally. Do not repeat the interrupted sentence.`;
     return { ...request, messages: [...request.messages, { role: 'system', content: block }] };
   }
 

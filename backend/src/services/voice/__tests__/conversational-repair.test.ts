@@ -1,4 +1,4 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
 import {
   buildIdleMessagePlan,
   newRepairState,
@@ -6,6 +6,7 @@ import {
   silenceNudge,
 } from '../conversational-repair';
 import { buildBackchannelPlan, buildRealtimePlans } from '../speech-plans';
+import { callSessionStore } from '../call-session.store';
 import { callSessionStore } from '../call-session.store';
 
 describe('recoveryLine — restraint is the feature', () => {
@@ -128,5 +129,63 @@ describe('barge-in classification', () => {
     callSessionStore.assistantStartedSpeaking('c1', 1_000);
     callSessionStore.recordBargeIn('c1', 3_000);
     expect(callSessionStore.recordBargeIn('c1', 3_100)).toBe(false);
+  });
+});
+
+/**
+ * TUR-8 relevait que `recoveryLine` était écrite ET testée mais appelée depuis
+ * AUCUN point du runtime: du code mort, pas une fonctionnalité. Ces cas testent
+ * le branchement, pas la règle — la règle est testée plus haut.
+ */
+describe('le branchement de la phrase de reprise', () => {
+  beforeEach(() => callSessionStore.reset());
+
+  const open = () =>
+    callSessionStore.start({ vapiCallId: 'c1', clientId: 'cl1', callerNumber: null, language: 'fr' });
+
+  /** Coupe l'agent après `ms` de parole, et rend le verdict du magasin. */
+  function bargeInAfter(ms: number): boolean {
+    const now = Date.now();
+    callSessionStore.assistantStartedSpeaking('c1', now - ms);
+    return callSessionStore.recordBargeIn('c1', now);
+  }
+
+  it('rend une phrase après une coupure en pleine phrase', () => {
+    open();
+    expect(bargeInAfter(3000)).toBe(true);
+    expect(callSessionStore.takeRecoveryLine('c1', 'fr')).toBeTruthy();
+  });
+
+  it('ne rend rien quand rien n\'a été coupé', () => {
+    open();
+    expect(callSessionStore.takeRecoveryLine('c1', 'fr')).toBeNull();
+  });
+
+  it('ne s\'excuse pas d\'avoir coupé court un acquiescement', () => {
+    open();
+    // 200 ms de parole: un « mm-hmm », que l'appelant n'a même pas remarqué.
+    expect(bargeInAfter(200)).toBe(false);
+    expect(callSessionStore.takeRecoveryLine('c1', 'fr')).toBeNull();
+  });
+
+  it('consomme le drapeau, donc ne s\'excuse pas deux fois de la même coupure', () => {
+    open();
+    bargeInAfter(3000);
+    expect(callSessionStore.takeRecoveryLine('c1', 'fr')).toBeTruthy();
+    expect(callSessionStore.takeRecoveryLine('c1', 'fr')).toBeNull();
+  });
+
+  it('garde la retenue du module: pas deux excuses d\'affilée', () => {
+    open();
+    bargeInAfter(3000);
+    expect(callSessionStore.takeRecoveryLine('c1', 'fr')).toBeTruthy();
+    // Deuxième coupure au tour suivant: le refroidissement de trois tours la tait.
+    bargeInAfter(3000);
+    expect(callSessionStore.takeRecoveryLine('c1', 'fr')).toBeNull();
+  });
+
+  it('ne rend rien sur un appel inconnu', () => {
+    expect(callSessionStore.takeRecoveryLine('jamais-vu', 'fr')).toBeNull();
+    expect(callSessionStore.takeRecoveryLine(null, 'fr')).toBeNull();
   });
 });
