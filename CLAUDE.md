@@ -371,6 +371,12 @@ sur le portail Stripe.
   `--confirm`, qui importe chez Vapi et range dans le stock. Le même script répare
   une ligne déjà en stock restée sans `vapiNumberId`, y compris après un `phone:buy`
   interrompu entre l'achat et l'écriture en base.
+- **Un client DÉJÀ actif ne prend pas de numéro tout seul.** `ensureLine` n'est
+  appelée qu'à l'inscription (`onboardClient`), donc remplir le stock n'attribue
+  rien aux clients installés avant l'achat : ils restent sur la ligne partagée
+  avec un numéro belge libre qui les attend en base. `npm run phone:assign`
+  (simulation) puis `--confirm` leur donne leur ligne, en passant par la même
+  fonction que l'inscription. `--email=` cible un seul compte.
 - **Une résiliation rend le numéro au lot**, elle ne le rend pas à Twilio : il est
   déjà payé et déjà couvert. Sans ce geste, chaque départ retirerait une ligne du
   stock pour toujours.
