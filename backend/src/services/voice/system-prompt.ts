@@ -171,30 +171,31 @@ export function buildSystemPrompt(
   if (lang === 'fr' && (profile.country || '').toUpperCase() === 'BE') {
     lines.push(
       [
-        'FRANÇAIS DE BELGIQUE (l\'appelant est belge, lis-le comme un Belge):',
+        /* UN GLOSSAIRE, et rien d'autre. Pas une seule phrase à l'impératif.
+           Deux versions ont dérapé pour la même raison, et la seconde a coûté
+           un scénario qui n'a rien de belge:
+             - « des tics de langage » a fait ADOPTER le tic (« je vais vérifier
+               les disponibilités pour demain une fois »);
+             - « demande-lui l'heure exacte », et même la glose « demande quelle
+               heure » — indicatif, mais qui se lit comme un impératif — ont
+               fait poser une question à la place d'un appel d'outil: à « je
+               voudrais un rendez-vous demain matin », l'agent répondait « le
+               matin ou l'après-midi ? » au lieu de consulter l'agenda.
+           Un glossaire qui contient un verbe d'action se lit comme une
+           consigne, et une consigne écrite ici se substitue aux règles du
+           métier, qui sont ailleurs. D'où la forme: « X veut dire Y », point. */
+        'FRANÇAIS DE BELGIQUE — vocabulaire de l\'appelant, à comprendre. Rien ici ne te dit quoi faire:',
         '- « dîner » = repas de MIDI. « souper » = repas du soir. « déjeuner » = petit-déjeuner.',
-        '- « je ne sais pas » + verbe = « je ne PEUX pas ». « Je ne sais pas venir mardi » annonce une annulation.',
+        '- « je ne sais pas » + verbe = « je ne PEUX pas ». « Je ne sais pas venir mardi » = une annulation.',
         '- « septante » = 70, « nonante » = 90, « septante-et-un » = 71, « nonante-et-un » = 91.',
-        '- « s\'il vous plaît » en fin de phrase veut souvent dire « voilà, tenez »: ce n\'est pas une demande.',
-        /* « des tics de langage » suffisait à faire ADOPTER le tic par l'agent:
-           relevé sur un scénario d'évaluation, « je vais vérifier les
-           disponibilités pour demain une fois ». Ce bloc décrit ce que
-           l'appelant dit, pas un registre à imiter, et il faut l'écrire. */
-        '- « une fois », « sais-tu », « hein » en fin de phrase sont des tics DE L\'APPELANT: comprends-les, ne les emploie jamais toi-même.',
+        '- « s\'il vous plaît » en fin de phrase = « voilà, tenez ». Ce n\'est pas une demande.',
+        '- « une fois », « sais-tu », « hein » en fin de phrase = des tics DE L\'APPELANT, sans contenu. Tu ne les emploies jamais toi-même.',
         '- « GSM » = téléphone portable. « numéro de GSM » = numéro de portable.',
-        '- « quoi comme » = « quel »: « quoi comme heure ? » demande quelle heure.',
+        '- « quoi comme » = « quel ». « Quoi comme heure ? » = « quelle heure ? ».',
         '- « à tantôt » = « à tout à l\'heure », aujourd\'hui même.',
         '- « faire la file » = faire la queue. « aubette » = abribus. « farde » = classeur.',
-        '- « ça va aller » vaut acceptation, pas une inquiétude.',
-        /* Portée limitée au REPAS, et dite comme telle.
-           La version précédente ajoutait « ou une heure », et elle a fait
-           dérailler un scénario qui n'a rien de belge: à « je voudrais un
-           rendez-vous demain matin », l'agent demandait matin ou après-midi au
-           lieu d'appeler checkAvailability. Une consigne de prudence écrite
-           trop large se substitue aux règles d'outils, qui sont la discipline
-           du métier. */
-        '- Si l\'appelant nomme un repas sans donner d\'heure, demande-lui l\'heure exacte.',
-        '- Ces mots changent le SENS de ce que tu entends, rien d\'autre: ils ne changent ni tes outils ni tes règles.',
+        '- « ça va aller » = une acceptation, pas une inquiétude.',
+        '- Ce vocabulaire change le SENS de ce que tu entends, rien d\'autre: ni tes outils, ni tes règles.',
       ].join('\n')
     );
   }

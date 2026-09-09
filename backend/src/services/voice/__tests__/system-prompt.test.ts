@@ -249,19 +249,19 @@ describe('buildSystemPrompt — français de Belgique', () => {
     ['souper = soir', /« souper » = repas du soir/],
     ['déjeuner = petit-déjeuner', /« déjeuner » = petit-déjeuner/],
     ['je ne sais pas venir', /« je ne PEUX pas »/],
-    ['annulation annoncée', /annonce une annulation/],
+    ['annulation annoncée', /« Je ne sais pas venir mardi » = une annulation/],
     ['septante', /« septante » = 70/],
     ['nonante', /« nonante » = 90/],
     ['septante-et-un', /« septante-et-un » = 71/],
     ['nonante-et-un', /« nonante-et-un » = 91/],
-    ['s\'il vous plaît final', /ce n'est pas une demande/],
-    ['une fois', /« une fois », « sais-tu », « hein »/],
+    ['s\'il vous plaît final', /Ce n'est pas une demande/],
+    ['une fois', /tics DE L'APPELANT, sans contenu/],
     ['GSM', /« GSM » = téléphone portable/],
-    ['quoi comme', /« quoi comme » = « quel »/],
+    ['quoi comme', /« quoi comme » = « quel »\./],
     ['à tantôt', /à tout à l'heure/],
     ['faire la file', /faire la queue/],
-    ['ça va aller', /vaut acceptation/],
-    ['un repas sans heure se fait préciser', /nomme un repas sans donner d'heure/],
+    ['ça va aller', /= une acceptation/],
+    ['le vocabulaire ne commande rien', /ni tes outils, ni tes règles/],
   ];
 
   for (const [label, pattern] of belgicisms) {
@@ -281,14 +281,20 @@ describe('buildSystemPrompt — français de Belgique', () => {
    * matin ou après-midi au lieu de consulter l'agenda.
    */
   it('donne les tics à COMPRENDRE, pas à imiter', () => {
-    expect(be()).toMatch(/tics DE L'APPELANT: comprends-les, ne les emploie jamais toi-même/);
+    expect(be()).toMatch(/Tu ne les emploies jamais toi-même/);
   });
 
-  it('ne se substitue pas aux règles d\'outils', () => {
-    const prompt = be();
-    expect(prompt).toMatch(/ils ne changent ni tes outils ni tes règles/);
-    // La prudence est bornée au repas, le seul cas où l'ambiguïté est belge.
-    expect(prompt).not.toMatch(/doute sur un repas ou une heure/);
+  /**
+   * Un glossaire qui contient un verbe d'action se lit comme une consigne, et
+   * une consigne écrite là se substitue aux règles du métier, qui sont
+   * ailleurs. Deux versions ont dérapé sur ce point, dont une qui a coûté un
+   * scénario sans aucun rapport avec la Belgique.
+   */
+  it("ne contient aucune phrase à l'impératif", () => {
+    const bloc = be().split('FRANÇAIS DE BELGIQUE')[1].split('\n\n')[0];
+    expect(bloc).not.toMatch(/\bdemande-lui\b|\bdemande quelle\b|\bpropose\b|\bvérifie\b|\bappelle\b/);
+    expect(bloc).toMatch(/Rien ici ne te dit quoi faire/);
+    expect(bloc).toMatch(/ni tes outils, ni tes règles/);
   });
 
   it("ne sert ce bloc qu'aux appelants belges francophones", () => {
