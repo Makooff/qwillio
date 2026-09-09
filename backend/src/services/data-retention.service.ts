@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { env } from '../config/env';
@@ -86,6 +87,8 @@ export interface PurgeReport {
   clients: number;
   clientCallsPurged: number;
   callerMemoriesDeleted: number;
+  /** Lignes BLOQUÉES vidées de leur personnel, opposition conservée. */
+  callerMemoriesAnonymised: number;
   vapiDeletions: number;
   vapiDeletionFailures: number;
   outboundCallsPurged: number;
@@ -102,6 +105,7 @@ class DataRetentionService {
       clients: 0,
       clientCallsPurged: 0,
       callerMemoriesDeleted: 0,
+      callerMemoriesAnonymised: 0,
       vapiDeletions: 0,
       vapiDeletionFailures: 0,
       outboundCallsPurged: 0,
@@ -168,11 +172,68 @@ class DataRetentionService {
       });
       report.clientCallsPurged += purged.count;
 
-      // 3. La mémoire d'appelant: rien à garder passé la rétention.
+      /* 3. La mémoire d'appelant.
+       *
+       * En DEUX temps, et la distinction n'est pas cosmétique.
+       *
+       * Une ligne ordinaire n'est QUE du personnel: elle se supprime.
+       *
+       * Une ligne BLOQUÉE, elle, porte une opposition — « ne me rappelez
+       * jamais ». La supprimer rendrait l'appelant rappelable, ce qui est
+       * l'inverse exact de ce qu'il a demandé: c'était le comportement, et une
+       * opposition vieille de trois mois disparaissait toute seule. Le RGPD
+       * demande d'ailleurs de CONSERVER une liste d'opposition, précisément
+       * pour pouvoir l'honorer.
+       * On garde donc le strict nécessaire pour ne pas le rappeler (le numéro
+       * et le drapeau) et on efface tout le reste: nom, courriel, portrait,
+       * préférences, dernier résumé.
+       *
+       * Le filtre de date lit `createdAt` quand `lastCallAt` est absent. Une
+       * ligne créée par `block()` n'a JAMAIS de `lastCallAt`, et en SQL un NULL
+       * ne matche aucune comparaison: sans ce repli, ces lignes n'étaient
+       * jamais échues, donc jamais nettoyées. */
+      const memoryExpired = {
+        OR: [{ lastCallAt: { lt: cutoff } }, { lastCallAt: null, createdAt: { lt: cutoff } }],
+      };
+
       const memories = await prisma.callerMemory.deleteMany({
-        where: { clientId: client.id, lastCallAt: { lt: cutoff } },
+        where: { clientId: client.id, isBlocked: false, ...memoryExpired },
       });
       report.callerMemoriesDeleted += memories.count;
+
+      /* `AND` explicite: l'échéance et « il reste quelque chose à effacer »
+         portent chacune leur `OR`, et les fondre en un seul viderait des
+         lignes non échues. Même piège que la requête d'appels ci-dessus.
+         Le second `OR` est ce qui rend la purge idempotente: une ligne déjà
+         vidée ne matche plus, donc le rapport ne la recompte pas chaque jour. */
+      const anonymised = await prisma.callerMemory.updateMany({
+        where: {
+          clientId: client.id,
+          isBlocked: true,
+          AND: [
+            memoryExpired,
+            {
+              OR: [
+                { knownName: { not: null } },
+                { email: { not: null } },
+                { profileSummary: { not: null } },
+                { lastSummary: { not: null } },
+                { facts: { not: Prisma.DbNull } },
+              ],
+            },
+          ],
+        },
+        data: {
+          knownName: null,
+          email: null,
+          profileSummary: null,
+          lastSummary: null,
+          lastOutcome: null,
+          facts: Prisma.DbNull,
+          preferences: [],
+        },
+      });
+      report.callerMemoriesAnonymised += anonymised.count;
       report.clients += 1;
     }
 
@@ -193,7 +254,8 @@ class DataRetentionService {
 
     logger.info(
       `[Retention] purge — ${report.clientCallsPurged} appels client, ` +
-        `${report.callerMemoriesDeleted} mémoires, ${report.vapiDeletions} audios Vapi ` +
+        `${report.callerMemoriesDeleted} mémoires (+${report.callerMemoriesAnonymised} oppositions vidées), ` +
+        `${report.vapiDeletions} audios Vapi ` +
         `(${report.vapiDeletionFailures} échecs), ${report.outboundCallsPurged} appels outbound, ` +
         `${report.prospectTranscriptsPurged} transcripts prospects`
     );

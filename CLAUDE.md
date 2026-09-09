@@ -354,6 +354,21 @@ charge et se retentera seul ; alerter dessus avec la même force apprendrait à
 ignorer l'alerte. 429 est un 4xx qui ne compte PAS comme refus : c'est un débit,
 pas une forme.
 
+### 6decies. Une opposition n'est pas une donnée comme les autres (09/09/2026)
+La purge de rétention faisait `deleteMany({ lastCallAt: { lt: cutoff } })` sur
+`CallerMemory`, sans regarder `isBlocked`. Une opposition — « ne me rappelez
+jamais » — vieille de plus de trois mois **disparaissait toute seule**, et
+l'appelant redevenait rappelable : l'inverse exact de ce qu'il avait demandé.
+Le RGPD demande justement de CONSERVER une liste d'opposition, pour pouvoir
+l'honorer. La purge garde donc le strict nécessaire (le numéro et le drapeau) et
+efface tout le reste : nom, courriel, portrait, préférences, dernier résumé.
+Second défaut au même endroit : `block()` crée une ligne **sans** `lastCallAt`,
+et en SQL un NULL ne matche aucune comparaison. Ces lignes n'étaient donc échues
+à aucun moment, et leur personnel restait indéfiniment. Le filtre lit désormais
+`createdAt` en repli. **Toute colonne de date nullable utilisée comme filtre de
+purge porte ce piège** : il ne se voit pas, la requête réussit et ne supprime
+simplement rien.
+
 ### 6quinquies. Un glossaire de prompt ne contient AUCUN verbe d'action (09/09/2026)
 Le bloc belgicismes a fait échouer `fr-discipline-agenda`, un scénario sans aucun
 rapport avec la Belgique, **deux fois de suite** et pour la même raison de forme.
