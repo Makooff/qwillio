@@ -28,10 +28,22 @@
  * diffèrent selon les deux: le mode parole-à-parole retire le transcripteur et
  * la moitié des plans, et le champ de biasing dépend du modèle Deepgram, qui
  * dépend de la langue.
+ *
+ * ## Ce qu'il ne couvrait PAS, et pourquoi c'est le sujet
+ *
+ * Il ne validait que les plans. Or la production envoie aussi `tools`,
+ * `serverUrl`, `forwardingPhoneNumber`, `endCallFunctionEnabled`,
+ * `recordingEnabled` et `backgroundSound` — c'est-à-dire précisément la partie
+ * de la charge que personne ne relisait, et dont un seul champ suffit à faire
+ * refuser l'assistant entier. Les outils y entrent par leur VRAI constructeur,
+ * `buildVoiceTools`, et non par une copie écrite pour le test: une copie ne
+ * vieillirait pas avec l'original, et c'est l'original qui part chez Vapi.
  */
 import { env } from '../config/env';
 import { buildRealtimePlans, buildVoice, type VoiceLanguage } from '../services/voice/speech-plans';
 import { fitAssistantLabel } from '../services/voice/vapi-limits';
+import { buildVoiceTools } from '../services/voice/voice-tools';
+import type { ClientVoiceProfile } from '../services/voice/realtime-context.service';
 
 /* 13 caractères, et c'est un compte, pas un goût: le nom complet vaut
    `PREFIX-fr-classic-<Date.now()>`, soit 38 avec ce préfixe et 45 avec
@@ -41,6 +53,47 @@ import { fitAssistantLabel } from '../services/voice/vapi-limits';
    par une version précédente est donc ramassé lui aussi. */
 const PREFIX = '__qwillio-val';
 const LANGS: VoiceLanguage[] = ['fr', 'en', 'nl'];
+
+/**
+ * Un profil de test qui allume TOUT.
+ *
+ * Chaque drapeau éteint retire un outil, donc retire ce qu'on venait valider:
+ * l'agenda branché ouvre la disponibilité et la réservation, une base de
+ * connaissances non vide ouvre la consultation, un numéro de transfert ouvre le
+ * transfert. Éteints, la liste serait vide et le script dirait « OK » sans
+ * avoir rien demandé.
+ *
+ * Le numéro de transfert est belge et valide (Vapi refuse l'assistant entier
+ * sur un numéro qui n'est pas E.164), et il ne sonne nulle part: aucun appel
+ * n'est passé, l'assistant est supprimé dans la foulée.
+ */
+function probeProfile(lang: VoiceLanguage): ClientVoiceProfile {
+  return {
+    clientId: '00000000-0000-0000-0000-000000000000',
+    businessName: 'Validation',
+    businessType: 'other',
+    agentName: 'Camille',
+    language: lang,
+    timezone: 'Europe/Brussels',
+    transferNumber: '+32460000000',
+    transferMode: 'always',
+    inboundNumber: null,
+    inboundLines: [],
+    instructions: null,
+    services: ['toiture'],
+    openingHours: null,
+    bookingEnabled: true,
+    calendarConnected: true,
+    planType: 'pro',
+    characterId: null,
+    customVoice: null,
+    country: 'BE',
+    customLlm: false,
+    voiceMode: 'auto',
+    hasKnowledgeBase: true,
+    recordCalls: true,
+  };
+}
 
 /** Un assistant minimal mais COMPLET: les plans sont ce qu'on teste. */
 function candidate(lang: VoiceLanguage, speechToSpeech: boolean) {
@@ -61,6 +114,16 @@ function candidate(lang: VoiceLanguage, speechToSpeech: boolean) {
       // donc le seul qui teste quelque chose.
       vocabulary: ['Chez Marie', 'Vandenberghe', 'toiture'],
     }),
+    /* Le reste de la charge de PRODUCTION, mot pour mot.
+       Ces champs-là partent à chaque inscription et à chaque enregistrement de
+       paramètres, et aucun n'était validé: un seul refusé emporte l'assistant
+       entier, donc tous les appels du client. */
+    tools: buildVoiceTools(probeProfile(lang)),
+    serverUrl: `${env.API_BASE_URL}/api/webhooks/vapi/client/00000000-0000-0000-0000-000000000000`,
+    forwardingPhoneNumber: '+32460000000',
+    endCallFunctionEnabled: true,
+    recordingEnabled: true,
+    backgroundSound: env.VOICE_BACKGROUND_SOUND,
   };
 }
 
