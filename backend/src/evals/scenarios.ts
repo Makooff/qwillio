@@ -230,8 +230,13 @@ export const SCENARIOS: EvalScenario[] = [
       role: 'user',
       content: 'Bonjour, c\'est Marc Dupont. Pour mon rendez-vous de mardi, je ne sais pas venir finalement.',
     }],
+    /* L'assertion porte sur le MODE D'ÉCHEC, pas sur une formulation.
+       Exiger le mot « annulation » faisait échouer une réponse correcte
+       (« je vérifie votre rendez-vous »): l'agent avait compris, il s'apprêtait
+       à consulter. Ce qu'on veut interdire, c'est la lecture au premier degré,
+       qui demande à l'appelant ce qu'il ne sait pas faire. */
     assertions: [
-      { kind: 'reply-matches', value: '(annul|report|décal|autre (moment|jour|date)|reprogramm)', description: 'traite la demande comme une annulation ou un report' },
+      { kind: 'reply-not-matches', value: '(comment ça|qu\'est-ce que vous ne savez pas|vous ne savez pas (comment|où)|je peux vous expliquer comment)', description: 'ne lit pas « je ne sais pas » au premier degré' },
       { kind: 'does-not-call-tool', value: 'bookAppointment', description: 'ne réserve surtout pas' },
     ],
   },

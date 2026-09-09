@@ -255,13 +255,13 @@ describe('buildSystemPrompt — français de Belgique', () => {
     ['septante-et-un', /« septante-et-un » = 71/],
     ['nonante-et-un', /« nonante-et-un » = 91/],
     ['s\'il vous plaît final', /ce n'est pas une demande/],
-    ['une fois', /tics de langage/],
+    ['une fois', /« une fois », « sais-tu », « hein »/],
     ['GSM', /« GSM » = téléphone portable/],
     ['quoi comme', /« quoi comme » = « quel »/],
     ['à tantôt', /à tout à l'heure/],
     ['faire la file', /faire la queue/],
     ['ça va aller', /vaut acceptation/],
-    ['le doute se lève en demandant', /demande confirmation plutôt que de supposer/],
+    ['un repas sans heure se fait préciser', /nomme un repas sans donner d'heure/],
   ];
 
   for (const [label, pattern] of belgicisms) {
@@ -269,6 +269,27 @@ describe('buildSystemPrompt — français de Belgique', () => {
       expect(be()).toMatch(pattern);
     });
   }
+
+  /**
+   * Deux régressions relevées sur des scénarios d'évaluation, et la seconde
+   * n'avait rien de belge.
+   *
+   * Décrire « une fois » comme un tic de langage suffisait à le faire ADOPTER
+   * par l'agent. Et une consigne de prudence écrite trop large (« en cas de
+   * doute sur un repas OU UNE HEURE, demande confirmation ») s'est substituée
+   * aux règles d'outils: à « un rendez-vous demain matin », l'agent demandait
+   * matin ou après-midi au lieu de consulter l'agenda.
+   */
+  it('donne les tics à COMPRENDRE, pas à imiter', () => {
+    expect(be()).toMatch(/tics DE L'APPELANT: comprends-les, ne les emploie jamais toi-même/);
+  });
+
+  it('ne se substitue pas aux règles d\'outils', () => {
+    const prompt = be();
+    expect(prompt).toMatch(/ils ne changent ni tes outils ni tes règles/);
+    // La prudence est bornée au repas, le seul cas où l'ambiguïté est belge.
+    expect(prompt).not.toMatch(/doute sur un repas ou une heure/);
+  });
 
   it("ne sert ce bloc qu'aux appelants belges francophones", () => {
     // Un commerce français n'a que faire de « septante », et un prompt

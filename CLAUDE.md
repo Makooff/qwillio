@@ -303,6 +303,17 @@ Deux pièges qui reviendront : 60 et 80 absorbent une dizaine (« soixante-douze
 `0475 12 34 56` est un mobile belge ET un fixe français du Sud-Est, tranché par
 le pays de la ligne appelante, jamais par le numéro seul.
 
+### 6quinquies. Un bloc de prompt régional dérègle le reste (09/09/2026)
+Deux régressions relevées par les évals après l'ajout des belgicismes, et la
+seconde n'a rien de belge. Décrire « une fois » comme un tic de langage a suffi
+à le faire **adopter** par l'agent (« je vais vérifier les disponibilités pour
+demain une fois »). Et une consigne de prudence écrite trop large (« en cas de
+doute sur un repas **ou une heure**, demande confirmation ») s'est substituée aux
+règles d'outils : à « un rendez-vous demain matin », l'agent demandait matin ou
+après-midi au lieu d'appeler `checkAvailability`. Règle qui en sort : un bloc
+ajouté au prompt se relit contre les scénarios EXISTANTS, pas seulement contre
+les siens, et une consigne de prudence se borne au cas qu'elle vise.
+
 ### 6quater. Le vouvoiement se dit, il ne va pas de soi (09/09/2026)
 Tout le prompt s'adresse au modèle en « tu », comme une consigne s'écrit, et le
 modèle retournait ce registre à l'appelant : « c'est quoi ton nom ? », relevé sur
