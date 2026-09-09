@@ -946,7 +946,20 @@ export function buildRealtimePlans(
        ne se lit pas dans le code, ne s'explique pas, et peut changer chez le
        fournisseur sans que rien ici ne bouge. */
     firstMessageInterruptionsEnabled: false,
-    backgroundDenoisingEnabled: true,
+    /* Le débruitage, dans sa forme COURANTE (TUR-11).
+       `backgroundDenoisingEnabled`, le booléen qui vivait ici, est déprécié
+       depuis juin 2025 au profit de ce plan. Un champ déprécié marche jusqu'au
+       jour où il ne marche plus, et ce jour-là c'est un appelant qui l'apprend.
+       `smartDenoisingPlan` est Krisp, que la documentation recommande « for
+       most use cases »: il retire la porte, la radio et la conversation à côté
+       AVANT le transcripteur, donc avant que `numWords` ait à trier. C'est le
+       même problème que le barge-in, traité une étape plus tôt.
+       Pas de `fourierDenoisingPlan`: la documentation le dit expérimental, et
+       son filtrage se règle en décibels sous une ligne de base glissante —
+       trop agressif, il mange la parole d'un appelant qui parle bas, ce qui
+       est exactement le cas qu'on ne peut pas se permettre de rater. Il se
+       mesure sur de vrais appels avant de s'activer, pas avant. */
+    backgroundSpeechDenoisingPlan: { smartDenoisingPlan: { enabled: true } },
     silenceTimeoutSeconds: tuning.silenceTimeout,
     maxDurationSeconds: env.VAPI_MAX_DURATION,
   };

@@ -99,6 +99,21 @@ describe('what Vapi refuses to accept', () => {
     }
   });
 
+  /**
+   * `backgroundDenoisingEnabled` est déprécié depuis juin 2025 au profit de
+   * `backgroundSpeechDenoisingPlan`. Un champ déprécié marche jusqu'au jour où
+   * il ne marche plus, et ce jour-là c'est un appelant qui l'apprend.
+   */
+  it('débruite par le plan courant, pas par le booléen déprécié', () => {
+    const plans = buildRealtimePlans('fr') as Record<string, any>;
+    expect('backgroundDenoisingEnabled' in plans).toBe(false);
+    expect(plans.backgroundSpeechDenoisingPlan?.smartDenoisingPlan?.enabled).toBe(true);
+    /* Fourier reste éteint: la documentation le dit expérimental, et son
+       filtrage trop agressif mange la parole de qui parle bas — le cas qu'on
+       ne peut pas se permettre de rater. Il se mesure avant de s'activer. */
+    expect('fourierDenoisingPlan' in plans.backgroundSpeechDenoisingPlan).toBe(false);
+  });
+
   it('sends the transfer destination in E.164', () => {
     // "each value in destinations.number must be a valid phone number"
     const tools = buildVoiceTools(profile({ transferNumber: '06 12 34 56 78' })) as any[];

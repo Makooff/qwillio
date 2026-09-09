@@ -74,6 +74,7 @@ Les cinq plateformes managées mesurées en 2026 sur un protocole neutre (2 078 
 
 - **Statut** : `ABSENT`
 - **Preuve** : Aucun codec, aucun SDP, aucun `alaw`/`pcma`/`pcmu` dans tout le dépôt (grep). Les numéros sont achetés à travers Vapi (`backend/src/services/voice/phone-provisioning.service.ts:43`) qui porte lui-même le compte Twilio : le leg SIP ne nous appartient pas, donc rien ici ne demande ni n'observe un codec. Atteindre ce critère suppose un trunk SIP en propre, c'est-à-dire une décision fournisseur, pas un patch.
+- **Vérifié le 09/09, et ce n'est pas une lacune de notre code** : Vapi n'expose de format audio que sur le transport `vapi.websocket` (les appels navigateur), et seulement `pcm_s16le` et `mulaw`. **L'a-law n'existe nulle part dans sa surface d'API.** Sur un appel TÉLÉPHONIQUE le transport appartient à Twilio, et rien de ce dépôt ne touche à ce SDP. Cette ligne ne peut donc pas se fermer en code ici : elle demande soit que Vapi expose le codec, soit de sortir de Vapi pour le leg SIP. Ne pas rediagnostiquer.
 - **Action** : Demander `alaw_8000` au TTS (a-law, standard européen — pas µ-law, qui est nord-américain).
 - **Pourquoi** : Évite un transcodage complet à chaque énoncé. Forcer PCMU vers un opérateur belge ajoute une conversion inutile.
 - **Critère d'acceptation** : Le SDP négocié montre PCMA. Aucun transcodage dans le chemin TTS → RTP.
@@ -253,6 +254,9 @@ Un VAD par énergie seul coupe la parole à l'appelant dans 55,6 % des cas quand
 
 - **Statut** : `ABSENT`
 - **Preuve** : Aucune annulation d'écho et aucun ducking. La seule ligne voisine est `backgroundDenoisingEnabled: true` (`backend/src/services/voice/speech-plans.ts:728`), qui débruite le flux ENTRANT et n'utilise jamais le signal TTS comme référence. Le chemin audio appartient à Vapi : atteindre ce critère demanderait de tenir le média nous-mêmes. Côté navigateur, l'appel test se contente de `getUserMedia({ audio: true })` (`frontend/src/components/client/VapiLiveCall.tsx:770`), donc de l'AEC par défaut du terminal.
+- **La moitié débruitage est faite (09/09)** : `backgroundSpeechDenoisingPlan.smartDenoisingPlan` (`backend/src/services/voice/speech-plans.ts`), c'est-à-dire Krisp, que la documentation de Vapi recommande « for most use cases ». Il retire la porte, la radio et la conversation à côté AVANT le transcripteur, donc avant que `numWords` ait à trier : le même problème que le barge-in, traité une étape plus tôt. Au passage, le booléen `backgroundDenoisingEnabled` qui vivait là est **déprécié depuis juin 2025**, et un champ déprécié marche jusqu'au jour où il ne marche plus. Un test l'interdit désormais.
+- **`fourierDenoisingPlan` reste éteint, délibérément** : la documentation le dit expérimental, et son filtrage se règle en décibels sous une ligne de base glissante. Trop agressif, il mange la parole d'un appelant qui parle bas — exactement le cas qu'on ne peut pas se permettre de rater. Il se mesure sur de vrais appels avant de s'activer.
+- **Ce qui reste hors de portée** : l'annulation d'ÉCHO proprement dite et la baisse du micro pendant que l'agent parle. Les deux vivent dans le pont audio, qui appartient à Vapi ; aucun champ ne les expose.
 - **Action** : AEC côté serveur avec le signal TTS comme référence (vous le connaissez exactement), plus un ducking partiel de −10 à −20 dB — pas une coupure totale.
 - **Pourquoi** : Au téléphone, une part importante des appelants est en mains-libres ou en voiture, ce qui défait l'AEC du terminal. Le ducking partiel laisse passer une interruption volontaire (forte) et supprime l'écho résiduel (faible). Un ducking total supprimerait le barge-in.
 - **Critère d'acceptation** : Test en haut-parleur : l'agent ne se coupe pas lui-même, et une interruption volontaire passe.
@@ -496,6 +500,7 @@ Les fils de support des plateformes sont la source la plus honnête de tout ce d
 
 - **Statut** : `ABSENT`
 - **Preuve** : Identique à LAT-4 : aucun `PCMA`, `PCMU`, `alaw` ou `ulaw` dans le dépôt, et le SDP est négocié par Vapi/Twilio hors de notre vue. Rien ne permet aujourd'hui d'affirmer ce qui est négocié sur un appel belge, encore moins de l'imposer.
+- **Même vérification, même conclusion que LAT-4 (09/09)** : la seule surface où Vapi accepte un format audio est le transport `vapi.websocket`, et son choix se limite à `pcm_s16le` ou `mulaw`. Imposer PCMA est donc impossible depuis ce dépôt, quel que soit le soin qu'on y mette. Les deux lignes tombent ensemble et pour la même raison.
 - **Action** : PCMA, pas PCMU. µ-law est nord-américain.
 - **Pourquoi** : Forcer µ-law vers un opérateur belge ou français ajoute un transcodage inutile, avec sa latence et sa dégradation.
 - **Critère d'acceptation** : Le SDP négocié montre PCMA sur les appels européens.
