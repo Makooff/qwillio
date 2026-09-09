@@ -33,6 +33,75 @@ export interface TranscriptionResult {
   language: string;
 }
 
+/**
+ * Ce que Whisper écrit quand il n'entend RIEN.
+ *
+ * Sur un clip silencieux ou trop faible, le modèle ne rend pas une chaîne
+ * vide: il produit la phrase la plus probable de son entraînement pour cette
+ * langue, et son entraînement est plein de sous-titres. En français cela donne
+ * « Sous-titrage ST' 501 », « Sous-titres réalisés par la communauté
+ * d'Amara.org », en anglais « Thanks for watching! ». Relevé en production le
+ * 09/09: l'owner a parlé, et son message est parti dans la conversation sous la
+ * forme d'un générique de sous-titrage.
+ *
+ * Rendre ce texte est pire que ne rien rendre: l'assistant répond à une phrase
+ * que personne n'a dite, et l'owner croit que sa dictée est comprise de
+ * travers alors qu'elle n'est pas arrivée.
+ *
+ * DEUX PRUDENCES, sans lesquelles ce filtre ferait plus de mal que de bien:
+ *  - la comparaison porte sur la transcription ENTIÈRE, jamais sur un morceau:
+ *    « merci d'avoir regardé la vidéo que je vous ai envoyée » est une vraie
+ *    phrase, et elle doit passer;
+ *  - la politesse nue (« merci », « thank you ») n'est PAS dans la liste, alors
+ *    que Whisper la produit aussi sur du silence: c'est une réponse plausible
+ *    de l'owner, et la perdre coûterait plus cher que de la laisser passer.
+ */
+/* Chaque motif est BORNÉ: quelques mots de queue au plus, jamais `.*`. Un
+   « .* » faisait correspondre « thanks for watching the shop while I was away »,
+   une vraie phrase d'owner, et la faisait disparaître. Un artefact de silence
+   est court par nature; une phrase humaine ne l'est pas longtemps. */
+const TAIL = String.raw`( [\w'’.\-]+){0,4}`;
+
+const SILENCE_ARTIFACTS = [
+  // Génériques de sous-titrage, toutes déclinaisons vues.
+  new RegExp(String.raw`^sous[- ]?titrage${TAIL}$`),
+  /* Le crédit de sous-titres prend trop de formes pour être décrit token par
+     token. On exige donc les DEUX bouts: la phrase commence par « sous-titres »
+     ET porte une signature de crédit, le tout dans une longueur d'artefact. Une
+     vraie phrase qui parlerait de sous-titrage ne commence pas par là. */
+  new RegExp(String.raw`^sous[- ]?titres?\b.{0,60}\b(amara|communaute|societe|radio-?canada|realises? par)\b.{0,20}$`),
+  new RegExp(String.raw`^merci d'avoir regarde (cette|la) video$`),
+  new RegExp(String.raw`^abonne[- ]?toi${TAIL}$`),
+  // Anglais.
+  new RegExp(String.raw`^thanks? for watching${TAIL}$`),
+  new RegExp(String.raw`^subtitles?( (by|created by|amara))${TAIL}$`),
+  new RegExp(String.raw`^\[?(music|musique|applause|applaudissements|silence|blank_audio|inaudible)\]?$`),
+  // Néerlandais, la troisième langue de la flotte.
+  /* Même forme que le crédit français: le préfixe ET une signature, parce que
+     « Ondertitels ingediend door de Amara.org gemeenschap » compte plus de mots
+     que la queue bornée n'en autorise. */
+  new RegExp(String.raw`^ondertitels?\b.{0,60}\b(amara|gemeenschap|ingediend)\b.{0,20}$`),
+  new RegExp(String.raw`^bedankt voor het kijken${TAIL}$`),
+];
+
+/** Sans accents, sans ponctuation de fin, en minuscules: la comparaison est sur le FOND. */
+function fold(text: string): string {
+  return text
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/\s+/g, ' ')
+    .replace(/[.!?…]+$/, '')
+    .trim();
+}
+
+/** Vrai quand la transcription ENTIÈRE n'est qu'un artefact de silence. */
+export function looksLikeSilenceArtifact(text: string): boolean {
+  const folded = fold(text);
+  if (!folded) return false;
+  return SILENCE_ARTIFACTS.some(pattern => pattern.test(folded));
+}
+
 export class TranscriptionService {
   /**
    * @param audio  Raw audio bytes as captured by MediaRecorder.
@@ -83,8 +152,17 @@ export class TranscriptionService {
     }
 
     const data = (await res.json()) as { text?: string };
+    const text = (data.text || '').trim();
+    /* Un générique de sous-titrage ne vaut pas mieux qu'un silence: il vaut
+       moins, puisqu'il fait répondre l'assistant à une phrase que personne n'a
+       dite. Rendu vide, l'interface dit « je n'ai rien entendu », ce qui est
+       exactement ce qui s'est passé. */
+    if (looksLikeSilenceArtifact(text)) {
+      logger.warn(`[Transcription] artefact de silence écarté: "${text.slice(0, 80)}"`);
+      return { text: '', language: (language || 'fr').slice(0, 2).toLowerCase() };
+    }
     return {
-      text: (data.text || '').trim(),
+      text,
       language: (language || 'fr').slice(0, 2).toLowerCase(),
     };
   }

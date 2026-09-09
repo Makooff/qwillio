@@ -26,9 +26,14 @@ interface Msg { role: 'user' | 'assistant'; content: string }
 
 function greetingFor(mode: Mode, isFr: boolean): string {
   if (mode === 'onboarding') {
+    /* La première phrase POSE la première question au lieu de demander la
+       permission de commencer. « On commence ? » coûtait un aller-retour pour
+       n'apprendre rien: personne n'arrive sur cet écran pour répondre non. Elle
+       annonce aussi ce qui va être demandé, parce qu'un questionnaire dont on
+       ne voit pas la fin se quitte avant la fin. */
     return isFr
-      ? 'On configure ta réceptionniste ensemble, étape par étape. On commence ?'
-      : "Let's set up your receptionist together, step by step. Ready?";
+      ? 'Je remplis ta réceptionniste avec toi, en quatre questions : la voix qui répond, tes horaires, ce que tu proposes, et vers qui transférer un appel. Chaque réponse est enregistrée au fur et à mesure.\n\nOn commence par la voix. Tu la veux plutôt chaleureuse, posée, ou dynamique ?'
+      : "I'll fill in your receptionist with you, in four questions: the voice that answers, your opening hours, what you offer, and who to transfer a call to. Every answer is saved as we go.\n\nLet's start with the voice. Would you rather it sounds warm, calm, or energetic?";
   }
   if (mode === 'receptionist') {
     return isFr
@@ -750,7 +755,13 @@ export default function AssistantChat({
              En CLASSES et non en `style`: une hauteur par point de rupture,
              ce qu'un style en ligne ne sait pas exprimer, et qu'il écraserait. */
           ? 'h-[max(320px,calc(100dvh-160px))] lg:h-[calc(100dvh-64px)]'
-          : 'h-[480px]'
+          /* Sans entête, c'est l'inscription: la carte est le SEUL contenu de
+             l'écran, et 480 px en dur y laissaient une fenêtre de trois
+             messages au milieu du vide. Elle prend maintenant la hauteur
+             disponible, avec un plancher pour le paysage sur téléphone et un
+             plafond pour que la ligne de saisie ne parte pas à un mètre du
+             texte sur un grand écran. */
+          : 'h-[max(420px,min(72dvh,720px))]'
       }`}
     >
       {/* Header: who you are talking to, the AI number, and the live test call.
