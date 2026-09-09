@@ -211,7 +211,7 @@ class RealtimeOrchestratorService {
     const pick = Math.floor(Math.random() * variants.length);
 
     if (!knownName && !speechToSpeech) {
-      const audio = await greetingAudioService.available(profile.clientId);
+      const audio = await greetingAudioService.available(profile);
       // Match on the exact text: a greeting generated before a rename would
       // otherwise introduce the agent under the old name.
       const hit = audio.find(a => a.variant === pick && a.text === variants[pick]);

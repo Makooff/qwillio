@@ -2128,6 +2128,17 @@ model GreetingAudio {
   text      String
   mimeType  String   @default("audio/mpeg") @map("mime_type") @db.VarChar(100)
   data      Bytes
+  /// Qui a synthétisé cette ligne: `11labs` ou `cartesia`.
+  ///
+  /// Avec `voiceId` et `ttsModel`, c'est la SIGNATURE de l'accueil. La lecture
+  /// la compare à la voix que l'appel servira et refuse ce qui diffère: le même
+  /// texte dit par deux synthèses, ce sont deux voix, et les entendre se
+  /// succéder dans le premier tour s'entend beaucoup plus qu'un accueil lent.
+  /// Nulle sur les lignes antérieures au 09/09: provenance inconnue, donc non
+  /// servie, et régénérée à la prochaine synchronisation.
+  provider  String?  @db.VarChar(20)
+  voiceId   String?  @map("voice_id") @db.VarChar(100)
+  ttsModel  String?  @map("tts_model") @db.VarChar(100)
   createdAt DateTime @default(now()) @map("created_at")
   client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 

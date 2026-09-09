@@ -3,6 +3,8 @@ import { env } from '../../config/env';
 import { logger } from '../../config/logger';
 import { firstMessageVariants } from './system-prompt';
 import { resolveCharacter } from '../../config/voice-characters';
+import { buildVoice } from './speech-plans';
+import { synthesiseWithCartesia } from './cartesia.service';
 import type { ClientVoiceProfile } from './realtime-context.service';
 
 /**
@@ -17,6 +19,24 @@ import type { ClientVoiceProfile } from './realtime-context.service';
  * Everything here is best-effort. A missing or failed greeting means the
  * assistant falls back to the text `firstMessage` and simply loses the
  * optimisation — it must never mean a call with no greeting.
+ *
+ * ── La signature vocale, et pourquoi elle décide de tout ────────────────────
+ *
+ * Un accueil enregistré n'est bon que tant qu'il ressemble à la suite de
+ * l'appel. La première version ne comparait que le TEXTE, ce qui suffit à
+ * détecter un renommage et à rien d'autre: la bascule du 27/08 vers Cartesia a
+ * laissé en base des accueils dits par ElevenLabs, encore servis à l'appel,
+ * donc une voix qui accueille et une autre qui répond au milieu du premier
+ * tour de parole. Le garde-fou d'alors était posé à la GÉNÉRATION (« ne rien
+ * pré-enregistrer si le fournisseur n'est pas ElevenLabs »), ce qui éteignait
+ * l'optimisation pour tout le monde sans réparer les lignes déjà écrites.
+ *
+ * Chaque ligne porte donc désormais la voix qui l'a dite — fournisseur,
+ * identifiant, modèle — calculée par `buildVoice`, c'est-à-dire par la MÊME
+ * fonction que l'assistant de l'appel. La lecture compare, et refuse ce qui
+ * diffère. Une ligne dont la provenance est inconnue (antérieure à ce
+ * changement) ne correspond à rien et retourne à la synthèse en direct, le
+ * temps d'être régénérée.
  */
 
 const ELEVEN_URL = 'https://api.elevenlabs.io/v1/text-to-speech';
@@ -29,10 +49,64 @@ export interface GreetingRef {
   url: string;
 }
 
+/** La voix qu'un accueil doit avoir pour être servi: celle de l'appel. */
+interface VoiceSignature {
+  provider: '11labs' | 'cartesia';
+  voiceId: string;
+  model: string;
+}
+
 class GreetingAudioService {
   /** Public URL Vapi fetches. Must be reachable without auth. */
   private urlFor(clientId: string, variant: number): string {
     return `${env.API_BASE_URL}/api/voice/greeting/${clientId}/${variant}`;
+  }
+
+  /**
+   * La voix que CET appel servira, telle que l'assistant la décrira.
+   *
+   * Passer par `buildVoice` et non par les variables d'environnement est le
+   * point entier: la bascule vers Cartesia dépend du réglage global, mais aussi
+   * du réglage par client, d'une voix clonée qui ne quitte jamais ElevenLabs,
+   * et d'une voix choisie directement dans le catalogue Cartesia. Reconstituer
+   * ces règles ici, c'est se condamner à les voir diverger.
+   */
+  private signatureFor(profile: ClientVoiceProfile): VoiceSignature {
+    const character = resolveCharacter({
+      characterId: profile.characterId,
+      isFrench: profile.language === 'fr',
+      country: profile.country,
+      customVoice: profile.customVoice,
+    });
+
+    const voice = buildVoice({
+      voiceId: character.voiceId,
+      stability: character.stability,
+      similarityBoost: character.similarityBoost,
+      style: character.style,
+      lang: profile.language,
+      cloned: character.voiceCloned,
+      voiceProvider: character.voiceProvider,
+      ttsProvider: profile.ttsProvider,
+    }) as { provider: string; voiceId: string; model: string };
+
+    return {
+      provider: voice.provider === 'cartesia' ? 'cartesia' : '11labs',
+      voiceId: voice.voiceId,
+      model: voice.model,
+    };
+  }
+
+  private matches(
+    row: { provider: string | null; voiceId: string | null; ttsModel: string | null },
+    sig: VoiceSignature,
+  ): boolean {
+    return row.provider === sig.provider && row.voiceId === sig.voiceId && row.ttsModel === sig.model;
+  }
+
+  /** La clé du fournisseur qui doit dire l'accueil, et lui seul. */
+  private hasKeyFor(sig: VoiceSignature): boolean {
+    return sig.provider === 'cartesia' ? !!env.CARTESIA_API_KEY : !!env.ELEVENLABS_API_KEY;
   }
 
   /**
@@ -44,46 +118,52 @@ class GreetingAudioService {
    * does not re-bill the whole set.
    */
   async generate(profile: ClientVoiceProfile): Promise<number> {
-    if (!env.ELEVENLABS_API_KEY) {
-      logger.info('[Greeting] no ElevenLabs key — greetings stay on live synthesis');
-      return 0;
-    }
-    /* Ce service synthétise chez ElevenLabs, en direct. Quand les APPELS
-       passent par Cartesia, un accueil pré-enregistré ici serait d'un autre
-       grain que la phrase suivante, et le changement de voix au milieu du
-       premier tour s'entend beaucoup plus qu'un accueil un peu plus lent.
-       On rend donc l'accueil à la synthèse en direct de l'appel, qui elle est
-       du bon fournisseur. */
-    if (env.VOICE_TTS_PROVIDER !== '11labs') {
-      logger.info(`[Greeting] fournisseur ${env.VOICE_TTS_PROVIDER} — accueil laissé à la synthèse en direct`);
+    const sig = this.signatureFor(profile);
+
+    if (!this.hasKeyFor(sig)) {
+      logger.info(`[Greeting] pas de clé ${sig.provider} — accueil laissé à la synthèse en direct`);
       return 0;
     }
 
-    const character = resolveCharacter({
-      characterId: profile.characterId,
-      isFrench: profile.language === 'fr',
-      country: profile.country,
-      customVoice: profile.customVoice,
-    });
     // Only the anonymous variants are pre-generated: the named ones depend on
     // who is calling, which is not knowable before the phone rings.
     const variants = firstMessageVariants(profile, null);
 
     const existing = await prisma.greetingAudio.findMany({
       where: { clientId: profile.clientId },
-      select: { variant: true, text: true },
+      select: { variant: true, text: true, provider: true, voiceId: true, ttsModel: true },
     });
-    const unchanged = new Map(existing.map(e => [e.variant, e.text]));
+    const stored = new Map(existing.map(e => [e.variant, e]));
 
     let written = 0;
     for (const [variant, text] of variants.entries()) {
-      if (unchanged.get(variant) === text) continue;
+      /* Le texte ET la voix: une ligne juste par son texte mais dite par
+         l'ancien fournisseur est exactement le défaut qu'on répare. */
+      const row = stored.get(variant);
+      if (row && row.text === text && this.matches(row, sig)) continue;
+
       try {
-        const audio = await this.synthesise(text, character.voiceId);
+        const audio = await this.synthesise(text, sig, profile.language);
         await prisma.greetingAudio.upsert({
           where: { clientId_variant: { clientId: profile.clientId, variant } },
-          create: { clientId: profile.clientId, variant, language: profile.language, text, data: audio },
-          update: { language: profile.language, text, data: audio },
+          create: {
+            clientId: profile.clientId,
+            variant,
+            language: profile.language,
+            text,
+            data: audio,
+            provider: sig.provider,
+            voiceId: sig.voiceId,
+            ttsModel: sig.model,
+          },
+          update: {
+            language: profile.language,
+            text,
+            data: audio,
+            provider: sig.provider,
+            voiceId: sig.voiceId,
+            ttsModel: sig.model,
+          },
         });
         written++;
       } catch (error) {
@@ -93,7 +173,9 @@ class GreetingAudioService {
       }
     }
 
-    if (written) logger.info(`[Greeting] ${written} variant(s) synthesised for ${profile.businessName}`);
+    if (written) {
+      logger.info(`[Greeting] ${written} variante(s) synthétisée(s) chez ${sig.provider} pour ${profile.businessName}`);
+    }
     return written;
   }
 
@@ -101,17 +183,34 @@ class GreetingAudioService {
    * The variants available as audio, for the orchestrator to choose from.
    * Returns only what genuinely exists, so the caller can fall back per variant
    * rather than all-or-nothing.
+   *
+   * Le profil et non le seul identifiant client: c'est lui qui dit quelle voix
+   * l'appel servira, donc lesquelles de ces lignes sont encore les bonnes.
    */
-  async available(clientId: string): Promise<GreetingRef[]> {
+  async available(profile: ClientVoiceProfile): Promise<GreetingRef[]> {
+    const sig = this.signatureFor(profile);
     try {
       const rows = await prisma.greetingAudio.findMany({
-        where: { clientId },
-        select: { variant: true, text: true },
+        where: { clientId: profile.clientId },
+        select: { variant: true, text: true, provider: true, voiceId: true, ttsModel: true },
         orderBy: { variant: 'asc' },
       });
-      return rows.map(r => ({ variant: r.variant, text: r.text, url: this.urlFor(clientId, r.variant) }));
+
+      const usable = rows.filter(r => this.matches(r, sig));
+      if (usable.length < rows.length) {
+        /* Une trace, parce que c'est silencieux autrement: l'appel repart sur
+           la synthèse en direct, ce qui est correct mais plus lent, et rien ne
+           dirait pourquoi. La ligne nomme la voix attendue, donc ce qu'il
+           faudra régénérer. */
+        logger.info(
+          `[Greeting] ${rows.length - usable.length} accueil(s) écarté(s) pour ${profile.clientId}: ` +
+            `enregistrés avec une autre voix que ${sig.provider}/${sig.voiceId}`,
+        );
+      }
+
+      return usable.map(r => ({ variant: r.variant, text: r.text, url: this.urlFor(profile.clientId, r.variant) }));
     } catch (error) {
-      logger.warn(`[Greeting] lookup failed for ${clientId}: ${(error as Error).message}`);
+      logger.warn(`[Greeting] lookup failed for ${profile.clientId}: ${(error as Error).message}`);
       return [];
     }
   }
@@ -137,11 +236,27 @@ class GreetingAudioService {
     }
   }
 
-  private async synthesise(text: string, voiceId: string): Promise<Uint8Array<ArrayBuffer>> {
+  /** Le fournisseur de la signature, et aucun autre. */
+  private async synthesise(
+    text: string,
+    sig: VoiceSignature,
+    lang: ClientVoiceProfile['language'],
+  ): Promise<Uint8Array<ArrayBuffer>> {
+    if (sig.provider === 'cartesia') {
+      const audio = await synthesiseWithCartesia({ voiceId: sig.voiceId, text, lang });
+      /* Copie et non `new Uint8Array(buf.buffer)`: un Buffer node est une VUE
+         sur un tampon partagé, plus grand que lui la plupart du temps. Le
+         passer tel quel écrirait en base l'octet de quelqu'un d'autre. */
+      return new Uint8Array(audio) as Uint8Array<ArrayBuffer>;
+    }
+    return this.synthesiseWithEleven(text, sig);
+  }
+
+  private async synthesiseWithEleven(text: string, sig: VoiceSignature): Promise<Uint8Array<ArrayBuffer>> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), SYNTHESIS_TIMEOUT_MS);
     try {
-      const response = await fetch(`${ELEVEN_URL}/${voiceId}`, {
+      const response = await fetch(`${ELEVEN_URL}/${sig.voiceId}`, {
         method: 'POST',
         signal: controller.signal,
         headers: {
@@ -155,8 +270,9 @@ class GreetingAudioService {
           // from the rest of the call is worse than a slower one.
           /* Le même modèle que l'appel: l'accueil est le premier son que
              l'appelant entend, et l'entendre changer de grain à la deuxième
-             phrase est pire que les deux grains pris séparément. */
-          model_id: env.VOICE_TTS_MODEL,
+             phrase est pire que les deux grains pris séparément. Il vient de la
+             signature, donc de `buildVoice`, et non de l'environnement. */
+          model_id: sig.model,
           voice_settings: { stability: 0.22, similarity_boost: 0.65, style: 0.7, use_speaker_boost: true },
         }),
       });

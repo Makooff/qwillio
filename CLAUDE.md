@@ -281,6 +281,17 @@ parler dès qu'elle entend un peu de bruit », 19/08). Elle attend maintenant
 300 ms sur l'interruption volontaire. `VOICE_BARGE_IN_WORDS` règle le curseur
 sans déploiement : 1 pour l'intermédiaire, 0 pour l'ancien comportement.
 
+### 6bis. L'accueil pré-enregistré suit la voix de l'appel (09/09/2026)
+Une ligne de `greeting_audio` porte la voix qui l'a dite (`provider`, `voice_id`,
+`tts_model`), calculée par `buildVoice` — la même fonction que l'assistant. La
+LECTURE compare et écarte ce qui ne correspond pas. C'est ce qui manquait : le
+garde-fou d'avant était posé à la génération, donc la bascule vers Cartesia a
+éteint l'enregistrement pour tout le monde **tout en continuant à servir** les
+accueils dits par ElevenLabs, une voix accueillant et une autre répondant.
+Conséquence pratique : après un changement de voix de flotte, lancer
+`npm run voice:greetings` (simulation) puis `--confirm`, sinon l'optimisation
+reste éteinte jusqu'à ce qu'un réglage client bouge.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).
