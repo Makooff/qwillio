@@ -4,7 +4,7 @@ import { stripe } from '../config/stripe';
 import { logger } from '../config/logger';
 import { affiliateService } from './affiliate.service';
 import { env } from '../config/env';
-import { getPlan, annualPriceEur, type BillingPeriod } from '../config/plans';
+import { getPlan, annualPriceEur, type BillingPeriod, type Plan } from '../config/plans';
 import { discordService } from './discord.service';
 import { emailService } from './email.service';
 import { onboardingService } from './onboarding.service';
@@ -733,6 +733,7 @@ export class StripeService {
     const plan = getPlan(planType);
     const priceId = await this.resolvePriceId(planType, period);
     if (!priceId) throw new Error(`No Stripe price configured for plan: ${planType}`);
+    await this.assertPriceMatchesPlan(priceId, plan, period);
 
     const frontendUrl = env.FRONTEND_URL.split(',')[0].trim();
     const session = await stripe.checkout.sessions.create({
@@ -778,6 +779,7 @@ export class StripeService {
     const period: BillingPeriod = client.vapiConfig?.billingPeriod === 'annual' ? 'annual' : 'monthly';
     const priceId = await this.resolvePriceId(planType, period);
     if (!priceId) throw new Error(`No Stripe price configured for plan: ${planType}`);
+    await this.assertPriceMatchesPlan(priceId, getPlan(planType), period);
 
     // Paid client with active subscription → update subscription directly, no checkout
     const isActivePaid = client.stripeSubscriptionId &&
@@ -927,6 +929,69 @@ export class StripeService {
 
   // Optional manual override per plan (kept for backward compat). When set, it
   // wins over auto-provisioning so the founder can still pin a specific Price.
+  /* Prix VÉRIFIÉS pendant la vie du processus: une fois par identifiant suffit,
+     un prix Stripe ne change pas sous nos pieds. */
+  private verifiedPrices = new Set<string>();
+
+  /**
+   * Le prix facturé doit être celui que le site annonce.
+   *
+   * Ce sont DEUX objets sans lien: `config/plans.ts` décide de ce qui s'affiche,
+   * un objet Price chez Stripe décide de ce qui est prélevé. Rien ne les tenait
+   * ensemble, et `STRIPE_PRICE_<PLAN>_MONTHLY` court-circuite même le tarif du
+   * code sans rien vérifier. Le 09/09, la caisse annonçait « Qwillio Pro,
+   * 1297,00 € par mois » sous une page qui affichait 599 €: la variable
+   * d'environnement pointait un prix d'une tarification précédente.
+   *
+   * Un client aurait signé pour 599 et payé 1297. Ce n'est pas un défaut
+   * d'affichage, c'est le mauvais montant sur une vraie carte, et personne ne
+   * l'aurait vu avant le premier relevé.
+   *
+   * On REFUSE donc d'ouvrir la caisse plutôt que de facturer un montant que la
+   * page n'a pas annoncé. Une inscription bloquée se répare en une minute
+   * (corriger la variable), un prélèvement de trop se répare en remboursement,
+   * en excuse, et en confiance perdue.
+   */
+  private async assertPriceMatchesPlan(
+    priceId: string,
+    plan: Plan,
+    period: BillingPeriod,
+  ): Promise<void> {
+    if (this.verifiedPrices.has(priceId)) return;
+
+    const attendu = Math.round((period === 'annual' ? annualPriceEur(plan) : plan.monthlyPriceEur) * 100);
+    const intervalleAttendu = period === 'annual' ? 'year' : 'month';
+
+    const price = await stripe.prices.retrieve(priceId);
+    const ecarts: string[] = [];
+    if (price.unit_amount !== attendu) {
+      ecarts.push(`montant ${(price.unit_amount ?? 0) / 100} € au lieu de ${attendu / 100} €`);
+    }
+    if (price.currency !== 'eur') {
+      ecarts.push(`devise ${price.currency} au lieu de eur`);
+    }
+    if (price.recurring?.interval !== intervalleAttendu) {
+      ecarts.push(`période ${price.recurring?.interval ?? 'aucune'} au lieu de ${intervalleAttendu}`);
+    }
+
+    if (!ecarts.length) {
+      this.verifiedPrices.add(priceId);
+      return;
+    }
+
+    const message =
+      `Le prix Stripe ${priceId} ne correspond pas au plan ${plan.id} (${period}): ${ecarts.join(', ')}.`;
+    logger.error(`[Stripe] ${message}`);
+    await discordService.notify(
+      `🚨 TARIF INCOHÉRENT\n\n${message}\n\n` +
+        `La caisse est REFUSÉE tant que ce n'est pas corrigé: un client paierait un montant ` +
+        `que la page ne lui a pas annoncé.\n` +
+        `Corriger \`${plan.stripePriceEnv}\` sur Render, ou la retirer pour que le prix soit ` +
+        `créé depuis config/plans.ts.`,
+    );
+    throw new Error(message);
+  }
+
   private envPriceOverride(planId: string): string {
     switch (planId) {
       case 'solo':                 return env.STRIPE_PRICE_SOLO_MONTHLY;
@@ -995,6 +1060,12 @@ export class StripeService {
       product_data: { name: `Qwillio ${plan.name}` },
     });
     this.priceIdCache.set(cacheKey, price.id);
+    /* Créé À L'INSTANT depuis `config/plans.ts`: il porte le montant du plan par
+       construction. Le relire chez Stripe pour le vérifier ne prouverait rien et
+       coûterait un aller-retour. Ce que le garde-fou surveille, c'est l'autre
+       chemin: un identifiant posé en variable d'environnement, ou un prix
+       retrouvé par clé de recherche et créé sous une tarification précédente. */
+    this.verifiedPrices.add(price.id);
     logger.info(
       `Auto-created Stripe Price ${price.id} for plan ${planId} (${amountEur}€/${period === 'annual' ? 'an' : 'mo'})`
     );
