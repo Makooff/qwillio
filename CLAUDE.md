@@ -303,16 +303,19 @@ Deux pièges qui reviendront : 60 et 80 absorbent une dizaine (« soixante-douze
 `0475 12 34 56` est un mobile belge ET un fixe français du Sud-Est, tranché par
 le pays de la ligne appelante, jamais par le numéro seul.
 
-### 6quinquies. Un bloc de prompt régional dérègle le reste (09/09/2026)
-Deux régressions relevées par les évals après l'ajout des belgicismes, et la
-seconde n'a rien de belge. Décrire « une fois » comme un tic de langage a suffi
-à le faire **adopter** par l'agent (« je vais vérifier les disponibilités pour
-demain une fois »). Et une consigne de prudence écrite trop large (« en cas de
-doute sur un repas **ou une heure**, demande confirmation ») s'est substituée aux
-règles d'outils : à « un rendez-vous demain matin », l'agent demandait matin ou
-après-midi au lieu d'appeler `checkAvailability`. Règle qui en sort : un bloc
-ajouté au prompt se relit contre les scénarios EXISTANTS, pas seulement contre
-les siens, et une consigne de prudence se borne au cas qu'elle vise.
+### 6quinquies. Un glossaire de prompt ne contient AUCUN verbe d'action (09/09/2026)
+Le bloc belgicismes a fait échouer `fr-discipline-agenda`, un scénario sans aucun
+rapport avec la Belgique, **deux fois de suite** et pour la même raison de forme.
+D'abord « en cas de doute sur un repas ou une heure, demande confirmation », puis,
+après correction, la simple glose « quoi comme heure ? **demande** quelle heure »,
+indicative dans l'intention mais impérative à la lecture. Dans les deux cas : à
+« je voudrais un rendez-vous demain matin », l'agent répondait « le matin ou
+l'après-midi ? » au lieu d'appeler `checkAvailability`. Décrire « une fois » comme
+un tic de langage a de même suffi à le faire **adopter** par l'agent.
+Deux règles qui en sortent, et qui valent pour tout bloc ajouté au prompt : il se
+relit contre les scénarios **existants**, pas seulement contre les siens ; et un
+glossaire s'écrit « X veut dire Y », sans une seule phrase qui puisse se lire
+comme une consigne. Un test vérifie l'absence de verbe d'action dans le bloc.
 
 ### 6quater. Le vouvoiement se dit, il ne va pas de soi (09/09/2026)
 Tout le prompt s'adresse au modèle en « tu », comme une consigne s'écrit, et le
