@@ -442,7 +442,10 @@ Les fils de support des plateformes sont la source la plus honnête de tout ce d
 ### REL-5 — Sur le doute, considérer que c'est un humain
 
 - **Statut** : `PARTIEL`
-- **Preuve** : La règle existe, mais au mauvais endroit et à moitié : le prompt du robot de prospection dit qu'une réponse courte (« Hello ? », « Yeah ? ») est le feu vert humain (`backend/src/services/vapi.service.ts:1133`), tout en classant « 5+ secondes de silence au tout début » en répondeur et en raccrochant (`vapi.service.ts:1118`). Sur le réceptionniste et sur la jambe de transfert, rien du tout. Aucun test, aucune mesure : le critère (« humain dans 100 % des cas sur une salutation monosyllabique ») n'est vérifié nulle part.
+- **Preuve** : La règle du doute est désormais ÉCRITE, et elle passe avant toutes les autres : « dans le doute, c'est un HUMAIN », suivie de la raison — les deux erreurs ne coûtent pas la même chose. On ne raccroche plus que sur un signe EXPLICITE (`backend/src/services/voice/machine-detection.ts`, 8 tests).
+- **Le marqueur retiré, et pourquoi il était dangereux** : « une réponse trop parfaite, sans hésitation naturelle » figurait parmi les signes d'IA. C'est la description exacte d'une secrétaire expérimentée qui décroche mille fois par jour, c'est-à-dire du prospect le mieux tenu de la liste. Le bloc dit maintenant qu'une voix trop parfaite ne prouve RIEN.
+- **Un module, pas deux copies** : la règle vivait en double, une fois en français et une fois en anglais, dans deux fonctions de six cents lignes. Deux copies d'une règle finissent toujours par diverger, et celle-ci décide de qui se fait raccrocher au nez.
+- **Ce qui manque** : le critère demande un verdict mesuré à 100 % sur des salutations d'une syllabe, donc des appels réels. Et la règle ne couvre que la jambe SORTANTE : sur le réceptionniste et sur la jambe de transfert, il n'y a toujours rien à trancher, faute de détection.
 - **Action** : Sur une énonciation minimale — un mot, un bip, un silence — le verdict par défaut doit être « humain ».
 - **Pourquoi** : Le coût des deux erreurs est asymétrique : classer un humain en machine, c'est raccrocher au nez d'un client.
 - **Critère d'acceptation** : Test avec des salutations d'une seule syllabe. Verdict = humain dans 100 % des cas.
@@ -684,6 +687,7 @@ Le meilleur signal neutre du domaine est EVA-Bench : sur douze systèmes évalu�
 
 | Date | Ligne | De → vers | Commit | Note |
 |---|---|---|---|---|
+| 2026-09-09 | REL-5 | preuve complétée, reste `PARTIEL` | `claude/optimisations-audit-vocal-68tgg2` | « Dans le doute, c'est un humain » écrit en tête du bloc de détection, marqueur « voix trop parfaite » retiré (c'est la description d'une secrétaire expérimentée), et la règle sort des deux prompts pour vivre dans un seul module. |
 | 2026-09-09 | LEG-4 | preuve complétée, reste `PARTIEL` | `claude/optimisations-audit-vocal-68tgg2` | Chaque appel porte sa date limite, posée à l'écriture; la purge efface au premier des deux termes échus. Le plafond à cinq ans reste une décision à prendre, pas un correctif. |
 | 2026-09-09 | REL-3 | `PARTIEL` → `DÉJÀ FAIT` | `claude/optimisations-audit-vocal-68tgg2` | Le plafond sur le premier token descend de 4 s à 2,5 s, réglable, et un test bloque le modèle pour vérifier que la phrase de secours part avant trois secondes. Phrase de secours ajoutée en néerlandais. |
 | 2026-09-09 | TUR-7, TUR-10 | preuve complétée, restent `PARTIEL` | `claude/optimisations-audit-vocal-68tgg2` | Mots d'arrêt et acquiescements réglables par client puis par environnement, dédoublonnés (Vapi refuse l'assistant entier sur une répétition) et jamais vides. Les deux critères demandent une mesure sur appel réel. |

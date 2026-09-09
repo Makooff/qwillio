@@ -1,6 +1,7 @@
 import { prisma } from '../config/database';
 import { vapiClient } from '../config/vapi';
 import { logger } from '../config/logger';
+import { machineDetectionBlock } from './voice/machine-detection';
 import { env } from '../config/env';
 import { CallAnalysis } from '../types';
 import { recommendPackage, NICHE_PRIORITY_ORDER } from '../utils/helpers';
@@ -945,28 +946,7 @@ SI silence de 2-3 secondes après ton "Allô ?" :
 SI toujours rien après encore 2-3 secondes :
 → Appelle endCall immédiatement. Pas un mot, pas de message, raccroche.
 
-━━━ RÉPONDEUR / SVI / DÉTECTION IA ━━━
-
-Dès que tu détectes l'un de ces éléments, appelle endCall. Pas un mot. Raccroche.
-
-RÉPONDEUR :
-- "Vous êtes bien sur la messagerie de..." / "Merci de laisser un message après le bip"
-- "Je ne suis pas disponible" / "Je ne peux pas prendre votre appel"
-- Un bip après un message enregistré
-- 5+ secondes de silence au tout début
-
-SVI / MENU TÉLÉPHONIQUE :
-- "Tapez 1 pour..." / "Pour le service commercial, tapez 2..."
-- "Merci d'appeler [entreprise]. Nos horaires sont..."
-- "Veuillez patienter pendant que nous transférons votre appel"
-- Toute voix automatisée qui lit un menu
-
-ASSISTANT IA :
-- "Bonjour ! Je suis [nom], l'assistant virtuel de [entreprise]"
-- Une réponse trop parfaite, sans hésitation naturelle
-- Quelque chose qui sonne pré-programmé et trop lisse
-
-Les vrais humains hésitent légèrement, disent quelque chose de court — "Allô ?", "Oui ?", "[Nom du cabinet]", leur prénom. C'est ton signal vert.
+${machineDetectionBlock('fr')}
 
 ━━━ QUI TU ES ━━━
 
@@ -1109,28 +1089,7 @@ IF silence for 2–3 seconds after your "Hello?":
 IF still nothing after another 2–3 seconds:
 → Call endCall immediately. Don't speak, don't leave a message, just hang up.
 
-━━━ VOICEMAIL / IVR / AI DETECTION ━━━
-
-The instant you detect any of these, call endCall. No words. Just hang up.
-
-VOICEMAIL:
-- "You have reached the voicemail of..." / "Please leave a message after the beep"
-- "I'm not available" / "I can't come to the phone right now"
-- A beep following a recorded message
-- 5+ seconds of silence at the very start
-
-IVR / PHONE MENU:
-- "Press 1 for..." / "For sales, press 2..." / "Para español..."
-- "Thank you for calling [business]. Our hours are..."
-- "Please hold while we connect your call"
-- Any automated voice reading out a menu
-
-AI ASSISTANT:
-- "Hi! I'm [name], [Company]'s virtual assistant"
-- A response that's perfectly polished with zero natural hesitation
-- Anything that sounds pre-programmed and too smooth
-
-Real humans pause slightly, say something short — "Hello?", "Yeah?", "[Business name]", their own name. That's your green light.
+${machineDetectionBlock('en')}
 
 ━━━ WHO YOU ARE ━━━
 
