@@ -9,6 +9,7 @@ import { businessMemoryService } from './business-memory.service';
 import { availabilitySpeculator } from './availability-speculator';
 import { parseSpokenPhone } from '../../utils/phone-spoken';
 import { phoneWords } from '../../utils/text-for-speech';
+import { normaliseAddress } from '../../utils/be-communes';
 
 /**
  * Tool runtime (Phase 4).
@@ -442,6 +443,17 @@ class ToolRuntimeService {
       urgency: ['low', 'normal', 'high'].includes(args.urgency) ? String(args.urgency) : 'normal',
     };
 
+    /* L'adresse, avec sa commune ramenée à UNE forme (BEL-6).
+       Ixelles et Elsene sont le même endroit et deux noms également
+       officiels. Sans cette normalisation, deux appelants qui donnent la même
+       adresse produisent deux lignes différentes dans le CRM, le client croit
+       à deux clients, et il rappelle pour demander où il doit aller.
+       La langue retenue est celle du CLIENT, pas de l'appelant: c'est lui qui
+       relit la fiche. */
+    const address = typeof args.address === 'string' && args.address.trim()
+      ? normaliseAddress(args.address.trim(), profile.language)
+      : null;
+
     callSessionStore.recordLead(vapiCallId, lead);
 
     /* Le numéro DICTÉ, validé avant d'être cru (BEL-3).
@@ -482,7 +494,7 @@ class ToolRuntimeService {
           source: 'ai_receptionist',
           vapiCallId,
           capturedAt: new Date().toISOString(),
-          contact: { name: lead.name, email: lead.email, phone },
+          contact: { name: lead.name, email: lead.email, phone, address },
           reason: lead.reason,
           urgency: lead.urgency,
           language: profile.language,
