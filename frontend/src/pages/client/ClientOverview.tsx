@@ -3,7 +3,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
 import {
   Phone, Bot, Settings, ChevronRight, AlertCircle,
-  Headphones, Sparkles, PhoneForwarded, Pause,
+  Headphones, Sparkles, PhoneForwarded,
 } from '../../components/icons';
 import { useAuthStore } from '../../stores/authStore';
 import { fetchLive, peekLive, subscribeLive } from '../../services/liveData';
@@ -11,8 +11,8 @@ import { daysUntil } from '../../utils/format';
 import OnboardingChecklist from '../../components/client/OnboardingChecklist';
 import {
   KpiSplit, HeroTrendPanel, RadialGauge, TallyMeter, DetailCard,
-  AttentionList, SegmentBar, InsightCard,
-  type KpiCell, type AttnItem, type Dir,
+  SegmentBar, InsightCard,
+  type KpiCell, type Dir,
 } from '../../components/dashboard/OverviewBlocks';
 
 /** Shared with the launch-time preload, so both hit the same cache entry. */
@@ -180,20 +180,17 @@ export default function ClientOverview() {
     },
   ];
 
-  // Needs-attention items, derived from real state
-  const attn: AttnItem[] = [];
-  if (!c.transferNumber) {
-    attn.push({ icon: AlertCircle, label: 'Numéro de transfert manquant', to: '/dashboard/receptionist#transfer', tone: 'bad' });
-  }
-  if (c.forwardingStatus !== 'verified' && !c.forwardingVerifiedAt) {
-    attn.push({ icon: PhoneForwarded, label: "Renvoi d'appel à configurer", to: '/dashboard/setup/call-forwarding', tone: 'warn' });
-  }
-  if (c.isTrial) {
-    attn.push({ icon: Sparkles, label: `Essai: ${daysUntil(c.trialEndDate as string)} jours restants`, to: '/dashboard/billing', tone: 'warn', count: daysUntil(c.trialEndDate as string) });
-  }
-  if (isPaused) {
-    attn.push({ icon: Pause, label: 'Abonnement en pause', to: '/dashboard/billing', tone: 'bad' });
-  }
+  /* « À traiter » a été RETIRÉ, pas déplacé ailleurs sur la page.
+     Il vivait tout en bas du rail de droite, sous l'abonnement, c'est-à-dire
+     sous la ligne de flottaison: la seule liste qui disait quoi faire était
+     celle qu'on ne voyait pas. Et elle redisait ce que le bandeau « Démarrer
+     avec Qwillio » dit déjà, en haut, en plus complet — deux listes des mêmes
+     tâches, dont une invisible, se contredisent au premier écart.
+     Ce qu'elle portait en propre n'était pas une tâche: la fin d'essai et la
+     pause d'abonnement sont des ÉTATS, et ils se lisent dans la fiche
+     Abonnement, à leur place. Ce qui était une tâche (numéro de transfert,
+     renvoi d'appel) est une étape du bandeau, et l'étape du transfert se coche
+     enfin sur le bon champ. */
 
   const insightText = sentTotal > 0
     ? <>Sentiment positif sur <strong className="font-semibold">{positiveRate}%</strong> des appels analysés, avec un taux de conversion de <strong className="font-semibold">{convRate}%</strong> ce mois.</>
@@ -212,8 +209,14 @@ export default function ClientOverview() {
     subscriptionStatus: c.subscriptionStatus as string | undefined,
     businessName: c.businessName as string | undefined,
   };
-  const onboardingDone = onboardingClient.hasPhone && onboardingClient.hasTestCall
-    && onboardingClient.hasCustomConfig && onboardingClient.isActive;
+  /* Le bandeau reste tant qu'il RESTE quelque chose, et les deux conditions
+     ajoutées sont celles que « À traiter » portait: sans elles, un compte sans
+     numéro de transfert et sans renvoi d'appel voyait le bandeau disparaître
+     comme si tout était réglé, alors que les deux réglages qui font sonner le
+     téléphone chez le bon interlocuteur manquaient encore. */
+  const onboardingDone = onboardingClient.hasTestCall && onboardingClient.hasCustomConfig
+    && onboardingClient.isActive && !!onboardingClient.transferNumber
+    && onboardingClient.hasCallForwarding;
 
   // --- Loading skeleton ---
   if (loading) {
@@ -457,7 +460,17 @@ export default function ClientOverview() {
               { k: 'Plan', v: planLabel },
               { k: 'Statut', v: isActive ? (c.isTrial ? 'Essai' : 'Actif') : isPaused ? 'En pause' : 'Inactif', status: isActive ? 'ok' : isPaused ? 'warn' : 'bad' },
               { k: 'Numéro IA', v: (c.vapiPhoneNumber as string) || '—' },
-              { k: c.isTrial ? 'Fin d’essai' : 'Renouvellement', v: c.trialEndDate ? new Date(c.trialEndDate as string).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '—' },
+              /* Le compte à rebours d'essai, qui vivait dans « À traiter ».
+                 C'est un état, pas une tâche: il appartient à la fiche qui
+                 porte déjà le plan et le statut, et il s'y lit sans avoir à
+                 dérouler la page. */
+              {
+                k: c.isTrial ? 'Fin d’essai' : 'Renouvellement',
+                v: c.trialEndDate
+                  ? `${new Date(c.trialEndDate as string).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}`
+                    + (c.isTrial ? ` (${daysUntil(c.trialEndDate as string)} j)` : '')
+                  : '—',
+              },
             ]}
             action={{ label: 'Gérer la facturation', to: '/dashboard/billing' }}
           />
@@ -467,7 +480,6 @@ export default function ClientOverview() {
               ligne de flottaison, pour une information qu'on consulte une
               fois, au moment de comparer les forfaits. */}
 
-          <AttentionList title="À traiter" items={attn} empty="Tout est en ordre." />
         </div>
       </div>
 
