@@ -427,6 +427,24 @@ describe('la patience posée par question', () => {
     expect(secondsFor('fr', 'Bonjour, que puis-je faire pour vous ?')).toBeNull();
   });
 
+  /**
+   * Le motif sans frontière de mot matchait « rue » DANS « cruel ». L'agent
+   * devenait donc patient sur un tour qui n'a rien à voir avec une adresse.
+   * Trouvé en relisant le diff, pas par un appel: c'est le genre d'erreur
+   * qu'aucun appelant ne signalerait jamais, il trouverait juste l'agent lent.
+   */
+  it('ne matche pas un mot À L\'INTÉRIEUR d\'un autre', () => {
+    expect(secondsFor('fr', 'C\'est cruel de vous faire attendre')).toBeNull();
+    expect(secondsFor('en', 'That was a cruel wait')).toBeNull();
+  });
+
+  it('distingue « spellen » de « spelen », qui ne veulent pas dire la même chose', () => {
+    // Épeler contre jouer. Un seul L rendrait l'agent patient chaque fois
+    // qu'il parle de jeu, d'enfants ou d'horaires de match.
+    expect(secondsFor('nl', 'Kunt u dat spellen?')).not.toBeNull();
+    expect(secondsFor('nl', 'De kinderen spelen buiten')).toBeNull();
+  });
+
   it('n\'envoie pas regexOptions, dont la forme n\'est pas certaine', () => {
     // La référence d'API en donne une forme, l'exemple de la documentation
     // l'omet. Se tromper ferait refuser l'assistant ENTIER, donc tous les

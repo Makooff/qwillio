@@ -314,18 +314,24 @@ export function buildTranscriber(lang: VoiceLanguage, opts: SpeechOptions = {}) 
  */
 const PATIENT_SLOTS: Record<VoiceLanguage, Array<{ regex: string; seconds: number }>> = {
   fr: [
-    // L'adresse postale: trois blocs, de vrais silences entre eux.
-    { regex: '([Aa]dresse|[Rr]ue|[Cc]ode postal|[Nn]um[ée]ro de rue)', seconds: 2.5 },
+    /* L'adresse postale: trois blocs, de vrais silences entre eux.
+       Les frontières de mot ne sont pas décoratives: sans elles, `rue` matche
+       dans « c'est CRUel de vous faire attendre », et l'agent devient patient
+       sur un tour qui n'a rien à voir. Vérifié, c'était le cas. */
+    { regex: '\\b([Aa]dresse|[Rr]ue|[Cc]ode postal)\\b', seconds: 2.5 },
     // L'e-mail et l'épellation: lettre par lettre, les pauses les plus longues.
-    { regex: '([Ee]-?mail|[Cc]ourriel|[ÉEé]peler|[ée]pelez|lettre par lettre)', seconds: 3 },
+    { regex: '\\b([Ee]-?mail|[Cc]ourriel|lettre par lettre)\\b|[ÉEé]pel(er|ez)\\b', seconds: 3 },
   ],
   en: [
-    { regex: '([Aa]ddress|[Ss]treet|[Pp]ost(al)? ?code|[Zz]ip)', seconds: 2.5 },
-    { regex: '([Ee]-?mail|[Ss]pell)', seconds: 3 },
+    { regex: '\\b([Aa]ddress|[Ss]treet|[Pp]ost(al)? ?code|[Zz]ip)\\b', seconds: 2.5 },
+    { regex: '\\b([Ee]-?mail|[Ss]pell)', seconds: 3 },
   ],
   nl: [
-    { regex: '([Aa]dres|[Ss]traat|[Pp]ostcode)', seconds: 2.5 },
-    { regex: '([Ee]-?mail|[Ss]pel)', seconds: 3 },
+    { regex: '\\b([Aa]dres|[Ss]traat|[Pp]ostcode)\\b', seconds: 2.5 },
+    /* Deux L, et c'est toute la règle: « spellen » veut dire épeler, « spelen »
+       veut dire jouer. Un seul L rendrait l'agent patient chaque fois qu'il
+       parle de jeu, d'enfants ou d'horaires de match. */
+    { regex: '\\b([Ee]-?mail|[Ss]pell)', seconds: 3 },
   ],
 };
 
