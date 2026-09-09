@@ -578,7 +578,9 @@ L'obligation de transparence pèse sur le fournisseur du système d'IA — c'est
 ### LEG-5 — Permettre de désactiver l'audio et de ne garder que le résumé
 
 - **Statut** : `PARTIEL`
-- **Preuve** : Le mode existe et est honoré de bout en bout dans le code : `recordCalls` → `shouldRecord` → `recordingEnabled: false` sur l'assistant (`backend/src/services/voice/realtime-orchestrator.service.ts:181`), la notice disparaît de l'accueil, et le compte rendu écrit survit (l'analyse tourne sur le transcript, `voice-webhook.controller.ts:201`). Testé côté accueil (`__tests__/compliance-disclosure.test.ts:78-93`). Ce qui manque : il n'est atteignable qu'en écrivant le JSON brut `vapiConfig` (`realtime-context.service.ts:306`) — aucune interface ne l'expose (grep sur `frontend/src` : zéro occurrence de `recordCalls`) — le drapeau qui le pilote s'appelle `disableRecordingNotice`, ce qui ne dit pas qu'il coupe l'enregistrement, et rien n'est testé de bout en bout.
+- **Preuve** : Le mode existe et est honoré de bout en bout (`recordCalls` → `shouldRecord` → `recordingEnabled: false` sur l'assistant, notice retirée de l'accueil, compte rendu écrit conservé). Il est désormais ATTEIGNABLE sans écrire de JSON à la main : `PUT /my-dashboard/settings` accepte `recordCalls` au premier niveau (`client-dashboard.controller.ts`).
+- **Le défaut trouvé en chemin, et qui dépassait cette ligne** : `vapiConfig` était REMPLACÉ par ce que l'appel envoyait. Tout tient dans ce seul champ — moteur de synthèse du client, chemin custom-LLM, base de connaissances, mode sans enregistrement — donc une omission les effaçait tous, en silence, et personne ne s'en apercevait avant le prochain appel entrant. Il est maintenant FUSIONNÉ, `null` retirant une clé explicitement. C'est le même piège que le PUT partiel documenté dans `CLAUDE.md`, en pire, parce qu'ici un seul champ porte tout. 5 tests.
+- **Ce qui manque** : l'écran. Le réglage se pose par l'API, pas encore par une case à cocher dans le portail, et le test de bout en bout du mode (assistant + accueil + compte rendu dans un même parcours) n'existe toujours pas.
 - **Action** : Un mode où rien n'est enregistré, seul le compte rendu écrit subsiste.
 - **Pourquoi** : Indispensable pour vendre au médical. Et c'est un argument, pas une contrainte.
 - **Critère d'acceptation** : Mode disponible par client, testé de bout en bout.
@@ -689,6 +691,7 @@ Le meilleur signal neutre du domaine est EVA-Bench : sur douze systèmes évalu�
 
 | Date | Ligne | De → vers | Commit | Note |
 |---|---|---|---|---|
+| 2026-09-09 | LEG-5 | preuve complétée, reste `PARTIEL` | `claude/optimisations-audit-vocal-68tgg2` | Le mode sans enregistrement s'active par l'API. Et `vapiConfig` est fusionné au lieu d'être remplacé: le remplacement effaçait en silence tous les réglages absents de l'appel. |
 | 2026-09-09 | LEG-1 | `PARTIEL` → `DÉJÀ FAIT` | `claude/optimisations-audit-vocal-68tgg2` | Un accueil de ligne en texte libre ne peut plus faire sauter l'annonce IA: il est complété, pas écarté. Booléen consigné par appel et alerte critique s'il est faux. |
 | 2026-09-09 | TST-9 | `ABSENT` → `PARTIEL` | `claude/optimisations-audit-vocal-68tgg2` | Abandon découpé par index de tour dans le rapport hebdomadaire, avec une action différente selon l'endroit où l'appelant part. Reste l'affichage au tableau de bord, et des appels à décrire. |
 | 2026-09-09 | REL-5 | preuve complétée, reste `PARTIEL` | `claude/optimisations-audit-vocal-68tgg2` | « Dans le doute, c'est un humain » écrit en tête du bloc de détection, marqueur « voix trop parfaite » retiré (c'est la description d'une secrétaire expérimentée), et la règle sort des deux prompts pour vivre dans un seul module. |

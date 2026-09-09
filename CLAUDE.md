@@ -325,6 +325,16 @@ un scénario d'évaluation. Une règle explicite est posée dans les règles de 
 demander l'inverse. Un scénario d'éval le vérifie sans coûter un tour de modèle de
 plus, en s'accrochant à `fr-divulgation-ia`.
 
+### 6sexies. `vapiConfig` se FUSIONNE, il ne se remplace pas (09/09/2026)
+Le PUT du portail remplaçait le champ entier par ce que l'appel envoyait. Or tout
+tient dedans : le moteur de synthèse du client, le chemin custom-LLM, la base de
+connaissances, le mode sans enregistrement. Une omission les effaçait tous, en
+silence, et rien ne le montrait avant le prochain appel entrant. C'est le même
+piège que le PUT partiel du point 2, en pire, parce qu'ici un seul champ porte
+tout. Il est fusionné (`mergeVapiConfig`), `null` retirant une clé explicitement,
+et la fusion est SUPERFICIELLE : une fusion profonde rendrait impossible de
+retirer une entrée d'une sous-liste.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).
