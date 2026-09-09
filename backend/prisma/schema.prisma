@@ -652,6 +652,17 @@ model ClientCall {
   spamReasons      String[]        @default([]) @map("spam_reasons")
   tags             String[]        @default([])
   metadata         Json?
+  /// La DATE LIMITE de cet appel, posée à l'écriture (LEG-4).
+  ///
+  /// La purge la calculait à chaque passage depuis le réglage COURANT du
+  /// client: un enregistrement ne portait donc aucune échéance, et « jusqu'à
+  /// quand gardez-vous cet appel » n'avait pas de réponse vérifiable.
+  /// La purge efface au PREMIER des deux termes échus, celui-ci ou le calcul
+  /// courant: un client qui rallonge sa conservation ne prolonge pas les
+  /// appels déjà enregistrés, et un client qui la raccourcit les efface plus
+  /// tôt. Le sens de la CNIL, pas celui du confort.
+  /// Nulle sur les lignes antérieures: elles restent régies par le calcul.
+  retainUntil      DateTime?       @map("retain_until")
   createdAt        DateTime        @default(now()) @map("created_at")
   activities       Activity[]
   callTransfers    CallTransfer[]
@@ -663,6 +674,8 @@ model ClientCall {
   @@index([createdAt])
   @@index([clientId, voiceMode, createdAt])
   @@index([clientId, createdAt])
+  /// La purge quotidienne balaie sur cette colonne seule.
+  @@index([retainUntil])
   @@map("client_calls")
 }
 
@@ -2128,6 +2141,17 @@ model GreetingAudio {
   text      String
   mimeType  String   @default("audio/mpeg") @map("mime_type") @db.VarChar(100)
   data      Bytes
+  /// Qui a synthétisé cette ligne: `11labs` ou `cartesia`.
+  ///
+  /// Avec `voiceId` et `ttsModel`, c'est la SIGNATURE de l'accueil. La lecture
+  /// la compare à la voix que l'appel servira et refuse ce qui diffère: le même
+  /// texte dit par deux synthèses, ce sont deux voix, et les entendre se
+  /// succéder dans le premier tour s'entend beaucoup plus qu'un accueil lent.
+  /// Nulle sur les lignes antérieures au 09/09: provenance inconnue, donc non
+  /// servie, et régénérée à la prochaine synchronisation.
+  provider  String?  @db.VarChar(20)
+  voiceId   String?  @map("voice_id") @db.VarChar(100)
+  ttsModel  String?  @map("tts_model") @db.VarChar(100)
   createdAt DateTime @default(now()) @map("created_at")
   client    Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
 

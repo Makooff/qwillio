@@ -205,3 +205,122 @@ describe('les règles de transfert, réglées par le client', () => {
     expect(Math.max(...tailles) - Math.min(...tailles)).toBeLessThan(30);
   });
 });
+
+/**
+ * BEL-8: les belgicismes s'apprennent au MODÈLE, pas au transcripteur.
+ *
+ * Ces mots sont parfaitement transcrits: c'est leur SENS qui diffère. Deux
+ * d'entre eux coûtent un rendez-vous chacun, et se trompent en silence.
+ */
+/**
+ * Le registre, et pourquoi il doit être dit.
+ *
+ * Tout le prompt s'adresse au modèle en « tu », comme une consigne s'écrit. Le
+ * modèle reprend ce registre et le retourne à l'appelant: « c'est quoi ton
+ * nom ? », relevé sur un vrai scénario d'évaluation. Un réceptionniste qui
+ * tutoie un inconnu s'entend en une seconde.
+ */
+/**
+ * La discipline d'agenda, dite explicitement.
+ *
+ * « Un rendez-vous demain matin » suffit pour consulter. Demander « le matin ou
+ * l'après-midi ? » avant d'avoir regardé coûte un tour entier à l'appelant et
+ * ne change rien à ce que l'agenda contient. Le scénario d'évaluation a attrapé
+ * ce comportement deux fois: la règle manquait, elle est maintenant écrite.
+ */
+describe('buildSystemPrompt — consulter avant de préciser', () => {
+  it('interdit de demander une précision avant de consulter l\'agenda', () => {
+    const prompt = buildSystemPrompt(profile, newCaller);
+    expect(prompt).toMatch(/checkAvailability AVANT de proposer une heure ou de demander une précision/);
+  });
+
+  it('le dit dans les trois langues', () => {
+    expect(buildSystemPrompt({ ...profile, language: 'en' }, newCaller)).toMatch(/Do not ask for more detail before checking/);
+    expect(buildSystemPrompt({ ...profile, language: 'nl' }, newCaller)).toMatch(/Vraag niet om meer details voor je controleert/);
+  });
+});
+
+describe('buildSystemPrompt — le vouvoiement', () => {
+  it('demande explicitement de vouvoyer, en français', () => {
+    expect(buildSystemPrompt(profile, newCaller)).toMatch(/Vouvoie toujours l'appelant/);
+  });
+
+  it('demande « u » en néerlandais, où le piège est le même', () => {
+    expect(buildSystemPrompt({ ...profile, language: 'nl' }, newCaller)).toMatch(/altijd aan met « u »/);
+  });
+
+  it('reste au-dessus du client, qui peut demander l\'inverse', () => {
+    // Les consignes du client passent avant le métier: un coiffeur qui tutoie
+    // sa clientèle est un choix, pas un défaut.
+    const p = buildSystemPrompt({ ...profile, instructions: 'Tutoyer les clients, on est un skate shop.' }, newCaller);
+    expect(p).toMatch(/Vouvoie toujours l'appelant/);
+    expect(p).toMatch(/Tutoyer les clients/);
+    expect(p.indexOf('Vouvoie toujours')).toBeLessThan(p.indexOf('Tutoyer les clients'));
+  });
+});
+
+describe('buildSystemPrompt — français de Belgique', () => {
+  const be = (over: Record<string, unknown> = {}) =>
+    buildSystemPrompt({ ...profile, country: 'BE', ...over }, newCaller);
+
+  /** Les quinze énoncés que le plan demande de couvrir, et ce qu'ils veulent dire. */
+  const belgicisms: Array<[string, RegExp]> = [
+    ['dîner = midi', /« dîner » = repas de MIDI/],
+    ['souper = soir', /« souper » = repas du soir/],
+    ['déjeuner = petit-déjeuner', /« déjeuner » = petit-déjeuner/],
+    ['je ne sais pas venir', /« je ne PEUX pas »/],
+    ['annulation annoncée', /« Je ne sais pas venir mardi » = une annulation/],
+    ['septante', /« septante » = 70/],
+    ['nonante', /« nonante » = 90/],
+    ['septante-et-un', /« septante-et-un » = 71/],
+    ['nonante-et-un', /« nonante-et-un » = 91/],
+    ['s\'il vous plaît final', /Ce n'est pas une demande/],
+    ['une fois', /tics DE L'APPELANT, sans contenu/],
+    ['GSM', /« GSM » = téléphone portable/],
+    ['quoi comme', /« quoi comme » = « quel »\./],
+    ['à tantôt', /à tout à l'heure/],
+    ['faire la file', /faire la queue/],
+    ['ça va aller', /= une acceptation/],
+    ['le vocabulaire ne commande rien', /ni tes outils, ni tes règles/],
+  ];
+
+  for (const [label, pattern] of belgicisms) {
+    it(`apprend « ${label} » à l'agent`, () => {
+      expect(be()).toMatch(pattern);
+    });
+  }
+
+  /**
+   * Deux régressions relevées sur des scénarios d'évaluation, et la seconde
+   * n'avait rien de belge.
+   *
+   * Décrire « une fois » comme un tic de langage suffisait à le faire ADOPTER
+   * par l'agent. Et une consigne de prudence écrite trop large (« en cas de
+   * doute sur un repas OU UNE HEURE, demande confirmation ») s'est substituée
+   * aux règles d'outils: à « un rendez-vous demain matin », l'agent demandait
+   * matin ou après-midi au lieu de consulter l'agenda.
+   */
+  it('donne les tics à COMPRENDRE, pas à imiter', () => {
+    expect(be()).toMatch(/Tu ne les emploies jamais toi-même/);
+  });
+
+  /**
+   * Un glossaire qui contient un verbe d'action se lit comme une consigne, et
+   * une consigne écrite là se substitue aux règles du métier, qui sont
+   * ailleurs. Deux versions ont dérapé sur ce point, dont une qui a coûté un
+   * scénario sans aucun rapport avec la Belgique.
+   */
+  it("ne contient aucune phrase à l'impératif", () => {
+    const bloc = be().split('FRANÇAIS DE BELGIQUE')[1].split('\n\n')[0];
+    expect(bloc).not.toMatch(/\bdemande-lui\b|\bdemande quelle\b|\bpropose\b|\bvérifie\b|\bappelle\b/);
+    expect(bloc).toMatch(/Rien ici ne te dit quoi faire/);
+    expect(bloc).toMatch(/ni tes outils, ni tes règles/);
+  });
+
+  it("ne sert ce bloc qu'aux appelants belges francophones", () => {
+    // Un commerce français n'a que faire de « septante », et un prompt
+    // néerlandophone encore moins: chaque ligne inutile dilue les autres.
+    expect(be({ country: 'FR' })).not.toMatch(/FRANÇAIS DE BELGIQUE/);
+    expect(be({ language: 'nl' })).not.toMatch(/FRANÇAIS DE BELGIQUE/);
+  });
+});

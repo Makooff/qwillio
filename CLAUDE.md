@@ -281,6 +281,131 @@ parler dès qu'elle entend un peu de bruit », 19/08). Elle attend maintenant
 300 ms sur l'interruption volontaire. `VOICE_BARGE_IN_WORDS` règle le curseur
 sans déploiement : 1 pour l'intermédiaire, 0 pour l'ancien comportement.
 
+### 6bis. L'accueil pré-enregistré suit la voix de l'appel (09/09/2026)
+Une ligne de `greeting_audio` porte la voix qui l'a dite (`provider`, `voice_id`,
+`tts_model`), calculée par `buildVoice` — la même fonction que l'assistant. La
+LECTURE compare et écarte ce qui ne correspond pas. C'est ce qui manquait : le
+garde-fou d'avant était posé à la génération, donc la bascule vers Cartesia a
+éteint l'enregistrement pour tout le monde **tout en continuant à servir** les
+accueils dits par ElevenLabs, une voix accueillant et une autre répondant.
+Conséquence pratique : après un changement de voix de flotte, lancer
+`npm run voice:greetings` (simulation) puis `--confirm`, sinon l'optimisation
+reste éteinte jusqu'à ce qu'un réglage client bouge.
+
+### 6ter. Le numéro que l'appelant dicte (09/09/2026)
+Trois fichiers, une seule chaîne : `utils/spoken-numbers.ts` lit « septante-cinq »
+et « nonante-et-un » (0 à 100 testé dans les deux variantes), `utils/phone-spoken.ts`
+valide avec **libphonenumber-js/max** (la métadonnée complète : la réduite valide
+sur la longueur seule et accepte `045123456`), et `captureLead` porte enfin un
+champ `phone`. Avant, aucun numéro dicté n'était capté nulle part.
+Deux pièges qui reviendront : 60 et 80 absorbent une dizaine (« soixante-douze »),
+70 et 90 non, sinon on fabrique un nombre que personne n'a dit ; et
+`0475 12 34 56` est un mobile belge ET un fixe français du Sud-Est, tranché par
+le pays de la ligne appelante, jamais par le numéro seul.
+
+### 6septies. Le clavier est le seul canal sans erreur, et il s'arme d'avance (09/09/2026)
+Au **deuxième** numéro dicté illisible, l'agent ne fait plus redicter : il demande
+la saisie au clavier, terminée par dièse. Redemander une troisième dictée refait
+ce qui vient de rater deux fois, la cause (accent, ligne, chiffres collés) ne
+bougeant pas entre deux essais.
+Deux choses à ne pas défaire. Le plan `keypadInputPlan` est armé sur **tous** les
+appels et pas seulement après un échec : il se déclare à la construction de
+l'assistant, et l'assistant ne se reconstruit pas en cours d'appel. Et
+`delimiters` est une **chaîne** (`'#'`), pas un tableau : le tableau vient d'un
+changelog de 2025, la référence d'API courante donne la chaîne, et se tromper de
+type ferait refuser l'assistant ENTIER, donc tous les appels de la flotte.
+Ce que ça change à la réception : Vapi remonte les touches comme un message
+utilisateur fait de chiffres propres, au lieu de laisser le STT transcrire les
+tonalités en charabia. Elles apparaissent donc au transcript, proprement — ce
+n'est pas « absent du transcript » comme l'écrivait REL-8, mais c'est le contraire
+du bug visé.
+
+### 6octies. `npm run voice:validate` avant tout déploiement qui touche l'assistant (09/09/2026)
+Un champ inconnu ne dégrade pas un appel : il fait refuser l'assistant **entier**,
+et tous les appels de la flotte tombent d'un coup. C'est arrivé deux fois
+(`backchannelPlan`, `voice.chunkPlan.punctuationBoundaries`), et la seule trace
+est un 400 de Vapi que personne ne lit, puisque le code a l'air correct.
+`vapi-schema.test.ts` fige les leçons déjà payées ; il ne peut pas prédire la
+prochaine, il ne parle pas à Vapi. Le script, si : il POSTe un assistant jetable
+pour les **six** variantes (trois langues × deux moteurs, dont les plans
+diffèrent) et le supprime. Un 400 ne crée rien, Vapi validant avant d'écrire.
+Cinq champs ajoutés le 09/09 n'ont jamais été vus par l'API vivante :
+`keypadInputPlan`, `firstMessageInterruptionsEnabled`, `customEndpointingRules`,
+`transferPlan.dialTimeout`, et `keyterm`/`keywords`. Les faire valider est la
+première chose à faire, avant même le premier appel de test.
+**Piège Deepgram** : `keyterm` n'existe que sur Nova-3, `keywords` sur Nova-2 et
+en dessous, et nos langues ne tournent pas sur le même modèle (fr/en en Nova-3,
+nl en Nova-2). Le champ se choisit par modèle, jamais globalement.
+
+### 6nonies. Un refus de Vapi ne doit plus être silencieux (09/09/2026)
+`syncVapiAssistant` lève, et ses **deux** appelants attrapent pour écrire un
+`logger.warn` avant de répondre `success: true`. Le client enregistre un réglage,
+la base est à jour, l'interface dit que c'est fait, et l'assistant **distant**
+garde son ancienne configuration pour toujours. Tous les appels suivants passent
+par un agent périmé. C'est le mode d'échec des deux pannes de flotte, et il
+n'avait jamais été rendu bruyant, seulement documenté après coup.
+`reportAssistantSyncFailure` (`services/voice/vapi-error.ts`) alerte désormais sur
+Discord avec **le corps de la réponse**, qui nomme le champ fautif : c'est la
+seule chose que le code ne pouvait pas deviner.
+La distinction porte tout : un **4xx** dit que la charge est invalide, or elle est
+construite par le même code pour tout le monde, donc c'est un incident de FLOTTE
+même s'il se voit sur un compte. Un **5xx / réseau / 429** ne dit rien sur la
+charge et se retentera seul ; alerter dessus avec la même force apprendrait à
+ignorer l'alerte. 429 est un 4xx qui ne compte PAS comme refus : c'est un débit,
+pas une forme.
+
+### 6decies. Une opposition n'est pas une donnée comme les autres (09/09/2026)
+La purge de rétention faisait `deleteMany({ lastCallAt: { lt: cutoff } })` sur
+`CallerMemory`, sans regarder `isBlocked`. Une opposition — « ne me rappelez
+jamais » — vieille de plus de trois mois **disparaissait toute seule**, et
+l'appelant redevenait rappelable : l'inverse exact de ce qu'il avait demandé.
+Le RGPD demande justement de CONSERVER une liste d'opposition, pour pouvoir
+l'honorer. La purge garde donc le strict nécessaire (le numéro et le drapeau) et
+efface tout le reste : nom, courriel, portrait, préférences, dernier résumé.
+Le **même** raisonnement vaut sur `eraseCaller`, la route d'effacement à la
+demande (`DELETE /my-dashboard/callers/:number`) : elle supprimait aussi la ligne
+entière. L'appelant aurait exercé un droit et récolté exactement ce qu'il
+refusait. Un numéro sur une liste d'opposition ne peut pas lui nuire, il ne sert
+qu'à ne pas l'appeler ; le supprimer, si.
+Second défaut au même endroit : `block()` crée une ligne **sans** `lastCallAt`,
+et en SQL un NULL ne matche aucune comparaison. Ces lignes n'étaient donc échues
+à aucun moment, et leur personnel restait indéfiniment. Le filtre lit désormais
+`createdAt` en repli. **Toute colonne de date nullable utilisée comme filtre de
+purge porte ce piège** : il ne se voit pas, la requête réussit et ne supprime
+simplement rien.
+
+### 6quinquies. Un glossaire de prompt ne contient AUCUN verbe d'action (09/09/2026)
+Le bloc belgicismes a fait échouer `fr-discipline-agenda`, un scénario sans aucun
+rapport avec la Belgique, **deux fois de suite** et pour la même raison de forme.
+D'abord « en cas de doute sur un repas ou une heure, demande confirmation », puis,
+après correction, la simple glose « quoi comme heure ? **demande** quelle heure »,
+indicative dans l'intention mais impérative à la lecture. Dans les deux cas : à
+« je voudrais un rendez-vous demain matin », l'agent répondait « le matin ou
+l'après-midi ? » au lieu d'appeler `checkAvailability`. Décrire « une fois » comme
+un tic de langage a de même suffi à le faire **adopter** par l'agent.
+Deux règles qui en sortent, et qui valent pour tout bloc ajouté au prompt : il se
+relit contre les scénarios **existants**, pas seulement contre les siens ; et un
+glossaire s'écrit « X veut dire Y », sans une seule phrase qui puisse se lire
+comme une consigne. Un test vérifie l'absence de verbe d'action dans le bloc.
+
+### 6quater. Le vouvoiement se dit, il ne va pas de soi (09/09/2026)
+Tout le prompt s'adresse au modèle en « tu », comme une consigne s'écrit, et le
+modèle retournait ce registre à l'appelant : « c'est quoi ton nom ? », relevé sur
+un scénario d'évaluation. Une règle explicite est posée dans les règles de parole
+(français et néerlandais), au-dessus des consignes du client, qui peuvent toujours
+demander l'inverse. Un scénario d'éval le vérifie sans coûter un tour de modèle de
+plus, en s'accrochant à `fr-divulgation-ia`.
+
+### 6sexies. `vapiConfig` se FUSIONNE, il ne se remplace pas (09/09/2026)
+Le PUT du portail remplaçait le champ entier par ce que l'appel envoyait. Or tout
+tient dedans : le moteur de synthèse du client, le chemin custom-LLM, la base de
+connaissances, le mode sans enregistrement. Une omission les effaçait tous, en
+silence, et rien ne le montrait avant le prochain appel entrant. C'est le même
+piège que le PUT partiel du point 2, en pire, parce qu'ici un seul champ porte
+tout. Il est fusionné (`mergeVapiConfig`), `null` retirant une clé explicitement,
+et la fusion est SUPERFICIELLE : une fusion profonde rendrait impossible de
+retirer une entrée d'une sous-liste.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).
@@ -292,6 +417,14 @@ sans déploiement : 1 pour l'intermédiaire, 0 pour l'ancien comportement.
 - **RLS Postgres : toujours absente.** L'isolation entre clients est applicative,
   75 `req.clientId` posés à la main dans les WHERE. C'est le point qui tombe au
   premier questionnaire de sécurité d'un client entreprise.
+  Depuis le 09/09, un test **lit le source** du contrôleur client et impose deux
+  règles : une table ordinaire porte toujours un `clientId` dans le WHERE d'une
+  écriture, et une **racine** de locataire (`client`, `user`) n'est jamais
+  désignée par ce que l'appelant a envoyé (`req.params` / `body` / `query`) —
+  seulement par le jeton. Les deux formes de régression ont été réintroduites une
+  à une pour vérifier que le test tombe. Ça ne remplace pas la RLS : ça empêche la
+  prochaine route écrite à la main de refaire les dix qui agissaient sur un
+  enregistrement par son seul identifiant.
 
 ### 7. Ce qui bloque la mesure, et donc trois décisions
 `fleetMetrics` affiche toujours `calls: 0` : aucun appel entrant réel n'a été
@@ -360,6 +493,12 @@ sur le portail Stripe.
   `--confirm`, qui importe chez Vapi et range dans le stock. Le même script répare
   une ligne déjà en stock restée sans `vapiNumberId`, y compris après un `phone:buy`
   interrompu entre l'achat et l'écriture en base.
+- **Un client DÉJÀ actif ne prend pas de numéro tout seul.** `ensureLine` n'est
+  appelée qu'à l'inscription (`onboardClient`), donc remplir le stock n'attribue
+  rien aux clients installés avant l'achat : ils restent sur la ligne partagée
+  avec un numéro belge libre qui les attend en base. `npm run phone:assign`
+  (simulation) puis `--confirm` leur donne leur ligne, en passant par la même
+  fonction que l'inscription. `--email=` cible un seul compte.
 - **Une résiliation rend le numéro au lot**, elle ne le rend pas à Twilio : il est
   déjà payé et déjà couvert. Sans ce geste, chaque départ retirerait une ligne du
   stock pour toujours.

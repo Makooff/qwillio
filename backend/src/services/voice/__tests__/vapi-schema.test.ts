@@ -41,6 +41,79 @@ describe('what Vapi refuses to accept', () => {
     expect('backchannelingEnabled' in plans).toBe(true);
   });
 
+  /**
+   * `delimiters` est une CHAÎNE, pas un tableau (BEL-4).
+   *
+   * Le changelog de février 2025 montre `["#"]`; la référence d'API courante
+   * donne `"#"` aux trois endroits où elle décrit le plan. Se tromper de type
+   * ferait refuser l'assistant ENTIER, donc tous les appels de la flotte — le
+   * mode d'échec que ce fichier existe pour attraper.
+   */
+  it('déclare le clavier avec un délimiteur en chaîne', () => {
+    const plan = (buildRealtimePlans('fr') as Record<string, any>).keypadInputPlan;
+    expect(plan.enabled).toBe(true);
+    expect(typeof plan.delimiters).toBe('string');
+    expect(plan.timeoutSeconds).toBeGreaterThanOrEqual(0.5);
+    expect(plan.timeoutSeconds).toBeLessThanOrEqual(10);
+  });
+
+  it('arme le clavier dans les deux moteurs, y compris en parole-à-parole', () => {
+    // Le clavier se lit sur le transport, pas sur le transcripteur: le retirer
+    // en parole-à-parole priverait ce mode du seul canal sans erreur.
+    for (const s2s of [false, true]) {
+      const plans = buildRealtimePlans('fr', s2s) as Record<string, any>;
+      expect(plans.keypadInputPlan?.enabled).toBe(true);
+    }
+  });
+
+  /**
+   * TUR-12. La valeur écrite est celle que Vapi applique déjà par défaut, et
+   * c'est précisément pourquoi elle est écrite: un défaut ne se lit pas dans le
+   * code, ne s'explique pas, et peut changer chez le fournisseur sans qu'une
+   * seule ligne bouge ici. Ce qui se perdrait alors n'est pas un confort —
+   * l'annonce IA vit dans la salutation, et une salutation coupée par de l'écho
+   * est un appel mené sans annonce.
+   */
+  it('interdit de couper la salutation, dans les deux moteurs', () => {
+    for (const s2s of [false, true]) {
+      const plans = buildRealtimePlans('fr', s2s) as Record<string, unknown>;
+      expect(plans.firstMessageInterruptionsEnabled).toBe(false);
+    }
+  });
+
+  /**
+   * Chaque règle d'endpointing ne porte QUE les trois clés que la
+   * documentation de Vapi montre. `regexOptions` existe dans la référence
+   * d'API mais pas dans l'exemple, et une clé de trop ou mal formée fait
+   * refuser l'assistant ENTIER — c'est le mode d'échec que ce fichier existe
+   * pour attraper, et il a déjà coupé toute la flotte deux fois.
+   */
+  it('n\'envoie que les clés documentées sur une règle d\'endpointing', () => {
+    const rules = (buildRealtimePlans('fr') as Record<string, any>).startSpeakingPlan.customEndpointingRules;
+    expect(rules.length).toBeGreaterThan(0);
+    for (const rule of rules) {
+      expect(Object.keys(rule).sort()).toEqual(['regex', 'timeoutSeconds', 'type']);
+      expect(['assistant', 'user']).toContain(rule.type);
+      expect(typeof rule.regex).toBe('string');
+      expect(typeof rule.timeoutSeconds).toBe('number');
+    }
+  });
+
+  /**
+   * `backgroundDenoisingEnabled` est déprécié depuis juin 2025 au profit de
+   * `backgroundSpeechDenoisingPlan`. Un champ déprécié marche jusqu'au jour où
+   * il ne marche plus, et ce jour-là c'est un appelant qui l'apprend.
+   */
+  it('débruite par le plan courant, pas par le booléen déprécié', () => {
+    const plans = buildRealtimePlans('fr') as Record<string, any>;
+    expect('backgroundDenoisingEnabled' in plans).toBe(false);
+    expect(plans.backgroundSpeechDenoisingPlan?.smartDenoisingPlan?.enabled).toBe(true);
+    /* Fourier reste éteint: la documentation le dit expérimental, et son
+       filtrage trop agressif mange la parole de qui parle bas — le cas qu'on
+       ne peut pas se permettre de rater. Il se mesure avant de s'activer. */
+    expect('fourierDenoisingPlan' in plans.backgroundSpeechDenoisingPlan).toBe(false);
+  });
+
   it('sends the transfer destination in E.164', () => {
     // "each value in destinations.number must be a valid phone number"
     const tools = buildVoiceTools(profile({ transferNumber: '06 12 34 56 78' })) as any[];

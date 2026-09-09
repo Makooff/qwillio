@@ -217,6 +217,222 @@ describe('llmStreamService.handle — proxied turns', () => {
   });
 });
 
+/**
+ * LEG-3, deuxième moitié: la demande reconnue doit ABOUTIR.
+ *
+ * Le routeur peut bien classer « je voudrais parler à un conseiller », si le
+ * tour repart chez le modèle le transfert redevient une décision de modèle,
+ * c'est-à-dire ce que cette ligne existe pour supprimer.
+ */
+/**
+ * REL-3: le silence est le mode d'échec le plus fréquent et le plus
+ * dommageable d'un appel, et personne ne le surveille activement.
+ *
+ * Trois secondes sans un son s'entendent comme une ligne coupée. Le test bloque
+ * donc le modèle pour de bon, et vérifie qu'une phrase part AVANT.
+ */
+describe('llmStreamService — un modèle qui ne répond pas', () => {
+  it('parle avant trois secondes plutôt que de laisser le silence', async () => {
+    vi.useFakeTimers();
+    const started = Date.now();
+
+    // Un modèle qui ne rendra jamais la main: seul l'abandon peut sauver le
+    // tour, et c'est exactement ce qu'on veut voir arriver.
+    vi.spyOn(globalThis, 'fetch').mockImplementation(
+      (_url, init) =>
+        new Promise((_resolve, reject) => {
+          (init as RequestInit)?.signal?.addEventListener('abort', () =>
+            reject(Object.assign(new Error('aborted'), { name: 'AbortError' })),
+          );
+        }) as Promise<Response>,
+    );
+
+    const stream = makeStream();
+    const handling = llmStreamService.handle(
+      'client_1',
+      null,
+      'fr',
+      { messages: [systemTurn, userTurn('je voudrais un rendez-vous la semaine prochaine')] },
+      stream.handle,
+    );
+
+    /* On avance JUSTE en dessous de la barre des trois secondes: si la phrase
+       est déjà partie à ce moment-là, le critère est tenu, et l'assertion ne
+       dépend d'aucune mesure de durée réelle. */
+    await vi.advanceTimersByTimeAsync(2_900);
+    await handling;
+
+    expect(Date.now() - started).toBeLessThan(3_000);
+    expect(stream.text()).toMatch(/répéter/i);
+    expect(stream.ended).toBe(true);
+    vi.useRealTimers();
+  });
+
+  it('répond en néerlandais à un appelant flamand', async () => {
+    // Sans cette ligne, il s'entend répondre en anglais au moment précis où
+    // quelque chose vient de mal se passer.
+    vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('down'));
+    const stream = makeStream();
+    await llmStreamService.handle(
+      'client_1',
+      null,
+      'nl',
+      { messages: [systemTurn, userTurn('ik wil graag een afspraak maken volgende week')] },
+      stream.handle,
+    );
+    expect(stream.text()).toMatch(/herhalen/i);
+  });
+});
+
+/**
+ * TUR-8. `recoveryLine` était écrite et testée mais appelée de nulle part.
+ * Ce bloc teste le bout de la chaîne: ce que le MODÈLE reçoit vraiment.
+ */
+describe('llmStreamService — reprendre après avoir été coupé', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    callSessionStore.reset();
+  });
+
+  function mockOpenAi() {
+    const encoder = new TextEncoder();
+    const payloads = ['data: {"choices":[{"delta":{"content":"Oui"}}]}\n\n', 'data: [DONE]\n\n'];
+    let i = 0;
+    return vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      body: {
+        getReader: () => ({
+          read: async () =>
+            i < payloads.length ? { done: false, value: encoder.encode(payloads[i++]) } : { done: true, value: undefined },
+          releaseLock: () => {},
+        }),
+      },
+    } as unknown as Response);
+  }
+
+  /** Les messages réellement envoyés à OpenAI sur le dernier appel. */
+  function sentMessages(spy: ReturnType<typeof mockOpenAi>): Array<{ role: string; content: string }> {
+    const body = (spy.mock.calls.at(-1)?.[1] as { body: string }).body;
+    return JSON.parse(body).messages;
+  }
+
+  async function turn(vapiCallId: string) {
+    const stream = makeStream();
+    await llmStreamService.handle(
+      'client_1',
+      vapiCallId,
+      'fr',
+      { messages: [systemTurn, userTurn('je voudrais reserver mardi')] },
+      stream.handle,
+    );
+  }
+
+  it('demande au modèle d\'ouvrir par une excuse, sans reprendre la phrase coupée', async () => {
+    const spy = mockOpenAi();
+    callSessionStore.start({ vapiCallId: 'c1', clientId: 'cl1', callerNumber: null, language: 'fr' });
+    const now = Date.now();
+    callSessionStore.assistantStartedSpeaking('c1', now - 3000);
+    callSessionStore.recordBargeIn('c1', now);
+
+    await turn('c1');
+
+    const last = sentMessages(spy).at(-1)!;
+    // En message système de QUEUE: le long préfixe doit rester identique d'un
+    // tour à l'autre, sinon le cache de préfixe ne mord plus.
+    expect(last.role).toBe('system');
+    expect(last.content).toMatch(/coupé au milieu/i);
+    expect(last.content).toMatch(/ne reprends pas la phrase interrompue/i);
+  });
+
+  it('n\'ajoute rien quand le tour précédent n\'a pas été cassé', async () => {
+    const spy = mockOpenAi();
+    callSessionStore.start({ vapiCallId: 'c2', clientId: 'cl1', callerNumber: null, language: 'fr' });
+
+    await turn('c2');
+
+    for (const m of sentMessages(spy)) expect(m.content).not.toMatch(/coupé au milieu/i);
+  });
+
+  it('ne s\'excuse qu\'une fois de la même coupure', async () => {
+    const spy = mockOpenAi();
+    callSessionStore.start({ vapiCallId: 'c3', clientId: 'cl1', callerNumber: null, language: 'fr' });
+    const now = Date.now();
+    callSessionStore.assistantStartedSpeaking('c3', now - 3000);
+    callSessionStore.recordBargeIn('c3', now);
+
+    await turn('c3');
+    await turn('c3');
+
+    for (const m of sentMessages(spy)) expect(m.content).not.toMatch(/coupé au milieu/i);
+  });
+});
+
+describe('llmStreamService — transfert demandé explicitement', () => {
+  const transferTool = { type: 'function', function: { name: 'transferCall' } };
+
+  it("appelle l'outil de transfert au lieu du modèle", () => {
+    const plan = llmStreamService.plan(
+      { messages: [systemTurn, userTurn('je voudrais parler a un conseiller')], tools: [transferTool] },
+      'fr',
+    );
+    expect(plan.mode).toBe('transfer');
+    expect(plan.tool).toBe('transferCall');
+  });
+
+  it("émet un appel d'outil bien formé, sans texte parlé", async () => {
+    const stream = makeStream();
+    await llmStreamService.handle(
+      'client_1',
+      null,
+      'fr',
+      { messages: [systemTurn, userTurn('conseiller')], tools: [transferTool] },
+      stream.handle,
+    );
+
+    const calls = stream.chunks
+      .filter(c => c.startsWith('data: ') && !c.includes('[DONE]'))
+      .flatMap(c => JSON.parse(c.slice(6)).choices?.[0]?.delta?.tool_calls ?? []);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].function.name).toBe('transferCall');
+    // Sans argument: la destination vient du plan de transfert de l'assistant.
+    // En inventer une ici ferait composer un numéro absent de la fiche client.
+    expect(calls[0].function.arguments).toBe('{}');
+    // Le flux se termine sur `tool_calls`, sinon Vapi attend un texte qui ne
+    // viendra jamais.
+    expect(stream.chunks.some(c => c.includes('"finish_reason":"tool_calls"'))).toBe(true);
+    expect(stream.text()).toBe('');
+    expect(stream.ended).toBe(true);
+  });
+
+  /**
+   * Un client sans numéro de transfert n'a pas cet outil: `voice-tools` le
+   * retire, notamment quand le numéro boucle vers la réceptionniste. Appeler un
+   * outil non déclaré laisserait l'appelant dans le silence juste après qu'il a
+   * demandé un humain.
+   */
+  it('rend la main au modèle quand aucun outil de transfert n\'est déclaré', () => {
+    const plan = llmStreamService.plan(
+      { messages: [systemTurn, userTurn('je voudrais parler a un conseiller')], tools: [] },
+      'fr',
+    );
+    expect(plan.mode).toBe('proxy');
+    expect(plan.tool).toBeNull();
+  });
+
+  it("ne détourne pas un tour qui attend un résultat d'outil", () => {
+    const plan = llmStreamService.plan(
+      {
+        messages: [systemTurn, userTurn('parler a quelqu un'), { role: 'tool', content: 'FREE 10:00' }],
+        tools: [transferTool],
+      },
+      'fr',
+    );
+    expect(plan.mode).toBe('proxy');
+  });
+});
+
 describe('parseUsageChunk — the prompt cache must be verified, not assumed', () => {
   it('returns null for an ordinary delta chunk', () => {
     expect(parseUsageChunk('data: {"choices":[{"delta":{"content":"Bien"}}]}\n\n')).toBeNull();

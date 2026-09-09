@@ -7,6 +7,8 @@ import { clientCallService } from '../services/client-call.service';
 import { realtimeOrchestratorService, type VapiEvent } from '../services/voice/realtime-orchestrator.service';
 import { callSessionStore } from '../services/voice/call-session.store';
 import { voiceMetricsService } from '../services/voice/voice-metrics.service';
+import { fallbackWatchService } from '../services/voice/fallback-watch.service';
+import { transferFunnel } from '../services/voice/call-outcome';
 import { isVapiWebhookAuthorized } from '../utils/vapi-webhook-auth';
 import { leadAlertService, type LeadForAlert } from '../services/voice/lead-alert.service';
 
@@ -187,7 +189,24 @@ export class VoiceWebhookController {
     );
 
     const vapiCallId = event.message?.call?.id || event.call?.id;
-    const recordingUrl = event.message?.recordingUrl || event.recordingUrl;
+    /* L'URL d'enregistrement, REFUSÉE si ce client a coupé l'enregistrement
+       (LEG-5). L'assistant porte déjà `recordingEnabled: false` et l'accueil
+       ne dit pas que l'appel est enregistré: si une URL arrive quand même —
+       assistant périmé chez Vapi, réglage changé en cours d'appel, surcharge
+       d'escouade — la garder ferait mentir la phrase que l'appelant a
+       entendue. La consigne et la conservation doivent tomber du même côté,
+       et c'est ici que ça se décide pour de bon.
+       Journalisé et pas seulement écarté: une URL qui arrive alors qu'elle ne
+       devrait pas dit que la configuration distante ne correspond plus. */
+    const offeredRecordingUrl = event.message?.recordingUrl || event.recordingUrl;
+    if (offeredRecordingUrl && !finalized.recordingAllowed) {
+      logger.warn(
+        `[Voice] enregistrement REFUSÉ pour ${clientId} (appel ${vapiCallId}): ` +
+          `le client a coupé l'enregistrement, mais Vapi a renvoyé une URL. ` +
+          `Vérifier que l'assistant distant est à jour.`,
+      );
+    }
+    const recordingUrl = finalized.recordingAllowed ? offeredRecordingUrl : undefined;
     const endedReason = event.message?.endedReason || event.endedReason || '';
 
     // Voicemail / no-answer: nothing to analyse, and paying GPT-4 to summarise
@@ -255,6 +274,14 @@ export class VoiceWebhookController {
       bargeInBackoffSeconds: env.VOICE_BARGE_IN_BACKOFF_SECONDS,
       // P50/P95/P99 par étage + coût moyen, fenêtre glissante depuis le boot.
       fleetMetrics: voiceMetricsService.summary(),
+      /* Le canari (TST-8). Publiable ici sans authentification: ce sont des
+         compteurs de tours, ils ne disent rien de personne — ni qui a appelé,
+         ni chez quel client. La dernière cause vient du fournisseur et décrit
+         une panne, pas un appel. */
+      modelFallbacks: fallbackWatchService.summary(),
+      /* L'entonnoir des transferts (REL-7): tenté → sonné → décroché → abouti.
+         Des compteurs, pas des appels: rien n'y identifie personne. */
+      transfers: transferFunnel.summary(),
     });
   }
 }

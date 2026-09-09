@@ -7,6 +7,9 @@ import { callSessionStore } from './call-session.store';
 import { callerMemoryService } from './caller-memory.service';
 import { businessMemoryService } from './business-memory.service';
 import { availabilitySpeculator } from './availability-speculator';
+import { parseSpokenPhone } from '../../utils/phone-spoken';
+import { phoneWords } from '../../utils/text-for-speech';
+import { normaliseAddress } from '../../utils/be-communes';
 
 /**
  * Tool runtime (Phase 4).
@@ -52,6 +55,79 @@ function parseDate(raw: unknown): Date | null {
   if (typeof raw !== 'string' || !raw.trim()) return null;
   const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(raw.trim()) ? `${raw.trim()}T12:00:00Z` : raw);
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/**
+ * Ce que l'agent doit FAIRE quand le numéro dicté ne tient pas debout.
+ *
+ * Formulé comme un geste et pas comme un diagnostic: « relis chiffre par
+ * chiffre et redemande » se joue, « numéro invalide » se commente. La
+ * relecture est aussi la seule chose qui lève une ambiguïté que la machine ne
+ * voit pas (un mobile belge et un fixe français peuvent avoir la même suite).
+ */
+function retryPhone(lang: string, heard: string): string {
+  /* Les chiffres ENTENDUS sont rendus à l'agent en toutes lettres, et c'est le
+     cœur du geste: relire un numéro faux est précisément ce qui permet à
+     l'appelant de repérer LEQUEL de ses chiffres a été mal compris. Lui
+     demander de tout redicter à l'aveugle recommence la même erreur.
+     En toutes lettres, parce qu'une suite de chiffres bruts envoyée au
+     synthétiseur se prononce d'une façon qu'on ne contrôle pas (BEL-12). */
+  const spelled = heard ? phoneWords(heard) : '';
+  const readBack = {
+    fr: spelled ? ` J'ai entendu: ${spelled}.` : '',
+    en: spelled ? ` What I heard: ${spelled}.` : '',
+    nl: spelled ? ` Wat ik hoorde: ${spelled}.` : '',
+  };
+
+  const base: Record<string, string> = {
+    fr: 'NUMÉRO NON RECONNU. Le reste de la fiche est noté.' + readBack.fr
+      + ' Relis-le à l\'appelant chiffre par chiffre, demande-lui de corriger, '
+      + 'puis rappelle captureLead avec le numéro corrigé.',
+    en: 'PHONE NOT RECOGNISED. The rest of the lead is saved.' + readBack.en
+      + ' Read it back digit by digit, ask the caller to correct it, '
+      + 'then call captureLead again with the corrected number.',
+    nl: 'NUMMER NIET HERKEND. De rest van de fiche is genoteerd.' + readBack.nl
+      + ' Lees het cijfer voor cijfer terug, vraag de beller om te corrigeren, '
+      + 'en roep captureLead opnieuw aan met het juiste nummer.',
+  };
+  return base[lang] ?? base.en;
+}
+
+/**
+ * Le repli clavier, au DEUXIÈME échec (BEL-4).
+ *
+ * Redemander une troisième dictée après deux échecs, c'est refaire ce qui
+ * vient de rater deux fois: si le transcripteur n'entend pas ce numéro, il ne
+ * l'entendra pas mieux au troisième essai — accent, ligne bruyante, chiffres
+ * collés, la cause ne bouge pas. Les touches, elles, ne passent pas par la
+ * reconnaissance vocale du tout: c'est le seul canal du téléphone qui ne se
+ * trompe jamais, et c'est ce qui sauve l'appel au lieu de le faire abandonner.
+ *
+ * La phrase dit à l'appelant de terminer par dièse, et c'est utile aux deux
+ * bouts: lui sait quand il a fini, et la saisie part sans attendre le délai.
+ */
+function keypadFallback(lang: string, heard: string): string {
+  const spelled = heard ? phoneWords(heard) : '';
+  const readBack = {
+    fr: spelled ? ` J'ai entendu: ${spelled}.` : '',
+    en: spelled ? ` What I heard: ${spelled}.` : '',
+    nl: spelled ? ` Wat ik hoorde: ${spelled}.` : '',
+  };
+  const base: Record<string, string> = {
+    fr: 'DEUXIÈME ÉCHEC SUR LE NUMÉRO. Le reste de la fiche est noté.' + readBack.fr
+      + ' Ne le fais PAS redicter une troisième fois. Excuse-toi brièvement de la ligne, '
+      + 'et demande-lui de composer son numéro sur le clavier du téléphone, puis dièse. '
+      + 'Les chiffres tapés te reviendront comme un message: rappelle alors captureLead avec eux.',
+    en: 'SECOND FAILURE ON THE PHONE NUMBER. The rest of the lead is saved.' + readBack.en
+      + ' Do NOT ask them to say it a third time. Apologise briefly for the line, '
+      + 'and ask them to key the number in on their phone keypad, then hash. '
+      + 'The typed digits come back to you as a message: call captureLead again with them.',
+    nl: 'TWEEDE MISLUKKING OP HET NUMMER. De rest van de fiche is genoteerd.' + readBack.nl
+      + ' Vraag het GEEN derde keer. Verontschuldig je kort voor de lijn, '
+      + 'en vraag om het nummer op het toetsenbord in te tikken, gevolgd door hekje. '
+      + 'De ingetikte cijfers komen als bericht terug: roep captureLead dan opnieuw aan.',
+  };
+  return base[lang] ?? base.en;
 }
 
 /** "14:30" → 870 minutes. Returns null on anything that is not a 24h clock. */
@@ -367,9 +443,45 @@ class ToolRuntimeService {
       urgency: ['low', 'normal', 'high'].includes(args.urgency) ? String(args.urgency) : 'normal',
     };
 
+    /* L'adresse, avec sa commune ramenée à UNE forme (BEL-6).
+       Ixelles et Elsene sont le même endroit et deux noms également
+       officiels. Sans cette normalisation, deux appelants qui donnent la même
+       adresse produisent deux lignes différentes dans le CRM, le client croit
+       à deux clients, et il rappelle pour demander où il doit aller.
+       La langue retenue est celle du CLIENT, pas de l'appelant: c'est lui qui
+       relit la fiche. */
+    const address = typeof args.address === 'string' && args.address.trim()
+      ? normaliseAddress(args.address.trim(), profile.language)
+      : null;
+
     callSessionStore.recordLead(vapiCallId, lead);
 
-    const phone = session?.callerNumber ?? null;
+    /* Le numéro DICTÉ, validé avant d'être cru (BEL-3).
+       Sur une séquence structurée, un transcripteur est juste une fois sur
+       deux: enregistrer sans contrôle produit un rappel sur un chiffre faux,
+       c'est-à-dire un lead perdu que personne ne voit jamais.
+       Le pays de l'appelant vient de sa propre ligne quand elle est connue: il
+       tranche l'ambiguïté réelle entre un mobile belge et un fixe français du
+       Sud-Est, que le numéro seul ne permet pas de lever. */
+    const dictated =
+      typeof args.phone === 'string' && args.phone.trim()
+        ? parseSpokenPhone(args.phone, { country: profile.country, callerNumber: session?.callerNumber ?? null })
+        : null;
+
+    if (dictated && !dictated.ok && dictated.reason === 'invalid') {
+      /* Le LEAD est enregistré quand même, sans le numéro: refuser toute la
+         fiche pour un chiffre douteux perdrait le nom, le motif et l'urgence
+         que l'appelant vient de donner. Seul le numéro est écarté, et le
+         modèle sait qu'il doit le redemander. */
+      logger.info(
+        `[VoiceTools] numéro dicté refusé pour ${profile.businessName}: ` +
+          `${dictated.digits.length} chiffre(s) ne formant aucun numéro belge ni français`,
+      );
+    }
+
+    /* Un numéro donné de vive voix l'emporte sur l'identifiant d'appelant: si
+       l'appelant en dicte un autre, c'est là qu'il veut être rappelé. */
+    const phone = (dictated?.ok ? dictated.e164 : null) ?? session?.callerNumber ?? null;
 
     // Durable first, and awaited: the whole point is that this survives the
     // call. It is one indexed insert, well inside the tool budget.
@@ -382,7 +494,7 @@ class ToolRuntimeService {
           source: 'ai_receptionist',
           vapiCallId,
           capturedAt: new Date().toISOString(),
-          contact: { name: lead.name, email: lead.email, phone },
+          contact: { name: lead.name, email: lead.email, phone, address },
           reason: lead.reason,
           urgency: lead.urgency,
           language: profile.language,
@@ -404,6 +516,17 @@ class ToolRuntimeService {
         outcome: 'lead',
       })
       .catch(err => logger.warn(`[VoiceTools] caller memory write failed: ${err.message}`));
+
+    if (dictated && !dictated.ok && dictated.reason === 'invalid') {
+      /* La consigne nomme le geste attendu, elle ne décrit pas l'erreur: un
+         modèle à qui l'on dit « invalide » s'excuse, un modèle à qui l'on dit
+         « relis chiffre par chiffre et redemande » le fait.
+         Au deuxième échec, le geste change de nature: on quitte la voix. */
+      const failures = callSessionStore.recordPhoneCaptureFailure(vapiCallId);
+      return failures >= 2
+        ? keypadFallback(profile.language, dictated.digits)
+        : retryPhone(profile.language, dictated.digits);
+    }
 
     return profile.language === 'fr' ? 'NOTE. Continue la conversation.' : 'NOTED. Continue the conversation.';
   }

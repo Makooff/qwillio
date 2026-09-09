@@ -2,6 +2,7 @@ import { env } from '../../config/env';
 import { logger } from '../../config/logger';
 import { routeIntent, type IntentDecision } from './intent-router';
 import { callSessionStore } from './call-session.store';
+import { fallbackWatchService } from './fallback-watch.service';
 import { moodPromptBlock } from './caller-mood';
 import type { VoiceLanguage } from './speech-plans';
 
@@ -60,8 +61,6 @@ const TIER = {
 };
 
 const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
-/** Ceiling on time-to-first-token before we speak a fallback instead. */
-const FIRST_TOKEN_TIMEOUT_MS = 4_000;
 /**
  * OpenAI only caches a prefix once it is long enough to be worth caching.
  * Below this the cache never engages and the bookkeeping is pure overhead.
@@ -79,6 +78,24 @@ function sseChunk(id: string, model: string, delta: Record<string, unknown>, fin
 }
 
 /**
+ * Le nom de l'outil de transfert, tel que Vapi le déclare dans la requête.
+ *
+ * On ne le devine PAS: on le lit dans les outils que Vapi vient d'envoyer. Un
+ * client sans numéro de transfert n'a pas cet outil du tout (`voice-tools` le
+ * retire, notamment quand le numéro bouclerait sur la réceptionniste), et
+ * appeler un outil non déclaré laisserait l'appelant dans le silence — juste
+ * après qu'il ait demandé un humain, c'est-à-dire au pire moment possible.
+ */
+export function findTransferTool(tools: unknown[] | undefined): string | null {
+  for (const tool of tools ?? []) {
+    const name = (tool as { function?: { name?: unknown }; name?: unknown })?.function?.name
+      ?? (tool as { name?: unknown })?.name;
+    if (typeof name === 'string' && /transfer/i.test(name)) return name;
+  }
+  return null;
+}
+
+/**
  * Emit a complete assistant turn as SSE without calling any model. Used for
  * deflected turns and for the fallback line.
  */
@@ -86,6 +103,42 @@ function emitLocal(stream: StreamHandle, text: string, model: string): void {
   const id = `chatcmpl-local-${Date.now()}`;
   stream.write(sseChunk(id, model, { role: 'assistant', content: text }, null));
   stream.write(sseChunk(id, model, {}, 'stop'));
+  stream.write('data: [DONE]\n\n');
+  stream.end();
+}
+
+/**
+ * Émettre un APPEL D'OUTIL, sans modèle.
+ *
+ * Même forme qu'un modèle OpenAI qui décide d'appeler une fonction: c'est Vapi
+ * qui lit ce flux, et il exécute l'outil qu'on nomme comme si son propre modèle
+ * l'avait demandé. La différence est qu'ici la décision est déterministe.
+ */
+function emitToolCall(stream: StreamHandle, name: string, model: string): void {
+  const id = `chatcmpl-local-${Date.now()}`;
+  stream.write(
+    sseChunk(
+      id,
+      model,
+      {
+        role: 'assistant',
+        content: null,
+        tool_calls: [
+          {
+            index: 0,
+            id: `call_${Date.now().toString(36)}`,
+            type: 'function',
+            // Sans argument: la destination appartient au plan de transfert de
+            // l'assistant, pas au tour de parole. En inventer une ici ferait
+            // composer un numéro qui ne vient pas de la fiche client.
+            function: { name, arguments: '{}' },
+          },
+        ],
+      },
+      null,
+    ),
+  );
+  stream.write(sseChunk(id, model, {}, 'tool_calls'));
   stream.write('data: [DONE]\n\n');
   stream.end();
 }
@@ -143,7 +196,20 @@ class LlmStreamService {
     const awaitingToolResult = (request.messages || []).some(m => m.role === 'tool');
 
     if (decision.handledLocally && !awaitingToolResult) {
-      return { mode: 'local' as const, decision, model: TIER.mini(), reply: decision.reply };
+      return { mode: 'local' as const, decision, model: TIER.mini(), reply: decision.reply, tool: null };
+    }
+
+    /* L'appelant a demandé un humain (LEG-3). C'est la seule phrase de l'appel
+       où il dit que la machine ne lui suffit pas, et la laisser au jugement du
+       modèle la faisait rater une fois sur deux. On appelle donc l'outil
+       nous-mêmes.
+       Sans outil de transfert déclaré (client sans numéro, ou numéro qui
+       boucle), le modèle reprend la main: il sait proposer de prendre un
+       message, ce qu'un outil absent ne sait pas faire. Et le tour vaut le
+       modèle complet — c'est un appelant qui est en train de partir. */
+    const transferTool = findTransferTool(request.tools);
+    if (decision.kind === 'human_handoff' && !awaitingToolResult && transferTool) {
+      return { mode: 'transfer' as const, decision, model: TIER.mini(), reply: '', tool: transferTool };
     }
 
     // The expensive model is earned, not defaulted to. It is spent on turns
@@ -157,6 +223,7 @@ class LlmStreamService {
       decision,
       model: needsFull ? TIER.full() : TIER.mini(),
       reply: '',
+      tool: null,
     };
   }
 
@@ -188,15 +255,38 @@ class LlmStreamService {
       return;
     }
 
+    if (plan.mode === 'transfer') {
+      /* Le tour est bien un tour: il a coûté un aller-retour de moins, mais il
+         se mesure comme les autres, sinon la médiane décrit une conversation
+         qui n'a pas eu lieu. */
+      callSessionStore.markLatency(vapiCallId, 'llmFirstDelta');
+      logger.info(`[VoiceLLM] transfert demandé explicitement par l'appelant (${clientId}) — outil ${plan.tool}`);
+      emitToolCall(stream, plan.tool, plan.model);
+      callSessionStore.markLatency(vapiCallId, 'llmEnd');
+      return;
+    }
+
     try {
       // Order matters: mood is appended first so it lands after the stable
       // prefix, then the caching hint is attached to the finished request.
-      const prepared = this.withCaching(this.withMood(request, vapiCallId, lang), vapiCallId);
+      const prepared = this.withCaching(
+        this.withRecovery(this.withMood(request, vapiCallId, lang), vapiCallId, lang),
+        vapiCallId,
+      );
       await this.proxy(prepared, plan.model, stream, vapiCallId);
       callSessionStore.markLatency(vapiCallId, 'llmEnd');
+      /* Le tour RÉUSSI compte autant que le raté: sans dénominateur il n'y a
+         pas de taux, seulement un compteur qui monte pour toujours (TST-8). */
+      fallbackWatchService.record(false);
       logger.debug(`[VoiceLLM] ${plan.model} turn for ${clientId} in ${Date.now() - started}ms`);
     } catch (error) {
-      logger.error(`[VoiceLLM] proxy failed for ${clientId}: ${(error as Error).message}`);
+      const reason = (error as Error).message;
+      logger.error(`[VoiceLLM] proxy failed for ${clientId}: ${reason}`);
+      /* La phrase de repli est bien choisie: elle ne nomme aucune panne. C'est
+         aussi ce qui la rend dangereuse — une flotte dont le modèle est mort
+         tient une conversation entière de « pouvez-vous répéter ? » sans
+         qu'aucun voyant ne s'allume. Le compteur est ce voyant. */
+      fallbackWatchService.record(true, reason);
       emitLocal(stream, this.fallbackLine(lang), plan.model);
       callSessionStore.markLatency(vapiCallId, 'llmEnd');
     }
@@ -242,6 +332,39 @@ class LlmStreamService {
   }
 
   /**
+   * Ouvrir par une excuse quand le tour précédent a été coupé net (TUR-8).
+   *
+   * Sans ça, l'agent reprend au tour suivant comme si sa phrase tronquée
+   * n'avait jamais existé, ce qui est précisément ce qui fait qu'une
+   * interruption ressemble à une panne plutôt qu'à une conversation.
+   *
+   * En message système DE QUEUE, comme l'humeur, et pour la même raison: le
+   * long préfixe doit rester identique d'un tour à l'autre pour que le cache
+   * de préfixe morde. Et la consigne ne remplace pas la réponse, elle
+   * l'ouvre — l'appelant vient de parler, il attend un vrai contenu.
+   *
+   * Ce que ça ne fait PAS: reprendre l'énoncé là où il s'est arrêté après un
+   * FAUX déclenchement (du bruit, sans parole ensuite). Vapi n'expose aucun
+   * champ de reprise, et sans parole de l'appelant il n'y a pas de tour de
+   * modèle où se raccrocher. C'est le relais d'inactivité qui couvre ce cas.
+   */
+  private withRecovery(
+    request: ChatCompletionRequest,
+    vapiCallId: string | null,
+    lang: VoiceLanguage,
+  ): ChatCompletionRequest {
+    const line = callSessionStore.takeRecoveryLine(vapiCallId, lang);
+    if (!line) return request;
+    const block =
+      lang === 'fr'
+        ? `Tu as été coupé au milieu de ta phrase. Ouvre ta réponse par « ${line} », puis réponds normalement. Ne reprends pas la phrase interrompue.`
+        : lang === 'nl'
+          ? `Je werd midden in je zin onderbroken. Begin je antwoord met « ${line} » en antwoord dan normaal. Herhaal de onderbroken zin niet.`
+          : `You were cut off mid-sentence. Open your reply with "${line}", then answer normally. Do not repeat the interrupted sentence.`;
+    return { ...request, messages: [...request.messages, { role: 'system', content: block }] };
+  }
+
+  /**
    * Relay OpenAI's stream through untouched. Deltas are forwarded byte-for-byte
    * so the first token reaches the synthesiser as fast as it would have without
    * this hop.
@@ -253,7 +376,12 @@ class LlmStreamService {
     vapiCallId: string | null,
   ): Promise<void> {
     const controller = new AbortController();
-    const firstTokenTimer = setTimeout(() => controller.abort(), FIRST_TOKEN_TIMEOUT_MS);
+    /* Le plafond sur le PREMIER token, relu à chaque tour et non figé au
+       chargement du module: il se règle sans déploiement, et c'est le seul
+       garde-fou contre le mode d'échec le plus dommageable d'un appel — le
+       silence. Trois secondes sans réponse s'entendent comme une ligne coupée,
+       donc le défaut est en dessous. */
+    const firstTokenTimer = setTimeout(() => controller.abort(), env.VOICE_FIRST_TOKEN_TIMEOUT_MS);
 
     let response: Response;
     try {
@@ -316,9 +444,11 @@ class LlmStreamService {
 
   /** Spoken when the model is unreachable. Never mentions a technical fault. */
   private fallbackLine(lang: VoiceLanguage): string {
-    return lang === 'fr'
-      ? 'Pardon, je vous ai mal entendu. Vous pouvez répéter ?'
-      : 'Sorry, I did not catch that. Could you say it again?';
+    // Le néerlandais aussi: sans lui, un appelant flamand s'entend répondre en
+    // anglais au moment précis où quelque chose vient de mal se passer.
+    if (lang === 'fr') return 'Pardon, je vous ai mal entendu. Vous pouvez répéter ?';
+    if (lang === 'nl') return 'Sorry, ik heb u niet goed verstaan. Kunt u het herhalen?';
+    return 'Sorry, I did not catch that. Could you say it again?';
   }
 }
 

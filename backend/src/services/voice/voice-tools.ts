@@ -220,6 +220,13 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
             partySize: { type: 'number', description: 'Number of people, when relevant (restaurants).' },
             customerEmail: { type: 'string', description: 'Email, only if the caller volunteers it.' },
             specialRequests: { type: 'string', description: 'Anything the caller asked for specifically.' },
+            // Le rendez-vous qui se tient CHEZ l'appelant: sans adresse, il
+            // n'est pas pris, il est seulement noté.
+            address: {
+              type: 'string',
+              description:
+                'Address where the appointment takes place, when the professional travels to the caller. Exactly as said, with postcode and town.',
+            },
           },
           required: ['customerName', 'date', 'time'],
         },
@@ -262,7 +269,24 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
         properties: {
           name: { type: 'string' },
           email: { type: 'string' },
+          /* Le numéro de RAPPEL, et il ne fait pas doublon avec l'identifiant
+             d'appelant: un appelant en numéro masqué n'en a pas, et celui qui
+             demande à être rappelé sur une autre ligne en donne un différent.
+             Jusqu'ici aucun numéro dicté n'était capté nulle part. */
+          phone: {
+            type: 'string',
+            description:
+              'Callback number, exactly as the caller said it, digits or words. Only when they give one.',
+          },
           reason: { type: 'string', description: 'Why they called, one sentence.' },
+          /* L'adresse, telle que dite (BEL-6). Un dépanneur, un vétérinaire à
+             domicile ou un livreur ne peuvent rien faire d'un lead sans elle,
+             et jusqu'ici elle finissait au mieux noyée dans `reason`. */
+          address: {
+            type: 'string',
+            description:
+              'Street address, exactly as the caller said it, including postcode and town when given. Only when an address is relevant to why they called.',
+          },
           urgency: { type: 'string', enum: ['low', 'normal', 'high'] },
         },
         required: ['reason'],
@@ -340,7 +364,14 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
           // Warm: Vapi speaks a summary to the operator before bridging. The
           // per-call summary comes from the transfer-destination-request
           // handler; this static plan is the fallback when that is not reached.
-          transferPlan: { mode: 'warm-transfer-say-summary', summaryPlan: { enabled: true } },
+          transferPlan: {
+            mode: 'warm-transfer-say-summary',
+            // La même borne de sonnerie que le plan par appel: ce chemin-ci est
+            // le repli, et un repli qui sonne trois fois plus longtemps que le
+            // chemin normal est un piège, pas un repli (REL-6).
+            dialTimeout: env.VOICE_TRANSFER_RING_SECONDS,
+            summaryPlan: { enabled: true },
+          },
         },
       ],
     });

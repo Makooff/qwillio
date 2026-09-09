@@ -172,6 +172,56 @@ describe('voice webhook routes', () => {
     expect(handleClientCallCompleted).toHaveBeenCalled();
   });
 
+  /**
+   * LEG-5. L'assistant porte déjà `recordingEnabled: false` et l'accueil ne
+   * promet pas d'enregistrement. Si une URL arrive quand même — assistant
+   * périmé chez Vapi, réglage changé en cours d'appel, surcharge d'escouade —
+   * la GARDER ferait mentir la phrase que l'appelant vient d'entendre. La
+   * consigne et la conservation doivent tomber du même côté.
+   */
+  it('refuse l\'URL d\'enregistrement d\'un client qui a coupé l\'enregistrement', async () => {
+    finalizeCall.mockResolvedValue({
+      transcript: 'Caller: bonjour',
+      durationSeconds: 42,
+      callerNumber: '+33600000000',
+      metrics: null,
+      recordingAllowed: false,
+    });
+
+    await request(await buildApp())
+      .post('/vapi/client/client_1')
+      .send({
+        message: { type: 'end-of-call-report', call, recordingUrl: 'https://vapi.example/rec.mp3' },
+      });
+
+    await flush();
+    await flush();
+    // L'appel est traité normalement: seule l'URL tombe.
+    expect(handleClientCallCompleted).toHaveBeenCalled();
+    const recordingArg = handleClientCallCompleted.mock.calls.at(-1)?.[5];
+    expect(recordingArg).toBeUndefined();
+  });
+
+  it('garde l\'URL quand le client accepte d\'être enregistré', async () => {
+    finalizeCall.mockResolvedValue({
+      transcript: 'Caller: bonjour',
+      durationSeconds: 42,
+      callerNumber: '+33600000000',
+      metrics: null,
+      recordingAllowed: true,
+    });
+
+    await request(await buildApp())
+      .post('/vapi/client/client_1')
+      .send({
+        message: { type: 'end-of-call-report', call, recordingUrl: 'https://vapi.example/rec.mp3' },
+      });
+
+    await flush();
+    await flush();
+    expect(handleClientCallCompleted.mock.calls.at(-1)?.[5]).toBe('https://vapi.example/rec.mp3');
+  });
+
   it('skips transcript analysis for a voicemail — no GPT spend on an empty call', async () => {
     finalizeCall.mockResolvedValue({ transcript: '', durationSeconds: 6, callerNumber: null, metrics: null });
 

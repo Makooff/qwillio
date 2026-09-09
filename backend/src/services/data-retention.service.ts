@@ -1,3 +1,4 @@
+import { Prisma } from '@prisma/client';
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { env } from '../config/env';
@@ -42,6 +43,33 @@ export function cutoffFor(days: number, now: Date = new Date()): Date {
   return new Date(now.getTime() - days * 86_400_000);
 }
 
+/**
+ * La date limite d'un appel qu'on enregistre à l'instant (LEG-4).
+ *
+ * Posée à l'ÉCRITURE et non recalculée à chaque purge: un enregistrement doit
+ * porter son échéance, sinon « jusqu'à quand gardez-vous cet appel » n'a pas de
+ * réponse vérifiable. C'est ce que la CNIL demande de pouvoir montrer, et une
+ * date recalculée depuis un réglage qui a pu changer entre-temps ne le montre
+ * pas.
+ */
+export function retainUntilFor(retentionDays: number | null | undefined, now: Date = new Date()): Date {
+  return new Date(now.getTime() + resolveRetentionDays(retentionDays) * 86_400_000);
+}
+
+/**
+ * « Cet appel est-il échu ? », dans le langage de Prisma.
+ *
+ * Deux termes, et l'effacement part au PREMIER des deux. La date posée à
+ * l'écriture empêche un client de PROLONGER ce qui est déjà enregistré en
+ * rallongeant son réglage; le calcul courant lui permet de le RACCOURCIR. Les
+ * deux vont dans le sens de l'appelant, ce qui est le seul sens qui compte ici.
+ * Les lignes antérieures à la colonne n'ont pas de date: seul le calcul les
+ * régit, et il suffit.
+ */
+function expired(cutoff: Date, now: Date) {
+  return { OR: [{ createdAt: { lt: cutoff } }, { retainUntil: { lte: now } }] };
+}
+
 /** Les champs de ClientCall qui portent du personnel appelant. */
 const CLIENT_CALL_ERASURE = {
   transcript: null,
@@ -59,6 +87,8 @@ export interface PurgeReport {
   clients: number;
   clientCallsPurged: number;
   callerMemoriesDeleted: number;
+  /** Lignes BLOQUÉES vidées de leur personnel, opposition conservée. */
+  callerMemoriesAnonymised: number;
   vapiDeletions: number;
   vapiDeletionFailures: number;
   outboundCallsPurged: number;
@@ -75,6 +105,7 @@ class DataRetentionService {
       clients: 0,
       clientCallsPurged: 0,
       callerMemoriesDeleted: 0,
+      callerMemoriesAnonymised: 0,
       vapiDeletions: 0,
       vapiDeletionFailures: 0,
       outboundCallsPurged: 0,
@@ -93,7 +124,7 @@ class DataRetentionService {
       //    ligne locale garde son URL et sera retentée demain.
       if (vapiBudget > 0) {
         const withRecordings = await prisma.clientCall.findMany({
-          where: { clientId: client.id, createdAt: { lt: cutoff }, recordingUrl: { not: null }, vapiCallId: { not: null } },
+          where: { clientId: client.id, ...expired(cutoff, now), recordingUrl: { not: null }, vapiCallId: { not: null } },
           select: { id: true, vapiCallId: true },
           take: vapiBudget,
         });
@@ -119,26 +150,90 @@ class DataRetentionService {
       const purged = await prisma.clientCall.updateMany({
         where: {
           clientId: client.id,
-          createdAt: { lt: cutoff },
-          OR: [
-            { recordingUrl: null, transcript: { not: null } },
-            { recordingUrl: null, callerNumber: { not: null } },
-            { recordingUrl: null, callerName: { not: null } },
-            { recordingUrl: null, nameCollected: { not: null } },
-            { recordingUrl: null, emailCollected: { not: null } },
-            { recordingUrl: null, summary: { not: null } },
-            { recordingUrl: { not: null }, vapiCallId: null },
+          /* `AND` explicite: l'échéance et la forme de la ligne portent chacune
+             leur propre `OR`, et les fondre en un seul effacerait des appels
+             non échus. */
+          AND: [
+            expired(cutoff, now),
+            {
+              OR: [
+                { recordingUrl: null, transcript: { not: null } },
+                { recordingUrl: null, callerNumber: { not: null } },
+                { recordingUrl: null, callerName: { not: null } },
+                { recordingUrl: null, nameCollected: { not: null } },
+                { recordingUrl: null, emailCollected: { not: null } },
+                { recordingUrl: null, summary: { not: null } },
+                { recordingUrl: { not: null }, vapiCallId: null },
+              ],
+            },
           ],
         },
         data: CLIENT_CALL_ERASURE,
       });
       report.clientCallsPurged += purged.count;
 
-      // 3. La mémoire d'appelant: rien à garder passé la rétention.
+      /* 3. La mémoire d'appelant.
+       *
+       * En DEUX temps, et la distinction n'est pas cosmétique.
+       *
+       * Une ligne ordinaire n'est QUE du personnel: elle se supprime.
+       *
+       * Une ligne BLOQUÉE, elle, porte une opposition — « ne me rappelez
+       * jamais ». La supprimer rendrait l'appelant rappelable, ce qui est
+       * l'inverse exact de ce qu'il a demandé: c'était le comportement, et une
+       * opposition vieille de trois mois disparaissait toute seule. Le RGPD
+       * demande d'ailleurs de CONSERVER une liste d'opposition, précisément
+       * pour pouvoir l'honorer.
+       * On garde donc le strict nécessaire pour ne pas le rappeler (le numéro
+       * et le drapeau) et on efface tout le reste: nom, courriel, portrait,
+       * préférences, dernier résumé.
+       *
+       * Le filtre de date lit `createdAt` quand `lastCallAt` est absent. Une
+       * ligne créée par `block()` n'a JAMAIS de `lastCallAt`, et en SQL un NULL
+       * ne matche aucune comparaison: sans ce repli, ces lignes n'étaient
+       * jamais échues, donc jamais nettoyées. */
+      const memoryExpired = {
+        OR: [{ lastCallAt: { lt: cutoff } }, { lastCallAt: null, createdAt: { lt: cutoff } }],
+      };
+
       const memories = await prisma.callerMemory.deleteMany({
-        where: { clientId: client.id, lastCallAt: { lt: cutoff } },
+        where: { clientId: client.id, isBlocked: false, ...memoryExpired },
       });
       report.callerMemoriesDeleted += memories.count;
+
+      /* `AND` explicite: l'échéance et « il reste quelque chose à effacer »
+         portent chacune leur `OR`, et les fondre en un seul viderait des
+         lignes non échues. Même piège que la requête d'appels ci-dessus.
+         Le second `OR` est ce qui rend la purge idempotente: une ligne déjà
+         vidée ne matche plus, donc le rapport ne la recompte pas chaque jour. */
+      const anonymised = await prisma.callerMemory.updateMany({
+        where: {
+          clientId: client.id,
+          isBlocked: true,
+          AND: [
+            memoryExpired,
+            {
+              OR: [
+                { knownName: { not: null } },
+                { email: { not: null } },
+                { profileSummary: { not: null } },
+                { lastSummary: { not: null } },
+                { facts: { not: Prisma.DbNull } },
+              ],
+            },
+          ],
+        },
+        data: {
+          knownName: null,
+          email: null,
+          profileSummary: null,
+          lastSummary: null,
+          lastOutcome: null,
+          facts: Prisma.DbNull,
+          preferences: [],
+        },
+      });
+      report.callerMemoriesAnonymised += anonymised.count;
       report.clients += 1;
     }
 
@@ -159,7 +254,8 @@ class DataRetentionService {
 
     logger.info(
       `[Retention] purge — ${report.clientCallsPurged} appels client, ` +
-        `${report.callerMemoriesDeleted} mémoires, ${report.vapiDeletions} audios Vapi ` +
+        `${report.callerMemoriesDeleted} mémoires (+${report.callerMemoriesAnonymised} oppositions vidées), ` +
+        `${report.vapiDeletions} audios Vapi ` +
         `(${report.vapiDeletionFailures} échecs), ${report.outboundCallsPurged} appels outbound, ` +
         `${report.prospectTranscriptsPurged} transcripts prospects`
     );
@@ -171,7 +267,10 @@ class DataRetentionService {
    * données — l'appelant, pas le titulaire du compte). Toujours scopé
    * clientId: le même numéro chez un autre client est un autre dossier.
    */
-  async eraseCaller(clientId: string, callerNumber: string): Promise<{ calls: number; memoryDeleted: boolean }> {
+  async eraseCaller(
+    clientId: string,
+    callerNumber: string,
+  ): Promise<{ calls: number; memoryDeleted: boolean; optOutKept: boolean }> {
     const calls = await prisma.clientCall.findMany({
       where: { clientId, callerNumber },
       select: { id: true, vapiCallId: true, recordingUrl: true },
@@ -188,10 +287,46 @@ class DataRetentionService {
       data: CLIENT_CALL_ERASURE,
     });
 
-    const memory = await prisma.callerMemory.deleteMany({ where: { clientId, callerNumber } });
+    /* Une OPPOSITION survit à l'effacement, et c'est dans l'intérêt de la
+       personne qui le demande.
+       Supprimer la ligne entière effacerait le « ne me rappelez jamais » avec
+       le reste, et l'appelant redeviendrait rappelable: il aurait exercé un
+       droit et récolté exactement ce qu'il refusait. On garde donc le strict
+       minimum pour ne pas le rappeler — son numéro et le drapeau — et on efface
+       tout le reste. Un numéro sur une liste d'opposition ne peut lui nuire:
+       il ne sert qu'à ne pas l'appeler.
+       Sans opposition, la ligne n'est QUE du personnel: elle disparaît. */
+    const blocked = await prisma.callerMemory.findUnique({
+      where: { clientId_callerNumber: { clientId, callerNumber } },
+      select: { isBlocked: true },
+    });
 
-    logger.info(`[Retention] caller erased for client ${clientId}: ${updated.count} calls, memory=${memory.count > 0}`);
-    return { calls: updated.count, memoryDeleted: memory.count > 0 };
+    let memoryDeleted = false;
+    let optOutKept = false;
+    if (blocked?.isBlocked) {
+      await prisma.callerMemory.update({
+        where: { clientId_callerNumber: { clientId, callerNumber } },
+        data: {
+          knownName: null,
+          email: null,
+          profileSummary: null,
+          lastSummary: null,
+          lastOutcome: null,
+          facts: Prisma.DbNull,
+          preferences: [],
+        },
+      });
+      optOutKept = true;
+    } else {
+      const memory = await prisma.callerMemory.deleteMany({ where: { clientId, callerNumber } });
+      memoryDeleted = memory.count > 0;
+    }
+
+    logger.info(
+      `[Retention] caller erased for client ${clientId}: ${updated.count} calls, ` +
+        `memory=${memoryDeleted}${optOutKept ? ', opposition conservée' : ''}`,
+    );
+    return { calls: updated.count, memoryDeleted, optOutKept };
   }
 
   /** DELETE /call/{id} chez Vapi. Best-effort: un échec sera retenté demain. */

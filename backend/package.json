@@ -26,7 +26,10 @@
     "phone:buy": "tsx src/scripts/buy-belgian-numbers.ts",
     "phone:stock": "tsx src/scripts/phone-stock-report.ts",
     "db:unlock": "tsx src/scripts/unlock-migrate.ts",
-    "phone:adopt": "tsx src/scripts/adopt-twilio-numbers.ts"
+    "phone:adopt": "tsx src/scripts/adopt-twilio-numbers.ts",
+    "voice:greetings": "tsx src/scripts/regenerate-greetings.ts",
+    "phone:assign": "tsx src/scripts/assign-stock-numbers.ts",
+    "voice:validate": "tsx src/scripts/validate-assistant.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",
@@ -43,6 +46,7 @@
     "handlebars": "^4.7.8",
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
+    "libphonenumber-js": "^1.13.12",
     "node-cron": "^3.0.3",
     "pdf-lib": "^1.17.1",
     "pg": "^8.18.0",

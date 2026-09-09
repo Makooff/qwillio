@@ -189,7 +189,12 @@ describe('divertedNumber — le numéro réellement composé par l\'appelant', (
 });
 
 describe('resolveClient — priorité au numéro renvoyé', () => {
-  beforeEach(() => findMany.mockReset());
+  /* Accolades: `mockReset()` rend le mock, et vitest appelle la valeur rendue
+     par un hook comme fonction de nettoyage — un mock programmé pour lever
+     ferait alors échouer un test qui a pourtant passé. */
+  beforeEach(() => {
+    findMany.mockReset();
+  });
 
   it("route sur le numéro d'origine, pas sur la ligne partagée", async () => {
     // Deux clients renvoient vers LA MÊME ligne. Sans l'origine, ce cas est

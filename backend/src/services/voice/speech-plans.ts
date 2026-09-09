@@ -90,6 +90,83 @@ function fallbackTranscriber(provider: string, lang: VoiceLanguage) {
 export interface SpeechOptions {
   /** `false` sur les appels navigateur: on paie l'attente, pas le risque. */
   fallbacks?: boolean;
+  /**
+   * Les mots propres à CE client, à souffler au transcripteur (BEL-5 / BEL-7).
+   *
+   * Nom de l'entreprise, nom de l'agent, intitulés de prestations: ce sont
+   * exactement les mots qu'un appelant prononce et qu'un modèle générique
+   * écrit de travers, parce qu'ils ne figurent dans aucun corpus. Absent ou
+   * vide, aucun champ n'est envoyé et le schéma reste celui d'aujourd'hui.
+   */
+  vocabulary?: string[];
+}
+
+/**
+ * Le plafond de la fenêtre de biasing.
+ *
+ * Deepgram dégrade au-delà d'une centaine de termes, et la documentation de
+ * Vapi le dit autrement: « start with minimal boosting, focus on uncommon
+ * domain-specific terms ». Souffler tout le catalogue d'un client reviendrait
+ * à ne rien souffler du tout, en dégradant le reste au passage.
+ */
+const MAX_KEYTERMS = 60;
+
+/** Les mots trop courants pour valoir un boost, et trop courts pour aider. */
+const VOCAB_STOPWORDS = new Set([
+  'de', 'du', 'des', 'le', 'la', 'les', 'un', 'une', 'et', 'ou', 'au', 'aux',
+  'the', 'and', 'of', 'for', 'to', 'a', 'an',
+  'van', 'de', 'het', 'een', 'en',
+]);
+
+/**
+ * Nettoie une liste de termes: sans doublon, sans ponctuation, sans mot vide.
+ *
+ * La casse est CONSERVÉE: la documentation de Vapi demande explicitement
+ * « ensuring correct spelling and capitalization », un nom propre écrit en
+ * minuscules soufflant au modèle la mauvaise graphie.
+ */
+function cleanVocabulary(terms: string[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const raw of terms) {
+    if (typeof raw !== 'string') continue;
+    // La ponctuation d'abord: « Chez Marie, » et « Chez Marie » sont un doublon
+    // que le dédoublonnage ne verrait pas autrement.
+    const term = raw.replace(/[^\p{L}\p{N}\s'-]/gu, ' ').replace(/\s+/g, ' ').trim();
+    if (term.length < 3) continue;
+    if (VOCAB_STOPWORDS.has(term.toLowerCase())) continue;
+    const key = term.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(term);
+    if (out.length >= MAX_KEYTERMS) break;
+  }
+  return out;
+}
+
+/**
+ * Le champ de biasing, choisi PAR MODÈLE. C'est le piège de cette ligne.
+ *
+ * Vapi n'expose pas le même champ selon le modèle Deepgram: `keyterm` accepte
+ * des expressions et n'existe que sur Nova-3; `keywords` ne prend que des mots
+ * SEULS et couvre Nova-2, Nova-1, Enhanced et Base. Or nos langues ne tournent
+ * pas toutes sur le même modèle — français et anglais en Nova-3, néerlandais
+ * en Nova-2. Envoyer le mauvais champ ferait refuser l'assistant entier, donc
+ * tous les appels de la flotte.
+ *
+ * D'où la découpe en mots sur Nova-2: « Chez Marie » y devient deux entrées,
+ * parce qu'une expression y serait au mieux ignorée.
+ */
+export function buildVocabularyField(model: string, terms: string[]): Record<string, string[]> {
+  const clean = cleanVocabulary(terms);
+  // Rien à souffler: pas de champ du tout, pour que le schéma envoyé reste
+  // identique à celui qui tourne aujourd'hui.
+  if (!clean.length) return {};
+
+  if (model.startsWith('nova-3')) return { keyterm: clean };
+
+  const words = cleanVocabulary(clean.flatMap(t => t.split(' ')));
+  return words.length ? { keywords: words } : {};
 }
 
 /**
@@ -115,6 +192,10 @@ export interface VoiceTuning {
   bargeInVoiceSeconds?: number;
   backoffSeconds?: number;
   silenceTimeout?: number;
+  /** Les mots qui coupent tout de suite. Absents, ceux de l'environnement. */
+  interruptionPhrases?: string[];
+  /** Les mots qui ne coupent pas. Absents, ceux de l'environnement. */
+  acknowledgementPhrases?: string[];
   realtimeModel?: string;
   llmModel?: string;
   temperature?: number;
@@ -144,6 +225,12 @@ export function resolveTuning(t: VoiceTuning = {}) {
     // Le plancher de 10 s vient de `env.ts`: en dessous, la réceptionniste
     // raccroche au nez de quelqu'un qui réfléchit.
     silenceTimeout: Math.round(clamp(t.silenceTimeout, 10, 120, env.VAPI_SILENCE_TIMEOUT)),
+    /* Par client, puis par environnement, puis le code. Jamais une liste vide:
+       sans mot d'arrêt plus rien ne coupe une réceptionniste lancée, et sans
+       acquiescement elle se tait au premier « mm-hmm ». Un réglage qui peut
+       casser la conversation ne doit pas pouvoir la casser par omission. */
+    interruptionPhrases: phraseList(t.interruptionPhrases, env.VOICE_INTERRUPTION_PHRASES, DEFAULT_INTERRUPTION_PHRASES),
+    acknowledgementPhrases: phraseList(t.acknowledgementPhrases, env.VOICE_ACKNOWLEDGEMENT_PHRASES, DEFAULT_ACKNOWLEDGEMENT_PHRASES),
     realtimeModel: t.realtimeModel || env.VOICE_REALTIME_MODEL,
     llmModel: t.llmModel || env.VAPI_MODEL,
     temperature: clamp(t.temperature, 0, 1.2, 0.6),
@@ -161,6 +248,12 @@ export function buildTranscriber(lang: VoiceLanguage, opts: SpeechOptions = {}) 
     // Emit interim results so the orchestrator can react (barge-in bookkeeping,
     // filler timing) before the final transcript lands.
     endpointing: env.VOICE_ENDPOINTING_MS,
+    /* Les mots propres au client, soufflés au transcripteur (BEL-5 / BEL-7).
+       Le nom de l'entreprise et les intitulés de prestations sont exactement
+       ce qu'un appelant prononce et qu'un modèle générique écrit de travers,
+       faute de figurer dans un corpus. Le CHAMP dépend du modèle: voir
+       `buildVocabularyField`. */
+    ...buildVocabularyField(DEEPGRAM_MODEL[lang], opts.vocabulary ?? []),
     /* Panne Deepgram = panne totale tant qu'aucun secours n'est déclaré.
        Opt-in par env (voir le commentaire dans env.ts): le champ n'existe pas
        du tout tant que la variable est vide, pour que le schéma envoyé à Vapi
@@ -187,6 +280,72 @@ export function buildTranscriber(lang: VoiceLanguage, opts: SpeechOptions = {}) 
  * the caller clearly handed over the turn (answer sooner), while a number still
  * being dictated ("zero four seven…") means wait longer.
  */
+/**
+ * Le mode PATIENT, décidé par ce que l'agent vient de demander (TUR-3).
+ *
+ * `onNumberSeconds` est un seuil global: il s'applique dès qu'un chiffre passe,
+ * quelle que soit la question. Or une adresse et une adresse e-mail ne se
+ * dictent pas comme un numéro. « Rue de la Loi… cent cinquante-cinq… mille
+ * bruxelles » se donne en trois blocs séparés par de vrais silences, et une
+ * adresse e-mail s'épelle lettre par lettre avec des pauses plus longues
+ * encore. Au seuil ordinaire, l'agent coupe au premier blanc et l'appelant
+ * recommence — ce qui, sur une adresse, veut dire abandonner.
+ *
+ * `customEndpointingRules` de type `assistant` fait matcher la règle sur la
+ * dernière phrase de L'AGENT, pas sur celle de l'appelant. C'est exactement le
+ * bon accrochage: on ne sait pas ce que l'appelant va dire, mais on sait
+ * toujours ce qu'on vient de lui demander. Vapi documente ce champ pour ce cas
+ * précis, « data collection scenarios, such as gathering phone numbers or
+ * addresses, or for spelling tasks ».
+ *
+ * ## Deux précautions
+ *
+ * Pas de `regexOptions`: la référence d'API en donne bien la forme
+ * (`[{ enabled, type: 'ignore-case' }]`) mais l'exemple de la documentation
+ * l'omet, et se tromper sur la forme d'un champ ferait refuser l'assistant
+ * ENTIER, donc tous les appels. L'insensibilité à la casse est donc écrite
+ * dans les motifs eux-mêmes, ce qui ne coûte rien et ne dépend de personne.
+ *
+ * Et les motifs sont ancrés sur des mots que l'agent emploie en POSANT la
+ * question, jamais sur des mots qu'il pourrait dire en passant. « adresse »
+ * dans « je note votre adresse » allonge un tour pour rien, ce qui est le
+ * moindre mal; l'inverse — ne pas matcher quand on demande — est le défaut
+ * qu'on répare.
+ */
+const PATIENT_SLOTS: Record<VoiceLanguage, Array<{ regex: string; seconds: number }>> = {
+  fr: [
+    /* L'adresse postale: trois blocs, de vrais silences entre eux.
+       Les frontières de mot ne sont pas décoratives: sans elles, `rue` matche
+       dans « c'est CRUel de vous faire attendre », et l'agent devient patient
+       sur un tour qui n'a rien à voir. Vérifié, c'était le cas. */
+    { regex: '\\b([Aa]dresse|[Rr]ue|[Cc]ode postal)\\b', seconds: 2.5 },
+    // L'e-mail et l'épellation: lettre par lettre, les pauses les plus longues.
+    { regex: '\\b([Ee]-?mail|[Cc]ourriel|lettre par lettre)\\b|[ÉEé]pel(er|ez)\\b', seconds: 3 },
+  ],
+  en: [
+    { regex: '\\b([Aa]ddress|[Ss]treet|[Pp]ost(al)? ?code|[Zz]ip)\\b', seconds: 2.5 },
+    { regex: '\\b([Ee]-?mail|[Ss]pell)', seconds: 3 },
+  ],
+  nl: [
+    { regex: '\\b([Aa]dres|[Ss]traat|[Pp]ostcode)\\b', seconds: 2.5 },
+    /* Deux L, et c'est toute la règle: « spellen » veut dire épeler, « spelen »
+       veut dire jouer. Un seul L rendrait l'agent patient chaque fois qu'il
+       parle de jeu, d'enfants ou d'horaires de match. */
+    { regex: '\\b([Ee]-?mail|[Ss]pell)', seconds: 3 },
+  ],
+};
+
+/** Les règles d'endpointing par slot, dans la forme attendue par Vapi. */
+export function buildCustomEndpointingRules(lang: VoiceLanguage) {
+  return PATIENT_SLOTS[lang].map(rule => ({
+    // `assistant`: la règle matche la dernière phrase de l'AGENT. On ne sait
+    // pas ce que l'appelant va dire, on sait ce qu'on vient de lui demander.
+    type: 'assistant' as const,
+    regex: rule.regex,
+    timeoutSeconds: rule.seconds,
+  }));
+}
+
 export function buildStartSpeakingPlan(lang: VoiceLanguage) {
   return {
     waitSeconds: env.VOICE_START_WAIT_SECONDS,
@@ -217,8 +376,17 @@ export function buildStartSpeakingPlan(lang: VoiceLanguage) {
     transcriptionEndpointingPlan: {
       onPunctuationSeconds: 0.1,
       onNoPunctuationSeconds: 1.0,
-      onNumberSeconds: 0.5,
+      /* UNE SECONDE après un chiffre, et non une demi (TUR-3).
+         Un appelant qui dicte « zéro deux… cinq cent douze… trente-quatre… »
+         laisse 400 à 900 ms entre ses groupes: à 500 ms on le coupe après le
+         deuxième, et il doit tout redicter. C'est le mode d'échec le plus
+         fréquent et le plus irritant d'un agent de prise de rendez-vous, et
+         il annulerait à lui seul le travail de capture des numéros dictés. */
+      onNumberSeconds: env.VOICE_ENDPOINTING_NUMBER_SECONDS,
     },
+    /* Le seuil « chiffres » ci-dessus est GLOBAL. Ces règles-ci sont posées par
+       question: une adresse et un e-mail ne se dictent pas comme un numéro. */
+    customEndpointingRules: buildCustomEndpointingRules(lang),
   };
 }
 
@@ -269,26 +437,52 @@ export function buildRealtimeStopSpeakingPlan(tuning: ResolvedTuning = resolveTu
   };
 }
 
+/** Les acquiescements par défaut: des signaux d'écoute, pas des prises de tour. */
+const DEFAULT_ACKNOWLEDGEMENT_PHRASES = [
+  'i understand', 'ok', 'okay', 'right', 'yeah', 'yes', 'uh-huh', 'mm-hmm',
+  'd\'accord', 'ouais', 'oui', 'hm', 'mhm', 'je vois', 'très bien',
+  // NL — 'ja' et 'oké' sont les backchannels flamands les plus fréquents.
+  'ja', 'jaja', 'oké', 'begrepen', 'ik snap het',
+];
+
+/** Les mots d'arrêt par défaut: ils coupent sans attendre le seuil. */
+const DEFAULT_INTERRUPTION_PHRASES = [
+  'stop', 'wait', 'hold on', 'excuse me', 'actually', 'no no',
+  'attendez', 'attends', 'non non', 'pardon', 'en fait',
+  'wacht', 'wacht even', 'nee nee', 'eigenlijk', 'sorry hoor',
+];
+
+/**
+ * Une liste de phrases: celle du client, sinon celle de l'environnement, sinon
+ * celle du code — et JAMAIS vide.
+ *
+ * Les doublons sont retirés parce que Vapi refuse l'assistant entier sur une
+ * répétition (« stopSpeakingPlan.All interruptionPhrases's elements must be
+ * unique »), et que « stop » comme « pardon » s'écrivent pareil dans deux des
+ * trois langues servies. Une liste réglable rend ce doublon beaucoup plus
+ * probable qu'avec un tableau écrit à la main.
+ */
+function phraseList(perClient: string[] | undefined, fromEnv: string[], fallback: string[]): string[] {
+  /* Le nettoyage vient AVANT le choix, et c'est ce qui fait la garantie: une
+     liste de blancs a bien une longueur, et la retenir pour cette raison
+     rendrait une liste vide après nettoyage — exactement l'état que cette
+     fonction existe pour empêcher. */
+  const clean = (list: string[] | undefined): string[] =>
+    [...new Set((list ?? []).map(p => p.trim().toLowerCase()).filter(Boolean))];
+
+  for (const candidate of [clean(perClient), clean(fromEnv), clean(fallback)]) {
+    if (candidate.length) return candidate;
+  }
+  return clean(fallback);
+}
+
 export function buildStopSpeakingPlan(tuning: ResolvedTuning = resolveTuning()) {
   return {
     numWords: tuning.bargeInWords,
     voiceSeconds: tuning.bargeInVoiceSeconds,
     backoffSeconds: tuning.backoffSeconds,
-    acknowledgementPhrases: [
-      'i understand', 'ok', 'okay', 'right', 'yeah', 'yes', 'uh-huh', 'mm-hmm',
-      'd\'accord', 'ouais', 'oui', 'hm', 'mhm', 'je vois', 'très bien',
-      // NL — 'ja' et 'oké' sont les backchannels flamands les plus fréquents.
-      'ja', 'jaja', 'oké', 'begrepen', 'ik snap het',
-    ],
-    // Unique — Vapi rejects the whole assistant on a duplicate
-    // ("stopSpeakingPlan.All interruptionPhrases's elements must be unique"),
-    // and 'stop' is the same word in all three languages ('pardon' too:
-    // FR = NL, so it appears once and serves both).
-    interruptionPhrases: [
-      'stop', 'wait', 'hold on', 'excuse me', 'actually', 'no no',
-      'attendez', 'attends', 'non non', 'pardon', 'en fait',
-      'wacht', 'wacht even', 'nee nee', 'eigenlijk', 'sorry hoor',
-    ],
+    acknowledgementPhrases: tuning.acknowledgementPhrases,
+    interruptionPhrases: tuning.interruptionPhrases,
   };
 }
 
@@ -713,6 +907,26 @@ export function buildRealtimePlans(
           startSpeakingPlan: buildStartSpeakingPlan(lang),
           stopSpeakingPlan: buildStopSpeakingPlan(tuning),
         }),
+    /* Le clavier, seul canal à 0 % d'erreur (BEL-4 / REL-8).
+       Il est armé sur TOUS les appels, pas seulement après un échec: le plan
+       se déclare à la construction de l'assistant, et un appelant qui bute sur
+       son numéro au troisième tour ne peut pas attendre qu'on reconstruise
+       l'assistant. Armé, il ne coûte rien tant que personne n'appuie.
+       Ce que ça change à la réception: les touches remontent comme un message
+       « utilisateur » fait de chiffres propres, au lieu d'être transcrites par
+       le STT comme de la parole — c'est le bug classique du DTMF en bande, où
+       les tonalités entrent dans le contexte du modèle sous forme de charabia.
+       Hors du bloc conditionnel parole-à-parole, volontairement: le clavier se
+       lit sur le transport, pas sur le transcripteur, donc les deux moteurs en
+       profitent. */
+    keypadInputPlan: {
+      enabled: true,
+      timeoutSeconds: env.VOICE_KEYPAD_TIMEOUT_SECONDS,
+      // Chaîne et non tableau: le tableau vient d'un changelog de 2025, la
+      // référence d'API courante donne `"delimiters": "#"`. Se tromper de type
+      // ici ferait refuser l'assistant ENTIER, donc tous les appels.
+      delimiters: '#',
+    },
     backchannelingEnabled: env.VOICE_BACKCHANNEL_ENABLED,
     // No backchannelPlan here. Vapi rejects the whole assistant with
     // "assistant.property backchannelPlan should not exist", which took down
@@ -725,7 +939,33 @@ export function buildRealtimePlans(
     // Streams the first message as soon as the channel is up instead of waiting
     // for the model to be primed.
     firstMessageMode: 'assistant-speaks-first',
-    backgroundDenoisingEnabled: true,
+    /* Personne ne coupe la salutation (TUR-12).
+       Les algorithmes d'annulation d'écho mettent trois à quatre secondes à
+       converger: les premières secondes d'un appel sont donc celles où un faux
+       barge-in est le plus probable, et c'est exactement le moment de la phrase
+       d'accueil. Un écho, une porte, la sonnerie d'un autre poste, et la
+       salutation est tronquée.
+       Ce n'est pas qu'une question d'impression: l'annonce IA vit DANS cette
+       salutation (LEG-1). Une salutation coupée par du bruit, c'est un appel
+       mené sans annonce, et l'obligation ne se rattrape pas plus tard.
+       Écrit alors que c'est déjà le défaut de Vapi, et c'est le point: un défaut
+       ne se lit pas dans le code, ne s'explique pas, et peut changer chez le
+       fournisseur sans que rien ici ne bouge. */
+    firstMessageInterruptionsEnabled: false,
+    /* Le débruitage, dans sa forme COURANTE (TUR-11).
+       `backgroundDenoisingEnabled`, le booléen qui vivait ici, est déprécié
+       depuis juin 2025 au profit de ce plan. Un champ déprécié marche jusqu'au
+       jour où il ne marche plus, et ce jour-là c'est un appelant qui l'apprend.
+       `smartDenoisingPlan` est Krisp, que la documentation recommande « for
+       most use cases »: il retire la porte, la radio et la conversation à côté
+       AVANT le transcripteur, donc avant que `numWords` ait à trier. C'est le
+       même problème que le barge-in, traité une étape plus tôt.
+       Pas de `fourierDenoisingPlan`: la documentation le dit expérimental, et
+       son filtrage se règle en décibels sous une ligne de base glissante —
+       trop agressif, il mange la parole d'un appelant qui parle bas, ce qui
+       est exactement le cas qu'on ne peut pas se permettre de rater. Il se
+       mesure sur de vrais appels avant de s'activer, pas avant. */
+    backgroundSpeechDenoisingPlan: { smartDenoisingPlan: { enabled: true } },
     silenceTimeoutSeconds: tuning.silenceTimeout,
     maxDurationSeconds: env.VAPI_MAX_DURATION,
   };

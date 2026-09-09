@@ -13,6 +13,28 @@ import { knowledgePreset } from '../config/knowledge-presets';
 import { clientMessage, type PhoneSetupState } from '../services/voice/phone-setup.service';
 import { wouldLoop, LOOP_MESSAGE } from '../services/voice/transfer-loop';
 
+/**
+ * Fusionne un réglage `vapiConfig` reçu avec celui déjà en base.
+ *
+ * Superficielle et volontairement: les sous-objets (`notifications`,
+ * `agentModules`) sont remplacés en entier, parce qu'une fusion profonde rend
+ * impossible de RETIRER une entrée — et une base de connaissances dont on ne
+ * peut plus retirer une ligne est pire qu'un réglage écrasé.
+ *
+ * `null` retire la clé: c'est le seul moyen de nettoyer sans tout renvoyer.
+ */
+export function mergeVapiConfig(current: unknown, incoming: unknown): Record<string, unknown> {
+  const base = (current && typeof current === 'object' ? { ...(current as Record<string, unknown>) } : {});
+  if (!incoming || typeof incoming !== 'object') return base;
+
+  for (const [key, value] of Object.entries(incoming as Record<string, unknown>)) {
+    if (value === null) delete base[key];
+    else base[key] = value;
+  }
+  return base;
+}
+
+
 // OAuth state: per-user, signed, short-lived — the callback verifies it was
 // minted for the same client that finishes the flow (CSRF protection).
 const GCAL_STATE_PREFIX = 'qwillio-gcal.';
@@ -165,8 +187,15 @@ export class ClientDashboardController {
       if (!call) return res.status(404).json({ error: 'Lead not found' });
 
       const statusValues = ['new', 'contacted', 'converted', 'lost'];
-      await prisma.clientCall.update({
-        where: { id },
+      /* `updateMany` avec le clientId, et pas `update` sur le seul id.
+         La vérification juste au-dessus suffit AUJOURD'HUI, mais elle est
+         séparée de l'écriture: la portée redevient alors une discipline, qu'un
+         réordonnancement ou un copier-coller vers une route sans garde perd en
+         silence. C'est exactement ainsi que sont nées les dix routes qui
+         agissaient sur un enregistrement par son seul identifiant.
+         Ici la portée est DANS l'écriture: elle ne peut plus être perdue. */
+      await prisma.clientCall.updateMany({
+        where: { id, clientId: req.clientId },
         data: { tags: { set: [...(call.tags || []).filter((t: string) => !statusValues.includes(t)), status] } },
       });
       res.json({ success: true, status });
@@ -185,8 +214,9 @@ export class ClientDashboardController {
       });
       if (!call) return res.status(404).json({ error: 'Lead not found' });
 
-      await prisma.clientCall.update({
-        where: { id },
+      // Même raison qu'au-dessus: la portée vit dans l'écriture, pas à côté.
+      await prisma.clientCall.updateMany({
+        where: { id, clientId: req.clientId },
         data: {
           metadata: {
             ...(typeof call.metadata === 'object' && call.metadata !== null ? call.metadata as Record<string, unknown> : {}),
@@ -352,7 +382,33 @@ export class ClientDashboardController {
       if (body.businessName !== undefined) updateData.businessName = body.businessName || null;
       if (body.businessType !== undefined) updateData.businessType = body.businessType || null;
       if (body.vapiPhoneNumber !== undefined) updateData.vapiPhoneNumber = body.vapiPhoneNumber || null;
-      if (body.vapiConfig !== undefined) updateData.vapiConfig = body.vapiConfig;
+      /* `vapiConfig` est FUSIONNÉ, pas remplacé.
+         Le remplacement effaçait tout ce que l'appel ne renvoyait pas: le
+         moteur de synthèse choisi pour ce client, le chemin custom-LLM, la
+         base de connaissances, le mode sans enregistrement. C'est le même
+         piège que le PUT partiel déjà documenté ailleurs, en pire: ici tout
+         tient dans un seul champ, donc une omission efface tout le reste.
+         `null` sur une clé la retire explicitement, ce qui laisse un moyen de
+         nettoyer sans avoir à tout renvoyer. */
+      if (body.vapiConfig !== undefined) {
+        const current = await prisma.client.findUnique({
+          where: { id: req.clientId },
+          select: { vapiConfig: true },
+        });
+        updateData.vapiConfig = mergeVapiConfig(current?.vapiConfig, body.vapiConfig);
+      }
+
+      /* Le mode « pas d'enregistrement, seulement le compte rendu » (LEG-5).
+         Il existait déjà dans le moteur mais n'était atteignable qu'en
+         écrivant le JSON brut à la main. Un argument de vente pour le médical
+         qui demande de savoir écrire du JSON n'est pas un argument de vente. */
+      if (typeof body.recordCalls === 'boolean') {
+        const current = updateData.vapiConfig ?? (await prisma.client.findUnique({
+          where: { id: req.clientId },
+          select: { vapiConfig: true },
+        }))?.vapiConfig;
+        updateData.vapiConfig = mergeVapiConfig(current, { recordCalls: body.recordCalls });
+      }
       if (body.agentLanguage !== undefined) updateData.agentLanguage = body.agentLanguage;
       if (body.agentName !== undefined) updateData.agentName = body.agentName || null;
       if (body.contactPhone !== undefined) updateData.contactPhone = body.contactPhone || null;

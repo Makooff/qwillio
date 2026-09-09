@@ -15,6 +15,7 @@ import { knowledgePreset } from '../config/knowledge-presets';
 import { phoneSetupService } from './voice/phone-setup.service';
 import { releaseClientNumbers } from './voice/phone-stock.service';
 import { clientPortalUrl } from '../utils/urls';
+import { reportAssistantSyncFailure } from './voice/vapi-error';
 
 const MAX_RETRIES = 3;
 const RETRY_BASE_DELAY_MS = 2000; // 2s, 4s, 8s exponential backoff
@@ -821,7 +822,17 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
       void this.regenerateGreetings(client.id);
       logger.info(`VAPI assistant ${client.vapiAssistantId} synced for ${client.businessName}`);
     } catch (error) {
-      logger.error(`Failed to update VAPI assistant ${client.vapiAssistantId}:`, error);
+      /* Bruyant, et pas seulement journalisé (leçon des deux pannes de flotte).
+         Les deux appelants de cette fonction attrapent pour écrire un `warn`
+         puis répondre « enregistré »: sans cette alerte, un refus de Vapi
+         laisse l'assistant distant sur son ANCIENNE configuration pour
+         toujours, et personne ne l'apprend avant le prochain appelant. */
+      reportAssistantSyncFailure({
+        clientId: client.id,
+        businessName: client.businessName,
+        assistantId: client.vapiAssistantId,
+        error,
+      });
       throw error;
     }
   }

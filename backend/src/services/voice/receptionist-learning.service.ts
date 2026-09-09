@@ -73,6 +73,46 @@ const SLOW_TURN_P95_MS = 900;
 const TOOL_ERROR_THRESHOLD = 0.1;
 /** Cache hit rate below which the prompt prefix is probably being mutated. */
 const LOW_CACHE_HIT_RATE = 0.3;
+/** Part des appels sans résultat au-delà de laquelle il y a un problème, pas du bruit. */
+const ABANDON_RATE_THRESHOLD = 0.3;
+
+/**
+ * Les issues qui veulent dire « l'appel n'a rien produit ».
+ *
+ * Une LISTE POSITIVE, et pas « tout ce qui n'est pas un succès »: le jour où
+ * une issue nouvelle apparaît dans le vocabulaire, la seconde forme la
+ * compterait comme un abandon et ferait crier au loup sur toute la flotte. Un
+ * rapport hebdomadaire qui se trompe une fois est un rapport qu'on cesse de
+ * lire. Une plainte et un transfert sont de vraies conversations: ni l'un ni
+ * l'autre n'est un abandon, même quand il finit mal.
+ */
+const ABANDONED_OUTCOMES = new Set(['missed', 'other']);
+
+/** Un appel, réduit à ce qui dit OÙ l'appelant s'est arrêté. */
+interface CallEnding {
+  callerTurns: number;
+  outcome: string | null;
+}
+
+/**
+ * Où l'appelant s'arrête désigne la cause, et ce n'est jamais la même.
+ *
+ * Au premier tour il n'a rien entendu d'autre que l'accueil: c'est la voix, la
+ * phrase, ou le fait de tomber sur une machine. Au deuxième et au troisième il
+ * a posé sa question et la réponse ne lui a pas suffi. Plus tard il était
+ * engagé, et c'est le remplissage du rendez-vous qui l'a perdu — ce sont trois
+ * chantiers différents, et confondre les trois est ce qui rend un taux global
+ * inexploitable.
+ */
+function abandonAction(worst: string): string {
+  if (worst === 'tour 1') {
+    return 'Ils partent sur l\'accueil: écouter la phrase d\'ouverture, vérifier la voix et le délai avant qu\'elle parle.';
+  }
+  if (worst === 'tour 2' || worst === 'tour 3') {
+    return 'Ils partent après la première réponse: la réponse ne suffit pas. Regarder les questions posées et enrichir la base de connaissances.';
+  }
+  return 'Ils partent une fois engagés: c\'est la prise de rendez-vous ou la collecte qui les perd. Vérifier les créneaux proposés et le nombre de questions posées.';
+}
 
 const LOOKBACK_DAYS = 7;
 const MAX_CALLS = 200;
@@ -95,12 +135,22 @@ class ReceptionistLearningService {
       .map(c => (c.metadata as Record<string, any> | null)?.realtime as RealtimeMetrics | undefined)
       .filter((m): m is RealtimeMetrics => Boolean(m));
 
+    /* L'issue est portée par la LIGNE, pas par les métriques temps réel: pour
+       savoir où un appelant s'arrête, il faut croiser les deux. */
+    const endings: CallEnding[] = calls
+      .map(c => ({
+        callerTurns: ((c.metadata as Record<string, any> | null)?.realtime as RealtimeMetrics | undefined)?.callerTurns,
+        outcome: c.outcome,
+      }))
+      .filter((e): e is CallEnding => typeof e.callerTurns === 'number');
+
     if (metrics.length < MIN_CALLS) {
       return { clientId, callsAnalysed: metrics.length, findings: [] };
     }
 
     const findings = [
       ...this.pacingFindings(metrics),
+      ...this.abandonFindings(endings),
       ...this.latencyFindings(metrics),
       ...this.toolFindings(metrics),
       ...this.costFindings(metrics),
@@ -148,6 +198,48 @@ class ReceptionistLearningService {
     });
 
     return findings;
+  }
+
+  /**
+   * L'abandon, découpé par INDEX DE TOUR (TST-9).
+   *
+   * Un taux d'abandon global ne dit rien d'exploitable: il mélange l'appelant
+   * qui raccroche en entendant une voix de synthèse et celui qui décroche au
+   * moment de donner sa carte. Découpé par tour, il pointe l'endroit exact où
+   * l'agent perd les gens, et cet endroit désigne une cause différente à
+   * chaque fois — c'est pour ça que l'action ci-dessous change avec le tour.
+   */
+  private abandonFindings(endings: CallEnding[]): Finding[] {
+    if (endings.length < MIN_CALLS) return [];
+
+    const abandoned = endings.filter(e => e.outcome === null || ABANDONED_OUTCOMES.has(e.outcome));
+    const rate = ratio(abandoned.length, endings.length);
+    if (rate <= ABANDON_RATE_THRESHOLD) return [];
+
+    const buckets: Array<[string, (t: number) => boolean]> = [
+      ['tour 1', t => t <= 1],
+      ['tour 2', t => t === 2],
+      ['tour 3', t => t === 3],
+      ['tours 4-6', t => t >= 4 && t <= 6],
+      ['tours 7+', t => t >= 7],
+    ];
+    const histogram = buckets.map(([label, hit]) => ({
+      label,
+      count: abandoned.filter(e => hit(e.callerTurns)).length,
+    }));
+    const worst = [...histogram].sort((a, b) => b.count - a.count)[0];
+
+    return [
+      {
+        code: 'abandon_by_turn',
+        severity: 'warn',
+        detail:
+          `${Math.round(rate * 100)}% des appels finissent sans rien produire — ` +
+          histogram.map(h => `${h.label}: ${h.count}`).join(', '),
+        subject: worst.label,
+        action: abandonAction(worst.label),
+      },
+    ];
   }
 
   /** Latency, attributed to the stage that owns it. */

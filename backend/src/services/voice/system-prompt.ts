@@ -116,6 +116,15 @@ export function buildSystemPrompt(
            s'entend comme une annonce. */
         '- Débit d\'une conversation, pas d\'une annonce: varie le rythme, laisse la voix retomber en fin de phrase.',
         '- Ne répète pas ce que la personne vient de dire.',
+        /* Le VOUVOIEMENT, dit explicitement, et il ne va pas de soi.
+           Tout ce prompt s'adresse au modèle en « tu », comme une consigne
+           s'écrit; le modèle reprend ce registre et le retourne à l'appelant
+           (« c'est quoi ton nom ? », relevé sur un scénario d'évaluation). Un
+           réceptionniste qui tutoie un inconnu au téléphone, en français comme
+           en néerlandais, s'entend en une seconde et ne se rattrape pas. Un
+           client peut toujours demander l'inverse dans ses consignes, qui
+           passent avant le métier. */
+        '- Vouvoie toujours l\'appelant, même s\'il te tutoie.',
         '- Si on te coupe, arrête-toi et écoute.',
         '- Ne prononce jamais de balise technique, de code, ni de contenu entre crochets.',
       ].join('\n'),
@@ -134,11 +143,62 @@ export function buildSystemPrompt(
         '- Spreektaal, natuurlijk Nederlands: laat woorden in elkaar overlopen, articuleer niet overdreven.',
         '- Gesprekstempo, geen omroepbericht: varieer je ritme, laat je stem dalen aan het eind van een zin.',
         '- Herhaal niet wat de beller net zei.',
+        // Même règle, même raison: « u » et non « je », même si la personne tutoie.
+        '- Spreek de beller altijd aan met « u », ook als hij je tutoyeert.',
         '- Word je onderbroken, stop dan en luister.',
         '- Spreek nooit een technische tag, code of iets tussen haakjes uit.',
       ].join('\n'),
     )
   );
+
+  // ── Belgicismes ──
+  /* Le pays ne servait qu'à choisir une langue et une voix. Or le français de
+     Belgique n'est pas le français de France, et deux écarts coûtent un
+     rendez-vous chacun:
+
+     « dîner » désigne le repas de MIDI. Un agent entraîné sur du français
+     hexagonal comprend « le soir » et propose systématiquement le mauvais
+     créneau, sans que rien ne signale l'erreur avant que le client ne se
+     présente à la mauvaise heure.
+
+     « je ne sais pas venir » veut dire « je ne PEUX pas venir ». Lu au premier
+     degré, il produit une réponse absurde au moment précis où l'appelant
+     annonce qu'il annule.
+
+     C'est au MODÈLE qu'on les apprend, pas au transcripteur: ces mots sont
+     correctement transcrits, c'est leur sens qui diffère. Un biais de
+     transcription ne réparerait rien. */
+  if (lang === 'fr' && (profile.country || '').toUpperCase() === 'BE') {
+    lines.push(
+      [
+        /* UN GLOSSAIRE, et rien d'autre. Pas une seule phrase à l'impératif.
+           Deux versions ont dérapé pour la même raison, et la seconde a coûté
+           un scénario qui n'a rien de belge:
+             - « des tics de langage » a fait ADOPTER le tic (« je vais vérifier
+               les disponibilités pour demain une fois »);
+             - « demande-lui l'heure exacte », et même la glose « demande quelle
+               heure » — indicatif, mais qui se lit comme un impératif — ont
+               fait poser une question à la place d'un appel d'outil: à « je
+               voudrais un rendez-vous demain matin », l'agent répondait « le
+               matin ou l'après-midi ? » au lieu de consulter l'agenda.
+           Un glossaire qui contient un verbe d'action se lit comme une
+           consigne, et une consigne écrite ici se substitue aux règles du
+           métier, qui sont ailleurs. D'où la forme: « X veut dire Y », point. */
+        'FRANÇAIS DE BELGIQUE — vocabulaire de l\'appelant, à comprendre. Rien ici ne te dit quoi faire:',
+        '- « dîner » = repas de MIDI. « souper » = repas du soir. « déjeuner » = petit-déjeuner.',
+        '- « je ne sais pas » + verbe = « je ne PEUX pas ». « Je ne sais pas venir mardi » = une annulation.',
+        '- « septante » = 70, « nonante » = 90, « septante-et-un » = 71, « nonante-et-un » = 91.',
+        '- « s\'il vous plaît » en fin de phrase = « voilà, tenez ». Ce n\'est pas une demande.',
+        '- « une fois », « sais-tu », « hein » en fin de phrase = des tics DE L\'APPELANT, sans contenu. Tu ne les emploies jamais toi-même.',
+        '- « GSM » = téléphone portable. « numéro de GSM » = numéro de portable.',
+        '- « quoi comme » = « quel ». « Quoi comme heure ? » = « quelle heure ? ».',
+        '- « à tantôt » = « à tout à l\'heure », aujourd\'hui même.',
+        '- « faire la file » = faire la queue. « aubette » = abribus. « farde » = classeur.',
+        '- « ça va aller » = une acceptation, pas une inquiétude.',
+        '- Ce vocabulaire change le SENS de ce que tu entends, rien d\'autre: ni tes outils, ni tes règles.',
+      ].join('\n')
+    );
+  }
 
   // ── Business facts ──
   const facts: string[] = [];
@@ -173,7 +233,15 @@ export function buildSystemPrompt(
       t(
         [
           'RENDEZ-VOUS:',
-          '- Vérifie toujours avec checkAvailability avant de proposer une heure. N\'invente jamais un créneau.',
+          /* Les deux règles en UNE ligne, et pas deux: le prompt est rejoué à
+             chaque tour, un test garde sa taille, et « demander une
+             précision » est le même interdit que « inventer un créneau » —
+             les deux consistent à ne pas regarder l'agenda.
+             « Un rendez-vous demain matin » suffit pour consulter: demander
+             « le matin ou l'après-midi ? » avant d'avoir regardé coûte un tour
+             entier à l'appelant et ne change rien à ce que l'agenda contient.
+             Relevé deux fois sur un scénario d'évaluation. */
+          '- checkAvailability AVANT de proposer une heure ou de demander une précision. N\'invente jamais un créneau.',
           '- Propose un créneau à la fois.',
           '- Appelle bookAppointment seulement après un accord explicite sur une heure précise.',
           '- Les résultats d\'outils en MAJUSCULES sont des instructions pour toi, pas du texte à lire.',
@@ -181,6 +249,7 @@ export function buildSystemPrompt(
         [
           'APPOINTMENTS:',
           '- Always call checkAvailability before offering a time. Never invent a slot.',
+          '- Do not ask for more detail before checking: call checkAvailability with what you have, then offer.',
           '- Offer one slot at a time.',
           '- Only call bookAppointment after the caller explicitly agrees to a specific time.',
           '- Tool results in CAPS are instructions for you, not text to read out.',
@@ -188,6 +257,7 @@ export function buildSystemPrompt(
         [
           'AFSPRAKEN:',
           '- Controleer altijd eerst met checkAvailability voor je een tijdstip voorstelt. Verzin nooit een vrij moment.',
+          '- Vraag niet om meer details voor je controleert: roep checkAvailability aan met wat je hebt, en stel dan voor.',
           '- Stel één tijdstip per keer voor.',
           '- Roep bookAppointment pas aan nadat de beller expliciet akkoord gaat met een precies tijdstip.',
           '- Toolresultaten in HOOFDLETTERS zijn instructies voor jou, geen tekst om voor te lezen.',
@@ -343,6 +413,84 @@ export function buildSystemPrompt(
   );
 
   return lines.join('\n\n');
+}
+
+/**
+ * L'annonce obligatoire, et la garantie qu'elle est bien là (LEG-1).
+ *
+ * ── Le trou que ceci bouche ────────────────────────────────────────────────
+ *
+ * Chaque variante d'accueil porte l'annonce IA, et un test l'empêche de
+ * disparaître. Mais un accueil PAR LIGNE, écrit librement par le client dans
+ * un champ de 400 caractères, REMPLACE purement et simplement l'accueil
+ * conforme. Un client qui écrit « Garage Dupont bonjour ! » fait donc sauter,
+ * sans le savoir, l'obligation qui pèse sur NOUS: l'article 50 de l'AI Act vise
+ * le fournisseur du système, pas le commerçant qui l'utilise.
+ *
+ * ── Compléter, pas remplacer ───────────────────────────────────────────────
+ *
+ * On n'écarte pas la phrase du client: il l'a écrite pour cette ligne, et c'est
+ * la première seconde de son appel. On y AJOUTE ce qui manque, et rien d'autre.
+ * Un accueil qui dit déjà « assistant IA » n'est pas retouché.
+ */
+const AI_MARKERS: Record<VoiceLanguage, RegExp> = {
+  fr: /\b(ia|i\.a\.|intelligence artificielle|assistante? (?:ia|vocale?|virtuelle?|automatis))/i,
+  en: /\b(ai|a\.i\.|artificial intelligence|virtual assistant|automated assistant)/i,
+  nl: /\b(ai|kunstmatige intelligentie|virtuele assistent|automatische assistent)/i,
+};
+
+const RECORDING_MARKERS: Record<VoiceLanguage, RegExp> = {
+  fr: /enregistr/i,
+  en: /record/i,
+  nl: /opgenomen|opname/i,
+};
+
+export function hasAiDisclosure(text: string, lang: VoiceLanguage): boolean {
+  return AI_MARKERS[lang].test(text ?? '');
+}
+
+export function hasRecordingNotice(text: string, lang: VoiceLanguage): boolean {
+  return RECORDING_MARKERS[lang].test(text ?? '');
+}
+
+export interface DisclosureResult {
+  /** L'accueil réellement prononcé. */
+  text: string;
+  /** Ce qui a dû être ajouté, pour le journal. */
+  added: Array<'ai' | 'recording'>;
+}
+
+/**
+ * Rend l'accueil d'une ligne conforme, en n'ajoutant que ce qui manque.
+ *
+ * La notice d'enregistrement n'est ajoutée que si l'appel est RÉELLEMENT
+ * enregistré: annoncer un enregistrement qui n'a pas lieu est un mensonge de
+ * confort, et il se retourne aussi bien qu'une annonce manquante.
+ */
+export function ensureDisclosure(greeting: string, profile: ClientVoiceProfile): DisclosureResult {
+  const lang = profile.language;
+  const t = <T>(fr: T, en: T, nl: T): T => pickLang(lang, fr, en, nl);
+  const added: Array<'ai' | 'recording'> = [];
+
+  if (!env.VOICE_COMPLIANCE_GREETING) return { text: greeting, added };
+
+  let text = greeting.trim();
+
+  if (!hasAiDisclosure(text, lang)) {
+    added.push('ai');
+    text += t(
+      ` Je suis ${profile.agentName}, l'assistant IA de l'accueil.`,
+      ` I'm ${profile.agentName}, the AI assistant on reception.`,
+      ` Ik ben ${profile.agentName}, de AI-assistent van het onthaal.`,
+    );
+  }
+
+  if (shouldRecord(profile) && !hasRecordingNotice(text, lang)) {
+    added.push('recording');
+    text += t(' Cet appel est enregistré.', ' This call is recorded.', ' Dit gesprek wordt opgenomen.');
+  }
+
+  return { text, added };
 }
 
 /**

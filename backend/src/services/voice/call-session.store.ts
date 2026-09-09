@@ -2,6 +2,7 @@ import { logger } from '../../config/logger';
 import { CallLatencyTracker } from './latency-tracker';
 import type { VoiceLanguage } from './speech-plans';
 import type { CallerMood } from './caller-mood';
+import { newRepairState, recoveryLine, type RepairState } from './conversational-repair';
 
 /**
  * In-process state for calls that are currently on the line (Phase 1.3).
@@ -46,6 +47,14 @@ export interface CallSession {
    * ayant enregistré sa voix. `null` tant que l'assistant n'est pas construit.
    */
   speechToSpeech: boolean | null;
+  /**
+   * L'annonce IA a-t-elle été prononcée sur cet appel (LEG-1) ?
+   *
+   * Consignée par appel parce que le critère l'exige, et parce qu'autrement
+   * « l'annonce a-t-elle été faite » ne se répond qu'en réécoutant l'audio,
+   * c'est-à-dire jamais.
+   */
+  disclosureSpoken: boolean | null;
   /** Rolling transcript, appended per final utterance. */
   transcript: string[];
   /** How many caller turns we have seen — drives first-turn intent rules. */
@@ -72,6 +81,29 @@ export interface CallSession {
   mood: CallerMood;
   /** Token accounting, so the prompt cache is verified rather than assumed. */
   tokens: { input: number; cached: number; output: number };
+  /**
+   * Combien de fois le numéro dicté n'a rien donné, sur CET appel (BEL-4).
+   *
+   * Par appel et non par tour: c'est la répétition de l'échec qui décide de
+   * passer au clavier, et un compteur remis à zéro à chaque tentative ne
+   * compterait jamais jusqu'à deux. Il ne redescend pas non plus après un
+   * succès: un appelant qui a raté deux fois puis réussi n'a plus à être
+   * renvoyé au clavier, mais le fait qu'il ait ramé reste vrai pour la suite
+   * de l'appel.
+   */
+  phoneCaptureFailures: number;
+  /**
+   * L'agent a-t-il été coupé au milieu d'une VRAIE phrase, sans avoir encore
+   * repris la parole depuis ? Posé par `recordBargeIn`, consommé au tour
+   * suivant.
+   *
+   * Un drapeau et pas un compteur: ce qui compte est « le dernier tour a-t-il
+   * été cassé », pas combien de fois l'appel l'a été. Le compte, avec sa
+   * retenue, vit dans `repair`.
+   */
+  pendingHardBargeIn: boolean;
+  /** La retenue de la phrase de reprise: au plus deux par appel, jamais deux d'affilée. */
+  repair: RepairState;
 }
 
 /** A slot promised on a live call, so a parallel call cannot double-book it. */
@@ -139,6 +171,7 @@ class CallSessionStore {
       language: input.language,
       clientCallId: null,
       speechToSpeech: null,
+      disclosureSpoken: null,
       transcript: [],
       callerTurns: 0,
       deflectedTurns: 0,
@@ -154,6 +187,9 @@ class CallSessionStore {
       hardBargeIns: 0,
       mood: 'neutral',
       tokens: { input: 0, cached: 0, output: 0 },
+      phoneCaptureFailures: 0,
+      pendingHardBargeIn: false,
+      repair: newRepairState(),
     };
     this.sessions.set(input.vapiCallId, session);
     this.notePeak(input.clientId);
@@ -170,6 +206,11 @@ class CallSessionStore {
   setSpeechToSpeech(vapiCallId: string | null, speechToSpeech: boolean): void {
     const session = this.get(vapiCallId);
     if (session) session.speechToSpeech = speechToSpeech;
+  }
+
+  setDisclosure(vapiCallId: string | null, spoken: boolean): void {
+    const session = this.get(vapiCallId);
+    if (session) session.disclosureSpoken = spoken;
   }
 
   get(vapiCallId: string | null): CallSession | null {
@@ -227,6 +268,23 @@ class CallSessionStore {
     session.tokens.output += usage.output;
   }
 
+  /**
+   * Compte un numéro dicté illisible et rend le total pour cet appel.
+   *
+   * Rend le compte plutôt que de le stocker en silence, parce que l'appelant
+   * est en ligne: c'est ce nombre, et lui seul, qui décide entre « relis-lui
+   * les chiffres » et « propose le clavier ». Sur un appel inconnu (session
+   * balayée, processus redémarré) il rend 1, donc la relecture: proposer le
+   * clavier à quelqu'un qui n'a encore rien raté serait pire que de le
+   * refaire dicter une fois.
+   */
+  recordPhoneCaptureFailure(vapiCallId: string | null): number {
+    const session = this.get(vapiCallId);
+    if (!session) return 1;
+    session.phoneCaptureFailures++;
+    return session.phoneCaptureFailures;
+  }
+
   recordDeflection(vapiCallId: string | null): void {
     const session = this.get(vapiCallId);
     if (session) session.deflectedTurns++;
@@ -260,9 +318,33 @@ class CallSessionStore {
 
     const speakingFor = session.assistantSpeakingSince === null ? 0 : at - session.assistantSpeakingSince;
     const isHard = speakingFor >= MIN_UTTERANCE_FOR_HARD_BARGE_IN_MS;
-    if (isHard) session.hardBargeIns++;
+    if (isHard) {
+      session.hardBargeIns++;
+      /* Ce qui manquait: le compteur montait, et rien ne s'en servait. Un tour
+         cassé se répare au tour SUIVANT, quand l'appelant a fini de parler —
+         d'où le drapeau plutôt qu'une action ici. */
+      session.pendingHardBargeIn = true;
+    }
     session.assistantSpeakingSince = null;
     return isHard;
+  }
+
+  /**
+   * La phrase à dire parce que le tour précédent a été cassé, ou `null`.
+   *
+   * « Take » et pas « get »: le drapeau est consommé à la lecture, sinon la
+   * même interruption se ferait excuser à chaque tour qui suit.
+   *
+   * La retenue appartient à `conversational-repair` et non à cet appelant: une
+   * phrase de reprise à CHAQUE interruption est pire que le silence, elle
+   * transforme un chevauchement naturel en échange d'excuses. Le module rend
+   * donc `null` la plupart du temps, et c'est le comportement voulu.
+   */
+  takeRecoveryLine(vapiCallId: string | null, lang: VoiceLanguage): string | null {
+    const session = this.get(vapiCallId);
+    if (!session || !session.pendingHardBargeIn) return null;
+    session.pendingHardBargeIn = false;
+    return recoveryLine(session.repair, true, session.callerTurns, lang);
   }
 
   recordToolCall(vapiCallId: string | null, name: string, ms: number): void {

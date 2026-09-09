@@ -26,6 +26,8 @@ export type IntentKind =
   | 'farewell'
   /** Empty or unintelligible audio. */
   | 'noise'
+  /** « Je voudrais parler à un conseiller » — la porte de sortie humaine. */
+  | 'human_handoff'
   /** Needs the model. */
   | 'reasoning';
 
@@ -93,11 +95,48 @@ const FAREWELL: Record<VoiceLanguage, string[]> = {
  * appear, the turn carries business intent and the model must see it — this is
  * the guard that keeps "ok book it" from being answered with "mhm".
  */
+/**
+ * La demande d'un humain, reconnue sans passer par le modèle (LEG-3).
+ *
+ * Le transfert dépendait jusqu'ici du modèle interprétant une règle de prompt,
+ * et l'éval le prenait une fois sur deux. Or c'est la seule phrase d'un appel
+ * où l'appelant dit explicitement que la machine ne lui suffit pas: la rater,
+ * c'est retenir quelqu'un qui a demandé à partir. La reconnaître ici la rend
+ * déterministe, et c'est ce que le critère demande en toutes lettres.
+ *
+ * DEUX FORMES, et la distinction porte tout le risque de faux positif:
+ *
+ *   - le mot seul (« conseiller », « standardiste », « operator ») — c'est le
+ *     mot que l'accueil invite à dire;
+ *   - un VERBE de mise en relation suivi, à courte distance, d'un mot désignant
+ *     une personne (« je voudrais parler à quelqu'un »).
+ *
+ * L'ordre verbe → nom n'est pas une commodité d'écriture: « est-ce que
+ * quelqu'un peut passer demain ? » nomme une personne et un verbe de
+ * déplacement, et ne demande aucun transfert. Le sens tient à l'ordre.
+ */
+const HUMAN_HANDOFF: Record<VoiceLanguage, RegExp> = {
+  fr: /\b(conseiller|conseillere|standardiste|operateur|operatrice)\b|\b(parler|passer|passez|joindre|transferer|transfert|basculer|mettre|met)\b[^.!?]{0,30}\b(humain|humaine|personne|quelqu un|responsable|gerant|patron|agent|technicien|collegue|equipe)\b|\b(pas un robot|pas une machine|un vrai humain|une vraie personne)\b/,
+  en: /\b(operator|receptionist)\b|\b(speak|talk|connect|transfer|put|pass)\b[^.!?]{0,30}\b(human|person|someone|somebody|agent|manager|representative|colleague|team)\b|\b(not a robot|not a machine|real human|real person)\b/,
+  /* Le néerlandais prend les DEUX ordres, et lui seul: le verbe y est rejeté en
+     fin de proposition, donc « kan ik met iemand spreken » est la formulation
+     normale, pas une variante. Étendre la même tolérance au français ou à
+     l'anglais rouvrirait exactement le faux positif que l'ordre écarte
+     (« est-ce que quelqu'un peut passer demain ? »). */
+  nl: /\b(operator|telefonist|telefoniste)\b|\b(spreken|praten|doorverbind|doorverbinden|verbind|overzetten)\b[^.!?]{0,30}\b(mens|persoon|iemand|medewerker|verantwoordelijke|collega|team)\b|\b(mens|persoon|iemand|medewerker|verantwoordelijke|collega)\b[^.!?]{0,30}\b(spreken|praten|doorverbinden|verbinden|overzetten)\b|\b(geen robot|geen machine|echte persoon|echt mens)\b/,
+};
+
 const ESCALATE_MARKERS =
   /\b(rendez[- ]?vous|rdv|reserv|dispo|disponib|annul|reporte|horaire|ouvert|ferme|prix|tarif|devis|adresse|urgen|probleme|commande|livraison|factur|rembours|parler|transfer|responsable|book|booking|appointment|schedul|availab|cancel|reschedul|open|close|hours|price|quote|cost|address|urgent|emergency|order|deliver|invoic|refund|speak|manager|human|afspraak|boeken|reservatie|annuleer|annulatie|verzet|openingsur|prijs|prijzen|offerte|adres|dringend|spoed|bestell|lever|factuur|terugbetal|spreken|doorverbind|verantwoordelijke|mens)\w*/i;
 
-/** Canned replies. Kept short — a long canned line reads as robotic. */
-const REPLIES: Record<VoiceLanguage, Record<Exclude<IntentKind, 'reasoning'>, string[]>> = {
+/**
+ * Canned replies. Kept short — a long canned line reads as robotic.
+ *
+ * `human_handoff` n'en a pas, et c'est voulu: la phrase dite avant de basculer
+ * appartient au plan de transfert (`voice-tools`), qui la prononce juste avant
+ * de composer. En écrire une seconde ici la ferait entendre deux fois.
+ */
+const REPLIES: Record<VoiceLanguage, Record<Exclude<IntentKind, 'reasoning' | 'human_handoff'>, string[]>> = {
   fr: {
     backchannel: [''], // stay silent, let the caller continue
     presence_check: ['Oui, je vous écoute.', 'Oui, je suis là, je vous écoute.'],
@@ -168,6 +207,23 @@ export function routeIntent(
 
   if (!utterance) {
     return { kind: 'noise', handledLocally: true, reply: '', reason: 'empty transcript', ...base };
+  }
+
+  /* Avant TOUT le reste, y compris la coupure sur la longueur: « est-ce que je
+     pourrais parler à quelqu'un de l'équipe s'il vous plaît » fait plus de cinq
+     mots, et c'est justement la formulation la plus courante. Le tri par
+     longueur trierait cette demande-là dans le tout-venant. */
+  if (HUMAN_HANDOFF[lang].test(utterance)) {
+    return {
+      kind: 'human_handoff',
+      // Pas « traité localement »: rien n'est répondu ici. C'est le transfert
+      // qui répond, et il appartient à la couche qui tient le tour de parole.
+      handledLocally: false,
+      reply: '',
+      reason: 'caller asked for a human',
+      ...base,
+      businessIntent: true,
+    };
   }
 
   // Any business marker wins over every short-circuit below.

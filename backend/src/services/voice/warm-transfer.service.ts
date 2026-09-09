@@ -1,4 +1,5 @@
 import { logger } from '../../config/logger';
+import { env } from '../../config/env';
 import { smsService } from '../sms.service';
 import { callSessionStore, type CallSession } from './call-session.store';
 import type { ClientVoiceProfile } from './realtime-context.service';
@@ -148,10 +149,23 @@ class WarmTransferService {
           : 'Let me connect you, one moment.',
       transferPlan: {
         mode: 'warm-transfer-say-summary',
+        /* Vingt secondes de sonnerie, pas les soixante du défaut (REL-6).
+           Une minute d'attente pendant qu'un mobile sonne dans le vide est une
+           éternité pour l'appelant, et il aura raccroché avant la fin: ce qui
+           se perd alors n'est pas un transfert raté, c'est l'appel entier,
+           sans message ni trace. */
+        dialTimeout: env.VOICE_TRANSFER_RING_SECONDS,
         summaryPlan: {
           enabled: true,
           messages: [{ role: 'system', content: brief.spoken }],
         },
+        /* Pas de `fallbackPlan` ici, et c'est délibéré. La référence d'API le
+           réserve à `warm-transfer-experimental` et aux transferts aveugles
+           dont l'organisation a activé la détection d'issue. L'envoyer sur ce
+           mode-ci serait accepté par le schéma et ignoré à l'exécution, donc
+           afficher une reprise en main qu'on n'a pas. Changer de mode pour
+           l'obtenir est un arbitrage produit — un mode expérimental sur le
+           chemin d'une urgence — qui se demande, il ne se décide pas ici. */
       },
     };
   }

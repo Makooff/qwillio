@@ -169,6 +169,101 @@ export const env = {
   VOICE_BARGE_IN_WORDS: Math.max(0, parseInt(process.env.VOICE_BARGE_IN_WORDS || '2', 10) || 0),
   /** Silence the assistant keeps after being interrupted, before speaking again. */
   VOICE_BARGE_IN_BACKOFF_SECONDS: parseFloat(process.env.VOICE_BARGE_IN_BACKOFF_SECONDS || '1.0'),
+  /**
+   * Les mots qui coupent la parole IMMÉDIATEMENT, sans attendre les deux mots
+   * ni le seuil de voix.
+   *
+   * Réglables sans déploiement, et c'est le point: le complément de
+   * `VOICE_BARGE_IN_WORDS`, qui fait attendre deux mots pour trier le bruit,
+   * est qu'un « stop ! » monosyllabique passe quand même. Le jour où un métier
+   * a son propre mot d'arrêt, il s'ajoute ici plutôt qu'en redéployant.
+   * Vide = la liste par défaut du code, jamais une liste vide: sans mot
+   * d'arrêt, plus rien ne coupe une réceptionniste lancée.
+   */
+  VOICE_INTERRUPTION_PHRASES: (process.env.VOICE_INTERRUPTION_PHRASES || '')
+    .split(',').map(s => s.trim().toLowerCase()).filter(Boolean),
+  /**
+   * Les mots qui ne coupent PAS: « mm-hmm », « d'accord », « ja ».
+   *
+   * Même raison, sens inverse. Une liste trop courte fait taire l'agent au
+   * moindre signe d'écoute, ce qui est le défaut le plus caractéristique de la
+   * génération précédente.
+   */
+  VOICE_ACKNOWLEDGEMENT_PHRASES: (process.env.VOICE_ACKNOWLEDGEMENT_PHRASES || '')
+    .split(',').map(s => s.trim().toLowerCase()).filter(Boolean),
+  /**
+   * Le temps qu'on accorde au modèle pour son PREMIER token, avant de parler à
+   * sa place.
+   *
+   * 2,5 s et non 4: le silence est le mode d'échec le plus fréquent et le plus
+   * dommageable d'un appel, et trois secondes sans réponse s'entendent comme
+   * une ligne coupée. Le coût du compromis est réel et assumé: un modèle lent
+   * mais vivant se fait couper, et l'appelant entend « pouvez-vous répéter ? »
+   * au lieu de la vraie réponse. Entre les deux, on préfère une phrase de trop
+   * à un silence de trop.
+   * Au-delà du premier token la limite ne s'applique plus: le tour est vivant.
+   */
+  VOICE_FIRST_TOKEN_TIMEOUT_MS: Math.max(
+    500,
+    parseInt(process.env.VOICE_FIRST_TOKEN_TIMEOUT_MS || '2500', 10) || 2500,
+  ),
+  /**
+   * Le silence toléré APRÈS un chiffre avant de considérer le tour fini.
+   *
+   * Une seconde, et non une demi: quelqu'un qui dicte « zéro deux… cinq cent
+   * douze… trente-quatre… » laisse 400 à 900 ms entre ses groupes. À 500 ms on
+   * le coupe après le deuxième, et c'est le mode d'échec le plus fréquent et le
+   * plus irritant d'un agent de prise de rendez-vous — celui qui oblige à tout
+   * redicter, souvent deux fois.
+   * Le coût est réel et local: quand l'appelant a VRAIMENT fini sur un chiffre,
+   * l'agent attend une demi-seconde de plus. Ça ne vaut que sur les tours qui
+   * contiennent des chiffres, et le silence y est le prix de la dictée.
+   */
+  VOICE_ENDPOINTING_NUMBER_SECONDS: Math.max(
+    0.3,
+    parseFloat(process.env.VOICE_ENDPOINTING_NUMBER_SECONDS || '1.0') || 1.0,
+  ),
+  /**
+   * Le silence toléré entre deux touches du clavier, avant de traiter la saisie.
+   *
+   * Trois secondes et non deux (le défaut de Vapi): la bascule clavier n'arrive
+   * qu'après deux dictées ratées, donc à un appelant qui a déjà eu du mal. Il
+   * cherche ses touches, souvent en tenant le téléphone loin de l'oreille. À
+   * deux secondes sa saisie part coupée en deux, et il aura échoué trois fois.
+   * Le dièse termine la saisie tout de suite pour qui le connaît, donc les
+   * rapides ne paient pas cette seconde.
+   */
+  VOICE_KEYPAD_TIMEOUT_SECONDS: Math.min(
+    10,
+    Math.max(0.5, parseFloat(process.env.VOICE_KEYPAD_TIMEOUT_SECONDS || '3') || 3),
+  ),
+  /**
+   * La part de tours en repli à partir de laquelle on alerte (TST-8).
+   *
+   * 0,2 et non 0,5: à la moitié des tours, la flotte est déjà morte pour
+   * l'appelant, et l'alerte n'apprend plus rien. Un cinquième des tours qui
+   * répondent « pouvez-vous répéter ? » est en revanche invisible à l'oreille
+   * et parfaitement anormal — c'est là que le canari sert.
+   * Le seuil ne suffit pas seul: il faut aussi un minimum de tours dans la
+   * fenêtre, sinon une nuit calme à deux appels alerte sur un accident.
+   */
+  VOICE_FALLBACK_ALERT_RATE: Math.min(
+    1,
+    Math.max(0.01, parseFloat(process.env.VOICE_FALLBACK_ALERT_RATE || '0.2') || 0.2),
+  ),
+  /**
+   * Secondes de sonnerie avant d'abandonner le transfert (REL-6).
+   *
+   * 20 et non les 60 du défaut de Vapi. Une minute d'attente pendant qu'un
+   * mobile sonne dans le vide est une éternité pour l'appelant, et il aura
+   * raccroché bien avant: ce qui se perd alors n'est pas un transfert raté,
+   * c'est l'appel entier, sans message ni trace. Vingt secondes font quatre
+   * sonneries, de quoi décrocher si on le peut.
+   */
+  VOICE_TRANSFER_RING_SECONDS: Math.min(
+    60,
+    Math.max(10, parseInt(process.env.VOICE_TRANSFER_RING_SECONDS || '20', 10) || 20),
+  ),
   /** First TTS chunk size — smaller means audio starts sooner. */
   /**
    * Taille du PREMIER morceau de texte envoyé au synthétiseur.
