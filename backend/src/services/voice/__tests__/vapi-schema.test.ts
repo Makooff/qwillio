@@ -81,6 +81,24 @@ describe('what Vapi refuses to accept', () => {
     }
   });
 
+  /**
+   * Chaque règle d'endpointing ne porte QUE les trois clés que la
+   * documentation de Vapi montre. `regexOptions` existe dans la référence
+   * d'API mais pas dans l'exemple, et une clé de trop ou mal formée fait
+   * refuser l'assistant ENTIER — c'est le mode d'échec que ce fichier existe
+   * pour attraper, et il a déjà coupé toute la flotte deux fois.
+   */
+  it('n\'envoie que les clés documentées sur une règle d\'endpointing', () => {
+    const rules = (buildRealtimePlans('fr') as Record<string, any>).startSpeakingPlan.customEndpointingRules;
+    expect(rules.length).toBeGreaterThan(0);
+    for (const rule of rules) {
+      expect(Object.keys(rule).sort()).toEqual(['regex', 'timeoutSeconds', 'type']);
+      expect(['assistant', 'user']).toContain(rule.type);
+      expect(typeof rule.regex).toBe('string');
+      expect(typeof rule.timeoutSeconds).toBe('number');
+    }
+  });
+
   it('sends the transfer destination in E.164', () => {
     // "each value in destinations.number must be a valid phone number"
     const tools = buildVoiceTools(profile({ transferNumber: '06 12 34 56 78' })) as any[];

@@ -197,6 +197,66 @@ export function buildTranscriber(lang: VoiceLanguage, opts: SpeechOptions = {}) 
  * the caller clearly handed over the turn (answer sooner), while a number still
  * being dictated ("zero four seven…") means wait longer.
  */
+/**
+ * Le mode PATIENT, décidé par ce que l'agent vient de demander (TUR-3).
+ *
+ * `onNumberSeconds` est un seuil global: il s'applique dès qu'un chiffre passe,
+ * quelle que soit la question. Or une adresse et une adresse e-mail ne se
+ * dictent pas comme un numéro. « Rue de la Loi… cent cinquante-cinq… mille
+ * bruxelles » se donne en trois blocs séparés par de vrais silences, et une
+ * adresse e-mail s'épelle lettre par lettre avec des pauses plus longues
+ * encore. Au seuil ordinaire, l'agent coupe au premier blanc et l'appelant
+ * recommence — ce qui, sur une adresse, veut dire abandonner.
+ *
+ * `customEndpointingRules` de type `assistant` fait matcher la règle sur la
+ * dernière phrase de L'AGENT, pas sur celle de l'appelant. C'est exactement le
+ * bon accrochage: on ne sait pas ce que l'appelant va dire, mais on sait
+ * toujours ce qu'on vient de lui demander. Vapi documente ce champ pour ce cas
+ * précis, « data collection scenarios, such as gathering phone numbers or
+ * addresses, or for spelling tasks ».
+ *
+ * ## Deux précautions
+ *
+ * Pas de `regexOptions`: la référence d'API en donne bien la forme
+ * (`[{ enabled, type: 'ignore-case' }]`) mais l'exemple de la documentation
+ * l'omet, et se tromper sur la forme d'un champ ferait refuser l'assistant
+ * ENTIER, donc tous les appels. L'insensibilité à la casse est donc écrite
+ * dans les motifs eux-mêmes, ce qui ne coûte rien et ne dépend de personne.
+ *
+ * Et les motifs sont ancrés sur des mots que l'agent emploie en POSANT la
+ * question, jamais sur des mots qu'il pourrait dire en passant. « adresse »
+ * dans « je note votre adresse » allonge un tour pour rien, ce qui est le
+ * moindre mal; l'inverse — ne pas matcher quand on demande — est le défaut
+ * qu'on répare.
+ */
+const PATIENT_SLOTS: Record<VoiceLanguage, Array<{ regex: string; seconds: number }>> = {
+  fr: [
+    // L'adresse postale: trois blocs, de vrais silences entre eux.
+    { regex: '([Aa]dresse|[Rr]ue|[Cc]ode postal|[Nn]um[ée]ro de rue)', seconds: 2.5 },
+    // L'e-mail et l'épellation: lettre par lettre, les pauses les plus longues.
+    { regex: '([Ee]-?mail|[Cc]ourriel|[ÉEé]peler|[ée]pelez|lettre par lettre)', seconds: 3 },
+  ],
+  en: [
+    { regex: '([Aa]ddress|[Ss]treet|[Pp]ost(al)? ?code|[Zz]ip)', seconds: 2.5 },
+    { regex: '([Ee]-?mail|[Ss]pell)', seconds: 3 },
+  ],
+  nl: [
+    { regex: '([Aa]dres|[Ss]traat|[Pp]ostcode)', seconds: 2.5 },
+    { regex: '([Ee]-?mail|[Ss]pel)', seconds: 3 },
+  ],
+};
+
+/** Les règles d'endpointing par slot, dans la forme attendue par Vapi. */
+export function buildCustomEndpointingRules(lang: VoiceLanguage) {
+  return PATIENT_SLOTS[lang].map(rule => ({
+    // `assistant`: la règle matche la dernière phrase de l'AGENT. On ne sait
+    // pas ce que l'appelant va dire, on sait ce qu'on vient de lui demander.
+    type: 'assistant' as const,
+    regex: rule.regex,
+    timeoutSeconds: rule.seconds,
+  }));
+}
+
 export function buildStartSpeakingPlan(lang: VoiceLanguage) {
   return {
     waitSeconds: env.VOICE_START_WAIT_SECONDS,
@@ -235,6 +295,9 @@ export function buildStartSpeakingPlan(lang: VoiceLanguage) {
          il annulerait à lui seul le travail de capture des numéros dictés. */
       onNumberSeconds: env.VOICE_ENDPOINTING_NUMBER_SECONDS,
     },
+    /* Le seuil « chiffres » ci-dessus est GLOBAL. Ces règles-ci sont posées par
+       question: une adresse et un e-mail ne se dictent pas comme un numéro. */
+    customEndpointingRules: buildCustomEndpointingRules(lang),
   };
 }
 

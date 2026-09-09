@@ -360,3 +360,83 @@ describe('secours desactivables par appel', () => {
     }
   });
 });
+
+/**
+ * TUR-3, la moitié qui manquait. `onNumberSeconds` est un seuil GLOBAL: il
+ * s'applique dès qu'un chiffre passe, quelle que soit la question. Or « Rue de
+ * la Loi… cent cinquante-cinq… mille bruxelles » se donne en trois blocs avec
+ * de vrais silences, et une adresse e-mail s'épelle avec des pauses plus
+ * longues encore. Au seuil ordinaire l'agent coupe au premier blanc, et sur une
+ * adresse ça veut dire abandonner.
+ */
+describe('la patience posée par question', () => {
+  const rules = (lang: 'fr' | 'en' | 'nl') =>
+    (buildStartSpeakingPlan(lang) as any).customEndpointingRules as Array<{
+      type: string;
+      regex: string;
+      timeoutSeconds: number;
+    }>;
+
+  /** Les secondes accordées quand la phrase de l'agent contient `utterance`. */
+  function secondsFor(lang: 'fr' | 'en' | 'nl', utterance: string): number | null {
+    for (const r of rules(lang)) {
+      if (new RegExp(r.regex).test(utterance)) return r.timeoutSeconds;
+    }
+    return null;
+  }
+
+  it('accroche la règle sur ce que l\'AGENT vient de dire', () => {
+    // On ne sait pas ce que l'appelant va dire; on sait toujours ce qu'on
+    // vient de lui demander. C'est le seul accrochage fiable.
+    for (const lang of ['fr', 'en', 'nl'] as const) {
+      expect(rules(lang).length).toBeGreaterThan(0);
+      for (const r of rules(lang)) expect(r.type).toBe('assistant');
+    }
+  });
+
+  it('attend plus longtemps sur une adresse que sur un tour ordinaire', () => {
+    const ordinary = (buildStartSpeakingPlan('fr') as any).transcriptionEndpointingPlan.onNoPunctuationSeconds;
+    expect(secondsFor('fr', 'Quelle est votre adresse ?')!).toBeGreaterThan(ordinary);
+    expect(secondsFor('fr', 'Vous êtes dans quelle rue ?')!).toBeGreaterThan(ordinary);
+    expect(secondsFor('fr', 'Et le code postal ?')!).toBeGreaterThan(ordinary);
+  });
+
+  it('attend plus longtemps encore sur ce qui s\'épelle', () => {
+    // Une adresse se dit en blocs, un e-mail se donne lettre par lettre.
+    expect(secondsFor('fr', 'Pouvez-vous m\'épeler votre e-mail ?')!).toBeGreaterThan(
+      secondsFor('fr', 'Quelle est votre adresse ?')!,
+    );
+  });
+
+  it('tient aussi quand la question commence par le mot', () => {
+    // « Adresse ? » en début de phrase porte une majuscule: sans l'insensibilité
+    // à la casse écrite dans le motif, la règle ne matcherait pas.
+    expect(secondsFor('fr', 'Adresse, s\'il vous plaît ?')).not.toBeNull();
+    expect(secondsFor('en', 'Address, please?')).not.toBeNull();
+  });
+
+  it('couvre les trois langues, pas seulement le français', () => {
+    expect(secondsFor('en', 'What is your address?')).not.toBeNull();
+    expect(secondsFor('en', 'Could you spell that?')).not.toBeNull();
+    expect(secondsFor('nl', 'Wat is uw adres?')).not.toBeNull();
+    expect(secondsFor('nl', 'Kunt u uw e-mail spellen?')).not.toBeNull();
+  });
+
+  it('ne rallonge pas un tour ordinaire', () => {
+    expect(secondsFor('fr', 'Très bien, à quelle heure souhaitez-vous venir ?')).toBeNull();
+    expect(secondsFor('fr', 'Bonjour, que puis-je faire pour vous ?')).toBeNull();
+  });
+
+  it('n\'envoie pas regexOptions, dont la forme n\'est pas certaine', () => {
+    // La référence d'API en donne une forme, l'exemple de la documentation
+    // l'omet. Se tromper ferait refuser l'assistant ENTIER, donc tous les
+    // appels: l'insensibilité à la casse est écrite dans les motifs.
+    for (const r of rules('fr')) expect('regexOptions' in r).toBe(false);
+  });
+
+  it('livre des motifs qui compilent', () => {
+    for (const lang of ['fr', 'en', 'nl'] as const) {
+      for (const r of rules(lang)) expect(() => new RegExp(r.regex)).not.toThrow();
+    }
+  });
+});
