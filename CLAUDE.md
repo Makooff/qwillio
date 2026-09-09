@@ -353,6 +353,13 @@ sur le portail Stripe.
   joignable.** C'est la seule anomalie que le rapport de stock signale en majuscules,
   et le stock refuse d'attribuer une telle ligne plutôt que de la faire passer pour
   active.
+- **Ne pas acheter depuis la console Twilio.** Sa checklist de conformité se termine
+  par « Select and buy number », et cliquer là produit une ligne payée que la base
+  ignore et que personne ne se verra jamais attribuer. C'est arrivé le 07/09 avec
+  `+32460207490`. Rattrapage sans racheter : `npm run phone:adopt` (simulation) puis
+  `--confirm`, qui importe chez Vapi et range dans le stock. Le même script répare
+  une ligne déjà en stock restée sans `vapiNumberId`, y compris après un `phone:buy`
+  interrompu entre l'achat et l'écriture en base.
 - **Une résiliation rend le numéro au lot**, elle ne le rend pas à Twilio : il est
   déjà payé et déjà couvert. Sans ce geste, chaque départ retirerait une ligne du
   stock pour toujours.

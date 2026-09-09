@@ -25,7 +25,8 @@
     "evals": "tsx src/evals/run-evals.ts",
     "phone:buy": "tsx src/scripts/buy-belgian-numbers.ts",
     "phone:stock": "tsx src/scripts/phone-stock-report.ts",
-    "db:unlock": "tsx src/scripts/unlock-migrate.ts"
+    "db:unlock": "tsx src/scripts/unlock-migrate.ts",
+    "phone:adopt": "tsx src/scripts/adopt-twilio-numbers.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",
