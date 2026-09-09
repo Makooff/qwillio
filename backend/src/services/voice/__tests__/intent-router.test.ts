@@ -83,6 +83,62 @@ describe('routeIntent — escalation guards', () => {
   });
 });
 
+/**
+ * LEG-3: la porte de sortie humaine.
+ *
+ * C'est la seule phrase d'un appel où l'appelant dit que la machine ne lui
+ * suffit pas. La rater, c'est retenir quelqu'un qui a demandé à partir.
+ */
+describe('routeIntent — demande d\'un humain', () => {
+  const asks = [
+    ['fr', 'conseiller'],
+    ['fr', 'je voudrais parler a un conseiller'],
+    ['fr', 'est ce que je peux parler a quelqu un de l equipe s il vous plait'],
+    ['fr', 'passez moi une personne'],
+    ['fr', 'je ne veux pas un robot'],
+    ['en', 'can I speak to a human please'],
+    ['en', 'operator'],
+    ['en', 'put me through to someone'],
+    ['nl', 'kan ik met iemand spreken'],
+  ] as const;
+
+  for (const [lang, utterance] of asks) {
+    it(`reconnaît « ${utterance} » (${lang})`, () => {
+      const d = routeIntent(utterance, lang);
+      expect(d.kind).toBe('human_handoff');
+      // Rien n'est répondu ici: c'est le transfert qui répond.
+      expect(d.handledLocally).toBe(false);
+      expect(d.reply).toBe('');
+    });
+  }
+
+  /**
+   * L'ordre verbe → nom porte tout le risque de faux positif. Ces phrases
+   * nomment une personne ET un verbe de déplacement, et ne demandent aucun
+   * transfert: les traiter comme tel raccrocherait au nez d'un client qui
+   * prenait rendez-vous.
+   */
+  const notAsks = [
+    ['fr', 'est ce que quelqu un peut passer demain matin'],
+    ['fr', 'la personne qui est venue la derniere fois etait tres bien'],
+    ['en', 'someone will pass by tomorrow'],
+  ] as const;
+
+  for (const [lang, utterance] of notAsks) {
+    it(`ne confond pas « ${utterance} » avec une demande de transfert`, () => {
+      expect(routeIntent(utterance, lang).kind).not.toBe('human_handoff');
+    });
+  }
+
+  it('passe avant la coupure sur la longueur, qui trierait la formule la plus courante', () => {
+    // Plus de cinq mots: sans la priorité, ce tour partirait dans le
+    // tout-venant et le transfert dépendrait de nouveau du modèle.
+    const d = routeIntent('bonjour est ce que je pourrais parler a un conseiller maintenant', 'fr');
+    expect(d.wordCount).toBeGreaterThan(5);
+    expect(d.kind).toBe('human_handoff');
+  });
+});
+
 describe('estimateTokensSaved', () => {
   it('counts only the locally handled turns', () => {
     const decisions = [

@@ -217,6 +217,78 @@ describe('llmStreamService.handle — proxied turns', () => {
   });
 });
 
+/**
+ * LEG-3, deuxième moitié: la demande reconnue doit ABOUTIR.
+ *
+ * Le routeur peut bien classer « je voudrais parler à un conseiller », si le
+ * tour repart chez le modèle le transfert redevient une décision de modèle,
+ * c'est-à-dire ce que cette ligne existe pour supprimer.
+ */
+describe('llmStreamService — transfert demandé explicitement', () => {
+  const transferTool = { type: 'function', function: { name: 'transferCall' } };
+
+  it("appelle l'outil de transfert au lieu du modèle", () => {
+    const plan = llmStreamService.plan(
+      { messages: [systemTurn, userTurn('je voudrais parler a un conseiller')], tools: [transferTool] },
+      'fr',
+    );
+    expect(plan.mode).toBe('transfer');
+    expect(plan.tool).toBe('transferCall');
+  });
+
+  it("émet un appel d'outil bien formé, sans texte parlé", async () => {
+    const stream = makeStream();
+    await llmStreamService.handle(
+      'client_1',
+      null,
+      'fr',
+      { messages: [systemTurn, userTurn('conseiller')], tools: [transferTool] },
+      stream.handle,
+    );
+
+    const calls = stream.chunks
+      .filter(c => c.startsWith('data: ') && !c.includes('[DONE]'))
+      .flatMap(c => JSON.parse(c.slice(6)).choices?.[0]?.delta?.tool_calls ?? []);
+
+    expect(calls).toHaveLength(1);
+    expect(calls[0].function.name).toBe('transferCall');
+    // Sans argument: la destination vient du plan de transfert de l'assistant.
+    // En inventer une ici ferait composer un numéro absent de la fiche client.
+    expect(calls[0].function.arguments).toBe('{}');
+    // Le flux se termine sur `tool_calls`, sinon Vapi attend un texte qui ne
+    // viendra jamais.
+    expect(stream.chunks.some(c => c.includes('"finish_reason":"tool_calls"'))).toBe(true);
+    expect(stream.text()).toBe('');
+    expect(stream.ended).toBe(true);
+  });
+
+  /**
+   * Un client sans numéro de transfert n'a pas cet outil: `voice-tools` le
+   * retire, notamment quand le numéro boucle vers la réceptionniste. Appeler un
+   * outil non déclaré laisserait l'appelant dans le silence juste après qu'il a
+   * demandé un humain.
+   */
+  it('rend la main au modèle quand aucun outil de transfert n\'est déclaré', () => {
+    const plan = llmStreamService.plan(
+      { messages: [systemTurn, userTurn('je voudrais parler a un conseiller')], tools: [] },
+      'fr',
+    );
+    expect(plan.mode).toBe('proxy');
+    expect(plan.tool).toBeNull();
+  });
+
+  it("ne détourne pas un tour qui attend un résultat d'outil", () => {
+    const plan = llmStreamService.plan(
+      {
+        messages: [systemTurn, userTurn('parler a quelqu un'), { role: 'tool', content: 'FREE 10:00' }],
+        tools: [transferTool],
+      },
+      'fr',
+    );
+    expect(plan.mode).toBe('proxy');
+  });
+});
+
 describe('parseUsageChunk — the prompt cache must be verified, not assumed', () => {
   it('returns null for an ordinary delta chunk', () => {
     expect(parseUsageChunk('data: {"choices":[{"delta":{"content":"Bien"}}]}\n\n')).toBeNull();

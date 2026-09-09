@@ -79,6 +79,24 @@ function sseChunk(id: string, model: string, delta: Record<string, unknown>, fin
 }
 
 /**
+ * Le nom de l'outil de transfert, tel que Vapi le déclare dans la requête.
+ *
+ * On ne le devine PAS: on le lit dans les outils que Vapi vient d'envoyer. Un
+ * client sans numéro de transfert n'a pas cet outil du tout (`voice-tools` le
+ * retire, notamment quand le numéro bouclerait sur la réceptionniste), et
+ * appeler un outil non déclaré laisserait l'appelant dans le silence — juste
+ * après qu'il ait demandé un humain, c'est-à-dire au pire moment possible.
+ */
+export function findTransferTool(tools: unknown[] | undefined): string | null {
+  for (const tool of tools ?? []) {
+    const name = (tool as { function?: { name?: unknown }; name?: unknown })?.function?.name
+      ?? (tool as { name?: unknown })?.name;
+    if (typeof name === 'string' && /transfer/i.test(name)) return name;
+  }
+  return null;
+}
+
+/**
  * Emit a complete assistant turn as SSE without calling any model. Used for
  * deflected turns and for the fallback line.
  */
@@ -86,6 +104,42 @@ function emitLocal(stream: StreamHandle, text: string, model: string): void {
   const id = `chatcmpl-local-${Date.now()}`;
   stream.write(sseChunk(id, model, { role: 'assistant', content: text }, null));
   stream.write(sseChunk(id, model, {}, 'stop'));
+  stream.write('data: [DONE]\n\n');
+  stream.end();
+}
+
+/**
+ * Émettre un APPEL D'OUTIL, sans modèle.
+ *
+ * Même forme qu'un modèle OpenAI qui décide d'appeler une fonction: c'est Vapi
+ * qui lit ce flux, et il exécute l'outil qu'on nomme comme si son propre modèle
+ * l'avait demandé. La différence est qu'ici la décision est déterministe.
+ */
+function emitToolCall(stream: StreamHandle, name: string, model: string): void {
+  const id = `chatcmpl-local-${Date.now()}`;
+  stream.write(
+    sseChunk(
+      id,
+      model,
+      {
+        role: 'assistant',
+        content: null,
+        tool_calls: [
+          {
+            index: 0,
+            id: `call_${Date.now().toString(36)}`,
+            type: 'function',
+            // Sans argument: la destination appartient au plan de transfert de
+            // l'assistant, pas au tour de parole. En inventer une ici ferait
+            // composer un numéro qui ne vient pas de la fiche client.
+            function: { name, arguments: '{}' },
+          },
+        ],
+      },
+      null,
+    ),
+  );
+  stream.write(sseChunk(id, model, {}, 'tool_calls'));
   stream.write('data: [DONE]\n\n');
   stream.end();
 }
@@ -143,7 +197,20 @@ class LlmStreamService {
     const awaitingToolResult = (request.messages || []).some(m => m.role === 'tool');
 
     if (decision.handledLocally && !awaitingToolResult) {
-      return { mode: 'local' as const, decision, model: TIER.mini(), reply: decision.reply };
+      return { mode: 'local' as const, decision, model: TIER.mini(), reply: decision.reply, tool: null };
+    }
+
+    /* L'appelant a demandé un humain (LEG-3). C'est la seule phrase de l'appel
+       où il dit que la machine ne lui suffit pas, et la laisser au jugement du
+       modèle la faisait rater une fois sur deux. On appelle donc l'outil
+       nous-mêmes.
+       Sans outil de transfert déclaré (client sans numéro, ou numéro qui
+       boucle), le modèle reprend la main: il sait proposer de prendre un
+       message, ce qu'un outil absent ne sait pas faire. Et le tour vaut le
+       modèle complet — c'est un appelant qui est en train de partir. */
+    const transferTool = findTransferTool(request.tools);
+    if (decision.kind === 'human_handoff' && !awaitingToolResult && transferTool) {
+      return { mode: 'transfer' as const, decision, model: TIER.mini(), reply: '', tool: transferTool };
     }
 
     // The expensive model is earned, not defaulted to. It is spent on turns
@@ -157,6 +224,7 @@ class LlmStreamService {
       decision,
       model: needsFull ? TIER.full() : TIER.mini(),
       reply: '',
+      tool: null,
     };
   }
 
@@ -184,6 +252,17 @@ class LlmStreamService {
       // An empty reply is the correct answer to a backchannel: the caller said
       // "mhm", a human receptionist says nothing and keeps listening.
       emitLocal(stream, plan.reply, plan.model);
+      callSessionStore.markLatency(vapiCallId, 'llmEnd');
+      return;
+    }
+
+    if (plan.mode === 'transfer') {
+      /* Le tour est bien un tour: il a coûté un aller-retour de moins, mais il
+         se mesure comme les autres, sinon la médiane décrit une conversation
+         qui n'a pas eu lieu. */
+      callSessionStore.markLatency(vapiCallId, 'llmFirstDelta');
+      logger.info(`[VoiceLLM] transfert demandé explicitement par l'appelant (${clientId}) — outil ${plan.tool}`);
+      emitToolCall(stream, plan.tool, plan.model);
       callSessionStore.markLatency(vapiCallId, 'llmEnd');
       return;
     }
