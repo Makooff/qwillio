@@ -787,6 +787,19 @@ export function buildRealtimePlans(
     // Streams the first message as soon as the channel is up instead of waiting
     // for the model to be primed.
     firstMessageMode: 'assistant-speaks-first',
+    /* Personne ne coupe la salutation (TUR-12).
+       Les algorithmes d'annulation d'écho mettent trois à quatre secondes à
+       converger: les premières secondes d'un appel sont donc celles où un faux
+       barge-in est le plus probable, et c'est exactement le moment de la phrase
+       d'accueil. Un écho, une porte, la sonnerie d'un autre poste, et la
+       salutation est tronquée.
+       Ce n'est pas qu'une question d'impression: l'annonce IA vit DANS cette
+       salutation (LEG-1). Une salutation coupée par du bruit, c'est un appel
+       mené sans annonce, et l'obligation ne se rattrape pas plus tard.
+       Écrit alors que c'est déjà le défaut de Vapi, et c'est le point: un défaut
+       ne se lit pas dans le code, ne s'explique pas, et peut changer chez le
+       fournisseur sans que rien ici ne bouge. */
+    firstMessageInterruptionsEnabled: false,
     backgroundDenoisingEnabled: true,
     silenceTimeoutSeconds: tuning.silenceTimeout,
     maxDurationSeconds: env.VAPI_MAX_DURATION,

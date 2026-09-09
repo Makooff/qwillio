@@ -258,8 +258,10 @@ Un VAD par énergie seul coupe la parole à l'appelant dans 55,6 % des cas quand
 
 ### TUR-12 — Désactiver le barge-in pendant la salutation
 
-- **Statut** : `ABSENT`
-- **Preuve** : Rien ne suspend le barge-in au début de l'appel : `firstMessageMode: 'assistant-speaks-first'` (`backend/src/services/voice/speech-plans.ts:727`) et les deux plans de parole s'appliquent dès la première milliseconde (`speech-plans.ts:669-731`). Aucun délai de convergence, aucune fenêtre de garde sur la salutation.
+- **Statut** : `DÉJÀ FAIT`
+- **Preuve** : `firstMessageInterruptionsEnabled: false`, à côté de `firstMessageMode` dans `buildRealtimePlans` (`backend/src/services/voice/speech-plans.ts`), donc dans les deux moteurs. Test : `__tests__/vapi-schema.test.ts`, « interdit de couper la salutation, dans les deux moteurs ». Le champ est confirmé sur deux pages de la référence d'API Vapi (`assistants/create`, `assistants/delete` pour la forme override), qui précisent aussi qu'il est **désactivé par défaut**.
+- **Pourquoi l'écrire quand même** : un défaut ne se lit pas dans le code, ne s'explique pas, et peut changer chez le fournisseur sans qu'une ligne bouge ici. Ce qui se perdrait alors n'est pas un confort : l'annonce IA vit DANS la salutation (LEG-1), donc une salutation tronquée par de l'écho est un appel mené sans annonce, et l'obligation ne se rattrape pas plus tard.
+- **Ce que ça ne fait pas** : la fenêtre de garde de 2 à 3 secondes évoquée par l'action. Le critère offre les deux formes (« ou jusqu'à la fin de la salutation »), et c'est la seconde qui est retenue — elle colle mieux au risque réel, puisque la salutation est justement ce qui doit être entendu en entier.
 - **Action** : Les algorithmes d'annulation d'écho mettent 3 à 4 secondes à converger en début d'appel.
 - **Pourquoi** : Les premières secondes sont les plus vulnérables aux faux barge-in — et c'est précisément le moment de la phrase d'accueil, celle qui décide de l'impression.
 - **Critère d'acceptation** : Barge-in inactif sur les 2 à 3 premières secondes, ou jusqu'à la fin de la salutation.

@@ -66,6 +66,21 @@ describe('what Vapi refuses to accept', () => {
     }
   });
 
+  /**
+   * TUR-12. La valeur écrite est celle que Vapi applique déjà par défaut, et
+   * c'est précisément pourquoi elle est écrite: un défaut ne se lit pas dans le
+   * code, ne s'explique pas, et peut changer chez le fournisseur sans qu'une
+   * seule ligne bouge ici. Ce qui se perdrait alors n'est pas un confort —
+   * l'annonce IA vit dans la salutation, et une salutation coupée par de l'écho
+   * est un appel mené sans annonce.
+   */
+  it('interdit de couper la salutation, dans les deux moteurs', () => {
+    for (const s2s of [false, true]) {
+      const plans = buildRealtimePlans('fr', s2s) as Record<string, unknown>;
+      expect(plans.firstMessageInterruptionsEnabled).toBe(false);
+    }
+  });
+
   it('sends the transfer destination in E.164', () => {
     // "each value in destinations.number must be a valid phone number"
     const tools = buildVoiceTools(profile({ transferNumber: '06 12 34 56 78' })) as any[];
