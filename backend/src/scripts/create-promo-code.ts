@@ -182,12 +182,25 @@ async function main() {
   }
 
   console.log(`\n✅ Code ${promo.code} créé (coupon ${coupon.id}, promo ${promo.id}).`);
+  /* Le code se saisit UNE SEULE FOIS, et cette liste le disait deux fois.
+     Avec `max_redemptions: 1` — le défaut, et le garde-fou qui limite le coût
+     d'une fuite — la seconde saisie est refusée par Stripe. La recette écrite
+     ici envoyait donc l'utilisateur brûler son unique utilisation à
+     l'inscription, où rien n'est prélevé de toute façon, pour la découvrir
+     épuisée au passage qui compte. */
   console.log('\nÀ faire ensuite, pour tester le vrai parcours:');
-  console.log('  1. S\'inscrire normalement sur le site, saisir le code à la caisse.');
-  console.log('  2. Depuis le portail de facturation, refaire un passage en caisse');
-  console.log('     avec le même code: c\'est CE passage qui convertit l\'essai en payant.');
+  console.log(`  1. S'inscrire normalement sur le site, SANS le code: rien n'est`);
+  console.log('     prélevé pendant l\'essai, le code n\'y sert à rien.');
+  console.log('  2. Portail → Facturation → choisir un plan DIFFÉRENT de celui pris');
+  console.log(`     à l'inscription (le plan courant n'a pas de bouton), et saisir le`);
+  console.log('     code sur la page Stripe, via « Ajouter un code promotionnel ».');
+  console.log('     C\'est CE passage qui convertit l\'essai en payant.');
   console.log('  3. La ligne du stock est attribuée automatiquement à ce moment.');
   console.log('  4. `npm run phone:stock` pour confirmer, puis appeler.\n');
+  if (redemptions === 1) {
+    console.log(`  Ce code ne vaut qu'UNE utilisation: le saisir à l'inscription`);
+    console.log('  l\'épuiserait avant le passage qui compte.\n');
+  }
 }
 
 /* Exécution directe seulement, comme le harnais d'évals.
