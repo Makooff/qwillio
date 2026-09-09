@@ -417,6 +417,14 @@ retirer une entrée d'une sous-liste.
 - **RLS Postgres : toujours absente.** L'isolation entre clients est applicative,
   75 `req.clientId` posés à la main dans les WHERE. C'est le point qui tombe au
   premier questionnaire de sécurité d'un client entreprise.
+  Depuis le 09/09, un test **lit le source** du contrôleur client et impose deux
+  règles : une table ordinaire porte toujours un `clientId` dans le WHERE d'une
+  écriture, et une **racine** de locataire (`client`, `user`) n'est jamais
+  désignée par ce que l'appelant a envoyé (`req.params` / `body` / `query`) —
+  seulement par le jeton. Les deux formes de régression ont été réintroduites une
+  à une pour vérifier que le test tombe. Ça ne remplace pas la RLS : ça empêche la
+  prochaine route écrite à la main de refaire les dix qui agissaient sur un
+  enregistrement par son seul identifiant.
 
 ### 7. Ce qui bloque la mesure, et donc trois décisions
 `fleetMetrics` affiche toujours `calls: 0` : aucun appel entrant réel n'a été

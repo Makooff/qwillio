@@ -187,8 +187,15 @@ export class ClientDashboardController {
       if (!call) return res.status(404).json({ error: 'Lead not found' });
 
       const statusValues = ['new', 'contacted', 'converted', 'lost'];
-      await prisma.clientCall.update({
-        where: { id },
+      /* `updateMany` avec le clientId, et pas `update` sur le seul id.
+         La vérification juste au-dessus suffit AUJOURD'HUI, mais elle est
+         séparée de l'écriture: la portée redevient alors une discipline, qu'un
+         réordonnancement ou un copier-coller vers une route sans garde perd en
+         silence. C'est exactement ainsi que sont nées les dix routes qui
+         agissaient sur un enregistrement par son seul identifiant.
+         Ici la portée est DANS l'écriture: elle ne peut plus être perdue. */
+      await prisma.clientCall.updateMany({
+        where: { id, clientId: req.clientId },
         data: { tags: { set: [...(call.tags || []).filter((t: string) => !statusValues.includes(t)), status] } },
       });
       res.json({ success: true, status });
@@ -207,8 +214,9 @@ export class ClientDashboardController {
       });
       if (!call) return res.status(404).json({ error: 'Lead not found' });
 
-      await prisma.clientCall.update({
-        where: { id },
+      // Même raison qu'au-dessus: la portée vit dans l'écriture, pas à côté.
+      await prisma.clientCall.updateMany({
+        where: { id, clientId: req.clientId },
         data: {
           metadata: {
             ...(typeof call.metadata === 'object' && call.metadata !== null ? call.metadata as Record<string, unknown> : {}),
