@@ -439,10 +439,25 @@ async function runBootstrap() {
              contrôle écrit ici finirait par diverger de celui qui fait foi. Le
              client de test n'existe pas encore au premier démarrage, d'où
              l'identifiant vide qui n'exclut personne. */
-          const bootstrapAllocation = await allocateInboundNumber(existingClient?.id ?? '');
+          /* Une ligne DÉDIÉE déjà attribuée ne se reprend pas.
+             Ce bloc rejoue à CHAQUE démarrage: sans cette garde, un numéro du
+             stock donné au compte de test (`npm run phone:assign`) serait
+             remplacé au redéploiement suivant par la ligne partagée, ou par
+             `null`. La ligne du stock resterait réservée à ce client sans que
+             sa fiche la porte: injoignable, et facturée. */
+          const hasDedicatedLine =
+            existingClient?.phoneSetupState === 'active' && !!existingClient?.vapiPhoneNumber;
+
+          const bootstrapAllocation = hasDedicatedLine
+            ? null
+            : await allocateInboundNumber(existingClient?.id ?? '');
           const bootstrapPhone =
-            bootstrapAllocation.kind === 'allocated' ? bootstrapAllocation.number : null;
-          if (!bootstrapPhone) {
+            bootstrapAllocation?.kind === 'allocated' ? bootstrapAllocation.number : null;
+          if (hasDedicatedLine) {
+            logger.info(
+              `[bootstrap] ligne dédiée ${existingClient?.vapiPhoneNumber} conservée pour le compte de test.`,
+            );
+          } else if (!bootstrapPhone) {
             logger.warn(
               `[bootstrap] ${env.VAPI_PHONE_NUMBER || '(aucun numéro)'} indisponible — ` +
                 'le compte de test reste sans ligne entrante.',
@@ -505,9 +520,11 @@ async function runBootstrap() {
               stripeCustomerId:      'cus_bootstrap_test',
               stripeSubscriptionId:  'sub_bootstrap_test',
               vapiAssistantId:       env.VAPI_ASSISTANT_ID || undefined,
-              // `null` et non `undefined`: si la ligne est passée à un vrai
-              // client, le compte de test doit la relâcher, pas la conserver.
-              vapiPhoneNumber:       bootstrapPhone,
+              /* `null` et non `undefined`: si la ligne PARTAGÉE est passée à un
+                 vrai client, le compte de test doit la relâcher, pas la
+                 conserver. Une ligne dédiée, elle, lui appartient: on n'y
+                 touche pas (voir `hasDedicatedLine`). */
+              vapiPhoneNumber:       hasDedicatedLine ? undefined : bootstrapPhone,
               forwardingStatus:      user.businessPhone ? 'verified' : undefined,
               forwardingVerifiedAt:  user.businessPhone ? now : undefined,
             },
