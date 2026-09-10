@@ -225,6 +225,20 @@ export default function ClientSetupForwarding() {
         </a>
       </div>
 
+      {/* Le renvoi n'engage à rien, le portage engage tout. L'écart entre les
+          deux n'est pas évident pour un commerçant, et il ne se découvre pas:
+          récupérer un numéro après portage est long et incertain, et sur un
+          fixe, le numéro est souvent couplé au pack internet. */}
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4 mb-6">
+        <p className="text-[13px] font-semibold text-[#F2F2F2] mb-1">Vous gardez votre numéro</p>
+        <p className="text-[12px] text-[#9A9AA5] leading-relaxed">
+          Le renvoi ne touche pas à votre ligne: elle reste chez votre opérateur, et vous coupez le renvoi
+          quand vous voulez. Ne transférez jamais le numéro lui-même vers Qwillio pour essayer.
+          Un portage est irréversible en pratique, et sur une ligne fixe le numéro est souvent lié
+          au pack internet: le porter peut couper la connexion du commerce.
+        </p>
+      </div>
+
       {/* Done */}
       {confirmError && (
         <p role="alert" className="text-[12.5px] text-red-400 mb-2 text-center">{confirmError}</p>

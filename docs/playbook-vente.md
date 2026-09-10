@@ -122,6 +122,36 @@ Un partenariat signé vaut cent appels à froid, et il règle le problème d'auj
 
 Ce sont les quatre phrases qui perdent le plus vite.
 
+## Le numéro : renvoi d'abord, portage seulement après preuve
+
+C'est la question que le client pose à la démo, et la mauvaise réponse coûte
+la vente ou pire, la ligne.
+
+**On installe TOUJOURS par renvoi d'appel.** Le client garde son numéro, le
+renvoie vers la ligne Qwillio, et il coupe le renvoi en trente secondes le jour
+où il veut. Rien n'est engagé. C'est ce qui rend l'essai réellement sans risque,
+et c'est comme ça qu'il faut le dire.
+
+**Le portage se propose après, jamais avant, et jamais sans l'avertissement.**
+Deux choses qu'un patron de PME ne sait pas et qu'on ne peut pas lui laisser
+découvrir :
+
+- **Le portage est irréversible en pratique.** Récupérer un numéro chez
+  l'ancien opérateur après coup est une démarche longue et incertaine, quand
+  elle aboutit.
+- **Le numéro d'un commerce est souvent couplé à son pack internet.** Le porter
+  peut résilier la ligne fixe, donc la connexion du magasin. C'est le cas de
+  figure qui transforme une migration en incident.
+
+La séquence saine, à dire telle quelle : renvoi pendant l'essai, portage quand
+l'agent a fait ses preuves et seulement si le client y gagne quelque chose. En
+Belgique comme en France, le portage prend un jour ouvrable une fois décidé,
+donc rien ne presse.
+
+**Ce qu'on ne promet pas** : le renvoi selon l'HEURE. Aucun réseau mobile ne
+sait le faire. Un client qui veut « l'IA seulement le soir » coupe et remet son
+renvoi, ou passe en renvoi total hors horaires.
+
 ## Mesures
 
 À relever chaque jour, dans le dashboard :
