@@ -44,6 +44,15 @@ router.use(clientMiddleware);
 // ─── Dashboard data ─────────────────────────────────────
 router.get('/overview', (req, res) => clientDashboardController.getMyOverview(req, res));
 router.get('/calls', (req, res) => clientDashboardController.getMyCalls(req, res));
+/* Où les appelants s'arrêtent, découpé par index de tour (TST-9). Pas derrière
+   `advancedAnalytics`: un abandon au premier tour est une panne d'installation,
+   pas une finesse d'analyse, et c'est le petit forfait qui en a le plus besoin. */
+router.get('/calls/abandonment', (req, res) => clientDashboardController.getCallAbandonment(req, res));
+/* Ce que deviennent les transferts, et POURQUOI ils échouent (REL-7). Les
+   compteurs existaient à l'échelle de la flotte, sur la route de santé: utile
+   à qui exploite la plateforme, muet pour le gérant qui demande pourquoi
+   l'agent ne lui a pas passé l'appel. */
+router.get('/transfers', (req, res) => clientDashboardController.getTransferFunnel(req, res));
 router.get('/bookings', (req, res) => clientDashboardController.getMyBookings(req, res));
 router.get('/leads', (req, res) => clientDashboardController.getMyLeads(req, res));
 /* « Analytiques avancées » est vendue à partir de Pro sur la page tarifs. La

@@ -4,9 +4,15 @@ import { RefreshCw, CheckCircle2, XCircle } from '../icons';
 import api from '../../services/api';
 import { pro } from '../../styles/pro-theme';
 import { Card as ProCard, SectionHead as ProSectionHead } from '../pro/ProBlocks';
+import VoiceLatencyPanel, { type VoiceLatency } from './VoiceLatencyPanel';
 
 interface ServiceHealth { [key: string]: boolean | string }
-interface SysStats { uptime?: number; nodeVersion?: string; env?: string; prospects?: number; clients?: number; calls?: number }
+interface SysStats {
+  uptime?: number; nodeVersion?: string; env?: string;
+  prospects?: number; clients?: number; calls?: number;
+  /** p50/p95/p99 par étage de la chaîne vocale (LAT-9). */
+  voiceLatency?: VoiceLatency | null;
+}
 
 const CRON_ROWS = [
   { label: 'Scraping Apify',        schedule: 'Chaque 4h' },
@@ -122,6 +128,11 @@ export default function TabSysteme({ active }: { active: boolean }) {
           </ProCard>
         </>
       )}
+
+      {/* La latence AVANT la liste des crons: c'est le seul chiffre de cet
+          onglet qui décide de quelque chose, et le p95 est ce qui décide, pas
+          la médiane. */}
+      <VoiceLatencyPanel data={sys?.voiceLatency} />
 
       <ProSectionHead title="Cron Jobs" />
       <ProCard>

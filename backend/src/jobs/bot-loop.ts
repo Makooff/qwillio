@@ -717,12 +717,31 @@ class BotLoop {
         const reports = await receptionistLearningService.runWeekly();
         const warned = reports.filter(r => r.findings.some(f => f.severity === 'warn'));
         if (warned.length) {
+          /* Le FAIT, pas le code (LAT-9). L'alerte nommait `slow_turns` à côté
+             d'un identifiant de client, donc elle disait qu'il fallait aller
+             chercher — sans dire quoi, ni où, ni si ça valait le déplacement.
+             Une alerte qu'on doit instruire avant de savoir si elle compte est
+             une alerte qu'on finit par ne plus ouvrir, ce qui est le mode
+             d'échec de tous les avertissements de ce dépôt.
+             Le détail porte déjà le chiffre et l'étage fautif, et l'action dit
+             quoi faire: les trois voyagent ensemble ou pas du tout. */
+          const names = await prisma.client.findMany({
+            where: { id: { in: warned.slice(0, 10).map(r => r.clientId) } },
+            select: { id: true, businessName: true },
+          });
+          const nameOf = new Map(names.map(n => [n.id, n.businessName]));
           await discordService.notify(
             `🎧 RECEPTIONIST LEARNING\n\n${warned.length} client(s) with findings:\n` +
               warned
                 .slice(0, 10)
-                .map(r => `• ${r.clientId}: ${r.findings.filter(f => f.severity === 'warn').map(f => f.code).join(', ')}`)
-                .join('\n')
+                .map(r => {
+                  const lines = r.findings
+                    .filter(f => f.severity === 'warn')
+                    .map(f => `   ${f.detail}${f.action ? `\n   → ${f.action}` : ''}`)
+                    .join('\n');
+                  return `• ${nameOf.get(r.clientId) ?? r.clientId} (${r.callsAnalysed} appels)\n${lines}`;
+                })
+                .join('\n\n')
           );
         }
       } catch (error) {

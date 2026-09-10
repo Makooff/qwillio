@@ -1626,6 +1626,38 @@ export class ClientDashboardController {
     }
   }
 
+  /**
+   * GET /my-dashboard/calls/abandonment — où les appelants s'arrêtent (TST-9).
+   *
+   * Le client est toujours `req.clientId`, jamais un identifiant envoyé par
+   * l'appelant: c'est la règle que le test de source impose à toute route de
+   * ce contrôleur, et elle vaut autant en lecture qu'en écriture.
+   */
+  async getCallAbandonment(req: any, res: Response) {
+    try {
+      const { receptionistLearningService } = await import('../services/voice/receptionist-learning.service');
+      const days = Math.min(90, Math.max(1, parseInt(req.query?.days, 10) || 7));
+      res.json(await receptionistLearningService.callAbandonment(req.clientId, days));
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  /**
+   * GET /my-dashboard/transfers — ce que deviennent les transferts (REL-7).
+   *
+   * `req.clientId`, jamais un identifiant venu de l'appelant.
+   */
+  async getTransferFunnel(req: any, res: Response) {
+    try {
+      const { transferReportService } = await import('../services/voice/transfer-report.service');
+      const days = Math.min(365, Math.max(1, parseInt(req.query?.days, 10) || 30));
+      res.json(await transferReportService.funnel(req.clientId, days));
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   /** POST /my-dashboard/knowledge/gaps/:id/answer  { answer, title? } */
   async answerKnowledgeGap(req: any, res: Response) {
     try {

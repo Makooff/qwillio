@@ -6,7 +6,7 @@ import { emailService } from './email.service';
 import { discordService } from './discord.service';
 import { resolveCharacter } from '../config/voice-characters';
 import { getPersonaPrompt, PERSONALITY_PROMPTS } from '../config/personalities';
-import { buildRealtimePlans, buildVoice } from './voice/speech-plans';
+import { buildRealtimePlans, buildVoice, type VoiceLanguage } from './voice/speech-plans';
 import { fitAssistantName } from './voice/vapi-limits';
 import { webhookServer } from './voice/webhook-identity';
 import { realtimeContextService } from './voice/realtime-context.service';
@@ -50,7 +50,6 @@ export class OnboardingService {
       logger.info(`Starting onboarding for ${client.businessName} (attempt ${retryCount + 1}/${MAX_RETRIES})...`);
 
       // ── STEP 1: Create VAPI assistant with retry ──
-      const systemPrompt = this.generateClientSystemPrompt(client);
       const cfg = (client.vapiConfig as any) || {};
       const character = resolveCharacter({
         characterId: cfg.characterId,
@@ -67,6 +66,15 @@ export class OnboardingService {
          décroche (le numéro entrant porte son identifiant), il n'en gagnait
          aucun ensuite. Voir le commentaire de `syncVapiAssistant`. */
       const tools = await this.buildAssistantTools(client.id);
+      /* Lu APRÈS `buildAssistantTools`, qui vient de vider le cache: sans ça,
+         la langue et le vocabulaire seraient ceux d'avant l'enregistrement. */
+      const speech = await this.speechProfile(client.id);
+      const lang: VoiceLanguage = speech?.language
+        ?? (client?.agentLanguage === 'nl' ? 'nl' : isFrClient ? 'fr' : 'en');
+      /* Après la purge, pour la même raison que les outils: bâti avant, le
+         prompt décrirait la configuration d'avant l'enregistrement, et le
+         client devrait sauver deux fois pour que sa réponse prenne effet. */
+      const systemPrompt = await this.assistantPrompt(clientId, client);
 
       const assistantData: any = {
         name: fitAssistantName('Receptionist', client.businessName),
@@ -84,10 +92,13 @@ export class OnboardingService {
           stability: character.stability,
           similarityBoost: character.similarityBoost,
           style: character.style,
-          lang: client?.agentLanguage === 'nl' ? 'nl' : isFrClient ? 'fr' : 'en',
+          lang,
         }),
-        firstMessage: this.generateFirstMessage(client, isFrClient),
-        ...buildRealtimePlans(client?.agentLanguage === 'nl' ? 'nl' : isFrClient ? 'fr' : 'en'),
+        /* À la CRÉATION, le texte et rien d'autre: les accueils sont fabriqués
+           juste après, donc aucune ligne n'existe encore. Le premier
+           enregistrement de réglage épinglera l'audio. */
+        firstMessage: await this.assistantFirstMessage(clientId, client),
+        ...buildRealtimePlans(lang, false, { vocabulary: speech?.vocabulary ?? [] }),
         /* `server` et non plus `serverUrl` seul: il porte l'URL ET le secret
            que Vapi doit nous renvoyer. Sans lui, nos endpoints répondaient 401
            dès que le réglage jumeau du tableau de bord Vapi ne correspondait
@@ -800,6 +811,129 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
    * outils d'AVANT l'enregistrement, et le client devrait sauver deux fois pour
    * que son numéro prenne effet.
    */
+  /**
+   * La langue et le vocabulaire de l'assistant ENREGISTRÉ, lus au même endroit
+   * que l'appel.
+   *
+   * Deux défauts d'un coup, tous deux invisibles jusqu'au premier appel.
+   *
+   * **La langue divergeait entre les deux écritures.** La création lisait
+   * `agentLanguage === 'nl' ? 'nl' : …`, la synchronisation se contentait de
+   * `isFrenchClient(client) ? 'fr' : 'en'`. Un client néerlandophone naissait
+   * donc correct et repassait en ANGLAIS — transcripteur et voix — à la
+   * première sauvegarde de n'importe quel réglage. Rien ne le signalait: le
+   * PUT réussit, l'écran dit enregistré, et le prochain appelant flamand est
+   * transcrit en anglais.
+   *
+   * **Et le biasing ne partait nulle part.** `buildVocabularyField` souffle au
+   * transcripteur le nom de l'entreprise, celui de l'agent et les intitulés de
+   * prestations (BEL-5). Il est construit, testé, et n'était passé qu'à
+   * `buildAssistantForCall` — c'est-à-dire à l'assistant qui ne décroche
+   * JAMAIS, puisque le numéro entrant épingle l'assistant enregistré
+   * (6quindecies). Le mécanisme existait donc sans jamais atteindre un appel.
+   *
+   * Le profil est la seule source: c'est lui qui décide de la langue à
+   * l'appel, et deux règles écrites à la main pour la même question finissent
+   * toujours par ne plus donner la même réponse — ici en moins d'un mois.
+   */
+  /**
+   * Le prompt de l'assistant qui DÉCROCHE, construit par le constructeur que
+   * tout le reste utilise.
+   *
+   * Troisième fois que le même trou se rouvre, et c'est le plus large. Deux
+   * constructeurs de prompt coexistent: `buildSystemPrompt`
+   * (`services/voice/system-prompt.ts`), qui porte le vouvoiement, le
+   * glossaire belge, les champs nommés du métier, le repli clavier et la
+   * discipline de transfert — et que le harnais d'évals teste — et
+   * `generateClientSystemPrompt`, un texte hérité, plus ancien, qui ne porte
+   * rien de tout cela. Le second était celui de l'assistant ENREGISTRÉ,
+   * c'est-à-dire le seul qui réponde à un appel entrant.
+   * Tout ce qui a été écrit dans le premier partait donc dans le vide, et les
+   * scénarios d'éval mesuraient un agent que personne n'entendait.
+   *
+   * L'ancien reste en REPLI, pour un client dont le profil est illisible: un
+   * assistant avec un prompt hérité vaut mieux qu'un assistant sans prompt.
+   */
+  private async assistantPrompt(clientId: string, client: any): Promise<string> {
+    try {
+      const profile = await realtimeContextService.getClientProfile(clientId);
+      if (!profile) return this.generateClientSystemPrompt(client);
+
+      const { buildSystemPrompt } = await import('./voice/system-prompt');
+      const { businessMemoryService } = await import('./voice/business-memory.service');
+      /* Les deux magasins, dans le même ordre qu'à l'appel: les champs nommés
+         décrivent l'entreprise, la FAQ répond à des questions, et le bloc est
+         tronqué — une FAQ bavarde pousserait la description dehors. */
+      const entries = profile.hasKnowledgeBase
+        ? businessMemoryService.promptBlock(await businessMemoryService.all(clientId), profile.language)
+        : '';
+      const knowledgeBlock = [profile.knowledgeFields, entries].filter(Boolean).join('\n\n');
+
+      /* Aucun appelant: l'assistant enregistré est le même pour tous, et la
+         mémoire d'appelant est ajoutée par tour sur le chemin custom-LLM. */
+      return buildSystemPrompt(
+        profile,
+        { previousCalls: 0, lastCallAt: null, lastSummary: null, knownName: null, hasUpcomingBooking: false },
+        knowledgeBlock,
+      );
+    } catch (error) {
+      logger.warn(`[Vapi] prompt de référence indisponible pour ${clientId}: ${(error as Error).message}`);
+      return this.generateClientSystemPrompt(client);
+    }
+  }
+
+  /**
+   * La phrase d'accueil de l'assistant ENREGISTRÉ, en audio déjà fabriqué
+   * quand il en existe un (LAT-7).
+   *
+   * `resolveFirstMessage`, qui sait servir cet audio, n'était appelée que par
+   * `buildAssistantForCall` — l'assistant qui ne décroche jamais. L'accueil
+   * pré-synthétisé n'atteignait donc AUCUN appel entrant, y compris après le
+   * correctif de voix du 09/09.
+   *
+   * **La variante est FIGÉE à 0, et c'est le prix assumé.** Le chemin d'appel
+   * en tire une au hasard parmi trois ; un assistant enregistré n'en porte
+   * qu'une. Tous les appelants entendent donc exactement la même phrase, en
+   * échange des quelques centaines de millisecondes de synthèse sur le mot qui
+   * décide de l'impression.
+   *
+   * **Le piège, et il aurait été pire que le défaut** : `available()` rend une
+   * URL vers une ligne de base, et la synchronisation EFFACE ces lignes avant
+   * de les refaire en tâche de fond. Épingler l'URL sans précaution ouvrirait
+   * une fenêtre où chaque appel commence sur un 404, c'est-à-dire sur du
+   * silence. L'appelant y perdrait bien plus que la latence gagnée. La
+   * régénération est donc ATTENDUE avant qu'on lise l'URL, et le texte reste
+   * le repli quand elle échoue.
+   */
+  private async assistantFirstMessage(clientId: string, client: any): Promise<string> {
+    try {
+      const profile = await realtimeContextService.getClientProfile(clientId);
+      if (!profile) return this.generateFirstMessage(client, this.isFrenchClient(client));
+
+      const { firstMessageVariants } = await import('./voice/system-prompt');
+      const variants = firstMessageVariants(profile, null);
+      const text = variants[0] ?? this.generateFirstMessage(client, this.isFrenchClient(client));
+
+      const audio = await greetingAudioService.available(profile);
+      /* Accroché au TEXTE autant qu'à la variante: un accueil fabriqué avant
+         un changement de nom présenterait l'agent sous l'ancien. */
+      const hit = audio.find(a => a.variant === 0 && a.text === text);
+      return hit ? hit.url : text;
+    } catch (error) {
+      logger.warn(`[Vapi] accueil de référence indisponible pour ${clientId}: ${(error as Error).message}`);
+      return this.generateFirstMessage(client, this.isFrenchClient(client));
+    }
+  }
+
+  private async speechProfile(clientId: string): Promise<{ language: VoiceLanguage; vocabulary: string[] } | null> {
+    const profile = await realtimeContextService.getClientProfile(clientId);
+    if (!profile) return null;
+    return {
+      language: profile.language,
+      vocabulary: [profile.businessName, profile.agentName, ...(profile.services ?? [])],
+    };
+  }
+
   private async buildAssistantTools(clientId: string): Promise<any[]> {
     await realtimeContextService.invalidateClient(clientId);
     const profile = await realtimeContextService.getClientProfile(clientId);
@@ -821,13 +955,27 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
       return;
     }
 
-    const systemPrompt = this.generateClientSystemPrompt(client);
     const cfg = (client.vapiConfig as any) || {};
     const character = resolveCharacter({
       characterId: cfg.characterId,
       isFrench: this.isFrenchClient(client),
       country: client.country,
     });
+
+    /* Les outils sont construits d'abord parce qu'ils vident le cache du
+       profil; la langue et le vocabulaire se lisent ensuite, donc sur la
+       configuration qu'on vient d'enregistrer et non sur la précédente. */
+    const syncTools = await this.buildAssistantTools(client.id);
+    const syncSpeech = await this.speechProfile(client.id);
+    const syncLang: VoiceLanguage = syncSpeech?.language ?? (this.isFrenchClient(client) ? 'fr' : 'en');
+    const systemPrompt = await this.assistantPrompt(client.id, client);
+    /* L'accueil est refait AVANT d'être lu, et attendu. Fait après, comme
+       auparavant, l'URL épinglée pointerait quelques instants vers une ligne
+       qu'on vient d'effacer: chaque appel de cette fenêtre s'ouvrirait sur du
+       silence. */
+    await greetingAudioService.invalidate(client.id);
+    await this.regenerateGreetings(client.id);
+    const firstMessage = await this.assistantFirstMessage(client.id, client);
 
     const updatedConfig: any = {
       name: fitAssistantName(client.agentName || 'Receptionist', client.businessName),
@@ -845,7 +993,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
            Un tableau vide est envoyé quand il n'y a rien à offrir, jamais
            rien: omettre le champ laisserait chez Vapi les outils d'une
            configuration qu'on vient d'annuler. */
-        tools: await this.buildAssistantTools(client.id),
+        tools: syncTools,
       },
       // Keep the voice in sync when the client switches character.
       voice: buildVoice({
@@ -853,10 +1001,13 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
         stability: character.stability,
         similarityBoost: character.similarityBoost,
         style: character.style,
-        lang: this.isFrenchClient(client) ? 'fr' : 'en',
+        /* La langue du PROFIL, pas un second `isFrenchClient` qui ignore le
+           néerlandais: c'est cette ligne-là qui repassait un client flamand en
+           anglais à chaque sauvegarde. Voir `speechProfile`. */
+        lang: syncLang,
       }),
-      firstMessage: this.generateFirstMessage(client, this.isFrenchClient(client)),
-      ...buildRealtimePlans(this.isFrenchClient(client) ? 'fr' : 'en'),
+      firstMessage,
+      ...buildRealtimePlans(syncLang, false, { vocabulary: syncSpeech?.vocabulary ?? [] }),
       server: webhookServer(`${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`),
     };
 
@@ -877,8 +1028,10 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
       // The next call must not be greeted by the cached previous persona, nor
       // by pre-synthesised audio introducing the agent under the old name.
       await realtimeContextService.invalidateClient(client.id);
-      await greetingAudioService.invalidate(client.id);
-      void this.regenerateGreetings(client.id);
+      /* Plus d'effacement ICI: l'accueil a été refait plus haut, et l'URL
+         qu'on vient d'épingler pointe vers ces lignes-là. Les effacer après
+         l'envoi rouvrirait exactement la fenêtre de silence que l'ordre
+         ci-dessus existe pour fermer. */
       logger.info(`VAPI assistant ${client.vapiAssistantId} synced for ${client.businessName}`);
     } catch (error) {
       /* Bruyant, et pas seulement journalisé (leçon des deux pannes de flotte).

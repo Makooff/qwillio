@@ -1,4 +1,5 @@
 import { prisma } from '../../config/database';
+import { fillerFor } from './voice-tools';
 import { logger } from '../../config/logger';
 import { knowledgeEmbeddingsService } from './knowledge-embeddings.service';
 import { receptionistDigestService } from './receptionist-digest.service';
@@ -74,6 +75,14 @@ const HARD_BARGE_IN_THRESHOLD = 1.5;
  * parole à quelqu'un coûte beaucoup plus cher qu'un demi-silence.
  */
 const FALSE_CUT_TARGET = 0.05;
+/**
+ * Le silence qu'un appel d'outil a le droit de laisser (LAT-10).
+ *
+ * Au-delà, l'appelant croit que la ligne est morte et parle par-dessus, ou
+ * raccroche. On ne peut pas SUPPRIMER la latence d'un outil — elle est
+ * mécanique, deux inférences plus l'API distante — seulement la couvrir.
+ */
+const TOOL_SILENCE_BUDGET_MS = 500;
 /** Share of calls where the caller ended up unhappy. */
 const UPSET_RATE_THRESHOLD = 0.25;
 /** Turn latency past which callers audibly wait. */
@@ -121,6 +130,39 @@ function abandonAction(worst: string): string {
     return 'Ils partent après la première réponse: la réponse ne suffit pas. Regarder les questions posées et enrichir la base de connaissances.';
   }
   return 'Ils partent une fois engagés: c\'est la prise de rendez-vous ou la collecte qui les perd. Vérifier les créneaux proposés et le nombre de questions posées.';
+}
+
+/**
+ * L'abandon découpé par index de tour.
+ *
+ * Pure et exportée, parce qu'elle sert maintenant DEUX sorties — le rapport
+ * hebdomadaire et l'écran du client — et que deux copies d'un découpage
+ * finissent toujours par ne plus raconter la même chose.
+ */
+export function abandonHistogram(endings: CallEnding[]) {
+  const buckets: Array<[string, (t: number) => boolean]> = [
+    ['tour 1', t => t <= 1],
+    ['tour 2', t => t === 2],
+    ['tour 3', t => t === 3],
+    ['tours 4-6', t => t >= 4 && t <= 6],
+    ['tours 7+', t => t >= 7],
+  ];
+  const abandoned = endings.filter(e => e.outcome === null || ABANDONED_OUTCOMES.has(e.outcome));
+  const counted = buckets.map(([label, hit]) => ({
+    label,
+    count: abandoned.filter(e => hit(e.callerTurns)).length,
+  }));
+  /* `null` et non le premier seau quand personne n'abandonne: nommer un « pire
+     tour » sur zéro abandon désignerait un coupable qui n'existe pas. */
+  const worst = abandoned.length ? [...counted].sort((a, b) => b.count - a.count)[0] : null;
+
+  return {
+    total: endings.length,
+    abandoned: abandoned.length,
+    rate: ratio(abandoned.length, endings.length),
+    buckets: counted,
+    worst,
+  };
 }
 
 const LOOKBACK_DAYS = 7;
@@ -245,34 +287,59 @@ class ReceptionistLearningService {
   private abandonFindings(endings: CallEnding[]): Finding[] {
     if (endings.length < MIN_CALLS) return [];
 
-    const abandoned = endings.filter(e => e.outcome === null || ABANDONED_OUTCOMES.has(e.outcome));
-    const rate = ratio(abandoned.length, endings.length);
-    if (rate <= ABANDON_RATE_THRESHOLD) return [];
-
-    const buckets: Array<[string, (t: number) => boolean]> = [
-      ['tour 1', t => t <= 1],
-      ['tour 2', t => t === 2],
-      ['tour 3', t => t === 3],
-      ['tours 4-6', t => t >= 4 && t <= 6],
-      ['tours 7+', t => t >= 7],
-    ];
-    const histogram = buckets.map(([label, hit]) => ({
-      label,
-      count: abandoned.filter(e => hit(e.callerTurns)).length,
-    }));
-    const worst = [...histogram].sort((a, b) => b.count - a.count)[0];
+    const h = abandonHistogram(endings);
+    if (h.rate <= ABANDON_RATE_THRESHOLD || !h.worst) return [];
 
     return [
       {
         code: 'abandon_by_turn',
         severity: 'warn',
         detail:
-          `${Math.round(rate * 100)}% des appels finissent sans rien produire — ` +
-          histogram.map(h => `${h.label}: ${h.count}`).join(', '),
-        subject: worst.label,
-        action: abandonAction(worst.label),
+          `${Math.round(h.rate * 100)}% des appels finissent sans rien produire — ` +
+          h.buckets.map(b => `${b.label}: ${b.count}`).join(', '),
+        subject: h.worst.label,
+        action: abandonAction(h.worst.label),
       },
     ];
+  }
+
+  /**
+   * Le même histogramme, pour l'ÉCRAN (TST-9).
+   *
+   * Le rapport hebdomadaire ne le publie qu'au-delà du seuil, ce qui est juste
+   * pour une alerte et faux pour un tableau de bord: un client qui vient
+   * regarder son chiffre doit le trouver, y compris quand il est bon. Le seuil
+   * voyage donc avec le résultat au lieu de décider s'il existe.
+   *
+   * Recalculé à la demande plutôt que rangé quelque part: la lecture est déjà
+   * bornée (sept jours, deux cents appels), et un histogramme figé décrirait la
+   * semaine où le cron est passé, pas celle que le client regarde.
+   */
+  async callAbandonment(clientId: string, days = LOOKBACK_DAYS) {
+    const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+    const calls = await prisma.clientCall.findMany({
+      where: { clientId, isSpam: false, createdAt: { gte: since } },
+      select: { metadata: true, outcome: true },
+      orderBy: { createdAt: 'desc' },
+      take: MAX_CALLS,
+    });
+
+    const endings: CallEnding[] = calls.map(c => ({
+      callerTurns: ((c.metadata as Record<string, any> | null)?.realtime?.callerTurns ?? 0) as number,
+      outcome: c.outcome,
+    }));
+
+    const h = abandonHistogram(endings);
+    return {
+      ...h,
+      days,
+      /* Le nombre d'appels sous lequel un pourcentage ne veut rien dire, rendu
+         AVEC le résultat: l'écran doit pouvoir dire « trop tôt pour conclure »
+         plutôt que d'afficher 100 % sur un seul appel raté. */
+      minCalls: MIN_CALLS,
+      threshold: ABANDON_RATE_THRESHOLD,
+      action: h.worst ? abandonAction(h.worst.label) : null,
+    };
   }
 
   /** Latency, attributed to the stage that owns it. */
@@ -333,6 +400,36 @@ class ReceptionistLearningService {
             : 'Investigate the failing tool — every failure here is a caller told to expect a call back instead.',
       });
     }
+
+    /* Le plafond de silence, enfin MESURÉ (LAT-10). Les trois moyens de le
+       couvrir existaient — outils en parallèle, meublage, préchargement — et
+       rien ne vérifiait qu'ils suffisaient.
+       Ce qui compte n'est pas la durée de l'outil mais la part NON COUVERTE:
+       un outil lent derrière une phrase de meublage ne laisse aucun silence,
+       un outil rapide sans meublage en laisse toute sa durée. C'est pour ça
+       que la mesure lit le contrat de meublage plutôt que le chronomètre
+       seul. */
+    const uncovered = calls.filter(c => {
+      if (c.name.endsWith(':error')) return false;
+      if (c.ms <= TOOL_SILENCE_BUDGET_MS) return false;
+      return fillerFor(c.name, 'fr', 'start').length === 0;
+    });
+    findings.push(
+      uncovered.length
+        ? {
+            code: 'tool_silence',
+            severity: 'warn',
+            detail: `${uncovered.length}/${calls.length} tool calls left more than ${TOOL_SILENCE_BUDGET_MS}ms of silence`,
+            subject: uncovered[0].name,
+            action: `Add a request-start filler for ${[...new Set(uncovered.map(c => c.name))].join(', ')} in voice-tools.ts — the latency cannot be removed, only covered.`,
+          }
+        : {
+            code: 'tool_silence',
+            severity: 'info',
+            detail: `0/${calls.length} tool calls left more than ${TOOL_SILENCE_BUDGET_MS}ms of silence`,
+            action: '',
+          },
+    );
 
     const knowledgeLookups = calls.filter(c => c.name.startsWith('lookupKnowledge')).length;
     if (knowledgeLookups > metrics.length) {

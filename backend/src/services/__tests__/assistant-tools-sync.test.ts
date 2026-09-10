@@ -133,7 +133,14 @@ describe('syncVapiAssistant — les outils partent avec la configuration', () =>
        étiquettes. Les compter toutes ferait passer ce test même si rien
        n'était lu avant l'envoi, ce qui est exactement le défaut visé. */
     const upTo = order.slice(0, order.indexOf('update'));
-    expect(upTo).toEqual(['invalidate', 'read']);
+    /* L'INVARIANT, pas la séquence exacte: aucune lecture avant la purge.
+       Compter les lectures ferait tomber ce test au premier appelant légitime
+       ajouté (la langue et le vocabulaire en relisent une, depuis le même
+       cache), alors que le défaut visé — bâtir sur le profil d'avant
+       l'enregistrement — serait toujours écarté. */
+    expect(upTo[0]).toBe('invalidate');
+    expect(upTo).toContain('read');
+    expect(upTo.indexOf('read')).toBeGreaterThan(upTo.indexOf('invalidate'));
   });
 
   it("envoie un tableau vide plutôt que rien quand le profil est illisible", async () => {
