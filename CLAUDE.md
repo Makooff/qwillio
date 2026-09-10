@@ -530,6 +530,22 @@ client doit sauver deux fois.
 `npm run voice:doctor` lit l'assistant DISTANT et dit ce qu'il porte vraiment.
 C'est la seule chose qui répond à « pourquoi cet appel n'a rien laissé ».
 
+### 6novodecies. Les outils vivent DANS `model`, pas à la racine (10/09/2026)
+`{"message":["property tools should not exist"],"statusCode":400}`, sur les
+**six** variantes. Rien dans le code ne le laissait deviner : la racine paraît
+naturelle, l'objet est `any` donc le compilateur se tait, et la documentation ne
+tranche pas. La bonne place est `model.tools`.
+**Pourquoi ça a dormi** : la racine n'était renseignée que `if (tools.length > 0)`,
+et les outils se réduisaient à `transferCall`, posé seulement si le client avait
+déjà un numéro de transfert — jamais à l'inscription. Le champ fautif n'était donc
+jamais envoyé. Le jour où les outils sont devenus systématiques (6quindecies), la
+création d'assistant est tombée pour **tout le monde**. C'est 6octies en entier :
+un champ refusé n'abîme pas un appel, il annule l'assistant.
+Un test lit le SOURCE et interdit `assistantData.tools =` / `updatedConfig.tools =`.
+Il ne remplace pas le script — lui seul parle à Vapi — il empêche la leçon de se
+reperdre entre deux passages. Un test de la 209 figeait d'ailleurs le mauvais
+emplacement, et il a fallu le corriger avec le code.
+
 ### 6sexdecies. `voice:validate` ne validait pas la charge de production (10/09/2026)
 Il couvrait les plans, pas `tools`, `serverUrl`, `forwardingPhoneNumber`,
 `endCallFunctionEnabled`, `recordingEnabled` ni `backgroundSound` — exactement

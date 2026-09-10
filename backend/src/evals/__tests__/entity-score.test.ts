@@ -98,3 +98,29 @@ describe('formatEntityReport', () => {
     expect(formatEntityReport(scoreEntities([]))).toContain('aucune entité');
   });
 });
+
+/**
+ * Le motif est de la prose, les quatre autres désignent quelque chose.
+ *
+ * L'outil demande « pourquoi ils appellent, une phrase ». L'agent a répondu
+ * « Demande de rendez-vous pour un détartrage » à « je vous appelle pour un
+ * détartrage »: exactement ce qu'on lui demande, et l'égalité stricte le
+ * déclarait faux. Le scénario mesurait alors la concision de sa formulation.
+ */
+describe('la ligne de partage entre prose et identifiant', () => {
+  it('accepte un motif reformulé, tant que la substance y est', () => {
+    expect(entityMatches('reason', 'détartrage', 'Demande de rendez-vous pour un détartrage')).toBe(true);
+    expect(entityMatches('reason', 'devis', 'Le client souhaite un devis pour des travaux')).toBe(true);
+  });
+
+  it('refuse un motif qui a perdu la substance', () => {
+    expect(entityMatches('reason', 'détartrage', 'Demande de rendez-vous')).toBe(false);
+  });
+
+  it('reste strict sur ce qui DÉSIGNE quelque chose', () => {
+    /* Une lettre de travers sur un nom ou un chiffre sur une adresse, et le
+       rappel n'aboutit pas. L'inclusion y ferait passer n'importe quoi. */
+    expect(entityMatches('name', 'Mertens', 'Julie Mertens')).toBe(false);
+    expect(entityMatches('address', 'rue de la Loi 16', 'rue de la Loi 16 bis')).toBe(false);
+  });
+});

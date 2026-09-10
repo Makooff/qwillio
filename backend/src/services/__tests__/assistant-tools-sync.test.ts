@@ -108,9 +108,12 @@ describe('syncVapiAssistant — les outils partent avec la configuration', () =>
     await onboardingService.syncVapiAssistant('c1');
 
     const [, config] = updateAssistant.mock.calls[0] as [string, Record<string, any>];
-    expect(Array.isArray(config.tools)).toBe(true);
+    /* DANS le modèle, pas à la racine. L'API vivante refuse la racine —
+       « property tools should not exist », six variantes sur six, le 10/09 —
+       et ce test figeait justement le mauvais emplacement. */
+    expect(Array.isArray(config.model.tools)).toBe(true);
 
-    const kinds = config.tools.map((t: any) => (t.type === 'function' ? t.function.name : t.type));
+    const kinds = config.model.tools.map((t: any) => (t.type === 'function' ? t.function.name : t.type));
     // Le transfert est celui qui manquait à l'appelant du 09/09; `captureLead`
     // est celui sans lequel aucune alerte ne part (voir `lead-alert.service`).
     expect(kinds).toContain('transferCall');
@@ -142,6 +145,6 @@ describe('syncVapiAssistant — les outils partent avec la configuration', () =>
     /* Omettre le champ laisserait chez Vapi les outils d'une configuration
        qu'on vient d'annuler: un agent continuerait de promettre un rendez-vous
        sur un agenda débranché. */
-    expect(config.tools).toEqual([]);
+    expect(config.model.tools).toEqual([]);
   });
 });
