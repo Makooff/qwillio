@@ -110,6 +110,10 @@ Les cinq plateformes managées mesurées en 2026 sur un protocole neutre (2 078 
 
   Ce qui a changé : chaque ligne porte la voix qui l'a dite (`provider`, `voice_id`, `tts_model`, migration `20260909120000`), calculée par `buildVoice` — la MÊME fonction que l'assistant de l'appel, et non une reconstitution des règles de bascule, qui aurait divergé. La génération suit désormais le fournisseur de l'appel, Cartesia compris (`synthesiseWithCartesia`), et la lecture (`available(profile)`) écarte toute ligne dont la signature ne correspond pas, y compris celles de provenance inconnue, qui retournent à la synthèse en direct le temps d'être refaites. Six tests couvrent les deux défauts (`__tests__/greeting-audio.test.ts`), et `npm run voice:greetings` refabrique la flotte entière sans attendre qu'un réglage bouge — sans quoi une bascule de voix laisserait l'optimisation éteinte jusqu'au prochain changement de fiche.
 
+  **Et il n'atteint AUCUN appel entrant (constaté le 10/09).** L'accueil pré-synthétisé est choisi par `resolveFirstMessage`, appelée seulement depuis `buildAssistantForCall` — l'assistant qui ne décroche jamais. L'assistant ENREGISTRÉ porte un `firstMessage` statique écrit par `generateFirstMessage`, dont le texte ne correspond d'ailleurs à aucune variante, donc aucune ligne d'audio ne pourrait s'y accrocher même si le chemin était emprunté. Toute l'optimisation est donc inerte sur les appels réels, y compris le correctif de voix du 09/09.
+
+  **Pourquoi ce n'est pas corrigé ici** : le chemin d'appel tire une variante AU HASARD à chaque appel, et l'assistant enregistré n'en porte qu'une, figée. Servir l'audio depuis l'assistant enregistré revient donc à échanger la variété de l'accueil contre quelques millisecondes — un arbitrage produit, pas un correctif, et la règle 7 dit de demander.
+
   Ce qui reste pour lever le `PARTIEL` : les dix phrases, le PCMA 8 kHz, et un TTFA mesuré — donc un appel réel.
 - **Action** : Salutation d'ouverture, accusés de réception (« très bien », « je vérifie »), formules de clôture, phrases d'attente pendant un appel d'outil.
 - **Pourquoi** : Latence nulle sur les moments les plus visibles de l'appel — dont la première phrase, celle qui décide de l'impression. Coût : zéro.
@@ -291,6 +295,28 @@ Un VAD par énergie seul coupe la parole à l'appelant dans 55,6 % des cas quand
 - **Pourquoi** : Avec un bon modèle : 5 % de faux découpages coûte ~550 ms, 10 % coûte ~295 ms. Le gain de 250 ms ne compense pas le doublement des interruptions.
 - **Critère d'acceptation** : Le seuil de confiance est réglé sur cette cible et le taux est mesuré en continu.
 - **Impact / effort** : moyen / court
+
+### Constat transversal du 10/09 — le MOTEUR ne suit pas non plus
+
+Même cause que les outils, la langue, le vocabulaire et le prompt : le numéro
+entrant épingle l'assistant ENREGISTRÉ, donc tout ce qui n'est posé que sur le
+constructeur d'appel n'existe pas.
+
+`buildSpeech` décide du moteur (`realtime` ou `classic`), du modèle et de la
+voix, et il n'est appelé que par `buildAssistantForCall`. L'assistant enregistré
+écrit son modèle à la main (`provider: 'openai'`, `model: env.VAPI_MODEL`) et
+passe toujours `speechToSpeech: false` à ses plans de parole. **Le choix de
+moteur du client ne parvient donc jamais à un appel entrant** : le bouton du
+portail, le supplément `VOICE_REALTIME_SURCHARGE_EUR` et le protocole de
+comparaison de `docs/PROTOCOLE-TEST-MOTEURS.md` portent sur un réglage qui ne
+change rien à ce que l'appelant entend. C'est une seconde explication au « je
+n'entends aucune différence quand je change de mode », signalé deux fois — la
+première, `hasCustomVoice`, était réelle mais n'était pas la seule.
+
+**Non corrigé volontairement.** Rebrancher `buildSpeech` ferait basculer de
+moteur, d'un coup, tous les clients réglés sur temps réel, avec un coût par
+minute inconnu (`fleetMetrics: calls 0`) et un supplément posé à 0. C'est une
+décision d'exploitation, pas un correctif : règle 7.
 
 ## BEL — Le français, le belge, le néerlandais
 
@@ -747,6 +773,7 @@ Le meilleur signal neutre du domaine est EVA-Bench : sur douze systèmes évalu�
 
 | Date | Ligne | De → vers | Commit | Note |
 |---|---|---|---|---|
+| 2026-09-10 | LAT-7, transversal | preuve corrigée | `claude/optimisations-audit-vocal-68tgg2` | Deux constats sans correctif, même cause que les trois défauts corrigés le même jour. L'accueil pré-synthétisé n'atteint aucun appel entrant : il est choisi par le constructeur d'appel, qui ne s'exécute jamais. Et le choix de MOTEUR non plus, pour la même raison — le bouton du portail et le supplément portent sur un réglage inerte. Les deux sont des arbitrages produit, pas des correctifs. |
 | 2026-09-10 | BEL-5 | preuve complétée, reste `ABSENT` sur les rues | `claude/optimisations-audit-vocal-68tgg2` | Le biasing était construit, testé, et n'atteignait aucun appel : il n'était passé qu'à l'assistant qui ne décroche jamais. Deux défauts pour une cause. Le second est pire : la synchronisation ignorait le néerlandais, donc un client flamand repassait en anglais, transcripteur et voix, dès la première sauvegarde d'un réglage. Les deux chemins lisent maintenant la langue du profil. |
 | 2026-09-10 | LAT-10 | preuve complétée, reste `PARTIEL` | `claude/optimisations-audit-vocal-68tgg2` | Le plafond de 500 ms de silence sur un appel d'outil est enfin mesuré. Le relevé lit le contrat de meublage et non le chronomètre : ce qui compte n'est pas la durée de l'outil mais la part non couverte. Restent le meublage en audio pré-généré et le préchargement sur le numéro appelant. |
 | 2026-09-10 | LAT-9 | preuve complétée, reste `PARTIEL` | `claude/optimisations-audit-vocal-68tgg2` | Les percentiles par étage étaient calculés et publiés sur une route que personne n'ouvre. Ils passent sur `/api/admin/system` et s'affichent dans l'onglet Système, p95 en avant. Et l'alerte hebdomadaire, qui nommait un code à côté d'un UUID, porte enfin le nom du client, le chiffre et l'action : une alerte qu'on doit instruire avant de savoir si elle compte finit par ne plus être ouverte. |
