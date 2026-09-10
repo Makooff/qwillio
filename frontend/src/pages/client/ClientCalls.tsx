@@ -13,6 +13,7 @@ import SentimentBadge from '../../components/client-dashboard/SentimentBadge';
 import Pagination from '../../components/client-dashboard/Pagination';
 import EmptyState from '../../components/client-dashboard/EmptyState';
 import AbandonByTurn from '../../components/client-dashboard/AbandonByTurn';
+import TransferFunnel from '../../components/client-dashboard/TransferFunnel';
 import { formatDuration, formatDateTime, exportToCSV } from '../../utils/format';
 import PageHeader from '../../components/dashboard/PageHeader';
 import { parseTranscript } from '../../utils/transcript';
@@ -319,6 +320,7 @@ export default function ClientCalls() {
           la fait jamais apparaître. L'encart s'efface tout seul tant qu'il n'y
           a pas d'appel à décrire. */}
       <AbandonByTurn />
+      <TransferFunnel />
 
       {/* Content */}
       {loading ? (

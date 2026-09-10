@@ -1643,6 +1643,21 @@ export class ClientDashboardController {
     }
   }
 
+  /**
+   * GET /my-dashboard/transfers — ce que deviennent les transferts (REL-7).
+   *
+   * `req.clientId`, jamais un identifiant venu de l'appelant.
+   */
+  async getTransferFunnel(req: any, res: Response) {
+    try {
+      const { transferReportService } = await import('../services/voice/transfer-report.service');
+      const days = Math.min(365, Math.max(1, parseInt(req.query?.days, 10) || 30));
+      res.json(await transferReportService.funnel(req.clientId, days));
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   /** POST /my-dashboard/knowledge/gaps/:id/answer  { answer, title? } */
   async answerKnowledgeGap(req: any, res: Response) {
     try {
