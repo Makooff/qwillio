@@ -475,8 +475,28 @@ export const env = {
    * plus en temps réel (voir juste au dessus), donc seul quelqu'un qui le
    * choisit explicitement l'atteint, et ce quelqu'un est en train d'essayer de
    * le réparer.
+   *
+   * **`gpt-realtime-2.1` est REFUSÉ par Vapi, et c'était la valeur ici.**
+   * Relevé le 10/09/2026 par `npm run voice:validate`, qui venait de se mettre
+   * à soumettre le vrai bloc `model` (6sexdecies): les trois variantes temps
+   * réel refusées, `model.model must be one of the following values`.
+   * `gpt-realtime` figure dans les valeurs acceptées et passe.
+   *
+   * **Ce qu'on ne sait PAS, et il faut le dire**: la liste complète des valeurs
+   * acceptées. Le script coupait le corps de la réponse à 600 caractères, et
+   * l'énumération a été tronquée en plein milieu. La première lecture — « la
+   * liste ne contient que ces cinq-là » — était donc une déduction sur un texte
+   * coupé, et le tableau de bord Vapi propose bien d'autres modèles temps réel
+   * (« GPT Realtime 2 », « GPT Realtime Mini », « GPT Realtime Cluster »). Un
+   * nom d'écran n'est pas un identifiant d'API, et seul le corps entier
+   * tranchera: la troncature est levée, le prochain refus dira tout.
+   *
+   * **La leçon qui tient**: un identifiant de modèle ne se déduit jamais du
+   * catalogue du FOURNISSEUR D'ORIGINE, ni d'un libellé d'interface. Seul
+   * l'intermédiaire qui reçoit la charge dit ce qu'il accepte, et il ne le dit
+   * qu'à `voice:validate`.
    */
-  VOICE_REALTIME_MODEL: process.env.VOICE_REALTIME_MODEL || 'gpt-realtime-2.1',
+  VOICE_REALTIME_MODEL: process.env.VOICE_REALTIME_MODEL || 'gpt-realtime',
   /**
    * Envoie-t-on un plan d'interruption en parole-à-parole ?
    *

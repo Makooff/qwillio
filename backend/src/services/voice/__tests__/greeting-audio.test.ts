@@ -38,7 +38,7 @@ const envState = vi.hoisted(() => ({
   VOICE_BARGE_IN_VOICE_SECONDS: 0.2,
   VOICE_BARGE_IN_BACKOFF_SECONDS: 1,
   VAPI_SILENCE_TIMEOUT: 30,
-  VOICE_REALTIME_MODEL: 'gpt-realtime-2.1',
+  VOICE_REALTIME_MODEL: 'gpt-realtime',
   VAPI_MODEL: 'gpt-4o',
 }));
 vi.mock('../../../config/env', () => ({ env: envState }));

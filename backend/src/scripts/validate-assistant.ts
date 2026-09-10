@@ -211,7 +211,14 @@ async function main() {
          et c'est la seule chose que le code ne pouvait pas deviner. */
       const body = await res.text();
       console.error(`  REFUSÉ  ${label} — HTTP ${res.status}`);
-      console.error(`          ${body.slice(0, 600)}`);
+      /* Le corps ENTIER, et c'est le point. Il était coupé à 600 caractères, ce
+         qui suffit d'ordinaire — sauf quand Vapi refuse une valeur d'énumération
+         et répond par la liste des valeurs acceptées. Le 10/09/2026, la liste
+         des modèles temps réel a été tronquée en plein milieu, et la lecture
+         qui en a été faite (« la liste ne contient que ces cinq-là ») était donc
+         une déduction sur un texte coupé. Une réponse d'API se lit en entier ou
+         ne se lit pas. */
+      console.error(`          ${body}`);
     }
   }
 
