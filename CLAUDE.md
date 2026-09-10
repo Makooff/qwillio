@@ -506,6 +506,25 @@ tout. Il est fusionné (`mergeVapiConfig`), `null` retirant une clé expliciteme
 et la fusion est SUPERFICIELLE : une fusion profonde rendrait impossible de
 retirer une entrée d'une sous-liste.
 
+### 6tervicies. Les DEUX assistants décrochent, selon la LIGNE (10/09/2026)
+Précision qui corrige 6quindecies, et qui change à qui s'appliquent les cinq
+correctifs de la journée. `attachAssistant` n'est appelé que par
+`phone-stock.service.ts`, c'est-à-dire pour les clients qui reçoivent un numéro
+belge DÉDIÉ. Sur la LIGNE PARTAGÉE — celle des essais — aucun assistant n'est
+épinglé, donc `assistant-request` EST émis et `buildAssistantForCall` s'exécute
+bel et bien.
+Donc : ligne dédiée → assistant enregistré ; ligne partagée → assistant construit
+à l'appel. Les deux chemins comptent, et il faut les tenir tous les deux.
+**Le défaut que cette lecture a fait sortir** : `buildAssistantForCall` composait
+`Receptionist - <nom commercial>` sans passer par `fitAssistantName`. C'est le
+seul chemin qui échappe à `vapiClient`, où `fitAssistantLabel` est appliqué sur
+create et update : cet assistant n'est pas créé par l'API, il est RENDU en
+réponse au webhook. « Receptionist - » fait quinze caractères, donc toute
+entreprise au nom de plus de vingt-cinq franchissait la limite de quarante — et
+un nom trop long ne dégrade pas l'assistant, il le fait refuser en entier
+(6octies). Le premier appel d'un client d'essai, refusé sur la longueur du nom
+de son commerce.
+
 ### 6quindecies. Il y a DEUX assistants, et un seul décroche (10/09/2026)
 `buildAssistantForCall` compose l'assistant complet — outils, base de
 connaissances, mémoire de l'appelant, plan de clavier — et ne sert QUE à

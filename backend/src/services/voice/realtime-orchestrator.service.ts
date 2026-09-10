@@ -6,6 +6,7 @@ import { webhookServer } from './webhook-identity';
 import { realtimeContextService, shouldRecord, type ClientVoiceProfile } from './realtime-context.service';
 import { callSessionStore } from './call-session.store';
 import { buildRealtimePlans, buildSpeech, useSpeechToSpeech } from './speech-plans';
+import { fitAssistantName } from './vapi-limits';
 import { buildVoiceTools } from './voice-tools';
 import { buildSystemPrompt, firstMessageVariants, ensureDisclosure, hasAiDisclosure } from './system-prompt';
 import { greetingAudioService } from './greeting-audio.service';
@@ -214,7 +215,18 @@ class RealtimeOrchestratorService {
     }
 
     const assistant = {
-      name: `Receptionist - ${profile.businessName}`,
+      /* Le nom passe par la BORNE, comme partout ailleurs (6octies).
+         Il ne le faisait pas ici, et c'est le seul chemin qui échappe à
+         `vapiClient`: cet assistant n'est pas créé par l'API, il est rendu en
+         réponse à `assistant-request`, donc `fitAssistantLabel`, appliqué dans
+         `config/vapi.ts` sur create et update, ne le voyait jamais.
+         Or ce chemin sert précisément les clients de la LIGNE PARTAGÉE — ceux
+         d'essai, qui n'ont pas de numéro dédié et dont le numéro n'épingle donc
+         aucun assistant. « Receptionist - » fait quinze caractères: toute
+         entreprise dont le nom en dépasse vingt-cinq franchissait la limite de
+         quarante, et un nom trop long ne dégrade pas l'assistant, il le fait
+         refuser en entier. Le premier appel d'essai, sur le nom du commerce. */
+      name: fitAssistantName('Receptionist', profile.businessName),
       model,
       voice,
       firstMessage,
