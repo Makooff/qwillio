@@ -3,6 +3,7 @@ import { CallLatencyTracker } from './latency-tracker';
 import type { VoiceLanguage } from './speech-plans';
 import type { CallerMood } from './caller-mood';
 import { newRepairState, recoveryLine, type RepairState } from './conversational-repair';
+import { isFalseCut } from './false-cut';
 
 /**
  * In-process state for calls that are currently on the line (Phase 1.3).
@@ -77,6 +78,14 @@ export interface CallSession {
   assistantSpeakingSince: number | null;
   /** Interruptions that cut a substantive utterance, not a backchannel. */
   hardBargeIns: number;
+  /**
+   * Les fois où c'est l'AGENT qui a coupé l'appelant (TUR-13).
+   *
+   * L'autre sens des deux compteurs au-dessus, et le côté cher de l'arbitrage:
+   * 250 ms de silence en trop se pardonnent, se faire couper la parole non.
+   * Sans ce compte, le seuil d'endpointing se règle à l'oreille.
+   */
+  falseCuts: number;
   /** Live read on how the caller sounds — drives register, never permissions. */
   mood: CallerMood;
   /** Token accounting, so the prompt cache is verified rather than assumed. */
@@ -133,6 +142,15 @@ const SWEEP_INTERVAL_MS = 5 * 60 * 1000;
  * Cutting one off is not an interruption worth counting or apologising for.
  */
 const MIN_UTTERANCE_FOR_HARD_BARGE_IN_MS = 900;
+
+/** Le dernier tour de l'appelant, tel qu'il est rangé dans le tampon. */
+function lastCallerLine(session: CallSession): string | null {
+  for (let i = session.transcript.length - 1; i >= 0; i--) {
+    const line = session.transcript[i];
+    if (line.startsWith('Caller: ')) return line.slice('Caller: '.length);
+  }
+  return null;
+}
 
 class CallSessionStore {
   private sessions = new Map<string, CallSession>();
@@ -195,6 +213,7 @@ class CallSessionStore {
       latency: new CallLatencyTracker(),
       assistantSpeakingSince: null,
       hardBargeIns: 0,
+      falseCuts: 0,
       mood: 'neutral',
       tokens: { input: 0, cached: 0, output: 0 },
       phoneCaptureFailures: 0,
@@ -328,6 +347,16 @@ class CallSessionStore {
     session.bargeIns++;
 
     const speakingFor = session.assistantSpeakingSince === null ? 0 : at - session.assistantSpeakingSince;
+
+    /* Relevé AVANT de trancher sur la dureté, parce que les deux lectures d'un
+       même événement ne s'excluent pas: une reprise très rapide n'est pas une
+       interruption dure (l'agent parlait à peine), et c'est exactement là que
+       le faux découpage se cache. */
+    if (session.assistantSpeakingSince !== null
+        && isFalseCut(speakingFor, lastCallerLine(session), session.language)) {
+      session.falseCuts++;
+    }
+
     const isHard = speakingFor >= MIN_UTTERANCE_FOR_HARD_BARGE_IN_MS;
     if (isHard) {
       session.hardBargeIns++;

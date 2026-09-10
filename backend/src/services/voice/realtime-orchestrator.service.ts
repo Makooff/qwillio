@@ -475,6 +475,10 @@ class RealtimeOrchestratorService {
           deflectedTurns: session.deflectedTurns,
           bargeIns: session.bargeIns,
           hardBargeIns: session.hardBargeIns,
+          /* L'AUTRE sens de l'interruption: l'agent qui coupe l'appelant.
+             Consigné par appel parce que le taux ne se calcule qu'après, sur
+             une population — et c'est le taux qui règle l'endpointing. */
+          falseCuts: session.falseCuts,
           mood: session.mood,
           tokens: session.tokens,
           toolCalls: session.toolCalls,
