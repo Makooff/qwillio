@@ -2,35 +2,43 @@ import { describe, it, expect } from 'vitest';
 import { env } from '../../../config/env';
 
 /**
- * Le modèle temps réel doit être un identifiant que VAPI accepte.
+ * Le modèle temps réel ne doit pas être une valeur que Vapi a REFUSÉE.
  *
- * `gpt-realtime-2.1` était posé ici, lu dans le catalogue d'OpenAI. Vapi ne le
- * connaît pas, et un modèle refusé ne dégrade pas un appel: il fait refuser
- * l'assistant entier (6octies). Les trois variantes temps réel étaient donc
- * mortes, et rien ne le montrait avant que `voice:validate` ne se mette à
- * soumettre le vrai bloc `model`.
+ * `gpt-realtime-2.1` était posé ici, lu dans le catalogue d'OpenAI. Vapi l'a
+ * refusé le 10/09/2026, sur les trois variantes temps réel, et un modèle refusé
+ * ne dégrade pas un appel: il fait refuser l'assistant entier (6octies).
  *
- * Cette liste est celle que l'API a RENDUE dans son message d'erreur du
- * 10/09/2026. Elle n'est pas devinée, et elle ne remplace pas le script — lui
- * seul parle à Vapi — elle empêche la valeur de repartir dans le catalogue
- * d'OpenAI entre deux passages.
+ * **Une liste NOIRE, pas une liste blanche, et c'est délibéré.** La première
+ * version de ce test énumérait les valeurs acceptées, lues dans le message
+ * d'erreur — sauf que le script coupait ce message à 600 caractères et que
+ * l'énumération était tronquée en plein milieu. Une liste blanche bâtie sur un
+ * texte coupé refuserait un identifiant parfaitement valide, par exemple celui
+ * des modèles que le tableau de bord Vapi propose et que la partie visible ne
+ * nommait pas. On ne fige donc que ce qu'on SAIT: cette valeur-là est refusée.
  */
-const ACCEPTED_BY_VAPI = [
-  'gpt-4o-realtime-preview-2024-10-01',
-  'gpt-4o-realtime-preview-2024-12-17',
-  'gpt-4o-mini-realtime-preview-2024-12-17',
-  'gpt-realtime-2025-08-28',
-  'gpt-realtime',
+const REFUSED_BY_VAPI = [
+  /* Refusé sur les six variantes, message d'erreur du 10/09/2026. */
+  'gpt-realtime-2.1',
 ];
 
 describe('VOICE_REALTIME_MODEL', () => {
-  it('est un identifiant que Vapi accepte', () => {
-    expect(ACCEPTED_BY_VAPI).toContain(env.VOICE_REALTIME_MODEL);
+  it('n\'est pas une valeur que Vapi a refusée', () => {
+    expect(REFUSED_BY_VAPI).not.toContain(env.VOICE_REALTIME_MODEL);
   });
 
-  it('n\'est plus la valeur qui a fait refuser les trois variantes', () => {
-    // Le nom venait du catalogue d'OpenAI. Les deux catalogues ne coïncident
-    // pas, et c'est Vapi qui valide la charge.
-    expect(env.VOICE_REALTIME_MODEL).not.toBe('gpt-realtime-2.1');
+  it('a une valeur', () => {
+    // Vide, le champ part quand même et emporte l'assistant.
+    expect(env.VOICE_REALTIME_MODEL.trim().length).toBeGreaterThan(0);
+  });
+});
+
+describe('voice:validate — le corps de la réponse', () => {
+  it('n\'est plus tronqué', async () => {
+    /* Une réponse d'API se lit en entier ou ne se lit pas. C'est la troncature
+       qui a fait conclure trop vite sur la liste des modèles acceptés. */
+    const { readFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const script = readFileSync(join(process.cwd(), 'src/scripts/validate-assistant.ts'), 'utf8');
+    expect(script).not.toMatch(/body\.slice\(0,\s*\d+\)/);
   });
 });
