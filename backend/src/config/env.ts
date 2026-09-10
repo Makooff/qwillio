@@ -476,27 +476,35 @@ export const env = {
    * choisit explicitement l'atteint, et ce quelqu'un est en train d'essayer de
    * le réparer.
    *
-   * **`gpt-realtime-2.1` est REFUSÉ par Vapi, et c'était la valeur ici.**
-   * Relevé le 10/09/2026 par `npm run voice:validate`, qui venait de se mettre
-   * à soumettre le vrai bloc `model` (6sexdecies): les trois variantes temps
-   * réel refusées, `model.model must be one of the following values`.
-   * `gpt-realtime` figure dans les valeurs acceptées et passe.
+   * **Deux identifiants refusés ici avant le bon, et la même erreur les deux
+   * fois.** `gpt-realtime-2.1` d'abord, lu dans le catalogue d'OpenAI. Puis
+   * `gpt-realtime`, DÉDUIT du message d'erreur alors que celui-ci était coupé à
+   * 600 caractères. Les deux fois, l'identifiant venait d'ailleurs que de
+   * l'intermédiaire qui reçoit la charge.
    *
-   * **Ce qu'on ne sait PAS, et il faut le dire**: la liste complète des valeurs
-   * acceptées. Le script coupait le corps de la réponse à 600 caractères, et
-   * l'énumération a été tronquée en plein milieu. La première lecture — « la
-   * liste ne contient que ces cinq-là » — était donc une déduction sur un texte
-   * coupé, et le tableau de bord Vapi propose bien d'autres modèles temps réel
-   * (« GPT Realtime 2 », « GPT Realtime Mini », « GPT Realtime Cluster »). Un
-   * nom d'écran n'est pas un identifiant d'API, et seul le corps entier
-   * tranchera: la troncature est levée, le prochain refus dira tout.
+   * **Le message entier, relevé le 10/09/2026, tranche.** Vapi n'accepte en
+   * temps réel que six identifiants, tous DATÉS sauf un:
+   * `gpt-4o-realtime-preview-2024-10-01`, `gpt-4o-realtime-preview-2024-12-17`,
+   * `gpt-4o-mini-realtime-preview-2024-12-17`, `gpt-realtime-2025-08-28`,
+   * `gpt-realtime-mini-2025-12-15`, `gpt-realtime-2`. `gpt-realtime` tout court
+   * n'y est pas: c'est le nom du modèle chez OpenAI, pas son identifiant ici.
    *
-   * **La leçon qui tient**: un identifiant de modèle ne se déduit jamais du
-   * catalogue du FOURNISSEUR D'ORIGINE, ni d'un libellé d'interface. Seul
-   * l'intermédiaire qui reçoit la charge dit ce qu'il accepte, et il ne le dit
-   * qu'à `voice:validate`.
+   * `gpt-realtime-2025-08-28` est le même modèle que celui qu'on visait, sous
+   * l'identifiant que l'API accepte. La date épinglée est le prix à payer, et
+   * c'est `voice:validate` qui dira le jour où elle sortira du catalogue.
+   *
+   * `gpt-realtime-mini-2025-12-15` est l'option ÉCONOMIQUE, et l'écart n'est
+   * pas marginal: le tableau de bord Vapi annonce 0,060 $ la minute contre
+   * 0,645 $ pour `gpt-realtime-2`, soit un facteur dix. Avec
+   * `VOICE_REALTIME_SURCHARGE_EUR` à zéro, cet écart est entièrement pour nous.
+   * Il se mesure sur de vrais appels avant de se choisir.
+   *
+   * **La leçon, payée deux fois**: un identifiant de modèle ne se déduit jamais
+   * du catalogue du FOURNISSEUR D'ORIGINE, ni d'un libellé d'interface, ni d'un
+   * message d'erreur tronqué. Seul l'intermédiaire qui reçoit la charge dit ce
+   * qu'il accepte, et il ne le dit qu'à `voice:validate`.
    */
-  VOICE_REALTIME_MODEL: process.env.VOICE_REALTIME_MODEL || 'gpt-realtime',
+  VOICE_REALTIME_MODEL: process.env.VOICE_REALTIME_MODEL || 'gpt-realtime-2025-08-28',
   /**
    * Envoie-t-on un plan d'interruption en parole-à-parole ?
    *

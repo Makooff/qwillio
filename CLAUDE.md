@@ -374,6 +374,29 @@ faut relancer le script jusqu'au vert avant de conclure quoi que ce soit.
 en dessous, et nos langues ne tournent pas sur le même modèle (fr/en en Nova-3,
 nl en Nova-2). Le champ se choisit par modèle, jamais globalement.
 
+### 6quinvicies. Un identifiant de modele ne se DEDUIT jamais (10/09/2026)
+Trois valeurs posees dans `VOICE_REALTIME_MODEL` avant la bonne, et la meme
+cause a chaque fois : l'identifiant venait d'ailleurs que de l'intermediaire qui
+recoit la charge. `gpt-realtime-2.1`, lu dans le catalogue d'OpenAI. Puis
+`gpt-realtime`, deduit du message d'erreur de Vapi alors que
+`validate-assistant.ts` coupait ce message a 600 caracteres. Un nom d'ecran du
+tableau de bord Vapi n'est pas davantage un identifiant d'API.
+Le corps ENTIER, une fois la troncature levee, enumere SIX identifiants temps
+reel et cinq d'entre eux sont **dates** : `gpt-4o-realtime-preview-2024-10-01`,
+`gpt-4o-realtime-preview-2024-12-17`, `gpt-4o-mini-realtime-preview-2024-12-17`,
+`gpt-realtime-2025-08-28`, `gpt-realtime-mini-2025-12-15`, `gpt-realtime-2`.
+`gpt-realtime` tout court n'y figure pas.
+La regle : **couper la reponse d'une API, c'est fabriquer une deduction fausse
+qui a l'air d'une lecture.** Un test lit desormais le source de
+`validate-assistant.ts` et interdit tout `body.slice(0, N)` ; un autre fige le
+catalogue temps reel avec sa date, non pour remplacer `npm run voice:validate`
+— seule chose qui parle vraiment a Vapi — mais pour qu'une valeur qui n'y a
+jamais figure ne puisse pas etre reposee.
+Ecart de cout a mesurer avant de choisir : le tableau de bord Vapi annonce
+0,060 $ la minute pour `gpt-realtime-mini-2025-12-15` contre 0,645 $ pour
+`gpt-realtime-2`, un facteur dix, et `VOICE_REALTIME_SURCHARGE_EUR` est a zero,
+donc l'ecart est entierement pour nous.
+
 ### 6nonies. Un refus de Vapi ne doit plus être silencieux (09/09/2026)
 `syncVapiAssistant` lève, et ses **deux** appelants attrapent pour écrire un
 `logger.warn` avant de répondre `success: true`. Le client enregistre un réglage,
