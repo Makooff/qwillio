@@ -13,6 +13,7 @@ import { routeIntent } from './intent-router';
 import { assessMood } from './caller-mood';
 import { availabilitySpeculator, detectDate } from './availability-speculator';
 import { warmTransferService } from './warm-transfer.service';
+import { forwardingProofService } from './forwarding-proof.service';
 import { businessMemoryService } from './business-memory.service';
 import { callerMemoryService } from './caller-memory.service';
 import { toolRuntimeService, type ToolCallInput, type ToolCallResult } from './tool-runtime.service';
@@ -291,6 +292,13 @@ class RealtimeOrchestratorService {
         language: profile?.language ?? 'en',
       });
     }
+
+    /* Un appel qui arrive PAR le renvoi est la seule preuve que le renvoi
+       marche (REL-10). Elle se relève ici parce que c'est le seul endroit qui
+       voie à la fois le client résolu et les en-têtes de l'appel. Sans await:
+       l'appelant est en ligne, et une colonne d'installation ne vaut pas un
+       aller-retour de base de données sur le chemin de la réponse. */
+    void forwardingProofService.noteInboundCall(clientId, event);
   }
 
   /**

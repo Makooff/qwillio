@@ -841,27 +841,36 @@ class BotLoop {
     }), { timezone: env.TZ || 'America/New_York' });
 
     // ═══════════════════════════════════════════════════════════
-    // FORWARDING VERIFICATION — Daily at 9 AM
-    // Verifies client call forwarding numbers are reachable
+    // RENVOI NON PROUVÉ — tous les jours à 9 h
+    //
+    // Ce cron ÉCRIVAIT `forwardingVerifiedAt` sur tous les clients actifs,
+    // après avoir seulement journalisé un numéro: il n'a jamais passé le
+    // moindre appel, et la case « renvoi vérifié » de la liste d'installation
+    // était donc verte par construction, pour tout le monde (REL-10). Une
+    // colonne fausse est pire qu'une colonne vide: elle ferme la question.
+    //
+    // La preuve se relève maintenant là où elle existe — un appel entrant qui
+    // porte un en-tête de diversion nommant la ligne du client
+    // (`forwarding-proof.service.ts`). Il ne reste ici qu'à NOMMER les clients
+    // qui n'en ont produit aucune, ce qui est le seul travail que ce cron peut
+    // honnêtement faire.
     // ═══════════════════════════════════════════════════════════
     this.forwardingVerificationJob = cron.schedule('0 9 * * *', () => jobGuard.run('forwarding-verification', async () => {
-      logger.info('[CRON] Forwarding verification running...');
       try {
+        const stale = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
         const clients = await prisma.client.findMany({
-          where: { subscriptionStatus: 'active', transferNumber: { not: null } },
-          select: { id: true, businessName: true, contactEmail: true, transferNumber: true, forwardingVerifiedAt: true },
+          where: {
+            subscriptionStatus: 'active',
+            OR: [{ forwardingVerifiedAt: null }, { forwardingVerifiedAt: { lt: stale } }],
+          },
+          select: { id: true, businessName: true, forwardingStatus: true, forwardingVerifiedAt: true },
         });
+        if (!clients.length) return;
         for (const client of clients) {
-          // Log verification check (actual silent call would require Twilio integration)
-          logger.info(`Forwarding check for ${client.businessName}: ${client.transferNumber}`);
-          await prisma.client.update({
-            where: { id: client.id },
-            data: { forwardingVerifiedAt: new Date() },
-          });
+          const declared = client.forwardingStatus === 'verified' ? 'déclaré par le client' : 'non déclaré';
+          logger.warn(`[CRON] renvoi non prouvé — ${client.businessName} (${declared}, aucun appel renvoyé depuis 7 jours)`);
         }
-        if (clients.length > 0) {
-          logger.info(`[CRON] Forwarding verification completed for ${clients.length} clients`);
-        }
+        logger.info(`[CRON] ${clients.length} client(s) sans preuve de renvoi`);
       } catch (error) {
         logger.error('[CRON] Forwarding verification error:', error);
       }

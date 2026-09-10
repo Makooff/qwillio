@@ -28,25 +28,54 @@ export interface ForwardingCode {
   effect: string;
   /** L'effet de bord qui surprend, quand il y en a un. */
   caveat?: string;
+  /**
+   * Ce renvoi peut-il être devancé par la messagerie de l'OPÉRATEUR ?
+   *
+   * Faux uniquement pour le renvoi inconditionnel, qui prend l'appel avant
+   * qu'aucune condition ne s'évalue. Pour tous les autres, la messagerie est
+   * elle-même un renvoi conditionnel posé sur le réseau, souvent avec un
+   * délai plus court: elle capte l'appel et l'agent ne sonne jamais.
+   */
+  voicemailRisk: boolean;
 }
+
+/**
+ * Le code qui efface TOUS les renvois de la ligne, messagerie de l'opérateur
+ * comprise (REL-10).
+ *
+ * C'est l'étape que personne ne documente et qui cause le premier appel au
+ * support: « le renvoi ne marche pas ». La messagerie d'un opérateur n'est pas
+ * un service à part, c'est un renvoi conditionnel posé sur la ligne à la
+ * livraison, vers un numéro interne. Quand le client pose SON renvoi sans
+ * effacer celui-là, les deux coexistent, et c'est le plus court délai qui
+ * gagne — la messagerie, systématiquement.
+ *
+ * `##002#` est le code MMI normalisé d'effacement global (3GPP TS 22.030). Il
+ * se compose AVANT le renvoi voulu, jamais après: composé après, il effacerait
+ * aussi celui qu'on vient de poser.
+ */
+export const CLEAR_ALL_FORWARDS = '##002#';
 
 export const FORWARDING_CODES: Record<Exclude<ForwardingType, ''>, ForwardingCode> = {
   unconditional: {
     activate: '*21*',
     cancel: '##21#',
     effect: "Tous vos appels partent vers l'IA. Votre téléphone ne sonne plus.",
+    voicemailRisk: false,
     caveat: "Vous ne verrez plus passer un seul appel: c'est le bon choix si l'IA doit tout prendre, jamais si vous voulez décrocher parfois.",
   },
   busy: {
     activate: '*67*',
     cancel: '##67#',
     effect: "L'IA prend l'appel seulement quand vous êtes déjà en ligne.",
+    voicemailRisk: true,
     caveat: 'Un appel que vous laissez sonner sans répondre ne part PAS vers l\'IA: il tombe sur votre messagerie.',
   },
   no_answer: {
     activate: '*61*',
     cancel: '##61#',
     effect: "L'IA prend l'appel quand vous ne répondez pas après quelques sonneries.",
+    voicemailRisk: true,
     caveat: "L'appelant patiente pendant les sonneries avant d'entendre l'IA.",
   },
   scheduled: {
@@ -57,6 +86,7 @@ export const FORWARDING_CODES: Record<Exclude<ForwardingType, ''>, ForwardingCod
     activate: '**004*',
     cancel: '##002#',
     effect: "L'IA prend tout ce que vous ne prenez pas: occupé, sans réponse, ou téléphone éteint.",
+    voicemailRisk: true,
     caveat: "Le renvoi selon l'HEURE n'existe pas sur un mobile. Coupez le renvoi le matin, remettez-le le soir, ou passez en renvoi total hors de vos horaires.",
   },
 };
@@ -86,4 +116,9 @@ export function activationLink(type: string | null | undefined, number: string):
 
 export function cancelLink(type: string | null | undefined): string {
   return `tel:${forwardingFor(type).cancel.replace(/#/g, '%23')}`;
+}
+
+/** Le lien `tel:` qui efface tous les renvois, messagerie de l'opérateur comprise. */
+export function clearAllLink(): string {
+  return `tel:${CLEAR_ALL_FORWARDS.replace(/#/g, '%23')}`;
 }
