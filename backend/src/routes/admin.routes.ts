@@ -14,6 +14,7 @@ import { emailService } from '../services/email.service';
 import { smsService } from '../services/sms.service';
 import { smsTemplates } from '../services/sms-templates';
 import { callSessionStore } from '../services/voice/call-session.store';
+import { voiceMetricsService } from '../services/voice/voice-metrics.service';
 
 const router = Router();
 
@@ -799,6 +800,15 @@ router.get('/system', async (_req: Request, res: Response) => {
          répondre à « une ligne a-t-elle déjà sonné occupé », qui est la question
          posée, et ça ne coûte aucune écriture sur le chemin de l'appel. */
       voiceConcurrency: callSessionStore.concurrency(),
+      /* p50 / p95 / p99 par ÉTAGE (LAT-9). Les percentiles étaient calculés et
+         publiés depuis longtemps, mais sur le point de santé des webhooks, que
+         personne n'ouvre: aucun écran ne les lisait. Or c'est le p95 qui
+         décide, pas la médiane — un appel fait trente à soixante tours, donc
+         il touche plusieurs fois la queue de distribution, et une médiane
+         flatteuse cohabite très bien avec un appel sur cinq qui traîne.
+         Le découpage par étage est ce qui rend le chiffre actionnable: il dit
+         QUI est lent, la transcription, le modèle ou la synthèse. */
+      voiceLatency: voiceMetricsService.summary(),
     });
   } catch (err: any) {
     logger.error('[API] System error:', err);
