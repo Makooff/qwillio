@@ -4,6 +4,7 @@ import type { VoiceLanguage } from './speech-plans';
 import type { CallerMood } from './caller-mood';
 import { newRepairState, recoveryLine, type RepairState } from './conversational-repair';
 import { isFalseCut } from './false-cut';
+import { voiceTracing } from './voice-tracing';
 
 /**
  * In-process state for calls that are currently on the line (Phase 1.3).
@@ -178,6 +179,11 @@ class CallSessionStore {
     for (const [id, session] of this.sessions) {
       if (now - session.startedAt > SESSION_TTL_MS) {
         this.sessions.delete(id);
+        /* Le balayage est le SEUL chemin de sortie quand `end()` n'est jamais
+           appelé (process redémarré côté Vapi, rapport de fin perdu). Sans
+           ça, le span racine resterait ouvert et la trace de l'appel ne
+           partirait jamais. */
+        voiceTracing.endCall(id, { endedReason: 'swept' });
         dropped++;
       }
     }
@@ -223,6 +229,12 @@ class CallSessionStore {
     };
     this.sessions.set(input.vapiCallId, session);
     this.notePeak(input.clientId);
+    voiceTracing.startCall({
+      vapiCallId: input.vapiCallId,
+      clientId: input.clientId,
+      language: input.language,
+      at: session.startedAt,
+    });
     return session;
   }
 
@@ -280,8 +292,17 @@ class CallSessionStore {
         return session.latency.markLlmFirstDelta();
       case 'llmEnd':
         return session.latency.markLlmEnd();
-      case 'assistantSpeechStart':
-        return session.latency.markAssistantSpeechStart();
+      case 'assistantSpeechStart': {
+        /* Le tour se ferme ici, et c'est le seul endroit qui connaît à la fois
+           ses bornes et l'état de la session. Le span est écrit avec les
+           horodatages du tracker, pas avec l'heure de cette ligne. */
+        const trace = session.latency.markAssistantSpeechStart();
+        voiceTracing.recordTurn(vapiCallId, trace, {
+          tokens: { ...session.tokens },
+          bargeIn: session.pendingHardBargeIn,
+        });
+        return;
+      }
     }
   }
 
@@ -442,6 +463,7 @@ class CallSessionStore {
   end(vapiCallId: string): CallSession | null {
     const session = this.sessions.get(vapiCallId);
     if (session) this.sessions.delete(vapiCallId);
+    voiceTracing.endCall(vapiCallId);
     return session ?? null;
   }
 
