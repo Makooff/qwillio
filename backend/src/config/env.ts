@@ -151,6 +151,29 @@ export const env = {
    */
   VOICE_BARGE_IN_VOICE_SECONDS: parseFloat(process.env.VOICE_BARGE_IN_VOICE_SECONDS || '0.4'),
   /**
+   * Le MÊME seuil, mais sur le chemin parole-à-parole, où il travaille seul.
+   *
+   * Les deux chemins n'ont pas les mêmes défenses et partageaient pourtant un
+   * seul réglage. En classique, le bruit est trié DEUX fois: `voiceSeconds` sur
+   * l'énergie, puis `numWords` sur les mots transcrits. En parole-à-parole il
+   * n'y a pas de transcripteur, donc pas de mots à compter — `numWords` y vaut
+   * 0 explicitement — et `voiceSeconds` porte toute la charge à lui seul. À
+   * valeur égale, ce chemin est donc franchement moins protégé, ce que la même
+   * variable pour les deux rendait invisible.
+   *
+   * Le défaut ne bouge PAS: monter ce seuil change la charge envoyée à Vapi, et
+   * un champ hors bornes fait refuser l'assistant ENTIER, donc toute la flotte
+   * (voir 6octies). Le curseur existe pour être monté après un
+   * `npm run voice:validate` qui confirme que l'API l'accepte, jamais sur une
+   * intuition. Sur un lieu bruyant, c'est la première chose à monter, et elle
+   * ne coûte que du délai sur l'interruption volontaire.
+   */
+  VOICE_REALTIME_BARGE_IN_VOICE_SECONDS: parseFloat(
+    process.env.VOICE_REALTIME_BARGE_IN_VOICE_SECONDS
+      || process.env.VOICE_BARGE_IN_VOICE_SECONDS
+      || '0.4',
+  ),
+  /**
    * Mots TRANSCRITS exigés avant de couper la réceptionniste.
    *
    * 0 coupe sur la simple activité vocale, sans attendre un mot. C'était le

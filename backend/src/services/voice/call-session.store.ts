@@ -3,6 +3,7 @@ import { CallLatencyTracker } from './latency-tracker';
 import type { VoiceLanguage } from './speech-plans';
 import type { CallerMood } from './caller-mood';
 import { newRepairState, recoveryLine, type RepairState } from './conversational-repair';
+import { isFalseCut } from './false-cut';
 
 /**
  * In-process state for calls that are currently on the line (Phase 1.3).
@@ -77,6 +78,14 @@ export interface CallSession {
   assistantSpeakingSince: number | null;
   /** Interruptions that cut a substantive utterance, not a backchannel. */
   hardBargeIns: number;
+  /**
+   * Les fois où c'est l'AGENT qui a coupé l'appelant (TUR-13).
+   *
+   * L'autre sens des deux compteurs au-dessus, et le côté cher de l'arbitrage:
+   * 250 ms de silence en trop se pardonnent, se faire couper la parole non.
+   * Sans ce compte, le seuil d'endpointing se règle à l'oreille.
+   */
+  falseCuts: number;
   /** Live read on how the caller sounds — drives register, never permissions. */
   mood: CallerMood;
   /** Token accounting, so the prompt cache is verified rather than assumed. */
@@ -102,6 +111,16 @@ export interface CallSession {
    * retenue, vit dans `repair`.
    */
   pendingHardBargeIn: boolean;
+  /**
+   * Depuis combien de MILLISECONDES l'agent parlait quand il a été coupé, ou
+   * `null` (TUR-9).
+   *
+   * Séparé de `pendingHardBargeIn` bien que posé par le même événement: les
+   * deux sont consommés par des étapes différentes du tour suivant, et un
+   * drapeau partagé ferait dépendre la troncature de l'ordre dans lequel la
+   * phrase de reprise a été lue.
+   */
+  interruptedSpeechMs: number | null;
   /** La retenue de la phrase de reprise: au plus deux par appel, jamais deux d'affilée. */
   repair: RepairState;
 }
@@ -123,6 +142,15 @@ const SWEEP_INTERVAL_MS = 5 * 60 * 1000;
  * Cutting one off is not an interruption worth counting or apologising for.
  */
 const MIN_UTTERANCE_FOR_HARD_BARGE_IN_MS = 900;
+
+/** Le dernier tour de l'appelant, tel qu'il est rangé dans le tampon. */
+function lastCallerLine(session: CallSession): string | null {
+  for (let i = session.transcript.length - 1; i >= 0; i--) {
+    const line = session.transcript[i];
+    if (line.startsWith('Caller: ')) return line.slice('Caller: '.length);
+  }
+  return null;
+}
 
 class CallSessionStore {
   private sessions = new Map<string, CallSession>();
@@ -185,10 +213,12 @@ class CallSessionStore {
       latency: new CallLatencyTracker(),
       assistantSpeakingSince: null,
       hardBargeIns: 0,
+      falseCuts: 0,
       mood: 'neutral',
       tokens: { input: 0, cached: 0, output: 0 },
       phoneCaptureFailures: 0,
       pendingHardBargeIn: false,
+      interruptedSpeechMs: null,
       repair: newRepairState(),
     };
     this.sessions.set(input.vapiCallId, session);
@@ -317,6 +347,16 @@ class CallSessionStore {
     session.bargeIns++;
 
     const speakingFor = session.assistantSpeakingSince === null ? 0 : at - session.assistantSpeakingSince;
+
+    /* Relevé AVANT de trancher sur la dureté, parce que les deux lectures d'un
+       même événement ne s'excluent pas: une reprise très rapide n'est pas une
+       interruption dure (l'agent parlait à peine), et c'est exactement là que
+       le faux découpage se cache. */
+    if (session.assistantSpeakingSince !== null
+        && isFalseCut(speakingFor, lastCallerLine(session), session.language)) {
+      session.falseCuts++;
+    }
+
     const isHard = speakingFor >= MIN_UTTERANCE_FOR_HARD_BARGE_IN_MS;
     if (isHard) {
       session.hardBargeIns++;
@@ -324,6 +364,11 @@ class CallSessionStore {
          cassé se répare au tour SUIVANT, quand l'appelant a fini de parler —
          d'où le drapeau plutôt qu'une action ici. */
       session.pendingHardBargeIn = true;
+      /* Ce que l'appelant a eu le temps d'entendre. Relevé ICI et nulle part
+         ailleurs: `assistantSpeakingSince` est remis à null trois lignes plus
+         bas, et c'est la seule mesure de la chaîne qui dise quoi que ce soit
+         de la durée réellement jouée. */
+      session.interruptedSpeechMs = speakingFor;
     }
     session.assistantSpeakingSince = null;
     return isHard;
@@ -345,6 +390,22 @@ class CallSessionStore {
     if (!session || !session.pendingHardBargeIn) return null;
     session.pendingHardBargeIn = false;
     return recoveryLine(session.repair, true, session.callerTurns, lang);
+  }
+
+  /**
+   * La durée d'énoncé jouée avant la coupure, consommée à la lecture (TUR-9).
+   *
+   * « Take » pour la même raison que la phrase de reprise: sans consommation,
+   * la même interruption tronquerait l'historique à chaque tour suivant, et
+   * l'agent perdrait au troisième tour ce qu'il avait bel et bien dit au
+   * second.
+   */
+  takeInterruptedSpeechMs(vapiCallId: string | null): number | null {
+    const session = this.get(vapiCallId);
+    if (!session || session.interruptedSpeechMs === null) return null;
+    const ms = session.interruptedSpeechMs;
+    session.interruptedSpeechMs = null;
+    return ms;
   }
 
   recordToolCall(vapiCallId: string | null, name: string, ms: number): void {

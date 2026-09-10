@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
   FORWARDING_CODES, forwardingFor, activationCode, activationLink, cancelLink,
+  CLEAR_ALL_FORWARDS, clearAllLink,
 } from './forwarding-codes';
 
 /**
@@ -67,5 +68,25 @@ describe("ce que le client doit savoir avant de composer", () => {
     const prog = FORWARDING_CODES.scheduled;
     expect(prog.caveat).toMatch(/n'existe pas sur un mobile/i);
     expect(prog.effect).not.toMatch(/horaire|heure/i);
+  });
+});
+
+describe('effacement global — la messagerie de l\'opérateur (REL-10)', () => {
+  it('marque le risque de messagerie sur les renvois conditionnels, pas sur le total', () => {
+    expect(FORWARDING_CODES.unconditional.voicemailRisk).toBe(false);
+    expect(FORWARDING_CODES.busy.voicemailRisk).toBe(true);
+    expect(FORWARDING_CODES.no_answer.voicemailRisk).toBe(true);
+    expect(FORWARDING_CODES.scheduled.voicemailRisk).toBe(true);
+  });
+
+  it('efface TOUS les renvois, et pas un seul type', () => {
+    // `##002#` et non `##21#`: un code par type laisserait en place celui que
+    // l'opérateur a posé pour sa messagerie, qui est justement invisible.
+    expect(CLEAR_ALL_FORWARDS).toBe('##002#');
+  });
+
+  it('échappe le dièse dans le lien du clavier', () => {
+    expect(clearAllLink()).toBe('tel:%23%23002%23');
+    expect(clearAllLink()).not.toContain('#');
   });
 });

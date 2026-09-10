@@ -27,6 +27,7 @@ export interface RealtimeMetrics {
   deflectedTurns?: number;
   bargeIns?: number;
   hardBargeIns?: number;
+  falseCuts?: number;
   mood?: string;
   toolCalls?: Array<{ name: string; ms: number }>;
   latency?: { stt?: Stat; llm?: Stat; tts?: Stat; total?: Stat };
@@ -65,6 +66,14 @@ export interface LearningReport {
 const MIN_CALLS = 8;
 /** Interruptions of real sentences, per call, above which pacing is wrong. */
 const HARD_BARGE_IN_THRESHOLD = 1.5;
+/**
+ * La cible de TUR-13, et elle n'est pas symétrique.
+ *
+ * 5 % de faux découpages coûte environ 550 ms d'attente, 10 % en coûte 295. Le
+ * gain de 250 ms ne compense pas le doublement des interruptions: couper la
+ * parole à quelqu'un coûte beaucoup plus cher qu'un demi-silence.
+ */
+const FALSE_CUT_TARGET = 0.05;
 /** Share of calls where the caller ended up unhappy. */
 const UPSET_RATE_THRESHOLD = 0.25;
 /** Turn latency past which callers audibly wait. */
@@ -175,6 +184,30 @@ class ReceptionistLearningService {
         action: 'Shorten the agent answers: lower VOICE_MAX_COMPLETION_TOKENS or tighten the client instructions.',
       });
     }
+
+    /* Le compteur qui manquait, et le seul qui règle l'endpointing: les deux
+       au-dessus disent que l'agent parle trop long, celui-ci dit qu'il parle
+       trop TÔT. Publié même sous la cible — sans dénominateur affiché, un taux
+       qui remonte ne se voit pas remonter. */
+    const falseCutRate = ratio(
+      metrics.reduce((s, m) => s + (m.falseCuts ?? 0), 0),
+      metrics.reduce((s, m) => s + (m.callerTurns ?? 0), 0),
+    );
+    findings.push(
+      falseCutRate > FALSE_CUT_TARGET
+        ? {
+            code: 'agent_cuts_caller',
+            severity: 'warn',
+            detail: `${Math.round(falseCutRate * 100)}% of caller turns were cut off mid-thought (target ${FALSE_CUT_TARGET * 100}%)`,
+            action: 'The agent takes the floor too early: raise VOICE_ENDPOINTING_MS, or VOICE_START_WAIT_SECONDS if callers pause a lot.',
+          }
+        : {
+            code: 'agent_cuts_caller',
+            severity: 'info',
+            detail: `${Math.round(falseCutRate * 100)}% of caller turns cut off mid-thought`,
+            action: '',
+          },
+    );
 
     const upsetRate = share(metrics, m => m.mood === 'upset');
     if (upsetRate > UPSET_RATE_THRESHOLD) {

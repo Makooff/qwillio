@@ -6,7 +6,10 @@ import {
   Apple, Bot, Smartphone, Copy, ArrowRight,
 } from '../../components/icons';
 import api from '../../services/api';
-import { forwardingFor, activationCode, activationLink, cancelLink } from '../../lib/forwarding-codes';
+import {
+  forwardingFor, activationCode, activationLink, cancelLink,
+  CLEAR_ALL_FORWARDS, clearAllLink,
+} from '../../lib/forwarding-codes';
 
 type Platform = 'ios' | 'android' | 'unknown';
 
@@ -71,6 +74,7 @@ export default function ClientSetupForwarding() {
   const forwardMmi = useMemo(() => activationCode(forwardingType, number), [forwardingType, number]);
   const forwardLink = useMemo(() => activationLink(forwardingType, number), [forwardingType, number]);
   const cancelHref = useMemo(() => cancelLink(forwardingType), [forwardingType]);
+  const clearHref = useMemo(() => clearAllLink(), []);
 
   const copy = (v: string) => {
     navigator.clipboard?.writeText(v);
@@ -128,6 +132,31 @@ export default function ClientSetupForwarding() {
           );
         })}
       </div>
+
+      {/* Étape 1, et elle est obligatoire quand le renvoi est CONDITIONNEL.
+          La messagerie de l'opérateur est elle-même un renvoi posé sur la
+          ligne, souvent avec un délai plus court: sans effacement préalable,
+          elle capte l'appel et l'agent ne sonne jamais. C'est la première
+          cause de « le renvoi ne marche pas ». */}
+      {renvoi.voicemailRisk && (
+        <div className="rounded-2xl border border-amber-400/20 bg-amber-400/[0.04] p-4 mb-4">
+          <p className="text-[11px] uppercase tracking-wider text-amber-300/80 mb-2">À faire en premier</p>
+          <p className="text-[13px] font-semibold text-[#F2F2F2] mb-1">Coupez la messagerie de votre opérateur</p>
+          <p className="text-[12px] text-[#C8C8D0] mb-3 leading-relaxed">
+            Votre messagerie est un renvoi posé sur votre ligne, avec un délai plus court que le vôtre.
+            Tant qu'elle est active, c'est elle qui prend l'appel, pas votre réceptionniste.
+            Composez <code className="font-mono">{CLEAR_ALL_FORWARDS}</code> pour effacer tous les renvois,
+            puis posez le vôtre juste en dessous.
+          </p>
+          <a href={clearHref}
+            className="inline-flex items-center gap-2 h-9 px-3 rounded-full border border-amber-400/20 bg-amber-400/[0.06] hover:bg-amber-400/[0.12] text-[12px] font-medium text-amber-100 transition-colors">
+            <Phone size={12} /> Composer {CLEAR_ALL_FORWARDS}
+          </a>
+          <p className="text-[11px] text-[#6B6B75] mt-2.5 leading-relaxed">
+            Dans cet ordre uniquement: composé après, ce code effacerait aussi le renvoi que vous venez de poser.
+          </p>
+        </div>
+      )}
 
       {/* Quick action — one-tap GSM code */}
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4 mb-6">
@@ -194,6 +223,20 @@ export default function ClientSetupForwarding() {
           className="inline-flex items-center gap-2 h-9 px-3 rounded-full border border-white/[0.06] bg-white/[0.03] hover:bg-white/[0.06] text-[12px] font-medium text-[#E5E5EA] transition-colors">
           <Phone size={12} /> Composer {renvoi.cancel}
         </a>
+      </div>
+
+      {/* Le renvoi n'engage à rien, le portage engage tout. L'écart entre les
+          deux n'est pas évident pour un commerçant, et il ne se découvre pas:
+          récupérer un numéro après portage est long et incertain, et sur un
+          fixe, le numéro est souvent couplé au pack internet. */}
+      <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4 mb-6">
+        <p className="text-[13px] font-semibold text-[#F2F2F2] mb-1">Vous gardez votre numéro</p>
+        <p className="text-[12px] text-[#9A9AA5] leading-relaxed">
+          Le renvoi ne touche pas à votre ligne: elle reste chez votre opérateur, et vous coupez le renvoi
+          quand vous voulez. Ne transférez jamais le numéro lui-même vers Qwillio pour essayer.
+          Un portage est irréversible en pratique, et sur une ligne fixe le numéro est souvent lié
+          au pack internet: le porter peut couper la connexion du commerce.
+        </p>
       </div>
 
       {/* Done */}

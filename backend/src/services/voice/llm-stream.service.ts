@@ -4,6 +4,7 @@ import { routeIntent, type IntentDecision } from './intent-router';
 import { callSessionStore } from './call-session.store';
 import { fallbackWatchService } from './fallback-watch.service';
 import { moodPromptBlock } from './caller-mood';
+import { spokenPrefix } from './spoken-prefix';
 import type { VoiceLanguage } from './speech-plans';
 
 /**
@@ -269,8 +270,12 @@ class LlmStreamService {
     try {
       // Order matters: mood is appended first so it lands after the stable
       // prefix, then the caching hint is attached to the finished request.
+      /* La troncature passe en PREMIER, sur la requête brute: elle réécrit un
+         message de l'historique, alors que les trois autres n'ajoutent qu'en
+         queue. Faite après, elle irait chercher son message d'assistant au
+         milieu de blocs qu'on vient d'empiler. */
       const prepared = this.withCaching(
-        this.withRecovery(this.withMood(request, vapiCallId, lang), vapiCallId, lang),
+        this.withRecovery(this.withMood(this.withHeardOnly(request, vapiCallId, lang), vapiCallId, lang), vapiCallId, lang),
         vapiCallId,
       );
       await this.proxy(prepared, plan.model, stream, vapiCallId);
@@ -362,6 +367,46 @@ class LlmStreamService {
           ? `Je werd midden in je zin onderbroken. Begin je antwoord met « ${line} » en antwoord dan normaal. Herhaal de onderbroken zin niet.`
           : `You were cut off mid-sentence. Open your reply with "${line}", then answer normally. Do not repeat the interrupted sentence.`;
     return { ...request, messages: [...request.messages, { role: 'system', content: block }] };
+  }
+
+  /**
+   * Ramener le dernier énoncé de l'agent à ce que l'appelant a entendu (TUR-9).
+   *
+   * L'historique arrive de Vapi avec le texte GÉNÉRÉ. Quand le tour précédent
+   * a été coupé net, la synthèse s'est arrêtée là où l'appelant a parlé, et le
+   * reste n'a jamais été joué. Le laisser dans l'historique fait bâtir toute
+   * la suite de l'appel sur des phrases que personne n'a entendues.
+   *
+   * Deux garde-fous, parce que l'estimation de débit peut se tromper et que
+   * Vapi pourrait un jour tronquer de son côté:
+   *  - rien n'est touché si l'énoncé estimé entendu couvre déjà l'essentiel du
+   *    message (voir `MIN_TRUNCATION_RATIO`), donc une histoire déjà correcte
+   *    reste intacte;
+   *  - la mesure est consommée, donc la coupe s'applique une fois.
+   *
+   * Le chemin CLASSIQUE (modèle tenu par Vapi) ne passe pas ici et garde son
+   * historique tel quel: on ne le possède pas.
+   */
+  private withHeardOnly(
+    request: ChatCompletionRequest,
+    vapiCallId: string | null,
+    lang: VoiceLanguage,
+  ): ChatCompletionRequest {
+    const elapsed = callSessionStore.takeInterruptedSpeechMs(vapiCallId);
+    if (elapsed === null) return request;
+
+    const messages = request.messages || [];
+    for (let i = messages.length - 1; i >= 0; i--) {
+      const m = messages[i];
+      if (m.role !== 'assistant' || typeof m.content !== 'string' || !m.content.trim()) continue;
+      const heard = spokenPrefix(m.content, elapsed, lang);
+      if (!heard.truncated) return request;
+      logger.debug(`[VoiceLLM] historique tronqué à ${heard.text.length}/${m.content.length} caractères (coupé à ${elapsed} ms)`);
+      const next = [...messages];
+      next[i] = { ...m, content: heard.text };
+      return { ...request, messages: next };
+    }
+    return request;
   }
 
   /**
