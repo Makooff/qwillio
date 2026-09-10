@@ -642,8 +642,11 @@ Le meilleur signal neutre du domaine est EVA-Bench : sur douze systèmes évalu�
 
 ### TST-3 — Mesurer l'exactitude au niveau des entités, pas le WER global
 
-- **Statut** : `ABSENT`
-- **Preuve** : Aucune mesure d'exactitude par entité. `backend/src/services/call-intelligence.service.ts` fait extraire des champs par un modèle pour l'usage métier, sans vérité terrain, sans précision ni rappel, et sans tableau de bord par type d'entité. Le WER n'est pas mesuré non plus — il n'y a simplement aucune mesure de transcription.
+- **Statut** : `PARTIEL`
+- **Ce qui existe** : `evals/entity-score.ts` mesure les cinq entités (nom, numéro, date, adresse, motif) en précision ET rappel, et `npm run evals` imprime le tableau par type. La vérité terrain vit dans les scénarios (`captures-entity`), et trois d'entre eux la portent : `fr-entites-lead`, `fr-entites-adresse`, `fr-entites-date`. La comparaison est tolérante à la forme et stricte sur le fond — un numéro se compare sur ses chiffres, le reste accents et ponctuation retirés.
+- **Les deux erreurs sont séparées, et c'est l'intérêt** : un rappel bas dit que l'agent n'a pas demandé, une précision basse qu'il a inventé. Elles se corrigent à des endroits différents, et une précision reste `null` — jamais zéro — quand rien n'a été tenté.
+- **Ce qui manque pour `DÉJÀ FAIT`** : la moitié STT. Les scénarios entrent en TEXTE, donc un nom mal ENTENDU au téléphone ne se voit pas ici : ce qui est mesuré, c'est ce que l'agent retient, pas ce que le transcripteur comprend. Et le critère demande un tableau de bord ; il existe dans la sortie du harnais, pas dans un écran.
+- **Preuve historique** : `backend/src/services/call-intelligence.service.ts` fait extraire des champs par un modèle pour l'usage métier, sans vérité terrain. Le WER n'est toujours pas mesuré.
 - **Action** : Nom, numéro, date, adresse, motif d'appel.
 - **Pourquoi** : Un taux d'erreur de 12 % qui n'affecte jamais un slot est sans conséquence. Un taux de 4 % qui casse systématiquement les noms de rue est fatal. Le WER mesure ton STT, pas ton agent.
 - **Critère d'acceptation** : Tableau de bord par type d'entité, avec précision et rappel.

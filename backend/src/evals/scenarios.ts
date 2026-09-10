@@ -1,4 +1,5 @@
 import type { ClientVoiceProfile } from '../services/voice/realtime-context.service';
+import type { EntityKind } from './entity-score';
 
 /**
  * Scénarios d'évaluation du réceptionniste (roadmap 2.5).
@@ -19,10 +20,25 @@ export interface EvalTurn {
 }
 
 export interface EvalAssertion {
-  kind: 'reply-matches' | 'reply-not-matches' | 'calls-tool' | 'does-not-call-tool' | 'reply-shorter-than';
-  /** Regex (reply-…), nom d'outil (…-tool) ou nombre de caractères. */
+  kind:
+    | 'reply-matches'
+    | 'reply-not-matches'
+    | 'calls-tool'
+    | 'does-not-call-tool'
+    | 'reply-shorter-than'
+    | 'captures-entity';
+  /** Regex (reply-…), nom d'outil (…-tool), nombre de caractères, ou valeur attendue (captures-entity). */
   value: string | number;
   description: string;
+  /**
+   * Pour `captures-entity`: laquelle des cinq entités qui décident d'un rappel.
+   *
+   * L'assertion ne dit PAS quel outil doit la porter. `captureLead` dit `name`
+   * et `bookAppointment` dit `customerName` pour la même chose, et imposer l'un
+   * ferait échouer un agent qui a eu raison de choisir l'autre. C'est
+   * `entitiesFrom` qui réconcilie.
+   */
+  entity?: EntityKind;
 }
 
 export interface EvalScenario {
@@ -238,6 +254,66 @@ export const SCENARIOS: EvalScenario[] = [
     assertions: [
       { kind: 'reply-not-matches', value: '(comment ça|qu\'est-ce que vous ne savez pas|vous ne savez pas (comment|où)|je peux vous expliquer comment)', description: 'ne lit pas « je ne sais pas » au premier degré' },
       { kind: 'does-not-call-tool', value: 'bookAppointment', description: 'ne réserve surtout pas' },
+    ],
+  },
+  /* ── Exactitude par entité (TST-3) ────────────────────────────────────────
+     Les cinq champs qui décident d'un rappel, chacun dicté par un appelant et
+     comparé à ce que l'agent repose dans ses outils.
+
+     Le prénom, le numéro et le motif sont donnés EN UN SEUL TOUR, et c'est ce
+     qui rend la mesure honnête: un agent qui les demanderait un par un serait
+     correct au téléphone, mais le scénario ne mesurerait alors que sa
+     politesse. Ici tout est dit, donc tout ce qui manque manque vraiment. */
+  {
+    id: 'fr-entites-lead',
+    description: 'Nom, numéro et motif dictés d\'un bloc: l\'agent les repose sans les déformer.',
+    profileOverrides: { bookingEnabled: false, calendarConnected: false },
+    turns: [{
+      role: 'user',
+      content:
+        'Bonjour, je m\'appelle Sophie Vandenbossche, mon numéro c\'est le zéro quatre septante-cinq, '
+        + 'douze, trente-quatre, cinquante-six. Je vous appelle pour un détartrage. '
+        + 'Rappelez-moi quand vous pouvez.',
+    }],
+    assertions: [
+      { kind: 'calls-tool', value: 'captureLead', description: 'enregistre le lead' },
+      { kind: 'captures-entity', entity: 'name', value: 'Sophie Vandenbossche', description: 'le nom, orthographe comprise' },
+      { kind: 'captures-entity', entity: 'phone', value: '0475123456', description: 'le numéro dicté en belge' },
+      { kind: 'captures-entity', entity: 'reason', value: 'détartrage', description: 'le motif de l\'appel' },
+    ],
+  },
+  {
+    id: 'fr-entites-adresse',
+    description: 'Une adresse dictée avec le numéro à la fin, comme on la dit en Belgique.',
+    profileOverrides: { bookingEnabled: false, calendarConnected: false },
+    turns: [{
+      role: 'user',
+      content:
+        'C\'est Marc Dhaenens. Je voudrais qu\'on passe chez moi, rue de la Loi seize, à Bruxelles. '
+        + 'C\'est pour un devis.',
+    }],
+    assertions: [
+      { kind: 'captures-entity', entity: 'name', value: 'Marc Dhaenens', description: 'un patronyme flamand' },
+      /* L'adresse se compare à la lettre et au chiffre près, la ponctuation
+         retirée: c'est elle qui décide si le technicien sonne à la bonne
+         porte, et « seize » entendu « seise » ne se rattrape pas. */
+      { kind: 'captures-entity', entity: 'address', value: 'rue de la Loi 16 Bruxelles', description: 'l\'adresse complète' },
+    ],
+  },
+  {
+    id: 'fr-entites-date',
+    description: 'Une date relative devient une date absolue, sans dériver d\'un jour.',
+    profileOverrides: {},
+    turns: [
+      { role: 'user', content: 'Bonjour, Julie Mertens. Je voudrais un rendez-vous le douze mars à quatorze heures.' },
+      { role: 'tool-result', toolName: 'checkAvailability', content: 'FREE: 2026-03-12 14:00, 2026-03-12 15:00' },
+    ],
+    assertions: [
+      { kind: 'captures-entity', entity: 'name', value: 'Julie Mertens', description: 'le nom' },
+      /* Le format ISO est celui que l'outil déclare. Un agent qui rendrait
+         « 12/03 » aurait compris et serait quand même inutilisable: c'est
+         l'agenda qui reçoit cette chaîne. */
+      { kind: 'captures-entity', entity: 'date', value: '2026-03-12', description: 'la date en ISO, sans dériver' },
     ],
   },
 ];
