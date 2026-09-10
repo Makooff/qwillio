@@ -642,6 +642,15 @@ la partie que personne ne relisait, alors qu'un seul champ refusé emporte
 l'assistant entier (6octies). Les outils y entrent par `buildVoiceTools`, pas
 par une copie écrite pour le test : une copie ne vieillirait pas avec
 l'original, et c'est l'original qui part chez Vapi.
+**Et il en restait la moitié, corrigée le soir même.** Le bloc `model` était
+encore écrit à la main, `provider: 'openai'`, alors que le chemin d'appel passe
+par `buildSpeech` et que la flotte entière tourne en custom-LLM
+(`VOICE_CUSTOM_LLM_DEFAULT` absent vaut vrai). Le modèle réellement envoyé
+n'avait donc JAMAIS été soumis à l'API vivante — précisément la situation que ce
+script existe pour empêcher. Il passe désormais par `buildSpeech`, avec l'URL
+custom-LLM sous sa forme de production, et le moteur IMPOSÉ par variante :
+laisser `auto` décider ramènerait les six variantes au même moteur, donc trois
+essais sur six ne testeraient rien.
 
 ### 6septdecies. L'agent demande ce qu'il ne sait pas (10/09/2026)
 Une question sans réponse produit une ligne de `knowledge_gaps` :
