@@ -102,6 +102,16 @@ export interface CallSession {
    * retenue, vit dans `repair`.
    */
   pendingHardBargeIn: boolean;
+  /**
+   * Depuis combien de MILLISECONDES l'agent parlait quand il a été coupé, ou
+   * `null` (TUR-9).
+   *
+   * Séparé de `pendingHardBargeIn` bien que posé par le même événement: les
+   * deux sont consommés par des étapes différentes du tour suivant, et un
+   * drapeau partagé ferait dépendre la troncature de l'ordre dans lequel la
+   * phrase de reprise a été lue.
+   */
+  interruptedSpeechMs: number | null;
   /** La retenue de la phrase de reprise: au plus deux par appel, jamais deux d'affilée. */
   repair: RepairState;
 }
@@ -189,6 +199,7 @@ class CallSessionStore {
       tokens: { input: 0, cached: 0, output: 0 },
       phoneCaptureFailures: 0,
       pendingHardBargeIn: false,
+      interruptedSpeechMs: null,
       repair: newRepairState(),
     };
     this.sessions.set(input.vapiCallId, session);
@@ -324,6 +335,11 @@ class CallSessionStore {
          cassé se répare au tour SUIVANT, quand l'appelant a fini de parler —
          d'où le drapeau plutôt qu'une action ici. */
       session.pendingHardBargeIn = true;
+      /* Ce que l'appelant a eu le temps d'entendre. Relevé ICI et nulle part
+         ailleurs: `assistantSpeakingSince` est remis à null trois lignes plus
+         bas, et c'est la seule mesure de la chaîne qui dise quoi que ce soit
+         de la durée réellement jouée. */
+      session.interruptedSpeechMs = speakingFor;
     }
     session.assistantSpeakingSince = null;
     return isHard;
@@ -345,6 +361,22 @@ class CallSessionStore {
     if (!session || !session.pendingHardBargeIn) return null;
     session.pendingHardBargeIn = false;
     return recoveryLine(session.repair, true, session.callerTurns, lang);
+  }
+
+  /**
+   * La durée d'énoncé jouée avant la coupure, consommée à la lecture (TUR-9).
+   *
+   * « Take » pour la même raison que la phrase de reprise: sans consommation,
+   * la même interruption tronquerait l'historique à chaque tour suivant, et
+   * l'agent perdrait au troisième tour ce qu'il avait bel et bien dit au
+   * second.
+   */
+  takeInterruptedSpeechMs(vapiCallId: string | null): number | null {
+    const session = this.get(vapiCallId);
+    if (!session || session.interruptedSpeechMs === null) return null;
+    const ms = session.interruptedSpeechMs;
+    session.interruptedSpeechMs = null;
+    return ms;
   }
 
   recordToolCall(vapiCallId: string | null, name: string, ms: number): void {
