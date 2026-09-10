@@ -1,4 +1,5 @@
 import { prisma } from '../../config/database';
+import { fillerFor } from './voice-tools';
 import { logger } from '../../config/logger';
 import { knowledgeEmbeddingsService } from './knowledge-embeddings.service';
 import { receptionistDigestService } from './receptionist-digest.service';
@@ -74,6 +75,14 @@ const HARD_BARGE_IN_THRESHOLD = 1.5;
  * parole à quelqu'un coûte beaucoup plus cher qu'un demi-silence.
  */
 const FALSE_CUT_TARGET = 0.05;
+/**
+ * Le silence qu'un appel d'outil a le droit de laisser (LAT-10).
+ *
+ * Au-delà, l'appelant croit que la ligne est morte et parle par-dessus, ou
+ * raccroche. On ne peut pas SUPPRIMER la latence d'un outil — elle est
+ * mécanique, deux inférences plus l'API distante — seulement la couvrir.
+ */
+const TOOL_SILENCE_BUDGET_MS = 500;
 /** Share of calls where the caller ended up unhappy. */
 const UPSET_RATE_THRESHOLD = 0.25;
 /** Turn latency past which callers audibly wait. */
@@ -391,6 +400,36 @@ class ReceptionistLearningService {
             : 'Investigate the failing tool — every failure here is a caller told to expect a call back instead.',
       });
     }
+
+    /* Le plafond de silence, enfin MESURÉ (LAT-10). Les trois moyens de le
+       couvrir existaient — outils en parallèle, meublage, préchargement — et
+       rien ne vérifiait qu'ils suffisaient.
+       Ce qui compte n'est pas la durée de l'outil mais la part NON COUVERTE:
+       un outil lent derrière une phrase de meublage ne laisse aucun silence,
+       un outil rapide sans meublage en laisse toute sa durée. C'est pour ça
+       que la mesure lit le contrat de meublage plutôt que le chronomètre
+       seul. */
+    const uncovered = calls.filter(c => {
+      if (c.name.endsWith(':error')) return false;
+      if (c.ms <= TOOL_SILENCE_BUDGET_MS) return false;
+      return fillerFor(c.name, 'fr', 'start').length === 0;
+    });
+    findings.push(
+      uncovered.length
+        ? {
+            code: 'tool_silence',
+            severity: 'warn',
+            detail: `${uncovered.length}/${calls.length} tool calls left more than ${TOOL_SILENCE_BUDGET_MS}ms of silence`,
+            subject: uncovered[0].name,
+            action: `Add a request-start filler for ${[...new Set(uncovered.map(c => c.name))].join(', ')} in voice-tools.ts — the latency cannot be removed, only covered.`,
+          }
+        : {
+            code: 'tool_silence',
+            severity: 'info',
+            detail: `0/${calls.length} tool calls left more than ${TOOL_SILENCE_BUDGET_MS}ms of silence`,
+            action: '',
+          },
+    );
 
     const knowledgeLookups = calls.filter(c => c.name.startsWith('lookupKnowledge')).length;
     if (knowledgeLookups > metrics.length) {
