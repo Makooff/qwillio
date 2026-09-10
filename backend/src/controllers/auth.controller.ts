@@ -538,7 +538,30 @@ export class AuthController {
         if (!p || !p.email) return res.status(401).json({ error: 'Invalid Google token' });
         payload = { sub: p.sub!, email: p.email, name: p.name };
       } else {
-        // Access token flow (mobile / Safari via useGoogleLogin)
+        /* Access token flow (mobile / Safari via useGoogleLogin).
+         *
+         * LE JETON EST D'ABORD VÉRIFIÉ CONTRE NOTRE CLIENT, et c'est tout le
+         * correctif. `userinfo` répond à « à qui appartient ce jeton », jamais
+         * à « pour QUI ce jeton a-t-il été délivré ». On acceptait donc
+         * n'importe quel jeton d'accès Google, quelle que soit l'application
+         * qui l'avait obtenu: un attaquant détenant un jeton d'une AUTRE
+         * application, la sienne par exemple, le postait ici et se retrouvait
+         * connecté sous l'identité de sa victime. C'est l'usurpation que la
+         * console Google signale, et elle ne demandait aucun accès à Qwillio.
+         *
+         * `tokeninfo` rend l'audience (`aud`), c'est-à-dire le client à qui
+         * Google a délivré le jeton. Un jeton qui ne nous désigne pas est
+         * refusé avant toute lecture de profil. */
+        const tokenInfoRes = await fetch(
+          `https://www.googleapis.com/oauth2/v3/tokeninfo?access_token=${encodeURIComponent(access_token)}`,
+        );
+        if (!tokenInfoRes.ok) return res.status(401).json({ error: 'Invalid Google access token' });
+        const tokenInfo = await tokenInfoRes.json() as { aud?: string };
+        if (!env.GOOGLE_CLIENT_ID || tokenInfo.aud !== env.GOOGLE_CLIENT_ID) {
+          logger.warn(`[Auth] jeton Google refusé: délivré à ${tokenInfo.aud ?? 'inconnu'}, pas à nous`);
+          return res.status(401).json({ error: 'Invalid Google access token' });
+        }
+
         const userInfoRes = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
           headers: { Authorization: `Bearer ${access_token}` },
         });
