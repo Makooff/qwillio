@@ -94,7 +94,10 @@ export class OnboardingService {
           style: character.style,
           lang,
         }),
-        firstMessage: this.generateFirstMessage(client, isFrClient),
+        /* À la CRÉATION, le texte et rien d'autre: les accueils sont fabriqués
+           juste après, donc aucune ligne n'existe encore. Le premier
+           enregistrement de réglage épinglera l'audio. */
+        firstMessage: await this.assistantFirstMessage(clientId, client),
         ...buildRealtimePlans(lang, false, { vocabulary: speech?.vocabulary ?? [] }),
         /* `server` et non plus `serverUrl` seul: il porte l'URL ET le secret
            que Vapi doit nous renvoyer. Sans lui, nos endpoints répondaient 401
@@ -879,6 +882,49 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
     }
   }
 
+  /**
+   * La phrase d'accueil de l'assistant ENREGISTRÉ, en audio déjà fabriqué
+   * quand il en existe un (LAT-7).
+   *
+   * `resolveFirstMessage`, qui sait servir cet audio, n'était appelée que par
+   * `buildAssistantForCall` — l'assistant qui ne décroche jamais. L'accueil
+   * pré-synthétisé n'atteignait donc AUCUN appel entrant, y compris après le
+   * correctif de voix du 09/09.
+   *
+   * **La variante est FIGÉE à 0, et c'est le prix assumé.** Le chemin d'appel
+   * en tire une au hasard parmi trois ; un assistant enregistré n'en porte
+   * qu'une. Tous les appelants entendent donc exactement la même phrase, en
+   * échange des quelques centaines de millisecondes de synthèse sur le mot qui
+   * décide de l'impression.
+   *
+   * **Le piège, et il aurait été pire que le défaut** : `available()` rend une
+   * URL vers une ligne de base, et la synchronisation EFFACE ces lignes avant
+   * de les refaire en tâche de fond. Épingler l'URL sans précaution ouvrirait
+   * une fenêtre où chaque appel commence sur un 404, c'est-à-dire sur du
+   * silence. L'appelant y perdrait bien plus que la latence gagnée. La
+   * régénération est donc ATTENDUE avant qu'on lise l'URL, et le texte reste
+   * le repli quand elle échoue.
+   */
+  private async assistantFirstMessage(clientId: string, client: any): Promise<string> {
+    try {
+      const profile = await realtimeContextService.getClientProfile(clientId);
+      if (!profile) return this.generateFirstMessage(client, this.isFrenchClient(client));
+
+      const { firstMessageVariants } = await import('./voice/system-prompt');
+      const variants = firstMessageVariants(profile, null);
+      const text = variants[0] ?? this.generateFirstMessage(client, this.isFrenchClient(client));
+
+      const audio = await greetingAudioService.available(profile);
+      /* Accroché au TEXTE autant qu'à la variante: un accueil fabriqué avant
+         un changement de nom présenterait l'agent sous l'ancien. */
+      const hit = audio.find(a => a.variant === 0 && a.text === text);
+      return hit ? hit.url : text;
+    } catch (error) {
+      logger.warn(`[Vapi] accueil de référence indisponible pour ${clientId}: ${(error as Error).message}`);
+      return this.generateFirstMessage(client, this.isFrenchClient(client));
+    }
+  }
+
   private async speechProfile(clientId: string): Promise<{ language: VoiceLanguage; vocabulary: string[] } | null> {
     const profile = await realtimeContextService.getClientProfile(clientId);
     if (!profile) return null;
@@ -923,6 +969,13 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
     const syncSpeech = await this.speechProfile(client.id);
     const syncLang: VoiceLanguage = syncSpeech?.language ?? (this.isFrenchClient(client) ? 'fr' : 'en');
     const systemPrompt = await this.assistantPrompt(client.id, client);
+    /* L'accueil est refait AVANT d'être lu, et attendu. Fait après, comme
+       auparavant, l'URL épinglée pointerait quelques instants vers une ligne
+       qu'on vient d'effacer: chaque appel de cette fenêtre s'ouvrirait sur du
+       silence. */
+    await greetingAudioService.invalidate(client.id);
+    await this.regenerateGreetings(client.id);
+    const firstMessage = await this.assistantFirstMessage(client.id, client);
 
     const updatedConfig: any = {
       name: fitAssistantName(client.agentName || 'Receptionist', client.businessName),
@@ -953,7 +1006,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
            anglais à chaque sauvegarde. Voir `speechProfile`. */
         lang: syncLang,
       }),
-      firstMessage: this.generateFirstMessage(client, this.isFrenchClient(client)),
+      firstMessage,
       ...buildRealtimePlans(syncLang, false, { vocabulary: syncSpeech?.vocabulary ?? [] }),
       server: webhookServer(`${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`),
     };
@@ -975,8 +1028,10 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
       // The next call must not be greeted by the cached previous persona, nor
       // by pre-synthesised audio introducing the agent under the old name.
       await realtimeContextService.invalidateClient(client.id);
-      await greetingAudioService.invalidate(client.id);
-      void this.regenerateGreetings(client.id);
+      /* Plus d'effacement ICI: l'accueil a été refait plus haut, et l'URL
+         qu'on vient d'épingler pointe vers ces lignes-là. Les effacer après
+         l'envoi rouvrirait exactement la fenêtre de silence que l'ordre
+         ci-dessus existe pour fermer. */
       logger.info(`VAPI assistant ${client.vapiAssistantId} synced for ${client.businessName}`);
     } catch (error) {
       /* Bruyant, et pas seulement journalisé (leçon des deux pannes de flotte).
