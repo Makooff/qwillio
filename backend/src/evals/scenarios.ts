@@ -289,17 +289,39 @@ export const SCENARIOS: EvalScenario[] = [
     id: 'fr-entites-adresse',
     description: 'Une adresse dictée avec le numéro à la fin, comme on la dit en Belgique.',
     profileOverrides: { bookingEnabled: false, calendarConnected: false },
-    turns: [{
-      role: 'user',
-      content:
-        'C\'est Marc Dhaenens. Je voudrais qu\'on passe chez moi, rue de la Loi seize, à Bruxelles. '
-        + 'C\'est pour un devis.',
-    }],
+    /* La conversation va JUSQU'AU moment où l'outil est dû.
+       La première version s'arrêtait au premier tour et échouait toujours: un
+       bon réceptionniste rassemble avant d'enregistrer, donc le modèle
+       répondait en mots, sans appeler `captureLead`, et le scénario mesurait sa
+       politesse — exactement le travers que le commentaire du bloc précédent
+       dit d'éviter. C'est le rappel explicite qui rend l'outil dû. */
+    turns: [
+      {
+        role: 'user',
+        content:
+          'Bonjour, c\'est Marc Dhaenens. Je voudrais un devis pour des travaux chez moi, '
+          + 'rue de la Loi seize, à Bruxelles.',
+      },
+      {
+        role: 'assistant',
+        content: 'Bien sûr. Je prends vos coordonnées et un collègue vous rappelle avec le devis ?',
+      },
+      {
+        role: 'user',
+        content:
+          'Oui, rappelez-moi. Mon numéro c\'est le zéro quatre septante-cinq, douze, trente-quatre, '
+          + 'cinquante-six. C\'est tout, merci.',
+      },
+    ],
     assertions: [
+      { kind: 'calls-tool', value: 'captureLead', description: 'enregistre le lead une fois le rappel demandé' },
       { kind: 'captures-entity', entity: 'name', value: 'Marc Dhaenens', description: 'un patronyme flamand' },
+      { kind: 'captures-entity', entity: 'phone', value: '0475123456', description: 'le numéro donné au dernier tour' },
       /* L'adresse se compare à la lettre et au chiffre près, la ponctuation
          retirée: c'est elle qui décide si le technicien sonne à la bonne
-         porte, et « seize » entendu « seise » ne se rattrape pas. */
+         porte, et « seize » entendu « seise » ne se rattrape pas.
+         Elle a été dite au PREMIER tour: le scénario vérifie donc aussi que
+         l'agent la porte jusqu'au bout de la conversation. */
       { kind: 'captures-entity', entity: 'address', value: 'rue de la Loi 16 Bruxelles', description: 'l\'adresse complète' },
     ],
   },
@@ -307,11 +329,18 @@ export const SCENARIOS: EvalScenario[] = [
     id: 'fr-entites-date',
     description: 'Une date relative devient une date absolue, sans dériver d\'un jour.',
     profileOverrides: {},
+    /* Le tour de CONFIRMATION est indispensable, et son absence était un défaut
+       du scénario, pas de l'agent. Juste après `checkAvailability`, réserver
+       sans l'accord de l'appelant serait une faute: le bon geste est de
+       proposer le créneau. `bookAppointment` n'est dû qu'après le « oui ». */
     turns: [
       { role: 'user', content: 'Bonjour, Julie Mertens. Je voudrais un rendez-vous le douze mars à quatorze heures.' },
       { role: 'tool-result', toolName: 'checkAvailability', content: 'FREE: 2026-03-12 14:00, 2026-03-12 15:00' },
+      { role: 'assistant', content: 'Quatorze heures est libre le douze mars. Je vous le réserve ?' },
+      { role: 'user', content: 'Oui, parfait, réservez-le.' },
     ],
     assertions: [
+      { kind: 'calls-tool', value: 'bookAppointment', description: 'réserve une fois le créneau confirmé' },
       { kind: 'captures-entity', entity: 'name', value: 'Julie Mertens', description: 'le nom' },
       /* Le format ISO est celui que l'outil déclare. Un agent qui rendrait
          « 12/03 » aurait compris et serait quand même inutilisable: c'est
