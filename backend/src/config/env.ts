@@ -760,6 +760,21 @@ export const env = {
   // default: if unset, the seed is skipped and existing passwords are kept.
   ADMIN_SEED_PASSWORD: (process.env.ADMIN_SEED_PASSWORD || '').trim(),
 
+  // ─── Traces OpenTelemetry (TST-7) ─────────────────────────
+  /**
+   * Point de collecte OTLP/HTTP. VIDE = instrumentation éteinte, et le SDK
+   * n'est même pas chargé.
+   *
+   * Ce n'est pas une prudence de principe: sans collecteur, un exportateur
+   * actif accumule un lot qu'il n'arrive pas à livrer et réessaie, sur un
+   * service qui redéploie plusieurs fois par jour. Un défaut « localhost:4318 »
+   * ferait exactement ça, en silence, chez tous ceux qui n'ont rien demandé.
+   */
+  OTEL_EXPORTER_OTLP_ENDPOINT: (process.env.OTEL_EXPORTER_OTLP_ENDPOINT || '').trim(),
+  /** `a=b,c=d`, la forme que la spécification donne, pour la clé du collecteur. */
+  OTEL_EXPORTER_OTLP_HEADERS: process.env.OTEL_EXPORTER_OTLP_HEADERS || '',
+  OTEL_SERVICE_NAME: process.env.OTEL_SERVICE_NAME || 'qwillio-backend',
+
   // ─── LinkedIn Outreach ────────────────────────────────────
   LINKEDIN_COOKIES: process.env.LINKEDIN_COOKIES || '', // JSON string of LinkedIn session cookies
   LINKEDIN_DAILY_LIMIT: parseInt(process.env.LINKEDIN_DAILY_LIMIT || '15', 10), // max connections/day

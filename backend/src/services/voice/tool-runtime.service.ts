@@ -4,6 +4,7 @@ import { googleCalendarService } from '../google-calendar.service';
 import { realtimeContextService, type ClientVoiceProfile } from './realtime-context.service';
 import { isKnownTool } from './voice-tools';
 import { callSessionStore } from './call-session.store';
+import { voiceTracing } from './voice-tracing';
 import { callerMemoryService } from './caller-memory.service';
 import { businessMemoryService } from './business-memory.service';
 import { knowledgeGapService } from './knowledge-gap.service';
@@ -192,12 +193,14 @@ class ToolRuntimeService {
 
       const elapsed = Date.now() - started;
       callSessionStore.recordToolCall(vapiCallId, call.name, elapsed);
+      voiceTracing.recordTool(vapiCallId, { name: call.name, startedAt: started, endedAt: started + elapsed, ok: true });
       logger.info(`[VoiceTools] ${call.name} for ${profile.businessName} in ${elapsed}ms`);
       return { toolCallId: call.toolCallId, result };
     } catch (error) {
       const message = (error as Error).message;
       logger.error(`[VoiceTools] ${call.name} failed for client ${clientId}: ${message}`);
       callSessionStore.recordToolCall(vapiCallId, `${call.name}:error`, Date.now() - started);
+      voiceTracing.recordTool(vapiCallId, { name: call.name, startedAt: started, endedAt: Date.now(), ok: false });
       return {
         toolCallId: call.toolCallId,
         result: this.degradedMessage(profile, call.name),

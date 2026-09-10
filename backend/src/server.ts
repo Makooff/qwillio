@@ -668,24 +668,40 @@ async function startServer() {
   doKeepalive(); // wake Neon at boot — ready before first user arrives
   setInterval(doKeepalive, 4 * 60 * 1000);
 
+  // Traces vocales: no-op tant qu'aucun collecteur n'est configuré, et jamais
+  // attendu — une trace absente ne doit pas retarder la première requête.
+  if (env.OTEL_EXPORTER_OTLP_ENDPOINT) {
+    void import('./services/voice/voice-tracing').then(m =>
+      m.voiceTracing.init({
+        endpoint: env.OTEL_EXPORTER_OTLP_ENDPOINT,
+        serviceName: env.OTEL_SERVICE_NAME,
+        headers: env.OTEL_EXPORTER_OTLP_HEADERS,
+      }),
+    );
+  }
+
   // Bootstrap runs async — never blocks port binding
   runBootstrap().catch(err => logger.warn('[bootstrap] Unexpected error:', err));
 }
 
 // Graceful shutdown
-process.on('SIGINT', async () => {
+async function shutdown() {
   logger.info('Shutting down...');
   await botLoop.stop();
+  /* Le lot de spans en attente part AVANT la fermeture: sans ce vidage, le
+     dernier appel de chaque redéploiement n'a jamais de trace, et Render en
+     fait plusieurs par jour. */
+  if (env.OTEL_EXPORTER_OTLP_ENDPOINT) {
+    await import('./services/voice/voice-tracing')
+      .then(m => m.voiceTracing.shutdown())
+      .catch(() => {});
+  }
   await prisma.$disconnect();
   process.exit(0);
-});
+}
 
-process.on('SIGTERM', async () => {
-  logger.info('Shutting down...');
-  await botLoop.stop();
-  await prisma.$disconnect();
-  process.exit(0);
-});
+process.on('SIGINT', shutdown);
+process.on('SIGTERM', shutdown);
 
 startServer();
 

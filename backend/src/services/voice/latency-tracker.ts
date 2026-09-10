@@ -43,6 +43,32 @@ export interface StageStats {
 
 export type LatencyReport = Partial<Record<LatencyStage, StageStats>>;
 
+/** Une fenêtre mesurée, telle qu'un span la porte: un début et une fin. */
+export interface TurnStageWindow {
+  stage: LatencyStage;
+  startedAt: number;
+  endedAt: number;
+}
+
+/**
+ * Le tour qui vient de se fermer, sous la forme que consomme `voice-tracing`.
+ *
+ * Les MÊMES bornes que les échantillons, pas un second calcul: `push()` reste
+ * la seule chose qui décide qu'une mesure est plausible, et un étage écarté
+ * pour cause d'événements désordonnés n'apparaît pas non plus dans la trace.
+ * Deux règles de validité qui divergeraient finiraient par faire dire à la
+ * trace autre chose qu'aux percentiles, sur les mêmes données.
+ */
+export interface TurnTrace {
+  /** 1 pour le premier tour clos de l'appel. */
+  turn: number;
+  startedAt: number;
+  endedAt: number;
+  stages: TurnStageWindow[];
+  /** L'audio a-t-il commencé avant le dernier jeton, `null` si LLM non vu. */
+  streamed: boolean | null;
+}
+
 /** Open measurements for one call, keyed by stage. */
 interface TurnMarks {
   callerSpeechEndedAt: number | null;
@@ -76,6 +102,10 @@ export class CallLatencyTracker {
   };
   /** Metrics Vapi reports itself, kept alongside ours for cross-checking. */
   private vendorMetrics: Record<string, unknown> | null = null;
+  /** Fenêtres du tour en cours, vidées à chaque `markCallerSpeechEnd`. */
+  private windows: TurnStageWindow[] = [];
+  /** Combien de tours ont été CLOS sur cet appel. Numérote les spans. */
+  private closedTurns = 0;
 
   /** `speech-update` role=user status=stopped. Opens a turn. */
   markCallerSpeechEnd(at = Date.now()): void {
@@ -88,13 +118,14 @@ export class CallLatencyTracker {
       llmFirstDeltaAt: null,
       lastDeltaAt: null,
     };
+    this.windows = [];
   }
 
   /** Final transcript for the caller's turn. Closes the STT stage. */
   markTranscriptFinal(at = Date.now()): void {
     if (this.marks.callerSpeechEndedAt === null) return;
     this.marks.transcriptFinalAt = at;
-    this.push('stt', at - this.marks.callerSpeechEndedAt);
+    this.push('stt', this.marks.callerSpeechEndedAt, at);
   }
 
   /** Request entered the custom-LLM handler. */
@@ -106,7 +137,7 @@ export class CallLatencyTracker {
   markLlmFirstDelta(at = Date.now()): void {
     if (this.marks.llmStartedAt === null || this.marks.llmFirstDeltaAt !== null) return;
     this.marks.llmFirstDeltaAt = at;
-    this.push('llm', at - this.marks.llmStartedAt);
+    this.push('llm', this.marks.llmStartedAt, at);
   }
 
   /** Last token of the completion — the moment TTS has everything it needs. */
@@ -122,30 +153,50 @@ export class CallLatencyTracker {
    * delta would fold the model's generation time into the TTS number and blame
    * the wrong stage.
    */
-  markAssistantSpeechStart(at = Date.now()): void {
+  markAssistantSpeechStart(at = Date.now()): TurnTrace | null {
     /* TTFA first: it is the one that survives clause streaming, and the one
        the TTS-model criteria are written against ("TTFA p50 under 300ms"). */
     if (this.marks.llmFirstDeltaAt !== null) {
-      this.push('ttfa', at - this.marks.llmFirstDeltaAt);
+      this.push('ttfa', this.marks.llmFirstDeltaAt, at);
     }
 
     /* Which of the two shapes this turn had. Only meaningful when we saw the
        request at all: on Vapi's own OpenAI path there is no last delta to
        miss, and calling that "streamed" would invent a result. */
+    let streamed: boolean | null = null;
     if (this.marks.llmStartedAt !== null) {
       if (this.marks.lastDeltaAt !== null) {
         this.turnStarts.buffered++;
-        this.push('tts', at - this.marks.lastDeltaAt);
+        streamed = false;
+        this.push('tts', this.marks.lastDeltaAt, at);
       } else {
         // Audio before the completion ended: the clause streaming worked.
         this.turnStarts.streamed++;
+        streamed = true;
       }
     }
 
-    if (this.marks.callerSpeechEndedAt !== null) {
-      this.push('total', at - this.marks.callerSpeechEndedAt);
+    const turnStartedAt = this.marks.callerSpeechEndedAt;
+    if (turnStartedAt !== null) {
+      this.push('total', turnStartedAt, at);
       this.marks.callerSpeechEndedAt = null;
     }
+
+    /* A turn with no measured stage produced nothing worth tracing: the events
+       arrived out of order, or the assistant spoke without anyone having
+       spoken first — the greeting. Returning null keeps that off the trace
+       instead of drawing a span nobody can act on. */
+    if (!this.windows.length) return null;
+    const stages = this.windows;
+    this.windows = [];
+    this.closedTurns++;
+    return {
+      turn: this.closedTurns,
+      startedAt: turnStartedAt ?? Math.min(...stages.map(w => w.startedAt)),
+      endedAt: at,
+      stages,
+      streamed,
+    };
   }
 
   /**
@@ -161,11 +212,21 @@ export class CallLatencyTracker {
     if (metrics && typeof metrics === 'object') this.vendorMetrics = metrics;
   }
 
-  private push(stage: LatencyStage, ms: number): void {
+  /**
+   * One measured stage: the sample AND the window it was measured over.
+   *
+   * Both come from the same pair of timestamps and the same plausibility rule,
+   * so a stage the percentiles reject is a stage the trace does not show
+   * either. Two rules would let the trace and the aggregates disagree about
+   * the same call, which is worse than having no trace at all.
+   */
+  private push(stage: LatencyStage, from: number, to: number): void {
+    const ms = to - from;
     // A negative or absurd delta means the events arrived out of order, which
     // Vapi does occasionally. Recording it would poison the percentiles.
     if (ms < 0 || ms > 60_000) return;
     this.samples[stage].push(ms);
+    this.windows.push({ stage, startedAt: from, endedAt: to });
   }
 
   report(): LatencyReport {

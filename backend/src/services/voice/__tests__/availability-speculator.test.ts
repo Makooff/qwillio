@@ -138,3 +138,85 @@ describe('availabilitySpeculator', () => {
     expect(surface).not.toContain('write');
   });
 });
+
+/**
+ * La lecture EN VOL, et pourquoi elle décide de tout depuis que la spéculation
+ * part sur les transcriptions partielles.
+ */
+describe('lectures concurrentes', () => {
+  beforeEach(() => {
+    availabilitySpeculator.reset();
+    findUnique.mockReset();
+    getAccessTokenFromRefresh.mockReset();
+    getAvailability.mockReset();
+    findUnique.mockResolvedValue({ googleCalendarRefreshToken: 'refresh', googleCalendarId: 'primary' });
+    getAccessTokenFromRefresh.mockResolvedValue('access');
+  });
+
+  /** La lecture traverse deux `await` avant Google: un seul tick ne suffit pas. */
+  const flush = () => new Promise(r => setTimeout(r, 0));
+
+  /** Une lecture qu'on garde ouverte, pour tenir la fenêtre « en vol ». */
+  function heldLookup() {
+    let release: (slots: string[]) => void = () => {};
+    getAvailability.mockImplementation(
+      () => new Promise<string[]>(resolve => { release = resolve; }),
+    );
+    return { release: (slots: string[] = ['09:00']) => release(slots) };
+  }
+
+  it('ne lance QU\'UNE lecture quand la même journée revient dans dix partielles', async () => {
+    const held = heldLookup();
+    const date = new Date('2026-08-18T12:00:00Z');
+    for (let i = 0; i < 10; i++) availabilitySpeculator.speculate('c1', 'call-1', date);
+    await flush();
+    /* Sans le registre des lectures en vol, le cache encore vide laissait
+       passer chaque répétition: quatre requêtes identiques, et le budget de
+       l'appel épuisé par un seul mot. */
+    expect(getAvailability).toHaveBeenCalledTimes(1);
+    held.release();
+  });
+
+  it('garde le budget de l\'appel intact pour les autres journées', async () => {
+    const held = heldLookup();
+    for (let i = 0; i < 10; i++) {
+      availabilitySpeculator.speculate('c1', 'call-1', new Date('2026-08-18T12:00:00Z'));
+    }
+    await flush();
+    held.release();
+    await flush();
+
+    /* Trois autres jours doivent encore passer: le budget est de quatre, et le
+       mot répété n'en a dépensé qu'un. */
+    getAvailability.mockResolvedValue(['10:00']);
+    availabilitySpeculator.speculate('c1', 'call-1', new Date('2026-08-19T12:00:00Z'));
+    availabilitySpeculator.speculate('c1', 'call-1', new Date('2026-08-20T12:00:00Z'));
+    availabilitySpeculator.speculate('c1', 'call-1', new Date('2026-08-21T12:00:00Z'));
+    await flush();
+    expect(getAvailability).toHaveBeenCalledTimes(4);
+  });
+
+  it('fait REJOINDRE l\'appel d\'outil à la spéculation encore en vol', async () => {
+    const held = heldLookup();
+    const date = new Date('2026-08-18T12:00:00Z');
+    availabilitySpeculator.speculate('c1', 'call-1', date);
+    await flush();
+
+    const real = availabilitySpeculator.freeSlots('c1', date);
+    held.release(['14:00']);
+    await expect(real).resolves.toEqual(['14:00']);
+    /* C'est le cas que ce module existe pour optimiser, et celui qu'il
+       manquait: l'outil arrivait pendant la lecture spéculative et en lançait
+       une seconde. */
+    expect(getAvailability).toHaveBeenCalledTimes(1);
+  });
+
+  it('libère la clé après un échec, sinon la journée reste bloquée', async () => {
+    getAvailability.mockRejectedValueOnce(new Error('google down'));
+    const date = new Date('2026-08-18T12:00:00Z');
+    await expect(availabilitySpeculator.freeSlots('c1', date)).rejects.toThrow('google down');
+
+    getAvailability.mockResolvedValue(['11:00']);
+    await expect(availabilitySpeculator.freeSlots('c1', date)).resolves.toEqual(['11:00']);
+  });
+});
