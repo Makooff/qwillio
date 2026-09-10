@@ -50,7 +50,6 @@ export class OnboardingService {
       logger.info(`Starting onboarding for ${client.businessName} (attempt ${retryCount + 1}/${MAX_RETRIES})...`);
 
       // ── STEP 1: Create VAPI assistant with retry ──
-      const systemPrompt = this.generateClientSystemPrompt(client);
       const cfg = (client.vapiConfig as any) || {};
       const character = resolveCharacter({
         characterId: cfg.characterId,
@@ -72,6 +71,10 @@ export class OnboardingService {
       const speech = await this.speechProfile(client.id);
       const lang: VoiceLanguage = speech?.language
         ?? (client?.agentLanguage === 'nl' ? 'nl' : isFrClient ? 'fr' : 'en');
+      /* Après la purge, pour la même raison que les outils: bâti avant, le
+         prompt décrirait la configuration d'avant l'enregistrement, et le
+         client devrait sauver deux fois pour que sa réponse prenne effet. */
+      const systemPrompt = await this.assistantPrompt(clientId, client);
 
       const assistantData: any = {
         name: fitAssistantName('Receptionist', client.businessName),
@@ -830,6 +833,52 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
    * l'appel, et deux règles écrites à la main pour la même question finissent
    * toujours par ne plus donner la même réponse — ici en moins d'un mois.
    */
+  /**
+   * Le prompt de l'assistant qui DÉCROCHE, construit par le constructeur que
+   * tout le reste utilise.
+   *
+   * Troisième fois que le même trou se rouvre, et c'est le plus large. Deux
+   * constructeurs de prompt coexistent: `buildSystemPrompt`
+   * (`services/voice/system-prompt.ts`), qui porte le vouvoiement, le
+   * glossaire belge, les champs nommés du métier, le repli clavier et la
+   * discipline de transfert — et que le harnais d'évals teste — et
+   * `generateClientSystemPrompt`, un texte hérité, plus ancien, qui ne porte
+   * rien de tout cela. Le second était celui de l'assistant ENREGISTRÉ,
+   * c'est-à-dire le seul qui réponde à un appel entrant.
+   * Tout ce qui a été écrit dans le premier partait donc dans le vide, et les
+   * scénarios d'éval mesuraient un agent que personne n'entendait.
+   *
+   * L'ancien reste en REPLI, pour un client dont le profil est illisible: un
+   * assistant avec un prompt hérité vaut mieux qu'un assistant sans prompt.
+   */
+  private async assistantPrompt(clientId: string, client: any): Promise<string> {
+    try {
+      const profile = await realtimeContextService.getClientProfile(clientId);
+      if (!profile) return this.generateClientSystemPrompt(client);
+
+      const { buildSystemPrompt } = await import('./voice/system-prompt');
+      const { businessMemoryService } = await import('./voice/business-memory.service');
+      /* Les deux magasins, dans le même ordre qu'à l'appel: les champs nommés
+         décrivent l'entreprise, la FAQ répond à des questions, et le bloc est
+         tronqué — une FAQ bavarde pousserait la description dehors. */
+      const entries = profile.hasKnowledgeBase
+        ? businessMemoryService.promptBlock(await businessMemoryService.all(clientId), profile.language)
+        : '';
+      const knowledgeBlock = [profile.knowledgeFields, entries].filter(Boolean).join('\n\n');
+
+      /* Aucun appelant: l'assistant enregistré est le même pour tous, et la
+         mémoire d'appelant est ajoutée par tour sur le chemin custom-LLM. */
+      return buildSystemPrompt(
+        profile,
+        { previousCalls: 0, lastCallAt: null, lastSummary: null, knownName: null, hasUpcomingBooking: false },
+        knowledgeBlock,
+      );
+    } catch (error) {
+      logger.warn(`[Vapi] prompt de référence indisponible pour ${clientId}: ${(error as Error).message}`);
+      return this.generateClientSystemPrompt(client);
+    }
+  }
+
   private async speechProfile(clientId: string): Promise<{ language: VoiceLanguage; vocabulary: string[] } | null> {
     const profile = await realtimeContextService.getClientProfile(clientId);
     if (!profile) return null;
@@ -860,7 +909,6 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
       return;
     }
 
-    const systemPrompt = this.generateClientSystemPrompt(client);
     const cfg = (client.vapiConfig as any) || {};
     const character = resolveCharacter({
       characterId: cfg.characterId,
@@ -874,6 +922,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
     const syncTools = await this.buildAssistantTools(client.id);
     const syncSpeech = await this.speechProfile(client.id);
     const syncLang: VoiceLanguage = syncSpeech?.language ?? (this.isFrenchClient(client) ? 'fr' : 'en');
+    const systemPrompt = await this.assistantPrompt(client.id, client);
 
     const updatedConfig: any = {
       name: fitAssistantName(client.agentName || 'Receptionist', client.businessName),

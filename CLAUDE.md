@@ -571,6 +571,31 @@ Piège de méthode rencontré en écrivant ce test : un test qui lit le SOURCE d
 d'abord retirer les commentaires. Le commentaire posé au-dessus d'un correctif
 nomme forcément la forme fautive, donc le test tombe sur sa propre explication.
 
+### 6unvicies. DEUX constructeurs de prompt, et c'est le mauvais qui décrochait (10/09/2026)
+Le plus large des trois trous de la même famille. `buildSystemPrompt`
+(`services/voice/system-prompt.ts`) porte le vouvoiement, le glossaire belge,
+les champs nommés du métier, le repli clavier et la discipline de transfert ;
+c'est lui que le harnais d'évals mesure, et il n'était appelé que par
+`buildAssistantForCall` — l'assistant qui ne décroche JAMAIS. L'assistant
+ENREGISTRÉ recevait `generateClientSystemPrompt`, un texte hérité, plus ancien,
+qui ne porte rien de tout cela.
+Conséquence : tout ce qui a été écrit dans le prompt depuis des semaines partait
+dans le vide, et **les scénarios d'éval mesuraient un agent que personne
+n'entendait**. Un `npm run evals` au vert ne disait donc rien des appels réels.
+Ce qui n'était PAS touché, vérifié avant de conclure : l'annonce IA et la notice
+d'enregistrement vivent dans `generateFirstMessage`, qui les porte bien dans les
+trois langues. LEG-1 et LEG-2 tiennent.
+`assistantPrompt()` appelle désormais le bon constructeur, avec les DEUX
+magasins de connaissance dans le même ordre qu'à l'appel, et garde l'ancien en
+repli quand le profil est illisible. Un test de source interdit de reposer le
+constructeur hérité directement.
+**La règle qui sort des trois** : ce qui décrit comment l'agent PENSE, ÉCOUTE ou
+PARLE se pose sur l'assistant enregistré, par les deux écritures de
+`onboarding.service.ts`. Un constructeur appelé seulement par
+`buildAssistantForCall` n'atteint aucun appel entrant. `npm run voice:doctor`
+lit l'assistant DISTANT et reste la seule réponse à « qu'est-ce qui tourne
+vraiment ».
+
 ### 6sexdecies. `voice:validate` ne validait pas la charge de production (10/09/2026)
 Il couvrait les plans, pas `tools`, `serverUrl`, `forwardingPhoneNumber`,
 `endCallFunctionEnabled`, `recordingEnabled` ni `backgroundSound` — exactement
