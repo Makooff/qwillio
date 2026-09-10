@@ -11,7 +11,7 @@ vi.mock('../../../config/logger', () => ({
 }));
 vi.mock('../../discord.service', () => ({ discordService: { notifyAlerts } }));
 
-const { classifyVapiError, reportAssistantSyncFailure, resetVapiSyncAlerts } =
+const { classifyVapiError, reportAssistantSyncFailure, reportRejectedWebhook, resetVapiSyncAlerts } =
   await import('../vapi-error');
 
 /** La forme exacte que `config/vapi.ts` produit. */
@@ -105,5 +105,47 @@ describe('signaler un assistant que Vapi refuse', () => {
 
   it('rend la lecture à l\'appelant', () => {
     expect(call(vapiError(400, 'nope')).kind).toBe('rejected');
+  });
+});
+
+/**
+ * Un webhook refusé n'est pas une dégradation, c'est un effacement.
+ *
+ * L'appel se déroule normalement pour l'appelant — Vapi tient la conversation
+ * avec l'assistant qu'il détient déjà — et tout ce qui devait en rester tombe:
+ * pas d'appel au tableau de bord, pas d'alerte de lead, pas de facturation. Le
+ * client voit un agent qui répond bien et un tableau de bord vide.
+ */
+describe('un webhook refusé', () => {
+  it('alerte, en nommant le chemin refusé', () => {
+    reportRejectedWebhook('/webhooks/vapi/client/c1');
+
+    expect(notifyAlerts).toHaveBeenCalledTimes(1);
+    const message = String(notifyAlerts.mock.calls[0][0]);
+    expect(message).toContain('/webhooks/vapi/client/c1');
+    // Le remède est dans l'alerte: le secret ne se règle pas dans ce dépôt, et
+    // une alerte qui ne dit pas où regarder fait perdre le temps qu'elle gagne.
+    expect(message).toContain('VAPI_WEBHOOK_SECRET');
+  });
+
+  it("n'envoie qu'une alerte par heure, et compte le reste", () => {
+    /* L'endpoint est PUBLIC: n'importe qui peut le marteler. Une alerte par
+       requête refusée serait un canal de spam offert à l'extérieur. */
+    for (let i = 0; i < 50; i++) reportRejectedWebhook('/webhooks/vapi');
+
+    expect(notifyAlerts).toHaveBeenCalledTimes(1);
+    // Le NOMBRE distingue les deux causes: une poignée est un scanner, un refus
+    // par appel est un secret désaccordé.
+    expect(String(notifyAlerts.mock.calls[0][0])).toContain('1 webhook');
+  });
+
+  it('repart à zéro après une alerte, pour que le compte suivant soit vrai', () => {
+    reportRejectedWebhook('/webhooks/vapi');
+    for (let i = 0; i < 4; i++) reportRejectedWebhook('/webhooks/vapi');
+
+    resetVapiSyncAlerts();
+    reportRejectedWebhook('/webhooks/vapi');
+
+    expect(String(notifyAlerts.mock.calls[1][0])).toContain('1 webhook');
   });
 });
