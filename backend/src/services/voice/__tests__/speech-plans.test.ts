@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { env } from '../../../config/env';
 import {
   buildRealtimePlans,
+  buildRealtimeStopSpeakingPlan,
   buildSpeech,
   buildStartSpeakingPlan,
   buildStopSpeakingPlan,
@@ -575,5 +576,34 @@ describe('le mode multilingue du transcripteur', () => {
     expect((off('nl', { vocabulary: ['Chez Marie'] }) as Record<string, unknown>).keywords).toBeDefined();
     const on = await withFlag(true);
     expect((on('nl', { vocabulary: ['Chez Marie'] }) as Record<string, unknown>).keyterm).toBeDefined();
+  });
+});
+
+describe('le seuil de voix du chemin parole-à-parole (TUR-6)', () => {
+  it('a son propre réglage, parce qu\'il travaille seul', () => {
+    // En classique, le bruit est trié deux fois: l'énergie PUIS les mots
+    // transcrits. Ici il n'y a pas de transcripteur, donc `numWords` vaut 0 et
+    // `voiceSeconds` porte toute la charge.
+    const realtime = buildRealtimeStopSpeakingPlan(resolveTuning({ realtimeBargeInVoiceSeconds: 0.8 }));
+    expect(realtime.numWords).toBe(0);
+    expect(realtime.voiceSeconds).toBe(0.8);
+  });
+
+  it('ne bouge pas le chemin classique quand on protège l\'autre', () => {
+    const tuning = resolveTuning({ realtimeBargeInVoiceSeconds: 0.8 });
+    expect(tuning.bargeInVoiceSeconds).not.toBe(0.8);
+  });
+
+  it('retombe sur le seuil commun quand rien n\'est réglé pour lui', () => {
+    const tuning = resolveTuning({ bargeInVoiceSeconds: 0.6 });
+    expect(tuning.realtimeBargeInVoiceSeconds).toBe(0.6);
+  });
+
+  it('reste dans les bornes du champ Vapi', () => {
+    // Mêmes bornes que le chemin classique: c'est le même champ, sur l'autre
+    // chemin. Un hors-bornes ne dégrade pas un appel, il fait refuser
+    // l'assistant entier, donc toute la flotte.
+    expect(resolveTuning({ realtimeBargeInVoiceSeconds: 99 }).realtimeBargeInVoiceSeconds).toBe(1.5);
+    expect(resolveTuning({ realtimeBargeInVoiceSeconds: 0 }).realtimeBargeInVoiceSeconds).toBe(0.1);
   });
 });

@@ -208,6 +208,8 @@ export interface VoiceTuning {
   minChunkChars?: number;
   bargeInWords?: number;
   bargeInVoiceSeconds?: number;
+  /** Le même seuil sur le chemin parole-à-parole, où il travaille seul. */
+  realtimeBargeInVoiceSeconds?: number;
   backoffSeconds?: number;
   silenceTimeout?: number;
   /** Les mots qui coupent tout de suite. Absents, ceux de l'environnement. */
@@ -239,6 +241,13 @@ export function resolveTuning(t: VoiceTuning = {}) {
     minChunkChars: Math.round(clamp(t.minChunkChars, 10, 200, env.VOICE_TTS_MIN_CHUNK_CHARS)),
     bargeInWords: Math.round(clamp(t.bargeInWords, 0, 5, env.VOICE_BARGE_IN_WORDS)),
     bargeInVoiceSeconds: clamp(t.bargeInVoiceSeconds, 0.1, 1.5, env.VOICE_BARGE_IN_VOICE_SECONDS),
+    /* Mêmes bornes: c'est le même champ Vapi, sur l'autre chemin. Ce qui
+       diffère est la charge qu'il porte, pas ce que l'API accepte. */
+    realtimeBargeInVoiceSeconds: clamp(
+      t.realtimeBargeInVoiceSeconds ?? t.bargeInVoiceSeconds,
+      0.1, 1.5,
+      env.VOICE_REALTIME_BARGE_IN_VOICE_SECONDS,
+    ),
     backoffSeconds: clamp(t.backoffSeconds, 0.3, 3, env.VOICE_BARGE_IN_BACKOFF_SECONDS),
     // Le plancher de 10 s vient de `env.ts`: en dessous, la réceptionniste
     // raccroche au nez de quelqu'un qui réfléchit.
@@ -451,7 +460,14 @@ export function buildRealtimeStopSpeakingPlan(tuning: ResolvedTuning = resolveTu
     /* 0 explicitement: c'est le chemin « énergie seule », le seul disponible
        sans transcripteur. Ce n'est pas un oubli de `VOICE_BARGE_IN_WORDS`. */
     numWords: 0,
-    voiceSeconds: tuning.bargeInVoiceSeconds,
+    /* Et c'est pour ça que le seuil de VOIX a son propre réglage ici.
+       En classique le bruit est trié deux fois, sur l'énergie puis sur les mots
+       transcrits; ici la première passe est la seule, donc à valeur égale ce
+       chemin est moins protégé — le partage d'une variable unique le rendait
+       invisible. Le défaut est identique tant que personne ne règle rien: ce
+       qui change, c'est qu'on PEUT désormais protéger ce chemin sans ralentir
+       l'interruption volontaire sur l'autre. */
+    voiceSeconds: tuning.realtimeBargeInVoiceSeconds,
     backoffSeconds: tuning.backoffSeconds,
   };
 }
