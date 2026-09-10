@@ -475,8 +475,25 @@ export const env = {
    * plus en temps réel (voir juste au dessus), donc seul quelqu'un qui le
    * choisit explicitement l'atteint, et ce quelqu'un est en train d'essayer de
    * le réparer.
+   *
+   * **`gpt-realtime-2.1` N'EXISTE PAS chez Vapi, et c'était la valeur ici.**
+   * Relevé le 10/09/2026 par `npm run voice:validate`, qui venait de se mettre
+   * à soumettre le vrai bloc `model` (6sexdecies): les trois variantes temps
+   * réel ont été refusées, `model.model must be one of the following values`,
+   * et l'énumération rendue par l'API ne contient que
+   * `gpt-4o-realtime-preview-2024-10-01`, `gpt-4o-realtime-preview-2024-12-17`,
+   * `gpt-4o-mini-realtime-preview-2024-12-17`, `gpt-realtime-2025-08-28` et
+   * `gpt-realtime`.
+   * Le nom venait d'une lecture d'OpenAI, pas de Vapi: les deux catalogues ne
+   * coïncident pas, et c'est Vapi qui valide. `gpt-realtime` plutôt que la
+   * version datée, parce qu'une préversion épinglée finit par être retirée et
+   * qu'un modèle refusé emporte l'assistant entier.
+   *
+   * **La leçon générale**: un identifiant de modèle ne se déduit jamais du
+   * catalogue du FOURNISSEUR D'ORIGINE. Seul l'intermédiaire qui reçoit la
+   * charge dit ce qu'il accepte, et il ne le dit qu'à `voice:validate`.
    */
-  VOICE_REALTIME_MODEL: process.env.VOICE_REALTIME_MODEL || 'gpt-realtime-2.1',
+  VOICE_REALTIME_MODEL: process.env.VOICE_REALTIME_MODEL || 'gpt-realtime',
   /**
    * Envoie-t-on un plan d'interruption en parole-à-parole ?
    *
