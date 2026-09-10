@@ -108,6 +108,18 @@ export function entityMatches(kind: EntityKind, expected: string, actual: string
       .replace(/[^a-z0-9]+/g, ' ')
       .trim();
 
+  /* Le MOTIF est de la prose, pas un identifiant, et il se compare donc par
+     inclusion.
+     L'outil demande « Why they called, one sentence »: à « je vous appelle
+     pour un détartrage », l'agent a répondu « Demande de rendez-vous pour un
+     détartrage », ce qui est exactement ce qu'on lui demande. L'égalité
+     stricte le déclarait faux, et le scénario mesurait alors la concision de
+     sa formulation au lieu de ce qu'il a compris.
+     Les quatre autres restent stricts, et c'est la vraie ligne de partage: un
+     nom, un numéro, une date et une adresse DÉSIGNENT quelque chose. Une
+     lettre de travers et le rappel n'aboutit pas. */
+  if (kind === 'reason') return flat(actual).includes(flat(expected));
+
   return flat(expected) === flat(actual);
 }
 
