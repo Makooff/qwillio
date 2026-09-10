@@ -1,4 +1,5 @@
 import { prisma } from '../config/database';
+import jwt from 'jsonwebtoken';
 import { logger } from '../config/logger';
 import { env } from '../config/env';
 import { OAuth2Client } from 'google-auth-library';
@@ -137,6 +138,20 @@ export class AgentEmailService {
   // 1. OAUTH URL GENERATION
   // ═══════════════════════════════════════════
 
+  /**
+   * Le `state` est SIGNÉ et daté, il n'est pas l'identifiant du client.
+   *
+   * Il portait `state: clientId`, c'est-à-dire une valeur que l'attaquant peut
+   * connaître ou deviner: elle voyage dans des URLs, elle ne change jamais, et
+   * elle n'est liée à aucune session de navigateur. Quiconque connaissait
+   * l'identifiant d'un locataire pouvait donc faire aboutir un retour OAuth et
+   * brancher SA boîte Gmail sur le compte de ce locataire — avec les portées
+   * lecture, envoi et modification. Le `state` existe précisément pour empêcher
+   * ça, et une valeur devinable ne l'empêche pas.
+   *
+   * Même forme que le branchement de l'agenda, qui le faisait déjà bien: un JWT
+   * de quinze minutes, vérifié au retour.
+   */
   getOAuthUrl(clientId: string): string {
     const client = this.getOAuth2Client();
     const url = client.generateAuthUrl({
@@ -147,7 +162,7 @@ export class AgentEmailService {
         'https://www.googleapis.com/auth/gmail.send',
         'https://www.googleapis.com/auth/gmail.modify',
       ],
-      state: clientId,
+      state: jwt.sign({ gmail: clientId }, env.JWT_SECRET, { expiresIn: '15m' }),
     });
     return url;
   }
@@ -155,6 +170,20 @@ export class AgentEmailService {
   // ═══════════════════════════════════════════
   // 2. OAUTH CALLBACK
   // ═══════════════════════════════════════════
+
+  /**
+   * `state` est le seul lien entre la demande et le retour: il se VÉRIFIE, il
+   * ne se lit pas. Le locataire vient de la signature, jamais de ce que le
+   * navigateur a renvoyé.
+   */
+  verifyOAuthState(state: string): string | null {
+    try {
+      const payload = jwt.verify(state, env.JWT_SECRET) as { gmail?: unknown };
+      return typeof payload.gmail === 'string' ? payload.gmail : null;
+    } catch {
+      return null;
+    }
+  }
 
   async handleOAuthCallback(code: string, clientId: string): Promise<{ success: boolean }> {
     const client = this.getOAuth2Client();

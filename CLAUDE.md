@@ -506,6 +506,25 @@ tout. Il est fusionné (`mergeVapiConfig`), `null` retirant une clé expliciteme
 et la fusion est SUPERFICIELLE : une fusion profonde rendrait impossible de
 retirer une entrée d'une sous-liste.
 
+### 6tervicies. Les DEUX assistants décrochent, selon la LIGNE (10/09/2026)
+Précision qui corrige 6quindecies, et qui change à qui s'appliquent les cinq
+correctifs de la journée. `attachAssistant` n'est appelé que par
+`phone-stock.service.ts`, c'est-à-dire pour les clients qui reçoivent un numéro
+belge DÉDIÉ. Sur la LIGNE PARTAGÉE — celle des essais — aucun assistant n'est
+épinglé, donc `assistant-request` EST émis et `buildAssistantForCall` s'exécute
+bel et bien.
+Donc : ligne dédiée → assistant enregistré ; ligne partagée → assistant construit
+à l'appel. Les deux chemins comptent, et il faut les tenir tous les deux.
+**Le défaut que cette lecture a fait sortir** : `buildAssistantForCall` composait
+`Receptionist - <nom commercial>` sans passer par `fitAssistantName`. C'est le
+seul chemin qui échappe à `vapiClient`, où `fitAssistantLabel` est appliqué sur
+create et update : cet assistant n'est pas créé par l'API, il est RENDU en
+réponse au webhook. « Receptionist - » fait quinze caractères, donc toute
+entreprise au nom de plus de vingt-cinq franchissait la limite de quarante — et
+un nom trop long ne dégrade pas l'assistant, il le fait refuser en entier
+(6octies). Le premier appel d'un client d'essai, refusé sur la longueur du nom
+de son commerce.
+
 ### 6quindecies. Il y a DEUX assistants, et un seul décroche (10/09/2026)
 `buildAssistantForCall` compose l'assistant complet — outils, base de
 connaissances, mémoire de l'appelant, plan de clavier — et ne sert QUE à
@@ -596,6 +615,26 @@ PARLE se pose sur l'assistant enregistré, par les deux écritures de
 lit l'assistant DISTANT et reste la seule réponse à « qu'est-ce qui tourne
 vraiment ».
 
+### 6duovicies. Le drapeau d'enregistrement ne suivait pas le réglage (10/09/2026)
+Cinquième trou de la famille 6quindecies, et le seul qui touche la conformité.
+DEUX drapeaux ont coexisté : `disableRecordingNotice`, l'historique, et
+`recordCalls`, celui que le portail écrit. Le PROFIL honore les deux, et c'est
+lui qui décide de la notice dans l'accueil. L'assistant ENREGISTRÉ ne lisait que
+l'historique, et la synchronisation ne portait pas le champ **du tout**.
+Conséquence exacte : un client coupe l'enregistrement dans le portail, la notice
+disparaît de son accueil (l'accueil passe par le profil), et son assistant
+distant continue d'enregistrer, pour toujours. **Un appel enregistré sans que
+l'appelant en ait été informé**, c'est-à-dire l'inverse de ce que dit le
+commentaire posé juste au-dessus de la ligne fautive.
+Les deux écritures lisent désormais `shouldRecord(profile)`, la même fonction
+que l'accueil, et le champ voyage à chaque synchronisation. Le repli, quand le
+profil est illisible, penche vers l'enregistrement : l'accueil suivant la même
+source, il annoncera la notice, donc le doute ne fabrique jamais d'enregistrement
+caché.
+**La règle** : deux drapeaux qui décrivent la même chose finissent toujours par
+diverger. Quand un réglage acquiert une seconde forme, l'ancienne devient un
+repli lu au même endroit que la nouvelle, jamais une seconde règle lue ailleurs.
+
 ### 6sexdecies. `voice:validate` ne validait pas la charge de production (10/09/2026)
 Il couvrait les plans, pas `tools`, `serverUrl`, `forwardingPhoneNumber`,
 `endCallFunctionEnabled`, `recordingEnabled` ni `backgroundSound` — exactement
@@ -603,6 +642,15 @@ la partie que personne ne relisait, alors qu'un seul champ refusé emporte
 l'assistant entier (6octies). Les outils y entrent par `buildVoiceTools`, pas
 par une copie écrite pour le test : une copie ne vieillirait pas avec
 l'original, et c'est l'original qui part chez Vapi.
+**Et il en restait la moitié, corrigée le soir même.** Le bloc `model` était
+encore écrit à la main, `provider: 'openai'`, alors que le chemin d'appel passe
+par `buildSpeech` et que la flotte entière tourne en custom-LLM
+(`VOICE_CUSTOM_LLM_DEFAULT` absent vaut vrai). Le modèle réellement envoyé
+n'avait donc JAMAIS été soumis à l'API vivante — précisément la situation que ce
+script existe pour empêcher. Il passe désormais par `buildSpeech`, avec l'URL
+custom-LLM sous sa forme de production, et le moteur IMPOSÉ par variante :
+laisser `auto` décider ramènerait les six variantes au même moteur, donc trois
+essais sur six ne testeraient rien.
 
 ### 6septdecies. L'agent demande ce qu'il ne sait pas (10/09/2026)
 Une question sans réponse produit une ligne de `knowledge_gaps` :

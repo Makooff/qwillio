@@ -41,7 +41,7 @@
  */
 import { env } from '../config/env';
 import { webhookServer } from '../services/voice/webhook-identity';
-import { buildRealtimePlans, buildVoice, type VoiceLanguage } from '../services/voice/speech-plans';
+import { buildRealtimePlans, buildSpeech, type VoiceLanguage } from '../services/voice/speech-plans';
 import { fitAssistantLabel } from '../services/voice/vapi-limits';
 import { buildVoiceTools } from '../services/voice/voice-tools';
 import type { ClientVoiceProfile } from '../services/voice/realtime-context.service';
@@ -102,20 +102,31 @@ function probeProfile(lang: VoiceLanguage): ClientVoiceProfile {
 function candidate(lang: VoiceLanguage, speechToSpeech: boolean) {
   return {
     name: fitAssistantLabel(`${PREFIX}-${lang}-${speechToSpeech ? 's2s' : 'classic'}-${Date.now()}`),
-    model: {
-      provider: 'openai',
-      model: env.VAPI_MODEL,
-      messages: [{ role: 'system', content: 'Validation.' }],
-      /* Les outils vivent DANS le modèle. Posés à la racine, Vapi répond
-         « property tools should not exist » — ce que ce script vient de
-         démontrer sur les six variantes, et que rien dans le code ne laissait
-         deviner. */
-      tools: buildVoiceTools(probeProfile(lang)),
-    },
-    /* Une voix quelconque: ce qu'on teste est la FORME des plans, pas le
-       timbre. Un identifiant ElevenLabs public suffit et évite de dépendre
-       d'un réglage client. */
-    voice: buildVoice({ voiceId: '21m00Tcm4TlvDq8ikWAM', lang }),
+    /* Le modèle et la voix viennent de `buildSpeech`, PAS d'un objet écrit ici.
+       C'était le trou qui restait de 6sexdecies: le script composait
+       `provider: 'openai'` à la main, alors que le chemin d'appel passe par
+       `buildSpeech` et que la flotte entière tourne en custom-LLM
+       (`VOICE_CUSTOM_LLM_DEFAULT` absent vaut vrai). Le bloc `model`
+       réellement envoyé n'avait donc JAMAIS été soumis à l'API vivante, ce qui
+       est exactement la situation que ce script existe pour empêcher.
+       Les outils y entrent par le même appel, comme en production. */
+    ...(() => {
+      const { model, voice } = buildSpeech({
+        lang,
+        systemPrompt: 'Validation.',
+        tools: buildVoiceTools(probeProfile(lang)),
+        character: { voiceId: '21m00Tcm4TlvDq8ikWAM', gender: 'f' },
+        /* Le mode est IMPOSÉ, pas déduit: les six variantes sont trois langues
+           fois deux moteurs, et laisser `auto` décider les ramènerait toutes
+           au même. */
+        voiceMode: speechToSpeech ? 'realtime' : 'classic',
+        /* L'URL custom-LLM telle que la production la compose. Le client jetable
+           n'existe pas, et c'est sans importance: Vapi valide la FORME du champ,
+           il n'appelle pas l'adresse pour créer un assistant. */
+        customLlmUrl: `${env.API_BASE_URL}/api/webhooks/vapi/llm/00000000-0000-0000-0000-000000000000`,
+      });
+      return { model, voice };
+    })(),
     firstMessage: 'Validation.',
     ...buildRealtimePlans(lang, speechToSpeech, {
       // Un vocabulaire NON VIDE: c'est justement le cas où le champ apparaît,

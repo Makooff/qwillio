@@ -28,7 +28,7 @@ function GoogleButton({ mode, disabled, onError }: Props) {
       onError('');
       setLoading(true);
       try {
-        await googleLogin(tokenResponse.access_token, 'token');
+        await googleLogin(tokenResponse.code, 'code');
         const { user } = useAuthStore.getState();
         navigate(user?.role === 'admin' ? '/admin' : (user?.onboardingCompleted ? '/dashboard' : '/onboard'));
       } catch (err: any) {
@@ -50,7 +50,13 @@ function GoogleButton({ mode, disabled, onError }: Props) {
         onError('Google Sign-In non configuré pour ce domaine. Utilise email/mot de passe.');
       }
     },
-    flow: 'implicit',
+    /* Flux par CODE, et non le flux implicite qui était ici.
+       L'implicite remet au NAVIGATEUR un jeton d'accès directement utilisable;
+       c'est ce que la console Google signale comme vulnérable à l'usurpation,
+       et il ne porte pas de paramètre d'état. Le navigateur ne reçoit plus
+       qu'un code à usage unique, que le serveur échange avec le secret client.
+       Un code intercepté ne vaut rien sans ce secret. */
+    flow: 'auth-code',
   });
 
   const label = mode === 'login' ? 'Se connecter avec Google' : "S'inscrire avec Google";
