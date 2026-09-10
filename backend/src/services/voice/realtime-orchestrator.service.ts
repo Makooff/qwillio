@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../../config/database';
 import { logger } from '../../config/logger';
 import { env } from '../../config/env';
+import { webhookServer } from './webhook-identity';
 import { realtimeContextService, shouldRecord, type ClientVoiceProfile } from './realtime-context.service';
 import { callSessionStore } from './call-session.store';
 import { buildRealtimePlans, buildSpeech, useSpeechToSpeech } from './speech-plans';
@@ -214,7 +215,7 @@ class RealtimeOrchestratorService {
       ...buildRealtimePlans(profile.language, speechToSpeech, {
         vocabulary: [profile.businessName, profile.agentName, ...(profile.services ?? [])],
       }),
-      serverUrl: `${env.API_BASE_URL}/api/webhooks/vapi/client/${clientId}`,
+      server: webhookServer(`${env.API_BASE_URL}/api/webhooks/vapi/client/${clientId}`),
       // Suit la notice du premier message: un appel enregistré est un appel
       // annoncé comme tel, et réciproquement. Voir `shouldRecord`.
       recordingEnabled: shouldRecord(profile),

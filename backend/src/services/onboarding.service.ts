@@ -8,6 +8,7 @@ import { resolveCharacter } from '../config/voice-characters';
 import { getPersonaPrompt, PERSONALITY_PROMPTS } from '../config/personalities';
 import { buildRealtimePlans, buildVoice } from './voice/speech-plans';
 import { fitAssistantName } from './voice/vapi-limits';
+import { webhookServer } from './voice/webhook-identity';
 import { realtimeContextService } from './voice/realtime-context.service';
 import { buildVoiceTools } from './voice/voice-tools';
 import { greetingAudioService } from './voice/greeting-audio.service';
@@ -87,7 +88,11 @@ export class OnboardingService {
         }),
         firstMessage: this.generateFirstMessage(client, isFrClient),
         ...buildRealtimePlans(client?.agentLanguage === 'nl' ? 'nl' : isFrClient ? 'fr' : 'en'),
-        serverUrl: `${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`,
+        /* `server` et non plus `serverUrl` seul: il porte l'URL ET le secret
+           que Vapi doit nous renvoyer. Sans lui, nos endpoints répondaient 401
+           dès que le réglage jumeau du tableau de bord Vapi ne correspondait
+           pas, et l'appel ne laissait plus aucune trace. */
+        server: webhookServer(`${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`),
         endCallFunctionEnabled: true,
         // Même règle que le runtime: refuser la notice, c'est refuser
         // l'enregistrement — jamais un enregistrement silencieux.
@@ -840,7 +845,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
       }),
       firstMessage: this.generateFirstMessage(client, this.isFrenchClient(client)),
       ...buildRealtimePlans(this.isFrenchClient(client) ? 'fr' : 'en'),
-      serverUrl: `${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`,
+      server: webhookServer(`${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`),
       /* Les outils, qui manquaient. Envoyés à CHAQUE synchronisation et non
          seulement à la création: c'est ici que le numéro de transfert saisi
          après l'inscription devient un outil de transfert, et c'est ici que
