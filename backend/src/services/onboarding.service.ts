@@ -100,9 +100,17 @@ export class OnboardingService {
         backgroundSound: env.VOICE_BACKGROUND_SOUND,
       };
 
-      // Only add tools if we have any
+      /* Les outils vivent dans `model`, PAS à la racine de l'assistant.
+         L'API vivante l'a dit: « property tools should not exist », sur les six
+         variantes, le 10/09. Rien dans le code ne le laissait deviner, et le
+         défaut dormait depuis toujours: la racine n'était renseignée que si le
+         client avait un numéro de transfert, c'est-à-dire jamais à
+         l'inscription. Le jour où les outils sont devenus systématiques, la
+         création d'assistant est tombée pour TOUT LE MONDE — le mode d'échec
+         exact du point 6octies, et ce que `voice:validate` existe pour
+         attraper avant un déploiement. */
       if (tools.length > 0) {
-        assistantData.tools = tools;
+        assistantData.model.tools = tools;
       }
 
       const assistant = await this.createAssistantWithRetry(assistantData);
@@ -828,6 +836,16 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
         model: env.VAPI_MODEL,
         temperature: 0.7,
         messages: [{ role: 'system', content: systemPrompt }],
+        /* Les outils, qui manquaient, et qui vivent DANS le modèle: la racine
+           de l'assistant les refuse (« property tools should not exist »).
+           Envoyés à CHAQUE synchronisation et non seulement à la création:
+           c'est ici que le numéro de transfert saisi après l'inscription
+           devient un outil de transfert, et que l'agenda branché la semaine
+           suivante ouvre la prise de rendez-vous.
+           Un tableau vide est envoyé quand il n'y a rien à offrir, jamais
+           rien: omettre le champ laisserait chez Vapi les outils d'une
+           configuration qu'on vient d'annuler. */
+        tools: await this.buildAssistantTools(client.id),
       },
       // Keep the voice in sync when the client switches character.
       voice: buildVoice({
@@ -840,14 +858,6 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
       firstMessage: this.generateFirstMessage(client, this.isFrenchClient(client)),
       ...buildRealtimePlans(this.isFrenchClient(client) ? 'fr' : 'en'),
       server: webhookServer(`${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`),
-      /* Les outils, qui manquaient. Envoyés à CHAQUE synchronisation et non
-         seulement à la création: c'est ici que le numéro de transfert saisi
-         après l'inscription devient un outil de transfert, et c'est ici que
-         l'agenda branché la semaine suivante ouvre la prise de rendez-vous.
-         Un tableau vide est envoyé quand il n'y a rien à offrir, jamais rien:
-         omettre le champ laisserait chez Vapi les outils d'une configuration
-         qu'on vient d'annuler. */
-      tools: await this.buildAssistantTools(client.id),
     };
 
     // Update transfer destinations if transferNumber changed. E.164 or nothing:

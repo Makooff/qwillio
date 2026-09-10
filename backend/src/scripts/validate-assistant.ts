@@ -92,8 +92,8 @@ function probeProfile(lang: VoiceLanguage): ClientVoiceProfile {
     customLlm: false,
     voiceMode: 'auto',
     hasKnowledgeBase: true,
-  // Vide: ce script valide la FORME de la charge, pas le contenu d'un client.
-  knowledgeFields: '',
+    // Vide: ce script valide la FORME de la charge, pas le contenu d'un client.
+    knowledgeFields: '',
     recordCalls: true,
   };
 }
@@ -106,6 +106,11 @@ function candidate(lang: VoiceLanguage, speechToSpeech: boolean) {
       provider: 'openai',
       model: env.VAPI_MODEL,
       messages: [{ role: 'system', content: 'Validation.' }],
+      /* Les outils vivent DANS le modèle. Posés à la racine, Vapi répond
+         « property tools should not exist » — ce que ce script vient de
+         démontrer sur les six variantes, et que rien dans le code ne laissait
+         deviner. */
+      tools: buildVoiceTools(probeProfile(lang)),
     },
     /* Une voix quelconque: ce qu'on teste est la FORME des plans, pas le
        timbre. Un identifiant ElevenLabs public suffit et évite de dépendre
@@ -121,7 +126,6 @@ function candidate(lang: VoiceLanguage, speechToSpeech: boolean) {
        Ces champs-là partent à chaque inscription et à chaque enregistrement de
        paramètres, et aucun n'était validé: un seul refusé emporte l'assistant
        entier, donc tous les appels du client. */
-    tools: buildVoiceTools(probeProfile(lang)),
     /* `server`, la forme RÉELLE de la production, en-tête de secret compris.
        Valider `serverUrl` seul laisserait justement passer le champ qu'on
        vient d'ajouter, c'est-à-dire le seul qui n'a jamais été soumis à
