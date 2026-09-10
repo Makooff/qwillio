@@ -521,14 +521,46 @@ export class AuthController {
 
   async googleAuth(req: Request, res: Response) {
     try {
-      const { credential, access_token } = req.body;
-      if (!credential && !access_token) {
+      const { credential, access_token, code } = req.body;
+      if (!credential && !access_token && !code) {
         return res.status(400).json({ error: 'Google credential required' });
       }
 
       let payload: { sub: string; email: string; name?: string } | null = null;
 
-      if (credential) {
+      if (code) {
+        /* Flux par CODE d'autorisation, celui que Google demande.
+         *
+         * Le code est échangé ICI, avec le secret client, contre un jeton
+         * d'identité signé. Rien d'exploitable ne transite par le navigateur:
+         * un code intercepté ne vaut rien sans le secret, et il ne sert qu'une
+         * fois. C'est ce qui remplace le flux implicite, où un jeton d'accès
+         * utilisable était remis au navigateur.
+         *
+         * `postmessage` est l'URI de redirection conventionnelle du mode popup
+         * de la bibliothèque cliente: le code revient par un message entre
+         * fenêtres et non par une redirection, mais l'échange doit citer la
+         * même valeur, sinon Google refuse.
+         *
+         * Les deux autres chemins restent acceptés. Le site et l'API se
+         * déploient séparément: les retirer maintenant déconnecterait tout le
+         * monde pendant l'intervalle où l'un des deux est en avance. */
+        const exchange = new OAuth2Client(env.GOOGLE_CLIENT_ID, env.GOOGLE_CLIENT_SECRET, 'postmessage');
+        let idToken: string | undefined;
+        try {
+          const { tokens } = await exchange.getToken(code);
+          idToken = tokens.id_token ?? undefined;
+        } catch (err: any) {
+          logger.warn(`[Auth] échange du code Google refusé: ${err?.message ?? 'raison inconnue'}`);
+          return res.status(401).json({ error: 'Invalid Google code' });
+        }
+        if (!idToken) return res.status(401).json({ error: 'Invalid Google code' });
+
+        const ticket = await googleClient.verifyIdToken({ idToken, audience: env.GOOGLE_CLIENT_ID });
+        const p = ticket.getPayload();
+        if (!p?.email) return res.status(401).json({ error: 'Invalid Google token' });
+        payload = { sub: p.sub!, email: p.email, name: p.name };
+      } else if (credential) {
         // ID token flow (legacy / desktop)
         const ticket = await googleClient.verifyIdToken({
           idToken: credential,

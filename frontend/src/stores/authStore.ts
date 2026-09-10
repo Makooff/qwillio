@@ -11,7 +11,7 @@ interface AuthState {
      était avalé côté serveur, et l'inscrit attendait un message qui ne
      viendrait jamais: l'écran d'activation doit pouvoir le dire. */
   register: (email: string, password: string, name: string) => Promise<{ confirmationEmailSent: boolean }>;
-  googleLogin: (token: string, type?: 'credential' | 'token') => Promise<void>;
+  googleLogin: (token: string, type?: 'credential' | 'token' | 'code') => Promise<void>;
   logout: () => void;
   checkAuth: () => Promise<void>;
 }
@@ -59,8 +59,16 @@ export const useAuthStore = create<AuthState>((set) => ({
     return { confirmationEmailSent: data.confirmationEmailSent !== false };
   },
 
-  googleLogin: async (token: string, type: 'credential' | 'token' = 'credential') => {
-    const body = type === 'token' ? { access_token: token } : { credential: token };
+  googleLogin: async (token: string, type: 'credential' | 'token' | 'code' = 'credential') => {
+    /* `code` est le flux que Google demande: le navigateur ne reçoit qu'un code
+       à usage unique, échangé côté serveur avec le secret client. Le flux
+       implicite, qui remettait un jeton d'accès utilisable directement au
+       navigateur, est ce que la console signalait comme vulnérable à
+       l'usurpation. Les deux autres formes restent acceptées par l'API le temps
+       que les deux déploiements se rejoignent. */
+    const body = type === 'code'
+      ? { code: token }
+      : type === 'token' ? { access_token: token } : { credential: token };
     const { data } = await postAuthWithWakeRetry('/auth/google', body);
     localStorage.setItem('token', data.token);
     set({ user: data.user, token: data.token, isLoading: false });
