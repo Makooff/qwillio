@@ -49,6 +49,10 @@ vi.mock('../voice/realtime-context.service', () => ({
     getClientProfile: (...a: unknown[]) => { order.push('read'); return getClientProfile(...a); },
     invalidateClient: (...a: unknown[]) => { order.push('invalidate'); return invalidateClient(...a); },
   },
+  /* La vraie règle, pas un `true` de confort: l'assistant enregistré décide
+     d'enregistrer par cette fonction, et un faux ici masquerait le jour où
+     elle cesserait d'être consultée. */
+  shouldRecord: (profile: { recordCalls?: boolean }) => profile?.recordCalls !== false,
 }));
 
 vi.mock('../voice/greeting-audio.service', () => ({

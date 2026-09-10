@@ -596,6 +596,26 @@ PARLE se pose sur l'assistant enregistré, par les deux écritures de
 lit l'assistant DISTANT et reste la seule réponse à « qu'est-ce qui tourne
 vraiment ».
 
+### 6duovicies. Le drapeau d'enregistrement ne suivait pas le réglage (10/09/2026)
+Cinquième trou de la famille 6quindecies, et le seul qui touche la conformité.
+DEUX drapeaux ont coexisté : `disableRecordingNotice`, l'historique, et
+`recordCalls`, celui que le portail écrit. Le PROFIL honore les deux, et c'est
+lui qui décide de la notice dans l'accueil. L'assistant ENREGISTRÉ ne lisait que
+l'historique, et la synchronisation ne portait pas le champ **du tout**.
+Conséquence exacte : un client coupe l'enregistrement dans le portail, la notice
+disparaît de son accueil (l'accueil passe par le profil), et son assistant
+distant continue d'enregistrer, pour toujours. **Un appel enregistré sans que
+l'appelant en ait été informé**, c'est-à-dire l'inverse de ce que dit le
+commentaire posé juste au-dessus de la ligne fautive.
+Les deux écritures lisent désormais `shouldRecord(profile)`, la même fonction
+que l'accueil, et le champ voyage à chaque synchronisation. Le repli, quand le
+profil est illisible, penche vers l'enregistrement : l'accueil suivant la même
+source, il annoncera la notice, donc le doute ne fabrique jamais d'enregistrement
+caché.
+**La règle** : deux drapeaux qui décrivent la même chose finissent toujours par
+diverger. Quand un réglage acquiert une seconde forme, l'ancienne devient un
+repli lu au même endroit que la nouvelle, jamais une seconde règle lue ailleurs.
+
 ### 6sexdecies. `voice:validate` ne validait pas la charge de production (10/09/2026)
 Il couvrait les plans, pas `tools`, `serverUrl`, `forwardingPhoneNumber`,
 `endCallFunctionEnabled`, `recordingEnabled` ni `backgroundSound` — exactement

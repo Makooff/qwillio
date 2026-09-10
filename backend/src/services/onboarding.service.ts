@@ -9,7 +9,7 @@ import { getPersonaPrompt, PERSONALITY_PROMPTS } from '../config/personalities';
 import { buildRealtimePlans, buildVoice, type VoiceLanguage } from './voice/speech-plans';
 import { fitAssistantName } from './voice/vapi-limits';
 import { webhookServer } from './voice/webhook-identity';
-import { realtimeContextService } from './voice/realtime-context.service';
+import { realtimeContextService, shouldRecord } from './voice/realtime-context.service';
 import { buildVoiceTools } from './voice/voice-tools';
 import { greetingAudioService } from './voice/greeting-audio.service';
 import { toE164 } from '../utils/phone';
@@ -107,7 +107,7 @@ export class OnboardingService {
         endCallFunctionEnabled: true,
         // Même règle que le runtime: refuser la notice, c'est refuser
         // l'enregistrement — jamais un enregistrement silencieux.
-        recordingEnabled: ((client?.vapiConfig as any)?.disableRecordingNotice !== true),
+        recordingEnabled: speech?.recording ?? ((client?.vapiConfig as any)?.disableRecordingNotice !== true),
         backgroundSound: env.VOICE_BACKGROUND_SOUND,
       };
 
@@ -925,12 +925,23 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
     }
   }
 
-  private async speechProfile(clientId: string): Promise<{ language: VoiceLanguage; vocabulary: string[] } | null> {
+  private async speechProfile(
+    clientId: string,
+  ): Promise<{ language: VoiceLanguage; vocabulary: string[]; recording: boolean } | null> {
     const profile = await realtimeContextService.getClientProfile(clientId);
     if (!profile) return null;
     return {
       language: profile.language,
       vocabulary: [profile.businessName, profile.agentName, ...(profile.services ?? [])],
+      /* La MÊME décision que l'accueil, prise au même endroit (LEG-2/LEG-5).
+         Elle se lisait ici sur `disableRecordingNotice` seul, le drapeau
+         historique, alors que le portail écrit `recordCalls` et que le profil
+         honore les deux. Un client qui coupait l'enregistrement voyait donc la
+         notice disparaître de l'accueil — celui-ci passe par le profil — et son
+         assistant continuait d'enregistrer. Un appel enregistré sans que
+         l'appelant en soit informé, c'est-à-dire exactement ce que le
+         commentaire d'à côté interdit. */
+      recording: shouldRecord(profile),
     };
   }
 
@@ -1009,6 +1020,13 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
       firstMessage,
       ...buildRealtimePlans(syncLang, false, { vocabulary: syncSpeech?.vocabulary ?? [] }),
       server: webhookServer(`${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`),
+      /* Le drapeau d'enregistrement ne voyageait PAS du tout ici: il était posé
+         à l'inscription et plus jamais relu. Un client qui coupait
+         l'enregistrement dans le portail gardait donc un assistant distant qui
+         enregistre, pour toujours, et la notice avait disparu de son accueil.
+         C'est le sens qui coûte: on n'enregistre jamais quelqu'un qui n'a pas
+         été prévenu. */
+      recordingEnabled: syncSpeech?.recording ?? true,
     };
 
     // Update transfer destinations if transferNumber changed. E.164 or nothing:
