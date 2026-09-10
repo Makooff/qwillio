@@ -1605,6 +1605,60 @@ export class ClientDashboardController {
     }
   }
 
+  /**
+   * GET /my-dashboard/knowledge/gaps — ce que l'agent n'a pas su répondre.
+   *
+   * Les questions posées par de vrais appelants et restées sans réponse, la
+   * plus posée en tête. C'est la moitié visible de la boucle d'apprentissage:
+   * l'appel les recueille, cet écran les pose au gérant, et sa réponse devient
+   * une entrée que l'appelant suivant entendra.
+   */
+  async listKnowledgeGaps(req: any, res: Response) {
+    try {
+      const { knowledgeGapService } = await import('../services/voice/knowledge-gap.service');
+      res.json({ gaps: await knowledgeGapService.open(req.clientId) });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  /** POST /my-dashboard/knowledge/gaps/:id/answer  { answer, title? } */
+  async answerKnowledgeGap(req: any, res: Response) {
+    try {
+      const answer = typeof req.body?.answer === 'string' ? req.body.answer : '';
+      if (!answer.trim()) return res.status(400).json({ error: 'Réponse vide' });
+
+      const { knowledgeGapService } = await import('../services/voice/knowledge-gap.service');
+      /* Le `clientId` du JETON, jamais celui de la requête: l'identifiant de la
+         question est le seul paramètre que l'appelant fournit, et il se devine.
+         Le service refuse une question qui n'appartient pas à ce client. */
+      const result = await knowledgeGapService.answer({
+        clientId: req.clientId,
+        gapId: String(req.params.id),
+        answer,
+        title: typeof req.body?.title === 'string' ? req.body.title : undefined,
+      });
+      if (!result.ok) {
+        return res.status(result.reason === 'not_found' ? 404 : 409).json({ error: result.reason });
+      }
+      res.json({ success: true, entryId: result.entryId });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  /** POST /my-dashboard/knowledge/gaps/:id/dismiss */
+  async dismissKnowledgeGap(req: any, res: Response) {
+    try {
+      const { knowledgeGapService } = await import('../services/voice/knowledge-gap.service');
+      const done = await knowledgeGapService.dismiss(req.clientId, String(req.params.id));
+      if (!done) return res.status(404).json({ error: 'not_found' });
+      res.json({ success: true });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
   // POST /my-dashboard/knowledge
   async createKnowledge(req: any, res: Response) {
     try {

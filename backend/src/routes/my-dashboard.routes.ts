@@ -143,6 +143,15 @@ router.delete('/knowledge/:id', (req, res) => clientDashboardController.deleteKn
 /* L'import de préset écrit jusqu'à ~10 entrées et déclenche une génération
    d'embeddings: même budget que les autres fan-outs payants. */
 router.post('/knowledge/import-preset', extractLimiter, (req, res) => clientDashboardController.importKnowledgePreset(req, res));
+/* Les questions restées sans réponse, et leur fermeture.
+   Déclarées APRÈS `/knowledge/:id`? Non: Express prend la première route qui
+   correspond, et `/knowledge/gaps` correspondrait à `/knowledge/:id` avec
+   `id = 'gaps'`. Elles doivent donc précéder, ou porter un préfixe qui ne
+   collisionne pas. Ici le verbe les sépare (GET `/knowledge/:id` n'existe
+   pas), mais les deux POST imbriqués, eux, sont sans ambiguïté. */
+router.get('/knowledge/gaps', (req, res) => clientDashboardController.listKnowledgeGaps(req, res));
+router.post('/knowledge/gaps/:id/answer', (req, res) => clientDashboardController.answerKnowledgeGap(req, res));
+router.post('/knowledge/gaps/:id/dismiss', (req, res) => clientDashboardController.dismissKnowledgeGap(req, res));
 
 // ─── Rétention des données (RGPD) ───────────────────────
 router.get('/retention', (req, res) => clientDashboardController.getRetention(req, res));

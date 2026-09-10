@@ -6,6 +6,7 @@ import { smsService } from './sms.service';
 import { callNotificationService } from './call-notification.service';
 import { googleCalendarService } from './google-calendar.service';
 import { spamDetectionService } from './spam-detection.service';
+import { knowledgeGapService } from './voice/knowledge-gap.service';
 import { readEndedReason, transferFunnel } from './voice/call-outcome';
 
 export class ClientCallService {
@@ -102,6 +103,20 @@ export class ClientCallService {
       // lastCallDate, so it never eats into the client's quota. "Spam doesn't
       // count against you" is a selling point of the shield.
       return clientCall;
+    }
+
+    /* ── Ce que l'agent n'a pas su dire, retenu pour la prochaine fois ──
+       Après le court-circuit spam, volontairement: un robot qui pose des
+       questions n'a pas à dicter ce que le gérant doit documenter.
+       `void` et non `await`: c'est un supplément. Perdre une question coûte de
+       la reposer; faire échouer cette fonction coûterait la transcription,
+       l'analyse, le CRM et l'alerte de l'appel. */
+    if (analysis.unansweredQuestions?.length) {
+      const lang = client.agentLanguage === 'nl' ? 'nl' : client.agentLanguage === 'en' ? 'en' : 'fr';
+      for (const question of analysis.unansweredQuestions.slice(0, 3)) {
+        if (typeof question !== 'string') continue;
+        void knowledgeGapService.record({ clientId, question, language: lang, source: 'transcript' });
+      }
     }
 
     // ── CRM: l'appel devient un contact et une ligne de son historique ──
@@ -325,7 +340,8 @@ Return a JSON object with:
 - specialRequests: any special requests mentioned (string or null)
 - isLead: is this person a potential customer/qualified lead? (boolean)
 - leadScore: lead quality score 1-10 (number)
-- tags: relevant tags like ["new_customer", "complaint", "urgent", "vip", "repeat_customer"] (string[])`,
+- tags: relevant tags like ["new_customer", "complaint", "urgent", "vip", "repeat_customer"] (string[])
+- unansweredQuestions: questions the CALLER asked that the receptionist could not answer, each in the caller's own words, at most 3. Only genuine gaps in business knowledge (prices, hours, services, policies) — never a question the receptionist answered, and never something only the caller could know such as their own name or booking. Empty array when there is none. (string[])`,
             },
             {
               role: 'user',
@@ -357,6 +373,7 @@ Return a JSON object with:
         isLead: false,
         leadScore: 3,
         tags: [],
+        unansweredQuestions: [],
       };
     }
   }
@@ -506,6 +523,16 @@ interface ClientCallAnalysis {
   isLead: boolean;
   leadScore: number;
   tags: string[];
+  /**
+   * Les questions restées sans réponse, dans les mots de l'appelant.
+   *
+   * Relevées ICI et pas seulement par l'outil de consultation, parce que
+   * l'outil n'est attaché qu'aux clients qui ont DÉJÀ une base de
+   * connaissances: un client qui n'en a aucune, c'est-à-dire celui qui a le
+   * plus à apprendre, n'aurait jamais rien appris. L'analyse tourne de toute
+   * façon sur chaque appel; ce champ ne coûte que quelques mots de réponse.
+   */
+  unansweredQuestions?: string[];
 }
 
 export const clientCallService = new ClientCallService();
