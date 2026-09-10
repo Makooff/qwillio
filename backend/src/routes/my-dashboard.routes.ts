@@ -44,6 +44,10 @@ router.use(clientMiddleware);
 // ─── Dashboard data ─────────────────────────────────────
 router.get('/overview', (req, res) => clientDashboardController.getMyOverview(req, res));
 router.get('/calls', (req, res) => clientDashboardController.getMyCalls(req, res));
+/* Où les appelants s'arrêtent, découpé par index de tour (TST-9). Pas derrière
+   `advancedAnalytics`: un abandon au premier tour est une panne d'installation,
+   pas une finesse d'analyse, et c'est le petit forfait qui en a le plus besoin. */
+router.get('/calls/abandonment', (req, res) => clientDashboardController.getCallAbandonment(req, res));
 router.get('/bookings', (req, res) => clientDashboardController.getMyBookings(req, res));
 router.get('/leads', (req, res) => clientDashboardController.getMyLeads(req, res));
 /* « Analytiques avancées » est vendue à partir de Pro sur la page tarifs. La

@@ -12,6 +12,7 @@ import { fetchLive, peekLive, subscribeLive } from '../../services/liveData';
 import SentimentBadge from '../../components/client-dashboard/SentimentBadge';
 import Pagination from '../../components/client-dashboard/Pagination';
 import EmptyState from '../../components/client-dashboard/EmptyState';
+import AbandonByTurn from '../../components/client-dashboard/AbandonByTurn';
 import { formatDuration, formatDateTime, exportToCSV } from '../../utils/format';
 import PageHeader from '../../components/dashboard/PageHeader';
 import { parseTranscript } from '../../utils/transcript';
@@ -312,6 +313,12 @@ export default function ClientCalls() {
           children: FILTER_PANEL,
         }}
       />
+
+      {/* Où ils s'arrêtent, avant la liste: un abandon au premier tour est une
+          panne d'installation, et la lire dans une liste d'appels un par un ne
+          la fait jamais apparaître. L'encart s'efface tout seul tant qu'il n'y
+          a pas d'appel à décrire. */}
+      <AbandonByTurn />
 
       {/* Content */}
       {loading ? (
