@@ -346,7 +346,31 @@ class RealtimeOrchestratorService {
     const text: string = msg.transcript ?? event.transcript ?? '';
     const isFinal = (msg.transcriptType ?? 'final') === 'final';
 
-    if (!isFinal || !text.trim()) return null;
+    if (!text.trim()) return null;
+
+    /* La PARTIELLE ne sert qu'à une chose: lancer la lecture d'agenda pendant
+       que l'appelant parle encore.
+     *
+     * « mardi » apparaît au transcript bien avant que l'appelant ait fini sa
+     * phrase, et la lecture Google prend 400 à 900 ms. Attendre la finale,
+     * c'est-à-dire le silence de fin de tour, revenait à jeter tout le temps
+     * de parole qui restait: la spéculation partait au moment précis où le
+     * modèle allait de toute façon la demander.
+     *
+     * Rien d'autre ne se fait ici. Le transcript, l'humeur, les marques de
+     * latence et le routage d'intention se posent tous sur du TEXTE DÉFINITIF:
+     * une partielle se réécrit au mot suivant, et un tour compté deux fois ou
+     * une humeur assise sur une demi-phrase seraient des données fausses, pas
+     * des données précoces. La lecture d'agenda est la seule chose qui puisse
+     * se tromper sans conséquence, parce qu'elle ne fait que LIRE. */
+    if (!isFinal) {
+      const partialSession = callSessionStore.get(vapiCallId);
+      if (role === 'user' && partialSession) {
+        const early = detectDate(text, partialSession.language);
+        if (early) availabilitySpeculator.speculate(partialSession.clientId, vapiCallId, early);
+      }
+      return null;
+    }
 
     const session = callSessionStore.get(vapiCallId);
     callSessionStore.appendTranscript(vapiCallId, role, text);

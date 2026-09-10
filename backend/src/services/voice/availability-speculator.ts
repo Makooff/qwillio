@@ -110,6 +110,23 @@ export function detectDate(utterance: string, lang: VoiceLanguage, now = new Dat
 class AvailabilitySpeculator {
   private cache = new Map<string, CachedSlots>();
   private counts = new Map<string, number>();
+  /**
+   * Lectures EN VOL, par clé de jour.
+   *
+   * Le cache ne se remplit qu'au RETOUR de Google, 400 à 900 ms plus tard.
+   * Pendant cette fenêtre, deux demandes pour le même jour ne se voient pas
+   * l'une l'autre: elles partent toutes les deux. C'était supportable tant que
+   * la spéculation ne partait qu'à la transcription finale, une fois par tour;
+   * ça ne l'est plus depuis qu'elle part aussi sur les partielles, qui
+   * arrivent plusieurs fois par seconde et répètent le même mot. Sans ce
+   * registre, « mardi » dit une fois épuiserait le budget de l'appel et
+   * enverrait quatre requêtes identiques en moins d'une seconde.
+   *
+   * Il sert deux fois: le VRAI appel d'outil rejoint lui aussi la lecture en
+   * cours au lieu d'en lancer une seconde. C'est exactement le cas que ce
+   * module existe pour optimiser, et il le manquait.
+   */
+  private pending = new Map<string, Promise<string[]>>();
 
   private key(clientId: string, date: Date): string {
     return `${clientId}:${date.toISOString().slice(0, 10)}`;
@@ -127,6 +144,22 @@ class AvailabilitySpeculator {
     const hit = this.cache.get(key);
     if (hit && hit.expiresAt > Date.now()) return hit.slots;
 
+    /* Une lecture déjà partie pour ce jour: on l'attend plutôt que d'en lancer
+       une seconde. Un échec partagé est le même échec que celui qu'un second
+       appel aurait rencontré seul. */
+    const inFlight = this.pending.get(key);
+    if (inFlight) return inFlight;
+
+    const lookup = this.lookup(clientId, date, key);
+    this.pending.set(key, lookup);
+    /* Le retrait est attaché ici et non dans `lookup`, pour qu'il ait lieu que
+       la lecture réussisse ou non: une clé restée coincée en vol bloquerait
+       toute lecture de ce jour pour le reste de la vie du process. */
+    void lookup.catch(() => {}).finally(() => this.pending.delete(key));
+    return lookup;
+  }
+
+  private async lookup(clientId: string, date: Date, key: string): Promise<string[]> {
     const client = await prisma.client.findUnique({
       where: { id: clientId },
       select: { googleCalendarRefreshToken: true, googleCalendarId: true },
@@ -149,13 +182,17 @@ class AvailabilitySpeculator {
    * immediately; the result lands in the cache.
    */
   speculate(clientId: string, vapiCallId: string | null, date: Date): void {
-    const budgetKey = vapiCallId ?? clientId;
-    const used = this.counts.get(budgetKey) ?? 0;
-    if (used >= MAX_SPECULATIONS_PER_CALL) return;
-
     const key = this.key(clientId, date);
     const hit = this.cache.get(key);
     if (hit && hit.expiresAt > Date.now()) return;
+    /* En vol: ni requête, ni budget. L'ordre compte — dépenser le budget avant
+       de regarder rendrait la répétition d'une partielle coûteuse alors qu'elle
+       ne demande rien de neuf. */
+    if (this.pending.has(key)) return;
+
+    const budgetKey = vapiCallId ?? clientId;
+    const used = this.counts.get(budgetKey) ?? 0;
+    if (used >= MAX_SPECULATIONS_PER_CALL) return;
 
     this.counts.set(budgetKey, used + 1);
     void this.freeSlots(clientId, date)
@@ -172,6 +209,7 @@ class AvailabilitySpeculator {
   reset(): void {
     this.cache.clear();
     this.counts.clear();
+    this.pending.clear();
   }
 }
 
