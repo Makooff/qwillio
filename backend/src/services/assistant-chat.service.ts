@@ -27,6 +27,29 @@ export interface ChatResult {
 
 const MAX_TOOL_ROUNDS = 4;
 
+/**
+ * Ce que l'assistant vient de FAIRE, dit à part de ce qu'il RÉPOND.
+ *
+ * Le chat racontait ses actions dans sa propre phrase, ou ne les racontait pas:
+ * « c'est noté » ne dit pas ce qui a été noté, et un enregistrement silencieux
+ * ne se distingue pas d'un enregistrement raté. Le gérant relisait donc ses
+ * réglages pour vérifier, ce qui annule l'intérêt de parler à un assistant.
+ *
+ * Machine-lisible, jamais rédigé ici: le libellé appartient à l'écran, qui
+ * connaît la langue de la page. Une phrase française fabriquée côté serveur
+ * s'afficherait telle quelle à un client anglophone.
+ */
+export interface ChatActivity {
+  /** Le nom de l'outil, tel que le modèle l'a appelé. */
+  tool: string;
+  /** Les champs réellement écrits, pour `update_config`. */
+  fields?: string[];
+  /** Le nombre d'éléments, pour les outils qui lisent une liste. */
+  count?: number;
+  /** Faux quand l'outil a refusé: l'écran doit pouvoir le dire. */
+  ok?: boolean;
+}
+
 const TOOLS = [
   {
     type: 'function',
@@ -174,6 +197,7 @@ export class AssistantChatService {
     messages: ChatMessage[],
     mode: ChatMode = 'config',
     onDelta: (text: string) => void = () => { /* noop */ },
+    onActivity: (activity: ChatActivity) => void = () => { /* noop */ },
   ): Promise<ChatResult> {
     if (!env.OPENAI_API_KEY) {
       return {
@@ -226,11 +250,15 @@ export class AssistantChatService {
         if (call.function?.name === 'complete_onboarding') {
           if (mode === 'onboarding') completed = true;
           convo.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify({ ok: completed }) });
+          onActivity({ tool: 'complete_onboarding', ok: completed });
           continue;
         }
         const { output, changed } = await this.runTool(clientId, call, () => config, (c) => { config = c; });
         if (changed) configChanged = true;
         convo.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify(output) });
+        /* Émis APRÈS l'exécution, jamais avant: une action annoncée puis
+           refusée est pire que pas d'annonce du tout. */
+        onActivity(summariseTool(call.function?.name, output));
       }
     }
 
@@ -500,6 +528,36 @@ export class AssistantChatService {
       return null;
     }
   }
+}
+
+/**
+ * Ce qu'un outil a fait, réduit à ce qui se montre.
+ *
+ * Exportée pour être testable seule: c'est la fonction qui décide si le gérant
+ * lit « horaires enregistrés » ou « c'est noté », et elle ne devrait pas
+ * demander une conversation entière pour être vérifiée.
+ *
+ * La sortie d'un outil est produite par ce fichier, jamais par le modèle: les
+ * champs lus ici existent parce que `runTool` les écrit. Un `output` d'une
+ * forme inattendue rend une activité sans détail plutôt qu'une erreur, parce
+ * qu'une confirmation est un supplément et ne doit pas casser une réponse.
+ */
+export function summariseTool(tool: string | undefined, output: unknown): ChatActivity {
+  const name = tool || 'unknown';
+  const body = (output ?? {}) as Record<string, unknown>;
+
+  if (name === 'update_config') {
+    const fields = Array.isArray(body.applied) ? (body.applied as string[]) : [];
+    return { tool: name, fields, ok: body.ok !== false };
+  }
+  if (name === 'answer_knowledge_gap') {
+    return { tool: name, ok: body.ok === true };
+  }
+  if (Array.isArray(output)) {
+    // `list_characters` et `list_knowledge_gaps` rendent un tableau nu.
+    return { tool: name, count: output.length, ok: true };
+  }
+  return { tool: name, ok: true };
 }
 
 export const assistantChatService = new AssistantChatService();

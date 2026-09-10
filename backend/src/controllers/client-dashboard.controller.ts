@@ -617,6 +617,10 @@ export class ClientDashboardController {
       const result = await assistantChatService.chatStream(
         req.clientId, messages, mode,
         (delta) => send({ delta }),
+        /* Ce que l'assistant vient de FAIRE, sur le même flux que ce qu'il dit.
+           Machine-lisible: le libellé est écrit par l'écran, qui connaît la
+           langue de la page. */
+        (activity) => send({ activity }),
       );
       send({ done: true, configChanged: result.configChanged, completed: result.completed });
     } catch (error: any) {

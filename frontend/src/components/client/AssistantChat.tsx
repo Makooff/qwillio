@@ -12,7 +12,16 @@ const cn = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).jo
 
 /** Modes the backend understands. Onboarding keeps its own tool to finish setup. */
 type Mode = 'config' | 'onboarding' | 'receptionist';
-interface Msg { role: 'user' | 'assistant'; content: string }
+interface Msg { role: 'user' | 'assistant'; content: string; activity?: Activity[] }
+
+/**
+ * Ce que l'assistant vient de faire, tel que le serveur l'envoie.
+ *
+ * Machine-lisible, et c'est voulu: le libellé s'écrit ici, où la langue de la
+ * page est connue. Une phrase française fabriquée côté serveur s'afficherait
+ * telle quelle à un client anglophone.
+ */
+interface Activity { tool: string; fields?: string[]; count?: number; ok?: boolean }
 
 /**
  * The composer used to carry a mode switch — "Assistant" vs "Call test".
@@ -99,6 +108,78 @@ function blobToBase64(blob: Blob): Promise<string> {
  * Une boucle, donc des keyframes: c'est le seul cas où elles valent mieux
  * qu'une transition, puisque rien ici n'est interruptible par l'utilisateur.
  */
+/**
+ * Ce que l'assistant vient de faire, sous ce qu'il vient de dire.
+ *
+ * Le chat racontait ses actions dans sa propre phrase, ou pas du tout: « c'est
+ * noté » ne dit pas ce qui a été noté, et un enregistrement silencieux ne se
+ * distingue pas d'un enregistrement raté. Le gérant rouvrait donc ses réglages
+ * pour vérifier, ce qui annule l'intérêt d'avoir parlé à un assistant.
+ *
+ * Une LIGNE, pas des cartes. C'est un accusé de réception, pas un contenu: en
+ * gris, en petit, sous la réponse, il se lit d'un coup d'œil et ne se lit pas
+ * quand on ne le cherche pas. Trois bulles pour trois outils feraient l'inverse.
+ *
+ * Les lectures ne s'affichent pas. Consulter la configuration ou lister les
+ * personnages ne change rien chez le client: l'annoncer ferait du bruit sur les
+ * seules lignes qui comptent, celles qui ont ÉCRIT quelque chose.
+ */
+function ActivityTrail({ items, isFr }: { items: Activity[]; isFr: boolean }) {
+  /** Le nom d'un champ, dans la langue de la page. */
+  const fieldLabel = (f: string): string => {
+    const fr: Record<string, string> = {
+      hours: 'horaires',
+      items: 'services et tarifs',
+      faq: 'FAQ',
+      personalityNotes: 'ton',
+      personalityPreset: 'ton',
+      characterId: 'voix',
+      transferNumber: 'numéro de transfert',
+    };
+    const en: Record<string, string> = {
+      hours: 'hours',
+      items: 'services and prices',
+      faq: 'FAQ',
+      personalityNotes: 'tone',
+      personalityPreset: 'tone',
+      characterId: 'voice',
+      transferNumber: 'transfer number',
+    };
+    return (isFr ? fr : en)[f] ?? f;
+  };
+
+  const lines = items.map(a => {
+    if (a.tool === 'update_config') {
+      const fields = a.fields ?? [];
+      // Sans champ nommé, rien n'a été écrit: la ligne mentirait.
+      if (!fields.length) return null;
+      const named = fields.map(fieldLabel).join(', ');
+      return isFr ? `${named} enregistré${fields.length > 1 ? 's' : ''}` : `${named} saved`;
+    }
+    if (a.tool === 'answer_knowledge_gap') {
+      if (!a.ok) return null;
+      return isFr ? 'Réponse ajoutée à la base de connaissances' : 'Answer added to the knowledge base';
+    }
+    if (a.tool === 'complete_onboarding' && a.ok) {
+      return isFr ? 'Configuration terminée' : 'Setup complete';
+    }
+    return null;
+  }).filter((l): l is string => l !== null);
+
+  if (!lines.length) return null;
+
+  return (
+    <div className="mt-1.5 flex flex-col gap-0.5">
+      {lines.map((line, i) => (
+        <span key={i} className="flex items-center gap-1.5 text-[12.5px] leading-tight text-[#8B8BA7]">
+          <Check size={11} className="shrink-0" />
+          {line}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function ThinkingDots({ reduceMotion }: { reduceMotion: boolean }) {
   return (
     <span className="flex items-center gap-1 py-1" aria-label="…">
@@ -520,6 +601,18 @@ export default function AssistantChat({
           if (typeof payload.delta === 'string' && payload.delta) {
             received = true;
             appendToLast(c => c + payload.delta);
+          }
+          if (payload.activity) {
+            /* Rangée sur la carte en cours, pas ajoutée comme un message: c'est
+               un attribut de CETTE réponse, et une carte de plus par outil
+               ferait trois bulles là où l'assistant a dit une phrase. */
+            setMessages(m => {
+              const i = m.length - 1;
+              if (i < 0 || m[i].role !== 'assistant') return m;
+              const copy = m.slice();
+              copy[i] = { ...copy[i], activity: [...(copy[i].activity ?? []), payload.activity] };
+              return copy;
+            });
           }
           if (payload.done) {
             if (payload.configChanged) onConfigChanged?.();
@@ -1003,7 +1096,13 @@ export default function AssistantChat({
             >
               <div
                 className={cn(
+                  /* `font-light` (300), demande utilisateur, et Outfit le
+                     charge déjà (`index.html`). Sur SA réponse seulement: le
+                     texte nu, long et lu en continu, respire à 300; ce que
+                     VOUS avez écrit reste à 400, dans sa carte claire, parce
+                     que c'est la relecture de vos propres mots. */
                   'max-w-[82%] text-[15px] leading-[1.38] whitespace-pre-wrap',
+                  mine ? '' : 'font-light',
                   /* ELLE N'A PLUS DE CARTE (demande utilisateur).
                      Encadrer ses réponses revenait à encadrer la moitié de
                      l'écran: une conversation faite de deux colonnes de cartes
@@ -1027,6 +1126,9 @@ export default function AssistantChat({
                 {/* Rien à charger: la carte est déjà là, elle respire le temps
                     que le premier mot arrive, puis le texte la remplit. */}
                 {awaiting ? <ThinkingDots reduceMotion={reduceMotion} /> : m.content}
+                {!mine && m.activity?.length ? (
+                  <ActivityTrail items={m.activity} isFr={isFr} />
+                ) : null}
               </div>
             </motion.div>
           );
