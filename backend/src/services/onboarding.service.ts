@@ -6,7 +6,7 @@ import { emailService } from './email.service';
 import { discordService } from './discord.service';
 import { resolveCharacter } from '../config/voice-characters';
 import { getPersonaPrompt, PERSONALITY_PROMPTS } from '../config/personalities';
-import { buildRealtimePlans, buildVoice } from './voice/speech-plans';
+import { buildRealtimePlans, buildVoice, type VoiceLanguage } from './voice/speech-plans';
 import { fitAssistantName } from './voice/vapi-limits';
 import { webhookServer } from './voice/webhook-identity';
 import { realtimeContextService } from './voice/realtime-context.service';
@@ -67,6 +67,11 @@ export class OnboardingService {
          décroche (le numéro entrant porte son identifiant), il n'en gagnait
          aucun ensuite. Voir le commentaire de `syncVapiAssistant`. */
       const tools = await this.buildAssistantTools(client.id);
+      /* Lu APRÈS `buildAssistantTools`, qui vient de vider le cache: sans ça,
+         la langue et le vocabulaire seraient ceux d'avant l'enregistrement. */
+      const speech = await this.speechProfile(client.id);
+      const lang: VoiceLanguage = speech?.language
+        ?? (client?.agentLanguage === 'nl' ? 'nl' : isFrClient ? 'fr' : 'en');
 
       const assistantData: any = {
         name: fitAssistantName('Receptionist', client.businessName),
@@ -84,10 +89,10 @@ export class OnboardingService {
           stability: character.stability,
           similarityBoost: character.similarityBoost,
           style: character.style,
-          lang: client?.agentLanguage === 'nl' ? 'nl' : isFrClient ? 'fr' : 'en',
+          lang,
         }),
         firstMessage: this.generateFirstMessage(client, isFrClient),
-        ...buildRealtimePlans(client?.agentLanguage === 'nl' ? 'nl' : isFrClient ? 'fr' : 'en'),
+        ...buildRealtimePlans(lang, false, { vocabulary: speech?.vocabulary ?? [] }),
         /* `server` et non plus `serverUrl` seul: il porte l'URL ET le secret
            que Vapi doit nous renvoyer. Sans lui, nos endpoints répondaient 401
            dès que le réglage jumeau du tableau de bord Vapi ne correspondait
@@ -800,6 +805,40 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
    * outils d'AVANT l'enregistrement, et le client devrait sauver deux fois pour
    * que son numéro prenne effet.
    */
+  /**
+   * La langue et le vocabulaire de l'assistant ENREGISTRÉ, lus au même endroit
+   * que l'appel.
+   *
+   * Deux défauts d'un coup, tous deux invisibles jusqu'au premier appel.
+   *
+   * **La langue divergeait entre les deux écritures.** La création lisait
+   * `agentLanguage === 'nl' ? 'nl' : …`, la synchronisation se contentait de
+   * `isFrenchClient(client) ? 'fr' : 'en'`. Un client néerlandophone naissait
+   * donc correct et repassait en ANGLAIS — transcripteur et voix — à la
+   * première sauvegarde de n'importe quel réglage. Rien ne le signalait: le
+   * PUT réussit, l'écran dit enregistré, et le prochain appelant flamand est
+   * transcrit en anglais.
+   *
+   * **Et le biasing ne partait nulle part.** `buildVocabularyField` souffle au
+   * transcripteur le nom de l'entreprise, celui de l'agent et les intitulés de
+   * prestations (BEL-5). Il est construit, testé, et n'était passé qu'à
+   * `buildAssistantForCall` — c'est-à-dire à l'assistant qui ne décroche
+   * JAMAIS, puisque le numéro entrant épingle l'assistant enregistré
+   * (6quindecies). Le mécanisme existait donc sans jamais atteindre un appel.
+   *
+   * Le profil est la seule source: c'est lui qui décide de la langue à
+   * l'appel, et deux règles écrites à la main pour la même question finissent
+   * toujours par ne plus donner la même réponse — ici en moins d'un mois.
+   */
+  private async speechProfile(clientId: string): Promise<{ language: VoiceLanguage; vocabulary: string[] } | null> {
+    const profile = await realtimeContextService.getClientProfile(clientId);
+    if (!profile) return null;
+    return {
+      language: profile.language,
+      vocabulary: [profile.businessName, profile.agentName, ...(profile.services ?? [])],
+    };
+  }
+
   private async buildAssistantTools(clientId: string): Promise<any[]> {
     await realtimeContextService.invalidateClient(clientId);
     const profile = await realtimeContextService.getClientProfile(clientId);
@@ -829,6 +868,13 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
       country: client.country,
     });
 
+    /* Les outils sont construits d'abord parce qu'ils vident le cache du
+       profil; la langue et le vocabulaire se lisent ensuite, donc sur la
+       configuration qu'on vient d'enregistrer et non sur la précédente. */
+    const syncTools = await this.buildAssistantTools(client.id);
+    const syncSpeech = await this.speechProfile(client.id);
+    const syncLang: VoiceLanguage = syncSpeech?.language ?? (this.isFrenchClient(client) ? 'fr' : 'en');
+
     const updatedConfig: any = {
       name: fitAssistantName(client.agentName || 'Receptionist', client.businessName),
       model: {
@@ -845,7 +891,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
            Un tableau vide est envoyé quand il n'y a rien à offrir, jamais
            rien: omettre le champ laisserait chez Vapi les outils d'une
            configuration qu'on vient d'annuler. */
-        tools: await this.buildAssistantTools(client.id),
+        tools: syncTools,
       },
       // Keep the voice in sync when the client switches character.
       voice: buildVoice({
@@ -853,10 +899,13 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
         stability: character.stability,
         similarityBoost: character.similarityBoost,
         style: character.style,
-        lang: this.isFrenchClient(client) ? 'fr' : 'en',
+        /* La langue du PROFIL, pas un second `isFrenchClient` qui ignore le
+           néerlandais: c'est cette ligne-là qui repassait un client flamand en
+           anglais à chaque sauvegarde. Voir `speechProfile`. */
+        lang: syncLang,
       }),
       firstMessage: this.generateFirstMessage(client, this.isFrenchClient(client)),
-      ...buildRealtimePlans(this.isFrenchClient(client) ? 'fr' : 'en'),
+      ...buildRealtimePlans(syncLang, false, { vocabulary: syncSpeech?.vocabulary ?? [] }),
       server: webhookServer(`${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`),
     };
 

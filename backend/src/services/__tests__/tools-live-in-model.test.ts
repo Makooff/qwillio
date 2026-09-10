@@ -54,7 +54,13 @@ describe('la place des outils dans la charge Vapi', () => {
     // rendrait l'agent muet sur le transfert, la base et les rendez-vous.
     const onboarding = read('services/onboarding.service.ts');
     expect(onboarding).toMatch(/assistantData\.model\.tools\s*=/);
-    expect(onboarding).toMatch(/tools:\s*await this\.buildAssistantTools/);
+    /* Le chemin de SYNCHRONISATION envoie aussi ses outils, dans `model`.
+       Le motif ne suit plus l'appel: `buildAssistantTools` est appelé avant
+       la charge, pour que la langue et le vocabulaire se lisent sur le profil
+       fraîchement purgé. Ce qui doit rester vrai est que les outils partent,
+       et qu'ils partent depuis ce constructeur-là. */
+    expect(onboarding).toMatch(/buildAssistantTools\(client\.id\)/);
+    expect(onboarding).toMatch(/tools:\s*syncTools/);
   });
 
   it('les fait entrer par le constructeur de l\'appel, jamais par une copie', () => {

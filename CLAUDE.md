@@ -546,6 +546,31 @@ Il ne remplace pas le script — lui seul parle à Vapi — il empêche la leço
 reperdre entre deux passages. Un test de la 209 figeait d'ailleurs le mauvais
 emplacement, et il a fallu le corriger avec le code.
 
+### 6vicies. Ce qui n'est pas passé à l'assistant ENREGISTRÉ n'existe pas (10/09/2026)
+C'est 6quindecies une seconde fois, sur un autre champ. `buildRealtimePlans`
+accepte un `vocabulaire` qui souffle au transcripteur le nom de l'entreprise,
+celui de l'agent et les prestations. Il était construit, testé, et passé au seul
+`buildAssistantForCall` — l'assistant qui ne décroche JAMAIS, puisque le numéro
+entrant épingle l'assistant enregistré. Le mécanisme existait sans jamais
+atteindre un appel, et aucun test ne pouvait le voir : chacun vérifiait sa
+moitié.
+**Le second défaut du même endroit est pire.** La synchronisation choisissait la
+langue avec `isFrenchClient(client) ? 'fr' : 'en'`, quand la création connaissait
+le néerlandais. Un client flamand naissait donc correct et repassait en ANGLAIS,
+transcripteur ET voix, à la première sauvegarde de n'importe quel réglage. Le PUT
+réussit, l'écran dit enregistré, et l'appelant suivant est transcrit en anglais.
+Deux règles écrites à la main pour la même question ont divergé en moins d'un
+mois ; la langue se lit désormais sur le PROFIL, la seule source que l'appel
+utilise aussi.
+La règle générale : **tout ce qui décrit comment l'agent ÉCOUTE ou PARLE doit
+partir par les deux écritures de `onboarding.service.ts`**, pas seulement par le
+constructeur d'appel. Un test interdit tout `buildRealtimePlans` sans options
+dans ce fichier, pour qu'un troisième chemin d'écriture ne retombe pas dans le
+trou en silence.
+Piège de méthode rencontré en écrivant ce test : un test qui lit le SOURCE doit
+d'abord retirer les commentaires. Le commentaire posé au-dessus d'un correctif
+nomme forcément la forme fautive, donc le test tombe sur sa propre explication.
+
 ### 6sexdecies. `voice:validate` ne validait pas la charge de production (10/09/2026)
 Il couvrait les plans, pas `tools`, `serverUrl`, `forwardingPhoneNumber`,
 `endCallFunctionEnabled`, `recordingEnabled` ni `backgroundSound` — exactement
