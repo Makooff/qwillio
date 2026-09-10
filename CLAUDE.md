@@ -270,8 +270,28 @@ route renvoie un aperçu réel. Ce qui restait, et qui est corrigé le 11/08 : l
 « PDF » de l'historique visait `/api/invoices/:id/pdf`, une route inexistante ; il
 passe désormais par la facture hébergée chez Stripe.
 
-### 4. Personnalisation, base de connaissances et FAQ
-Aujourd'hui une zone de texte libre et des listes à plat : tout le travail retombe sur le client. Attendu : champs nommés, sous-catégories, et présets par niche. Les présets **existent déjà côté backend** sous une autre forme (prompts spécialisés par métier, scripts par verticale) : s'y brancher plutôt que créer une seconde liste de niches qui divergera.
+### 4. Personnalisation, base de connaissances et FAQ — FAIT, ne pas refaire
+Cette entrée décrivait « une zone de texte libre et des listes à plat ». **Ce
+n'est plus vrai.** `config/knowledge-presets.ts` porte, par `NicheId` : les
+sous-catégories de la liste de services (`itemCategories`), les **champs
+nommés** du métier (`fields`, avec libellé français et exemple rempli) et une
+FAQ à ajouter en un geste. `ClientReceptionist.tsx` rend les trois, et les
+identifiants de champ sont **partagés entre métiers** quand ils désignent la
+même chose (`cancellationPolicy`, `parkingAccess`…), pour que les réponses
+restent comparables d'un client à l'autre.
+
+**Le piège, corrigé le 10/09, et qui vaut pour toute donnée client :** il y a
+DEUX magasins de connaissance et DEUX constructeurs de prompt. Les champs
+nommés vivent dans `vapiConfig.knowledge`, la FAQ ligne à ligne dans la table
+`businessKnowledge`. Le prompt de l'assistant ENREGISTRÉ lisait les deux ; celui
+du chemin temps réel / custom-LLM ne lisait que le second. Un client remplissait
+« Mutuelles acceptées », l'écran disait enregistré, et l'agent répondait qu'il
+ne savait pas — sur ce chemin-là seulement, sans rien pour le signaler.
+`knowledgeFieldsBlock()` est désormais la seule source, appelée par les deux, et
+`ClientVoiceProfile.knowledgeFields` est **obligatoire** : c'est ce qui a fait
+sortir les trois autres constructeurs de profil au compilateur. Les champs
+nommés passent **avant** la FAQ dans le bloc, parce que celui-ci est tronqué à
+4 000 caractères et qu'une FAQ bavarde les pousserait dehors en silence.
 
 ### 5. Interruption : un arbitrage, pas un réglage définitif
 `stopSpeakingPlan.numWords` valait 0, donc la seule activité vocale coupait la

@@ -1,4 +1,5 @@
 import { prisma } from '../../config/database';
+import { knowledgeFieldsBlock } from '../../config/knowledge-presets';
 import { logger } from '../../config/logger';
 import { env } from '../../config/env';
 import type { CustomVoice } from '../../config/voice-characters';
@@ -115,6 +116,19 @@ export interface ClientVoiceProfile {
   ttsProvider?: '11labs' | 'cartesia';
   /** Whether any active knowledge entry exists — gates the lookup tool. */
   hasKnowledgeBase: boolean;
+  /**
+   * Les champs nommés du métier, déjà rendus avec leurs LIBELLÉS.
+   *
+   * Rendus ici et pas à l'appel: ils vivent dans `vapiConfig`, que ce profil est
+   * seul à lire, et le libellé demande le preset du métier. Les recalculer plus
+   * loin ferait relire la fiche client à chaque tour de parole.
+   *
+   * Ils ne sont PAS dans `businessKnowledge`: ce sont deux magasins, et
+   * l'assistant enregistré lisait le premier pendant que ce chemin-ci ne lisait
+   * que le second. Un client remplissait « Mutuelles acceptées » et l'agent
+   * répondait qu'il ne savait pas.
+   */
+  knowledgeFields: string;
   /**
    * L'appel est-il enregistré ? Historiquement `disableRecordingNotice`
    * supprimait la notice tout en laissant l'enregistrement actif — c'est-à-dire
@@ -318,6 +332,7 @@ class RealtimeContextService {
       // que de décider en silence de ce que l'appelant entend.
       ttsProvider: ['11labs', 'cartesia'].includes(vapiConfig.ttsProvider) ? vapiConfig.ttsProvider : undefined,
       hasKnowledgeBase: knowledgeCount > 0,
+      knowledgeFields: knowledgeFieldsBlock(vapiConfig.knowledge, client.businessType),
       recordCalls: vapiConfig.disableRecordingNotice !== true && vapiConfig.recordCalls !== false,
     };
 

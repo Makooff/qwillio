@@ -388,3 +388,46 @@ export const KNOWLEDGE_PRESETS: Record<NicheId, KnowledgePreset> = {
 export function knowledgePreset(businessType: string | null | undefined): KnowledgePreset {
   return KNOWLEDGE_PRESETS[resolveNiche(businessType)];
 }
+
+/**
+ * Les champs nommés remplis par le client, rendus lisibles par un modèle.
+ *
+ * ## Le trou que ça bouche
+ *
+ * Ce bloc existait, mais dans UN seul des deux constructeurs de prompt. Le
+ * prompt de l'assistant enregistré (`onboarding.service`) le posait; celui du
+ * chemin temps réel / custom-LLM (`buildSystemPrompt`) ne connaissait que les
+ * entrées `businessKnowledge`. Résultat: tout ce que le client avait tapé dans
+ * « Mutuelles acceptées », « Politique d'annulation » ou « Accès et
+ * stationnement » était invisible pour l'agent sur ce chemin-là, sans que rien
+ * ne le signale — le formulaire était rempli, l'écran disait que c'était
+ * enregistré, et l'appelant s'entendait répondre qu'on ne savait pas.
+ *
+ * Deux copies d'une règle finissent toujours par diverger; celle-ci avait
+ * divergé avant même d'exister en double.
+ *
+ * ## Le LIBELLÉ et pas l'identifiant
+ *
+ * Le modèle lit « Politique d'annulation », jamais `cancellationPolicy`. Un
+ * identifiant camelCase se devine mal et se devine différemment d'un tour à
+ * l'autre. Le libellé vient du preset du MÉTIER, donc de la même table que le
+ * formulaire: ce que le client a cru remplir et ce que l'agent lit portent le
+ * même nom.
+ *
+ * Un identifiant qu'aucun preset ne connaît est rendu tel quel plutôt
+ * qu'écarté: il vient d'un preset qui a changé depuis, et une valeur écrite par
+ * un client vaut mieux brute que perdue.
+ */
+export function knowledgeFieldsBlock(
+  knowledge: unknown,
+  businessType: string | null | undefined,
+): string {
+  if (!knowledge || typeof knowledge !== 'object' || Array.isArray(knowledge)) return '';
+
+  const labels = new Map(knowledgePreset(businessType).fields.map(f => [f.id, f.label]));
+  const lines = Object.entries(knowledge as Record<string, unknown>)
+    .filter(([, v]) => typeof v === 'string' && v.trim() !== '')
+    .map(([id, v]) => `- ${labels.get(id) || id}: ${String(v).trim()}`);
+
+  return lines.length ? `BUSINESS DETAILS:\n${lines.join('\n')}` : '';
+}

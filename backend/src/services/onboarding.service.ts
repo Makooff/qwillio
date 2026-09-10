@@ -14,7 +14,7 @@ import { buildVoiceTools } from './voice/voice-tools';
 import { greetingAudioService } from './voice/greeting-audio.service';
 import { toE164 } from '../utils/phone';
 import { resolveNiche } from '../config/niches';
-import { knowledgePreset } from '../config/knowledge-presets';
+import { knowledgePreset, knowledgeFieldsBlock } from '../config/knowledge-presets';
 import { phoneSetupService } from './voice/phone-setup.service';
 import { releaseClientNumbers } from './voice/phone-stock.service';
 import { clientPortalUrl } from '../utils/urls';
@@ -475,14 +475,8 @@ export class OnboardingService {
     // jamais dits: c'est le seul endroit qui les fait exister pour l'agent.
     // Le libellé vient du preset du métier, pas de l'identifiant brut, sinon le
     // modèle lirait « emergencyProtocol » et devrait le deviner.
-    if (cfg.knowledge && typeof cfg.knowledge === 'object') {
-      const preset = knowledgePreset(client.businessType);
-      const labels = new Map(preset.fields.map(f => [f.id, f.label]));
-      const lines = Object.entries(cfg.knowledge as Record<string, string>)
-        .filter(([, v]) => typeof v === 'string' && v.trim())
-        .map(([id, v]) => `- ${labels.get(id) || id}: ${v}`);
-      if (lines.length) clientKnowledgeBlocks.push(`BUSINESS DETAILS:\n${lines.join('\n')}`);
-    }
+    const fieldsBlock = knowledgeFieldsBlock(cfg.knowledge, client.businessType);
+    if (fieldsBlock) clientKnowledgeBlocks.push(fieldsBlock);
 
     const clientKnowledge = clientKnowledgeBlocks.length
       ? '\n' + clientKnowledgeBlocks.join('\n\n') + '\n'

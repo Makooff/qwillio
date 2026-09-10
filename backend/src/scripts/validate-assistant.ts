@@ -92,6 +92,8 @@ function probeProfile(lang: VoiceLanguage): ClientVoiceProfile {
     customLlm: false,
     voiceMode: 'auto',
     hasKnowledgeBase: true,
+  // Vide: ce script valide la FORME de la charge, pas le contenu d'un client.
+  knowledgeFields: '',
     recordCalls: true,
   };
 }

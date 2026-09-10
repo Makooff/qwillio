@@ -117,9 +117,19 @@ class RealtimeOrchestratorService {
     // Only the highest-priority entries go into the prompt; the rest stay
     // reachable through lookupKnowledge so a large knowledge base does not
     // become a per-turn token bill.
-    const knowledgeBlock = profile.hasKnowledgeBase
+    /* DEUX magasins, un seul bloc.
+       `businessKnowledge` porte la FAQ et les règles, saisies ligne par ligne;
+       `knowledgeFields` porte les champs nommés du métier, saisis dans le
+       formulaire. Ce chemin ne lisait que le premier, alors que le prompt de
+       l'assistant enregistré lisait les deux: un client remplissait « Mutuelles
+       acceptées » et s'entendait répondre qu'on ne savait pas, sur ce chemin-là
+       seulement, sans que rien ne le signale.
+       Les champs nommés passent EN PREMIER: ils décrivent l'entreprise, la FAQ
+       répond à des questions, et c'est la description qui cadre les réponses. */
+    const entries = profile.hasKnowledgeBase
       ? businessMemoryService.promptBlock(await businessMemoryService.all(clientId), profile.language)
       : '';
+    const knowledgeBlock = [profile.knowledgeFields, entries].filter(Boolean).join('\n\n');
 
     if (vapiCallId) {
       callSessionStore.start({ vapiCallId, clientId, callerNumber, language: profile.language });

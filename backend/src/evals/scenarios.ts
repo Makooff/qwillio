@@ -69,6 +69,9 @@ const baseProfile: ClientVoiceProfile = {
   customLlm: true,
   voiceMode: 'auto',
   hasKnowledgeBase: false,
+  // Le profil d'éval n'a pas de champs nommés: un scénario qui en aurait
+  // les déclare dans ses `profileOverrides`, là où on peut les lire.
+  knowledgeFields: '',
   recordCalls: true,
 };
 
