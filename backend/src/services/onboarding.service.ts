@@ -14,7 +14,7 @@ import { buildVoiceTools } from './voice/voice-tools';
 import { greetingAudioService } from './voice/greeting-audio.service';
 import { toE164 } from '../utils/phone';
 import { resolveNiche } from '../config/niches';
-import { knowledgePreset, knowledgeFieldsBlock } from '../config/knowledge-presets';
+import { knowledgeFieldsBlock } from '../config/knowledge-presets';
 import { phoneSetupService } from './voice/phone-setup.service';
 import { releaseClientNumbers } from './voice/phone-stock.service';
 import { clientPortalUrl } from '../utils/urls';
