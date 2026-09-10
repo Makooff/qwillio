@@ -4,6 +4,7 @@ import { env } from '../../config/env';
 import { logger } from '../../config/logger';
 import { toE164 } from '../../utils/phone';
 import { wouldLoop } from './transfer-loop';
+import { webhookServer } from './webhook-identity';
 
 /**
  * Tool schemas + contextual filler (Phase 4).
@@ -173,7 +174,7 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
     tools.push({
       type: 'function',
       async: false,
-      server: { url: serverUrl, timeoutSeconds: env.VOICE_TOOL_TIMEOUT_SECONDS },
+      server: { ...webhookServer(serverUrl), timeoutSeconds: env.VOICE_TOOL_TIMEOUT_SECONDS },
       messages: toolMessages('checkAvailability', lang),
       function: {
         name: 'checkAvailability',
@@ -204,7 +205,7 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
     tools.push({
       type: 'function',
       async: false,
-      server: { url: serverUrl, timeoutSeconds: env.VOICE_TOOL_TIMEOUT_SECONDS },
+      server: { ...webhookServer(serverUrl), timeoutSeconds: env.VOICE_TOOL_TIMEOUT_SECONDS },
       messages: toolMessages('bookAppointment', lang),
       function: {
         name: 'bookAppointment',
@@ -236,7 +237,7 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
     tools.push({
       type: 'function',
       async: false,
-      server: { url: serverUrl, timeoutSeconds: env.VOICE_TOOL_TIMEOUT_SECONDS },
+      server: { ...webhookServer(serverUrl), timeoutSeconds: env.VOICE_TOOL_TIMEOUT_SECONDS },
       messages: toolMessages('lookupBooking', lang),
       function: {
         name: 'lookupBooking',
@@ -258,7 +259,7 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
     // Fire-and-forget: the model must not wait on a write that only matters
     // after the call. This is the one tool where async is correct.
     async: true,
-    server: { url: serverUrl, timeoutSeconds: env.VOICE_TOOL_TIMEOUT_SECONDS },
+    server: { ...webhookServer(serverUrl), timeoutSeconds: env.VOICE_TOOL_TIMEOUT_SECONDS },
     messages: toolMessages('captureLead', lang),
     function: {
       name: 'captureLead',
@@ -301,7 +302,7 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
     tools.push({
       type: 'function',
       async: false,
-      server: { url: serverUrl, timeoutSeconds: env.VOICE_TOOL_TIMEOUT_SECONDS },
+      server: { ...webhookServer(serverUrl), timeoutSeconds: env.VOICE_TOOL_TIMEOUT_SECONDS },
       messages: toolMessages('lookupKnowledge', lang),
       function: {
         name: 'lookupKnowledge',

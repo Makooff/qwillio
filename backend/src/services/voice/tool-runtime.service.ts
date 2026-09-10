@@ -6,6 +6,7 @@ import { isKnownTool } from './voice-tools';
 import { callSessionStore } from './call-session.store';
 import { callerMemoryService } from './caller-memory.service';
 import { businessMemoryService } from './business-memory.service';
+import { knowledgeGapService } from './knowledge-gap.service';
 import { availabilitySpeculator } from './availability-speculator';
 import { parseSpokenPhone } from '../../utils/phone-spoken';
 import { phoneWords } from '../../utils/text-for-speech';
@@ -541,6 +542,24 @@ class ToolRuntimeService {
   private async lookupKnowledge(profile: ClientVoiceProfile, args: Record<string, any>): Promise<string> {
     const query = typeof args.question === 'string' ? args.question : '';
     const hits = await businessMemoryService.search(profile.clientId, query);
+
+    /* Une recherche vide est la seule occasion d'apprendre.
+       L'agent promet déjà de « faire remonter la question » — c'est la phrase
+       que `formatForSpeech` lui souffle. Elle n'était tenue nulle part: la
+       question mourait ici, et l'appelant suivant reposait la même. Elle est
+       maintenant consignée, dans SES mots, qui sont les seuls dont on dispose:
+       ni le gérant ni nous n'aurions su l'écrire d'avance.
+       Sans `await`: le correspondant attend cette réponse, et une écriture en
+       base n'a rien à faire dans son tour de parole. */
+    if (hits.length === 0 && query.trim()) {
+      void knowledgeGapService.record({
+        clientId: profile.clientId,
+        question: query,
+        language: profile.language,
+        source: 'lookup',
+      });
+    }
+
     return businessMemoryService.formatForSpeech(hits, profile.language);
   }
 }

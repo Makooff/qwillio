@@ -17,6 +17,7 @@ import { callSessionStore } from '../services/voice/call-session.store';
 import { inboundRoutingService } from '../services/voice/inbound-routing.service';
 import { realtimeOrchestratorService } from '../services/voice/realtime-orchestrator.service';
 import { isVapiWebhookAuthorized } from '../utils/vapi-webhook-auth';
+import { reportRejectedWebhook } from '../services/voice/vapi-error';
 
 export class WebhooksController {
   async stripeWebhook(req: Request, res: Response) {
@@ -114,7 +115,9 @@ export class WebhooksController {
 
   async vapiWebhook(req: Request, res: Response) {
     if (!isVapiWebhookAuthorized(req)) {
-      logger.warn('VAPI webhook: unauthorized (missing or invalid x-vapi-secret)');
+      // Le webhook SORTANT: un refus ici efface les résultats de campagne au
+      // lieu des appels entrants, pour la même raison et avec le même silence.
+      reportRejectedWebhook('/webhooks/vapi');
       return res.status(401).json({ error: 'Invalid webhook secret' });
     }
 

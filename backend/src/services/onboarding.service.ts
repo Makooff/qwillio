@@ -8,12 +8,13 @@ import { resolveCharacter } from '../config/voice-characters';
 import { getPersonaPrompt, PERSONALITY_PROMPTS } from '../config/personalities';
 import { buildRealtimePlans, buildVoice } from './voice/speech-plans';
 import { fitAssistantName } from './voice/vapi-limits';
+import { webhookServer } from './voice/webhook-identity';
 import { realtimeContextService } from './voice/realtime-context.service';
 import { buildVoiceTools } from './voice/voice-tools';
 import { greetingAudioService } from './voice/greeting-audio.service';
 import { toE164 } from '../utils/phone';
 import { resolveNiche } from '../config/niches';
-import { knowledgePreset } from '../config/knowledge-presets';
+import { knowledgeFieldsBlock } from '../config/knowledge-presets';
 import { phoneSetupService } from './voice/phone-setup.service';
 import { releaseClientNumbers } from './voice/phone-stock.service';
 import { clientPortalUrl } from '../utils/urls';
@@ -87,7 +88,11 @@ export class OnboardingService {
         }),
         firstMessage: this.generateFirstMessage(client, isFrClient),
         ...buildRealtimePlans(client?.agentLanguage === 'nl' ? 'nl' : isFrClient ? 'fr' : 'en'),
-        serverUrl: `${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`,
+        /* `server` et non plus `serverUrl` seul: il porte l'URL ET le secret
+           que Vapi doit nous renvoyer. Sans lui, nos endpoints répondaient 401
+           dès que le réglage jumeau du tableau de bord Vapi ne correspondait
+           pas, et l'appel ne laissait plus aucune trace. */
+        server: webhookServer(`${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`),
         endCallFunctionEnabled: true,
         // Même règle que le runtime: refuser la notice, c'est refuser
         // l'enregistrement — jamais un enregistrement silencieux.
@@ -470,14 +475,8 @@ export class OnboardingService {
     // jamais dits: c'est le seul endroit qui les fait exister pour l'agent.
     // Le libellé vient du preset du métier, pas de l'identifiant brut, sinon le
     // modèle lirait « emergencyProtocol » et devrait le deviner.
-    if (cfg.knowledge && typeof cfg.knowledge === 'object') {
-      const preset = knowledgePreset(client.businessType);
-      const labels = new Map(preset.fields.map(f => [f.id, f.label]));
-      const lines = Object.entries(cfg.knowledge as Record<string, string>)
-        .filter(([, v]) => typeof v === 'string' && v.trim())
-        .map(([id, v]) => `- ${labels.get(id) || id}: ${v}`);
-      if (lines.length) clientKnowledgeBlocks.push(`BUSINESS DETAILS:\n${lines.join('\n')}`);
-    }
+    const fieldsBlock = knowledgeFieldsBlock(cfg.knowledge, client.businessType);
+    if (fieldsBlock) clientKnowledgeBlocks.push(fieldsBlock);
 
     const clientKnowledge = clientKnowledgeBlocks.length
       ? '\n' + clientKnowledgeBlocks.join('\n\n') + '\n'
@@ -840,7 +839,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
       }),
       firstMessage: this.generateFirstMessage(client, this.isFrenchClient(client)),
       ...buildRealtimePlans(this.isFrenchClient(client) ? 'fr' : 'en'),
-      serverUrl: `${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`,
+      server: webhookServer(`${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`),
       /* Les outils, qui manquaient. Envoyés à CHAQUE synchronisation et non
          seulement à la création: c'est ici que le numéro de transfert saisi
          après l'inscription devient un outil de transfert, et c'est ici que

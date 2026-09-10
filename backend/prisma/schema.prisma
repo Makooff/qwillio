@@ -420,6 +420,7 @@ model Client {
   callTransfers              CallTransfer[]
   callerMemories             CallerMemory[]
   businessKnowledge          BusinessKnowledge[]
+  knowledgeGaps              KnowledgeGap[]
   greetingAudio              GreetingAudio[]
   clientAnalytics            ClientAnalyticsDaily[]
   clientBookings             ClientBooking[]
@@ -2093,6 +2094,44 @@ model CallerMemory {
 /// house rules. Kept as rows rather than a blob on Client so entries can be
 /// edited, disabled and ranked individually from the dashboard, and so only the
 /// relevant ones are injected into the prompt.
+/// Une question posée par un appelant, à laquelle personne n'a su répondre.
+///
+/// C'est la seule trace du TROU. Le reste du système enregistre ce que l'agent
+/// sait; ici on enregistre ce qu'il ignore, dans les mots de celui qui a
+/// demandé — ce que ni le gérant ni nous n'aurions su écrire d'avance.
+///
+/// Une ligne se ferme de deux façons: le gérant répond, et sa réponse devient
+/// une entrée de `business_knowledge` que l'agent servira au prochain appel;
+/// ou il écarte la question, et elle ne revient plus.
+model KnowledgeGap {
+  id          String   @id @default(uuid()) @db.Uuid
+  clientId    String   @map("client_id") @db.Uuid
+  /// La question telle qu'elle a été posée, pour que le gérant la reconnaisse.
+  question    String   @db.VarChar(500)
+  /// La forme normalisée, qui sert de clé: deux appelants qui demandent la même
+  /// chose autrement ne doivent pas produire deux lignes à traiter.
+  fingerprint String   @db.VarChar(200)
+  /// Combien de fois elle a été posée. C'est ce qui trie: une question posée
+  /// six fois coûte six appels, une question posée une fois peut attendre.
+  askedCount  Int      @default(1) @map("asked_count")
+  /// open | answered | dismissed
+  status      String   @default("open") @db.VarChar(20)
+  language    String   @default("fr") @db.VarChar(5)
+  /// D'où vient la question: `lookup` (l'outil n'a rien trouvé) ou
+  /// `transcript` (relevée à l'analyse de l'appel).
+  source      String   @default("lookup") @db.VarChar(20)
+  /// L'entrée créée par la réponse du gérant, quand il a répondu.
+  answeredEntryId String? @map("answered_entry_id") @db.Uuid
+  firstAskedAt DateTime @default(now()) @map("first_asked_at")
+  lastAskedAt  DateTime @default(now()) @map("last_asked_at")
+  answeredAt   DateTime? @map("answered_at")
+  client      Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+
+  @@unique([clientId, fingerprint])
+  @@index([clientId, status, askedCount])
+  @@map("knowledge_gaps")
+}
+
 model BusinessKnowledge {
   id             String   @id @default(uuid()) @db.Uuid
   clientId       String   @map("client_id") @db.Uuid

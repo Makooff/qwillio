@@ -116,7 +116,71 @@ export function reportAssistantSyncFailure(input: {
   return failure;
 }
 
+/**
+ * Un webhook REFUSÉ, c'est-à-dire des appels qui disparaissent.
+ *
+ * ## Ce qui se passe quand le secret ne correspond pas
+ *
+ * `isVapiWebhookAuthorized` rend `false`, l'endpoint répond 401, et Vapi n'a
+ * personne à qui se plaindre. L'appel, lui, s'est très bien déroulé: Vapi tient
+ * la conversation avec l'assistant qu'il a déjà, sans avoir besoin de nous.
+ * Ce qui tombe est tout le reste — le rapport de fin d'appel, donc AUCUN appel
+ * dans le tableau de bord, AUCUNE alerte de lead, AUCUNE mémoire d'appelant,
+ * AUCUNE facturation — et les outils, donc aucun transfert.
+ *
+ * Le client voit un agent qui répond bien et un tableau de bord vide, ce qui
+ * ressemble à un produit qui ne compte pas ses appels. La seule trace était un
+ * `logger.warn` par requête, dans un journal que personne ne lit.
+ *
+ * ## Pourquoi une alerte et pas un compteur de plus
+ *
+ * Le secret ne se règle pas dans ce dépôt: `VAPI_WEBHOOK_SECRET` vit sur Render
+ * et son jumeau dans le tableau de bord Vapi. Rien dans le code ne peut le
+ * détecter avant qu'un appel réel arrive, et personne ne pense à vérifier une
+ * chose qui n'a jamais échoué bruyamment. C'est exactement la forme de panne du
+ * point précédent: silencieuse, totale, et invisible depuis le code.
+ *
+ * ## Ce qui borne l'alerte
+ *
+ * L'endpoint est public: n'importe qui peut le marteler et provoquer autant de
+ * 401 qu'il veut. L'alerte est donc plafonnée à une par heure et porte le
+ * NOMBRE de refus accumulés, ce qui distingue au passage les deux causes: une
+ * poignée de refus est un scanner, un refus par appel est un secret désaccordé.
+ */
+const WEBHOOK_ALERT_COOLDOWN_MS = 60 * 60 * 1000;
+let rejectedWebhooks = 0;
+let lastWebhookAlertAt = 0;
+
+export function reportRejectedWebhook(path: string): void {
+  rejectedWebhooks += 1;
+
+  const now = Date.now();
+  if (now - lastWebhookAlertAt < WEBHOOK_ALERT_COOLDOWN_MS) return;
+  const count = rejectedWebhooks;
+  lastWebhookAlertAt = now;
+  rejectedWebhooks = 0;
+
+  logger.error(
+    `[VapiWebhook] ${count} webhook(s) REFUSÉ(S) (401) depuis la dernière alerte, dernier: ${path}. ` +
+      `Si des appels ont eu lieu, ils ne laissent AUCUNE trace: ni appel au tableau de bord, ` +
+      `ni alerte de lead, ni facturation.`,
+  );
+
+  void discordService
+    .notifyAlerts(
+      `🔴 ${count} webhook(s) Vapi refusé(s) en 401 (dernier: ${path}).\n` +
+        `Le secret \`x-vapi-secret\` envoyé par Vapi ne correspond pas à \`VAPI_WEBHOOK_SECRET\`.\n` +
+        `Conséquence: un appel se déroule normalement pour l'appelant et ne laisse RIEN — ` +
+        `pas d'appel au tableau de bord, pas d'alerte de lead, pas de transfert, pas de facturation.\n` +
+        `Le secret se règle des DEUX côtés: la variable sur Render, et « Server URL Secret » ` +
+        `dans le tableau de bord Vapi. \`npm run voice:doctor\` dit combien d'événements sont reçus.`,
+    )
+    .catch(err => logger.warn(`[VapiWebhook] alerte non transmise: ${(err as Error).message}`));
+}
+
 /** Test seam. */
 export function resetVapiSyncAlerts(): void {
   lastAlertAt = 0;
+  rejectedWebhooks = 0;
+  lastWebhookAlertAt = 0;
 }

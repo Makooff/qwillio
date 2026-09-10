@@ -10,6 +10,7 @@ import { voiceMetricsService } from '../services/voice/voice-metrics.service';
 import { fallbackWatchService } from '../services/voice/fallback-watch.service';
 import { transferFunnel } from '../services/voice/call-outcome';
 import { isVapiWebhookAuthorized } from '../utils/vapi-webhook-auth';
+import { reportRejectedWebhook } from '../services/voice/vapi-error';
 import { leadAlertService, type LeadForAlert } from '../services/voice/lead-alert.service';
 
 /**
@@ -52,7 +53,13 @@ export class VoiceWebhookController {
    */
   async clientEvent(req: Request, res: Response) {
     if (!isVapiWebhookAuthorized(req)) {
-      logger.warn('[Voice] webhook unauthorized (missing or invalid x-vapi-secret)');
+      /* Bruyant, et pas seulement journalisé. Un webhook refusé ne dégrade pas
+         l'appel: il l'efface. L'appelant est bien reçu, Vapi n'a besoin de
+         personne pour tenir la conversation, et TOUT le reste tombe — rapport
+         de fin d'appel, donc aucun appel au tableau de bord, aucune alerte de
+         lead, aucune facturation. Le client voit un agent qui répond et un
+         tableau de bord vide. */
+      reportRejectedWebhook(`/webhooks/vapi/client/${req.params.clientId}`);
       return res.status(401).json({ error: 'Invalid webhook secret' });
     }
 
@@ -153,6 +160,8 @@ export class VoiceWebhookController {
    */
   async toolCall(req: Request, res: Response) {
     if (!isVapiWebhookAuthorized(req)) {
+      // Même refus, et pire conséquence: un outil refusé se voit DANS l'appel.
+      reportRejectedWebhook(`/webhooks/vapi/tools/${req.params.clientId}`);
       return res.status(401).json({ error: 'Invalid webhook secret' });
     }
     const clientId = req.params.clientId as string;

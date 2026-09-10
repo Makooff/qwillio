@@ -15,6 +15,7 @@ import { invalidateLive, fetchLive, peekLive } from '../../services/liveData';
 import { type Character } from '../../components/client/CharacterPicker';
 import CharacterCarousel from '../../components/v2/app/CharacterCarousel';
 import AssistantChat from '../../components/client/AssistantChat';
+import KnowledgeGaps from '../../components/client/KnowledgeGaps';
 import VoiceCloner, { type CustomVoice } from '../../components/client/VoiceCloner';
 import OwnNumber from '../../components/client/OwnNumber';
 import { HubGroup, HubRow, HubPanel } from '../../components/client/SettingsHub';
@@ -903,6 +904,13 @@ export default function ClientReceptionist() {
           Ce que l'IA doit savoir pour répondre aux appelants : services, menu,
           tarifs, horaires, FAQ. Plus c'est précis, plus elle sera précise.
         </p>
+
+        {/* En TÊTE de la section, avant les champs à remplir de tête.
+            Ce bloc porte les questions de vrais appelants: elles valent mieux
+            que tout ce qu'on peut deviner en regardant un formulaire vide, et
+            elles ne se voient qu'ici. Sous la FAQ, elles seraient sous trois
+            écrans de champs. Il ne s'affiche pas quand il n'y a rien. */}
+        <KnowledgeGaps />
 
         {/* —— Services / Menu / Tarifs —— */}
         <div className="mb-6">

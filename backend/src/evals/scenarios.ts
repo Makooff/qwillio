@@ -1,4 +1,5 @@
 import type { ClientVoiceProfile } from '../services/voice/realtime-context.service';
+import type { EntityKind } from './entity-score';
 
 /**
  * Scénarios d'évaluation du réceptionniste (roadmap 2.5).
@@ -19,10 +20,25 @@ export interface EvalTurn {
 }
 
 export interface EvalAssertion {
-  kind: 'reply-matches' | 'reply-not-matches' | 'calls-tool' | 'does-not-call-tool' | 'reply-shorter-than';
-  /** Regex (reply-…), nom d'outil (…-tool) ou nombre de caractères. */
+  kind:
+    | 'reply-matches'
+    | 'reply-not-matches'
+    | 'calls-tool'
+    | 'does-not-call-tool'
+    | 'reply-shorter-than'
+    | 'captures-entity';
+  /** Regex (reply-…), nom d'outil (…-tool), nombre de caractères, ou valeur attendue (captures-entity). */
   value: string | number;
   description: string;
+  /**
+   * Pour `captures-entity`: laquelle des cinq entités qui décident d'un rappel.
+   *
+   * L'assertion ne dit PAS quel outil doit la porter. `captureLead` dit `name`
+   * et `bookAppointment` dit `customerName` pour la même chose, et imposer l'un
+   * ferait échouer un agent qui a eu raison de choisir l'autre. C'est
+   * `entitiesFrom` qui réconcilie.
+   */
+  entity?: EntityKind;
 }
 
 export interface EvalScenario {
@@ -53,6 +69,9 @@ const baseProfile: ClientVoiceProfile = {
   customLlm: true,
   voiceMode: 'auto',
   hasKnowledgeBase: false,
+  // Le profil d'éval n'a pas de champs nommés: un scénario qui en aurait
+  // les déclare dans ses `profileOverrides`, là où on peut les lire.
+  knowledgeFields: '',
   recordCalls: true,
 };
 
@@ -238,6 +257,95 @@ export const SCENARIOS: EvalScenario[] = [
     assertions: [
       { kind: 'reply-not-matches', value: '(comment ça|qu\'est-ce que vous ne savez pas|vous ne savez pas (comment|où)|je peux vous expliquer comment)', description: 'ne lit pas « je ne sais pas » au premier degré' },
       { kind: 'does-not-call-tool', value: 'bookAppointment', description: 'ne réserve surtout pas' },
+    ],
+  },
+  /* ── Exactitude par entité (TST-3) ────────────────────────────────────────
+     Les cinq champs qui décident d'un rappel, chacun dicté par un appelant et
+     comparé à ce que l'agent repose dans ses outils.
+
+     Le prénom, le numéro et le motif sont donnés EN UN SEUL TOUR, et c'est ce
+     qui rend la mesure honnête: un agent qui les demanderait un par un serait
+     correct au téléphone, mais le scénario ne mesurerait alors que sa
+     politesse. Ici tout est dit, donc tout ce qui manque manque vraiment. */
+  {
+    id: 'fr-entites-lead',
+    description: 'Nom, numéro et motif dictés d\'un bloc: l\'agent les repose sans les déformer.',
+    profileOverrides: { bookingEnabled: false, calendarConnected: false },
+    turns: [{
+      role: 'user',
+      content:
+        'Bonjour, je m\'appelle Sophie Vandenbossche, mon numéro c\'est le zéro quatre septante-cinq, '
+        + 'douze, trente-quatre, cinquante-six. Je vous appelle pour un détartrage. '
+        + 'Rappelez-moi quand vous pouvez.',
+    }],
+    assertions: [
+      { kind: 'calls-tool', value: 'captureLead', description: 'enregistre le lead' },
+      { kind: 'captures-entity', entity: 'name', value: 'Sophie Vandenbossche', description: 'le nom, orthographe comprise' },
+      { kind: 'captures-entity', entity: 'phone', value: '0475123456', description: 'le numéro dicté en belge' },
+      { kind: 'captures-entity', entity: 'reason', value: 'détartrage', description: 'le motif de l\'appel' },
+    ],
+  },
+  {
+    id: 'fr-entites-adresse',
+    description: 'Une adresse dictée avec le numéro à la fin, comme on la dit en Belgique.',
+    profileOverrides: { bookingEnabled: false, calendarConnected: false },
+    /* La conversation va JUSQU'AU moment où l'outil est dû.
+       La première version s'arrêtait au premier tour et échouait toujours: un
+       bon réceptionniste rassemble avant d'enregistrer, donc le modèle
+       répondait en mots, sans appeler `captureLead`, et le scénario mesurait sa
+       politesse — exactement le travers que le commentaire du bloc précédent
+       dit d'éviter. C'est le rappel explicite qui rend l'outil dû. */
+    turns: [
+      {
+        role: 'user',
+        content:
+          'Bonjour, c\'est Marc Dhaenens. Je voudrais un devis pour des travaux chez moi, '
+          + 'rue de la Loi seize, à Bruxelles.',
+      },
+      {
+        role: 'assistant',
+        content: 'Bien sûr. Je prends vos coordonnées et un collègue vous rappelle avec le devis ?',
+      },
+      {
+        role: 'user',
+        content:
+          'Oui, rappelez-moi. Mon numéro c\'est le zéro quatre septante-cinq, douze, trente-quatre, '
+          + 'cinquante-six. C\'est tout, merci.',
+      },
+    ],
+    assertions: [
+      { kind: 'calls-tool', value: 'captureLead', description: 'enregistre le lead une fois le rappel demandé' },
+      { kind: 'captures-entity', entity: 'name', value: 'Marc Dhaenens', description: 'un patronyme flamand' },
+      { kind: 'captures-entity', entity: 'phone', value: '0475123456', description: 'le numéro donné au dernier tour' },
+      /* L'adresse se compare à la lettre et au chiffre près, la ponctuation
+         retirée: c'est elle qui décide si le technicien sonne à la bonne
+         porte, et « seize » entendu « seise » ne se rattrape pas.
+         Elle a été dite au PREMIER tour: le scénario vérifie donc aussi que
+         l'agent la porte jusqu'au bout de la conversation. */
+      { kind: 'captures-entity', entity: 'address', value: 'rue de la Loi 16 Bruxelles', description: 'l\'adresse complète' },
+    ],
+  },
+  {
+    id: 'fr-entites-date',
+    description: 'Une date relative devient une date absolue, sans dériver d\'un jour.',
+    profileOverrides: {},
+    /* Le tour de CONFIRMATION est indispensable, et son absence était un défaut
+       du scénario, pas de l'agent. Juste après `checkAvailability`, réserver
+       sans l'accord de l'appelant serait une faute: le bon geste est de
+       proposer le créneau. `bookAppointment` n'est dû qu'après le « oui ». */
+    turns: [
+      { role: 'user', content: 'Bonjour, Julie Mertens. Je voudrais un rendez-vous le douze mars à quatorze heures.' },
+      { role: 'tool-result', toolName: 'checkAvailability', content: 'FREE: 2026-03-12 14:00, 2026-03-12 15:00' },
+      { role: 'assistant', content: 'Quatorze heures est libre le douze mars. Je vous le réserve ?' },
+      { role: 'user', content: 'Oui, parfait, réservez-le.' },
+    ],
+    assertions: [
+      { kind: 'calls-tool', value: 'bookAppointment', description: 'réserve une fois le créneau confirmé' },
+      { kind: 'captures-entity', entity: 'name', value: 'Julie Mertens', description: 'le nom' },
+      /* Le format ISO est celui que l'outil déclare. Un agent qui rendrait
+         « 12/03 » aurait compris et serait quand même inutilisable: c'est
+         l'agenda qui reçoit cette chaîne. */
+      { kind: 'captures-entity', entity: 'date', value: '2026-03-12', description: 'la date en ISO, sans dériver' },
     ],
   },
 ];

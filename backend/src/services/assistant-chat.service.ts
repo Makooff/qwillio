@@ -27,6 +27,29 @@ export interface ChatResult {
 
 const MAX_TOOL_ROUNDS = 4;
 
+/**
+ * Ce que l'assistant vient de FAIRE, dit à part de ce qu'il RÉPOND.
+ *
+ * Le chat racontait ses actions dans sa propre phrase, ou ne les racontait pas:
+ * « c'est noté » ne dit pas ce qui a été noté, et un enregistrement silencieux
+ * ne se distingue pas d'un enregistrement raté. Le gérant relisait donc ses
+ * réglages pour vérifier, ce qui annule l'intérêt de parler à un assistant.
+ *
+ * Machine-lisible, jamais rédigé ici: le libellé appartient à l'écran, qui
+ * connaît la langue de la page. Une phrase française fabriquée côté serveur
+ * s'afficherait telle quelle à un client anglophone.
+ */
+export interface ChatActivity {
+  /** Le nom de l'outil, tel que le modèle l'a appelé. */
+  tool: string;
+  /** Les champs réellement écrits, pour `update_config`. */
+  fields?: string[];
+  /** Le nombre d'éléments, pour les outils qui lisent une liste. */
+  count?: number;
+  /** Faux quand l'outil a refusé: l'écran doit pouvoir le dire. */
+  ok?: boolean;
+}
+
 const TOOLS = [
   {
     type: 'function',
@@ -85,6 +108,31 @@ const TOOLS = [
       name: 'list_characters',
       description: 'List the available receptionist characters (id, name, language, personality) the client can pick.',
       parameters: { type: 'object', properties: {}, required: [] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'list_knowledge_gaps',
+      description:
+        'List the questions real callers asked that the receptionist could not answer, most-asked first. Use this when the owner asks what the agent is missing, and at the start of a config conversation when you have nothing else pressing.',
+      parameters: { type: 'object', properties: {}, required: [] },
+    },
+  },
+  {
+    type: 'function',
+    function: {
+      name: 'answer_knowledge_gap',
+      description:
+        "Save the owner's answer to one of those questions. It becomes a knowledge-base entry the receptionist serves on the next call, and the question stops being asked. Call it as soon as the owner has given a usable answer, never with an answer you invented.",
+      parameters: {
+        type: 'object',
+        properties: {
+          gapId: { type: 'string', description: 'The id from list_knowledge_gaps.' },
+          answer: { type: 'string', description: "The owner's answer, in their own words, as the receptionist should say it." },
+        },
+        required: ['gapId', 'answer'],
+      },
     },
   },
   {
@@ -149,6 +197,7 @@ export class AssistantChatService {
     messages: ChatMessage[],
     mode: ChatMode = 'config',
     onDelta: (text: string) => void = () => { /* noop */ },
+    onActivity: (activity: ChatActivity) => void = () => { /* noop */ },
   ): Promise<ChatResult> {
     if (!env.OPENAI_API_KEY) {
       return {
@@ -201,11 +250,15 @@ export class AssistantChatService {
         if (call.function?.name === 'complete_onboarding') {
           if (mode === 'onboarding') completed = true;
           convo.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify({ ok: completed }) });
+          onActivity({ tool: 'complete_onboarding', ok: completed });
           continue;
         }
         const { output, changed } = await this.runTool(clientId, call, () => config, (c) => { config = c; });
         if (changed) configChanged = true;
         convo.push({ role: 'tool', tool_call_id: call.id, content: JSON.stringify(output) });
+        /* Émis APRÈS l'exécution, jamais avant: une action annoncée puis
+           refusée est pire que pas d'annonce du tout. */
+        onActivity(summariseTool(call.function?.name, output));
       }
     }
 
@@ -242,6 +295,33 @@ export class AssistantChatService {
           id: ch.id, name: ch.name, accent: ch.accent,
           gender: ch.gender, personality: ch.personaKey, tagline: ch.taglineFr,
         })),
+        changed: false,
+      };
+    }
+    if (name === 'list_knowledge_gaps') {
+      const { knowledgeGapService } = await import('./voice/knowledge-gap.service');
+      const gaps = await knowledgeGapService.open(clientId, 10);
+      return {
+        output: gaps.map(g => ({ id: g.id, question: g.question, timesAsked: g.askedCount })),
+        changed: false,
+      };
+    }
+    if (name === 'answer_knowledge_gap') {
+      const { knowledgeGapService } = await import('./voice/knowledge-gap.service');
+      /* Le `clientId` vient du jeton et l'identifiant de la question du modèle.
+         Le service refuse une question qui n'appartient pas à ce client: un
+         identifiant halluciné ne peut donc pas écrire chez quelqu'un d'autre,
+         il ne trouve rien. */
+      const result = await knowledgeGapService.answer({
+        clientId,
+        gapId: String(args.gapId ?? ''),
+        answer: String(args.answer ?? ''),
+      });
+      return {
+        output: result.ok ? { ok: true } : { ok: false, reason: result.reason },
+        /* `changed: false` volontairement: rien de `vapiConfig` n'a bougé, et
+           le déclarer changé ferait réécrire l'assistant pour une entrée que la
+           recherche sert déjà. */
         changed: false,
       };
     }
@@ -330,6 +410,23 @@ export class AssistantChatService {
         `CONFIG MODE: the owner already knows their setup; just make the changes they ask for and answer questions. Don't run a full onboarding unless asked.`,
       );
     }
+
+    /* L'agent qui vient DEMANDER ce qu'il ne sait pas.
+       C'est la moitié qui manquait à la boucle: l'appel recueille la question
+       d'un vrai appelant, mais personne ne la posait au gérant. Elle ne se pose
+       qu'une fois par conversation et seulement quand rien d'autre n'est en
+       cours: un assistant qui ramène ses lacunes à chaque tour se fait fermer,
+       et la question suivante ne sera jamais lue. */
+    base.push(
+      [
+        'LEARNING — the questions callers asked and you could not answer:',
+        '- Once per conversation, when the owner has nothing else in progress, call list_knowledge_gaps and raise the MOST-ASKED one, in one sentence, saying how many callers asked it.',
+        '- Ask it as a question, never as a task list: one gap at a time, and drop the subject if the owner moves on.',
+        '- The moment their answer is usable, call answer_knowledge_gap. It becomes an entry the receptionist serves on the next call.',
+        '- Never invent the answer, and never save a guess. An invented opening time is a promise the business has to honour.',
+        '- If the owner says the question does not concern them, leave it: only they can decide it is noise.',
+      ].join('\n'),
+    );
 
     // Completeness rule. Without it the assistant happily saves "breakfast"
     // with no price and no hours, and the receptionist then tells a caller
@@ -431,6 +528,36 @@ export class AssistantChatService {
       return null;
     }
   }
+}
+
+/**
+ * Ce qu'un outil a fait, réduit à ce qui se montre.
+ *
+ * Exportée pour être testable seule: c'est la fonction qui décide si le gérant
+ * lit « horaires enregistrés » ou « c'est noté », et elle ne devrait pas
+ * demander une conversation entière pour être vérifiée.
+ *
+ * La sortie d'un outil est produite par ce fichier, jamais par le modèle: les
+ * champs lus ici existent parce que `runTool` les écrit. Un `output` d'une
+ * forme inattendue rend une activité sans détail plutôt qu'une erreur, parce
+ * qu'une confirmation est un supplément et ne doit pas casser une réponse.
+ */
+export function summariseTool(tool: string | undefined, output: unknown): ChatActivity {
+  const name = tool || 'unknown';
+  const body = (output ?? {}) as Record<string, unknown>;
+
+  if (name === 'update_config') {
+    const fields = Array.isArray(body.applied) ? (body.applied as string[]) : [];
+    return { tool: name, fields, ok: body.ok !== false };
+  }
+  if (name === 'answer_knowledge_gap') {
+    return { tool: name, ok: body.ok === true };
+  }
+  if (Array.isArray(output)) {
+    // `list_characters` et `list_knowledge_gaps` rendent un tableau nu.
+    return { tool: name, count: output.length, ok: true };
+  }
+  return { tool: name, ok: true };
 }
 
 export const assistantChatService = new AssistantChatService();

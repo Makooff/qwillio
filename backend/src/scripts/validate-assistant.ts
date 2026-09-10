@@ -40,6 +40,7 @@
  * vieillirait pas avec l'original, et c'est l'original qui part chez Vapi.
  */
 import { env } from '../config/env';
+import { webhookServer } from '../services/voice/webhook-identity';
 import { buildRealtimePlans, buildVoice, type VoiceLanguage } from '../services/voice/speech-plans';
 import { fitAssistantLabel } from '../services/voice/vapi-limits';
 import { buildVoiceTools } from '../services/voice/voice-tools';
@@ -91,6 +92,8 @@ function probeProfile(lang: VoiceLanguage): ClientVoiceProfile {
     customLlm: false,
     voiceMode: 'auto',
     hasKnowledgeBase: true,
+  // Vide: ce script valide la FORME de la charge, pas le contenu d'un client.
+  knowledgeFields: '',
     recordCalls: true,
   };
 }
@@ -119,7 +122,11 @@ function candidate(lang: VoiceLanguage, speechToSpeech: boolean) {
        paramètres, et aucun n'était validé: un seul refusé emporte l'assistant
        entier, donc tous les appels du client. */
     tools: buildVoiceTools(probeProfile(lang)),
-    serverUrl: `${env.API_BASE_URL}/api/webhooks/vapi/client/00000000-0000-0000-0000-000000000000`,
+    /* `server`, la forme RÉELLE de la production, en-tête de secret compris.
+       Valider `serverUrl` seul laisserait justement passer le champ qu'on
+       vient d'ajouter, c'est-à-dire le seul qui n'a jamais été soumis à
+       l'API vivante. */
+    server: webhookServer(`${env.API_BASE_URL}/api/webhooks/vapi/client/00000000-0000-0000-0000-000000000000`),
     forwardingPhoneNumber: '+32460000000',
     endCallFunctionEnabled: true,
     recordingEnabled: true,

@@ -270,8 +270,28 @@ route renvoie un aperçu réel. Ce qui restait, et qui est corrigé le 11/08 : l
 « PDF » de l'historique visait `/api/invoices/:id/pdf`, une route inexistante ; il
 passe désormais par la facture hébergée chez Stripe.
 
-### 4. Personnalisation, base de connaissances et FAQ
-Aujourd'hui une zone de texte libre et des listes à plat : tout le travail retombe sur le client. Attendu : champs nommés, sous-catégories, et présets par niche. Les présets **existent déjà côté backend** sous une autre forme (prompts spécialisés par métier, scripts par verticale) : s'y brancher plutôt que créer une seconde liste de niches qui divergera.
+### 4. Personnalisation, base de connaissances et FAQ — FAIT, ne pas refaire
+Cette entrée décrivait « une zone de texte libre et des listes à plat ». **Ce
+n'est plus vrai.** `config/knowledge-presets.ts` porte, par `NicheId` : les
+sous-catégories de la liste de services (`itemCategories`), les **champs
+nommés** du métier (`fields`, avec libellé français et exemple rempli) et une
+FAQ à ajouter en un geste. `ClientReceptionist.tsx` rend les trois, et les
+identifiants de champ sont **partagés entre métiers** quand ils désignent la
+même chose (`cancellationPolicy`, `parkingAccess`…), pour que les réponses
+restent comparables d'un client à l'autre.
+
+**Le piège, corrigé le 10/09, et qui vaut pour toute donnée client :** il y a
+DEUX magasins de connaissance et DEUX constructeurs de prompt. Les champs
+nommés vivent dans `vapiConfig.knowledge`, la FAQ ligne à ligne dans la table
+`businessKnowledge`. Le prompt de l'assistant ENREGISTRÉ lisait les deux ; celui
+du chemin temps réel / custom-LLM ne lisait que le second. Un client remplissait
+« Mutuelles acceptées », l'écran disait enregistré, et l'agent répondait qu'il
+ne savait pas — sur ce chemin-là seulement, sans rien pour le signaler.
+`knowledgeFieldsBlock()` est désormais la seule source, appelée par les deux, et
+`ClientVoiceProfile.knowledgeFields` est **obligatoire** : c'est ce qui a fait
+sortir les trois autres constructeurs de profil au compilateur. Les champs
+nommés passent **avant** la FAQ dans le bloc, parce que celui-ci est tronqué à
+4 000 caractères et qu'une FAQ bavarde les pousserait dehors en silence.
 
 ### 5. Interruption : un arbitrage, pas un réglage définitif
 `stopSpeakingPlan.numWords` valait 0, donc la seule activité vocale coupait la
@@ -485,6 +505,76 @@ piège que le PUT partiel du point 2, en pire, parce qu'ici un seul champ porte
 tout. Il est fusionné (`mergeVapiConfig`), `null` retirant une clé explicitement,
 et la fusion est SUPERFICIELLE : une fusion profonde rendrait impossible de
 retirer une entrée d'une sous-liste.
+
+### 6quindecies. Il y a DEUX assistants, et un seul décroche (10/09/2026)
+`buildAssistantForCall` compose l'assistant complet — outils, base de
+connaissances, mémoire de l'appelant, plan de clavier — et ne sert QUE à
+répondre à `assistant-request`, l'événement que Vapi envoie quand le numéro
+appelé ne désigne aucun assistant. Or `attachAssistant` épingle l'assistant
+enregistré sur le numéro (`updatePhoneNumber(id, { assistantId })`) : cet
+événement n'est donc **jamais émis**, et c'est l'assistant ENREGISTRÉ qui
+décroche, avec la configuration figée à l'inscription.
+Il naissait sans outils : la création n'en posait qu'un, `transferCall`, et
+seulement `if (client.transferNumber)`, c'est-à-dire jamais — personne ne
+connaît son numéro de transfert en s'inscrivant. Et `syncVapiAssistant` ne
+rattrapait rien, le champ `tools` n'y figurait pas.
+Quatre pannes pour une cause, vérifiées sur un appel entrant réel : l'agent ne
+peut pas transférer (il propose de prendre un message, ce qui ressemble à un
+choix), pas de `captureLead` donc `leadAlertService` sort sur `no_lead` et
+**aucune alerte ne part**, pas de lecture de la base de connaissances, pas de
+rendez-vous. Les deux chemins d'écriture passent désormais par
+`buildAssistantTools`, qui appelle `buildVoiceTools` — le constructeur de
+l'appel, jamais une copie. Le cache du profil est vidé **avant** la lecture,
+sinon les outils sont bâtis sur la configuration d'avant l'enregistrement et le
+client doit sauver deux fois.
+`npm run voice:doctor` lit l'assistant DISTANT et dit ce qu'il porte vraiment.
+C'est la seule chose qui répond à « pourquoi cet appel n'a rien laissé ».
+
+### 6sexdecies. `voice:validate` ne validait pas la charge de production (10/09/2026)
+Il couvrait les plans, pas `tools`, `serverUrl`, `forwardingPhoneNumber`,
+`endCallFunctionEnabled`, `recordingEnabled` ni `backgroundSound` — exactement
+la partie que personne ne relisait, alors qu'un seul champ refusé emporte
+l'assistant entier (6octies). Les outils y entrent par `buildVoiceTools`, pas
+par une copie écrite pour le test : une copie ne vieillirait pas avec
+l'original, et c'est l'original qui part chez Vapi.
+
+### 6septdecies. L'agent demande ce qu'il ne sait pas (10/09/2026)
+Une question sans réponse produit une ligne de `knowledge_gaps` :
+`lookupKnowledge` quand il ne trouve rien, et l'analyse de fin d'appel
+(`unansweredQuestions`) pour le client SANS base — celui à qui l'outil n'est
+même pas attaché, et qui a le plus à apprendre. Le gérant répond une fois, dans
+le portail ou dans le chat de configuration, et sa réponse devient une entrée
+`businessKnowledge` portant **les mots-clés de l'appelant** : sans ce pont, la
+réponse écrite dans les mots du gérant ne serait pas retrouvée par la question
+même qui l'a fait naître.
+Le regroupement est lexical (mots vides retirés, troncature à 6, tri) : il
+réunit « ouverts » et « ouvert », pas « ouvrez » et « ouvert ». Supportable
+parce que la boucle se referme seule — la variante suivante trouve la réponse
+au lieu de créer une lacune. **Le seuil à deux mots signifiants est un piège**,
+essayé et retiré : « vous avez un parking ? » n'en laisse qu'un et disparaissait
+en silence. Ce sont les mots vides qui écartent un acquiescement, pas le compte.
+
+### 6quaterdecies bis. L'étape du numéro de transfert se cochait seule (10/09/2026)
+`OnboardingChecklist` acceptait `vapiPhoneNumber` comme preuve, or ce numéro est
+attribué d'office à l'inscription : l'étape naissait verte pour tout le monde et
+ne demandait donc jamais rien. Les deux numéros ne sont pas le même — celui de
+Qwillio est celui qu'on COMPOSE, l'autre celui vers lequel on TRANSFÈRE.
+« À traiter » est retiré de la vue d'ensemble : il vivait sous la fiche
+Abonnement, sous la ligne de flottaison, et redisait ce que le bandeau
+« Démarrer avec Qwillio » porte déjà en haut.
+
+### 6octodecies. Les intégrations natives sans bouton (10/09/2026)
+L'écran n'ouvrait un branchement que sur `setup === 'url'` : Google Agenda
+(oauth) et HubSpot (apiKey) s'affichaient « disponible » sans rien à cliquer,
+alors que leurs routes existent. Trois choses tenaient l'agenda fermé, et il
+fallait les trois : le catalogue lisait l'état dans `crmIntegration` alors que
+le jeton de l'agenda vit sur la fiche client (`googleCalendarRefreshToken`) ; le
+gardien `requireCapability('crm')` fermait le catalogue ENTIER à un client Solo,
+qui n'y gagnait qu'un « la liste n'a pas pu être chargée » ; et Google ne revient
+que sur l'adresse déclarée dans sa console, qui est la réceptionniste, donc le
+client partait d'« Intégrations » et revenait ailleurs. La page de départ est
+retenue avant le saut (`gcalReturnTo`) plutôt que d'ajouter une seconde adresse
+hors du dépôt.
 
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,

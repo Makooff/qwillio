@@ -19,6 +19,14 @@ import { buildSystemPrompt } from '../services/voice/system-prompt';
 import { buildVoiceTools } from '../services/voice/voice-tools';
 import { SCENARIOS, profileFor, type EvalScenario } from './scenarios';
 import { env } from '../config/env';
+import {
+  entitiesFrom,
+  entityMatches,
+  scoreEntities,
+  formatEntityReport,
+  type EntityObservation,
+  type ToolInvocation,
+} from './entity-score';
 
 interface ChatMessage {
   role: 'system' | 'user' | 'assistant' | 'tool';
@@ -30,6 +38,14 @@ interface ChatMessage {
 interface ModelAnswer {
   text: string;
   toolCalls: string[];
+  /**
+   * Les appels d'outil avec leurs ARGUMENTS, et pas seulement leurs noms.
+   *
+   * Le nom seul dit que l'agent a voulu enregistrer un lead; il ne dit pas
+   * s'il a retenu le bon nom, le bon numéro, la bonne adresse. C'est
+   * exactement l'écart que TST-3 mesure.
+   */
+  invocations: ToolInvocation[];
 }
 
 /**
@@ -88,13 +104,33 @@ async function askModel(messages: ChatMessage[], tools: unknown[]): Promise<Mode
     throw new Error(`OpenAI responded ${response.status}: ${(await response.text()).slice(0, 300)}`);
   }
   const body = (await response.json()) as {
-    choices: Array<{ message: { content: string | null; tool_calls?: Array<{ function: { name: string } }> } }>;
+    choices: Array<{ message: { content: string | null; tool_calls?: Array<{ function: { name: string; arguments?: string } }> } }>;
   };
   const message = body.choices?.[0]?.message;
+  const calls = message?.tool_calls ?? [];
   return {
     text: message?.content ?? '',
-    toolCalls: (message?.tool_calls ?? []).map(c => c.function.name),
+    toolCalls: calls.map(c => c.function.name),
+    invocations: calls.map(c => ({ name: c.function.name, args: parseArgs(c.function.arguments) })),
   };
+}
+
+/**
+ * Les arguments d'un appel d'outil, sans jamais lever.
+ *
+ * Le modèle rend du JSON dans une CHAÎNE, et il lui arrive de la tronquer. Un
+ * scénario qui planterait sur un argument malformé ferait perdre les vingt
+ * autres du run: l'appel compte alors comme un appel sans entité, ce qui est la
+ * vérité.
+ */
+function parseArgs(raw: string | undefined): Record<string, unknown> {
+  if (!raw) return {};
+  try {
+    const parsed = JSON.parse(raw);
+    return parsed && typeof parsed === 'object' ? (parsed as Record<string, unknown>) : {};
+  } catch {
+    return {};
+  }
 }
 
 /** Rejoue les tours du scénario et interroge le modèle sur le dernier. */
@@ -149,6 +185,23 @@ function checkAssertions(scenario: EvalScenario, answer: ModelAnswer): string[] 
           failures.push(`outil ${assertion.value} appelé à tort (${assertion.description})`);
         }
         break;
+      case 'captures-entity': {
+        /* L'assertion vérifie la MÊME chose que le tableau ci-dessous, et c'est
+           voulu: un scénario qui régresse doit rougir tout de suite, pas
+           seulement faire baisser une moyenne que personne ne relit. */
+        const kind = assertion.entity;
+        if (!kind) {
+          failures.push(`assertion captures-entity sans entité (${assertion.description})`);
+          break;
+        }
+        const found = entitiesFrom(answer.invocations)[kind];
+        if (found === undefined) {
+          failures.push(`entité ${kind} non captée (${assertion.description}) — appels: [${answer.toolCalls.join(', ')}]`);
+        } else if (!entityMatches(kind, String(assertion.value), found)) {
+          failures.push(`entité ${kind} fausse (${assertion.description}) — attendu "${assertion.value}", reçu "${found}"`);
+        }
+        break;
+      }
       case 'reply-shorter-than':
         if (answer.text.length >= Number(assertion.value)) {
           failures.push(`réponse trop longue (${answer.text.length} >= ${assertion.value}): "${answer.text}"`);
@@ -223,14 +276,33 @@ const MAX_ATTEMPTS = 2;
  * Rend le nombre d'essais consommés: un scénario vert au second coup est vert
  * et FRAGILE, et les deux méritent d'être dits.
  */
-async function runScenario(scenario: EvalScenario): Promise<{ failures: string[]; attempts: number }> {
+/**
+ * Ce que le scénario ATTENDAIT face à ce que l'agent a rendu.
+ *
+ * Relevé sur le DERNIER essai, celui qui décide de la couleur du scénario.
+ * Compter les essais ratés d'un scénario finalement vert ferait plonger la
+ * précision d'un agent qui a fini par avoir raison, et le tableau ne
+ * répondrait plus à la question qu'il pose.
+ */
+function observeEntities(scenario: EvalScenario, answer: ModelAnswer): EntityObservation[] {
+  const captured = entitiesFrom(answer.invocations);
+  return scenario.assertions
+    .filter(a => a.kind === 'captures-entity' && a.entity)
+    .map(a => ({ kind: a.entity!, expected: String(a.value), actual: captured[a.entity!] }));
+}
+
+async function runScenario(
+  scenario: EvalScenario,
+): Promise<{ failures: string[]; attempts: number; observations: EntityObservation[] }> {
   let failures: string[] = [];
+  let observations: EntityObservation[] = [];
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     const answer = await playScenario(scenario);
     failures = checkAssertions(scenario, answer);
-    if (!failures.length) return { failures, attempts: attempt };
+    observations = observeEntities(scenario, answer);
+    if (!failures.length) return { failures, attempts: attempt, observations };
   }
-  return { failures, attempts: MAX_ATTEMPTS };
+  return { failures, attempts: MAX_ATTEMPTS, observations };
 }
 
 async function main() {
@@ -256,9 +328,11 @@ async function main() {
 
   let failed = 0;
   let flaky = 0;
+  const entityObservations: EntityObservation[] = [];
   for (const scenario of scenarios) {
     try {
-      const { failures, attempts } = await runScenario(scenario);
+      const { failures, attempts, observations } = await runScenario(scenario);
+      entityObservations.push(...observations);
       if (failures.length) {
         failed += 1;
         console.error(`✗ ${scenario.id} — ${scenario.description}`);
@@ -281,6 +355,16 @@ async function main() {
        change, et c'est le seul moment où l'on peut agir avant de bloquer une
        PR au hasard. */
     console.warn(`[evals] ${flaky} scénario(s) n'ont pas passé du premier coup — comportement instable`);
+  }
+
+  if (entityObservations.length) {
+    /* Le tableau par entité (TST-3). Il ne fait pas rougir le run à lui seul —
+       les assertions s'en chargent, scénario par scénario. Il répond à l'autre
+       question, celle qu'aucune assertion ne pose: QUELLE entité l'agent rate,
+       et rate-t-il en oubliant de demander (rappel bas) ou en inventant
+       (précision basse). Les deux se corrigent à des endroits différents. */
+    console.log('\n[evals] exactitude par entité');
+    console.log(formatEntityReport(scoreEntities(entityObservations)));
   }
 
   console.log(`\n[evals] ${scenarios.length - failed}/${scenarios.length} scénarios verts`);
