@@ -287,6 +287,10 @@ export class VoiceWebhookController {
         vapiCallId: vapiCallId ?? null,
         lead: (finalized.metrics as { lead?: LeadForAlert | null } | null)?.lead ?? null,
         callerNumber: finalized.callerNumber ?? null,
+        /* Le rendez-vous pris, quand il y en a un. Son ABSENCE veut dire que
+           l'agent a promis un rappel de vive voix, et une promesse passe avant
+           le seuil d'alerte. */
+        bookingId: (finalized.metrics as { bookingId?: string | null } | null)?.bookingId ?? null,
       })
       .catch(err => logger.warn(`[Voice] alerte lead non envoyée: ${err.message}`));
 
