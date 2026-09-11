@@ -65,7 +65,10 @@ test.describe('Configuration de la réceptionniste', () => {
     await page.goto('/dashboard/receptionist');
     await page.getByText(/Transfert d[’']appel/).click();
 
-    const field = page.getByPlaceholder('+1 (555) 000-0000');
+    /* Par le LIBELLÉ, jamais par le texte d'exemple: celui-ci est de la copie,
+       il change (il vient de passer du format américain au belge) et un test
+       accroché à de la copie tombe sur une correction parfaitement légitime. */
+    const field = page.getByLabel('Numéro de transfert');
     await field.fill('+32 470 12 34 56');
 
     await expect.poll(() => bodies.length, { timeout: 5_000 }).toBeGreaterThan(0);
@@ -85,7 +88,7 @@ test.describe('Configuration de la réceptionniste', () => {
     await signIn(page, { agentName: 'Amélie', transferNumber: '+32499887766' });
     await page.goto('/dashboard/receptionist');
     await page.getByText(/Transfert d[’']appel/).click();
-    await expect(page.getByPlaceholder('+1 (555) 000-0000')).toHaveValue('+32499887766');
+    await expect(page.getByLabel('Numéro de transfert')).toHaveValue('+32499887766');
   });
 });
 

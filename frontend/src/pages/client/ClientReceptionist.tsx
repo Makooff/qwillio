@@ -1140,8 +1140,12 @@ export default function ClientReceptionist() {
       <Section title="Transfert d'appel" hint="Vers qui basculer, et quand" id="transfert" openId={openId} setOpenId={setOpenId} icon={PhoneForwarded}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="text-xs text-[#8B8BA7] mb-1.5 block">Numéro de transfert</label>
-            <input type="tel" value={transferNumber} onChange={e => setTransferNumber(e.target.value)}
+            {/* Le `htmlFor` n'est pas décoratif: sans lui le lecteur d'écran ne
+                sait pas nommer ce champ, et Playwright ne peut le viser que par
+                son texte d'exemple. C'est ce qui a cassé deux tests quand ce
+                texte est passé du format américain au format belge. */}
+            <label htmlFor="transferNumber" className="text-xs text-[#8B8BA7] mb-1.5 block">Numéro de transfert</label>
+            <input id="transferNumber" type="tel" value={transferNumber} onChange={e => setTransferNumber(e.target.value)}
               placeholder="+32 470 12 34 56" className={inputCls} />
             <p className="text-[10px] text-[#8B8BA7] mt-1">L'IA transfère les appels urgents à ce numéro</p>
           </div>
