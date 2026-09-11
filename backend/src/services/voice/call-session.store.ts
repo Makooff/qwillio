@@ -28,6 +28,17 @@ import { voiceTracing } from './voice-tracing';
 export interface LeadCapture {
   name: string | null;
   email: string | null;
+  /**
+   * Le numéro où RAPPELER, validé, quand il y en a un.
+   *
+   * Il manquait, et c'est ce qui perdait le numéro dicté en route. `captureLead`
+   * le validait, le faisait gagner sur l'identifiant d'appelant et l'écrivait
+   * au CRM, puis posait dans la session un lead qui ne le portait pas. Le SMS
+   * et l'e-mail, qui lisent CE lead, retombaient donc sur l'identifiant
+   * d'appelant, c'est-à-dire sur la ligne d'où l'appel partait et non sur celle
+   * où l'appelant a demandé qu'on le rappelle.
+   */
+  phone: string | null;
   reason: string;
   urgency: string;
 }

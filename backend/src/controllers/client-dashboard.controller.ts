@@ -1012,7 +1012,7 @@ export class ClientDashboardController {
             maxTokens: env.VOICE_MAX_COMPLETION_TOKENS,
             messages: [{
               role: 'system',
-              content: `${assistantChatService.voiceConfigPrompt(client, fr)}\n\n${spokenRules}`,
+              content: `${assistantChatService.voiceConfigPrompt(client)}\n\n${spokenRules}`,
             }],
           },
           voice: buildVoice({

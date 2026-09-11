@@ -14,7 +14,19 @@ import {
   type Lang,
 } from './email-renderers';
 
-/** Default to French — the Quebec-first launch audience. */
+/**
+ * La langue d'un e-mail, quand l'appelant n'en a pas fourni.
+ *
+ * Le défaut valait « français », hérité d'un lancement québécois qui n'est plus
+ * le marché. Conséquence relevée le 11/09/2026: le portail répondait en anglais
+ * au même client dont les e-mails arrivaient en français, parce que les deux
+ * surfaces tranchaient la question chacune dans leur coin.
+ *
+ * Le repli reste le français, mais il ne DEVRAIT plus servir: tout appelant qui
+ * connaît le client passe par `emailLocale(client)`, la règle partagée. Ce
+ * défaut n'est là que pour les envois qui ne visent aucun client connu, une
+ * réinitialisation de mot de passe sur une adresse inconnue par exemple.
+ */
 function L(lang?: Lang): Lang {
   return lang === 'en' ? 'en' : 'fr';
 }

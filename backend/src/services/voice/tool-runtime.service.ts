@@ -446,6 +446,9 @@ class ToolRuntimeService {
       reason: typeof args.reason === 'string' ? args.reason.trim() : '',
       urgency: ['low', 'normal', 'high'].includes(args.urgency) ? String(args.urgency) : 'normal',
     };
+    /* `recordLead` attend maintenant le numéro, donc il attend `phone`, calculé
+       plus bas. Le lead n'est plus posé ici: le poser avant le numéro était
+       exactement ce qui le perdait. */
 
     /* L'adresse, avec sa commune ramenée à UNE forme (BEL-6).
        Ixelles et Elsene sont le même endroit et deux noms également
@@ -457,8 +460,6 @@ class ToolRuntimeService {
     const address = typeof args.address === 'string' && args.address.trim()
       ? normaliseAddress(args.address.trim(), profile.language)
       : null;
-
-    callSessionStore.recordLead(vapiCallId, lead);
 
     /* Le numéro DICTÉ, validé avant d'être cru (BEL-3).
        Sur une séquence structurée, un transcripteur est juste une fois sur
@@ -486,6 +487,9 @@ class ToolRuntimeService {
     /* Un numéro donné de vive voix l'emporte sur l'identifiant d'appelant: si
        l'appelant en dicte un autre, c'est là qu'il veut être rappelé. */
     const phone = (dictated?.ok ? dictated.e164 : null) ?? session?.callerNumber ?? null;
+
+    /* APRÈS le numéro, pas avant: c'est tout l'objet du correctif. */
+    callSessionStore.recordLead(vapiCallId, { ...lead, phone });
 
     // Durable first, and awaited: the whole point is that this survives the
     // call. It is one indexed insert, well inside the tool budget.

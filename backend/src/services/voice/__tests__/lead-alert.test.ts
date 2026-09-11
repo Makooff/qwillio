@@ -251,3 +251,46 @@ describe('une promesse passe avant le seuil', () => {
     expect(shouldAlert('urgent', 'high')).toBe(true);
   });
 });
+
+/**
+ * Le numéro DICTÉ atteint enfin la notification.
+ *
+ * « Quand l'IA demande le numéro de téléphone, elle doit le répéter et
+ * l'afficher sur le mail pour avoir directement le numéro à rappeler dans le
+ * SMS aussi », 11/09/2026.
+ *
+ * Le numéro était capté, validé, et il l'emportait bien sur l'identifiant
+ * d'appelant au CRM. Mais `recordLead` était appelé AVANT son calcul, avec un
+ * lead qui n'avait pas de champ `phone`. Le SMS et l'e-mail, qui lisent ce
+ * lead, retombaient donc sur l'identifiant d'appelant: la ligne d'où l'appel
+ * partait, et non celle où l'appelant venait de demander qu'on le rappelle.
+ */
+describe('le numero de rappel dans l\'alerte', () => {
+  const lead = (phone: string | null) => ({
+    name: 'Marie', email: null, phone, reason: 'devis', urgency: 'normal',
+  });
+
+  it('prefere le numero DICTE a l\'identifiant d\'appelant', () => {
+    /* Quand l'appelant en donne un autre, c'est celui-la qu'il veut. */
+    expect(buildSms(lead('+32470112233'), '+3221234567', 'fr')).toContain('+32470112233');
+    expect(buildSms(lead('+32470112233'), '+3221234567', 'fr')).not.toContain('+3221234567');
+  });
+
+  it('retombe sur l\'identifiant d\'appelant quand rien n\'a ete dicte', () => {
+    expect(buildSms(lead(null), '+3221234567', 'fr')).toContain('+3221234567');
+  });
+
+  it('n\'invente pas de ligne de rappel quand les deux manquent', () => {
+    /* Un « Rappeler : » vide ferait perdre du temps a le chercher. */
+    expect(buildSms(lead(null), null, 'fr')).not.toContain('Rappeler');
+  });
+
+  it('garde le numero quand le message est tronque', () => {
+    /* Le motif se coupe, jamais le numero: c'est la seule partie inutilisable
+       si elle est coupee. */
+    const long = { ...lead('+32470112233'), reason: 'x'.repeat(400) };
+    const sms = buildSms(long, null, 'fr');
+    expect(sms.length).toBeLessThanOrEqual(320);
+    expect(sms).toContain('+32470112233');
+  });
+});
