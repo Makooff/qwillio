@@ -1142,7 +1142,7 @@ export default function ClientReceptionist() {
           <div>
             <label className="text-xs text-[#8B8BA7] mb-1.5 block">Numéro de transfert</label>
             <input type="tel" value={transferNumber} onChange={e => setTransferNumber(e.target.value)}
-              placeholder="+1 (555) 000-0000" className={inputCls} />
+              placeholder="+32 470 12 34 56" className={inputCls} />
             <p className="text-[10px] text-[#8B8BA7] mt-1">L'IA transfère les appels urgents à ce numéro</p>
           </div>
           <div>
