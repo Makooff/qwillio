@@ -14,6 +14,52 @@ import { clientMessage, type PhoneSetupState } from '../services/voice/phone-set
 import { wouldLoop, LOOP_MESSAGE } from '../services/voice/transfer-loop';
 
 /**
+ * Rebâtir l'assistant DISTANT après un changement d'intégration.
+ *
+ * ## Le trou que ça bouche, et c'est la sixième fois
+ *
+ * Brancher Google Agenda écrivait le jeton et répondait `connected: true`. Rien
+ * d'autre. Or les outils d'agenda (`checkAvailability`, `bookAppointment`,
+ * `lookupBooking`) ne sont attachés que `if (canBook)`, et `canBook` se lit sur
+ * le PROFIL au moment où l'assistant est construit. Le client branchait donc
+ * son agenda, l'écran disait branché, et l'agent continuait de répondre qu'il
+ * ne peut pas réserver sur cette ligne, pour toujours.
+ *
+ * C'est la famille 6quindecies au complet: ce qui n'est pas repassé à
+ * l'assistant enregistré n'existe pas. Le débranchement porte le même défaut en
+ * pire, puisque l'agent garderait des outils pointant un jeton révoqué et
+ * proposerait des créneaux qu'il ne peut plus réserver.
+ *
+ * ## L'ordre, et pourquoi il n'est pas négociable
+ *
+ * Le cache du profil est vidé AVANT la resynchronisation. Sans ça, les outils
+ * sont rebâtis sur la configuration d'AVANT le branchement, et le client doit
+ * brancher deux fois pour que ça prenne.
+ *
+ * ## Pourquoi ça ne fait pas échouer la requête
+ *
+ * Le jeton est écrit, donc le branchement a bel et bien eu lieu. Répondre 500
+ * ferait croire le contraire et inviterait à rebrancher, ce qui ne réparerait
+ * rien. On rend l'état réel dans `agentUpdated`, et l'échec part par
+ * `reportAssistantSyncFailure`, qui nomme le champ fautif sur Discord: c'est ce
+ * qui empêche le refus de redevenir silencieux.
+ */
+async function resyncAfterIntegrationChange(clientId: string): Promise<boolean> {
+  try {
+    const { realtimeContextService } = await import('../services/voice/realtime-context.service');
+    await realtimeContextService.invalidateClient(clientId);
+    const { onboardingService } = await import('../services/onboarding.service');
+    await onboardingService.syncVapiAssistant(clientId);
+    return true;
+  } catch (error) {
+    const { reportAssistantSyncFailure } = await import('../services/voice/vapi-error');
+    reportAssistantSyncFailure({ clientId, error });
+    return false;
+  }
+}
+
+
+/**
  * Fusionne un réglage `vapiConfig` reçu avec celui déjà en base.
  *
  * Superficielle et volontairement: les sous-objets (`notifications`,
@@ -2459,7 +2505,11 @@ export class ClientDashboardController {
         },
       });
       logger.info(`Google Calendar connected for client ${req.clientId}`);
-      res.json({ connected: true });
+      /* Sans ceci, l'agenda est branché et l'agent ne sait toujours pas
+         réserver: les outils d'agenda ne s'attachent qu'à la construction de
+         l'assistant. */
+      const agentUpdated = await resyncAfterIntegrationChange(req.clientId);
+      res.json({ connected: true, agentUpdated });
     } catch (error: any) {
       logger.error('GCal connect error:', error);
       res.status(500).json({ error: 'Échec de la connexion Google Calendar' });
@@ -2513,7 +2563,10 @@ export class ClientDashboardController {
         where: { id: req.clientId },
         data: { googleCalendarRefreshToken: null, googleCalendarId: null },
       });
-      res.json({ connected: false });
+      /* Le débranchement doit RETIRER les outils, sinon l'agent propose des
+         créneaux avec un jeton révoqué. */
+      const agentUpdated = await resyncAfterIntegrationChange(req.clientId);
+      res.json({ connected: false, agentUpdated });
     } catch (error: any) {
       logger.error('GCal disconnect error:', error);
       res.status(500).json({ error: error.message });
