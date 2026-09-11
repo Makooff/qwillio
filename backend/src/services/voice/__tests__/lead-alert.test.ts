@@ -209,3 +209,45 @@ describe('ce qui ferait douter du produit', () => {
     })).resolves.toMatchObject({ sent: false });
   });
 });
+
+/**
+ * Une PROMESSE n'est pas une information, et le seuil ne décide que des
+ * informations.
+ *
+ * Relevé sur un vrai appel, 11/09/2026: « il me dit qu'il va faire passer le
+ * message, mais je n'ai pas reçu de message ». Le seuil valait `urgent`, la
+ * demande n'était pas urgente, l'alerte a été écartée en silence. L'agent avait
+ * promis, le système n'a pas tenu.
+ *
+ * Le prompt promet un rappel dans TOUS les cas où l'agent ne peut pas servir
+ * l'appelant. Deux réglages indépendants pouvaient donc se contredire, et la
+ * contradiction ne se voyait que de l'appelant qui attend.
+ */
+describe('une promesse passe avant le seuil', () => {
+  it('alerte sur un message pris SANS rendez-vous, meme non urgent', () => {
+    /* Pas de rendez-vous = l'agent a dit « on vous rappelle ». L'urgence est
+       jugee par nous, la promesse a ete entendue par lui. */
+    expect(shouldAlert('urgent', 'low', true)).toBe(true);
+    expect(shouldAlert('urgent', 'medium', true)).toBe(true);
+  });
+
+  it('laisse le seuil decider quand le rendez-vous est PRIS', () => {
+    /* L'appelant repart avec ce qu'il venait chercher: le SMS n'est qu'un
+       agrement, et c'est ce qui evite « un message a chaque appel ». */
+    expect(shouldAlert('urgent', 'low', false)).toBe(false);
+    expect(shouldAlert('urgent', 'high', false)).toBe(true);
+    expect(shouldAlert('all', 'low', false)).toBe(true);
+  });
+
+  it('respecte `none`, qui est un choix explicite du gerant', () => {
+    /* Le forcer serait decider a sa place. Le service journalise ce cas plutot
+       que de l'ecarter sans un mot. */
+    expect(shouldAlert('none', 'high', true)).toBe(false);
+  });
+
+  it('se comporte comme avant quand la promesse n\'est pas renseignee', () => {
+    // Le parametre est optionnel: aucun appelant existant ne change de sens.
+    expect(shouldAlert('urgent', 'low')).toBe(false);
+    expect(shouldAlert('urgent', 'high')).toBe(true);
+  });
+});

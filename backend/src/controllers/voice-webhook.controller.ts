@@ -14,6 +14,38 @@ import { reportRejectedWebhook } from '../services/voice/vapi-error';
 import { leadAlertService, type LeadForAlert } from '../services/voice/lead-alert.service';
 
 /**
+ * L'URL d'enregistrement, cherchee a TOUS les endroits ou Vapi la range.
+ *
+ * Le premier appel entrant reel, le 11/09/2026, a laisse un appel, un lead, un
+ * resume et une transcription dans le portail, mais AUCUN enregistrement. Le
+ * code ne lisait que `message.recordingUrl` et `event.recordingUrl`, et le mot
+ * `artifact` n'apparaissait nulle part dans le backend, alors que le rapport de
+ * fin d'appel de Vapi y range ses artefacts.
+ *
+ * On lit donc les deux formes plutot que de parier sur la bonne. Lire un champ
+ * de plus ne coute rien; se tromper de champ coute un enregistrement perdu et
+ * invisible, puisque rien ne signale une URL qu'on n'a pas cherchee.
+ *
+ * `stereoRecordingUrl` en dernier: c'est la piste a deux canaux, plus lourde,
+ * utile au diagnostic mais pas ce qu'on veut servir au client par defaut.
+ */
+export function pickRecordingUrl(event: any): string | undefined {
+  const m = event?.message ?? {};
+  const a = m.artifact ?? event?.artifact ?? {};
+  return (
+    m.recordingUrl ||
+    event?.recordingUrl ||
+    a.recordingUrl ||
+    a.recording?.url ||
+    a.recording?.mono?.combinedUrl ||
+    m.stereoRecordingUrl ||
+    a.stereoRecordingUrl ||
+    undefined
+  );
+}
+
+
+/**
  * Streaming webhook surface for the receptionist (Phase 2.1).
  *
  * The old handler awaited a `webhookLog` insert before dispatching, then awaited
@@ -207,7 +239,7 @@ export class VoiceWebhookController {
        et c'est ici que ça se décide pour de bon.
        Journalisé et pas seulement écarté: une URL qui arrive alors qu'elle ne
        devrait pas dit que la configuration distante ne correspond plus. */
-    const offeredRecordingUrl = event.message?.recordingUrl || event.recordingUrl;
+    const offeredRecordingUrl = pickRecordingUrl(event);
     if (offeredRecordingUrl && !finalized.recordingAllowed) {
       logger.warn(
         `[Voice] enregistrement REFUSÉ pour ${clientId} (appel ${vapiCallId}): ` +
@@ -255,6 +287,10 @@ export class VoiceWebhookController {
         vapiCallId: vapiCallId ?? null,
         lead: (finalized.metrics as { lead?: LeadForAlert | null } | null)?.lead ?? null,
         callerNumber: finalized.callerNumber ?? null,
+        /* Le rendez-vous pris, quand il y en a un. Son ABSENCE veut dire que
+           l'agent a promis un rappel de vive voix, et une promesse passe avant
+           le seuil d'alerte. */
+        bookingId: (finalized.metrics as { bookingId?: string | null } | null)?.bookingId ?? null,
       })
       .catch(err => logger.warn(`[Voice] alerte lead non envoyée: ${err.message}`));
 

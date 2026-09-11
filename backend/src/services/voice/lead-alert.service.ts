@@ -52,8 +52,45 @@ export interface LeadForAlert {
  * Pure et exportée: c'est la règle que le client règle depuis son portail, et
  * elle doit pouvoir être vérifiée sans monter un appel entier.
  */
-export function shouldAlert(threshold: LeadAlertThreshold, urgency: string): boolean {
+/**
+ * Le seuil décide des alertes INFORMATIVES. Il ne décide pas d'une PROMESSE.
+ *
+ * ## Le défaut, relevé sur un vrai appel le 11/09/2026
+ *
+ * « il me dit qu'il va faire passer le message, mais je n'ai pas reçu de
+ * message. » Exact, et ce n'était pas un bug d'envoi: le seuil vaut `urgent`
+ * par défaut, la demande n'était pas urgente, et l'alerte a été écartée en
+ * silence. L'agent avait promis, le système n'a pas tenu.
+ *
+ * Deux réglages indépendants pouvaient donc se contredire: le prompt promet un
+ * rappel dans TOUS les cas où il ne peut pas servir l'appelant, et le seuil
+ * n'envoyait que les urgences. La contradiction ne se voyait nulle part, sauf
+ * de l'appelant qui attend un rappel qui ne vient pas.
+ *
+ * ## Ce qui distingue une promesse d'une information
+ *
+ * Un rendez-vous PRIS, c'est un appelant servi: il repart avec ce qu'il venait
+ * chercher, et le SMS au gérant n'est qu'un agrément. C'est là que le seuil a
+ * un sens, et c'est ce qui évite « un message à chaque appel ».
+ *
+ * Un message PRIS sans rendez-vous, c'est une promesse faite de vive voix à
+ * quelqu'un. Elle se tient quelle que soit l'urgence, parce que l'urgence est
+ * jugée par nous et la promesse a été entendue par lui.
+ *
+ * ## Pourquoi `none` reste souverain
+ *
+ * `none` est un choix explicite du gérant, pas un défaut subi. Le forcer serait
+ * décider à sa place. Mais le silence devient alors un mensonge de l'agent, et
+ * c'est pour ça que l'appelant est prévenu ailleurs: voir le journal du
+ * service, qui nomme ce cas au lieu de l'écarter sans un mot.
+ */
+export function shouldAlert(
+  threshold: LeadAlertThreshold,
+  urgency: string,
+  promised = false,
+): boolean {
   if (threshold === 'none') return false;
+  if (promised) return true;
   if (threshold === 'all') return true;
   return urgency === 'high';
 }
@@ -133,6 +170,8 @@ class LeadAlertService {
     vapiCallId: string | null;
     lead: LeadForAlert | null;
     callerNumber: string | null;
+    /** Le rendez-vous pris, quand il y en a un. Son ABSENCE vaut promesse. */
+    bookingId?: string | null;
   }): Promise<{ sent: boolean; why?: string }> {
     const { clientId, vapiCallId, lead, callerNumber } = input;
     if (!lead) return { sent: false, why: 'no_lead' };
@@ -152,7 +191,22 @@ class LeadAlertService {
     if (!client) return { sent: false, why: 'unknown_client' };
 
     const threshold = thresholdOf(client.vapiConfig);
-    if (!shouldAlert(threshold, lead.urgency)) return { sent: false, why: `below_threshold_${threshold}` };
+    /* Sans rendez-vous, l'agent a dit à l'appelant qu'on le rappellerait: la
+       promesse passe avant le seuil. Avec rendez-vous, l'appelant est servi et
+       le seuil reprend la main. */
+    const promised = !input.bookingId;
+    if (!shouldAlert(threshold, lead.urgency, promised)) {
+      if (promised) {
+        /* Le gérant a choisi `none`, c'est son droit, mais l'agent vient de
+           promettre un rappel à quelqu'un et personne ne le saura. On le dit
+           ici plutôt que de l'écarter sans un mot. */
+        logger.warn(
+          `[Lead] promesse de rappel NON transmise pour ${clientId} (appel ${vapiCallId}): ` +
+            `le seuil d'alerte est « none ». L'appelant attend un rappel que rien n'annonce.`,
+        );
+      }
+      return { sent: false, why: `below_threshold_${threshold}` };
+    }
 
     const lang: VoiceLanguage = client.agentLanguage === 'nl' ? 'nl' : client.agentLanguage === 'en' ? 'en' : 'fr';
     const body = buildSms(lead, callerNumber, lang);
