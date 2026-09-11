@@ -19,6 +19,7 @@ import KnowledgeGaps from '../../components/client/KnowledgeGaps';
 import VoiceCloner, { type CustomVoice } from '../../components/client/VoiceCloner';
 import OwnNumber from '../../components/client/OwnNumber';
 import { HubGroup, HubRow, HubPanel } from '../../components/client/SettingsHub';
+import { transferAdvice, type ForwardingType } from '../../lib/forwarding-codes';
 
 /**
  * The endpoints this tab reads, as the cache knows them.
@@ -599,6 +600,10 @@ export default function ClientReceptionist() {
   const phone = client.vapiPhoneNumber || settings?.vapiPhoneNumber;
   const fwdStatus = settings?.forwardingStatus;
   const fwdVerified = settings?.forwardingVerifiedAt;
+  /* `forwardingType` est un `string` libre côté état: la table d'aide couvre
+     les cinq valeurs connues et retombe sur la plus exigeante pour tout le
+     reste, donc un transtypage ici ne cache aucun cas. */
+  const advice = transferAdvice(forwardingType as ForwardingType, transferNumber.trim().length > 0);
   // Per-minute billing: the gauge is rendered by AssistantChat's header.
   const quota = overview?.minutes?.quota || settings?.monthlyMinutesQuota || 0;
   const used = overview?.minutes?.used || 0;
@@ -1147,7 +1152,15 @@ export default function ClientReceptionist() {
             <label htmlFor="transferNumber" className="text-xs text-[#8B8BA7] mb-1.5 block">Numéro de transfert</label>
             <input id="transferNumber" type="tel" value={transferNumber} onChange={e => setTransferNumber(e.target.value)}
               placeholder="+32 470 12 34 56" className={inputCls} />
-            <p className="text-[10px] text-[#8B8BA7] mt-1">L'IA transfère les appels urgents à ce numéro</p>
+            {/* Deux lignes, et jamais une de plus: ce qui ARRIVE à l'appel, puis
+                pourquoi la ligne qui renvoie ne peut pas être la cible. Le refus
+                de boucle dit déjà la seconde, mais il la dit après la saisie,
+                donc trop tard pour éviter l'aller-retour.
+                Pas d'animation au changement: du texte d'aide qui fond se lit
+                plus mal, et ce changement n'a ni continuité spatiale ni
+                rétroaction à porter. */}
+            <p className="text-[10px] text-[#8B8BA7] mt-1">{advice.effect}</p>
+            <p className="text-[10px] text-[#8B8BA7]/80 mt-1">{advice.constraint}</p>
           </div>
           <div>
             <label className="text-xs text-[#8B8BA7] mb-1.5 block">Type de transfert</label>

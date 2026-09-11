@@ -122,3 +122,61 @@ export function cancelLink(type: string | null | undefined): string {
 export function clearAllLink(): string {
   return `tel:${CLEAR_ALL_FORWARDS.replace(/#/g, '%23')}`;
 }
+
+/**
+ * Ce que le client doit comprendre AVANT de saisir un numéro de transfert.
+ *
+ * ## Le malentendu que ça dissipe
+ *
+ * « Je ne peux pas mettre mon numéro, il renvoie vers l'IA. » C'est exact, et
+ * le refus de boucle le dit déjà, mais il le dit trop tard : au moment où
+ * l'enregistrement échoue, donc après la saisie. Le client en conclut que le
+ * produit exige deux numéros, alors que la vraie règle est plus simple et
+ * moins exigeante : **une même ligne ne peut pas être à la fois celle qui
+ * renvoie vers l'IA et celle vers qui l'IA renvoie.**
+ *
+ * ## Pourquoi le champ n'est pas grisé
+ *
+ * Première idée, écartée : couper le champ dès que le renvoi est conditionnel.
+ * C'est faux. Avec un renvoi sur non-réponse, transférer vers un COLLÈGUE
+ * reste parfaitement sensé, et griser le champ retirerait cette possibilité à
+ * tous ceux qui l'ont. On explique la conséquence, on ne décide pas à la
+ * place du client.
+ *
+ * ## Pourquoi une phrase par type de renvoi
+ *
+ * La raison pour laquelle la ligne d'origine ne convient pas n'est pas la même
+ * dans les quatre cas, et une formule générique les décrirait tous mal :
+ * occupé retombe sur une ligne occupée, non-réponse sonne dans le vide,
+ * inconditionnel repart en boucle. Nommer la bonne raison est ce qui fait
+ * comprendre du premier coup au lieu d'obliger à essayer.
+ */
+export interface TransferAdvice {
+  /** Ce qui arrive à l'appel, selon que le champ est rempli ou vide. */
+  effect: string;
+  /** Pourquoi la ligne qui renvoie ne peut pas être la cible. */
+  constraint: string;
+}
+
+export const TRANSFER_CONSTRAINT: Record<ForwardingType, string> = {
+  /* « Automatique » veut dire que le client ne nous a rien dit. On suppose le
+     cas le plus exigeant, qui est aussi le défaut de la fiche d'installation :
+     supposer l'inverse laisserait passer la boucle sans un mot. */
+  '': "Tous les appels arrivent à l'IA, donc c'est elle qui décroche. Indiquez une ligne qui ne renvoie pas vers elle, sinon l'appel repart en boucle.",
+  unconditional:
+    "Tous les appels arrivent à l'IA, donc c'est elle qui décroche. Indiquez une ligne qui ne renvoie pas vers elle, sinon l'appel repart en boucle.",
+  busy: "L'IA prend le relais quand votre ligne est occupée. Lui repasser l'appel retomberait sur cette même ligne occupée : indiquez une autre ligne.",
+  no_answer:
+    "L'IA prend le relais quand personne n'a décroché. Lui repasser l'appel sonnerait dans le vide : indiquez une autre ligne, celle d'un collègue par exemple.",
+  scheduled: "L'IA prend le relais en dehors de vos heures. Indiquez la ligne joignable à ces moments-là.",
+};
+
+/** Aide contextuelle du champ « Numéro de transfert ». */
+export function transferAdvice(forwarding: ForwardingType, hasNumber: boolean): TransferAdvice {
+  return {
+    effect: hasNumber
+      ? "L'IA transfère les appels urgents à ce numéro."
+      : "Vide, l'IA ne transfère jamais : elle prend le message et vous prévient.",
+    constraint: TRANSFER_CONSTRAINT[forwarding] ?? TRANSFER_CONSTRAINT[''],
+  };
+}
