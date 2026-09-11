@@ -1328,6 +1328,31 @@ export class ClientDashboardController {
       const patch = Object.fromEntries(Object.entries(data).filter(([, v]) => v !== undefined));
       if (!Object.keys(patch).length) return res.status(400).json({ error: 'nothing_to_update' });
 
+      /* Le MÊME refus de boucle que `updateMySettings`, et il manquait ici.
+       *
+       * C'est le second chemin d'écriture de `transferNumber`, et le plus
+       * exposé des deux: ce formulaire règle UNE ligne, donc la tentation de
+       * saisir le numéro de cette ligne-là y est maximale. Sans ce garde-fou,
+       * l'IA se transfère l'appel à elle-même: l'appelant entend la
+       * réceptionniste se présenter en boucle, les minutes se facturent, et
+       * personne ne décroche jamais.
+       *
+       * Les lignes comparées sont TOUTES celles du client, pas seulement celle
+       * qu'on règle: renvoyer la ligne A vers la ligne B boucle exactement de
+       * la même façon, en passant par un détour de plus. */
+      if (data.transferNumber) {
+        const lignes = await prisma.client.findUnique({
+          where: { id: req.clientId },
+          select: { vapiPhoneNumber: true, phoneNumbers: { select: { number: true } } },
+        });
+        if (wouldLoop(data.transferNumber, {
+          vapiPhoneNumber: lignes?.vapiPhoneNumber,
+          declared: lignes?.phoneNumbers,
+        })) {
+          return res.status(400).json({ error: 'transfer_loop', message: LOOP_MESSAGE });
+        }
+      }
+
       const r = await prisma.clientPhoneNumber.updateMany({
         where: { id: String(req.params.id), clientId: req.clientId },
         data: patch,

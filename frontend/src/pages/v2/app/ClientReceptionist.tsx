@@ -905,7 +905,7 @@ export default function ClientReceptionist() {
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <Field label="Numéro de transfert" hint="L'IA transfère les appels urgents à ce numéro">
-            <Input type="tel" value={transferNumber} onChange={e => setTransferNumber(e.target.value)} placeholder="+1 (555) 000-0000" />
+            <Input type="tel" value={transferNumber} onChange={e => setTransferNumber(e.target.value)} placeholder="+32 470 12 34 56" />
           </Field>
           <Field label="Type de transfert" hint="Quand transférer les appels à un humain">
             <Select value={forwardingType} onChange={e => setForwardingType(e.target.value)}>
@@ -939,7 +939,7 @@ export default function ClientReceptionist() {
         </p>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-x-10 gap-y-4">
           <Field label="Téléphone de contact">
-            <Input type="tel" value={contactPhone} onChange={e => setContactPhone(e.target.value)} placeholder="+1 (555) 000-0000" />
+            <Input type="tel" value={contactPhone} onChange={e => setContactPhone(e.target.value)} placeholder="+32 470 12 34 56" />
           </Field>
           <Field label="Adresse">
             <Input type="text" value={address} onChange={e => setAddress(e.target.value)} placeholder="123 Rue Principale" />

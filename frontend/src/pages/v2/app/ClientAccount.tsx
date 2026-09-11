@@ -590,7 +590,7 @@ export default function ClientAccount() {
                     type="tel"
                     value={contactPhone}
                     onChange={(e) => setContactPhone(e.target.value)}
-                    placeholder="+1 (555) 000-0000"
+                    placeholder="+32 470 12 34 56"
                     className={accInput}
                   />
                 </Field>

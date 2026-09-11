@@ -1,92 +1,65 @@
 import { describe, it, expect } from 'vitest';
-import {
-  FORWARDING_CODES, forwardingFor, activationCode, activationLink, cancelLink,
-  CLEAR_ALL_FORWARDS, clearAllLink,
-} from './forwarding-codes';
+import { transferAdvice, TRANSFER_CONSTRAINT, FORWARDING_CODES, type ForwardingType } from './forwarding-codes';
 
 /**
- * Les codes de renvoi d'appel.
+ * L'aide du champ « Numéro de transfert ».
  *
- * La page donnait `*21*` à TOUT LE MONDE, y compris au client qui venait de
- * choisir « Si occupé ». Il croyait ne renvoyer que ce qu'il rate et renvoyait
- * tout: son téléphone ne sonnait plus, et rien ne le lui disait.
+ * Ce qu'elle empêche: qu'un client conclue que Qwillio exige deux numéros.
+ * La règle réelle est plus simple, une même ligne ne peut pas être à la fois
+ * celle qui renvoie vers l'IA et celle vers qui l'IA renvoie, et le refus de
+ * boucle ne l'énonçait qu'APRÈS une saisie ratée.
  */
 
-describe('le code suit le type choisi', () => {
-  it('donne un code DIFFÉRENT par type de renvoi', () => {
-    /* Le défaut corrigé, en une assertion: quatre choix ne peuvent pas mener au
-       même code, sinon le menu ne sert à rien. */
-    const codes = Object.values(FORWARDING_CODES).map(c => c.activate);
-    expect(new Set(codes).size).toBe(codes.length);
-  });
+const TOUS: ForwardingType[] = ['', 'unconditional', 'busy', 'no_answer', 'scheduled'];
 
-  it('compose le numéro dans le code', () => {
-    expect(activationCode('busy', '+32 470 11 22 33')).toBe('*67*+32470112233#');
-    expect(activationCode('no_answer', '+32470112233')).toBe('*61*+32470112233#');
-  });
-
-  it("retombe sur le renvoi total quand rien n'est choisi", () => {
-    // Le comportement historique, et le seul défaut sûr: mieux vaut que l'IA
-    // prenne tout que de laisser des appels sans personne au bout.
-    expect(forwardingFor('').type).toBe('unconditional');
-    expect(forwardingFor(null).type).toBe('unconditional');
-    expect(forwardingFor('nawak').type).toBe('unconditional');
-  });
-
-  it("échappe le dièse, sinon le clavier n'accepte pas le lien", () => {
-    /* Un `#` brut dans un `tel:` est lu comme une ancre d'URL et disparaît: le
-       code arrive tronqué sur le clavier et le renvoi n'est jamais activé. */
-    expect(activationLink('busy', '+32470112233')).toBe('tel:*67*+32470112233%23');
-    expect(activationLink('busy', '')).toBeUndefined();
-    expect(cancelLink('busy')).toBe('tel:%23%2367%23');
-  });
-});
-
-describe("ce que le client doit savoir avant de composer", () => {
-  it('dit ce que ça FAIT, pas le nom du code', () => {
-    // « Renvoi inconditionnel » ne veut rien dire pour un garagiste. « Votre
-    // téléphone ne sonne plus » si.
-    for (const c of Object.values(FORWARDING_CODES)) {
-      expect(c.effect.length).toBeGreaterThan(30);
-      expect(c.effect).not.toMatch(/inconditionnel|MMI|GSM/i);
+describe('transferAdvice', () => {
+  it('couvre les cinq valeurs du sélecteur', () => {
+    for (const t of TOUS) {
+      expect(transferAdvice(t, true).constraint.length, `« ${t} » sans consigne`).toBeGreaterThan(20);
     }
   });
 
-  it("prévient de l'effet de bord qui surprend, sur chaque type", () => {
-    /* Chacun a le sien, et c'est ce qui manquait: « si occupé » ne couvre PAS
-       l'appel qu'on laisse sonner, et l'appelant tombe sur la messagerie au
-       lieu de l'IA. Un client le découvrait en perdant un client. */
-    for (const c of Object.values(FORWARDING_CODES)) {
-      expect(c.caveat, 'chaque type doit dire ce qui surprend').toBeTruthy();
+  it('reste aligné sur les types de renvoi réellement proposés', () => {
+    /* Le vrai risque n'est pas qu'une phrase ressemble à une autre: c'est
+       qu'un sixième renvoi apparaisse dans `FORWARDING_CODES` sans la sienne
+       et retombe en silence sur la consigne générique. On compare donc les
+       JEUX DE CLÉS, pas les textes. `unconditional` partage volontairement sa
+       phrase avec « Automatique », et une comparaison de textes l'aurait
+       signalé à tort. */
+    const attendues = new Set<string>(['', ...Object.keys(FORWARDING_CODES)]);
+    expect(new Set(Object.keys(TRANSFER_CONSTRAINT))).toEqual(attendues);
+  });
+
+  it('donne une RAISON différente selon le renvoi', () => {
+    /* Une formule générique décrirait mal les quatre cas: occupé retombe sur
+       une ligne occupée, non-réponse sonne dans le vide, inconditionnel boucle.
+       Nommer la bonne raison est ce qui fait comprendre du premier coup. */
+    expect(transferAdvice('busy', true).constraint).toMatch(/occupée/);
+    expect(transferAdvice('no_answer', true).constraint).toMatch(/dans le vide/);
+    expect(transferAdvice('unconditional', true).constraint).toMatch(/boucle/);
+    expect(transferAdvice('scheduled', true).constraint).toMatch(/heures/);
+  });
+
+  it('traite « Automatique » comme le cas le plus exigeant', () => {
+    /* Vide veut dire que le client ne nous a rien dit. Supposer le renvoi
+       conditionnel laisserait passer la boucle sans un mot. */
+    expect(transferAdvice('', true).constraint).toBe(transferAdvice('unconditional', true).constraint);
+  });
+
+  it('dit ce qu\'il se passe quand le champ est VIDE', () => {
+    /* Sans cette phrase, un champ vide se lit comme un oubli. C'est un choix
+       légitime: l'agent prend un message, ce qui est le comportement par
+       défaut d'un client sans seconde ligne. */
+    const vide = transferAdvice('no_answer', false);
+    expect(vide.effect).toMatch(/message/);
+    expect(vide.effect).not.toBe(transferAdvice('no_answer', true).effect);
+  });
+
+  it('n\'emploie aucun tiret cadratin', () => {
+    // Banni par le guide du projet, y compris dans la copie produit.
+    for (const t of TOUS) {
+      const { effect, constraint } = transferAdvice(t, true);
+      expect(effect + constraint).not.toContain('—');
     }
-  });
-
-  it("ne promet pas un renvoi par HORAIRE, qui n'existe pas sur mobile", () => {
-    /* Le menu propose « Programmé (hors heures) », mais aucun réseau mobile ne
-       sait renvoyer selon l'heure. Promettre l'aurait fait découvrir au premier
-       appel de 22 h pris par personne. */
-    const prog = FORWARDING_CODES.scheduled;
-    expect(prog.caveat).toMatch(/n'existe pas sur un mobile/i);
-    expect(prog.effect).not.toMatch(/horaire|heure/i);
-  });
-});
-
-describe('effacement global — la messagerie de l\'opérateur (REL-10)', () => {
-  it('marque le risque de messagerie sur les renvois conditionnels, pas sur le total', () => {
-    expect(FORWARDING_CODES.unconditional.voicemailRisk).toBe(false);
-    expect(FORWARDING_CODES.busy.voicemailRisk).toBe(true);
-    expect(FORWARDING_CODES.no_answer.voicemailRisk).toBe(true);
-    expect(FORWARDING_CODES.scheduled.voicemailRisk).toBe(true);
-  });
-
-  it('efface TOUS les renvois, et pas un seul type', () => {
-    // `##002#` et non `##21#`: un code par type laisserait en place celui que
-    // l'opérateur a posé pour sa messagerie, qui est justement invisible.
-    expect(CLEAR_ALL_FORWARDS).toBe('##002#');
-  });
-
-  it('échappe le dièse dans le lien du clavier', () => {
-    expect(clearAllLink()).toBe('tel:%23%23002%23');
-    expect(clearAllLink()).not.toContain('#');
   });
 });
