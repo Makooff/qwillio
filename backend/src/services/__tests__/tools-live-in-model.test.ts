@@ -70,3 +70,41 @@ describe('la place des outils dans la charge Vapi', () => {
     expect(read('scripts/validate-assistant.ts')).toContain('buildVoiceTools');
   });
 });
+
+/**
+ * La leçon vaut aussi pour qui LIT l'assistant distant, pas seulement pour qui
+ * l'écrit.
+ *
+ * `voice:doctor` lisait `assistant.tools`, la racine. Or Vapi refuse ce champ
+ * (« property tools should not exist »), donc un assistant distant n'en a
+ * JAMAIS. Le docteur annonçait par conséquent « 0 outil » à tout le monde, y
+ * compris sur un assistant parfaitement configuré, et conseillait de
+ * resynchroniser — un geste qui ne changeait rien, puisque rien n'était cassé.
+ *
+ * Un diagnostic faux coûte plus cher qu'aucun diagnostic: on cherche la panne
+ * là où elle n'est pas. Ici il a coûté une nuit et un script écrit pour rien.
+ *
+ * Le test symétrique de celui du dessus, donc: l'écriture pose les outils dans
+ * `model`, la lecture les y cherche.
+ */
+describe('la place des outils quand on RELIT l\'assistant', () => {
+  const doctor = read('scripts/diagnose-inbound.ts');
+
+  it('cherche les outils dans `model.tools`', () => {
+    expect(doctor).toMatch(/assistant\.model\?\.tools/);
+  });
+
+  it('ne compte JAMAIS la racine comme la liste des outils', () => {
+    /* La forme fautive exacte: `const tools = Array.isArray(assistant.tools)`.
+       La racine peut encore être lue pour signaler une anomalie, mais elle ne
+       peut plus être ce que le verdict compte. */
+    expect(doctor).not.toMatch(/const\s+tools\s*=\s*Array\.isArray\(assistant\.tools\)/);
+  });
+
+  it('signale la racine si elle porte quelque chose', () => {
+    /* Vapi la refuse: si elle contenait un outil, ce serait que l'API a changé
+       d'avis, et il faudrait le savoir plutôt que l'ignorer. */
+    expect(doctor).toContain('rootTools');
+    expect(doctor).toMatch(/RACINE/);
+  });
+});
