@@ -397,6 +397,27 @@ Ecart de cout a mesurer avant de choisir : le tableau de bord Vapi annonce
 `gpt-realtime-2`, un facteur dix, et `VOICE_REALTIME_SURCHARGE_EUR` est a zero,
 donc l'ecart est entierement pour nous.
 
+### 6sexvicies. Un diagnostic FAUX coute plus cher qu'aucun diagnostic (11/09/2026)
+`voice:doctor` lisait `assistant.tools`, la RACINE. Or Vapi refuse ce champ
+(« property tools should not exist », 6novodecies) : un assistant distant n'en a
+donc jamais. Le docteur annoncait « 0 outil » a TOUT LE MONDE, pour toujours, y
+compris sur un assistant parfaitement configure, et il concluait en conseillant
+de resynchroniser, geste qui ne changeait rien puisque rien n'etait casse.
+Ce que ca a coute : une nuit passee a chercher une panne de synchronisation qui
+n'existait pas, et un script (`voice:resync`) ecrit pour la debusquer. Le script
+reste utile, c'est lui qui a prouve que la synchronisation REUSSIT, mais il
+n'aurait pas du etre necessaire.
+La regle : **quand une lecon deplace un champ, le CODE QUI LE LIT compte autant
+que le code qui l'ecrit.** `tools-live-in-model.test.ts` interdisait
+`assistantData.tools =` a l'ecriture et ne regardait pas la lecture ; il couvre
+maintenant les deux, et la forme fautive a ete reintroduite une fois pour
+verifier qu'il tombe.
+Second releve du meme passage, sans rapport et bien reel : `[Greeting] variant N
+failed: ElevenLabs responded 401` sur les trois variantes. La cle ElevenLabs du
+backend est refusee. Ca n'empeche pas un appel (Vapi synthetise avec SA propre
+cle) mais ca eteint l'accueil pre-enregistre, donc l'optimisation de latence de
+la premiere phrase, en silence.
+
 ### 6nonies. Un refus de Vapi ne doit plus être silencieux (09/09/2026)
 `syncVapiAssistant` lève, et ses **deux** appelants attrapent pour écrire un
 `logger.warn` avant de répondre `success: true`. Le client enregistre un réglage,

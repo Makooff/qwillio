@@ -95,15 +95,35 @@ async function main() {
     }
 
     if (assistant) {
-      const tools = Array.isArray(assistant.tools) ? assistant.tools : [];
-      const names = tools.map(t => (t?.type === 'function' ? t?.function?.name : t?.type)).filter(Boolean);
+      /* Les outils vivent dans `model.tools`, PAS à la racine (6novodecies).
+       *
+       * Ce script lisait la racine, et c'est un mensonge coûteux: Vapi REFUSE
+       * un `tools` racine (« property tools should not exist »), donc un
+       * assistant distant n'en a jamais. Le docteur annonçait donc « 0 outil »
+       * à tout le monde, pour toujours, y compris sur un assistant
+       * parfaitement configuré, et son conseil (« enregistrer les paramètres
+       * resynchronise l'assistant ») envoyait refaire un geste qui ne
+       * changeait rien. Un diagnostic faux coûte plus cher qu'aucun
+       * diagnostic: on cherche la panne là où elle n'est pas.
+       *
+       * La racine est encore lue, mais seulement pour SIGNALER l'anomalie:
+       * si elle contenait quoi que ce soit, c'est que Vapi aurait accepté un
+       * champ qu'il refuse, et il faudrait le savoir. */
+      const modelTools = Array.isArray(assistant.model?.tools) ? assistant.model.tools : [];
+      const rootTools = Array.isArray(assistant.tools) ? assistant.tools : [];
+      if (rootTools.length > 0) {
+        verdict(false, 'outils à la RACINE de l\'assistant', 
+          `${rootTools.length} outil(s) à un emplacement que Vapi refuse normalement. À signaler.`);
+      }
+      const tools = modelTools;
+      const names = tools.map((t: any) => (t?.type === 'function' ? t?.function?.name : t?.type)).filter(Boolean);
       verdict(
         tools.length > 0,
         `outils sur l'assistant qui décroche (${tools.length})`,
         tools.length > 0
           ? names.join(', ')
           : "aucun outil: l'agent ne peut ni transférer, ni enregistrer un lead, ni lire la base de connaissances. "
-            + 'Enregistrer les paramètres du portail resynchronise l\'assistant.',
+            + 'Relancer `npm run voice:resync -- --email=... --confirm`, qui dit ce que Vapi répond.',
       );
 
       const expected = `${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`;
