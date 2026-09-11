@@ -267,9 +267,9 @@ export function buildSystemPrompt(
   } else {
     lines.push(
       t(
-        'RENDEZ-VOUS: tu ne peux pas réserver sur cette ligne. Prends le motif et les coordonnées avec captureLead, et annonce un rappel.',
-        'APPOINTMENTS: you cannot book on this line. Take the reason and contact details with captureLead, and promise a call back.',
-        'AFSPRAKEN: je kunt op deze lijn niet boeken. Noteer de reden en de contactgegevens met captureLead, en beloof dat er wordt teruggebeld.',
+        'RENDEZ-VOUS: tu ne peux pas réserver sur cette ligne. Prends le motif et les coordonnées avec captureLead, et annonce un rappel de l\'ÉQUIPE.',
+        'APPOINTMENTS: you cannot book on this line. Take the reason and contact details with captureLead, and promise a call back from the TEAM.',
+        'AFSPRAKEN: je kunt op deze lijn niet boeken. Noteer de reden en de contactgegevens met captureLead, en beloof dat het TEAM terugbelt.',
       )
     );
   }
@@ -303,17 +303,17 @@ export function buildSystemPrompt(
     if (mode === 'never') {
       lines.push(
         t(
-          'TRANSFERT INTERDIT: même si un humain est demandé → captureLead, promets un rappel.',
-          'NO TRANSFER: even if a human is asked for → captureLead, promise a call back.',
-          'NIET DOORVERBINDEN: ook als om een mens wordt gevraagd → captureLead, beloof terugbellen.',
+          'TRANSFERT INTERDIT: même si un humain est demandé → captureLead, promets un rappel de l\'ÉQUIPE.',
+          'NO TRANSFER: even if a human is asked for → captureLead, promise a call back from the TEAM.',
+          'NIET DOORVERBINDEN: ook als om een mens wordt gevraagd → captureLead, beloof dat het TEAM terugbelt.',
         )
       );
     } else if (mode === 'hours') {
       lines.push(
         t(
-          'TRANSFERT: humain ou urgence demandés → transferCall SI ouvert, sinon captureLead et rappel.',
-          'TRANSFER: human or emergency asked → transferCall IF open, otherwise captureLead and call back.',
-          'DOORVERBINDEN: mens of nood gevraagd → transferCall INDIEN open, anders captureLead en terugbellen.',
+          'TRANSFERT: humain ou urgence demandés → transferCall SI ouvert, sinon captureLead et rappel ÉQUIPE.',
+          'TRANSFER: human or emergency asked → transferCall IF open, otherwise captureLead and TEAM call back.',
+          'DOORVERBINDEN: mens of nood gevraagd → transferCall INDIEN open, anders captureLead en TEAM belt terug.',
         )
       );
     } else {
@@ -326,6 +326,22 @@ export function buildSystemPrompt(
       );
     }
   }
+
+  /* Releve sur le PREMIER appel entrant reel, 11/09/2026: « quand je lui dis
+     au revoir, il ne raccroche pas ». `endCallFunctionEnabled` donne la
+     CAPACITE de raccrocher, et rien ne disait au modele de s'en servir. Une
+     capacite qu'on n'instruit pas ne s'exerce pas, et l'appelant reste en ligne
+     avec une IA qui attend qu'il parte le premier.
+     C'est la SEULE ligne ajoutee des deux corrections du jour: « qui rappelle »
+     s'est replie dans les regles existantes, parce que le prompt est rejoue a
+     chaque tour et que l'appelant a justement trouve l'agent trop lent. */
+  lines.push(
+    t(
+      "FIN D'APPEL: quand l'appelant a fini et salue, reponds brievement puis appelle endCall.",
+      'ENDING: when the caller is done and says goodbye, answer briefly then call endCall.',
+      'EINDE: als de beller klaar is en gedag zegt, antwoord kort en roep endCall aan.',
+    ),
+  );
 
   if (profile.hasKnowledgeBase) {
     lines.push(

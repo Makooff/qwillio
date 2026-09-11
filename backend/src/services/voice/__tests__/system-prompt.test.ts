@@ -99,8 +99,17 @@ describe('buildSystemPrompt', () => {
        règle qui répond à un défaut entendu. Il monte une seconde fois, de 100
        caractères encore, pour la règle de prosodie: en mode direct le prompt
        est le SEUL levier sur la façon de parler, aucun réglage de synthèse ne
-       l'atteint. Un appel de 20 tours reste sous 11 000 jetons de prompt. */
-    expect(buildSystemPrompt(profile, newCaller).length).toBeLessThan(2200);
+       l'atteint. Un appel de 20 tours reste sous 11 000 jetons de prompt.
+       Il monte une TROISIÈME fois, de 100 caractères, pour la règle de fin
+       d'appel: relevée sur le premier appel entrant réel du 11/09/2026, « quand
+       je lui dis au revoir, il ne raccroche pas ». `endCallFunctionEnabled`
+       donnait la capacité, rien ne demandait de s'en servir.
+       L'autre correction du même appel, « qui rappelle », n'a RIEN coûté au
+       plafond: elle s'est repliée dans les règles de rendez-vous et de transfert
+       qui parlaient déjà d'un rappel sans dire de qui. C'est la règle quand un
+       défaut se corrige par le prompt: replier d'abord, ajouter seulement quand
+       aucune ligne existante ne peut porter la précision. */
+    expect(buildSystemPrompt(profile, newCaller).length).toBeLessThan(2300);
   });
 
   it('injects the pre-rendered knowledge block when one is supplied', () => {
@@ -201,7 +210,7 @@ describe('les règles de transfert, réglées par le client', () => {
   it('ne fait pas grossir le prompt, qui est rejoué à chaque tour', () => {
     // Les trois variantes tiennent la même longueur à quelques caractères près.
     const tailles = (['always', 'hours', 'never'] as const).map(m => withMode(m).length);
-    expect(Math.max(...tailles)).toBeLessThan(2200);
+    expect(Math.max(...tailles)).toBeLessThan(2300);
     expect(Math.max(...tailles) - Math.min(...tailles)).toBeLessThan(30);
   });
 });
