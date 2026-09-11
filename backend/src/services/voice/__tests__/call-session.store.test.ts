@@ -187,3 +187,30 @@ describe('les échecs de capture du numéro', () => {
     expect(callSessionStore.recordPhoneCaptureFailure(null)).toBe(1);
   });
 });
+
+
+/**
+ * La relecture d'un numéro valide se demande UNE fois par numéro: l'agent
+ * rappelle `captureLead` avec le numéro confirmé, et lui redemander de relire à
+ * ce moment-là ferait tourner les deux en boucle jusqu'à ce que l'appelant
+ * raccroche.
+ */
+describe('callSessionStore — la relecture du numéro', () => {
+  beforeEach(() => callSessionStore.reset());
+
+  it('la demande au premier passage, pas au second', () => {
+    callSessionStore.start(base);
+    expect(callSessionStore.needsPhoneReadBack('call_1', '+32475123456')).toBe(true);
+    expect(callSessionStore.needsPhoneReadBack('call_1', '+32475123456')).toBe(false);
+  });
+
+  it('la redemande quand l\'appelant corrige: c\'est un autre numéro', () => {
+    callSessionStore.start(base);
+    callSessionStore.needsPhoneReadBack('call_1', '+32475123456');
+    expect(callSessionStore.needsPhoneReadBack('call_1', '+32475123457')).toBe(true);
+  });
+
+  it('ne demande rien sur un appel inconnu: sans mémoire, on la redemanderait en boucle', () => {
+    expect(callSessionStore.needsPhoneReadBack('ghost_call', '+32475123456')).toBe(false);
+  });
+});

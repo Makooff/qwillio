@@ -214,7 +214,17 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
         parameters: {
           type: 'object',
           properties: {
-            customerName: { type: 'string', description: 'Full name of the caller.' },
+            /* Le NOM DE FAMILLE, demandé explicitement.
+               « Full name » laissait passer un prénom seul, et c'est ce qui
+               arrivait: un agenda qui porte « Marc, 14h » ne distingue pas deux
+               Marc, et le client ne sait pas qui se présente. Le prénom seul
+               reste accepté plutôt que de bloquer le rendez-vous, mais l'agent
+               sait maintenant qu'il lui manque quelque chose. */
+            customerName: {
+              type: 'string',
+              description:
+                'First name AND family name. If the caller gave only a first name, ask for their family name before booking.',
+            },
             date: { type: 'string', description: 'Appointment date, ISO 8601 (YYYY-MM-DD).' },
             time: { type: 'string', description: 'Start time, 24h HH:mm in the business timezone.' },
             serviceType: { type: 'string', description: 'Service being booked.' },
@@ -256,9 +266,18 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
   // outcome even when nothing can be booked.
   tools.push({
     type: 'function',
-    // Fire-and-forget: the model must not wait on a write that only matters
-    // after the call. This is the one tool where async is correct.
-    async: true,
+    /* SYNCHRONE, et ce n'était pas le cas.
+       `async: true` veut dire chez Vapi « n'attends pas, et ne rends RIEN au
+       modèle »: le résultat de l'outil n'est jamais réinjecté dans la
+       conversation. Tout ce que `captureLead` répond partait donc dans le vide
+       — la relecture d'un numéro mal compris, le repli clavier au deuxième
+       échec (BEL-4), la relecture d'un numéro valide. Trois mécanismes écrits,
+       testés, et qu'aucun appel n'a jamais reçus.
+       Ce que ça coûte: le modèle attend une écriture. Une seule, indexée, avec
+       la mémoire appelant déjà détachée en `void`, largement dans le budget de
+       l'outil. `captureLead` n'a d'ailleurs aucun message d'attente, donc rien
+       n'est dit à voix haute pendant ce temps. */
+    async: false,
     server: { ...webhookServer(serverUrl), timeoutSeconds: env.VOICE_TOOL_TIMEOUT_SECONDS },
     messages: toolMessages('captureLead', lang),
     function: {
@@ -277,7 +296,8 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
           phone: {
             type: 'string',
             description:
-              'Callback number, exactly as the caller said it, digits or words. Only when they give one.',
+              'Callback number, exactly as the caller said it, digits or words. '
+              + 'Ask for it whenever you promise a call back, unless the caller already gave one.',
           },
           reason: { type: 'string', description: 'Why they called, one sentence.' },
           /* L'adresse, telle que dite (BEL-6). Un dépanneur, un vétérinaire à

@@ -114,6 +114,18 @@ export interface CallSession {
    */
   phoneCaptureFailures: number;
   /**
+   * Le dernier numéro pour lequel une RELECTURE a déjà été demandée, ou `null`.
+   *
+   * Un numéro qui passe la validation peut être faux: « zéro quatre sept cinq
+   * douze trente-quatre cinquante-six » transcrit avec un chiffre de travers
+   * reste un mobile belge parfaitement valide, donc rien ne le signale, et le
+   * rappel part sur la mauvaise ligne. Seule la relecture à l'appelant lève ce
+   * doute, et elle ne se demande qu'UNE fois par numéro: l'agent rappelle
+   * `captureLead` avec le même numéro pour confirmer, et lui redemander de
+   * relire à ce moment-là ferait tourner les deux en boucle.
+   */
+  phoneReadBack: string | null;
+  /**
    * L'agent a-t-il été coupé au milieu d'une VRAIE phrase, sans avoir encore
    * repris la parole depuis ? Posé par `recordBargeIn`, consommé au tour
    * suivant.
@@ -234,6 +246,7 @@ class CallSessionStore {
       mood: 'neutral',
       tokens: { input: 0, cached: 0, output: 0 },
       phoneCaptureFailures: 0,
+      phoneReadBack: null,
       pendingHardBargeIn: false,
       interruptedSpeechMs: null,
       repair: newRepairState(),
@@ -345,6 +358,26 @@ class CallSessionStore {
     if (!session) return 1;
     session.phoneCaptureFailures++;
     return session.phoneCaptureFailures;
+  }
+
+  /**
+   * Ce numéro doit-il être relu à l'appelant ? Vrai une seule fois par numéro.
+   *
+   * L'appel pose le drapeau en même temps qu'il répond, parce que les deux
+   * gestes sont le même: demander la relecture, c'est décider qu'elle a été
+   * demandée. Un second numéro, dicté après correction, en redemande une —
+   * c'est lui, désormais, qu'on rappellera.
+   *
+   * Sur un appel inconnu (session balayée, processus redémarré) il rend faux:
+   * sans mémoire, on ne peut pas distinguer la première demande de la
+   * confirmation, et redemander en boucle est pire que ne pas demander.
+   */
+  needsPhoneReadBack(vapiCallId: string | null, e164: string): boolean {
+    const session = this.get(vapiCallId);
+    if (!session) return false;
+    if (session.phoneReadBack === e164) return false;
+    session.phoneReadBack = e164;
+    return true;
   }
 
   recordDeflection(vapiCallId: string | null): void {
