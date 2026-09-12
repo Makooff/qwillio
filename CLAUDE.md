@@ -839,6 +839,16 @@ heure l'agent a réellement réservé, au lieu de le deviner.
   lit encore depuis un navigateur. `GET /my-dashboard/calls/:id/recording`
   redemande l'adresse fraîche à Vapi et sert les octets avec `Range` ; le portail
   la lit avec son jeton et joue un blob, et dit désormais POURQUOI quand ça rate.
+- **Ce que le docteur a dit le soir même (22:45), et qui tranche les deux
+  derniers.** Le SMS : `Invalid 'To' Phone Number: 3248362XXXX [Twilio 21211]`.
+  Le numéro de l'appelant passe par `normalizeNumber`, qui ne garde que les
+  chiffres pour servir de CLÉ (attribution, mémoire d'appelant) ; Twilio veut
+  E.164 avec le « + ». `utils/sms-e164.ts` remet le « + » au seul endroit qui
+  envoie (`sendSMS`), donc pour tous les SMS. L'enregistrement : l'URL stockée
+  est une URL SIGNÉE Cloudflare R2 (`r2.cloudflarestorage.com`) qui répond 400
+  quelques heures plus tard. Elle a une durée de vie ; celle que Vapi rend à la
+  demande vit. Le portail passe par la route, jamais par la colonne, et le
+  docteur teste les deux URL, avec le corps du refus.
 
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
