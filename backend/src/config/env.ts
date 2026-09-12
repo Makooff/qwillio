@@ -575,7 +575,10 @@ export const env = {
    * de quatre secondes est NORMAL au téléphone, on y cherche un papier. Huit
    * laissent respirer, et il en reste largement avant le raccroché.
    */
-  VOICE_IDLE_NUDGE_SECONDS: parseFloat(process.env.VOICE_IDLE_NUDGE_SECONDS || '8'),
+  /* 10 s et non 8: « Vous m'entendez ? » est tombé sur un appelant qui
+     réfléchissait à une question (12/09/2026). Une hésitation humaine tient
+     dans dix secondes; une ligne coupée se voit toujours après. */
+  VOICE_IDLE_NUDGE_SECONDS: parseFloat(process.env.VOICE_IDLE_NUDGE_SECONDS || '10'),
   /** How many times to nudge before letting the silence timeout end the call. */
   VOICE_IDLE_NUDGE_COUNT: parseInt(process.env.VOICE_IDLE_NUDGE_COUNT || '2', 10),
   /* Conformité au décroché.

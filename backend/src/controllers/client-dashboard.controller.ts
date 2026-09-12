@@ -287,8 +287,11 @@ export class ClientDashboardController {
       const range = typeof req.headers.range === 'string' ? req.headers.range : undefined;
       const upstream = await fetch(url, { headers: range ? { Range: range } : {} });
       if (!upstream.ok) {
-        logger.warn(`[Recording] ${url} répond ${upstream.status} pour l'appel ${id}`);
-        return res.status(502).json({ error: 'recording_unavailable', upstream: upstream.status });
+        /* Le corps du refus nomme la cause (un XML S3: signature expirée,
+           paramètre refusé); sans lui, un 502 au portail est une devinette. */
+        const why = (await upstream.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 300);
+        logger.warn(`[Recording] ${new URL(url).host} répond ${upstream.status} pour l'appel ${id}: ${why}`);
+        return res.status(502).json({ error: 'recording_unavailable', upstream: upstream.status, detail: why });
       }
       res.status(upstream.status);
       for (const header of ['content-type', 'content-length', 'content-range', 'accept-ranges']) {

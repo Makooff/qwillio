@@ -18,6 +18,11 @@ describe('normaliseSpelledName', () => {
     expect(normaliseSpelledName('Jean-Luc Van Damme')).toBe('Jean-Luc Van Damme');
   });
 
+  it('lit « VAN espace H0LD » comme « Van Hold »: capitales recollées, 0 pour O, « espace » dit', () => {
+    expect(normaliseSpelledName('Stéphane VAN espace H0LD')).toBe('Stéphane Van Hold');
+    expect(normaliseSpelledName('Stéphane Van H 0 L D')).toBe('Stéphane Van Hold');
+  });
+
   it('ne recolle pas une initiale isolée', () => {
     expect(normaliseSpelledName('J. Dupont')).toBe('J Dupont');
   });

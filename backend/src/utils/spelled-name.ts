@@ -8,7 +8,10 @@
  * nom ne bouge pas.
  */
 export function normaliseSpelledName(raw: string): string {
-  const tokens = raw.trim().split(/\s+/);
+  /* « VAN espace H0LD » (appel réel, 12/09/2026): le transcripteur rend les
+     lettres épelées collées et en capitales, entend « O » comme le chiffre
+     0, et écrit le mot « espace » que l'appelant a dit. */
+  const tokens = raw.trim().split(/\s+/).filter(t => !/^(espace|space|spatie)$/i.test(t));
   const out: string[] = [];
   let run: string[] = [];
 
@@ -30,12 +33,20 @@ export function normaliseSpelledName(raw: string): string {
       out.push(dashed[0].toUpperCase() + dashed.slice(1).join('').toLowerCase());
       continue;
     }
-    const letter = token.match(/^(\p{L})[.,]?$/u);
+    const letter = token.match(/^(\p{L}|0)[.,]?$/u);
     if (letter) {
-      run.push(letter[1]);
+      run.push(letter[1] === '0' ? 'O' : letter[1]);
       continue;
     }
     flush();
+    /* Un mot en CAPITALES (avec d'éventuels 0 pour O), c'est une épellation
+       recollée par le transcripteur: « H0LD » → « Hold ». Deux lettres au
+       moins, pour laisser passer une initiale. */
+    if (/^[\p{Lu}0]{2,}[.,]?$/u.test(token)) {
+      const word = token.replace(/[.,]$/, '').replace(/0/g, 'O');
+      out.push(word[0] + word.slice(1).toLowerCase());
+      continue;
+    }
     out.push(token);
   }
   flush();

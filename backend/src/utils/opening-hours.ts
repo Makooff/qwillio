@@ -46,13 +46,27 @@ export function weekDayOf(ymd: string, timezone: string): WeekDay {
 export type DayWindow = { open: false } | { open: true; from: string; to: string };
 
 /**
- * La fenêtre d'ouverture d'un jour donné. Un jour absent des horaires est
- * tenu pour ouvert aux heures par défaut: l'absence d'information ne doit pas
- * fermer un commerce.
+ * Les horaires par défaut, ceux que le portail AFFICHE quand rien n'est
+ * enregistré (`DEFAULT_HOURS` de `ClientReceptionist.tsx`): lundi-vendredi
+ * 9 h-18 h, week-end fermé. Sans horaires enregistrés, l'agent prenait un
+ * rendez-vous le dimanche (appel réel, 12/09/2026); l'écran, lui, montrait
+ * le dimanche décoché. Les deux lisent désormais la même règle.
  */
+export const DEFAULT_WEEK_HOURS: WeekHours = {
+  monday: { open: true, from: '09:00', to: '18:00' },
+  tuesday: { open: true, from: '09:00', to: '18:00' },
+  wednesday: { open: true, from: '09:00', to: '18:00' },
+  thursday: { open: true, from: '09:00', to: '18:00' },
+  friday: { open: true, from: '09:00', to: '18:00' },
+  saturday: { open: false, from: '10:00', to: '16:00' },
+  sunday: { open: false, from: '10:00', to: '16:00' },
+};
+
+/** La fenêtre d'ouverture d'un jour donné, horaires du portail ou défauts du portail. */
 export function dayWindow(hours: WeekHours | null, ymd: string, timezone: string): DayWindow {
-  const day = hours?.[weekDayOf(ymd, timezone)];
-  if (!day) return { open: true, from: '09:00', to: '17:00' };
+  const weekday = weekDayOf(ymd, timezone);
+  const day = hours?.[weekday] ?? DEFAULT_WEEK_HOURS[weekday];
+  if (!day) return { open: true, from: '09:00', to: '18:00' };
   if (!day.open) return { open: false };
   return { open: true, from: day.from, to: day.to };
 }

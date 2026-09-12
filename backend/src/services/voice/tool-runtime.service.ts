@@ -214,7 +214,7 @@ function confirmNameBeforeBooking(lang: string, name: string): string {
   const spelled = spellOut(familyName(name));
   const base: Record<string, string> = {
     fr: `NOM À CONFIRMER AVANT DE RÉSERVER: « ${name} ». Répète-le à l'appelant, puis ÉPELLE toi-même le nom de famille lettre par lettre: ${spelled}. `
-      + "S'il confirme, rappelle bookAppointment avec ce nom. S'il corrige, demande-lui d'épeler le nom, puis rappelle bookAppointment avec le nom exact.",
+      + "S'il confirme, rappelle bookAppointment avec ce nom. S'il corrige, demande-lui d'épeler le nom, laisse-le finir sans l'interrompre ni dire « merci » entre les lettres, puis rappelle bookAppointment avec le nom exact, sans le refaire confirmer.",
     en: `CONFIRM THE NAME BEFORE BOOKING: "${name}". Repeat it to the caller, then SPELL the family name yourself letter by letter: ${spelled}. `
       + 'If they confirm, call bookAppointment again with this name. If they correct you, ask them to spell it, then call bookAppointment with the exact name.',
     nl: `NAAM BEVESTIGEN VOOR HET BOEKEN: « ${name} ». Herhaal hem voor de beller en SPEL de familienaam zelf letter voor letter: ${spelled}. `

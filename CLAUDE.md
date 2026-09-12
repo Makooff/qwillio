@@ -849,6 +849,21 @@ heure l'agent a réellement réservé, au lieu de le deviner.
   quelques heures plus tard. Elle a une durée de vie ; celle que Vapi rend à la
   demande vit. Le portail passe par la route, jamais par la colonne, et le
   docteur teste les deux URL, avec le corps du refus.
+- **Second appel test du soir (23:00), transcript lu ligne à ligne.** Trois
+  défauts et une mesure. (1) « Un nom corrigé est un nom nouveau, relu à son
+  tour » a produit TROIS tours de « Parfait, je vous réserve ça » : chaque
+  correction relançait une relecture, que l'appelant corrigeait. Une relecture
+  par APPEL ; après, l'appelant a le dernier mot. (2) « VAN espace H0LD » : le
+  transcripteur rend l'épellation en capitales collées, entend « O » comme 0
+  et écrit le mot « espace » ; `normaliseSpelledName` lit les trois. (3) Sans
+  horaires enregistrés, `dayWindow` tenait tous les jours pour ouverts 9 h-17 h
+  et l'agent a inventé « exceptionnellement ouvert ce dimanche » ; le défaut
+  est désormais celui que le portail AFFICHE (`DEFAULT_WEEK_HOURS`, week-end
+  fermé), pour que l'écran et l'agent disent la même chose. (4) Le docteur
+  lit l'horloge de Vapi (`secondsFromStart`) : durée de chaque outil et délai
+  entre la fin de parole de l'appelant et la réponse, médiane et max. C'est ce
+  qui mesure « il y a un délai » au lieu de le ressentir. `VOICE_IDLE_NUDGE_SECONDS`
+  passe de 8 à 10 s : « Vous m'entendez ? » tombait sur une hésitation.
 
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,

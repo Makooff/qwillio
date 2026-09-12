@@ -384,7 +384,14 @@ class CallSessionStore {
     const session = this.get(vapiCallId);
     if (!session) return false;
     const key = name.trim().toLowerCase();
-    if (!key || session.nameReadBack === key) return false;
+    if (!key) return false;
+    /* UNE relecture par APPEL, pas par nom. « Un nom corrigé est un nom
+       nouveau, relu à son tour » a produit trois tours de « Parfait, je vous
+       réserve ça » sur un appel réel (12/09/2026, « Van Hold »): chaque
+       correction de l'appelant déclenchait une nouvelle relecture, et lui
+       corrigeait la relecture. Après la première, c'est l'appelant qui a
+       le dernier mot. */
+    if (session.nameReadBack) return false;
     session.nameReadBack = key;
     return true;
   }

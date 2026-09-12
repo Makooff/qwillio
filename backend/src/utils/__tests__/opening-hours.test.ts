@@ -34,8 +34,9 @@ describe('dayWindow', () => {
     expect(dayWindow(hours, '2026-09-14', 'Europe/Brussels')).toEqual({ open: true, from: '09:00', to: '18:00' });
   });
 
-  it("sans horaires, tient le jour pour ouvert aux heures par défaut", () => {
-    expect(dayWindow(null, '2026-09-13', 'Europe/Brussels')).toEqual({ open: true, from: '09:00', to: '17:00' });
+  it('sans horaires enregistrés, suit les défauts du portail: semaine 9 h-18 h, week-end fermé', () => {
+    expect(dayWindow(null, '2026-09-13', 'Europe/Brussels')).toEqual({ open: false });
+    expect(dayWindow(null, '2026-09-14', 'Europe/Brussels')).toEqual({ open: true, from: '09:00', to: '18:00' });
   });
 });
 
