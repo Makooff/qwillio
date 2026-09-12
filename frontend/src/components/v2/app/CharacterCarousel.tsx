@@ -386,9 +386,13 @@ export default function CharacterCarousel({
         </div>
 
         {/* Pendant la lecture, la phrase enregistrée remplace la accroche: on
-            lit exactement ce que la voix est en train de dire. */}
+            lit exactement ce que la voix est en train de dire.
+            La ligne a une HAUTEUR FIXE et ne passe jamais à deux lignes: le
+            texte et le bouton du ton n'ont pas la même hauteur, et la carte
+            grandissait puis rétrécissait à chaque Play (retour utilisateur). */}
+        <div className="mt-2 h-7 flex items-center justify-center">
         {playing === current.id && line ? (
-          <p className="mt-2 text-center text-[11.5px] italic text-q2-mist q2-body-text">« {line} »</p>
+          <p className="max-w-full truncate px-2 text-center text-[11.5px] italic text-q2-mist q2-body-text" title={line}>« {line} »</p>
         ) : tone ? (
           /* Le TON se choisit ici, sous le visage (demande utilisateur).
              Il occupait une section à part, plus bas, alors qu'il est déjà
@@ -396,7 +400,7 @@ export default function CharacterCarousel({
              changeait à un autre. Le chevron ouvre la liste, et la phrase
              affichée est la description du ton retenu, pas l'accroche du
              personnage: ce qu'on lit est ce qui est réglé. */
-          <div ref={toneRef} className="relative mt-2 flex justify-center">
+          <div ref={toneRef} className="relative flex max-w-full justify-center">
             <button
               type="button"
               onClick={() => setToneOpen(o => !o)}
@@ -458,8 +462,9 @@ export default function CharacterCarousel({
             </AnimatePresence>
           </div>
         ) : tagline ? (
-          <p className="mt-2 text-center text-[11.5px] text-q2-fog q2-body-text">{tagline}</p>
+          <p className="max-w-full truncate px-2 text-center text-[11.5px] text-q2-fog q2-body-text">{tagline}</p>
         ) : null}
+        </div>
 
         {/* La ligne de diagnostic (« 49 ko · lecteur audio · 0,7 s ») était un
             outil de mise au point, pas de l'interface: elle s'affichait à tous
