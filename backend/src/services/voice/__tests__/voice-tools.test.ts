@@ -115,11 +115,10 @@ describe('filler (meublage)', () => {
    * Un agenda qui porte « Marc, 14h » ne distingue pas deux Marc, et le client
    * ne sait pas qui se présente. « Full name » laissait passer le prénom seul.
    */
-  it('demande le nom de famille pour un rendez-vous', () => {
+  it('exige le nom de famille pour un rendez-vous', () => {
     const book = buildVoiceTools(profile).find(t => (t as any).function?.name === 'bookAppointment');
     const desc = (book as any).function.parameters.properties.customerName.description as string;
     expect(desc).toMatch(/family name/i);
-    expect(desc).toMatch(/ask/i);
   });
 });
 
@@ -130,5 +129,60 @@ describe('isKnownTool', () => {
 
   it('rejects anything else — a hallucinated tool name must not reach the runtime', () => {
     expect(isKnownTool('deleteAllBookings')).toBe(false);
+  });
+});
+
+
+/**
+ * 6quinquies, et la leçon est plus large qu'un glossaire de prompt.
+ *
+ * La règle était écrite pour le bloc belgicismes: « un glossaire qui contient
+ * un verbe d'action se lit comme une consigne, et une consigne écrite là se
+ * substitue aux règles du métier, qui sont ailleurs ». Le test qui la gardait
+ * ne lisait QUE ce bloc.
+ *
+ * Deux descriptions de champ écrites à l'impératif (« ask for their family
+ * name before booking », « ask for it whenever you promise a call back ») ont
+ * suffi à casser `fr-discipline-agenda`, un scénario qui n'a rien à voir avec
+ * un nom ni un numéro: à « je voudrais un rendez-vous demain », l'agent
+ * répondait « le matin ou l'après-midi ? » au lieu d'appeler checkAvailability.
+ * Deux fois de suite, le second essai du harnais compris.
+ *
+ * Ce que ça apprend: le modèle ne distingue pas le prompt des descriptions
+ * d'outils, il lit un seul contexte. Un ordre de POSER UNE QUESTION, où qu'il
+ * soit, concurrence la discipline d'APPELER UN OUTIL. Une description de champ
+ * dit donc ce que le champ CONTIENT; ce que l'agent doit faire vit dans les
+ * règles du prompt, à un seul endroit.
+ */
+describe('les descriptions d\'outils ne donnent pas d\'ordre', () => {
+  /** Chaque texte que le modèle lit sur la surface d'outils. */
+  function descriptions(): string[] {
+    const out: string[] = [];
+    for (const tool of buildVoiceTools(profile) as Array<Record<string, any>>) {
+      const fn = tool.function;
+      if (!fn) continue;
+      if (typeof fn.description === 'string') out.push(fn.description);
+      for (const prop of Object.values(fn.parameters?.properties ?? {})) {
+        const d = (prop as any)?.description;
+        if (typeof d === 'string') out.push(d);
+      }
+    }
+    return out;
+  }
+
+  it('ne dit jamais à l\'agent de DEMANDER quelque chose', () => {
+    for (const d of descriptions()) {
+      expect(d, d).not.toMatch(/\bask (?:for|them|the caller)\b/i);
+      expect(d, d).not.toMatch(/\bdemande[-\s]/i);
+    }
+  });
+
+  /* « Call this as soon as you have a name » et « Only call once the caller
+     agrees » restent: ce sont les règles d'appel de l'outil LUI-MÊME, donc ce
+     que la description existe pour dire. Ce qu'on interdit, c'est de détourner
+     ce texte en consigne de conversation. */
+  it('garde les règles d\'appel de l\'outil, qui sont son objet', () => {
+    const lead = buildVoiceTools(profile).find(t => (t as any).function?.name === 'captureLead');
+    expect((lead as any).function.description).toMatch(/call this/i);
   });
 });
