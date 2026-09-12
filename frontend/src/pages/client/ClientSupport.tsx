@@ -56,7 +56,7 @@ const FAQ_ITEMS = [
   },
 ];
 
-const inputCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7349fe]/50 transition-colors';
+const inputCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-q2-carbon text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-q2-smoke-d transition-colors';
 
 export default function ClientSupport() {
   const [subject, setSubject] = useState('');
@@ -124,7 +124,7 @@ export default function ClientSupport() {
                 placeholder="Rechercher dans la FAQ..."
                 value={faqSearch}
                 onChange={e => setFaqSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7349fe]/50 transition-colors"
+                className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-q2-smoke-d transition-colors"
               />
             </div>
 

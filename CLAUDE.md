@@ -785,6 +785,31 @@ date PASSÉE en nommant le jour d'aujourd'hui (le modèle s'est trompé de mois,
 son jour de semaine, que le modèle ne calcule pas. Un test de source interdit
 de figer `clockLine` dans l'assistant enregistré.
 
+### 6trigesies. Un rendez-vous à 9 h posé à 15 h : l'heure était celle du serveur (12/09/2026)
+Appel réel : « neuf heures » demandé, rendez-vous posé à 15 h dans l'agenda.
+Six heures d'écart, c'est New York → Bruxelles : `createEventFromBooking` et
+`getAvailability` faisaient `setHours(9)` sur une `Date`, donc 9 h dans le
+fuseau du PROCESSUS, et le profil d'appel avait sa propre règle de fuseau
+(`Europe/Paris` par défaut) là où l'agenda en avait une autre. `utils/zoned-time.ts`
+porte désormais UNE règle (`businessTimezone`, inscription puis pays/ville
+puis langue) et `zonedInstant` pose une heure murale dans ce fuseau, quel que
+soit celui du serveur. Deuxième défaut du même appel : le post-appel RECRÉAIT
+une réservation depuis la transcription alors que `bookAppointment` l'avait
+déjà prise en direct — deux rendez-vous, deux événements, le second à l'heure
+lue par le modèle d'analyse. Le webhook passe désormais la réservation prise
+en direct (`liveBookingId`), le post-appel la relie à l'appel et s'arrête là.
+Même journée, même famille : le NOM se relit comme le numéro (« Polle »
+entendu « Paul »), une fois par nom et par appel, AVANT d'écrire dans
+l'agenda, avec épellation demandée si l'appelant corrige, et
+`normaliseSpelledName` recolle « P O L L E » ; le SMS de confirmation part
+PENDANT l'appel avec un lien `.ics` public (`/api/public/booking/:id.ics`),
+et l'agent ne le promet que si `SMS_ENABLED` et un numéro le permettent ; les
+résumés d'appel sont écrits dans la langue du client (`clientLocale`), le
+modèle d'analyse répondant sinon dans la langue de sa consigne, l'anglais.
+`voice:doctor` affiche les outils du dernier appel (arguments et réponses) et
+si un enregistrement existe chez Vapi et chez nous : c'est ce qui dit à quelle
+heure l'agent a réellement réservé, au lieu de le deviner.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

@@ -436,7 +436,7 @@ export default function ClientLeads() {
                     onChange={e => setNoteText(e.target.value)}
                     placeholder="Ajouter des notes sur ce lead..."
                     rows={3}
-                    className="w-full px-4 py-3 text-sm rounded-xl border border-white/[0.07] bg-[#0A0A0F] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7349fe]/50 resize-none transition-colors"
+                    className="w-full px-4 py-3 text-sm rounded-xl border border-white/[0.07] bg-q2-carbon text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-q2-smoke-d resize-none transition-colors"
                   />
                   <button
                     onClick={() => handleSaveNote(selectedLead.id)}

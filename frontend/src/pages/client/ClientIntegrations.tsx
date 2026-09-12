@@ -311,7 +311,7 @@ export default function ClientIntegrations() {
                             value={secret}
                             onChange={e => setSecret(e.target.value)}
                             placeholder={entry.setup === 'apiKey' ? 'pat-eu1-...' : 'https://hook.eu2.make.com/...'}
-                            className="flex-1 min-w-0 rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-2 text-[13px] text-[#F5F5F7] placeholder-[#5c5c73] focus:border-[#7349fe]/50 focus:outline-none transition-colors"
+                            className="flex-1 min-w-0 rounded-lg border border-white/[0.07] bg-white/[0.02] px-3 py-2 text-[13px] text-[#F5F5F7] placeholder-[#5c5c73] focus:border-q2-smoke-d focus:outline-none transition-colors"
                           />
                           <button
                             onClick={() => connect(entry)}

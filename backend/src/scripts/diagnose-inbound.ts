@@ -272,12 +272,23 @@ async function main() {
       /* Ce que l'assistant a DIT: un `silence-timed-out` sans une seule
          réplique de l'assistant, c'est la première phrase qui n'est pas partie
          (URL audio muette, voix refusée), pas un appelant silencieux. */
-      const said = await assistantLines(call.id);
+      const seen = await callReading(call.id);
+      const ours = await prisma.clientCall.findFirst({ where: { vapiCallId: call.id }, select: { recordingUrl: true } });
       console.log(
         `  ${call.startedAt || call.createdAt} · ${call.type || 'inbound'} · ${call.endedReason || '?'}` +
           `  ${known ? 'enregistré chez nous' : 'ABSENT de notre base'}` +
-          (said === null ? '' : said === 0 ? " · L'ASSISTANT N'A RIEN DIT" : ` · ${said} réplique(s) de l'assistant`),
+          (seen === null ? '' : seen.said === 0 ? " · L'ASSISTANT N'A RIEN DIT" : ` · ${seen.said} réplique(s) de l'assistant`) +
+          /* L'ENREGISTREMENT, des deux côtés: « impossible d'écouter les
+             appels » (12/09) est soit Vapi qui n'en rend pas (assistant sans
+             `recordingEnabled`), soit nous qui le refusons ou le perdons. */
+          (seen === null ? '' : ` · enregistrement: Vapi ${seen.recording ? 'oui' : 'NON'} / chez nous ${ours?.recordingUrl ? 'oui' : 'NON'}`),
       );
+      /* Les OUTILS du dernier appel, avec leurs arguments et leurs réponses:
+         c'est ce qui dit à quelle heure l'agent a réellement réservé, et ce
+         que l'agenda lui a répondu. Sans ça, on devine. */
+      if (call === mine[0] && seen?.tools.length) {
+        for (const line of seen.tools) console.log(`      ${line}`);
+      }
     }
   } catch (error) {
     console.log(`\nListe des appels Vapi illisible: ${(error as Error).message}`);
@@ -286,15 +297,36 @@ async function main() {
   console.log('');
 }
 
-/** Le nombre de répliques de l'assistant dans un appel, ou `null` si l'appel est illisible. */
-async function assistantLines(callId: string): Promise<number | null> {
+/**
+ * Ce qu'un appel a VRAIMENT contenu chez Vapi: répliques de l'assistant,
+ * enregistrement, et appels d'outils avec leurs arguments et leurs réponses.
+ * `null` si l'appel est illisible.
+ */
+async function callReading(callId: string): Promise<{ said: number; recording: boolean; tools: string[] } | null> {
   try {
     const full = (await vapiClient.getCall(callId)) as Record<string, any>;
     const messages: Array<Record<string, any>> = full?.artifact?.messages ?? full?.messages ?? [];
-    return messages.filter(m => m.role === 'bot' || m.role === 'assistant').length;
+    const said = messages.filter(m => m.role === 'bot' || m.role === 'assistant').length;
+    const recording = !!(full?.artifact?.recordingUrl || full?.recordingUrl || full?.artifact?.recording?.mono?.combinedUrl);
+    const tools: string[] = [];
+    for (const m of messages) {
+      if (m.role === 'tool_calls' && Array.isArray(m.toolCalls)) {
+        for (const c of m.toolCalls) {
+          tools.push(`→ ${c.function?.name ?? c.name ?? '?'} ${String(c.function?.arguments ?? '').slice(0, 160)}`);
+        }
+      } else if (m.role === 'tool_call_result') {
+        tools.push(`← ${m.name ?? '?'}: ${String(m.result ?? '').slice(0, 160)}`);
+      }
+    }
+    return { said, recording, tools };
   } catch {
     return null;
   }
+}
+
+/** Compatibilité avec le test de source: le compte des répliques passe par `callReading`. */
+async function assistantLines(callId: string): Promise<number | null> {
+  return (await callReading(callId))?.said ?? null;
 }
 
 main()

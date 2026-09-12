@@ -66,16 +66,20 @@ export const smsTemplates = {
     time: string | null;
     service: string | null;
     lang: Lang;
+    /** Lien « ajouter à l'agenda »: le rendez-vous dans la poche de l'appelant. */
+    calendarUrl?: string;
   }) => {
     const dateStr = bookingDate(d.date, d.lang);
     if (d.lang === 'fr') {
       const when = d.time ? ` à ${d.time}` : '';
       const svc = d.service ? ` (${d.service})` : '';
-      return `Bonjour ${d.firstName}, votre rendez-vous chez ${d.businessName} est confirmé pour le ${dateStr}${when}${svc}. Pour reporter ou annuler, contactez directement ${d.businessName}.`;
+      const link = d.calendarUrl ? ` Ajouter à votre agenda : ${d.calendarUrl}` : '';
+      return `Bonjour ${d.firstName}, votre rendez-vous chez ${d.businessName} est confirmé pour le ${dateStr}${when}${svc}.${link} Pour reporter ou annuler, contactez directement ${d.businessName}.`;
     }
     const when = d.time ? ` at ${d.time}` : '';
     const svc = d.service ? ` (${d.service})` : '';
-    return `Hi ${d.firstName}, your appointment at ${d.businessName} is confirmed for ${dateStr}${when}${svc}. To reschedule or cancel, contact ${d.businessName} directly.`;
+    const link = d.calendarUrl ? ` Add it to your calendar: ${d.calendarUrl}` : '';
+    return `Hi ${d.firstName}, your appointment at ${d.businessName} is confirmed for ${dateStr}${when}${svc}.${link} To reschedule or cancel, contact ${d.businessName} directly.`;
   },
 
   /**
