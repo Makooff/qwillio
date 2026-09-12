@@ -9,6 +9,27 @@ import { logger } from '../config/logger';
 import { env } from '../config/env';
 import { listCharacters, resolveCharacter } from '../config/voice-characters';
 import { applyConfigPatch, buildVapiConfigPatch, type VapiConfigPatch } from './client-config.service';
+import { clientLocale, type ClientLocale } from '../utils/client-locale';
+
+/** Le nom de la langue tel qu'on le dit au modèle. */
+const LANGUAGE_NAME: Record<ClientLocale, string> = { fr: 'French', en: 'English', nl: 'Dutch' };
+
+/**
+ * La règle anti-mélange, posée EN TÊTE de chaque prompt.
+ *
+ * « Great! If you need any changes... Bonne journée! » dans une seule phrase,
+ * relevé le 11/09/2026. Une consigne de langue enfouie au milieu d'un prompt se
+ * fait recouvrir par l'exemple le plus proche, et le modèle reflète alors la
+ * langue de son interlocuteur au lieu de celle du client. Elle passe donc
+ * devant, et elle interdit le mélange explicitement: répondre « dans la bonne
+ * langue » n'exclut pas, pour un modèle, d'y glisser une formule d'une autre.
+ */
+function languageRule(lang: string): string {
+  return `Write EVERY reply entirely in ${lang}. Never mix languages inside a reply, `
+    + `not even for a greeting or a closing formula. If the owner writes to you in `
+    + `another language, keep answering in ${lang}.`;
+}
+
 
 export interface ChatMessage {
   role: 'user' | 'assistant';
@@ -221,11 +242,15 @@ export class AssistantChatService {
     let configChanged = false;
     let completed = false;
 
-    const isFr = client.agentLanguage === 'fr'
-      || ['FR', 'BE', 'LU', 'MC', 'CH'].includes(String(client.country || '').toUpperCase());
+    /* UNE seule règle de langue, partagée avec les e-mails et l'agent vocal.
+       Celle qui vivait ici mettait le PAYS au-dessus du réglage, donc un
+       commerce bruxellois qui avait choisi le néerlandais était servi en
+       français. Et elle était binaire, donc le néerlandais n'existait pas du
+       tout sur cet écran. */
+    const locale = clientLocale(client);
 
     const convo: any[] = [
-      { role: 'system', content: this.systemPrompt(client, isFr, mode) },
+      { role: 'system', content: this.systemPrompt(client, locale, mode) },
       ...messages.slice(-16).map(m => ({ role: m.role, content: m.content })),
     ];
 
@@ -262,7 +287,8 @@ export class AssistantChatService {
       }
     }
 
-    return { reply: reply || (isFr ? "D'accord." : 'Okay.'), configChanged, config, completed };
+    const fallback = { fr: "D'accord.", en: 'Okay.', nl: 'Goed.' }[locale];
+    return { reply: reply || fallback, configChanged, config, completed };
   }
 
   private async runTool(
@@ -360,8 +386,8 @@ export class AssistantChatService {
     return Object.keys(patch).filter(k => (patch as any)[k] !== undefined);
   }
 
-  private systemPrompt(client: any, isFr: boolean, mode: ChatMode): string {
-    const lang = isFr ? 'French' : 'English';
+  private systemPrompt(client: any, locale: ClientLocale, mode: ChatMode): string {
+    const lang = LANGUAGE_NAME[locale];
     const cfg = (client.vapiConfig as any) || {};
 
     // Receptionist mode: roleplay the client's actual AI receptionist so the
@@ -369,15 +395,16 @@ export class AssistantChatService {
     if (mode === 'receptionist') {
       const character = resolveCharacter({
         characterId: cfg.characterId,
-        isFrench: isFr,
+        isFrench: locale === 'fr',
         country: client.country,
         customVoice: cfg.customVoice,
       });
       const items = Array.isArray(cfg.items) ? cfg.items.slice(0, 40)
         .map((i: any) => `- ${i.name}${i.price ? ` (${i.price})` : ''}`).join('\n') : '';
       return [
+        languageRule(lang),
         `You are ${character.name}, the AI phone receptionist for "${client.businessName}" (${client.businessType || 'business'}).`,
-        `This is a TEST conversation: the business owner is playing a caller to hear how you answer. Behave exactly as you would on a real call. Reply in ${lang}, spoken and natural, one short turn at a time.`,
+        `This is a TEST conversation: the business owner is playing a caller to hear how you answer. Behave exactly as you would on a real call. Spoken and natural, one short turn at a time.`,
         cfg.faq ? `Business knowledge:\n${String(cfg.faq).slice(0, 2000)}` : '',
         items ? `Services / prices:\n${items}` : '',
         cfg.personalityNotes ? `Tone notes: ${String(cfg.personalityNotes).slice(0, 500)}` : '',
@@ -387,8 +414,9 @@ export class AssistantChatService {
     }
 
     const base = [
+      languageRule(lang),
       `You are the setup assistant for Qwillio, an AI phone receptionist for small businesses.`,
-      `You are helping the owner of "${client.businessName}" (${client.businessType || 'business'}) configure and understand their AI receptionist. Reply in ${lang}, concise and friendly.`,
+      `You are helping the owner of "${client.businessName}" (${client.businessType || 'business'}) configure and understand their AI receptionist. Keep it concise and friendly.`,
       `You can answer questions about how the receptionist works, and change settings on the owner's behalf using the tools.`,
       `When the owner asks to change something (hours, services/prices, FAQ, personality, or which character/voice answers), call update_config. Confirm what you changed in plain language.`,
       `Never invent prices, phone numbers, or business facts — ask the owner. Keep answers short unless asked for detail.`,
@@ -452,8 +480,11 @@ export class AssistantChatService {
    * configures by voice and then reopens the chat must not meet a different
    * assistant with different rules.
    */
-  voiceConfigPrompt(client: any, isFr: boolean): string {
-    return this.systemPrompt(client, isFr, 'config');
+  voiceConfigPrompt(client: any): string {
+    /* La langue ne se passe plus en argument: elle se lit sur le client, comme
+       partout ailleurs. Un appelant qui décidait lui-même était un huitième
+       endroit où la règle pouvait diverger. */
+    return this.systemPrompt(client, clientLocale(client), 'config');
   }
 
   /**

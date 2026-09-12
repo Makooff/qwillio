@@ -64,10 +64,18 @@ describe('buildVoiceTools', () => {
 });
 
 describe('filler (meublage)', () => {
-  it('attaches a request-start message to every blocking tool', () => {
-    const blocking = buildVoiceTools(profile).filter(t => t.type === 'function' && t.async === false);
-    expect(blocking.length).toBeGreaterThan(0);
-    for (const tool of blocking) {
+  /* Le meublage couvre l'ATTENTE, pas le blocage: le critère est l'aller-retour
+     vers un système extérieur (l'agenda, la base de connaissance), pas le fait
+     d'être synchrone. `captureLead` est synchrone depuis qu'on a compris qu'un
+     outil asynchrone ne rend rien au modèle, mais il n'écrit qu'une ligne
+     indexée: lui coller une phrase d'attente ferait parler l'agent pour ne rien
+     dire, sur un appel déjà jugé trop bavard. */
+  it('attaches a request-start message to every tool that waits on something outside', () => {
+    const waiting = buildVoiceTools(profile).filter(
+      t => t.type === 'function' && ['checkAvailability', 'bookAppointment', 'lookupBooking', 'lookupKnowledge'].includes((t as any).function?.name),
+    );
+    expect(waiting.length).toBeGreaterThan(0);
+    for (const tool of waiting) {
       const messages = (tool as any).messages as Array<Record<string, any>>;
       expect(messages.some(m => m.type === 'request-start')).toBe(true);
     }
@@ -75,7 +83,7 @@ describe('filler (meublage)', () => {
 
   it('adds a second reassurance for the slow calendar lookups only', () => {
     expect(fillerFor('checkAvailability', 'fr', 'delayed').length).toBeGreaterThan(0);
-    // captureLead is a fire-and-forget write; a delayed line there would be noise.
+    // captureLead writes one indexed row; a delayed line there would be noise.
     expect(fillerFor('captureLead', 'fr', 'delayed')).toHaveLength(0);
   });
 
@@ -88,9 +96,30 @@ describe('filler (meublage)', () => {
     expect(fillerFor('checkAvailability', 'en', 'start')[0]).toMatch(/check|look/i);
   });
 
-  it('keeps captureLead non-blocking — the model must not wait on a write', () => {
+  /**
+   * Ce test figeait exactement la valeur fautive, et c'est ce qui a permis au
+   * défaut de dormir: `async: true` veut dire chez Vapi « ne rends RIEN au
+   * modèle ». Tout ce que `captureLead` répond — relecture d'un numéro mal
+   * compris, repli clavier au deuxième échec, relecture d'un numéro valide —
+   * partait dans le vide. Trois mécanismes écrits, testés, jamais reçus.
+   * L'écriture est une seule ligne indexée, la mémoire appelant est déjà
+   * détachée, et l'outil n'a aucune phrase d'attente: le modèle n'attend rien
+   * d'audible.
+   */
+  it('garde captureLead SYNCHRONE — sinon sa réponse n\'atteint jamais le modèle', () => {
     const lead = buildVoiceTools(profile).find(t => (t as any).function?.name === 'captureLead');
-    expect((lead as any).async).toBe(true);
+    expect((lead as any).async).toBe(false);
+  });
+
+  /**
+   * Un agenda qui porte « Marc, 14h » ne distingue pas deux Marc, et le client
+   * ne sait pas qui se présente. « Full name » laissait passer le prénom seul.
+   */
+  it('demande le nom de famille pour un rendez-vous', () => {
+    const book = buildVoiceTools(profile).find(t => (t as any).function?.name === 'bookAppointment');
+    const desc = (book as any).function.parameters.properties.customerName.description as string;
+    expect(desc).toMatch(/family name/i);
+    expect(desc).toMatch(/ask/i);
   });
 });
 

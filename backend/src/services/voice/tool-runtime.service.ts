@@ -96,6 +96,38 @@ function retryPhone(lang: string, heard: string): string {
 }
 
 /**
+ * Ce que l'agent doit faire quand le numéro dicté est VALIDE: le relire.
+ *
+ * La validation dit qu'une suite de chiffres forme un numéro, elle ne dit pas
+ * que c'est CELUI de l'appelant. Un chiffre mal transcrit au milieu d'un mobile
+ * belge donne un autre mobile belge, tout aussi valide: rien ne le signale, la
+ * fiche part au CRM, le SMS de rappel porte le mauvais numéro, et le lead est
+ * perdu sans que personne ne voie jamais pourquoi. C'est le mode d'échec le
+ * plus cher, parce qu'il est silencieux des deux côtés.
+ *
+ * La relecture chiffre par chiffre est le seul contrôle disponible, et elle est
+ * gratuite: l'appelant est en ligne, il vient de le dire. En toutes lettres et
+ * par groupes nationaux, pour les mêmes raisons que sur le chemin d'échec — une
+ * suite de chiffres bruts se prononce d'une façon qu'on ne contrôle pas.
+ *
+ * Demandé une seule fois par numéro (`needsPhoneReadBack`): l'agent rappelle
+ * `captureLead` avec le numéro confirmé, et redemander la relecture à ce
+ * moment-là les ferait tourner en boucle tous les deux.
+ */
+function readBackPhone(lang: string, national: string): string {
+  const spelled = phoneWords(national);
+  const base: Record<string, string> = {
+    fr: `NUMÉRO NOTÉ: ${spelled}. Relis-le à l'appelant chiffre par chiffre pour confirmer, `
+      + 'puis continue. S\'il te corrige, rappelle captureLead avec le numéro corrigé.',
+    en: `NUMBER SAVED: ${spelled}. Read it back to the caller digit by digit to confirm, `
+      + 'then carry on. If they correct you, call captureLead again with the corrected number.',
+    nl: `NUMMER GENOTEERD: ${spelled}. Lees het cijfer voor cijfer terug ter bevestiging, `
+      + 'en ga dan verder. Verbetert de beller je, roep captureLead dan opnieuw aan.',
+  };
+  return base[lang] ?? base.en;
+}
+
+/**
  * Le repli clavier, au DEUXIÈME échec (BEL-4).
  *
  * Redemander une troisième dictée après deux échecs, c'est refaire ce qui
@@ -446,6 +478,9 @@ class ToolRuntimeService {
       reason: typeof args.reason === 'string' ? args.reason.trim() : '',
       urgency: ['low', 'normal', 'high'].includes(args.urgency) ? String(args.urgency) : 'normal',
     };
+    /* `recordLead` attend maintenant le numéro, donc il attend `phone`, calculé
+       plus bas. Le lead n'est plus posé ici: le poser avant le numéro était
+       exactement ce qui le perdait. */
 
     /* L'adresse, avec sa commune ramenée à UNE forme (BEL-6).
        Ixelles et Elsene sont le même endroit et deux noms également
@@ -457,8 +492,6 @@ class ToolRuntimeService {
     const address = typeof args.address === 'string' && args.address.trim()
       ? normaliseAddress(args.address.trim(), profile.language)
       : null;
-
-    callSessionStore.recordLead(vapiCallId, lead);
 
     /* Le numéro DICTÉ, validé avant d'être cru (BEL-3).
        Sur une séquence structurée, un transcripteur est juste une fois sur
@@ -486,6 +519,9 @@ class ToolRuntimeService {
     /* Un numéro donné de vive voix l'emporte sur l'identifiant d'appelant: si
        l'appelant en dicte un autre, c'est là qu'il veut être rappelé. */
     const phone = (dictated?.ok ? dictated.e164 : null) ?? session?.callerNumber ?? null;
+
+    /* APRÈS le numéro, pas avant: c'est tout l'objet du correctif. */
+    callSessionStore.recordLead(vapiCallId, { ...lead, phone });
 
     // Durable first, and awaited: the whole point is that this survives the
     // call. It is one indexed insert, well inside the tool budget.
@@ -530,6 +566,12 @@ class ToolRuntimeService {
       return failures >= 2
         ? keypadFallback(profile.language, dictated.digits)
         : retryPhone(profile.language, dictated.digits);
+    }
+
+    /* Le numéro a passé la validation, ce qui ne veut pas dire qu'il est le
+       bon: c'est là que la relecture se demande, et une seule fois. */
+    if (dictated?.ok && callSessionStore.needsPhoneReadBack(vapiCallId, dictated.e164)) {
+      return readBackPhone(profile.language, dictated.national);
     }
 
     return profile.language === 'fr' ? 'NOTE. Continue la conversation.' : 'NOTED. Continue the conversation.';

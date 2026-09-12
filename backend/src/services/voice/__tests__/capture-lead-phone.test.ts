@@ -1,12 +1,13 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { create, getProfile, session, recordLead, remember, failures } = vi.hoisted(() => ({
+const { create, getProfile, session, recordLead, remember, failures, needsReadBack } = vi.hoisted(() => ({
   create: vi.fn(),
   getProfile: vi.fn(),
   session: vi.fn(),
   recordLead: vi.fn(),
   remember: vi.fn(),
   failures: vi.fn(),
+  needsReadBack: vi.fn(),
 }));
 
 vi.mock('../../../config/database', () => ({ prisma: { agentCrmActivity: { create } } }));
@@ -23,6 +24,7 @@ vi.mock('../call-session.store', () => ({
     markLeadActivity: vi.fn(),
     recordToolCall: vi.fn(),
     recordPhoneCaptureFailure: failures,
+    needsPhoneReadBack: needsReadBack,
   },
 }));
 vi.mock('../caller-memory.service', () => ({ callerMemoryService: { remember } }));
@@ -51,6 +53,8 @@ beforeEach(() => {
   session.mockReturnValue({ callerNumber: '+32475987654' });
   // Le vrai compteur vit dans la session; ici on décide du rang de l'échec.
   failures.mockReturnValue(1);
+  // Premier passage sur ce numéro: la vraie session répond vrai une fois.
+  needsReadBack.mockReturnValue(true);
 });
 
 /**
@@ -166,5 +170,56 @@ describe('captureLead — la bascule clavier au deuxième échec', () => {
     // C'est la forme que Vapi remonte après une saisie clavier: des chiffres.
     await capture({ reason: 'devis', phone: '0475123456' });
     expect(storedPhone()).toBe('+32475123456');
+  });
+});
+
+
+/**
+ * Un numéro VALIDE peut être faux.
+ *
+ * « zéro quatre sept cinq douze trente-quatre cinquante-six » transcrit avec un
+ * chiffre de travers reste un mobile belge que `libphonenumber` accepte sans
+ * broncher. Rien ne le signale: la fiche part au CRM, le SMS de rappel porte le
+ * mauvais numéro, et le lead est perdu des deux côtés sans trace. La relecture
+ * à l'appelant est le seul contrôle disponible, et il est gratuit — il est
+ * encore en ligne.
+ */
+describe('captureLead — la relecture d\'un numéro VALIDE', () => {
+  it('demande de relire le numéro accepté, chiffre par chiffre', async () => {
+    const r = await capture({ reason: 'devis', phone: 'zéro quatre septante-cinq douze trente-quatre cinquante-six' });
+    expect(r.result).toMatch(/relis-le à l'appelant chiffre par chiffre/i);
+  });
+
+  it('rend le numéro en toutes lettres, jamais en chiffres bruts', async () => {
+    const r = await capture({ reason: 'devis', phone: '0475123456' });
+    expect(r.result).toContain('zéro quatre sept cinq');
+    expect(r.result).not.toContain('0475123456');
+  });
+
+  it('ne la demande qu\'une fois: le second appel confirme, il ne relance pas', async () => {
+    needsReadBack.mockReturnValue(false);
+    const r = await capture({ reason: 'devis', phone: '0475123456' });
+    expect(r.result).not.toMatch(/relis/i);
+  });
+
+  it('interroge la session avec le numéro NORMALISÉ, pas avec ce qui a été dit', async () => {
+    // Deux dictées de la même ligne (« zéro quatre... » puis les chiffres tapés)
+    // doivent désigner le même numéro, sinon la confirmation en redemande une.
+    await capture({ reason: 'devis', phone: 'zéro quatre septante-cinq douze trente-quatre cinquante-six' });
+    expect(needsReadBack).toHaveBeenCalledWith('call_1', '+32475123456');
+  });
+
+  it('ne relit rien quand le numéro vient de l\'identifiant d\'appelant', async () => {
+    // Personne ne l'a dicté: il n'y a rien à confirmer, et le relire à quelqu'un
+    // qui ne l'a pas donné fait perdre un tour.
+    const r = await capture({ reason: 'question tarif' });
+    expect(r.result).not.toMatch(/relis/i);
+    expect(needsReadBack).not.toHaveBeenCalled();
+  });
+
+  it('ne relit pas un numéro refusé: c\'est la correction qui est demandée', async () => {
+    const r = await capture({ reason: 'devis', phone: 'zéro quatre septante-cinq douze' });
+    expect(r.result).toMatch(/non reconnu/i);
+    expect(needsReadBack).not.toHaveBeenCalled();
   });
 });

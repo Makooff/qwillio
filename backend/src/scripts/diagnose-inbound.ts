@@ -134,6 +134,49 @@ async function main() {
         actual === expected ? actual : `distant: ${actual || '(vide)'}\n       attendu: ${expected}`,
       );
 
+      /* QUELLE VOIX PARLE, et ce n'est pas une question de confort.
+       *
+       * Le client peut croire sa flotte passée chez Cartesia et s'entendre
+       * répondre par ElevenLabs, parce que trois réglages décident: la voix
+       * choisie dans le portail (qui court-circuite tout), le réglage par
+       * client, puis `VOICE_TTS_PROVIDER`, qui vaut « 11labs » s'il n'est pas
+       * posé. Aucun des trois ne se voit, et le seul indice était une ligne
+       * `[Greeting] ... 401` dans les journaux, qui ne nomme pas la cause.
+       * D'où la comparaison: la signature calculée par la MÊME fonction que
+       * l'appel, contre ce que l'assistant DISTANT porte vraiment. Un écart
+       * dit que l'assistant enregistré est périmé, pas que le réglage est
+       * faux — ce sont deux gestes différents. */
+      const { realtimeContextService } = await import('../services/voice/realtime-context.service');
+      const { voiceSignatureFor } = await import('../services/voice/greeting-audio.service');
+      const profile = await realtimeContextService.getClientProfile(client.id).catch(() => null);
+      const remote = assistant.voice ?? {};
+      const remoteVoice = `${remote.provider ?? '(aucun)'} / ${remote.voiceId ?? '(aucune)'} / ${remote.model ?? '(aucun)'}`;
+      if (!profile) {
+        verdict(false, 'voix de l\'assistant qui décroche', `distant: ${remoteVoice}. Profil illisible, rien à comparer.`);
+      } else {
+        const want = voiceSignatureFor(profile);
+        const same = remote.provider === want.provider && remote.voiceId === want.voiceId;
+        verdict(
+          same,
+          `voix de l'assistant qui décroche (${remote.provider ?? 'aucune'})`,
+          same
+            ? remoteVoice
+            : `distant: ${remoteVoice}\n       attendu: ${want.provider} / ${want.voiceId} / ${want.model}`
+              + `\n       L'assistant enregistré est périmé: \`npm run voice:resync -- --email=${client.contactEmail} --confirm\`.`,
+        );
+        /* Le réglage lui-même, dit en clair: « attendu 11labs » alors que le
+           client croit être chez Cartesia n'est pas une panne de
+           synchronisation, c'est le réglage qui n'a jamais basculé. */
+        if (want.provider !== 'cartesia' && env.CARTESIA_API_KEY) {
+          verdict(
+            false,
+            'réglage de synthèse',
+            'une clé Cartesia est posée mais cette ligne parle chez ElevenLabs. '
+              + `Le choix vient de la voix du portail, sinon du réglage par client, sinon de VOICE_TTS_PROVIDER (actuellement « ${env.VOICE_TTS_PROVIDER} »).`,
+          );
+        }
+      }
+
       const hasTransfer = tools.some((t: any) => t?.type === 'transferCall');
       verdict(
         hasTransfer,

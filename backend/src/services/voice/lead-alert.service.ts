@@ -3,6 +3,7 @@ import { logger } from '../../config/logger';
 import { smsService } from '../sms.service';
 import { emailService } from '../email.service';
 import type { VoiceLanguage } from './speech-plans';
+import { clientLocale } from '../../utils/client-locale';
 
 /**
  * Prévenir le gérant qu'un appel vient de produire un lead.
@@ -42,6 +43,8 @@ export type LeadAlertThreshold = 'all' | 'urgent' | 'none';
 export interface LeadForAlert {
   name: string | null;
   email: string | null;
+  /** Le numéro où RAPPELER, dicté par l'appelant quand il en a donné un. */
+  phone?: string | null;
   reason: string;
   urgency: string;
 }
@@ -115,12 +118,25 @@ export function buildSms(lead: LeadForAlert, callerNumber: string | null, lang: 
   const urgent = lead.urgency === 'high' ? 'URGENT - ' : '';
   const who = lead.name || (fr ? 'Appelant' : 'Caller');
   const why = lead.reason ? ` : ${lead.reason}` : '';
-  const back = callerNumber ? (fr ? `\nRappeler : ${callerNumber}` : `\nCall back: ${callerNumber}`) : '';
+  /* Le numéro DICTÉ d'abord, l'identifiant d'appelant ensuite. Quand l'appelant
+     en donne un autre, c'est là qu'il veut être rappelé: le rappeler sur la
+     ligne d'où il téléphonait est précisément ce qu'il vient de corriger. */
+  const rappel = lead.phone || callerNumber;
+  const back = rappel ? (fr ? `\nRappeler : ${rappel}` : `\nCall back: ${rappel}`) : '';
   const head = fr ? 'Nouveau contact' : 'New lead';
-  /* Borné à 320 caractères, soit deux segments SMS. Au-delà, le motif est
-     tronqué plutôt que le numéro de rappel, qui est la seule partie
-     inutilisable si elle est coupée. */
-  return `${urgent}${head} — ${who}${why}${back}`.slice(0, 320);
+  /* Borné à 320 caractères, soit deux segments SMS, et c'est le MOTIF qui se
+     coupe, jamais le numéro.
+     Le commentaire d'origine le promettait déjà; le code faisait l'inverse. Il
+     concaténait tout et coupait la fin, or le numéro EST la fin: un motif
+     bavard emportait donc exactement la seule partie inutilisable si elle est
+     coupée. Un gérant recevait « Nouveau contact, Marie : je voudrais un
+     rendez-vous pour... » et pas une chiffre pour rappeler.
+     On réserve donc la place du numéro d'abord, et le motif prend ce qui
+     reste. */
+  const fixe = `${urgent}${head} — ${who}`;
+  const place = 320 - fixe.length - back.length;
+  const motif = why.length > place ? `${why.slice(0, Math.max(0, place - 1))}…` : why;
+  return `${fixe}${place > 0 ? motif : ''}${back}`.slice(0, 320);
 }
 
 /**
@@ -208,7 +224,8 @@ class LeadAlertService {
       return { sent: false, why: `below_threshold_${threshold}` };
     }
 
-    const lang: VoiceLanguage = client.agentLanguage === 'nl' ? 'nl' : client.agentLanguage === 'en' ? 'en' : 'fr';
+    /* La règle PARTAGÉE, pas une huitième copie écrite à la main. */
+    const lang: VoiceLanguage = clientLocale(client);
     const body = buildSms(lead, callerNumber, lang);
 
     /* `transferNumber` d'abord: c'est la ligne où un humain décroche, alors que

@@ -50,10 +50,51 @@ export interface GreetingRef {
 }
 
 /** La voix qu'un accueil doit avoir pour être servi: celle de l'appel. */
-interface VoiceSignature {
+export interface VoiceSignature {
   provider: '11labs' | 'cartesia';
   voiceId: string;
   model: string;
+}
+
+/**
+ * La voix que CET appel servira, telle que l'assistant la décrira.
+ *
+ * Passer par `buildVoice` et non par les variables d'environnement est le
+ * point entier: la bascule vers Cartesia dépend du réglage global, mais aussi
+ * du réglage par client, d'une voix clonée qui ne quitte jamais ElevenLabs,
+ * et d'une voix choisie directement dans le catalogue Cartesia. Reconstituer
+ * ces règles ici, c'est se condamner à les voir diverger.
+ *
+ * EXPORTÉE parce que `voice:doctor` a la même question à poser, et que la
+ * poser deux fois est exactement la façon dont deux réponses finissent par
+ * différer. Le docteur répond à « quelle voix parle VRAIMENT »: il compare
+ * cette signature à celle de l'assistant DISTANT, et un écart dit que
+ * l'assistant enregistré est périmé.
+ */
+export function voiceSignatureFor(profile: ClientVoiceProfile): VoiceSignature {
+  const character = resolveCharacter({
+    characterId: profile.characterId,
+    isFrench: profile.language === 'fr',
+    country: profile.country,
+    customVoice: profile.customVoice,
+  });
+
+  const voice = buildVoice({
+    voiceId: character.voiceId,
+    stability: character.stability,
+    similarityBoost: character.similarityBoost,
+    style: character.style,
+    lang: profile.language,
+    cloned: character.voiceCloned,
+    voiceProvider: character.voiceProvider,
+    ttsProvider: profile.ttsProvider,
+  }) as { provider: string; voiceId: string; model: string };
+
+  return {
+    provider: voice.provider === 'cartesia' ? 'cartesia' : '11labs',
+    voiceId: voice.voiceId,
+    model: voice.model,
+  };
 }
 
 class GreetingAudioService {
@@ -71,32 +112,6 @@ class GreetingAudioService {
    * et d'une voix choisie directement dans le catalogue Cartesia. Reconstituer
    * ces règles ici, c'est se condamner à les voir diverger.
    */
-  private signatureFor(profile: ClientVoiceProfile): VoiceSignature {
-    const character = resolveCharacter({
-      characterId: profile.characterId,
-      isFrench: profile.language === 'fr',
-      country: profile.country,
-      customVoice: profile.customVoice,
-    });
-
-    const voice = buildVoice({
-      voiceId: character.voiceId,
-      stability: character.stability,
-      similarityBoost: character.similarityBoost,
-      style: character.style,
-      lang: profile.language,
-      cloned: character.voiceCloned,
-      voiceProvider: character.voiceProvider,
-      ttsProvider: profile.ttsProvider,
-    }) as { provider: string; voiceId: string; model: string };
-
-    return {
-      provider: voice.provider === 'cartesia' ? 'cartesia' : '11labs',
-      voiceId: voice.voiceId,
-      model: voice.model,
-    };
-  }
-
   private matches(
     row: { provider: string | null; voiceId: string | null; ttsModel: string | null },
     sig: VoiceSignature,
@@ -118,7 +133,7 @@ class GreetingAudioService {
    * does not re-bill the whole set.
    */
   async generate(profile: ClientVoiceProfile): Promise<number> {
-    const sig = this.signatureFor(profile);
+    const sig = voiceSignatureFor(profile);
 
     if (!this.hasKeyFor(sig)) {
       logger.info(`[Greeting] pas de clé ${sig.provider} — accueil laissé à la synthèse en direct`);
@@ -188,7 +203,7 @@ class GreetingAudioService {
    * l'appel servira, donc lesquelles de ces lignes sont encore les bonnes.
    */
   async available(profile: ClientVoiceProfile): Promise<GreetingRef[]> {
-    const sig = this.signatureFor(profile);
+    const sig = voiceSignatureFor(profile);
     try {
       const rows = await prisma.greetingAudio.findMany({
         where: { clientId: profile.clientId },
