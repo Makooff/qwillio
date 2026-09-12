@@ -168,11 +168,22 @@ async function main() {
            client croit être chez Cartesia n'est pas une panne de
            synchronisation, c'est le réglage qui n'a jamais basculé. */
         if (want.provider !== 'cartesia' && env.CARTESIA_API_KEY) {
+          /* LE MOTIF, pas seulement l'écart. Relevé du 12/09:
+             `VOICE_TTS_PROVIDER=cartesia` était bien posé, et la ligne parlait
+             quand même chez ElevenLabs. Le docteur disait « le choix vient de
+             la voix du portail, sinon du réglage client, sinon de
+             VOICE_TTS_PROVIDER »: les trois endroits où chercher, donc une
+             liste et pas une réponse. Les quatre causes demandent quatre
+             gestes, dont un qui consiste à ne rien faire (un clone ne PEUT pas
+             quitter ElevenLabs).
+             Le motif voyage avec la signature, il n'est pas recalculé ici:
+             relire la règle de personnage une seconde fois est ce que le test
+             de ce script interdit, et c'est lui qui l'a attrapé. */
           verdict(
             false,
             'réglage de synthèse',
-            'une clé Cartesia est posée mais cette ligne parle chez ElevenLabs. '
-              + `Le choix vient de la voix du portail, sinon du réglage par client, sinon de VOICE_TTS_PROVIDER (actuellement « ${env.VOICE_TTS_PROVIDER} »).`,
+            `une clé Cartesia est posée mais cette ligne parle chez ElevenLabs.\n       motif: ${want.why}.`
+              + `\n       (VOICE_TTS_PROVIDER = « ${env.VOICE_TTS_PROVIDER} », réglage de ce client = « ${profile.ttsProvider ?? 'aucun'} »)`,
           );
         }
       }

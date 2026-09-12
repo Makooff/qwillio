@@ -3,7 +3,7 @@ import { env } from '../../config/env';
 import { logger } from '../../config/logger';
 import { firstMessageVariants } from './system-prompt';
 import { resolveCharacter } from '../../config/voice-characters';
-import { buildVoice } from './speech-plans';
+import { buildVoice, cartesiaChoice } from './speech-plans';
 import { synthesiseWithCartesia } from './cartesia.service';
 import type { ClientVoiceProfile } from './realtime-context.service';
 
@@ -54,6 +54,17 @@ export interface VoiceSignature {
   provider: '11labs' | 'cartesia';
   voiceId: string;
   model: string;
+  /**
+   * POURQUOI ce fournisseur, et pas seulement lequel.
+   *
+   * L'accueil pré-enregistré n'en a que faire: il compare une ligne à une
+   * signature. `voice:doctor`, lui, répond à « pourquoi cette ligne parle chez
+   * ElevenLabs alors que j'ai demandé Cartesia », relevé réel du 12/09, et le
+   * motif est toute la réponse. Il voyage ici plutôt que de laisser le docteur
+   * relire la règle de personnage une seconde fois — son propre test le lui
+   * interdit, et c'est cette relecture qui fait diverger.
+   */
+  why: string;
 }
 
 /**
@@ -79,6 +90,13 @@ export function voiceSignatureFor(profile: ClientVoiceProfile): VoiceSignature {
     customVoice: profile.customVoice,
   });
 
+  const decision = cartesiaChoice({
+    voiceId: character.voiceId,
+    cloned: character.voiceCloned,
+    voiceProvider: character.voiceProvider,
+    ttsProvider: profile.ttsProvider,
+  });
+
   const voice = buildVoice({
     voiceId: character.voiceId,
     stability: character.stability,
@@ -94,8 +112,10 @@ export function voiceSignatureFor(profile: ClientVoiceProfile): VoiceSignature {
     provider: voice.provider === 'cartesia' ? 'cartesia' : '11labs',
     voiceId: voice.voiceId,
     model: voice.model,
+    why: decision.why,
   };
 }
+
 
 class GreetingAudioService {
   /** Public URL Vapi fetches. Must be reachable without auth. */

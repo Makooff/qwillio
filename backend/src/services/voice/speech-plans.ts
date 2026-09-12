@@ -609,7 +609,28 @@ function buildChunkPlan(tuning: ResolvedTuning = resolveTuning()) {
  * doit y répondre pareil: sinon on auditionne une voix et l'appelant en entend
  * une autre.
  */
-export function useCartesia(opts: {
+export interface CartesiaChoice {
+  voiceId: string | null;
+  /**
+   * POURQUOI, et c'est la moitié utile.
+   *
+   * `VOICE_TTS_PROVIDER=cartesia` posé et la ligne qui parle quand même chez
+   * ElevenLabs, c'est le relevé réel du 12/09: la bascule était demandée et
+   * ignorée en silence. Quatre causes possibles, quatre gestes différents —
+   * changer un réglage client, poser une voix Cartesia, ou ne rien faire
+   * parce qu'un clone ne peut PAS quitter ElevenLabs. Sans le motif, un
+   * diagnostic « c'est ElevenLabs » envoie chercher au hasard.
+   */
+  why:
+    | 'voix Cartesia choisie dans le portail'
+    | 'traduite depuis le catalogue ElevenLabs'
+    | 'le réglage de CE client demande ElevenLabs, et il passe avant la plateforme'
+    | 'VOICE_TTS_PROVIDER ne demande pas Cartesia'
+    | 'voix clonée: un clone n\'existe que chez ElevenLabs, le servir ailleurs donnerait la voix de quelqu\'un d\'autre'
+    | 'aucune voix Cartesia configurée (CARTESIA_VOICES ou CARTESIA_DEFAULT_VOICE_ID)';
+}
+
+export function cartesiaChoice(opts: {
   voiceId: string;
   cloned?: boolean;
   /** Posé quand l'identifiant vient DÉJÀ du catalogue Cartesia. */
@@ -623,18 +644,53 @@ export function useCartesia(opts: {
    * redéployant, c'est ne pas la trancher.
    */
   ttsProvider?: '11labs' | 'cartesia';
-}): string | null {
+}): CartesiaChoice {
   /* Une voix choisie CHEZ Cartesia par le client se sert telle quelle, et elle
      court-circuite tout le reste: ni le réglage global (il a pu changer après
      le choix), ni la table de correspondance (il n'y a rien à traduire, c'est
      déjà le bon catalogue). Sans ce raccourci, l'identifiant serait cherché
      dans une table où il n'a aucune raison d'être, et le client entendrait la
      voix par défaut au lieu de celle qu'il a choisie. */
-  if (opts.voiceProvider === 'cartesia') return opts.voiceId;
+  if (opts.voiceProvider === 'cartesia') {
+    return { voiceId: opts.voiceId, why: 'voix Cartesia choisie dans le portail' };
+  }
 
-  if ((opts.ttsProvider ?? env.VOICE_TTS_PROVIDER) !== 'cartesia') return null;
-  if (opts.cloned) return null;
-  return cartesiaVoiceFor(opts.voiceId);
+  /* Le réglage du client AVANT celui de la plateforme, et il faut le dire:
+     c'est le seul motif qui se corrige depuis le portail, sans déploiement. */
+  if (opts.ttsProvider && opts.ttsProvider !== 'cartesia') {
+    return { voiceId: null, why: 'le réglage de CE client demande ElevenLabs, et il passe avant la plateforme' };
+  }
+  if (!opts.ttsProvider && env.VOICE_TTS_PROVIDER !== 'cartesia') {
+    return { voiceId: null, why: 'VOICE_TTS_PROVIDER ne demande pas Cartesia' };
+  }
+  if (opts.cloned) {
+    return {
+      voiceId: null,
+      why: 'voix clonée: un clone n\'existe que chez ElevenLabs, le servir ailleurs donnerait la voix de quelqu\'un d\'autre',
+    };
+  }
+
+  const translated = cartesiaVoiceFor(opts.voiceId);
+  return translated
+    ? { voiceId: translated, why: 'traduite depuis le catalogue ElevenLabs' }
+    : { voiceId: null, why: 'aucune voix Cartesia configurée (CARTESIA_VOICES ou CARTESIA_DEFAULT_VOICE_ID)' };
+}
+
+/**
+ * La même décision, réduite à ce que la construction de voix utilise.
+ *
+ * Un seul corps de règle, deux lectures: le chemin d'appel n'a besoin que de
+ * l'identifiant, le docteur a besoin du motif. Les tenir séparés les ferait
+ * diverger, et c'est exactement la famille de défauts que ce dépôt paie le
+ * plus cher.
+ */
+export function useCartesia(opts: {
+  voiceId: string;
+  cloned?: boolean;
+  voiceProvider?: 'cartesia';
+  ttsProvider?: '11labs' | 'cartesia';
+}): string | null {
+  return cartesiaChoice(opts).voiceId;
 }
 
 export function buildVoice(opts: {
