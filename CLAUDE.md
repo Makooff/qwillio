@@ -864,6 +864,21 @@ heure l'agent a réellement réservé, au lieu de le deviner.
   entre la fin de parole de l'appelant et la réponse, médiane et max. C'est ce
   qui mesure « il y a un délai » au lieu de le ressentir. `VOICE_IDLE_NUDGE_SECONDS`
   passe de 8 à 10 s : « Vous m'entendez ? » tombait sur une hésitation.
+- **Troisième appel (« je dois modifier la date »).** (1) « Aucune
+  réservation sous ce nom » alors qu'elle existait, prise par le même numéro :
+  l'appel a traversé un déploiement, et la session en mémoire (qui porte le
+  numéro de l'appelant) n'y survit pas ; `lookupBooking` cherchait alors par le
+  nom seul. `handleToolCalls` recrée la session depuis l'événement, qui porte
+  le numéro. (2) « Il ne reconnaît pas les clients » : le prompt de l'assistant
+  ENREGISTRÉ est figé à la synchronisation, donc il naît avec un historique
+  vide, et le chemin custom-LLM n'ajoutait rien. `callerHistoryBlock` (extrait
+  de `buildSystemPrompt`) est posé à chaque tour par `llm-stream`, le numéro lu
+  sur la requête de Vapi (`body.call.customer.number`), qui survit à tout.
+  (3) « Modifier » finissait en `bookAppointment` : second rendez-vous, l'ancien
+  toujours dans l'agenda. `rescheduleBooking` déplace la ligne, supprime
+  l'ancien événement Google, recrée le nouveau et renvoie le SMS ; le prompt
+  et `lookupBooking` disent l'ordre lookupBooking → checkAvailability →
+  rescheduleBooking. Le plafond du prompt passe à 2700 pour cette ligne.
 
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,

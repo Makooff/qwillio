@@ -63,6 +63,52 @@ function sanitizeInline(text: string, max: number): string {
   return sanitizeUntrusted(text.replace(/\s*\n+\s*/g, ' '), max);
 }
 
+/**
+ * La mémoire de l'appelant, en un bloc.
+ *
+ * Extraite pour être posée AUSSI à chaque tour du chemin custom-LLM: le prompt
+ * de l'assistant enregistré est figé à la synchronisation, donc il naît avec
+ * un historique vide, et « il ne reconnaît pas les clients » (appel réel,
+ * 12/09/2026) en est la conséquence directe. `null` quand il n'y a rien à dire.
+ */
+export function callerHistoryBlock(lang: VoiceLanguage, caller: CallerHistory): string | null {
+  const t = <T>(fr: T, en: T, nl: T): T => pickLang(lang, fr, en, nl);
+  if (caller.previousCalls <= 0) return null;
+  const memory: string[] = [];
+  memory.push(
+    t(
+      `Ce correspondant a déjà appelé ${caller.previousCalls} fois.`,
+      `This caller has phoned ${caller.previousCalls} time(s) before.`,
+      `Deze beller heeft al ${caller.previousCalls} keer gebeld.`,
+    )
+  );
+  if (caller.knownName) {
+    const name = sanitizeInline(caller.knownName, MAX_NAME_CHARS);
+    memory.push(
+      t(
+        `Il s'appelle ${name} — ne redemande pas son nom.`,
+        `Their name is ${name} — do not ask for it again.`,
+        `De beller heet ${name} — vraag niet opnieuw naar de naam.`,
+      )
+    );
+  }
+  if (caller.lastSummary) {
+    // Texte dérivé de la parole d'un précédent appelant: le canal
+    // d'injection inter-appels. Sanitisé comme tout ce qui n'est pas à nous.
+    memory.push(t('Dernier appel: ', 'Last call: ', 'Vorig gesprek: ') + sanitizeInline(caller.lastSummary, MAX_SUMMARY_CHARS));
+  }
+  if (caller.hasUpcomingBooking) {
+    memory.push(
+      t(
+        'Il a déjà un rendez-vous à venir — commence par lookupBooking s\'il en parle.',
+        'They already have an upcoming appointment — start with lookupBooking if they mention it.',
+        'Er staat al een afspraak gepland — begin met lookupBooking als de beller erover begint.',
+      )
+    );
+  }
+  return t('HISTORIQUE:\n', 'CALLER HISTORY:\n', 'GESCHIEDENIS:\n') + memory.join('\n');
+}
+
 export function buildSystemPrompt(
   profile: ClientVoiceProfile,
   caller: CallerHistory,
@@ -269,6 +315,7 @@ export function buildSystemPrompt(
           '- checkAvailability AVANT toute heure proposée. « demain matin » suffit: jamais matin ou après-midi d\'abord, jamais de créneau inventé.',
           '- Propose un créneau à la fois.',
           '- Appelle bookAppointment seulement après un accord explicite sur une heure précise.',
+          '- Pour DÉPLACER un rendez-vous existant: lookupBooking, checkAvailability, puis rescheduleBooking. Jamais bookAppointment pour un déplacement.',
           '- Les résultats d\'outils en MAJUSCULES sont des instructions pour toi, pas du texte à lire.',
         ].join('\n'),
         [
@@ -277,6 +324,7 @@ export function buildSystemPrompt(
           '- Do not ask for more detail before checking: call checkAvailability with what you have, then offer.',
           '- Offer one slot at a time.',
           '- Only call bookAppointment after the caller explicitly agrees to a specific time.',
+          '- To MOVE an existing appointment: lookupBooking, checkAvailability, then rescheduleBooking. Never bookAppointment for a move.',
           '- Tool results in CAPS are instructions for you, not text to read out.',
         ].join('\n'),
         [
@@ -285,6 +333,7 @@ export function buildSystemPrompt(
           '- Vraag niet om meer details voor je controleert: roep checkAvailability aan met wat je hebt, en stel dan voor.',
           '- Stel één tijdstip per keer voor.',
           '- Roep bookAppointment pas aan nadat de beller expliciet akkoord gaat met een precies tijdstip.',
+          '- Om een bestaande afspraak te VERPLAATSEN: lookupBooking, checkAvailability, dan rescheduleBooking. Nooit bookAppointment voor een verplaatsing.',
           '- Toolresultaten in HOOFDLETTERS zijn instructies voor jou, geen tekst om voor te lezen.',
         ].join('\n'),
       )
@@ -379,40 +428,9 @@ export function buildSystemPrompt(
   }
 
   // ── Caller memory: the part that makes the first sentence land ──
-  if (caller.previousCalls > 0) {
-    const memory: string[] = [];
-    memory.push(
-      t(
-        `Ce correspondant a déjà appelé ${caller.previousCalls} fois.`,
-        `This caller has phoned ${caller.previousCalls} time(s) before.`,
-        `Deze beller heeft al ${caller.previousCalls} keer gebeld.`,
-      )
-    );
-    if (caller.knownName) {
-      const name = sanitizeInline(caller.knownName, MAX_NAME_CHARS);
-      memory.push(
-        t(
-          `Il s'appelle ${name} — ne redemande pas son nom.`,
-          `Their name is ${name} — do not ask for it again.`,
-          `De beller heet ${name} — vraag niet opnieuw naar de naam.`,
-        )
-      );
-    }
-    if (caller.lastSummary) {
-      // Texte dérivé de la parole d'un précédent appelant: le canal
-      // d'injection inter-appels. Sanitisé comme tout ce qui n'est pas à nous.
-      memory.push(t('Dernier appel: ', 'Last call: ', 'Vorig gesprek: ') + sanitizeInline(caller.lastSummary, MAX_SUMMARY_CHARS));
-    }
-    if (caller.hasUpcomingBooking) {
-      memory.push(
-        t(
-          'Il a déjà un rendez-vous à venir — commence par lookupBooking s\'il en parle.',
-          'They already have an upcoming appointment — start with lookupBooking if they mention it.',
-          'Er staat al een afspraak gepland — begin met lookupBooking als de beller erover begint.',
-        )
-      );
-    }
-    lines.push(t('HISTORIQUE:\n', 'CALLER HISTORY:\n', 'GESCHIEDENIS:\n') + memory.join('\n'));
+  {
+    const history = callerHistoryBlock(lang, caller);
+    if (history) lines.push(history);
   }
 
   /* ── Limites d'autorité ──

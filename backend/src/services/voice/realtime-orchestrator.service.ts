@@ -477,6 +477,23 @@ class RealtimeOrchestratorService {
 
     if (!calls.length) return [];
 
+    /* La session en mémoire ne survit ni à un redémarrage ni à une seconde
+       instance. Sans elle, lookupBooking ne connaît plus le numéro de
+       l'appelant et ne retrouve pas sa réservation (« aucune réservation sous
+       ce nom », appel réel du 12/09/2026, pendant un déploiement), et le SMS
+       de confirmation n'a plus de destinataire. L'événement porte le numéro:
+       la session se refait ici, comme `handleStatusUpdate` l'aurait faite. */
+    if (vapiCallId && !callSessionStore.get(vapiCallId)) {
+      const profile = await realtimeContextService.getClientProfile(clientId);
+      callSessionStore.start({
+        vapiCallId,
+        clientId,
+        callerNumber: callerNumberOf(event),
+        language: profile?.language ?? 'en',
+      });
+      logger.info(`[Realtime] session recréée sur tool-calls pour ${vapiCallId}`);
+    }
+
     return Promise.all(calls.map(call => toolRuntimeService.execute(clientId, vapiCallId, call)));
   }
 

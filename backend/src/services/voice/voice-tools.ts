@@ -108,6 +108,20 @@ const FILLER: Record<string, Record<VoiceLanguage, { start: string[]; delayed: s
       delayed: ['Ik ben nog aan het zoeken, een momentje.'],
     },
   },
+  rescheduleBooking: {
+    fr: {
+      start: ['Je déplace votre rendez-vous, un instant.'],
+      delayed: ['Encore un instant, je mets l\'agenda à jour.'],
+    },
+    en: {
+      start: ['Let me move your appointment.'],
+      delayed: ['One moment, updating the calendar.'],
+    },
+    nl: {
+      start: ['Ik verplaats uw afspraak even.'],
+      delayed: ['Een momentje, ik werk de agenda bij.'],
+    },
+  },
   lookupKnowledge: {
     fr: {
       start: ['Je vérifie ça.', 'Alors, je regarde.'],
@@ -267,6 +281,30 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
         },
       },
     });
+
+    /* DÉPLACER un rendez-vous existant. Sans cet outil, « je dois modifier la
+       date » finissait en bookAppointment: un second rendez-vous, l'ancien
+       toujours dans l'agenda (appel réel, 12/09/2026). */
+    tools.push({
+      type: 'function',
+      async: false,
+      server: { ...webhookServer(serverUrl), timeoutSeconds: env.VOICE_TOOL_TIMEOUT_SECONDS },
+      messages: toolMessages('rescheduleBooking', lang),
+      function: {
+        name: 'rescheduleBooking',
+        description:
+          'Move the caller\'s existing upcoming booking to a new date and time that checkAvailability returned as free. The old slot is released; no second booking is created.',
+        parameters: {
+          type: 'object',
+          properties: {
+            date: { type: 'string', description: 'New appointment date, ISO 8601 (YYYY-MM-DD).' },
+            time: { type: 'string', description: 'New start time, 24h HH:mm in the business timezone.' },
+            customerName: { type: 'string', description: 'Name the booking was made under, when the caller gave one.' },
+          },
+          required: ['date', 'time'],
+        },
+      },
+    });
   }
 
   // Always available: capturing who called and why is the minimum viable
@@ -418,6 +456,7 @@ export const KNOWN_TOOLS = [
   'checkAvailability',
   'bookAppointment',
   'lookupBooking',
+  'rescheduleBooking',
   'captureLead',
   'lookupKnowledge',
 ] as const;
