@@ -3,6 +3,7 @@ import { motion, useReducedMotion } from 'framer-motion';
 import { Check, Loader2, Play, Search, Square } from '../../icons';
 import api from '../../../services/api';
 import type { CatalogVoice, SelectedVoice } from '../../client/VoicePicker';
+import { previewUrl } from '../../client/CharacterPicker';
 import type { Character } from './CharacterPickerV2';
 
 /**
@@ -13,8 +14,8 @@ import type { Character } from './CharacterPickerV2';
  * personnage avant même de savoir quelles voix existaient:
  *
  *   - les PERSONNAGES du catalogue, qui ont un visage, un nom et un caractère;
- *   - les VOIX du compte ElevenLabs, servies à chaud par /my-dashboard/voices,
- *     donc toujours à jour, clones compris.
+ *   - les VOIX du catalogue, servies à chaud par /my-dashboard/voices: les
+ *     voix Cartesia dans la langue de l'agent, et les clones du client.
  *
  * Choisir un personnage change le personnage. Choisir une voix ne change que
  * le timbre et garde le personnage: c'est la distinction que le produit tient
@@ -48,11 +49,50 @@ function fold(s: string): string {
   return s.normalize('NFD').replace(/\p{Diacritic}/gu, '').toLowerCase();
 }
 
-function genderOf(v: CatalogVoice): 'f' | 'm' | null {
+export function genderOf(v: CatalogVoice): 'f' | 'm' | null {
   const g = (v.gender || '').toLowerCase();
   if (g.startsWith('f')) return 'f';
   if (g.startsWith('m')) return 'm';
   return null;
+}
+
+/**
+ * Les voix du catalogue que le menu montre.
+ *
+ * ── Ce que la règle d'avant cachait, et pourquoi elle existait ─────────────
+ *
+ * Le menu ne montrait que les voix CLONÉES, pour une raison qui tenait au
+ * catalogue ElevenLabs: le compte porte des dizaines de voix de bibliothèque
+ * anglaises (« Skylar · Approachable American female »), servies sans filtre
+ * de langue, et en proposer une donnait une réceptionniste française avec un
+ * accent américain. Ne montrer que les clones était la bonne réponse à CE
+ * catalogue-là.
+ *
+ * Le catalogue Cartesia n'a pas ce défaut: le serveur le filtre sur la langue
+ * de l'agent, et il rend 69 voix françaises. La règle « clones seulement »
+ * les cachait toutes — le client voyait la liste des personnages, croyait
+ * qu'aucune voix n'avait été ajoutée, et il avait raison de le croire.
+ *
+ * D'où la règle exacte, et pas plus large: une voix est montrée si elle est
+ * CLONÉE (elle est au client) ou si elle vient de CARTESIA (elle est dans sa
+ * langue). Une voix de bibliothèque ElevenLabs reste cachée, pour la raison
+ * d'origine qui n'a pas changé.
+ *
+ * Les clones échappent au filtre de genre: ils n'en portent pas, et ce sont
+ * les seules voix qui appartiennent au client.
+ */
+export function visibleVoices(
+  voices: CatalogVoice[],
+  gender: GenderFilter,
+  query: string,
+): CatalogVoice[] {
+  const q = fold(query.trim());
+  return voices.filter(v => {
+    if (!v.cloned && v.provider !== 'cartesia') return false;
+    if (gender !== 'all' && !v.cloned && genderOf(v) !== gender) return false;
+    if (!q) return true;
+    return fold(`${v.name} ${v.accent || ''} ${v.description || ''}`).includes(q);
+  });
 }
 
 export default function VoiceMenu({
@@ -92,28 +132,13 @@ export default function VoiceMenu({
     [characters, gender, q, isFr],
   );
 
-  /**
-   * Seules les voix CLONÉES du client apparaissent ici.
-   *
-   * Le compte de synthèse porte aussi des dizaines de voix de catalogue —
-   * « Skylar · Approachable American female », « Archie · Warm British male » —
-   * qui n'ont rien à faire dans ce menu: elles sont anglaises, elles ne portent
-   * aucun de nos personnages, et un client qui en choisit une obtient une
-   * réceptionniste française avec un accent américain. Les proposer, c'est
-   * proposer une erreur.
-   *
-   * Ce qui reste est ce que le client a lui-même enregistré, et qui n'existe
-   * nulle part ailleurs dans l'interface: la retirer supprimerait le clonage,
-   * qui est vendu deux blocs plus bas.
-   */
-  const shownVoices = useMemo(
-    () => (voices ?? []).filter(v => {
-      if (!v.cloned) return false;
-      if (!q) return true;
-      return fold(`${v.name} ${v.accent || ''} ${v.description || ''}`).includes(q);
-    }),
-    [voices, q],
-  );
+  const shownVoices = useMemo(() => visibleVoices(voices ?? [], gender, query), [voices, gender, query]);
+
+  /* La phrase du personnage courant: c'est elle que chaque voix du catalogue
+     dit à l'écoute, pour auditionner ce que l'appelant entendra et non une
+     démonstration choisie par le fournisseur. */
+  const current = characters.find(c => c.id === characterId);
+  const sampleText = (isFr ? current?.previewFr : current?.previewEn) || '';
 
   const empty = !shownCharacters.length && !shownVoices.length;
 
@@ -223,7 +248,7 @@ export default function VoiceMenu({
               n'y a rien dessous: une section vide fait chercher ce qui manque. */}
           {(shownVoices.length > 0 || (voices === null && !failed)) && (
             <p className="px-1.5 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-q2-fog">
-              {isFr ? 'Votre voix' : 'Your voice'}
+              {isFr ? 'Voix' : 'Voices'}
             </p>
           )}
 
@@ -251,7 +276,15 @@ export default function VoiceMenu({
                   aria-pressed={sel}
                   /* Une voix ne remplace QUE le timbre: le personnage, son visage
                      et son ton restent ceux qui sont choisis dans le carrousel. */
-                  onClick={() => onOverride({ voiceId: v.voiceId, name: v.name, cloned: v.cloned })}
+                  /* `provider` voyage avec le choix: un identifiant Cartesia ne
+                     désigne rien chez ElevenLabs, et sans ce champ le serveur
+                     le chercherait dans le mauvais catalogue. */
+                  onClick={() => onOverride({
+                    voiceId: v.voiceId,
+                    name: v.name,
+                    ...(v.cloned ? { cloned: true } : {}),
+                    ...(v.provider ? { provider: v.provider } : {}),
+                  })}
                   className="flex-1 min-w-0 text-left rounded focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
                 >
                   <p className="text-[12.5px] font-medium text-white truncate">
@@ -269,10 +302,16 @@ export default function VoiceMenu({
                 {sel && <Check size={13} className="shrink-0 text-q2-lift" aria-hidden="true" />}
                 <button
                   type="button"
-                  /* Une voix du compte n'a pas de texte d'exemple à nous: son
-                     extrait ElevenLabs est déjà un enregistrement. */
-                  onClick={() => onToggle(`voice:${v.voiceId}`, v.previewUrl ?? '', '')}
-                  disabled={!v.previewUrl}
+                  /* Deux façons d'écouter. Un clone ElevenLabs porte un extrait
+                     tout fait, qui est déjà un enregistrement. Une voix Cartesia
+                     n'en a pas: notre route synthétise la phrase du personnage
+                     avec elle, ce qui est mieux — on entend ce que l'appelant
+                     entendra, pas une démonstration du fournisseur. Le bouton
+                     n'est plus désactivé faute d'extrait: c'est ce qui rendait
+                     toute voix Cartesia muette dans ce menu. */
+                  onClick={() => (v.previewUrl
+                    ? onToggle(`voice:${v.voiceId}`, v.previewUrl, '')
+                    : onToggle(`voice:${v.voiceId}`, previewUrl(characterId, v), sampleText))}
                   aria-label={isFr ? `Écouter ${v.name}` : `Preview ${v.name}`}
                   className="w-9 h-9 shrink-0 rounded-full grid place-items-center bg-q2-indigo/20 text-q2-lift hover:bg-q2-indigo/30 transition-colors duration-150 disabled:opacity-30 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
                 >
