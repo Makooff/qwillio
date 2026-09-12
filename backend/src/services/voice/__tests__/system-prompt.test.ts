@@ -123,7 +123,9 @@ describe('buildSystemPrompt', () => {
        elle le modèle la devine — « lundi 17 juin » proposé un vendredi 12
        septembre, sur un appel réel. Une ligne qui évite un rendez-vous pris
        dans le passé vaut ses caractères. */
-    expect(buildSystemPrompt(profile, newCaller).length).toBeLessThan(2550);
+    /* 2700: la ligne « déplacer un rendez-vous » (12/09/2026) vaut son coût,
+       un second rendez-vous créé à la place d'un déplacement. */
+    expect(buildSystemPrompt(profile, newCaller).length).toBeLessThan(2700);
   });
 
   it('injects the pre-rendered knowledge block when one is supplied', () => {
@@ -224,7 +226,7 @@ describe('les règles de transfert, réglées par le client', () => {
   it('ne fait pas grossir le prompt, qui est rejoué à chaque tour', () => {
     // Les trois variantes tiennent la même longueur à quelques caractères près.
     const tailles = (['always', 'hours', 'never'] as const).map(m => withMode(m).length);
-    expect(Math.max(...tailles)).toBeLessThan(2550);
+    expect(Math.max(...tailles)).toBeLessThan(2700);
     expect(Math.max(...tailles) - Math.min(...tailles)).toBeLessThan(30);
   });
 });

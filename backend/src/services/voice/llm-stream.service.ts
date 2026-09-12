@@ -5,6 +5,8 @@ import { callSessionStore } from './call-session.store';
 import { fallbackWatchService } from './fallback-watch.service';
 import { moodPromptBlock } from './caller-mood';
 import { clockBlock } from './clock';
+import { callerHistoryBlock } from './system-prompt';
+import { realtimeContextService } from './realtime-context.service';
 import { spokenPrefix } from './spoken-prefix';
 import type { VoiceLanguage } from './speech-plans';
 
@@ -240,6 +242,8 @@ class LlmStreamService {
     stream: StreamHandle,
     /** Le fuseau de l'entreprise, pour dire la date au modèle à chaque tour. */
     timezone: string = 'Europe/Brussels',
+    /** Le numéro de l'appelant, lu sur la requête de Vapi: tient après un redémarrage. */
+    callerNumber: string | null = null,
   ): Promise<void> {
     const started = Date.now();
     callSessionStore.markLatency(vapiCallId, 'llmStart');
@@ -281,7 +285,15 @@ class LlmStreamService {
          (« ouvre par cette phrase ») doit rester la dernière chose lue. */
       const prepared = this.withCaching(
         this.withRecovery(
-          this.withMood(this.withClock(this.withHeardOnly(request, vapiCallId, lang), lang, timezone), vapiCallId, lang),
+          this.withMood(
+            this.withClock(
+              this.withHistory(this.withHeardOnly(request, vapiCallId, lang), await this.historyBlock(clientId, vapiCallId, callerNumber, lang)),
+              lang,
+              timezone,
+            ),
+            vapiCallId,
+            lang,
+          ),
           vapiCallId,
           lang,
         ),
@@ -354,6 +366,36 @@ class LlmStreamService {
    * l'humeur, pour que le long préfixe reste identique d'un tour à l'autre.
    * Relevé le 12/09/2026: « lundi 17 juin » proposé un vendredi de septembre.
    */
+  /**
+   * L'HISTORIQUE de l'appelant, à chaque tour (12/09/2026: « il ne reconnaît
+   * pas les clients »). Le prompt de l'assistant enregistré est figé à la
+   * synchronisation, donc il naît avec un historique vide; c'est ici, sur le
+   * chemin custom-LLM, que l'appelant est reconnu. Lu en cache par
+   * `getCallerHistory`, donc une lecture par appel, pas par tour. Le numéro
+   * vient de la requête de Vapi quand la session en mémoire a disparu.
+   */
+  private async historyBlock(
+    clientId: string,
+    vapiCallId: string | null,
+    callerNumber: string | null,
+    lang: VoiceLanguage,
+  ): Promise<string | null> {
+    const number = callerNumber ?? callSessionStore.get(vapiCallId)?.callerNumber ?? null;
+    if (!number) return null;
+    try {
+      const history = await realtimeContextService.getCallerHistory(clientId, number);
+      return callerHistoryBlock(lang, history);
+    } catch (error) {
+      logger.warn(`[LLM] historique appelant illisible (${clientId}): ${(error as Error).message}`);
+      return null;
+    }
+  }
+
+  private withHistory(request: ChatCompletionRequest, block: string | null): ChatCompletionRequest {
+    if (!block) return request;
+    return { ...request, messages: [...request.messages, { role: 'system', content: block }] };
+  }
+
   private withClock(request: ChatCompletionRequest, lang: VoiceLanguage, timezone: string): ChatCompletionRequest {
     return { ...request, messages: [...request.messages, { role: 'system', content: clockBlock(lang, timezone) }] };
   }

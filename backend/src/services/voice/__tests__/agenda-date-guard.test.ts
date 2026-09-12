@@ -9,16 +9,18 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  * jour. Et un jour libre est rendu AVEC son jour de semaine: « lundi 17
  * juin » annoncé pour un jour qui n'était pas un lundi.
  */
-const { getProfile, freeSlots, createBooking, needsNameReadBack } = vi.hoisted(() => ({
+const { getProfile, freeSlots, createBooking, needsNameReadBack, findBooking, updateBooking } = vi.hoisted(() => ({
   getProfile: vi.fn(),
   freeSlots: vi.fn(),
   createBooking: vi.fn(),
   needsNameReadBack: vi.fn(),
+  findBooking: vi.fn(),
+  updateBooking: vi.fn(),
 }));
 
 vi.mock('../../../config/database', () => ({
   prisma: {
-    clientBooking: { create: createBooking, update: vi.fn(() => Promise.resolve({})) },
+    clientBooking: { create: createBooking, update: updateBooking, findFirst: findBooking },
     // Pas d'agenda lié: la synchronisation, lancée sans être attendue, s'arrête là.
     client: { findUnique: vi.fn(() => Promise.resolve(null)) },
   },
@@ -31,7 +33,7 @@ vi.mock('../realtime-context.service', () => ({
 }));
 vi.mock('../call-session.store', () => ({
   callSessionStore: {
-    get: vi.fn(() => ({ callerNumber: null })),
+    get: vi.fn(() => ({ callerNumber: '32483620980' })),
     recordToolCall: vi.fn(),
     heldSlots: vi.fn(() => []),
     holdSlot: vi.fn(),
@@ -78,6 +80,8 @@ beforeEach(() => {
   freeSlots.mockResolvedValue(['09:00', '10:30']);
   createBooking.mockResolvedValue({ id: 'b1' });
   needsNameReadBack.mockReturnValue(false);
+  updateBooking.mockResolvedValue({});
+  findBooking.mockResolvedValue(null);
 });
 
 describe('checkAvailability — la date', () => {
@@ -136,5 +140,39 @@ describe('bookAppointment — le nom et le jour', () => {
     const out = String(await book({ customerName: 'Mathieu Polle', date: '2024-06-17', time: '09:00' }));
     expect(out).toMatch(/^DATE PASSEE/);
     expect(createBooking).not.toHaveBeenCalled();
+  });
+});
+
+/* « Je dois modifier la date » finissait en bookAppointment: un second
+   rendez-vous, l'ancien toujours dans l'agenda (appel réel, 12/09/2026). */
+describe('rescheduleBooking — déplacer, pas dupliquer', () => {
+  async function move(args: Record<string, unknown>) {
+    const out = await toolRuntimeService.execute('c1', 'call_1', { name: 'rescheduleBooking', args, toolCallId: 't3' } as never);
+    return String(out.result);
+  }
+
+  it('retrouve la réservation par le numéro et la déplace, sans en créer une autre', async () => {
+    findBooking.mockResolvedValueOnce({
+      id: 'b1', customerName: 'Stéphane Van Hold', bookingDate: new Date('2099-10-04T12:00:00Z'),
+      bookingTime: '14:00', serviceType: 'extraction', googleEventId: null,
+    });
+    const out = await move({ date: '2099-10-05', time: '09:00' });
+    expect(out).toMatch(/^DEPLACE: Stéphane Van Hold, du dimanche 4 octobre 2099 14:00 au lundi 5 octobre 2099 a 09:00/);
+    // La première écriture est le déplacement; la synchronisation d'agenda (sans agenda lié) en ajoute une.
+    expect(updateBooking.mock.calls[0][0].where).toEqual({ id: 'b1' });
+    expect(updateBooking.mock.calls[0][0].data.bookingTime).toBe('09:00');
+    expect(createBooking).not.toHaveBeenCalled();
+  });
+
+  it('refuse un jour fermé avant même de chercher la réservation', async () => {
+    const out = await move({ date: '2099-10-04', time: '14:00' });
+    expect(out).toMatch(/^FERME le dimanche/);
+    expect(findBooking).not.toHaveBeenCalled();
+  });
+
+  it("dit qu'il n'y a rien à déplacer quand aucune réservation n'existe", async () => {
+    const out = await move({ date: '2099-10-05', time: '09:00' });
+    expect(out).toMatch(/^AUCUNE RESERVATION/);
+    expect(updateBooking).not.toHaveBeenCalled();
   });
 });

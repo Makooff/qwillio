@@ -98,6 +98,15 @@ export class GoogleCalendarService {
     }
   }
 
+  /** Supprime un événement SANS toucher à la réservation: le déplacement recrée le sien. */
+  async deleteEvent(googleEventId: string, accessToken: string, calendarId = 'primary'): Promise<void> {
+    const r = await fetch(`${this.baseUrl}/calendars/${calendarId}/events/${googleEventId}`, {
+      method: 'DELETE',
+      headers: { 'Authorization': `Bearer ${accessToken}` },
+    });
+    if (!r.ok && r.status !== 404 && r.status !== 410) throw new Error(`Google event delete failed: ${r.status}`);
+  }
+
   // ═══════════════════════════════════════════════════════════
   // DELETE / CANCEL EVENT when booking is cancelled
   // ═══════════════════════════════════════════════════════════

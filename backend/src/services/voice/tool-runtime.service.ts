@@ -214,7 +214,7 @@ function confirmNameBeforeBooking(lang: string, name: string): string {
   const spelled = spellOut(familyName(name));
   const base: Record<string, string> = {
     fr: `NOM À CONFIRMER AVANT DE RÉSERVER: « ${name} ». Répète-le à l'appelant, puis ÉPELLE toi-même le nom de famille lettre par lettre: ${spelled}. `
-      + "S'il confirme, rappelle bookAppointment avec ce nom. S'il corrige, demande-lui d'épeler le nom, puis rappelle bookAppointment avec le nom exact.",
+      + "S'il confirme, rappelle bookAppointment avec ce nom. S'il corrige, demande-lui d'épeler le nom, laisse-le finir sans l'interrompre ni dire « merci » entre les lettres, puis rappelle bookAppointment avec le nom exact, sans le refaire confirmer.",
     en: `CONFIRM THE NAME BEFORE BOOKING: "${name}". Repeat it to the caller, then SPELL the family name yourself letter by letter: ${spelled}. `
       + 'If they confirm, call bookAppointment again with this name. If they correct you, ask them to spell it, then call bookAppointment with the exact name.',
     nl: `NAAM BEVESTIGEN VOOR HET BOEKEN: « ${name} ». Herhaal hem voor de beller en SPEL de familienaam zelf letter voor letter: ${spelled}. `
@@ -309,6 +309,9 @@ class ToolRuntimeService {
         case 'lookupBooking':
           result = await this.lookupBooking(profile, vapiCallId, call.args);
           break;
+        case 'rescheduleBooking':
+          result = await this.rescheduleBooking(profile, vapiCallId, call.args);
+          break;
         case 'captureLead':
           result = await this.captureLead(profile, vapiCallId, call.args);
           break;
@@ -343,7 +346,7 @@ class ToolRuntimeService {
    */
   private degradedMessage(profile: ClientVoiceProfile, tool: string): string {
     const fr = profile.language === 'fr';
-    if (tool === 'checkAvailability' || tool === 'bookAppointment') {
+    if (tool === 'checkAvailability' || tool === 'bookAppointment' || tool === 'rescheduleBooking') {
       return fr
         ? 'AGENDA INDISPONIBLE: dis au correspondant que tu ne peux pas confirmer le creneau maintenant, propose de noter ses coordonnees pour un rappel rapide, puis appelle captureLead.'
         : 'CALENDAR UNAVAILABLE: tell the caller you cannot confirm a slot right now, offer to take their details for a quick call back, then call captureLead.';
@@ -609,10 +612,120 @@ class ToolRuntimeService {
         : 'NO BOOKING found for this caller. Ask which name it was booked under.';
     }
 
-    const day = booking.bookingDate.toISOString().slice(0, 10);
+    const day = spokenDate(booking.bookingDate, profile.language, profile.timezone);
     return profile.language === 'fr'
       ? `RESERVATION: ${booking.customerName}, le ${day}${booking.bookingTime ? ` a ${booking.bookingTime}` : ''}${booking.serviceType ? ` (${booking.serviceType})` : ''}.`
-      : `BOOKING: ${booking.customerName}, ${day}${booking.bookingTime ? ` at ${booking.bookingTime}` : ''}${booking.serviceType ? ` (${booking.serviceType})` : ''}.`;
+        + ' Pour la deplacer: demande la nouvelle date, verifie avec checkAvailability, puis appelle rescheduleBooking. Jamais bookAppointment pour un deplacement.'
+      : `BOOKING: ${booking.customerName}, ${day}${booking.bookingTime ? ` at ${booking.bookingTime}` : ''}${booking.serviceType ? ` (${booking.serviceType})` : ''}.`
+        + ' To move it: ask for the new date, check with checkAvailability, then call rescheduleBooking. Never bookAppointment for a move.';
+  }
+
+  // ── rescheduleBooking ───────────────────────────────────────────────────
+
+  /**
+   * Déplace le rendez-vous à venir de l'appelant, au lieu d'en créer un second.
+   *
+   * « Je dois modifier la date » finissait en bookAppointment: un nouveau
+   * rendez-vous, et l'ancien toujours dans l'agenda du commerçant (appel réel,
+   * 12/09/2026). La réservation est retrouvée comme dans lookupBooking, par le
+   * numéro d'abord; la ligne est mise à jour, l'ancien événement Google
+   * supprimé et le nouveau créé, le SMS repart avec le nouveau lien.
+   */
+  private async rescheduleBooking(
+    profile: ClientVoiceProfile,
+    vapiCallId: string | null,
+    args: Record<string, any>,
+  ): Promise<string> {
+    const date = parseDate(args.date);
+    const minutes = parseTimeToMinutes(args.time);
+    if (!date || minutes === null) {
+      return profile.language === 'fr'
+        ? 'INFOS MANQUANTES: il faut la nouvelle date et l\'heure exacte avant de deplacer.'
+        : 'MISSING INFO: you need the new date and the exact time before moving.';
+    }
+    const past = pastDateReply(profile, args.date);
+    if (past) return past;
+    const closed = closedDayReply(profile, args.date);
+    if (closed) return closed;
+    const outside = outsideHoursReply(profile, String(args.date).trim(), minutes);
+    if (outside) return outside;
+
+    const session = callSessionStore.get(vapiCallId);
+    const name = typeof args.customerName === 'string' ? normaliseSpelledName(args.customerName) : '';
+    const booking = await prisma.clientBooking.findFirst({
+      where: {
+        clientId: profile.clientId,
+        status: 'confirmed',
+        bookingDate: { gte: new Date() },
+        ...(session?.callerNumber
+          ? { OR: [{ customerPhone: session.callerNumber }, ...(name ? [{ customerName: { contains: name, mode: 'insensitive' as const } }] : [])] }
+          : name
+            ? { customerName: { contains: name, mode: 'insensitive' as const } }
+            : {}),
+      },
+      orderBy: { bookingDate: 'asc' },
+      select: { id: true, customerName: true, bookingDate: true, bookingTime: true, serviceType: true, googleEventId: true },
+    });
+    if (!booking) {
+      return profile.language === 'fr'
+        ? 'AUCUNE RESERVATION trouvee pour ce correspondant. Demande sous quel nom elle a ete prise, puis rappelle rescheduleBooking avec ce nom.'
+        : 'NO BOOKING found for this caller. Ask which name it was booked under, then call rescheduleBooking again with that name.';
+    }
+
+    const time = String(args.time);
+    try {
+      await prisma.clientBooking.update({
+        where: { id: booking.id },
+        data: { bookingDate: date, bookingTime: time, googleEventId: null, calendarSyncedAt: null },
+      });
+    } catch (error) {
+      if ((error as { code?: string }).code === 'P2002') {
+        return profile.language === 'fr'
+          ? "CRENEAU DEJA PRIS: quelqu'un vient de reserver cet horaire. Excuse-toi brievement et propose un autre creneau."
+          : 'SLOT TAKEN: someone just booked that time. Apologise briefly and offer another slot.';
+      }
+      throw error;
+    }
+
+    callSessionStore.holdSlot(profile.clientId, date, time);
+    callSessionStore.markBooked(vapiCallId, booking.id);
+    void this.moveCalendarEvent(profile.clientId, booking.id, booking.googleEventId);
+
+    const smsTo = session?.callerNumber ?? null;
+    const smsPromised = !!smsTo && smsReadiness().ok;
+    if (smsPromised) {
+      void this.sendBookingSms(profile, booking.id, smsTo, booking.customerName, date, time, booking.serviceType);
+    }
+
+    const oldDay = spokenDate(booking.bookingDate, profile.language, profile.timezone);
+    const newDay = spokenDate(date, profile.language, profile.timezone);
+    if (profile.language === 'fr') {
+      return `DEPLACE: ${booking.customerName}, du ${oldDay}${booking.bookingTime ? ` ${booking.bookingTime}` : ''} au ${newDay} a ${time}. L'ancien creneau est libere. Confirme a voix haute, en nommant le nouveau jour.`
+        + (smsPromised ? " Dis-lui qu'un SMS de confirmation avec le lien pour l'agenda part sur son numero." : '')
+        + " Demande s'il faut autre chose.";
+    }
+    return `MOVED: ${booking.customerName}, from ${oldDay}${booking.bookingTime ? ` ${booking.bookingTime}` : ''} to ${newDay} at ${time}. The old slot is released. Confirm it out loud, naming the new day.`
+      + (smsPromised ? ' Tell them a confirmation text with a calendar link is on its way to their number.' : '')
+      + ' Ask if they need anything else.';
+  }
+
+  /** L'ancien événement Google part, le nouveau est créé par la synchronisation ordinaire. */
+  private async moveCalendarEvent(clientId: string, bookingId: string, oldEventId: string | null): Promise<void> {
+    if (oldEventId) {
+      try {
+        const client = await prisma.client.findUnique({
+          where: { id: clientId },
+          select: { googleCalendarRefreshToken: true, googleCalendarId: true },
+        });
+        if (client?.googleCalendarRefreshToken) {
+          const accessToken = await googleCalendarService.getAccessTokenFromRefresh(client.googleCalendarRefreshToken);
+          await googleCalendarService.deleteEvent(oldEventId, accessToken, client.googleCalendarId || 'primary');
+        }
+      } catch (error) {
+        logger.warn(`[VoiceTools] ancien événement Google non supprimé (${bookingId}): ${(error as Error).message}`);
+      }
+    }
+    await this.syncBookingToCalendar(clientId, bookingId);
   }
 
   // ── captureLead ─────────────────────────────────────────────────────────

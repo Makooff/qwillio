@@ -367,14 +367,39 @@ async function callReading(callId: string): Promise<{ said: number; recording: b
     const recordingUrl: string | null = full?.artifact?.recordingUrl || full?.recordingUrl || full?.artifact?.recording?.mono?.combinedUrl || null;
     const recording = !!recordingUrl;
     const tools: string[] = [];
+    /* Les DÉLAIS, lus sur l'horloge de Vapi: « il y a un délai qui ne
+       facilite pas la conversation » (12/09/2026) se mesure ici, outil par
+       outil et tour par tour, au lieu de se ressentir. */
+    const pendingTool: Record<string, number> = {};
+    const gaps: number[] = [];
+    let lastUserEnd: number | null = null;
     for (const m of messages) {
+      const at = typeof m.secondsFromStart === 'number' ? m.secondsFromStart : null;
+      if (m.role === 'user') {
+        lastUserEnd = typeof m.endTime === 'number' && typeof m.time === 'number' && at !== null
+          ? at + (m.endTime - m.time) / 1000
+          : at;
+      } else if ((m.role === 'bot' || m.role === 'assistant') && at !== null && lastUserEnd !== null) {
+        gaps.push(Math.max(0, at - lastUserEnd));
+        lastUserEnd = null;
+      }
       if (m.role === 'tool_calls' && Array.isArray(m.toolCalls)) {
         for (const c of m.toolCalls) {
-          tools.push(`→ ${c.function?.name ?? c.name ?? '?'} ${String(c.function?.arguments ?? '').slice(0, 160)}`);
+          const name = c.function?.name ?? c.name ?? '?';
+          if (at !== null) pendingTool[name] = at;
+          tools.push(`→ ${name} ${String(c.function?.arguments ?? '').slice(0, 160)}`);
         }
       } else if (m.role === 'tool_call_result') {
-        tools.push(`← ${m.name ?? '?'}: ${String(m.result ?? '').slice(0, 160)}`);
+        const name = m.name ?? '?';
+        const took = at !== null && pendingTool[name] !== undefined ? ` (${(at - pendingTool[name]).toFixed(1)} s)` : '';
+        delete pendingTool[name];
+        tools.push(`← ${name}${took}: ${String(m.result ?? '').slice(0, 160)}`);
       }
+    }
+    if (gaps.length) {
+      const sorted = [...gaps].sort((a, b) => a - b);
+      const median = sorted[Math.floor(sorted.length / 2)];
+      tools.push(`⏱ réponse après la fin de parole de l'appelant: médiane ${median.toFixed(1)} s, max ${sorted[sorted.length - 1].toFixed(1)} s, sur ${gaps.length} tour(s)`);
     }
     return { said, recording, recordingUrl, tools };
   } catch {

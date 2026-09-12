@@ -3,6 +3,7 @@ import { logger } from '../config/logger';
 import { llmStreamService, type ChatCompletionRequest } from '../services/voice/llm-stream.service';
 import { realtimeContextService } from '../services/voice/realtime-context.service';
 import { callSessionStore } from '../services/voice/call-session.store';
+import { normalizeNumber } from '../services/voice/phone-allocation.service';
 import { isVapiWebhookAuthorized } from '../utils/vapi-webhook-auth';
 
 /**
@@ -41,6 +42,13 @@ export class VoiceLlmController {
     const profile = await realtimeContextService.getClientProfile(clientId);
     const lang = session?.language ?? profile?.language ?? 'en';
     const timezone = profile?.timezone ?? 'Europe/Brussels';
+    /* Le numéro de l'appelant, sur la requête de Vapi d'abord: la session en
+       mémoire ne survit pas à un redémarrage, la requête, si. Même forme que
+       les clés de mémoire (chiffres seuls). */
+    const callerNumber =
+      normalizeNumber((body.call as { customer?: { number?: string } } | undefined)?.customer?.number)
+      ?? session?.callerNumber
+      ?? null;
 
     res.status(200);
     res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
@@ -69,7 +77,7 @@ export class VoiceLlmController {
     });
 
     try {
-      await llmStreamService.handle(clientId, vapiCallId, lang, body, stream, timezone);
+      await llmStreamService.handle(clientId, vapiCallId, lang, body, stream, timezone, callerNumber);
     } catch (error) {
       logger.error(`[VoiceLLM] unhandled error for ${clientId}: ${(error as Error).message}`);
     } finally {
