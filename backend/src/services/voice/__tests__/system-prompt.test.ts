@@ -374,3 +374,12 @@ describe('la date, dite au modèle', () => {
     expect(prompt).not.toMatch(/il est \d{2}:\d{2}/);
   });
 });
+
+/* « Oui, exceptionnellement ouvert ce dimanche » (12/09/2026): les horaires
+   se disent exhaustifs, un jour fermé est fermé. */
+describe('les horaires sont exhaustifs', () => {
+  it('dit qu\'un jour fermé est fermé, sans exception', () => {
+    const prompt = buildSystemPrompt(profile, newCaller);
+    expect(prompt).toContain('un jour fermé est fermé, sans exception');
+  });
+});

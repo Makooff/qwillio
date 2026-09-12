@@ -264,7 +264,16 @@ export function buildSystemPrompt(
   // ── Business facts ──
   const facts: string[] = [];
   if (profile.openingHours) {
-    facts.push(t(`Horaires: ${profile.openingHours}`, `Hours: ${profile.openingHours}`, `Openingsuren: ${profile.openingHours}`));
+    /* « Oui, exceptionnellement ouvert ce dimanche pour certains soins »
+       (appel réel, 12/09/2026): la liste doit se dire EXHAUSTIVE, sinon le
+       modèle complète un jour absent par une ouverture inventée. */
+    facts.push(
+      t(
+        `Horaires: ${profile.openingHours}. Rien d'autre: un jour fermé est fermé, sans exception.`,
+        `Hours: ${profile.openingHours}. Nothing else: a closed day is closed, no exceptions.`,
+        `Openingsuren: ${profile.openingHours}. Niets anders: een gesloten dag is gesloten, zonder uitzondering.`,
+      ),
+    );
   }
   if (profile.services.length) {
     facts.push(t('Services: ', 'Services: ', 'Diensten: ') + profile.services.slice(0, MAX_SERVICES).join(', '));

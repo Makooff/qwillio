@@ -1,4 +1,4 @@
-import { parseWeekHours, describeHours, type WeekHours } from '../../utils/opening-hours';
+import { parseWeekHours, describeHours, DEFAULT_WEEK_HOURS, type WeekHours } from '../../utils/opening-hours';
 import { prisma } from '../../config/database';
 import { clientLocale } from '../../utils/client-locale';
 import { businessTimezone } from '../../utils/zoned-time';
@@ -300,7 +300,9 @@ class RealtimeContextService {
        paramètres: l'écran disait enregistré, l'appel restait en français. */
     const language: 'fr' | 'en' | 'nl' = clientLocale(client);
 
-    const weekHours = parseWeekHours(onboarding.hours);
+    /* Sans horaires enregistrés, ceux que le portail AFFICHE: l'agent, l'agenda
+       et l'écran disent la même chose, au lieu d'un agent qui devine. */
+    const weekHours = parseWeekHours(onboarding.hours) ?? DEFAULT_WEEK_HOURS;
     const profile: ClientVoiceProfile = {
       clientId: client.id,
       businessName: client.businessName,
@@ -322,7 +324,7 @@ class RealtimeContextService {
          prompt: l'agent ne savait pas que le dimanche est fermé (12/09/2026). */
       openingHours: typeof onboarding.openingHours === 'string' && onboarding.openingHours.trim()
         ? onboarding.openingHours
-        : weekHours ? describeHours(weekHours, language) : null,
+        : describeHours(weekHours, language),
       weekHours,
       bookingEnabled: onboarding.bookingEnabled !== false,
       calendarConnected: Boolean(client.googleCalendarRefreshToken),
