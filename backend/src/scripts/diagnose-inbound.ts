@@ -323,7 +323,13 @@ async function main() {
          pas qu'elle se lit encore: une URL signée expirée, ou un type que le
          navigateur refuse, donne un bouton « Écouter » qui ne joue rien. */
       if (call === mine[0] && ours?.recordingUrl) {
-        console.log(`      enregistrement servi: ${await servedAs(ours.recordingUrl)}`);
+        console.log(`      enregistrement servi (URL stockée): ${await servedAs(ours.recordingUrl)}`);
+      }
+      /* L'URL FRAÎCHE, redemandée à Vapi: c'est celle que le portail joue
+         désormais (`/my-dashboard/calls/:id/recording`). Si la stockée est
+         morte et celle-ci vit, l'URL a une durée de vie et se redemande. */
+      if (call === mine[0] && seen?.recordingUrl && seen.recordingUrl !== ours?.recordingUrl) {
+        console.log(`      enregistrement servi (URL fraîche Vapi): ${await servedAs(seen.recordingUrl)}`);
       }
     }
   } catch (error) {
@@ -339,7 +345,10 @@ async function servedAs(url: string): Promise<string> {
     const r = await fetch(url, { method: 'GET', headers: { Range: 'bytes=0-0' } });
     const type = r.headers.get('content-type') ?? '(sans type)';
     const size = r.headers.get('content-range')?.split('/')[1] ?? r.headers.get('content-length') ?? '?';
-    return `${r.status} ${type} ${size} octets · ${new URL(url).host}`;
+    /* Sur un refus, le corps dit POURQUOI (un XML S3: signature expirée,
+       paramètre refusé); sans lui, un 400 est une devinette. */
+    const why = r.ok ? '' : ` · ${(await r.text()).replace(/\s+/g, ' ').slice(0, 200)}`;
+    return `${r.status} ${type} ${size} octets · ${new URL(url).host}${why}`;
   } catch (error) {
     return `injoignable: ${(error as Error).message}`;
   }
@@ -350,12 +359,13 @@ async function servedAs(url: string): Promise<string> {
  * enregistrement, et appels d'outils avec leurs arguments et leurs réponses.
  * `null` si l'appel est illisible.
  */
-async function callReading(callId: string): Promise<{ said: number; recording: boolean; tools: string[] } | null> {
+async function callReading(callId: string): Promise<{ said: number; recording: boolean; recordingUrl: string | null; tools: string[] } | null> {
   try {
     const full = (await vapiClient.getCall(callId)) as Record<string, any>;
     const messages: Array<Record<string, any>> = full?.artifact?.messages ?? full?.messages ?? [];
     const said = messages.filter(m => m.role === 'bot' || m.role === 'assistant').length;
-    const recording = !!(full?.artifact?.recordingUrl || full?.recordingUrl || full?.artifact?.recording?.mono?.combinedUrl);
+    const recordingUrl: string | null = full?.artifact?.recordingUrl || full?.recordingUrl || full?.artifact?.recording?.mono?.combinedUrl || null;
+    const recording = !!recordingUrl;
     const tools: string[] = [];
     for (const m of messages) {
       if (m.role === 'tool_calls' && Array.isArray(m.toolCalls)) {
@@ -366,7 +376,7 @@ async function callReading(callId: string): Promise<{ said: number; recording: b
         tools.push(`← ${m.name ?? '?'}: ${String(m.result ?? '').slice(0, 160)}`);
       }
     }
-    return { said, recording, tools };
+    return { said, recording, recordingUrl, tools };
   } catch {
     return null;
   }

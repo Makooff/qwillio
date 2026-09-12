@@ -2,6 +2,7 @@ import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { env } from '../config/env';
 import { smsTemplates } from './sms-templates';
+import { toE164 } from '../utils/sms-e164';
 import { detectLanguage, getAgentName } from '../config/vapi-templates';
 
 export class SmsService {
@@ -87,6 +88,14 @@ export class SmsService {
       logger.debug('SMS disabled, skipping send');
       return { success: false, error: 'SMS_ENABLED=false' };
     }
+    /* Twilio veut E.164 avec le « + »; le numéro de l'appelant arrive réduit à
+       ses chiffres (« 32483620980 », refusé 21211 le 12/09/2026). */
+    const dest = toE164(to);
+    if (!dest) {
+      logger.warn(`[SMS] destinataire illisible: « ${to} »`);
+      return { success: false, error: `invalid_to: ${to}` };
+    }
+    to = dest;
 
     if (metadata?.messageType && await this.prefersWhatsApp(metadata.clientId)) {
       const { whatsAppService } = await import('./whatsapp.service');
