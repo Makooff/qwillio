@@ -233,15 +233,25 @@ export function buildSystemPrompt(
       t(
         [
           'RENDEZ-VOUS:',
-          /* Les deux règles en UNE ligne, et pas deux: le prompt est rejoué à
-             chaque tour, un test garde sa taille, et « demander une
-             précision » est le même interdit que « inventer un créneau » —
-             les deux consistent à ne pas regarder l'agenda.
-             « Un rendez-vous demain matin » suffit pour consulter: demander
-             « le matin ou l'après-midi ? » avant d'avoir regardé coûte un tour
-             entier à l'appelant et ne change rien à ce que l'agenda contient.
-             Relevé deux fois sur un scénario d'évaluation. */
-          '- checkAvailability AVANT de proposer une heure ou de demander une précision. N\'invente jamais un créneau.',
+          /* NOMMER le mauvais geste, et c'est ce qui manquait.
+             La version d'avant disait « AVANT de proposer une heure ou de
+             demander une précision »: abstrait, et strictement plus faible que
+             l'anglaise juste en dessous, qui a toujours gardé sa seconde règle
+             (« call checkAvailability with what you have, then offer »). Le
+             scénario `fr-discipline-agenda` tombait donc côté FRANÇAIS, et
+             toujours sur la même réponse: « le matin ou l'après-midi ? » au
+             lieu d'un appel d'outil. Quatre échecs relevés, dont deux
+             consécutifs sur un commit qui ne touchait ni le prompt ni les
+             outils — c'est ce qui a écarté l'explication par le tirage.
+             « Ne demande pas matin ou après-midi d'abord » agit là où « ne
+             demande pas une précision » laissait le modèle juger ce qu'est une
+             précision, et « demain matin suffit » lui donne quoi faire à la
+             place. La ligne coûte 29 caractères de plus que celle qu'elle
+             remplace, contre un tour de parole entier par demande de
+             rendez-vous.
+             La règle qui en sort: quand une langue perd une ligne que les
+             autres gardent, c'est une DIVERGENCE, pas une économie. */
+          '- checkAvailability AVANT toute heure proposée. « demain matin » suffit: jamais matin ou après-midi d\'abord, jamais de créneau inventé.',
           '- Propose un créneau à la fois.',
           '- Appelle bookAppointment seulement après un accord explicite sur une heure précise.',
           '- Les résultats d\'outils en MAJUSCULES sont des instructions pour toi, pas du texte à lire.',

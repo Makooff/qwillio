@@ -214,16 +214,23 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
         parameters: {
           type: 'object',
           properties: {
-            /* Le NOM DE FAMILLE, demandé explicitement.
-               « Full name » laissait passer un prénom seul, et c'est ce qui
-               arrivait: un agenda qui porte « Marc, 14h » ne distingue pas deux
-               Marc, et le client ne sait pas qui se présente. Le prénom seul
-               reste accepté plutôt que de bloquer le rendez-vous, mais l'agent
-               sait maintenant qu'il lui manque quelque chose. */
+            /* Le NOM DE FAMILLE, dit comme une EXIGENCE DE CONTENU et non
+               comme un ordre de le demander.
+               « Full name » laissait passer un prénom seul: un agenda qui porte
+               « Marc, 14h » ne distingue pas deux Marc, et le client ne sait pas
+               qui se présente.
+               La première rédaction disait « ask for their family name before
+               booking », et elle a cassé `fr-discipline-agenda`, un scénario
+               sans rapport: à « je voudrais un rendez-vous demain », l'agent
+               répondait « le matin ou l'après-midi ? » au lieu d'appeler
+               checkAvailability. C'est 6quinquies, et la leçon est plus large
+               qu'un glossaire de prompt: un verbe d'action posé N'IMPORTE OÙ
+               dans le contexte concurrence la discipline d'appel d'outil. Une
+               description de champ dit ce que le champ CONTIENT. */
             customerName: {
               type: 'string',
               description:
-                'First name AND family name. If the caller gave only a first name, ask for their family name before booking.',
+                'The caller\'s first name and family name. A first name alone does not identify them in the calendar.',
             },
             date: { type: 'string', description: 'Appointment date, ISO 8601 (YYYY-MM-DD).' },
             time: { type: 'string', description: 'Start time, 24h HH:mm in the business timezone.' },
@@ -297,7 +304,11 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
             type: 'string',
             description:
               'Callback number, exactly as the caller said it, digits or words. '
-              + 'Ask for it whenever you promise a call back, unless the caller already gave one.',
+              /* Pas « ask for it whenever you promise a call back »: voir
+                 `customerName` ci-dessus, et 6quinquies. Que les coordonnées
+                 soient à prendre est déjà dit par la règle RENDEZ-VOUS du
+                 prompt, qui est l'endroit des consignes. */
+              + 'The line to call back on: the caller\'s own line is unusable when withheld, and wrong when they want a different one.',
           },
           reason: { type: 'string', description: 'Why they called, one sentence.' },
           /* L'adresse, telle que dite (BEL-6). Un dépanneur, un vétérinaire à
