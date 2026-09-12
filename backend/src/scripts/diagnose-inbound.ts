@@ -289,12 +289,31 @@ async function main() {
       if (call === mine[0] && seen?.tools.length) {
         for (const line of seen.tools) console.log(`      ${line}`);
       }
+      /* L'URL d'enregistrement que le PORTAIL joue, allée chercher comme le
+         navigateur le ferait. « Chez nous oui » dit qu'une URL est stockée,
+         pas qu'elle se lit encore: une URL signée expirée, ou un type que le
+         navigateur refuse, donne un bouton « Écouter » qui ne joue rien. */
+      if (call === mine[0] && ours?.recordingUrl) {
+        console.log(`      enregistrement servi: ${await servedAs(ours.recordingUrl)}`);
+      }
     }
   } catch (error) {
     console.log(`\nListe des appels Vapi illisible: ${(error as Error).message}`);
   }
 
   console.log('');
+}
+
+/** Ce qu'une URL rend quand on la joue: statut, type, taille, ou l'erreur. */
+async function servedAs(url: string): Promise<string> {
+  try {
+    const r = await fetch(url, { method: 'GET', headers: { Range: 'bytes=0-0' } });
+    const type = r.headers.get('content-type') ?? '(sans type)';
+    const size = r.headers.get('content-range')?.split('/')[1] ?? r.headers.get('content-length') ?? '?';
+    return `${r.status} ${type} ${size} octets · ${new URL(url).host}`;
+  } catch (error) {
+    return `injoignable: ${(error as Error).message}`;
+  }
 }
 
 /**
