@@ -402,8 +402,11 @@ export function buildStartSpeakingPlan(lang: VoiceLanguage) {
         ? { provider: 'livekit', waitFunction: '2000 / (1 + exp(-10 * (x - 0.5)))' }
         : { provider: 'vapi' },
     transcriptionEndpointingPlan: {
-      onPunctuationSeconds: 0.1,
-      onNoPunctuationSeconds: 1.0,
+      /* Une respiration au milieu d'une phrase reçoit un point du
+         transcripteur: à 0,1 s l'agent parlait par-dessus (12/09/2026).
+         Les deux seuils sont des variables, voir `config/env.ts`. */
+      onPunctuationSeconds: env.VOICE_ENDPOINTING_PUNCTUATION_SECONDS,
+      onNoPunctuationSeconds: env.VOICE_ENDPOINTING_NO_PUNCTUATION_SECONDS,
       /* UNE SECONDE après un chiffre, et non une demi (TUR-3).
          Un appelant qui dicte « zéro deux… cinq cent douze… trente-quatre… »
          laisse 400 à 900 ms entre ses groupes: à 500 ms on le coupe après le

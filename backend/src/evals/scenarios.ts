@@ -60,6 +60,7 @@ const baseProfile: ClientVoiceProfile = {
   instructions: null,
   services: ['détartrage', 'urgences dentaires'],
   openingHours: 'Lun-Ven 9h-18h',
+  weekHours: null,
   bookingEnabled: true,
   calendarConnected: true,
   planType: 'pro',

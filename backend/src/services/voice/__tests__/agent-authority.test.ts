@@ -23,6 +23,7 @@ const base: ClientVoiceProfile = {
   instructions: null,
   services: [],
   openingHours: null,
+  weekHours: null,
   bookingEnabled: true,
   calendarConnected: false,
   planType: 'pro',

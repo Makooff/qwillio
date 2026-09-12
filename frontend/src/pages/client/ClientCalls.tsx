@@ -9,6 +9,7 @@ import {
    changements sont orthogonaux, on garde les deux. */
 } from '../../components/icons';
 import { fetchLive, peekLive, subscribeLive } from '../../services/liveData';
+import api from '../../services/api';
 import SentimentBadge from '../../components/client-dashboard/SentimentBadge';
 import Pagination from '../../components/client-dashboard/Pagination';
 import EmptyState from '../../components/client-dashboard/EmptyState';
@@ -110,6 +111,33 @@ export default function ClientCalls() {
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [selectedCall, setSelectedCall] = useState<Call | null>(null);
   const [playingId, setPlayingId] = useState<string | null>(null);
+  /* L'enregistrement est LU PAR NOUS, avec le jeton, et joué depuis un blob:
+     l'URL Vapi posée telle quelle en `src` donnait 0:00 / 0:00 (12/09/2026),
+     signature expirée ou origine refusée, sans qu'on puisse le voir. */
+  const [recording, setRecording] = useState<{ id: string; url: string } | null>(null);
+  const [recordingError, setRecordingError] = useState<string | null>(null);
+  const [recordingLoading, setRecordingLoading] = useState(false);
+
+  useEffect(() => () => { if (recording) URL.revokeObjectURL(recording.url); }, [recording]);
+
+  const playRecording = useCallback(async (callId: string) => {
+    if (playingId === callId) { setPlayingId(null); return; }
+    setRecordingError(null);
+    if (recording?.id === callId) { setPlayingId(callId); return; }
+    setRecordingLoading(true);
+    try {
+      const res = await api.get(`/my-dashboard/calls/${callId}/recording`, { responseType: 'blob', timeout: 60_000 });
+      setRecording({ id: callId, url: URL.createObjectURL(res.data as Blob) });
+      setPlayingId(callId);
+    } catch (err) {
+      const status = (err as { response?: { status?: number } })?.response?.status;
+      setRecordingError(status === 404
+        ? "Aucun enregistrement pour cet appel."
+        : `L'enregistrement n'a pas pu être chargé${status ? ` (${status})` : ''}.`);
+    } finally {
+      setRecordingLoading(false);
+    }
+  }, [playingId, recording]);
 
   const fetchCalls = useCallback(async (page = 1) => {
     const params = new URLSearchParams({ page: String(page), limit: '20' });
@@ -648,21 +676,26 @@ export default function ClientCalls() {
                           l'action principale du bloc. */}
                       <button
                         type="button"
-                        onClick={() => setPlayingId(playingId === selectedCall.id ? null : selectedCall.id)}
-                        className="mb-2 inline-flex min-h-[40px] items-center gap-2 rounded-full bg-white px-5 text-sm font-medium text-[#0a0a0a] transition-opacity hover:opacity-90"
+                        onClick={() => playRecording(selectedCall.id)}
+                        disabled={recordingLoading}
+                        className="mb-2 inline-flex min-h-[40px] items-center gap-2 rounded-full bg-white px-5 text-sm font-medium text-[#0a0a0a] transition-opacity hover:opacity-90 disabled:opacity-60"
                       >
                         {playingId === selectedCall.id
                           ? <><Pause size={14} aria-hidden="true" /> Pause</>
-                          : <><Play size={14} aria-hidden="true" /> Écouter</>
+                          : <><Play size={14} aria-hidden="true" /> {recordingLoading ? 'Chargement…' : 'Écouter'}</>
                         }
                       </button>
-                      {playingId === selectedCall.id && (
+                      {recordingError && (
+                        <p className="text-xs text-[#A1A1A8]" role="alert">{recordingError}</p>
+                      )}
+                      {playingId === selectedCall.id && recording?.id === selectedCall.id && (
                         <audio
                           controls
                           autoPlay
                           className="w-full mt-2"
-                          src={selectedCall.recordingUrl}
+                          src={recording.url}
                           aria-label="Enregistrement de l'appel"
+                          onError={() => setRecordingError("Le navigateur n'a pas pu lire cet enregistrement.")}
                         >
                           Votre navigateur ne supporte pas l'audio.
                         </audio>

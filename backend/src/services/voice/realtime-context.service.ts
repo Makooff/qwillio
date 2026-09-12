@@ -1,3 +1,4 @@
+import { parseWeekHours, describeHours, type WeekHours } from '../../utils/opening-hours';
 import { prisma } from '../../config/database';
 import { clientLocale } from '../../utils/client-locale';
 import { businessTimezone } from '../../utils/zoned-time';
@@ -85,6 +86,8 @@ export interface ClientVoiceProfile {
   instructions: string | null;
   services: string[];
   openingHours: string | null;
+  /** Les horaires du portail, jour par jour: l'agenda et la réservation les lisent. */
+  weekHours: WeekHours | null;
   bookingEnabled: boolean;
   calendarConnected: boolean;
   planType: string;
@@ -297,6 +300,7 @@ class RealtimeContextService {
        paramètres: l'écran disait enregistré, l'appel restait en français. */
     const language: 'fr' | 'en' | 'nl' = clientLocale(client);
 
+    const weekHours = parseWeekHours(onboarding.hours);
     const profile: ClientVoiceProfile = {
       clientId: client.id,
       businessName: client.businessName,
@@ -313,7 +317,13 @@ class RealtimeContextService {
         : 'always',
       instructions: onboarding.specialInstructions || onboarding.instructions || null,
       services: Array.isArray(onboarding.services) ? onboarding.services.slice(0, 12) : [],
-      openingHours: onboarding.openingHours || onboarding.hours || null,
+      /* Les horaires du portail sont un OBJET (`hours`, jour par jour). Les
+         mettre dans une chaîne donnait « Horaires: [object Object] » dans le
+         prompt: l'agent ne savait pas que le dimanche est fermé (12/09/2026). */
+      openingHours: typeof onboarding.openingHours === 'string' && onboarding.openingHours.trim()
+        ? onboarding.openingHours
+        : weekHours ? describeHours(weekHours, language) : null,
+      weekHours,
       bookingEnabled: onboarding.bookingEnabled !== false,
       calendarConnected: Boolean(client.googleCalendarRefreshToken),
       planType: client.planType,

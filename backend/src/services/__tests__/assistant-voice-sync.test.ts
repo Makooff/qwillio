@@ -62,6 +62,7 @@ const base = {
   instructions: null,
   services: [],
   openingHours: null,
+  weekHours: null,
   bookingEnabled: false,
   calendarConnected: false,
   planType: 'pro',

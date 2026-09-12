@@ -1,5 +1,6 @@
+import { dayWindow, parseWeekHours } from '../../utils/opening-hours';
 import { prisma } from '../../config/database';
-import { businessTimezone } from '../../utils/zoned-time';
+import { ymdOf, businessTimezone } from '../../utils/zoned-time';
 import { logger } from '../../config/logger';
 import { googleCalendarService } from '../google-calendar.service';
 import { normalizeUtterance } from './intent-router';
@@ -167,13 +168,22 @@ class AvailabilitySpeculator {
     });
     if (!client?.googleCalendarRefreshToken) throw new Error('calendar not connected');
 
+    /* Un jour FERMÉ n'a aucun créneau, et ne coûte pas une lecture d'agenda. */
+    const timezone = businessTimezone(client);
+    const window = dayWindow(parseWeekHours((client.onboardingData as Record<string, unknown> | null)?.hours), ymdOf(date), timezone);
+    if (!window.open) {
+      this.cache.set(key, { slots: [], expiresAt: Date.now() + CACHE_TTL_MS });
+      return [];
+    }
+
     const accessToken = await googleCalendarService.getAccessTokenFromRefresh(client.googleCalendarRefreshToken);
     const slots = await googleCalendarService.getAvailability(
       accessToken,
       client.googleCalendarId || 'primary',
       date,
       // Les créneaux dans le fuseau de l'entreprise, jamais celui du serveur.
-      businessTimezone(client),
+      timezone,
+      { from: window.from, to: window.to },
     );
 
     this.cache.set(key, { slots, expiresAt: Date.now() + CACHE_TTL_MS });
