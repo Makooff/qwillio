@@ -1,4 +1,5 @@
 import { env } from '../../config/env';
+import { clockLine } from './clock';
 import { shouldRecord, type CallerHistory, type ClientVoiceProfile } from './realtime-context.service';
 import type { VoiceLanguage } from './speech-plans';
 
@@ -70,6 +71,16 @@ export function buildSystemPrompt(
    * than fetched here so prompt assembly stays synchronous and testable.
    */
   knowledgeBlock = '',
+  opts: {
+    /**
+     * La phrase qui dit la date. Réelle par défaut (`clockLine`, au moment de
+     * l'appel); l'assistant ENREGISTRÉ passe le gabarit que Vapi remplit à
+     * chaque appel (`vapiClockLine`), son prompt étant figé à la
+     * synchronisation. Sans cette ligne, le modèle devine la date: « lundi
+     * 17 juin » proposé un vendredi 12 septembre (appel réel, 12/09/2026).
+     */
+    clock?: string;
+  } = {},
 ): string {
   const lang = profile.language;
   const t = <T>(fr: T, en: T, nl: T): T => pickLang(lang, fr, en, nl);
@@ -83,6 +94,10 @@ export function buildSystemPrompt(
       `Je bent ${profile.agentName}, de receptionist van ${profile.businessName} (${profile.businessType}). Je neemt de telefoon op.`,
     )
   );
+
+  // La date, dite: voir `clock.ts`. Elle suit l'identité pour être lue en
+  // premier, avant toute règle qui parle de « demain » ou de « lundi prochain ».
+  lines.push(opts.clock ?? clockLine(lang, profile.timezone));
 
   // AI Act art. 50: l'appelant a le droit de savoir. La divulgation vit dans le
   // premier message; cette règle couvre la question posée en cours d'appel.

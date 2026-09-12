@@ -36,7 +36,11 @@ export class VoiceLlmController {
     // Language decides which phrase lists the router uses. The live session
     // already knows it; the cached profile is the fallback after a restart.
     const session = callSessionStore.get(vapiCallId);
-    const lang = session?.language ?? (await realtimeContextService.getClientProfile(clientId))?.language ?? 'en';
+    /* Le profil est mis en cache par `realtimeContextService`: le relire ici
+       pour le fuseau ne coûte pas de lecture en base à chaque tour. */
+    const profile = await realtimeContextService.getClientProfile(clientId);
+    const lang = session?.language ?? profile?.language ?? 'en';
+    const timezone = profile?.timezone ?? 'Europe/Brussels';
 
     res.status(200);
     res.setHeader('Content-Type', 'text/event-stream; charset=utf-8');
@@ -65,7 +69,7 @@ export class VoiceLlmController {
     });
 
     try {
-      await llmStreamService.handle(clientId, vapiCallId, lang, body, stream);
+      await llmStreamService.handle(clientId, vapiCallId, lang, body, stream, timezone);
     } catch (error) {
       logger.error(`[VoiceLLM] unhandled error for ${clientId}: ${(error as Error).message}`);
     } finally {

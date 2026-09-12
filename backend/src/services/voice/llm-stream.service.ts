@@ -4,6 +4,7 @@ import { routeIntent, type IntentDecision } from './intent-router';
 import { callSessionStore } from './call-session.store';
 import { fallbackWatchService } from './fallback-watch.service';
 import { moodPromptBlock } from './caller-mood';
+import { clockBlock } from './clock';
 import { spokenPrefix } from './spoken-prefix';
 import type { VoiceLanguage } from './speech-plans';
 
@@ -237,6 +238,8 @@ class LlmStreamService {
     lang: VoiceLanguage,
     request: ChatCompletionRequest,
     stream: StreamHandle,
+    /** Le fuseau de l'entreprise, pour dire la date au modèle à chaque tour. */
+    timezone: string = 'Europe/Brussels',
   ): Promise<void> {
     const started = Date.now();
     callSessionStore.markLatency(vapiCallId, 'llmStart');
@@ -274,8 +277,14 @@ class LlmStreamService {
          message de l'historique, alors que les trois autres n'ajoutent qu'en
          queue. Faite après, elle irait chercher son message d'assistant au
          milieu de blocs qu'on vient d'empiler. */
+      /* La date vient AVANT l'humeur et la reprise: la consigne de reprise
+         (« ouvre par cette phrase ») doit rester la dernière chose lue. */
       const prepared = this.withCaching(
-        this.withRecovery(this.withMood(this.withHeardOnly(request, vapiCallId, lang), vapiCallId, lang), vapiCallId, lang),
+        this.withRecovery(
+          this.withMood(this.withClock(this.withHeardOnly(request, vapiCallId, lang), lang, timezone), vapiCallId, lang),
+          vapiCallId,
+          lang,
+        ),
         vapiCallId,
       );
       await this.proxy(prepared, plan.model, stream, vapiCallId);
@@ -334,6 +343,19 @@ class LlmStreamService {
     const block = moodPromptBlock(mood, lang);
     if (!block) return request;
     return { ...request, messages: [...request.messages, { role: 'system', content: block }] };
+  }
+
+  /**
+   * La DATE, en message système de queue, à chaque tour.
+   *
+   * L'assistant enregistré porte un gabarit que Vapi remplit, mais ce chemin
+   * n'a pas à dépendre de ce que Vapi en fait: ici, c'est CE backend qui
+   * parle au modèle, et la date qu'il connaît est la vraie. En queue, comme
+   * l'humeur, pour que le long préfixe reste identique d'un tour à l'autre.
+   * Relevé le 12/09/2026: « lundi 17 juin » proposé un vendredi de septembre.
+   */
+  private withClock(request: ChatCompletionRequest, lang: VoiceLanguage, timezone: string): ChatCompletionRequest {
+    return { ...request, messages: [...request.messages, { role: 'system', content: clockBlock(lang, timezone) }] };
   }
 
   /**
