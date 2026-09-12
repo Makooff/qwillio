@@ -1,4 +1,5 @@
 import { Request, Response } from 'express';
+import { clientLocale } from '../utils/client-locale';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
@@ -322,8 +323,7 @@ export class ClientDashboardController {
       // Surface JSON-held knowledge fields at top level so the UI can bind
       // directly (items, hours, faq, personalityPreset, personalityNotes).
       const cfg = (client.vapiConfig as any) || {};
-      const isFrench = (client as any).agentLanguage === 'fr'
-        || ['FR', 'BE', 'LU', 'MC', 'CH'].includes(String((client as any).country || '').toUpperCase());
+      const isFrench = clientLocale(client as any) === 'fr';
       res.json({
         ...client,
         items:             Array.isArray(cfg.items) ? cfg.items : [],
@@ -455,7 +455,14 @@ export class ClientDashboardController {
         }))?.vapiConfig;
         updateData.vapiConfig = mergeVapiConfig(current, { recordCalls: body.recordCalls });
       }
-      if (body.agentLanguage !== undefined) updateData.agentLanguage = body.agentLanguage;
+      /* Trois valeurs et pas une chaîne libre: c'est ce que le profil d'appel
+         sait parler, et une valeur inconnue retomberait sur le pays en silence. */
+      if (body.agentLanguage !== undefined) {
+        if (!['fr', 'en', 'nl'].includes(body.agentLanguage)) {
+          return res.status(400).json({ error: 'agentLanguage must be fr, en or nl' });
+        }
+        updateData.agentLanguage = body.agentLanguage;
+      }
       if (body.agentName !== undefined) updateData.agentName = body.agentName || null;
       if (body.contactPhone !== undefined) updateData.contactPhone = body.contactPhone || null;
       if (body.address !== undefined) updateData.address = body.address || null;
@@ -1178,8 +1185,7 @@ export class ClientDashboardController {
         where: { id: req.clientId },
         select: { agentLanguage: true, country: true, vapiConfig: true },
       });
-      const isFrench = client?.agentLanguage?.startsWith('fr')
-        || ['FR', 'BE', 'LU', 'MC', 'CH'].includes(String(client?.country || '').toUpperCase());
+      const isFrench = clientLocale(client ?? {}) === 'fr';
       const override = ((client?.vapiConfig as any)?.customVoice?.voiceId ?? '') as string;
 
       const { previewAudioService } = await import('../services/voice/preview-audio.service');

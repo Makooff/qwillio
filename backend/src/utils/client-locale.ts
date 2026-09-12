@@ -54,3 +54,28 @@ export function emailLocale(client: { agentLanguage?: string | null; country?: s
   const locale = clientLocale(client);
   return locale === 'fr' ? 'fr' : 'en';
 }
+
+/**
+ * La langue de l'agent à la NAISSANCE du client.
+ *
+ * « La langue doit être auto en fonction de quelle langue [est] choisie sur le
+ * site à la création du compte » (12/09/2026). Jusque-là, chaque chemin de
+ * création posait `'en'` en dur ou laissait le défaut du schéma (`'en'`), et
+ * seule la présomption par pays sauvait un client belge, en le servant en
+ * français MALGRÉ un réglage qui disait anglais: le réglage ne pouvait donc
+ * jamais être changé vers l'anglais depuis les paramètres, puisque le pays
+ * l'annulait.
+ *
+ * La langue du site est un choix que le visiteur vient de faire (sélecteur de
+ * la barre, ou fuseau horaire): elle vaut mieux que le pays, qui ne l'emporte
+ * que faute de mieux. Ce que le client change ensuite dans ses paramètres est
+ * lu par `clientLocale`, où le choix prime toujours.
+ */
+export function signupAgentLanguage(input: {
+  siteLanguage?: string | null;
+  country?: string | null;
+}): ClientLocale {
+  const site = String(input.siteLanguage ?? '').trim().toLowerCase();
+  if (site === 'fr' || site === 'en' || site === 'nl') return site;
+  return clientLocale({ country: input.country });
+}

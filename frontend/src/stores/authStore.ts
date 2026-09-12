@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import api from '../services/api';
 import { User } from '../types';
+import { useLang } from './langStore';
 
 interface AuthState {
   user: User | null;
@@ -51,7 +52,9 @@ export const useAuthStore = create<AuthState>((set) => ({
   },
 
   register: async (email: string, password: string, name: string) => {
-    const { data } = await api.post('/auth/register', { email, password, name });
+    /* La langue du site part avec l'inscription: elle devient celle de
+       l'agent du client, modifiable ensuite dans Paramètres. */
+    const { data } = await api.post('/auth/register', { email, password, name, language: useLang.getState().lang });
     localStorage.setItem('token', data.token);
     set({ user: data.user, token: data.token, isLoading: false });
     // `!== false` et non `=== true`: un backend antérieur au champ ne doit pas
@@ -66,9 +69,12 @@ export const useAuthStore = create<AuthState>((set) => ({
        navigateur, est ce que la console signalait comme vulnérable à
        l'usurpation. Les deux autres formes restent acceptées par l'API le temps
        que les deux déploiements se rejoignent. */
-    const body = type === 'code'
-      ? { code: token }
-      : type === 'token' ? { access_token: token } : { credential: token };
+    const body = {
+      language: useLang.getState().lang,
+      ...(type === 'code'
+        ? { code: token }
+        : type === 'token' ? { access_token: token } : { credential: token }),
+    };
     const { data } = await postAuthWithWakeRetry('/auth/google', body);
     localStorage.setItem('token', data.token);
     set({ user: data.user, token: data.token, isLoading: false });

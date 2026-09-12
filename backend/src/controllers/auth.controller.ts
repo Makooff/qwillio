@@ -13,6 +13,11 @@ import { affiliateService } from '../services/affiliate.service';
 
 const googleClient = new OAuth2Client(env.GOOGLE_CLIENT_ID);
 
+/** La langue du site telle que le front l'envoie, ou rien: jamais une chaîne libre en base. */
+function siteLanguage(raw: unknown): 'fr' | 'en' | null {
+  return raw === 'fr' || raw === 'en' ? raw : null;
+}
+
 export class AuthController {
   async login(req: Request, res: Response) {
     try {
@@ -65,7 +70,7 @@ export class AuthController {
 
   async register(req: Request, res: Response) {
     try {
-      const { email, password, name } = registerSchema.parse(req.body);
+      const { email, password, name, language } = registerSchema.parse(req.body);
 
       const existing = await prisma.user.findUnique({ where: { email } });
       if (existing) {
@@ -88,6 +93,10 @@ export class AuthController {
           confirmationToken: autoConfirm ? null : confirmationToken,
           emailConfirmed: autoConfirm,
           onboardingCompleted: false,
+          /* La langue du site au moment de l'inscription. Le client n'existe
+             pas encore (il naît au webhook Stripe, après la caisse): elle
+             attend ici pour devenir la langue de son agent. */
+          language: language ?? null,
         },
       });
 
@@ -413,12 +422,16 @@ export class AuthController {
          explicitement « annual » reste mensuel: sur une valeur inattendue, on
          prélève moins souvent, jamais douze mois d'un coup par accident. */
       const billingPeriod = req.body?.billingPeriod === 'annual' ? 'annual' : 'monthly';
+      /* La langue du site à la caisse l'emporte sur celle de l'inscription:
+         c'est la plus récente, et c'est la page que le client regarde. */
+      const language = siteLanguage(req.body?.language) ?? user.language ?? null;
       const checkoutUrl = await stripeService.createSelfOnboardingCheckout(
         { id: user.id, email: user.email },
         plan.id,
         businessName,
         industry,
         billingPeriod,
+        language,
       );
       if (!checkoutUrl) return res.status(502).json({ error: 'checkout_unavailable' });
 
@@ -628,6 +641,7 @@ export class AuthController {
             role: 'client',
             emailConfirmed: true,
             onboardingCompleted: false,
+            language: siteLanguage(req.body?.language),
           },
         });
         logger.info(`New Google user registered: ${payload.email}`);

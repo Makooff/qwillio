@@ -1,4 +1,5 @@
 import { env } from '../../config/env';
+import { curatedCartesiaIds } from '../../config/cartesia-curated';
 import { logger } from '../../config/logger';
 
 /**
@@ -128,7 +129,13 @@ class VoiceCatalogService {
    */
   private async cartesiaList(clientId: string | undefined, lang: 'fr' | 'en' | 'nl'): Promise<CatalogVoice[]> {
     const { listCartesiaVoices } = await import('./cartesia.service');
-    const voices: CatalogVoice[] = (await listCartesiaVoices(lang)).map(v => ({
+    /* Le tri du propriétaire, quand il existe pour cette langue: 69 voix « fr »
+       chez Cartesia, dont des québécoises et des timbres de narration, pour un
+       sélecteur qui doit tenir sur un écran. Sans liste, tout est servi. */
+    const keep = curatedCartesiaIds(lang);
+    const voices: CatalogVoice[] = (await listCartesiaVoices(lang))
+      .filter(v => !keep || keep.has(v.voiceId))
+      .map(v => ({
       voiceId: v.voiceId,
       name: v.name,
       // Tel que Cartesia le déclare: c'est lui qui trie hommes et femmes.

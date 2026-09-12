@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { signupAgentLanguage } from '../utils/client-locale';
 import { prisma } from '../config/database';
 import { stripe } from '../config/stripe';
 import { logger } from '../config/logger';
@@ -117,6 +118,14 @@ export class StripeService {
         contactEmail: user.email,
         contactPhone: businessPhone,
         country: 'BE',
+        /* La langue choisie sur le site, à la caisse ou à l'inscription; le
+           pays ne tranche que si aucune des deux n'est connue. C'est la seule
+           chose qui décide de la langue du premier appel, et elle reste
+           modifiable dans Paramètres. */
+        agentLanguage: signupAgentLanguage({
+          siteLanguage: session.metadata?.language ?? user.language,
+          country: 'BE',
+        }),
         planType,
         setupFee: 0,
         /* En annuel, la mensualité EFFECTIVE est remisée de 20 %: reporter le
@@ -729,6 +738,9 @@ export class StripeService {
     businessName: string,
     industry?: string | null,
     period: BillingPeriod = 'monthly',
+    /* La langue du site: portée par la session, relue par le webhook qui crée
+       le client. Sans elle, l'agent naissait en anglais pour tout le monde. */
+    language: string | null = null,
   ): Promise<string | null> {
     const plan = getPlan(planType);
     const priceId = await this.resolvePriceId(planType, period);
@@ -765,6 +777,7 @@ export class StripeService {
         billingPeriod: period,
         businessName,
         industry: industry || 'other',
+        ...(language ? { language } : {}),
       },
     });
 

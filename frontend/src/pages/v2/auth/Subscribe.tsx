@@ -82,6 +82,9 @@ export default function Subscribe() {
            sélecteur qui a raison. Le back refait le contrôle: seul « annual »
            vaut annuel. */
         billingPeriod: billing,
+        /* La langue du site à la caisse: c'est elle que l'agent parlera au
+           premier appel. Le client peut la changer ensuite dans Paramètres. */
+        language: lang,
       });
       if (data?.checkoutUrl) {
         /* Le choix a servi: le laisser traîner ferait basculer en annuel une
