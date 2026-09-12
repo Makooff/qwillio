@@ -1,5 +1,6 @@
 import { prisma } from '../../config/database';
 import { clientLocale } from '../../utils/client-locale';
+import { businessTimezone } from '../../utils/zoned-time';
 import { knowledgeFieldsBlock } from '../../config/knowledge-presets';
 import { logger } from '../../config/logger';
 import { env } from '../../config/env';
@@ -302,7 +303,8 @@ class RealtimeContextService {
       businessType: client.businessType,
       agentName: client.agentName || (language === 'fr' ? 'Camille' : language === 'nl' ? 'Lotte' : 'Ashley'),
       language,
-      timezone: onboarding.timezone || (language === 'fr' ? 'Europe/Paris' : 'America/New_York'),
+      // UNE règle de fuseau, partagée avec l'agenda et les créneaux.
+      timezone: businessTimezone(client),
       transferNumber: client.transferNumber,
       inboundNumber: client.vapiPhoneNumber,
       inboundLines: client.phoneNumbers ?? [],

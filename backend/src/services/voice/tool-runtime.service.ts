@@ -13,6 +13,8 @@ import { availabilitySpeculator } from './availability-speculator';
 import { parseSpokenPhone } from '../../utils/phone-spoken';
 import { phoneWords } from '../../utils/text-for-speech';
 import { normaliseAddress } from '../../utils/be-communes';
+import { normaliseSpelledName } from '../../utils/spelled-name';
+import { env } from '../../config/env';
 
 /**
  * Tool runtime (Phase 4).
@@ -141,6 +143,41 @@ function readBackPhone(lang: string, national: string): string {
       + 'then carry on. If they correct you, call captureLead again with the corrected number.',
     nl: `NUMMER GENOTEERD: ${spelled}. Lees het cijfer voor cijfer terug ter bevestiging, `
       + 'en ga dan verder. Verbetert de beller je, roep captureLead dan opnieuw aan.',
+  };
+  return base[lang] ?? base.en;
+}
+
+/**
+ * Le NOM se relit, comme le numéro.
+ *
+ * « Polle » entendu « Paul », « Mathieu » entendu « Matthieu », sur un appel
+ * réel (12/09/2026): un transcripteur n'a aucune chance sur un nom propre
+ * qu'il ne connaît pas, et le rendez-vous a été pris au mauvais nom. La
+ * relecture est demandée UNE fois par nom et par appel; si l'appelant corrige,
+ * on lui demande d'épeler le nom de famille, et un nom épelé est recollé par
+ * `normaliseSpelledName`.
+ */
+function readBackName(lang: string, name: string): string {
+  const base: Record<string, string> = {
+    fr: `NOM NOTÉ: « ${name} ». Répète-le à l'appelant, prénom puis nom de famille, pour confirmer. `
+      + "S'il te corrige, demande-lui d'ÉPELER le nom de famille lettre par lettre, puis rappelle l'outil avec le nom exact.",
+    en: `NAME SAVED: "${name}". Repeat it to the caller, first name then family name, to confirm. `
+      + 'If they correct you, ask them to SPELL the family name letter by letter, then call the tool again with the exact name.',
+    nl: `NAAM GENOTEERD: « ${name} ». Herhaal hem voor de beller, voornaam en familienaam, ter bevestiging. `
+      + 'Verbetert de beller je, vraag dan om de familienaam letter voor letter te SPELLEN en roep de tool opnieuw aan.',
+  };
+  return base[lang] ?? base.en;
+}
+
+/** Avant de RÉSERVER: le nom va dans l'agenda du commerçant, il doit être juste. */
+function confirmNameBeforeBooking(lang: string, name: string): string {
+  const base: Record<string, string> = {
+    fr: `NOM À CONFIRMER AVANT DE RÉSERVER: « ${name} ». Répète-le à l'appelant, prénom puis nom de famille. `
+      + "S'il te corrige ou si le nom est peu courant, demande-lui de l'ÉPELER lettre par lettre. Une fois confirmé, rappelle bookAppointment avec le nom exact.",
+    en: `CONFIRM THE NAME BEFORE BOOKING: "${name}". Repeat it to the caller, first name then family name. `
+      + 'If they correct you or the name is unusual, ask them to SPELL it letter by letter. Once confirmed, call bookAppointment again with the exact name.',
+    nl: `NAAM BEVESTIGEN VOOR HET BOEKEN: « ${name} ». Herhaal hem voor de beller, voornaam en familienaam. `
+      + 'Verbetert de beller je of is de naam ongewoon, vraag dan om te SPELLEN. Roep daarna bookAppointment opnieuw aan met de exacte naam.',
   };
   return base[lang] ?? base.en;
 }
@@ -337,7 +374,7 @@ class ToolRuntimeService {
   ): Promise<string> {
     const date = parseDate(args.date);
     const minutes = parseTimeToMinutes(args.time);
-    const customerName = typeof args.customerName === 'string' ? args.customerName.trim() : '';
+    const customerName = typeof args.customerName === 'string' ? normaliseSpelledName(args.customerName) : '';
 
     if (!date || minutes === null || !customerName) {
       return profile.language === 'fr'
@@ -346,6 +383,14 @@ class ToolRuntimeService {
     }
     const past = pastDateReply(profile, args.date);
     if (past) return past;
+
+    /* Le nom est relu AVANT d'écrire dans l'agenda: une réservation au
+       mauvais nom se corrige à la main par le commerçant, et il ne le sait
+       même pas. Une fois par nom et par appel; un nom déjà relu pendant
+       `captureLead` ne l'est pas deux fois. */
+    if (callSessionStore.needsNameReadBack(vapiCallId, customerName)) {
+      return confirmNameBeforeBooking(profile.language, customerName);
+    }
 
     const session = callSessionStore.get(vapiCallId);
     const clientCallId = session?.clientCallId ?? null;
@@ -392,9 +437,57 @@ class ToolRuntimeService {
     // API must not hold the line open.
     void this.syncBookingToCalendar(profile.clientId, booking.id);
 
-    return profile.language === 'fr'
-      ? `RESERVE: ${customerName}, le ${args.date} a ${args.time}. Confirme a voix haute et demande s'il faut autre chose.`
-      : `BOOKED: ${customerName}, ${args.date} at ${args.time}. Confirm it out loud and ask if they need anything else.`;
+    /* Le SMS de confirmation part PENDANT l'appel, avec le lien d'agenda:
+       l'appelant repart avec le rendez-vous dans la poche, et l'agent peut le
+       lui dire. Non attendu, comme l'agenda: la ligne ne reste pas ouverte
+       sur Twilio. La phrase rendue au modèle dépend de ce qui est possible:
+       promettre un SMS sans numéro serait un mensonge de plus. */
+    const smsTo = session?.callerNumber ?? null;
+    const smsPromised = !!smsTo && env.SMS_ENABLED;
+    if (smsPromised) {
+      void this.sendBookingSms(profile, booking.id, smsTo, customerName, date, String(args.time), args.serviceType);
+    }
+
+    const day = spokenDate(date, profile.language, profile.timezone);
+    if (profile.language === 'fr') {
+      return `RESERVE: ${customerName}, le ${day} a ${args.time}. Confirme a voix haute, en nommant le jour.`
+        + (smsPromised ? " Dis-lui qu'un SMS de confirmation avec le lien pour l'agenda part sur son numero." : '')
+        + " Demande s'il faut autre chose.";
+    }
+    return `BOOKED: ${customerName}, ${day} at ${args.time}. Confirm it out loud, naming the day.`
+      + (smsPromised ? ' Tell them a confirmation text with a calendar link is on its way to their number.' : '')
+      + ' Ask if they need anything else.';
+  }
+
+  /** Le SMS de confirmation, avec le lien d'agenda public de la réservation. */
+  private async sendBookingSms(
+    profile: ClientVoiceProfile,
+    bookingId: string,
+    to: string,
+    customerName: string,
+    date: Date,
+    time: string,
+    serviceType: unknown,
+  ): Promise<void> {
+    try {
+      const { smsService } = await import('../sms.service');
+      const sent = await smsService.sendBookingConfirmationSMS({
+        customerPhone: to,
+        customerName,
+        businessName: profile.businessName,
+        bookingDate: date.toISOString(),
+        bookingTime: time,
+        serviceType: typeof serviceType === 'string' ? serviceType : null,
+        calendarUrl: `${env.API_BASE_URL}/api/public/booking/${bookingId}.ics`,
+        lang: profile.language === 'fr' ? 'fr' : 'en',
+        clientId: profile.clientId,
+      });
+      if (sent) {
+        await prisma.clientBooking.update({ where: { id: bookingId }, data: { smsConfirmationSent: true } });
+      }
+    } catch (error) {
+      logger.warn(`[VoiceTools] SMS de confirmation non envoyé (${bookingId}): ${(error as Error).message}`);
+    }
   }
 
   /**
@@ -499,7 +592,7 @@ class ToolRuntimeService {
   ): Promise<string> {
     const session = callSessionStore.get(vapiCallId);
     const lead = {
-      name: typeof args.name === 'string' ? args.name.trim() || null : null,
+      name: typeof args.name === 'string' ? normaliseSpelledName(args.name) || null : null,
       email: typeof args.email === 'string' ? args.email.trim() || null : null,
       reason: typeof args.reason === 'string' ? args.reason.trim() : '',
       urgency: ['low', 'normal', 'high'].includes(args.urgency) ? String(args.urgency) : 'normal',
@@ -595,10 +688,17 @@ class ToolRuntimeService {
     }
 
     /* Le numéro a passé la validation, ce qui ne veut pas dire qu'il est le
-       bon: c'est là que la relecture se demande, et une seule fois. */
-    if (dictated?.ok && callSessionStore.needsPhoneReadBack(vapiCallId, dictated.e164)) {
-      return readBackPhone(profile.language, dictated.national);
+       bon: c'est là que la relecture se demande, et une seule fois. Le nom
+       suit la même règle; les deux relectures partent ensemble quand elles
+       tombent sur le même appel. */
+    const readBacks: string[] = [];
+    if (lead.name && callSessionStore.needsNameReadBack(vapiCallId, lead.name)) {
+      readBacks.push(readBackName(profile.language, lead.name));
     }
+    if (dictated?.ok && callSessionStore.needsPhoneReadBack(vapiCallId, dictated.e164)) {
+      readBacks.push(readBackPhone(profile.language, dictated.national));
+    }
+    if (readBacks.length) return readBacks.join(' ');
 
     return profile.language === 'fr' ? 'NOTE. Continue la conversation.' : 'NOTED. Continue the conversation.';
   }

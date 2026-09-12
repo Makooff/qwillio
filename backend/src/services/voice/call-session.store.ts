@@ -125,6 +125,8 @@ export interface CallSession {
    * relire à ce moment-là ferait tourner les deux en boucle.
    */
   phoneReadBack: string | null;
+  /** Le nom déjà relu à l'appelant dans cet appel (minuscules), pour ne le relire qu'une fois. */
+  nameReadBack: string | null;
   /**
    * L'agent a-t-il été coupé au milieu d'une VRAIE phrase, sans avoir encore
    * repris la parole depuis ? Posé par `recordBargeIn`, consommé au tour
@@ -247,6 +249,7 @@ class CallSessionStore {
       tokens: { input: 0, cached: 0, output: 0 },
       phoneCaptureFailures: 0,
       phoneReadBack: null,
+      nameReadBack: null,
       pendingHardBargeIn: false,
       interruptedSpeechMs: null,
       repair: newRepairState(),
@@ -372,6 +375,20 @@ class CallSessionStore {
    * sans mémoire, on ne peut pas distinguer la première demande de la
    * confirmation, et redemander en boucle est pire que ne pas demander.
    */
+  /**
+   * Vrai UNE fois par nom et par appel: « Polle » entendu « Paul » (appel réel,
+   * 12/09/2026). Le nom se relit à l'appelant avant d'être tenu pour bon, et
+   * un nom corrigé est un nom nouveau, relu à son tour.
+   */
+  needsNameReadBack(vapiCallId: string | null, name: string): boolean {
+    const session = this.get(vapiCallId);
+    if (!session) return false;
+    const key = name.trim().toLowerCase();
+    if (!key || session.nameReadBack === key) return false;
+    session.nameReadBack = key;
+    return true;
+  }
+
   needsPhoneReadBack(vapiCallId: string | null, e164: string): boolean {
     const session = this.get(vapiCallId);
     if (!session) return false;

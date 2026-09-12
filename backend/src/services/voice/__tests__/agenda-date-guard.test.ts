@@ -9,12 +9,20 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  * jour. Et un jour libre est rendu AVEC son jour de semaine: « lundi 17
  * juin » annoncé pour un jour qui n'était pas un lundi.
  */
-const { getProfile, freeSlots } = vi.hoisted(() => ({
+const { getProfile, freeSlots, createBooking, needsNameReadBack } = vi.hoisted(() => ({
   getProfile: vi.fn(),
   freeSlots: vi.fn(),
+  createBooking: vi.fn(),
+  needsNameReadBack: vi.fn(),
 }));
 
-vi.mock('../../../config/database', () => ({ prisma: {} }));
+vi.mock('../../../config/database', () => ({
+  prisma: {
+    clientBooking: { create: createBooking, update: vi.fn(() => Promise.resolve({})) },
+    // Pas d'agenda lié: la synchronisation, lancée sans être attendue, s'arrête là.
+    client: { findUnique: vi.fn(() => Promise.resolve(null)) },
+  },
+}));
 vi.mock('../../../config/logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
@@ -26,8 +34,11 @@ vi.mock('../call-session.store', () => ({
     get: vi.fn(() => ({ callerNumber: null })),
     recordToolCall: vi.fn(),
     heldSlots: vi.fn(() => []),
+    holdSlot: vi.fn(),
+    markBooked: vi.fn(),
     recordLead: vi.fn(),
     markLeadActivity: vi.fn(),
+    needsNameReadBack,
   },
 }));
 vi.mock('../caller-memory.service', () => ({ callerMemoryService: { remember: vi.fn() } }));
@@ -49,10 +60,17 @@ async function check(args: Record<string, unknown>) {
   return out.result;
 }
 
+async function book(args: Record<string, unknown>) {
+  const out = await toolRuntimeService.execute('c1', 'call_1', { name: 'bookAppointment', args, toolCallId: 't2' } as never);
+  return out.result;
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
   getProfile.mockResolvedValue(profile);
   freeSlots.mockResolvedValue(['09:00', '10:30']);
+  createBooking.mockResolvedValue({ id: 'b1' });
+  needsNameReadBack.mockReturnValue(false);
 });
 
 describe('checkAvailability — la date', () => {
@@ -66,5 +84,32 @@ describe('checkAvailability — la date', () => {
   it('rend un jour libre AVEC son jour de semaine', async () => {
     const out = String(await check({ date: '2099-09-16' }));
     expect(out).toMatch(/^LIBRE le mercredi 16 septembre 2099 \(2099-09-16\)/);
+  });
+});
+
+describe('bookAppointment — le nom et le jour', () => {
+  /* « Polle » entendu « Paul » (appel réel, 12/09/2026): le nom est relu
+     AVANT d'écrire dans l'agenda, une fois par nom et par appel. */
+  it('fait confirmer le nom avant de réserver, et ne réserve pas encore', async () => {
+    needsNameReadBack.mockReturnValueOnce(true);
+    const out = String(await book({ customerName: 'Paul Matthieu', date: '2099-09-17', time: '09:00' }));
+    expect(out).toMatch(/^NOM À CONFIRMER AVANT DE RÉSERVER: « Paul Matthieu »/);
+    expect(out).toMatch(/ÉPELER/);
+    expect(createBooking).not.toHaveBeenCalled();
+  });
+
+  it('réserve une fois le nom confirmé, en nommant le jour, avec un nom épelé recollé', async () => {
+    const out = String(await book({ customerName: 'Mathieu P O L L E', date: '2099-09-17', time: '09:00' }));
+    expect(createBooking).toHaveBeenCalledTimes(1);
+    expect(createBooking.mock.calls[0][0].data.customerName).toBe('Mathieu Polle');
+    expect(out).toMatch(/^RESERVE: Mathieu Polle, le jeudi 17 septembre 2099 a 09:00/);
+    // Pas de SMS promis: SMS_ENABLED n'est pas posé dans les tests.
+    expect(out).not.toMatch(/SMS/);
+  });
+
+  it('refuse une date passée avant même de réserver', async () => {
+    const out = String(await book({ customerName: 'Mathieu Polle', date: '2024-06-17', time: '09:00' }));
+    expect(out).toMatch(/^DATE PASSEE/);
+    expect(createBooking).not.toHaveBeenCalled();
   });
 });

@@ -265,6 +265,10 @@ export class VoiceWebhookController {
       finalized.callerNumber ?? undefined,
       recordingUrl,
       finalized.voiceMode,
+      /* La réservation prise EN DIRECT par l'outil, pour que le post-appel ne
+         la recrée pas depuis la transcription (deuxième rendez-vous, deuxième
+         événement d'agenda, à une heure lue par un modèle). */
+      { liveBookingId: (finalized.metrics as { bookingId?: string | null } | null)?.bookingId ?? null },
     );
 
     await realtimeOrchestratorService.persistMetrics(

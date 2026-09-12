@@ -276,10 +276,15 @@ export class SmsService {
     bookingDate: string;
     bookingTime: string | null;
     serviceType: string | null;
+    /** Le lien « ajouter à l'agenda » (fichier .ics public de la réservation). */
+    calendarUrl?: string;
+    /** La langue de l'AGENT quand elle est connue: c'est celle de l'appel. */
+    lang?: 'fr' | 'en';
+    clientId?: string;
   }): Promise<boolean> {
     if (!booking.customerPhone) return false;
 
-    const lang = detectLanguage(booking.customerPhone);
+    const lang = booking.lang ?? detectLanguage(booking.customerPhone);
     const firstName = (booking.customerName?.split(' ')[0]) || (lang === 'fr' ? 'à vous' : 'there');
 
     const body = smsTemplates.bookingConfirm({
@@ -289,9 +294,10 @@ export class SmsService {
       time: booking.bookingTime,
       service: booking.serviceType,
       lang,
+      calendarUrl: booking.calendarUrl,
     });
 
-    const result = await this.sendSMS(booking.customerPhone, body);
+    const result = await this.sendSMS(booking.customerPhone, body, { messageType: 'booking_confirmation', clientId: booking.clientId });
     if (result.success) {
       logger.info(`Booking confirmation SMS sent to ${booking.customerPhone} for ${booking.businessName}`);
     }

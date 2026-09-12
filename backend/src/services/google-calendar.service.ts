@@ -2,7 +2,7 @@ import { OAuth2Client } from 'google-auth-library';
 import { prisma } from '../config/database';
 import { env } from '../config/env';
 import { logger } from '../config/logger';
-import { detectTimezone } from '../config/scheduling';
+import { businessTimezone, zonedInstant, ymdOf } from '../utils/zoned-time';
 
 const OAUTH_SCOPES = [
   'https://www.googleapis.com/auth/calendar.events',
@@ -28,18 +28,14 @@ export class GoogleCalendarService {
 
     if (!booking) throw new Error(`Booking not found: ${bookingId}`);
 
-    // Parse booking date and time
-    const startDate = new Date(booking.bookingDate);
-    if (booking.bookingTime) {
-      const [hours, minutes] = booking.bookingTime.split(':').map(Number);
-      startDate.setHours(hours, minutes, 0, 0);
-    }
+    /* L'heure du rendez-vous est celle de l'ENTREPRISE, pas du serveur.
+       `setHours(9)` posait 9 h dans le fuseau du processus: « neuf heures »
+       demandé, 15 h dans l'agenda (appel réel, 12/09/2026). */
+    const clientTimezone = businessTimezone(booking.client ?? {});
+    const startDate = zonedInstant(ymdOf(new Date(booking.bookingDate)), booking.bookingTime || '09:00', clientTimezone);
 
     // Default 1 hour duration
     const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);
-
-    // Use client's city to detect timezone, fallback to America/New_York
-    const clientTimezone = detectTimezone(booking.client?.city || null, booking.client?.country || 'US');
 
     const event = {
       summary: `${booking.serviceType || 'Appointment'} - ${booking.customerName}`,
@@ -161,11 +157,13 @@ export class GoogleCalendarService {
   // ═══════════════════════════════════════════════════════════
   // GET FREE/BUSY SLOTS - Check availability
   // ═══════════════════════════════════════════════════════════
-  async getAvailability(accessToken: string, calendarId = 'primary', date: Date) {
-    const dayStart = new Date(date);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(date);
-    dayEnd.setHours(23, 59, 59, 999);
+  async getAvailability(accessToken: string, calendarId = 'primary', date: Date, timezone = 'Europe/Brussels') {
+    /* Le jour et ses créneaux sont posés dans le fuseau de l'ENTREPRISE: un
+       « 09:00 » rendu ici est ce que l'appelant entendra, et il doit être 9 h
+       chez le commerçant, pas chez le serveur. */
+    const ymd = ymdOf(date);
+    const dayStart = zonedInstant(ymd, '00:00', timezone);
+    const dayEnd = new Date(zonedInstant(ymd, '23:59', timezone).getTime() + 59_999);
 
     try {
       const response = await fetch(`${this.baseUrl}/freeBusy`, {
@@ -191,10 +189,8 @@ export class GoogleCalendarService {
       // Generate available slots (9am-5pm, 1 hour slots)
       const availableSlots: string[] = [];
       for (let hour = 9; hour < 17; hour++) {
-        const slotStart = new Date(date);
-        slotStart.setHours(hour, 0, 0, 0);
-        const slotEnd = new Date(date);
-        slotEnd.setHours(hour + 1, 0, 0, 0);
+        const slotStart = zonedInstant(ymd, `${String(hour).padStart(2, '0')}:00`, timezone);
+        const slotEnd = new Date(slotStart.getTime() + 60 * 60 * 1000);
 
         const isBusy = busySlots.some((busy: any) => {
           const busyStart = new Date(busy.start);

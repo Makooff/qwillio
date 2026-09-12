@@ -1,4 +1,10 @@
 import { prisma } from '../config/database';
+import { clientLocale } from '../utils/client-locale';
+
+/* Les résumés arrivaient en anglais à un gérant francophone: le modèle
+   d'analyse répond dans la langue de la consigne, et la consigne est écrite
+   en anglais. La langue du CLIENT est dite, en clair. */
+const ANALYSIS_LANGUAGE: Record<'fr' | 'en' | 'nl', string> = { fr: 'French', en: 'English', nl: 'Dutch' };
 import { logger } from '../config/logger';
 import { retainUntilFor } from './data-retention.service';
 import { discordService } from './discord.service';
@@ -26,6 +32,7 @@ export class ClientCallService {
        `undefined` reste `null` en base: un mode inventé serait un mode
        facturé. */
     voiceMode?: string | null,
+    extra: { liveBookingId?: string | null } = {},
   ) {
     const client = await prisma.client.findUnique({ where: { id: clientId } });
     if (!client) {
@@ -174,7 +181,18 @@ export class ClientCallService {
        s'il en repart avec. La notification a besoin des deux pour distinguer
        une bonne nouvelle d'un rappel à passer dans l'heure. */
     let bookingConfirmed = false;
-    if (analysis.bookingRequested && analysis.bookingDate) {
+    /* Réservation DÉJÀ prise pendant l'appel (`bookAppointment`): on la relie
+       à l'appel et on s'arrête là. La recréer depuis la transcription donnait
+       DEUX rendez-vous et deux événements d'agenda, le second à l'heure que
+       le modèle d'analyse croyait avoir lue (appel réel, 12/09/2026). Le SMS
+       de confirmation est parti en direct, lui aussi. */
+    if (extra.liveBookingId) {
+      await prisma.clientBooking.updateMany({
+        where: { id: extra.liveBookingId, clientId },
+        data: { clientCallId: clientCall.id },
+      }).catch(err => logger.warn(`[Booking] liaison à l'appel impossible: ${err.message}`));
+      bookingConfirmed = true;
+    } else if (analysis.bookingRequested && analysis.bookingDate) {
       try {
         const booking = await prisma.clientBooking.create({
           data: {
@@ -325,6 +343,8 @@ export class ClientCallService {
             {
               role: 'system',
               content: `You are an expert call analyst. Analyze this incoming customer call transcript for ${client.businessName} (${client.businessType}).
+
+Write every free-text field (summary, serviceType, specialRequests, unansweredQuestions) in ${ANALYSIS_LANGUAGE[clientLocale(client)]}, the language of the business, whatever language the transcript is in.
 
 Return a JSON object with:
 - callerName: caller's name if mentioned (string or null)

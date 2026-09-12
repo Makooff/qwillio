@@ -1,4 +1,5 @@
 import { prisma } from '../../config/database';
+import { businessTimezone } from '../../utils/zoned-time';
 import { logger } from '../../config/logger';
 import { googleCalendarService } from '../google-calendar.service';
 import { normalizeUtterance } from './intent-router';
@@ -162,7 +163,7 @@ class AvailabilitySpeculator {
   private async lookup(clientId: string, date: Date, key: string): Promise<string[]> {
     const client = await prisma.client.findUnique({
       where: { id: clientId },
-      select: { googleCalendarRefreshToken: true, googleCalendarId: true },
+      select: { googleCalendarRefreshToken: true, googleCalendarId: true, onboardingData: true, country: true, city: true, agentLanguage: true },
     });
     if (!client?.googleCalendarRefreshToken) throw new Error('calendar not connected');
 
@@ -171,6 +172,8 @@ class AvailabilitySpeculator {
       accessToken,
       client.googleCalendarId || 'primary',
       date,
+      // Les créneaux dans le fuseau de l'entreprise, jamais celui du serveur.
+      businessTimezone(client),
     );
 
     this.cache.set(key, { slots, expiresAt: Date.now() + CACHE_TTL_MS });

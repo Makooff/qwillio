@@ -290,6 +290,24 @@ app.get('/api/voice/greeting/:clientId/:variant', async (req, res) => {
   }
 });
 
+// Le rendez-vous de l'appelant, en fichier .ics: c'est le lien que le SMS de
+// confirmation lui envoie. Public par nécessité (il n'a pas de compte), et
+// l'identifiant est un UUID: rien à énumérer. Le contenu ne dit que ce que
+// l'appelant sait déjà: son propre rendez-vous.
+app.get('/api/public/booking/:id.ics', async (req, res) => {
+  try {
+    const { bookingIcs } = await import('./services/booking-ics');
+    const ics = await bookingIcs(req.params.id);
+    if (!ics) return res.status(404).end();
+    res.setHeader('Content-Type', 'text/calendar; charset=utf-8');
+    res.setHeader('Content-Disposition', 'attachment; filename="rendez-vous.ics"');
+    res.setHeader('Cache-Control', 'private, max-age=300');
+    return res.send(ics);
+  } catch {
+    return res.status(404).end();
+  }
+});
+
 // Neon keepalive, pinged every 5 minutes by .github/workflows/keepalive.yml
 // (not Vercel cron, which needed a paid plan for sub-daily schedules).
 //

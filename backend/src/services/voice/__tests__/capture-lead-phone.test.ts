@@ -25,6 +25,8 @@ vi.mock('../call-session.store', () => ({
     recordToolCall: vi.fn(),
     recordPhoneCaptureFailure: failures,
     needsPhoneReadBack: needsReadBack,
+    // Le nom se relit aussi, mais pas dans ces scénarios: ils testent le numéro.
+    needsNameReadBack: vi.fn(() => false),
   },
 }));
 vi.mock('../caller-memory.service', () => ({ callerMemoryService: { remember } }));
