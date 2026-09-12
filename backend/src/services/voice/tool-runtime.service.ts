@@ -13,7 +13,9 @@ import { availabilitySpeculator } from './availability-speculator';
 import { parseSpokenPhone } from '../../utils/phone-spoken';
 import { phoneWords } from '../../utils/text-for-speech';
 import { normaliseAddress } from '../../utils/be-communes';
-import { normaliseSpelledName } from '../../utils/spelled-name';
+import { normaliseSpelledName, familyName, spellOut } from '../../utils/spelled-name';
+import { dayWindow, nextOpenDay, minutesOf } from '../../utils/opening-hours';
+import { smsReadiness } from '../sms-ready';
 import { env } from '../../config/env';
 
 /**
@@ -77,6 +79,41 @@ function parseDate(raw: unknown): Date | null {
   if (typeof raw !== 'string' || !raw.trim()) return null;
   const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(raw.trim()) ? `${raw.trim()}T12:00:00Z` : raw);
   return Number.isNaN(date.getTime()) ? null : date;
+}
+
+/**
+ * Un jour FERMÉ n'a pas de créneau, et « aucun créneau » ferait proposer le
+ * lendemain, fermé lui aussi le week-end. Un rendez-vous a été pris un
+ * dimanche chez un commerce fermé le dimanche (appel réel, 12/09/2026): les
+ * horaires du portail n'étaient lus nulle part. La réponse nomme le prochain
+ * jour ouvert, avec son jour de semaine.
+ */
+function closedDayReply(profile: ClientVoiceProfile, raw: unknown): string | null {
+  if (typeof raw !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(raw.trim())) return null;
+  const ymd = raw.trim();
+  if (dayWindow(profile.weekHours, ymd, profile.timezone).open) return null;
+  const day = spokenDate(parseDate(ymd)!, profile.language, profile.timezone);
+  const next = nextOpenDay(profile.weekHours, ymd, profile.timezone);
+  const nextDay = next ? spokenDate(parseDate(next)!, profile.language, profile.timezone) : null;
+  if (profile.language === 'fr') {
+    return `FERME le ${day}: l'entreprise n'ouvre pas ce jour-la.`
+      + (nextDay ? ` Prochain jour ouvert: ${nextDay} (${next}). Propose-le, ou demande un autre jour.` : ' Demande un autre jour.');
+  }
+  return `CLOSED on ${day}: the business does not open that day.`
+    + (nextDay ? ` Next open day: ${nextDay} (${next}). Offer it, or ask for another day.` : ' Ask for another day.');
+}
+
+/** Une heure hors de la fenetre d'ouverture du jour ne se reserve pas. */
+function outsideHoursReply(profile: ClientVoiceProfile, ymd: string, minutes: number): string | null {
+  const window = dayWindow(profile.weekHours, ymd, profile.timezone);
+  if (!window.open) return null;
+  const from = minutesOf(window.from) ?? 0;
+  const to = minutesOf(window.to) ?? 24 * 60;
+  if (minutes >= from && minutes < to) return null;
+  const day = spokenDate(parseDate(ymd)!, profile.language, profile.timezone);
+  return profile.language === 'fr'
+    ? `HORS HORAIRES: le ${day}, l'entreprise est ouverte de ${window.from} a ${window.to}. Propose un horaire dans cette plage.`
+    : `OUTSIDE OPENING HOURS: on ${day} the business is open from ${window.from} to ${window.to}. Offer a time within that window.`;
 }
 
 /**
@@ -158,26 +195,30 @@ function readBackPhone(lang: string, national: string): string {
  * `normaliseSpelledName`.
  */
 function readBackName(lang: string, name: string): string {
+  /* L'AGENT épelle le nom de famille lui-même: « Polle » relu se confond
+     encore avec « Paul », les lettres non (retour du 12/09/2026). */
+  const spelled = spellOut(familyName(name));
   const base: Record<string, string> = {
-    fr: `NOM NOTÉ: « ${name} ». Répète-le à l'appelant, prénom puis nom de famille, pour confirmer. `
-      + "S'il te corrige, demande-lui d'ÉPELER le nom de famille lettre par lettre, puis rappelle l'outil avec le nom exact.",
-    en: `NAME SAVED: "${name}". Repeat it to the caller, first name then family name, to confirm. `
-      + 'If they correct you, ask them to SPELL the family name letter by letter, then call the tool again with the exact name.',
-    nl: `NAAM GENOTEERD: « ${name} ». Herhaal hem voor de beller, voornaam en familienaam, ter bevestiging. `
-      + 'Verbetert de beller je, vraag dan om de familienaam letter voor letter te SPELLEN en roep de tool opnieuw aan.',
+    fr: `NOM NOTÉ: « ${name} ». Répète-le à l'appelant, puis ÉPELLE toi-même le nom de famille lettre par lettre: ${spelled}. `
+      + "Demande si c'est exact. S'il corrige une lettre, rappelle l'outil avec le nom exact.",
+    en: `NAME SAVED: "${name}". Repeat it to the caller, then SPELL the family name yourself letter by letter: ${spelled}. `
+      + 'Ask if that is right. If they correct a letter, call the tool again with the exact name.',
+    nl: `NAAM GENOTEERD: « ${name} ». Herhaal hem voor de beller en SPEL de familienaam zelf letter voor letter: ${spelled}. `
+      + 'Vraag of dat klopt. Verbetert de beller een letter, roep de tool opnieuw aan met de exacte naam.',
   };
   return base[lang] ?? base.en;
 }
 
 /** Avant de RÉSERVER: le nom va dans l'agenda du commerçant, il doit être juste. */
 function confirmNameBeforeBooking(lang: string, name: string): string {
+  const spelled = spellOut(familyName(name));
   const base: Record<string, string> = {
-    fr: `NOM À CONFIRMER AVANT DE RÉSERVER: « ${name} ». Répète-le à l'appelant, prénom puis nom de famille. `
-      + "S'il te corrige ou si le nom est peu courant, demande-lui de l'ÉPELER lettre par lettre. Une fois confirmé, rappelle bookAppointment avec le nom exact.",
-    en: `CONFIRM THE NAME BEFORE BOOKING: "${name}". Repeat it to the caller, first name then family name. `
-      + 'If they correct you or the name is unusual, ask them to SPELL it letter by letter. Once confirmed, call bookAppointment again with the exact name.',
-    nl: `NAAM BEVESTIGEN VOOR HET BOEKEN: « ${name} ». Herhaal hem voor de beller, voornaam en familienaam. `
-      + 'Verbetert de beller je of is de naam ongewoon, vraag dan om te SPELLEN. Roep daarna bookAppointment opnieuw aan met de exacte naam.',
+    fr: `NOM À CONFIRMER AVANT DE RÉSERVER: « ${name} ». Répète-le à l'appelant, puis ÉPELLE toi-même le nom de famille lettre par lettre: ${spelled}. `
+      + "S'il confirme, rappelle bookAppointment avec ce nom. S'il corrige, demande-lui d'épeler le nom, puis rappelle bookAppointment avec le nom exact.",
+    en: `CONFIRM THE NAME BEFORE BOOKING: "${name}". Repeat it to the caller, then SPELL the family name yourself letter by letter: ${spelled}. `
+      + 'If they confirm, call bookAppointment again with this name. If they correct you, ask them to spell it, then call bookAppointment with the exact name.',
+    nl: `NAAM BEVESTIGEN VOOR HET BOEKEN: « ${name} ». Herhaal hem voor de beller en SPEL de familienaam zelf letter voor letter: ${spelled}. `
+      + 'Bevestigt de beller, roep bookAppointment opnieuw aan met deze naam. Verbetert hij je, vraag om te spellen en roep bookAppointment aan met de exacte naam.',
   };
   return base[lang] ?? base.en;
 }
@@ -323,6 +364,8 @@ class ToolRuntimeService {
     }
     const past = pastDateReply(profile, args.date);
     if (past) return past;
+    const closed = closedDayReply(profile, args.date);
+    if (closed) return closed;
 
     // Single read path, shared with the speculator: a day already pre-loaded
     // from the transcript is served from cache and costs nothing here.
@@ -383,6 +426,10 @@ class ToolRuntimeService {
     }
     const past = pastDateReply(profile, args.date);
     if (past) return past;
+    const closed = closedDayReply(profile, args.date);
+    if (closed) return closed;
+    const outside = outsideHoursReply(profile, String(args.date).trim(), minutes);
+    if (outside) return outside;
 
     /* Le nom est relu AVANT d'écrire dans l'agenda: une réservation au
        mauvais nom se corrige à la main par le commerçant, et il ne le sait
@@ -443,7 +490,7 @@ class ToolRuntimeService {
        sur Twilio. La phrase rendue au modèle dépend de ce qui est possible:
        promettre un SMS sans numéro serait un mensonge de plus. */
     const smsTo = session?.callerNumber ?? null;
-    const smsPromised = !!smsTo && env.SMS_ENABLED;
+    const smsPromised = !!smsTo && smsReadiness().ok;
     if (smsPromised) {
       void this.sendBookingSms(profile, booking.id, smsTo, customerName, date, String(args.time), args.serviceType);
     }

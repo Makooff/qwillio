@@ -127,8 +127,33 @@ export const env = {
   // defaults are the tuned pair. See services/voice/speech-plans.ts.
   /** Silence (ms) after speech before a final transcript is flushed. */
   VOICE_ENDPOINTING_MS: parseInt(process.env.VOICE_ENDPOINTING_MS || '150', 10),
-  /** Hard floor before the assistant may answer. Smart endpointing sits on top. */
-  VOICE_START_WAIT_SECONDS: parseFloat(process.env.VOICE_START_WAIT_SECONDS || '0.12'),
+  /**
+   * Plancher avant que l'agent puisse répondre. Le détecteur de fin de tour
+   * s'ajoute par-dessus.
+   *
+   * 0,12 s jusqu'au 12/09/2026, pour la latence. Retour d'un appel réel: « il
+   * ne me laisse pas finir quand il y a une petite pause, il parle par-dessus
+   * et je le coupe ». Une respiration au milieu d'une phrase fait 300 à 500
+   * ms; à 0,12 s l'agent y entre. 0,4 s est le défaut documenté de Vapi, et
+   * ce sont 280 ms de plus sur chaque tour. C'est un arbitrage, réglable sans
+   * déploiement.
+   */
+  VOICE_START_WAIT_SECONDS: parseFloat(process.env.VOICE_START_WAIT_SECONDS || '0.4'),
+  /**
+   * Silence après une PONCTUATION avant de répondre. Le transcripteur pose un
+   * point sur une respiration, donc 0,1 s faisait répondre au milieu d'une
+   * phrase. 0,4 s laisse passer la respiration; une vraie fin de phrase
+   * n'attend que ça de plus.
+   */
+  VOICE_ENDPOINTING_PUNCTUATION_SECONDS: Math.max(
+    0.1,
+    parseFloat(process.env.VOICE_ENDPOINTING_PUNCTUATION_SECONDS || '0.4') || 0.4,
+  ),
+  /** Silence SANS ponctuation avant de répondre: la phrase n'est pas finie, on attend plus. */
+  VOICE_ENDPOINTING_NO_PUNCTUATION_SECONDS: Math.max(
+    0.5,
+    parseFloat(process.env.VOICE_ENDPOINTING_NO_PUNCTUATION_SECONDS || '1.2') || 1.2,
+  ),
   /**
    * Audio VOISÉ exigé de l'appelant avant de couper la réceptionniste.
    *

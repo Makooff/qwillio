@@ -108,6 +108,7 @@ export class SmsService {
       return { success: false, error: msg };
     }
     if (!env.TWILIO_PHONE_NUMBER) {
+      logger.warn('[SMS] TWILIO_PHONE_NUMBER absent: aucun SMS ne peut partir');
       return { success: false, error: 'TWILIO_PHONE_NUMBER not set' };
     }
 

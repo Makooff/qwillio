@@ -53,6 +53,13 @@ const { toolRuntimeService } = await import('../tool-runtime.service');
 const profile = {
   clientId: 'c1', businessName: 'Demtalix', language: 'fr', country: 'BE',
   timezone: 'Europe/Brussels', bookingEnabled: true, calendarConnected: true,
+  /* Les horaires du portail: fermé le week-end. */
+  weekHours: {
+    monday: { open: true, from: '09:00', to: '18:00' }, tuesday: { open: true, from: '09:00', to: '18:00' },
+    wednesday: { open: true, from: '09:00', to: '18:00' }, thursday: { open: true, from: '09:00', to: '18:00' },
+    friday: { open: true, from: '09:00', to: '18:00' }, saturday: { open: false, from: '10:00', to: '16:00' },
+    sunday: { open: false, from: '10:00', to: '16:00' },
+  },
 };
 
 async function check(args: Record<string, unknown>) {
@@ -85,6 +92,15 @@ describe('checkAvailability — la date', () => {
     const out = String(await check({ date: '2099-09-16' }));
     expect(out).toMatch(/^LIBRE le mercredi 16 septembre 2099 \(2099-09-16\)/);
   });
+
+  /* Un rendez-vous pris un DIMANCHE chez un commerce fermé le dimanche (appel
+     réel, 12/09/2026): l'agenda ne lisait pas les horaires du portail. */
+  it('refuse un jour fermé et nomme le prochain jour ouvert, sans lire l\'agenda', async () => {
+    const out = String(await check({ date: '2099-09-13' }));
+    expect(out).toMatch(/^FERME le dimanche 13 septembre 2099/);
+    expect(out).toContain('lundi 14 septembre 2099 (2099-09-14)');
+    expect(freeSlots).not.toHaveBeenCalled();
+  });
 });
 
 describe('bookAppointment — le nom et le jour', () => {
@@ -94,7 +110,8 @@ describe('bookAppointment — le nom et le jour', () => {
     needsNameReadBack.mockReturnValueOnce(true);
     const out = String(await book({ customerName: 'Paul Matthieu', date: '2099-09-17', time: '09:00' }));
     expect(out).toMatch(/^NOM À CONFIRMER AVANT DE RÉSERVER: « Paul Matthieu »/);
-    expect(out).toMatch(/ÉPELER/);
+    // L'agent épelle LUI-MÊME le nom de famille: « Polle » relu se confond avec « Paul », pas ses lettres.
+    expect(out).toContain('M-A-T-T-H-I-E-U');
     expect(createBooking).not.toHaveBeenCalled();
   });
 
@@ -105,6 +122,14 @@ describe('bookAppointment — le nom et le jour', () => {
     expect(out).toMatch(/^RESERVE: Mathieu Polle, le jeudi 17 septembre 2099 a 09:00/);
     // Pas de SMS promis: SMS_ENABLED n'est pas posé dans les tests.
     expect(out).not.toMatch(/SMS/);
+  });
+
+  it('refuse de réserver un jour fermé ou hors horaires', async () => {
+    const sunday = String(await book({ customerName: 'Mathieu Polle', date: '2099-09-13', time: '10:00' }));
+    expect(sunday).toMatch(/^FERME le dimanche/);
+    const late = String(await book({ customerName: 'Mathieu Polle', date: '2099-09-17', time: '20:00' }));
+    expect(late).toMatch(/^HORS HORAIRES: le jeudi 17 septembre 2099, l'entreprise est ouverte de 09:00 a 18:00/);
+    expect(createBooking).not.toHaveBeenCalled();
   });
 
   it('refuse une date passée avant même de réserver', async () => {

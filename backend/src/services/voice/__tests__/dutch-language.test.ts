@@ -23,6 +23,7 @@ const profile: ClientVoiceProfile = {
   instructions: 'Geef nooit prijzen door de telefoon.',
   services: ['lunch', 'diner'],
   openingHours: '12u-14u en 19u-22u',
+  weekHours: null,
   bookingEnabled: true,
   calendarConnected: true,
   planType: 'pro',

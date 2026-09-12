@@ -13,6 +13,7 @@ const profile: ClientVoiceProfile = {
   instructions: 'Ne jamais donner les prix au telephone.',
   services: ['dejeuner', 'diner', 'privatisation'],
   openingHours: '12h-14h et 19h-22h30',
+  weekHours: null,
   bookingEnabled: true,
   calendarConnected: true,
   planType: 'pro',
