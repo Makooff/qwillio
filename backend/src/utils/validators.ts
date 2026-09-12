@@ -11,6 +11,8 @@ export const registerSchema = z.object({
   // passwords still authenticate).
   password: z.string().min(8),
   name: z.string().min(2),
+  // La langue du site au moment de l'inscription: devient celle de l'agent.
+  language: z.enum(['fr', 'en']).optional(),
 });
 
 export const forgotPasswordSchema = z.object({

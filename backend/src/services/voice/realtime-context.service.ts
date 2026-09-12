@@ -1,4 +1,5 @@
 import { prisma } from '../../config/database';
+import { clientLocale } from '../../utils/client-locale';
 import { knowledgeFieldsBlock } from '../../config/knowledge-presets';
 import { logger } from '../../config/logger';
 import { env } from '../../config/env';
@@ -289,16 +290,11 @@ class RealtimeContextService {
 
     const onboarding = (client.onboardingData as Record<string, any> | null) || {};
     const vapiConfig = (client.vapiConfig as Record<string, any> | null) || {};
-    /* Le néerlandais est un OPT-IN explicite (`agentLanguage: 'nl'`), jamais
-       une déduction: la Belgique reste par défaut en français — la moitié des
-       clients belges attend l'inverse, et ce choix-là appartient au client,
-       pas à une règle par pays. */
-    const language: 'fr' | 'en' | 'nl' =
-      client.agentLanguage === 'nl'
-        ? 'nl'
-        : client.agentLanguage === 'fr' || ['FR', 'BE', 'LU', 'CH', 'MC'].includes(client.country)
-          ? 'fr'
-          : 'en';
+    /* UNE règle, `clientLocale`: le choix du client d'abord, le pays en repli.
+       L'ancienne forme laissait le pays renverser un `'en'` explicite, donc un
+       client belge ne pouvait jamais passer son agent en anglais depuis ses
+       paramètres: l'écran disait enregistré, l'appel restait en français. */
+    const language: 'fr' | 'en' | 'nl' = clientLocale(client);
 
     const profile: ClientVoiceProfile = {
       clientId: client.id,

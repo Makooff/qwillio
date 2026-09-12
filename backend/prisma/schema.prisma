@@ -48,6 +48,12 @@ model User {
   industry            String?              @db.VarChar(100)
   website             String?              @db.VarChar(500)
   googleId            String?              @unique @map("google_id") @db.VarChar(255)
+  /**
+   * La langue du site au moment de l'inscription (`fr` / `en`). Le client
+   * n'existe pas encore à ce moment-là: elle attend ici et devient la langue
+   * de son agent quand le webhook Stripe le crée.
+   */
+  language            String?              @db.VarChar(10)
   campaigns           Campaign[]
   client              Client?
   contractAcceptances ContractAcceptance[]

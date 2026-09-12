@@ -1015,10 +1015,11 @@ export default function ClientAccount() {
                       <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Langue de l'agent</label>
                       <select value={agentLanguage} onChange={e => setAgentLanguage(e.target.value)}
                         className={selectCls + ' mt-1.5'} style={{ borderColor: C.border }}>
-                        <option value="fr">Français (Marie)</option>
-                        <option value="en">Anglais (Ashley)</option>
+                        <option value="fr">Français</option>
+                        <option value="en">Anglais</option>
+                        <option value="nl">Néerlandais</option>
                       </select>
-                      <p className="text-[11px] mt-1" style={{ color: C.textTer }}>La langue parlée à vos appelants.</p>
+                      <p className="text-[11px] mt-1" style={{ color: C.textTer }}>Réglée à l'inscription d'après la langue du site. Elle décide des voix proposées.</p>
                     </div>
                   </div>
                   {/* Le numéro de TVA, avec le nom et le métier: c'est

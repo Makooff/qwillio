@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { clientLocale, emailLocale } from '../client-locale';
+import { clientLocale, emailLocale, signupAgentLanguage } from '../client-locale';
 
 /**
  * UNE règle de langue, pour toutes les surfaces.
@@ -62,5 +62,22 @@ describe('emailLocale', () => {
   it('suit le même repli que le reste', () => {
     expect(emailLocale({ country: 'BE' })).toBe('fr');
     expect(emailLocale({})).toBe('en');
+  });
+});
+
+describe('signupAgentLanguage', () => {
+  /* « La langue doit être auto en fonction de quelle langue [est] choisie sur
+     le site à la création du compte » (12/09/2026). Avant, chaque chemin de
+     création posait 'en' en dur. */
+  it('prend la langue du site quand elle est connue', () => {
+    expect(signupAgentLanguage({ siteLanguage: 'fr', country: 'US' })).toBe('fr');
+    expect(signupAgentLanguage({ siteLanguage: 'en', country: 'BE' })).toBe('en');
+    expect(signupAgentLanguage({ siteLanguage: 'nl', country: 'BE' })).toBe('nl');
+  });
+
+  it('retombe sur le pays quand le site n\'a rien dit', () => {
+    expect(signupAgentLanguage({ siteLanguage: null, country: 'BE' })).toBe('fr');
+    expect(signupAgentLanguage({ siteLanguage: undefined, country: 'US' })).toBe('en');
+    expect(signupAgentLanguage({ siteLanguage: 'de', country: 'BE' })).toBe('fr');
   });
 });

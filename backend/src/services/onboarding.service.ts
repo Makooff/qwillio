@@ -1,4 +1,5 @@
 import { prisma } from '../config/database';
+import { clientLocale } from '../utils/client-locale';
 import { vapiClient } from '../config/vapi';
 import { logger } from '../config/logger';
 import { env } from '../config/env';
@@ -383,9 +384,9 @@ export class OnboardingService {
   // country is a francophone jurisdiction where GDPR consent phrasing must
   // be delivered in French to be legally meaningful.
   private isFrenchClient(client: any): boolean {
-    if (client?.agentLanguage === 'fr') return true;
-    const country = (client?.country || '').toUpperCase();
-    return ['FR', 'BE', 'LU', 'MC', 'CH'].includes(country);
+    // La même règle que le profil d'appel (`clientLocale`): le choix du client
+    // d'abord, le pays seulement faute de choix.
+    return clientLocale(client ?? {}) === 'fr';
   }
 
   // Assemble the assistant's opening line so that:

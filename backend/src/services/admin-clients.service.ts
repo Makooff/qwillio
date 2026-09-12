@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { signupAgentLanguage } from '../utils/client-locale';
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { getPlan, PLANS } from '../config/plans';
@@ -23,6 +24,8 @@ export interface ManualClientInput {
   country?: unknown;
   planType?: unknown;
   prospectId?: unknown;
+  /** `fr` / `en` / `nl`; sinon le pays décide. */
+  agentLanguage?: unknown;
 }
 
 export type ManualClientResult =
@@ -66,6 +69,10 @@ export const adminClientsService = {
         contactPhone: str(input.contactPhone) || null,
         city: str(input.city) || null,
         country: (str(input.country) || 'BE').toUpperCase(),
+        agentLanguage: signupAgentLanguage({
+          siteLanguage: str(input.agentLanguage),
+          country: str(input.country) || 'BE',
+        }),
         planType,
         setupFee: 0,
         monthlyFee: plan.monthlyPriceEur,

@@ -734,6 +734,24 @@ client partait d'« Intégrations » et revenait ailleurs. La page de départ es
 retenue avant le saut (`gcalReturnTo`) plutôt que d'ajouter une seconde adresse
 hors du dépôt.
 
+### 6septvicies. La langue de l'agent naît de la langue du SITE (12/09/2026)
+Chaque chemin de création posait `agentLanguage: 'en'` (en dur, ou par le
+défaut du schéma), et le profil d'appel laissait le PAYS renverser ce `'en'` :
+un client belge était servi en français par présomption, et ne pouvait donc
+JAMAIS passer son agent en anglais depuis Paramètres, l'écran disant enregistré
+et l'appel restant en français. Désormais : le front envoie la langue du site à
+l'inscription, à la connexion Google et à la caisse ; elle attend sur
+`User.language` (le client naît au webhook Stripe, après la caisse) ;
+`signupAgentLanguage` l'écrit à la naissance du client ; et `clientLocale`
+(`utils/client-locale.ts`) est LA règle, le choix d'abord, le pays en repli,
+pour le profil d'appel, la synchronisation et les routes du portail. La
+migration `20260912000000` réécrit en `'fr'` les `'en'` jamais choisis des pays
+francophones, pour que faire primer le choix ne repasse personne en anglais.
+`language-single-rule.test.ts` interdit qu'une liste de pays soit recopiée dans
+ces fichiers. Les voix Cartesia « fr » proposées au portail sont les 25 de
+`config/cartesia-curated.ts`, par identifiant d'API ; une langue sans liste sert
+le catalogue entier.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).
