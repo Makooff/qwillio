@@ -167,6 +167,27 @@ describe('llmStreamService.handle — proxied turns', () => {
     expect(stream.ended).toBe(true);
   });
 
+  it('dit la date au modèle, en message système de queue, dans le fuseau donné', async () => {
+    /* Appel réel du 12/09/2026: « lundi 17 juin » proposé un vendredi de
+       septembre. Le préfixe reste intact (cache), la date vient en queue. */
+    const fetchSpy = mockOpenAiStream(['data: [DONE]\n\n']);
+    const stream = makeStream();
+
+    await llmStreamService.handle(
+      'client_1',
+      null,
+      'fr',
+      { messages: [systemTurn, userTurn('je voudrais reserver la semaine prochaine')] },
+      stream.handle,
+      'Europe/Brussels',
+    );
+
+    const body = JSON.parse(String(fetchSpy.mock.calls[0][1]?.body));
+    const clock = body.messages.find((m: { role: string; content: string }, i: number) => i > 0 && m.role === 'system' && /^Nous sommes le /.test(m.content));
+    expect(body.messages[0]).toEqual(systemTurn);
+    expect(clock?.content).toMatch(/\(Europe\/Brussels\)/);
+  });
+
   it('speaks a natural fallback when OpenAI errors, never a technical message', async () => {
     vi.spyOn(globalThis, 'fetch').mockResolvedValue({ ok: false, status: 500, body: null } as unknown as Response);
     const stream = makeStream();

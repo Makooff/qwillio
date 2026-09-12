@@ -873,10 +873,15 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
 
       /* Aucun appelant: l'assistant enregistré est le même pour tous, et la
          mémoire d'appelant est ajoutée par tour sur le chemin custom-LLM. */
+      const { vapiClockLine } = await import('./voice/clock');
       return buildSystemPrompt(
         profile,
         { previousCalls: 0, lastCallAt: null, lastSummary: null, knownName: null, hasUpcomingBooking: false },
         knowledgeBlock,
+        /* Le prompt de l'assistant enregistré est FIGÉ à la synchronisation:
+           une date réelle y serait fausse dès le lendemain. Vapi remplit ce
+           gabarit à chaque appel. */
+        { clock: vapiClockLine(profile.language, profile.timezone) },
       );
     } catch (error) {
       logger.warn(`[Vapi] prompt de référence indisponible pour ${clientId}: ${(error as Error).message}`);

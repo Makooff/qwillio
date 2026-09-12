@@ -1,4 +1,5 @@
 import { prisma } from '../../config/database';
+import { spokenDate, todayIso } from './clock';
 import { logger } from '../../config/logger';
 import { googleCalendarService } from '../google-calendar.service';
 import { realtimeContextService, type ClientVoiceProfile } from './realtime-context.service';
@@ -53,6 +54,23 @@ function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise
 }
 
 /** Parse "2026-08-14" (or an ISO datetime) into a Date, rejecting nonsense. */
+/**
+ * Une date déjà passée ne se consulte pas, elle se CORRIGE.
+ *
+ * Le modèle qui demande le 17 juin un 12 septembre s'est trompé de mois, pas
+ * de créneau: lui répondre « aucun créneau » le ferait proposer le 18 juin.
+ * La réponse nomme le jour d'aujourd'hui, seule information qui lui manquait.
+ */
+function pastDateReply(profile: ClientVoiceProfile, raw: unknown): string | null {
+  if (typeof raw !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(raw.trim())) return null;
+  const today = todayIso(profile.timezone);
+  if (raw.trim() >= today) return null;
+  const now = spokenDate(new Date(), profile.language, profile.timezone);
+  return profile.language === 'fr'
+    ? `DATE PASSEE: le ${raw.trim()} est deja passe. Nous sommes le ${now}. Recalcule la date voulue par l'appelant a partir d'aujourd'hui, puis rappelle l'outil.`
+    : `DATE IN THE PAST: ${raw.trim()} is already gone. Today is ${now}. Recompute the date the caller wants from today, then call the tool again.`;
+}
+
 function parseDate(raw: unknown): Date | null {
   if (typeof raw !== 'string' || !raw.trim()) return null;
   const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(raw.trim()) ? `${raw.trim()}T12:00:00Z` : raw);
@@ -266,6 +284,8 @@ class ToolRuntimeService {
         ? 'DATE INVALIDE: demande au correspondant de preciser le jour souhaite.'
         : 'INVALID DATE: ask the caller which day they would like.';
     }
+    const past = pastDateReply(profile, args.date);
+    if (past) return past;
 
     // Single read path, shared with the speculator: a day already pre-loaded
     // from the transcript is served from cache and costs nothing here.
@@ -299,9 +319,13 @@ class ToolRuntimeService {
     }
 
     const spoken = free.slice(0, MAX_SPOKEN_SLOTS);
+    /* Le jour de la semaine est DIT avec la date: « lundi 17 juin » annoncé
+       pour un jour qui n'était pas un lundi (appel réel, 12/09/2026). Le
+       modèle ne calcule pas les jours, il les lit. */
+    const day = spokenDate(date, profile.language, profile.timezone);
     return profile.language === 'fr'
-      ? `LIBRE le ${args.date} a: ${spoken.join(', ')}. Propose au maximum ces horaires, un par un.`
-      : `FREE on ${args.date} at: ${spoken.join(', ')}. Offer these times, one at a time.`;
+      ? `LIBRE le ${day} (${args.date}) a: ${spoken.join(', ')}. Propose au maximum ces horaires, un par un, en nommant le jour.`
+      : `FREE on ${day} (${args.date}) at: ${spoken.join(', ')}. Offer these times, one at a time, naming the day.`;
   }
 
   // ── bookAppointment ─────────────────────────────────────────────────────
@@ -320,6 +344,8 @@ class ToolRuntimeService {
         ? 'INFOS MANQUANTES: il faut le nom, la date et l\'heure exacte avant de reserver.'
         : 'MISSING INFO: you need the name, the date and the exact time before booking.';
     }
+    const past = pastDateReply(profile, args.date);
+    if (past) return past;
 
     const session = callSessionStore.get(vapiCallId);
     const clientCallId = session?.clientCallId ?? null;

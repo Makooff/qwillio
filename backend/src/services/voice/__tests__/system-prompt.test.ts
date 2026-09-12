@@ -118,7 +118,11 @@ describe('buildSystemPrompt', () => {
        sur ce point, qui avait gardé sa seconde règle: c'était une divergence,
        pas une économie. Un tour de parole perdu par demande de rendez-vous
        coûte plus cher que 29 caractères rejoués. */
-    expect(buildSystemPrompt(profile, newCaller).length).toBeLessThan(2350);
+    /* CINQUIÈME hausse, de 200 caractères, pour UNE ligne: la date. Sans
+       elle le modèle la devine — « lundi 17 juin » proposé un vendredi 12
+       septembre, sur un appel réel. Une ligne qui évite un rendez-vous pris
+       dans le passé vaut ses caractères. */
+    expect(buildSystemPrompt(profile, newCaller).length).toBeLessThan(2550);
   });
 
   it('injects the pre-rendered knowledge block when one is supplied', () => {
@@ -219,7 +223,7 @@ describe('les règles de transfert, réglées par le client', () => {
   it('ne fait pas grossir le prompt, qui est rejoué à chaque tour', () => {
     // Les trois variantes tiennent la même longueur à quelques caractères près.
     const tailles = (['always', 'hours', 'never'] as const).map(m => withMode(m).length);
-    expect(Math.max(...tailles)).toBeLessThan(2350);
+    expect(Math.max(...tailles)).toBeLessThan(2550);
     expect(Math.max(...tailles) - Math.min(...tailles)).toBeLessThan(30);
   });
 });
@@ -348,5 +352,22 @@ describe('buildSystemPrompt — français de Belgique', () => {
     // néerlandophone encore moins: chaque ligne inutile dilue les autres.
     expect(be({ country: 'FR' })).not.toMatch(/FRANÇAIS DE BELGIQUE/);
     expect(be({ language: 'nl' })).not.toMatch(/FRANÇAIS DE BELGIQUE/);
+  });
+});
+
+describe('la date, dite au modèle', () => {
+  /* Appel réel du 12/09/2026: « un détartrage la semaine prochaine », et
+     l'agent propose « lundi 17 juin ». Rien dans le prompt ne disait quel
+     jour on était. */
+  it('dit le jour, dans le fuseau du client, avec la règle des dates relatives', () => {
+    const prompt = buildSystemPrompt(profile, newCaller);
+    expect(prompt).toMatch(/Nous sommes le (lundi|mardi|mercredi|jeudi|vendredi|samedi|dimanche) \d{1,2} \S+ \d{4}, il est \d{2}:\d{2} \(Europe\/Paris\)/);
+    expect(prompt).toMatch(/se compte à partir d'aujourd'hui/);
+  });
+
+  it("prend la phrase fournie quand le prompt est figé (assistant enregistré)", () => {
+    const prompt = buildSystemPrompt(profile, newCaller, '', { clock: 'Nous sommes le {{"now" | date: "%A", "Europe/Paris"}}.' });
+    expect(prompt).toContain('{{"now" | date: "%A", "Europe/Paris"}}');
+    expect(prompt).not.toMatch(/il est \d{2}:\d{2}/);
   });
 });

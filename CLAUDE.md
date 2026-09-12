@@ -768,6 +768,23 @@ première phrase qui n'est pas partie, pas un appelant muet.
 La règle, encore 6sexvicies : un mécanisme qui n'a jamais atteint un appel
 réel n'est pas une optimisation, c'est un risque qui dort derrière une clé.
 
+### 6novovicies. L'agent ne connaissait pas la date (12/09/2026)
+Appel réel : « un détartrage la semaine prochaine », et l'agent propose
+« lundi 17 juin », un jour qui n'est pas un lundi et un mois passé. Aucun des
+prompts ne disait quel jour on était, et la description de `checkAvailability`
+lui demandait pourtant de « résoudre les dates relatives » avant d'appeler.
+`services/voice/clock.ts` porte la date à TROIS endroits, et il faut les
+trois : le prompt bâti à l'appel (`clockLine`, ligne partagée) ; l'assistant
+ENREGISTRÉ, dont le prompt est figé à la synchronisation, reçoit le gabarit
+`{{"now" | date: …}}` que Vapi remplit à chaque appel (`vapiClockLine`, une
+date réelle y serait fausse dès le lendemain) ; et le chemin custom-LLM ajoute
+la date en message système de queue à chaque tour (`clockBlock`), avant
+l'humeur et la reprise, hors du préfixe mis en cache. L'agenda refuse une
+date PASSÉE en nommant le jour d'aujourd'hui (le modèle s'est trompé de mois,
+« aucun créneau » lui ferait proposer le lendemain) et rend un jour libre AVEC
+son jour de semaine, que le modèle ne calcule pas. Un test de source interdit
+de figer `clockLine` dans l'assistant enregistré.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).
