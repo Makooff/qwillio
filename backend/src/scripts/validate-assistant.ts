@@ -83,6 +83,7 @@ function probeProfile(lang: VoiceLanguage): ClientVoiceProfile {
     instructions: null,
     services: ['toiture'],
     openingHours: null,
+    weekHours: null,
     bookingEnabled: true,
     calendarConnected: true,
     planType: 'pro',

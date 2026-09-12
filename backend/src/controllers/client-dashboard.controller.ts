@@ -13,6 +13,8 @@ import { buildVapiConfigPatch, parseFaq } from '../services/client-config.servic
 import { knowledgePreset } from '../config/knowledge-presets';
 import { clientMessage, type PhoneSetupState } from '../services/voice/phone-setup.service';
 import { wouldLoop, LOOP_MESSAGE } from '../services/voice/transfer-loop';
+import { vapiClient } from '../config/vapi';
+import { Readable } from 'stream';
 
 /**
  * Rebâtir l'assistant DISTANT après un changement d'intégration.
@@ -246,6 +248,57 @@ export class ClientDashboardController {
         data: { tags: { set: [...(call.tags || []).filter((t: string) => !statusValues.includes(t)), status] } },
       });
       res.json({ success: true, status });
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  /**
+   * GET /my-dashboard/calls/:id/recording — l'enregistrement, servi par nous.
+   *
+   * « Il n'est toujours pas possible d'écouter les enregistrements »
+   * (12/09/2026): le lecteur affichait 0:00 / 0:00 avec l'URL Vapi posée en
+   * `src`. Une URL stockée à la fin de l'appel n'est pas une URL qui se lit
+   * encore depuis un navigateur: signature qui expire, hôte qui refuse
+   * l'origine. Le portail passe donc par ici, avec son jeton: on redemande à
+   * Vapi l'adresse fraîche de l'appel, et on sert les octets nous-mêmes, en
+   * relayant `Range` pour que la barre de lecture reste utilisable.
+   */
+  async getMyCallRecording(req: any, res: Response) {
+    try {
+      const { id } = req.params;
+      const call = await prisma.clientCall.findFirst({
+        where: { id, clientId: req.clientId },
+        select: { recordingUrl: true, vapiCallId: true },
+      });
+      if (!call) return res.status(404).json({ error: 'Call not found' });
+
+      let url = call.recordingUrl;
+      if (call.vapiCallId) {
+        try {
+          const remote = (await vapiClient.getCall(call.vapiCallId)) as Record<string, any>;
+          url = remote?.artifact?.recordingUrl || remote?.recordingUrl || remote?.artifact?.recording?.mono?.combinedUrl || url;
+        } catch (error) {
+          logger.warn(`[Recording] Vapi illisible pour ${call.vapiCallId}: ${(error as Error).message}`);
+        }
+      }
+      if (!url) return res.status(404).json({ error: 'no_recording' });
+
+      const range = typeof req.headers.range === 'string' ? req.headers.range : undefined;
+      const upstream = await fetch(url, { headers: range ? { Range: range } : {} });
+      if (!upstream.ok) {
+        logger.warn(`[Recording] ${url} répond ${upstream.status} pour l'appel ${id}`);
+        return res.status(502).json({ error: 'recording_unavailable', upstream: upstream.status });
+      }
+      res.status(upstream.status);
+      for (const header of ['content-type', 'content-length', 'content-range', 'accept-ranges']) {
+        const value = upstream.headers.get(header);
+        if (value) res.setHeader(header, value);
+      }
+      if (!upstream.headers.get('content-type')) res.setHeader('content-type', 'audio/wav');
+      res.setHeader('Cache-Control', 'private, max-age=3600');
+      if (!upstream.body) return res.end();
+      Readable.fromWeb(upstream.body as any).pipe(res);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

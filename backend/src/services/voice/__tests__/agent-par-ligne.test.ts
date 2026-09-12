@@ -27,6 +27,7 @@ const base = {
   instructions: 'Toujours vouvoyer.',
   services: [],
   openingHours: null,
+  weekHours: null,
   bookingEnabled: true,
   calendarConnected: false,
   planType: 'solo',

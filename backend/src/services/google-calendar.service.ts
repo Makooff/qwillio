@@ -1,3 +1,4 @@
+import { minutesOf } from '../utils/opening-hours';
 import { OAuth2Client } from 'google-auth-library';
 import { prisma } from '../config/database';
 import { env } from '../config/env';
@@ -157,7 +158,16 @@ export class GoogleCalendarService {
   // ═══════════════════════════════════════════════════════════
   // GET FREE/BUSY SLOTS - Check availability
   // ═══════════════════════════════════════════════════════════
-  async getAvailability(accessToken: string, calendarId = 'primary', date: Date, timezone = 'Europe/Brussels') {
+  async getAvailability(
+    accessToken: string,
+    calendarId = 'primary',
+    date: Date,
+    timezone = 'Europe/Brussels',
+    /* La fenêtre d'ouverture DU JOUR, lue des horaires du portail. Avant, 9 h-17 h
+       tous les jours: un rendez-vous a été pris un dimanche chez un commerce
+       fermé le dimanche (12/09/2026). */
+    window: { from: string; to: string } = { from: '09:00', to: '17:00' },
+  ) {
     /* Le jour et ses créneaux sont posés dans le fuseau de l'ENTREPRISE: un
        « 09:00 » rendu ici est ce que l'appelant entendra, et il doit être 9 h
        chez le commerçant, pas chez le serveur. */
@@ -186,10 +196,13 @@ export class GoogleCalendarService {
       const data = await response.json() as any;
       const busySlots = data.calendars?.[calendarId]?.busy || [];
 
-      // Generate available slots (9am-5pm, 1 hour slots)
+      // Créneaux d'une heure, de l'ouverture à la fermeture du jour.
       const availableSlots: string[] = [];
-      for (let hour = 9; hour < 17; hour++) {
-        const slotStart = zonedInstant(ymd, `${String(hour).padStart(2, '0')}:00`, timezone);
+      const openAt = minutesOf(window.from) ?? 9 * 60;
+      const closeAt = minutesOf(window.to) ?? 17 * 60;
+      for (let start = openAt; start + 60 <= closeAt; start += 60) {
+        const hhmm = `${String(Math.floor(start / 60)).padStart(2, '0')}:${String(start % 60).padStart(2, '0')}`;
+        const slotStart = zonedInstant(ymd, hhmm, timezone);
         const slotEnd = new Date(slotStart.getTime() + 60 * 60 * 1000);
 
         const isBusy = busySlots.some((busy: any) => {
@@ -198,9 +211,7 @@ export class GoogleCalendarService {
           return slotStart < busyEnd && slotEnd > busyStart;
         });
 
-        if (!isBusy) {
-          availableSlots.push(`${hour.toString().padStart(2, '0')}:00`);
-        }
+        if (!isBusy) availableSlots.push(hhmm);
       }
 
       return availableSlots;

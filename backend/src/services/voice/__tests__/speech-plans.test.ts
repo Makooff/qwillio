@@ -114,7 +114,16 @@ describe('buildStopSpeakingPlan — barge-in', () => {
 
 describe('buildStartSpeakingPlan', () => {
   it('keeps the hard wait under the perceived-latency budget', () => {
-    expect(buildStartSpeakingPlan('en').waitSeconds).toBeLessThan(0.3);
+    /* 0,4 s: le défaut documenté de Vapi. En dessous, l'agent entrait dans
+       les respirations de l'appelant (12/09/2026); au-dessus, le blanc se
+       sent à chaque tour. */
+    expect(buildStartSpeakingPlan('en').waitSeconds).toBeLessThanOrEqual(0.5);
+    expect(buildStartSpeakingPlan('en').waitSeconds).toBeGreaterThanOrEqual(0.3);
+  });
+
+  it("laisse passer une respiration ponctuée avant de répondre", () => {
+    const plan = buildStartSpeakingPlan('fr');
+    expect(plan.transcriptionEndpointingPlan.onPunctuationSeconds).toBeGreaterThanOrEqual(0.3);
   });
 
   it('enables smart endpointing so the floor can stay low', () => {

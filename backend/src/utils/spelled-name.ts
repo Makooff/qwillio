@@ -41,3 +41,21 @@ export function normaliseSpelledName(raw: string): string {
   flush();
   return out.join(' ').replace(/\s+/g, ' ').trim();
 }
+
+/** Le nom de famille: le dernier mot du nom complet. */
+export function familyName(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return parts[parts.length - 1] ?? '';
+}
+
+/**
+ * Un mot épelé PAR L'AGENT, lettre par lettre: « Polle » → « P-O-L-L-E ».
+ * Relire « Polle » ne suffit pas quand c'est « Paul » qui a été entendu: les
+ * deux se prononcent pareil. Les lettres, elles, ne se confondent pas.
+ */
+export function spellOut(word: string): string {
+  return Array.from(word.normalize('NFC'))
+    .filter(c => /\p{L}/u.test(c))
+    .map(c => c.toUpperCase())
+    .join('-');
+}

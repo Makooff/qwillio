@@ -48,6 +48,9 @@ router.get('/calls', (req, res) => clientDashboardController.getMyCalls(req, res
    `advancedAnalytics`: un abandon au premier tour est une panne d'installation,
    pas une finesse d'analyse, et c'est le petit forfait qui en a le plus besoin. */
 router.get('/calls/abandonment', (req, res) => clientDashboardController.getCallAbandonment(req, res));
+/* L'enregistrement d'un appel, servi par nous avec le jeton du portail: une URL
+   Vapi posée telle quelle dans un lecteur donnait 0:00 / 0:00 (12/09/2026). */
+router.get('/calls/:id/recording', (req, res) => clientDashboardController.getMyCallRecording(req, res));
 /* Ce que deviennent les transferts, et POURQUOI ils échouent (REL-7). Les
    compteurs existaient à l'échelle de la flotte, sur la route de santé: utile
    à qui exploite la plateforme, muet pour le gérant qui demande pourquoi

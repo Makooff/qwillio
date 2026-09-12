@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normaliseSpelledName } from '../spelled-name';
+import { normaliseSpelledName, spellOut, familyName } from '../spelled-name';
 
 /**
  * Un nom épelé arrive lettre par lettre; il faut le recoller. « Polle »
@@ -20,5 +20,13 @@ describe('normaliseSpelledName', () => {
 
   it('ne recolle pas une initiale isolée', () => {
     expect(normaliseSpelledName('J. Dupont')).toBe('J Dupont');
+  });
+});
+
+describe('spellOut', () => {
+  it("épelle le nom de famille pour que l'agent le dise lettre par lettre", () => {
+    expect(spellOut(familyName('Mathieu Polle'))).toBe('P-O-L-L-E');
+    expect(spellOut(familyName('Jean-Luc Van Damme'))).toBe('D-A-M-M-E');
+    expect(spellOut('Émile')).toBe('É-M-I-L-E');
   });
 });

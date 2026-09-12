@@ -32,6 +32,7 @@
 import { prisma } from '../config/database';
 import { env } from '../config/env';
 import { vapiClient } from '../config/vapi';
+import { smsReadiness } from '../services/sms-ready';
 
 const arg = (name: string): string | null => {
   const hit = process.argv.find(a => a.startsWith(`--${name}=`));
@@ -72,6 +73,10 @@ async function main() {
 
   console.log(`\nVAPI_WEBHOOK_SECRET: ${env.VAPI_WEBHOOK_SECRET ? 'définie' : 'ABSENTE'}`);
   console.log(`API_BASE_URL: ${env.API_BASE_URL}`);
+  /* Le SMS de confirmation ne part que si tout y est; l'agent ne le promet
+     qu'à cette condition, et le docteur dit ce qui manque (12/09/2026). */
+  const sms = smsReadiness();
+  console.log(`SMS de confirmation: ${sms.ok ? 'prêt à partir' : `NE PARTIRA PAS, il manque ${sms.missing.join(', ')}`}`);
 
   /* La liste des numéros est relue UNE fois: elle couvre tout le compte, et la
      redemander par client ferait autant d'allers-retours que de clients pour
@@ -259,6 +264,30 @@ async function main() {
           + '(réglé dans le tableau de bord Vapi, section Server URL). Sans lui, tout est rejeté en 401.',
     );
     verdict(calls > 0, `appels enregistrés pour ce client (7 jours): ${calls}`, '');
+
+    /* La dernière réservation et ce qu'est devenu son SMS: « je n'ai pas reçu
+       de SMS » se lit ici, dans l'erreur Twilio, au lieu de se deviner. */
+    const lastBooking = await prisma.clientBooking.findFirst({
+      where: { clientId: client.id },
+      orderBy: { createdAt: 'desc' },
+      select: { customerName: true, customerPhone: true, bookingDate: true, bookingTime: true, smsConfirmationSent: true, createdAt: true },
+    });
+    if (lastBooking) {
+      const when = `${lastBooking.bookingDate.toISOString().slice(0, 10)} ${lastBooking.bookingTime ?? ''}`.trim();
+      console.log(`       dernière réservation: ${lastBooking.customerName} · ${when} · numéro ${lastBooking.customerPhone ?? 'INCONNU'} · SMS ${lastBooking.smsConfirmationSent ? 'envoyé' : 'NON envoyé'}`);
+      const logs = await prisma.smsLog.findMany({
+        where: { clientId: client.id, messageType: 'booking_confirmation' },
+        orderBy: { createdAt: 'desc' },
+        take: 2,
+        select: { to: true, status: true, errorMsg: true, createdAt: true },
+      });
+      for (const log of logs) {
+        console.log(`       SMS ${log.createdAt.toISOString()} → ${log.to}: ${log.status}${log.errorMsg ? ` · ${log.errorMsg}` : ''}`);
+      }
+      if (!logs.length && !lastBooking.smsConfirmationSent) {
+        console.log("       aucune tentative de SMS journalisée: soit le numéro de l'appelant manquait, soit l'envoi n'était pas prêt (voir en tête).");
+      }
+    }
   }
 
   // 4. Ce que Vapi a vu, pour situer la perte.
@@ -289,12 +318,31 @@ async function main() {
       if (call === mine[0] && seen?.tools.length) {
         for (const line of seen.tools) console.log(`      ${line}`);
       }
+      /* L'URL d'enregistrement que le PORTAIL joue, allée chercher comme le
+         navigateur le ferait. « Chez nous oui » dit qu'une URL est stockée,
+         pas qu'elle se lit encore: une URL signée expirée, ou un type que le
+         navigateur refuse, donne un bouton « Écouter » qui ne joue rien. */
+      if (call === mine[0] && ours?.recordingUrl) {
+        console.log(`      enregistrement servi: ${await servedAs(ours.recordingUrl)}`);
+      }
     }
   } catch (error) {
     console.log(`\nListe des appels Vapi illisible: ${(error as Error).message}`);
   }
 
   console.log('');
+}
+
+/** Ce qu'une URL rend quand on la joue: statut, type, taille, ou l'erreur. */
+async function servedAs(url: string): Promise<string> {
+  try {
+    const r = await fetch(url, { method: 'GET', headers: { Range: 'bytes=0-0' } });
+    const type = r.headers.get('content-type') ?? '(sans type)';
+    const size = r.headers.get('content-range')?.split('/')[1] ?? r.headers.get('content-length') ?? '?';
+    return `${r.status} ${type} ${size} octets · ${new URL(url).host}`;
+  } catch (error) {
+    return `injoignable: ${(error as Error).message}`;
+  }
 }
 
 /**

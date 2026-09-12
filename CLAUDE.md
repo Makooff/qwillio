@@ -810,6 +810,36 @@ modèle d'analyse répondant sinon dans la langue de sa consigne, l'anglais.
 si un enregistrement existe chez Vapi et chez nous : c'est ce qui dit à quelle
 heure l'agent a réellement réservé, au lieu de le deviner.
 
+### 6untrigesies. Cinq retours d'un même appel test (12/09/2026, après-midi)
+- **Les horaires du portail n'étaient lus NULLE PART.** `onboardingData.hours`
+  est un objet jour par jour ; le profil le mettait dans une chaîne, donc le
+  prompt disait « Horaires: [object Object] », et l'agenda proposait 9 h-17 h
+  tous les jours. Un rendez-vous a été pris un dimanche chez un commerce fermé
+  le dimanche. `utils/opening-hours.ts` est la seule lecture : `describeHours`
+  pour le prompt, `dayWindow` pour les créneaux (le speculator ne lit même pas
+  Google un jour fermé) et pour `checkAvailability` / `bookAppointment`, qui
+  refusent un jour fermé en nommant le prochain jour ouvert, et une heure hors
+  fenêtre en nommant la fenêtre. `ClientVoiceProfile.weekHours` est obligatoire.
+- **L'agent épelle LUI-MÊME le nom de famille** (`spellOut`, « P-O-L-L-E ») :
+  relire « Polle » ne distingue pas de « Paul », les lettres si.
+- **Il parlait par-dessus les respirations.** `VOICE_START_WAIT_SECONDS` passe
+  de 0,12 à 0,4 (le défaut documenté de Vapi) et `onPunctuationSeconds` de 0,1 à
+  0,4 (`VOICE_ENDPOINTING_PUNCTUATION_SECONDS`) : le transcripteur pose un point
+  sur une respiration, et 0,1 s y faisait entrer l'agent. C'est un arbitrage
+  (280 ms de plus par tour), réglable par variable, pas un réglage définitif.
+- **Le SMS était PROMIS sans être possible.** `smsPromised` ne regardait que
+  `SMS_ENABLED` ; `sendSMS` rendait `false` en silence sans `TWILIO_PHONE_NUMBER`
+  ou sans identifiants. `services/sms-ready.ts` porte la règle, partagée par la
+  promesse et par `voice:doctor`, qui affiche aussi la dernière réservation et
+  ses tentatives de SMS avec l'erreur Twilio. Cause probable à vérifier au
+  docteur : un numéro Twilio non SMS, ou l'erreur 21408 (région non autorisée
+  pour la Belgique dans la console Twilio, Messaging > Geo permissions).
+- **L'enregistrement affichait 0:00 / 0:00.** L'URL Vapi était posée telle
+  quelle en `src` ; une URL stockée à la fin de l'appel n'est pas une URL qui se
+  lit encore depuis un navigateur. `GET /my-dashboard/calls/:id/recording`
+  redemande l'adresse fraîche à Vapi et sert les octets avec `Range` ; le portail
+  la lit avec son jeton et joue un blob, et dit désormais POURQUOI quand ça rate.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

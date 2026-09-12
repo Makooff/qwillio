@@ -13,6 +13,7 @@ const profile: ClientVoiceProfile = {
   instructions: null,
   services: [],
   openingHours: null,
+  weekHours: null,
   bookingEnabled: true,
   calendarConnected: true,
   planType: 'pro',

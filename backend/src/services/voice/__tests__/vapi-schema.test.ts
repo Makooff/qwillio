@@ -16,6 +16,7 @@ const profile = (over: Record<string, unknown> = {}) => ({
   instructions: null,
   services: [],
   openingHours: null,
+  weekHours: null,
   bookingEnabled: false,
   calendarConnected: false,
   planType: 'pro',
