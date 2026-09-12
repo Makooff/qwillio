@@ -609,6 +609,20 @@ export const env = {
    */
   VOICE_CUSTOM_LLM_DEFAULT: process.env.VOICE_CUSTOM_LLM_DEFAULT !== 'false',
   /**
+   * Épingler l'accueil PRÉ-ENREGISTRÉ (une URL audio) comme première phrase
+   * de l'assistant enregistré, à la place du texte que Vapi synthétise.
+   *
+   * OFF par défaut, et ce n'est pas de la prudence: le 12/09/2026, les deux
+   * premiers appels entrants reçus par un assistant portant cette URL se sont
+   * terminés en `silence-timed-out`, personne n'ayant rien entendu. Le
+   * mécanisme (LAT-7, 10/09) n'avait jamais été exercé sur un vrai appel: les
+   * lignes d'accueil n'existaient pas tant qu'ElevenLabs refusait la clé, et
+   * elles sont apparues avec la clé Cartesia, quelques minutes avant ces deux
+   * appels. Le texte, lui, est le chemin prouvé. On rallume quand un appel
+   * réel aura été entendu avec l'URL, pas avant.
+   */
+  VOICE_GREETING_PINNED: process.env.VOICE_GREETING_PINNED === 'true',
+  /**
    * Semantic search over the knowledge base. The lexical score answers a small
    * base correctly and for free, so embeddings only engage above the threshold:
    * a client with a dozen FAQ entries must not pay a round-trip on a turn the

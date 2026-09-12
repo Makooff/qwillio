@@ -189,6 +189,33 @@ async function main() {
       }
 
       const hasTransfer = tools.some((t: any) => t?.type === 'transferCall');
+      /* CE QUE L'ASSISTANT DIT EN PREMIER, et si c'est une URL, si elle répond.
+         Deux appels entrants `silence-timed-out` le 12/09/2026: l'assistant
+         enregistré portait l'URL de l'accueil pré-enregistré (LAT-7), jamais
+         exercée sur un vrai appel jusque-là. Un texte est synthétisé par Vapi
+         à coup sûr; une URL dépend de ce que Vapi en fait, et de ce que notre
+         route sert. Le docteur lit donc la première phrase DISTANTE et, pour
+         une URL, va la chercher comme Vapi le ferait. */
+      const first = String(assistant.firstMessage ?? '');
+      if (/^https?:\/\//.test(first)) {
+        let served = 'injoignable';
+        try {
+          const r = await fetch(first, { method: 'GET' });
+          const bytes = Number(r.headers.get('content-length') ?? (await r.arrayBuffer()).byteLength);
+          served = `${r.status} ${r.headers.get('content-type') ?? '(sans type)'} ${bytes} octets`;
+        } catch (error) {
+          served = `injoignable: ${(error as Error).message}`;
+        }
+        verdict(
+          false,
+          "première phrase: une URL audio (accueil pré-enregistré)",
+          `${first}\n       servie: ${served}\n       Non prouvée sur un appel réel; `
+            + '`VOICE_GREETING_PINNED` absent ou « false » puis `npm run voice:resync` repasse au texte, que Vapi synthétise.',
+        );
+      } else {
+        verdict(first.trim().length > 0, 'première phrase: un texte', first ? `« ${first.slice(0, 90)}${first.length > 90 ? '…' : ''} »` : "vide: l'assistant attendrait l'appelant.");
+      }
+
       verdict(
         hasTransfer,
         'transfert vers un humain',
@@ -242,9 +269,14 @@ async function main() {
     console.log(`\n── Derniers appels chez Vapi (${mine.length} sur ${recent.length} pour ces clients) ──`);
     for (const call of mine) {
       const known = await prisma.clientCall.findFirst({ where: { vapiCallId: call.id }, select: { id: true } });
+      /* Ce que l'assistant a DIT: un `silence-timed-out` sans une seule
+         réplique de l'assistant, c'est la première phrase qui n'est pas partie
+         (URL audio muette, voix refusée), pas un appelant silencieux. */
+      const said = await assistantLines(call.id);
       console.log(
         `  ${call.startedAt || call.createdAt} · ${call.type || 'inbound'} · ${call.endedReason || '?'}` +
-          `  ${known ? 'enregistré chez nous' : 'ABSENT de notre base'}`,
+          `  ${known ? 'enregistré chez nous' : 'ABSENT de notre base'}` +
+          (said === null ? '' : said === 0 ? " · L'ASSISTANT N'A RIEN DIT" : ` · ${said} réplique(s) de l'assistant`),
       );
     }
   } catch (error) {
@@ -252,6 +284,17 @@ async function main() {
   }
 
   console.log('');
+}
+
+/** Le nombre de répliques de l'assistant dans un appel, ou `null` si l'appel est illisible. */
+async function assistantLines(callId: string): Promise<number | null> {
+  try {
+    const full = (await vapiClient.getCall(callId)) as Record<string, any>;
+    const messages: Array<Record<string, any>> = full?.artifact?.messages ?? full?.messages ?? [];
+    return messages.filter(m => m.role === 'bot' || m.role === 'assistant').length;
+  } catch {
+    return null;
+  }
 }
 
 main()

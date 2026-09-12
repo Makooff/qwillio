@@ -13,7 +13,7 @@ import { fitAssistantName } from './voice/vapi-limits';
 import { webhookServer } from './voice/webhook-identity';
 import { realtimeContextService, shouldRecord } from './voice/realtime-context.service';
 import { buildVoiceTools } from './voice/voice-tools';
-import { greetingAudioService } from './voice/greeting-audio.service';
+import { greetingAudioService, firstMessageToPin } from './voice/greeting-audio.service';
 import { toE164 } from '../utils/phone';
 import { resolveNiche } from '../config/niches';
 import { knowledgeFieldsBlock } from '../config/knowledge-presets';
@@ -920,7 +920,9 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
       /* Accroché au TEXTE autant qu'à la variante: un accueil fabriqué avant
          un changement de nom présenterait l'agent sous l'ancien. */
       const hit = audio.find(a => a.variant === 0 && a.text === text);
-      return hit ? hit.url : text;
+      /* L'URL ne part que sur opt-in: voir `VOICE_GREETING_PINNED`. Deux appels
+         muets le 12/09 dès que des lignes d'accueil ont existé. */
+      return firstMessageToPin(text, hit?.url ?? null);
     } catch (error) {
       logger.warn(`[Vapi] accueil de référence indisponible pour ${clientId}: ${(error as Error).message}`);
       return this.generateFirstMessage(client, this.isFrenchClient(client));
