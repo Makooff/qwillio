@@ -181,7 +181,7 @@ export default function OwnNumber({ isFr = true }: { isFr?: boolean }) {
                       defaultValue={l[f.key] ?? ''}
                       placeholder={f.ph}
                       onBlur={e => saveLine(l.id, { [f.key]: e.target.value })}
-                      className="w-full px-3 py-2 text-[13px] rounded-lg border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7349fe]/50 transition-colors"
+                      className="w-full px-3 py-2 text-[13px] rounded-lg border border-white/[0.08] bg-q2-carbon text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-q2-smoke-d transition-colors"
                     />
                   ))}
                 </div>
@@ -197,7 +197,7 @@ export default function OwnNumber({ isFr = true }: { isFr?: boolean }) {
           onChange={e => setValue(e.target.value)}
           placeholder="+32 2 555 00 11"
           inputMode="tel"
-          className="w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7349fe]/50 transition-colors"
+          className="w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-q2-carbon text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-q2-smoke-d transition-colors"
         />
         {lines.length > 0 && (
           // Le libellé n'apparaît qu'à partir de la deuxième ligne: sur la
@@ -207,7 +207,7 @@ export default function OwnNumber({ isFr = true }: { isFr?: boolean }) {
             value={label}
             onChange={e => setLabel(e.target.value)}
             placeholder="Boutique Ixelles"
-            className="w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7349fe]/50 transition-colors"
+            className="w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-q2-carbon text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-q2-smoke-d transition-colors"
           />
         )}
         <button

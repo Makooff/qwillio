@@ -62,8 +62,8 @@ type SortDir = 'asc' | 'desc';
 
 const inputCls = [
   'w-full px-4 py-2.5 text-sm rounded-xl outline-none transition-colors',
-  'border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7]',
-  'placeholder-[#8B8BA7] focus:border-[#7349fe]/50',
+  'border border-white/[0.07] bg-q2-carbon text-[#F5F5F7]',
+  'placeholder-[#8B8BA7] focus:border-q2-smoke-d',
 ].join(' ');
 
 /* Le résultat de l'appel est une valeur de base, pas une phrase: la fiche
@@ -249,7 +249,7 @@ export default function ClientCalls() {
                     type="date"
                     value={dateFrom}
                     onChange={(e) => setDateFrom(e.target.value)}
-                    className="px-3 py-1.5 text-xs rounded-lg border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] focus:outline-none focus:border-[#7349fe]/50"
+                    className="px-3 py-1.5 text-xs rounded-lg border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] focus:outline-none focus:border-q2-smoke-d"
                   />
                 </div>
                 <div>
@@ -259,7 +259,7 @@ export default function ClientCalls() {
                     type="date"
                     value={dateTo}
                     onChange={(e) => setDateTo(e.target.value)}
-                    className="px-3 py-1.5 text-xs rounded-lg border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] focus:outline-none focus:border-[#7349fe]/50"
+                    className="px-3 py-1.5 text-xs rounded-lg border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] focus:outline-none focus:border-q2-smoke-d"
                   />
                 </div>
               </div>

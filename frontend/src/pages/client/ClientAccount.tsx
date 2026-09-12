@@ -27,7 +27,7 @@ const C = {
 };
 
 const inputCls =
-  'w-full px-3.5 py-2.5 text-[13px] rounded-xl border bg-white/[0.03] text-[#F5F5F7] placeholder-[#6B6B75] focus:outline-none transition-colors disabled:opacity-50';
+  'w-full px-3.5 py-2.5 text-[13px] rounded-xl border bg-q2-carbon text-[#F5F5F7] placeholder-[#6B6B75] focus:outline-none focus:border-q2-smoke-d transition-colors disabled:opacity-50';
 
 // ── Building blocks ─────────────────────────────────────────────────────────
 
@@ -132,7 +132,7 @@ const BUSINESS_TYPES: { value: string; label: string }[] = [
 ];
 
 const selectCls =
-  'w-full px-3.5 py-2.5 text-[13px] rounded-xl border bg-white/[0.03] text-[#F5F5F7] focus:outline-none transition-colors appearance-none';
+  'w-full px-3.5 py-2.5 text-[13px] rounded-xl border bg-q2-carbon text-[#F5F5F7] focus:outline-none focus:border-q2-smoke-d transition-colors appearance-none';
 
 /**
  * Base de connaissance — ce que l'agent sait de l'entreprise.

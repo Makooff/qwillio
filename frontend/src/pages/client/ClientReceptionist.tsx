@@ -35,9 +35,9 @@ const RECEPTIONIST_KEYS = {
   characters: '/my-dashboard/characters',
 };
 
-const inputCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-[#7349fe]/50 transition-colors disabled:opacity-50';
-const selectCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] focus:outline-none focus:border-[#7349fe]/50 transition-colors disabled:opacity-50';
-const compactInputCls = 'h-9 px-3 text-[13px] rounded-lg border border-white/[0.08] bg-[#0A0A0C] text-[#F8F8FF] placeholder-[#6B6B75] focus:outline-none focus:border-[#7349fe]/50 transition-colors disabled:opacity-50';
+const inputCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-q2-carbon text-[#F8F8FF] placeholder-[#8B8BA7] focus:outline-none focus:border-q2-smoke-d transition-colors disabled:opacity-50';
+const selectCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.08] bg-q2-carbon text-[#F8F8FF] focus:outline-none focus:border-q2-smoke-d transition-colors disabled:opacity-50';
+const compactInputCls = 'h-9 px-3 text-[13px] rounded-lg border border-white/[0.08] bg-q2-carbon text-[#F8F8FF] placeholder-[#6B6B75] focus:outline-none focus:border-q2-smoke-d transition-colors disabled:opacity-50';
 
 interface KbItem { id: string; category: string; name: string; price: string; }
 interface FaqEntry { q: string; a: string; }

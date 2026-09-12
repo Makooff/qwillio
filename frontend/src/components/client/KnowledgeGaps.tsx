@@ -100,7 +100,7 @@ export default function KnowledgeGaps({ onAnswered }: { onAnswered?: () => void 
               onChange={e => setDrafts(d => ({ ...d, [gap.id]: e.target.value }))}
               rows={2}
               placeholder="Votre réponse, telle que l'IA doit la dire"
-              className="mt-2.5 w-full resize-y rounded-xl border border-white/[0.08] bg-[#0A0A0C] px-4 py-2.5 text-sm leading-relaxed text-[#F8F8FF] placeholder-[#6B6B75] focus:border-[#7349fe]/50 focus:outline-none transition-colors"
+              className="mt-2.5 w-full resize-y rounded-xl border border-white/[0.08] bg-q2-carbon px-4 py-2.5 text-sm leading-relaxed text-[#F8F8FF] placeholder-[#6B6B75] focus:border-q2-smoke-d focus:outline-none transition-colors"
             />
             <div className="mt-2 flex items-center gap-3">
               <button
