@@ -2,8 +2,7 @@ import { prisma } from '../../config/database';
 import { env } from '../../config/env';
 import { logger } from '../../config/logger';
 import { firstMessageVariants } from './system-prompt';
-import { resolveCharacter } from '../../config/voice-characters';
-import { buildVoice } from './speech-plans';
+import { voiceForProfile } from './profile-voice';
 import { synthesiseWithCartesia } from './cartesia.service';
 import type { ClientVoiceProfile } from './realtime-context.service';
 
@@ -54,6 +53,17 @@ export interface VoiceSignature {
   provider: '11labs' | 'cartesia';
   voiceId: string;
   model: string;
+  /**
+   * POURQUOI ce fournisseur, et pas seulement lequel.
+   *
+   * L'accueil pré-enregistré n'en a que faire: il compare une ligne à une
+   * signature. `voice:doctor`, lui, répond à « pourquoi cette ligne parle chez
+   * ElevenLabs alors que j'ai demandé Cartesia », relevé réel du 12/09, et le
+   * motif est toute la réponse. Il voyage ici plutôt que de laisser le docteur
+   * relire la règle de personnage une seconde fois — son propre test le lui
+   * interdit, et c'est cette relecture qui fait diverger.
+   */
+  why: string;
 }
 
 /**
@@ -70,32 +80,15 @@ export interface VoiceSignature {
  * différer. Le docteur répond à « quelle voix parle VRAIMENT »: il compare
  * cette signature à celle de l'assistant DISTANT, et un écart dit que
  * l'assistant enregistré est périmé.
+ *
+ * Depuis le 12/09, ce n'est plus qu'une lecture de `voiceForProfile`: la
+ * synchronisation de l'assistant enregistré résolvait la voix une TROISIÈME
+ * fois, sans la voix choisie ni le clone, et c'est elle qui décroche.
  */
 export function voiceSignatureFor(profile: ClientVoiceProfile): VoiceSignature {
-  const character = resolveCharacter({
-    characterId: profile.characterId,
-    isFrench: profile.language === 'fr',
-    country: profile.country,
-    customVoice: profile.customVoice,
-  });
-
-  const voice = buildVoice({
-    voiceId: character.voiceId,
-    stability: character.stability,
-    similarityBoost: character.similarityBoost,
-    style: character.style,
-    lang: profile.language,
-    cloned: character.voiceCloned,
-    voiceProvider: character.voiceProvider,
-    ttsProvider: profile.ttsProvider,
-  }) as { provider: string; voiceId: string; model: string };
-
-  return {
-    provider: voice.provider === 'cartesia' ? 'cartesia' : '11labs',
-    voiceId: voice.voiceId,
-    model: voice.model,
-  };
+  return voiceForProfile(profile).signature;
 }
+
 
 class GreetingAudioService {
   /** Public URL Vapi fetches. Must be reachable without auth. */

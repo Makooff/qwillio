@@ -5,6 +5,7 @@ import { env } from '../config/env';
 import { emailService } from './email.service';
 import { discordService } from './discord.service';
 import { resolveCharacter } from '../config/voice-characters';
+import { voiceForProfile, type ProfileVoice } from './voice/profile-voice';
 import { getPersonaPrompt, PERSONALITY_PROMPTS } from '../config/personalities';
 import { buildRealtimePlans, buildVoice, type VoiceLanguage } from './voice/speech-plans';
 import { fitAssistantName } from './voice/vapi-limits';
@@ -927,12 +928,19 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
 
   private async speechProfile(
     clientId: string,
-  ): Promise<{ language: VoiceLanguage; vocabulary: string[]; recording: boolean } | null> {
+  ): Promise<{ language: VoiceLanguage; vocabulary: string[]; recording: boolean; voice: ProfileVoice['block'] } | null> {
     const profile = await realtimeContextService.getClientProfile(clientId);
     if (!profile) return null;
     return {
       language: profile.language,
       vocabulary: [profile.businessName, profile.agentName, ...(profile.services ?? [])],
+      /* LA voix, résolue par la même fonction que l'appel et l'accueil.
+         Cette synchronisation la résolvait elle-même, sans `customVoice`, sans
+         `cloned`, sans `voiceProvider` ni `ttsProvider`: une voix Cartesia ou
+         un clone choisi dans le portail atteignait l'accueil pré-enregistré et
+         JAMAIS l'assistant qui décroche, qui repartait sur la voix ElevenLabs
+         par défaut du personnage à chaque sauvegarde. Voir `profile-voice`. */
+      voice: voiceForProfile(profile).block,
       /* La MÊME décision que l'accueil, prise au même endroit (LEG-2/LEG-5).
          Elle se lisait ici sur `disableRecordingNotice` seul, le drapeau
          historique, alors que le portail écrit `recordCalls` et que le profil
@@ -1006,15 +1014,14 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
            configuration qu'on vient d'annuler. */
         tools: syncTools,
       },
-      // Keep the voice in sync when the client switches character.
-      voice: buildVoice({
+      /* La voix du PROFIL, résolue une seule fois pour l'appel, l'accueil et
+         cette écriture. Le repli sur le personnage nu ne sert que si le profil
+         est illisible: c'est l'ancienne règle, qui ignorait la voix choisie. */
+      voice: syncSpeech?.voice ?? buildVoice({
         voiceId: character.voiceId,
         stability: character.stability,
         similarityBoost: character.similarityBoost,
         style: character.style,
-        /* La langue du PROFIL, pas un second `isFrenchClient` qui ignore le
-           néerlandais: c'est cette ligne-là qui repassait un client flamand en
-           anglais à chaque sauvegarde. Voir `speechProfile`. */
         lang: syncLang,
       }),
       firstMessage,

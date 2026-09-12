@@ -131,7 +131,8 @@ class VoiceCatalogService {
     const voices: CatalogVoice[] = (await listCartesiaVoices(lang)).map(v => ({
       voiceId: v.voiceId,
       name: v.name,
-      gender: null,
+      // Tel que Cartesia le déclare: c'est lui qui trie hommes et femmes.
+      gender: v.gender,
       accent: v.language,
       description: v.description,
       // Cartesia ne sert pas d'extrait tout fait: l'aperçu passe par notre
