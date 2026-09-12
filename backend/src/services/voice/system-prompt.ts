@@ -321,7 +321,11 @@ export function buildSystemPrompt(
              rendez-vous.
              La règle qui en sort: quand une langue perd une ligne que les
              autres gardent, c'est une DIVERGENCE, pas une économie. */
-          '- checkAvailability AVANT toute heure proposée. « demain matin » suffit: jamais matin ou après-midi d\'abord, jamais de créneau inventé.',
+          /* « Y compris un jour fermé »: la ligne d'horaires exhaustifs a fait
+             répondre « fermés le dimanche, je peux vous proposer lundi » SANS
+             appeler l'outil (éval fr-discipline-agenda, un samedi). L'outil
+             nomme le prochain jour ouvert; c'est lui qui doit le dire. */
+          '- checkAvailability AVANT toute heure proposée, même si le jour demandé est fermé (il nomme le prochain jour ouvert). « demain matin » suffit: jamais matin ou après-midi d\'abord, jamais de créneau inventé.',
           '- Propose un créneau à la fois.',
           '- Appelle bookAppointment seulement après un accord explicite sur une heure précise.',
           '- Pour DÉPLACER un rendez-vous existant: lookupBooking, checkAvailability, puis rescheduleBooking. Jamais bookAppointment pour un déplacement.',
@@ -329,7 +333,7 @@ export function buildSystemPrompt(
         ].join('\n'),
         [
           'APPOINTMENTS:',
-          '- Always call checkAvailability before offering a time. Never invent a slot.',
+          '- Always call checkAvailability before offering a time, even when the requested day is closed (it names the next open day). Never invent a slot.',
           '- Do not ask for more detail before checking: call checkAvailability with what you have, then offer.',
           '- Offer one slot at a time.',
           '- Only call bookAppointment after the caller explicitly agrees to a specific time.',
@@ -338,7 +342,7 @@ export function buildSystemPrompt(
         ].join('\n'),
         [
           'AFSPRAKEN:',
-          '- Controleer altijd eerst met checkAvailability voor je een tijdstip voorstelt. Verzin nooit een vrij moment.',
+          '- Controleer altijd eerst met checkAvailability voor je een tijdstip voorstelt, ook als de gevraagde dag gesloten is (die noemt de volgende open dag). Verzin nooit een vrij moment.',
           '- Vraag niet om meer details voor je controleert: roep checkAvailability aan met wat je hebt, en stel dan voor.',
           '- Stel één tijdstip per keer voor.',
           '- Roep bookAppointment pas aan nadat de beller expliciet akkoord gaat met een precies tijdstip.',
