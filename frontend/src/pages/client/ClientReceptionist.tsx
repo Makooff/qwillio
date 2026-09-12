@@ -321,21 +321,6 @@ export default function ClientReceptionist() {
   const [characterId, setCharacterId] = useState<string>('marie');
   const [characters, setCharacters] = useState<Character[]>([]);
   const [customVoice, setCustomVoice] = useState<CustomVoice | null>(null);
-  /* Le moteur vocal. `auto` suit le réglage global de la plateforme ;
-     `realtime` et `classic` l'emportent, par client. Existait dans le
-     backend sans aucun moyen de le changer. */
-  const [voiceMode, setVoiceMode] = useState<'auto' | 'realtime' | 'classic'>('auto');
-  /* Prix de l'option temps réel, à la minute. 0 = non vendue. */
-  const [realtimeSurcharge, setRealtimeSurcharge] = useState(0);
-  /* Ce que « Automatique » vaut sur CE serveur. Calculé côté backend par la
-     règle qui sert les appels: recopier la précédence ici la ferait diverger
-     au premier changement de réglage global. */
-  const [autoResolvesTo, setAutoResolvesTo] = useState<'realtime' | 'classic'>('classic');
-  /* La SYNTHÈSE, par client. `null` suit le réglage de la plateforme. Posée
-     ici pour pouvoir comparer les trois moteurs à l'oreille sur le même
-     compte, entre deux appels, sans redéployer. */
-  const [ttsProvider, setTtsProvider] = useState<'11labs' | 'cartesia' | null>(null);
-  const [ttsProviderDefault, setTtsProviderDefault] = useState<'11labs' | 'cartesia'>('11labs');
   /* Un seul panneau ouvert à la fois, et AUCUN à l'arrivée.
    *
    * Cet état était initialisé à `'identite'` et mémorisé dans `localStorage`:
@@ -412,11 +397,6 @@ export default function ClientReceptionist() {
       setPersonalityPreset(s?.personalityPreset || 'warm');
       setCharacterId(s?.characterId || 'marie');
       setCustomVoice(s?.customVoice?.voiceId ? s.customVoice : null);
-      setVoiceMode(s?.voiceMode === 'realtime' || s?.voiceMode === 'classic' ? s.voiceMode : 'auto');
-      setRealtimeSurcharge(Number(s?.realtimeSurchargeEur) > 0 ? Number(s.realtimeSurchargeEur) : 0);
-      setAutoResolvesTo(s?.autoResolvesTo === 'realtime' ? 'realtime' : 'classic');
-      setTtsProvider(s?.ttsProvider === 'cartesia' || s?.ttsProvider === '11labs' ? s.ttsProvider : null);
-      setTtsProviderDefault(s?.ttsProviderDefault === 'cartesia' ? 'cartesia' : '11labs');
       // Values below come from the server → don't trigger an auto-save.
       hydrated.current = true;
       skipAutosave.current = true;
@@ -555,17 +535,18 @@ export default function ClientReceptionist() {
            d'enregistrer. Les clés partent avec les champs, jamais après. */
         characterId,
         customVoice,
-        voiceMode,
-        // Chaîne vide plutôt que `null`: c'est ce que le backend lit comme
-        // « rends-moi au réglage global ».
-        ttsProvider: ttsProvider ?? '',
+        /* `voiceMode` et `ttsProvider` ne sont PLUS envoyés: le sélecteur de
+           moteur a quitté la fiche (le client ne choisit pas le modèle pour
+           l'instant), et les clés partent avec les boutons, jamais après:
+           le PUT est partiel, une copie chargée au montage écraserait un
+           réglage posé ailleurs. */
       });
       // The dashboard is holding a copy of these settings, and it is wrong from
       // the instant this call returns.
       invalidateLive('/my-dashboard/');
     } catch { /* silent — the next edit retries */ }
   }, [transferNumber, agentName, transferMode, forwardingType, googleCalendarId,
-      items, weekHours, faqEntries, knowledge, personalityPreset, characterId, customVoice, voiceMode, ttsProvider]);
+      items, weekHours, faqEntries, knowledge, personalityPreset, characterId, customVoice]);
 
   // Auto-save: debounce after any edit. Skips the initial hydration from load()
   // so we never fire a redundant save on mount.
@@ -611,34 +592,6 @@ export default function ClientReceptionist() {
   // Per-minute billing: the gauge is rendered by AssistantChat's header.
   const quota = overview?.minutes?.quota || settings?.monthlyMinutesQuota || 0;
   const used = overview?.minutes?.used || 0;
-  /* La précédence des moteurs, telle que `useSpeechToSpeech` l'applique côté
-     serveur, et elle vient d'être corrigée des deux côtés à la fois:
-       1. une voix ENREGISTRÉE passe avant tout, le classique étant la seule
-          chaîne qui sache la prononcer;
-       2. puis un « temps réel » explicitement demandé, qui l'emporte désormais
-          sur une voix de bibliothèque. Avant, n'importe quelle voix choisie
-          bloquait le temps réel, et le sélecteur de mode ne servait plus à
-          rien sans que rien ne le dise;
-       3. puis une voix choisie, qui fait pencher vers le classique en `auto`;
-       4. puis ce que vaut « Automatique » sur ce serveur.
-     Recalculé à chaque rendu pour que le sélecteur réponde AVANT
-     l'enregistrement, sinon le client change de mode et ne voit rien bouger. */
-  const effectiveEngine: 'realtime' | 'classic' =
-    customVoice?.cloned ? 'classic'
-    : voiceMode === 'realtime' ? 'realtime'
-    : customVoice ? 'classic'
-    : voiceMode === 'auto' ? autoResolvesTo
-    : voiceMode;
-  const engineReason =
-    customVoice?.cloned ? 'votre voix enregistrée, qui passe avant ce réglage'
-    : voiceMode === 'realtime' ? null
-    : customVoice ? 'la voix choisie ci-dessus, que seul le classique sait dire'
-    : voiceMode === 'auto' ? 'réglage automatique'
-    // « Automatique » ne dit pas quelle synthèse il retient: la ligne ci-dessus
-    // la nomme, cette raison-ci dit d'où elle vient.
-    : ttsProvider === null ? 'synthèse par défaut de la plateforme'
-    : null;
-
   // `planType` is a lowercase key ('starter'); shown to a customer it becomes
   // a name. One formatting, used by both the header and the Abonnement row.
   const planName = (() => {
@@ -794,95 +747,7 @@ export default function ClientReceptionist() {
               toneId={personalityPreset}
               onTone={setPersonalityPreset}
               tones={PERSONALITY_PRESETS}
-            >
-              {/* Le moteur vocal descend dans la carte, à la place de la
-                  personnalisation: celle-ci se règle avec l'assistant de
-                  configuration (demande utilisateur), et un champ ici en
-                  écrasait la copie à chaque sauvegarde automatique. */}
-            {/* —— Moteur vocal ——
-                Deux architectures, pas deux réglages de confort. En temps réel
-                le modèle entend et répond en audio, sans passer par du texte :
-                latence plus basse, interruptions naturelles, il perçoit le ton.
-                En classique la parole est transcrite, un modèle répond, une
-                voix la prononce : c'est la seule chaîne qui utilise la voix
-                choisie ci-dessus, et la seule qui sache parler avec une voix
-                clonée.
-                Ce choix vivait dans le backend sans aucun moyen de le changer,
-                alors que c'est lui qui décide de ce que l'appelant entend. */}
-            <div>
-              <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2">
-                Moteur vocal
-              </label>
-              {/* UN seul choix, quatre entrées, alors que le réglage en porte
-                  deux (le mode et la synthèse). C'est délibéré: « lequel des
-                  trois sonne le mieux » est une question, pas deux, et deux
-                  rangées de boutons obligeraient à savoir que le fournisseur
-                  de synthèse n'existe qu'en mode classique. La combinaison est
-                  faite ici, une fois. */}
-              <div className="flex flex-wrap gap-2">
-                {([
-                  { id: 'auto', label: 'Automatique', mode: 'auto', tts: null },
-                  { id: '11labs', label: 'Classique · ElevenLabs', mode: 'classic', tts: '11labs' },
-                  { id: 'cartesia', label: 'Classique · Cartesia', mode: 'classic', tts: 'cartesia' },
-                  {
-                    id: 'realtime',
-                    label: realtimeSurcharge > 0
-                      ? `Temps réel · OpenAI · +${realtimeSurcharge.toFixed(2).replace('.', ',')} €/min`
-                      : 'Temps réel · OpenAI',
-                    mode: 'realtime',
-                    tts: null,
-                  },
-                ] as const).map(m => {
-                  const active = m.mode === voiceMode
-                    && (m.mode !== 'classic' || m.tts === ttsProvider);
-                  return (
-                    <button
-                      key={m.id}
-                      type="button"
-                      onClick={() => { setVoiceMode(m.mode); setTtsProvider(m.tts); }}
-                      aria-pressed={active}
-                      className={`h-9 px-4 text-[13px] rounded-lg border transition-colors ${
-                        active
-                          ? 'border-[#7349fe] bg-[#7349fe]/15 text-[#F5F5F7]'
-                          : 'border-white/[0.08] bg-[#0A0A0C] text-[#9A9AA5] hover:text-[#F5F5F7]'
-                      }`}
-                    >
-                      {m.label}
-                    </button>
-                  );
-                })}
-              </div>
-              <p className="mt-2.5 text-[12px] text-[#9A9AA5] leading-relaxed">
-                {voiceMode === 'realtime'
-                  ? realtimeSurcharge > 0
-                    ? `Temps réel : le plus fluide et le plus rapide, il perçoit le ton de l'appelant. La voix choisie ci-dessus n'est pas utilisée dans ce mode, le modèle parle avec la sienne. Option facturée ${realtimeSurcharge.toFixed(2).replace('.', ',')} € par minute réellement passée dans ce mode, en plus de votre forfait.`
-                    : "Temps réel : le plus fluide et le plus rapide, il perçoit le ton de l'appelant. La voix choisie ci-dessus n'est pas utilisée dans ce mode, le modèle parle avec la sienne."
-                  : voiceMode === 'classic'
-                    ? ttsProvider === 'cartesia'
-                      ? "Classique par Cartesia : la voix choisie ci-dessus est celle que l'appelant entend. Sonic produit des respirations et des hésitations, et démarre plus vite qu'ElevenLabs."
-                      : "Classique par ElevenLabs : la voix choisie ci-dessus est celle que l'appelant entend. Un peu plus de délai avant chaque réponse."
-                    : realtimeSurcharge > 0
-                      ? 'Automatique : mode classique, sans supplément. Le temps réel ne s’active que si vous le choisissez.'
-                      : 'Automatique : suit le réglage par défaut de la plateforme.'}
-              </p>
-              {/* —— Le moteur RÉELLEMENT utilisé ——
-                  Le bouton dit ce qu'on a choisi, pas ce qui se passe. Une voix
-                  clonée l'emporte sur « Temps réel », et « Automatique » ne
-                  résout pas au même moteur selon le serveur : dans les deux cas
-                  l'écran affichait un mode et l'appel en jouait un autre, ce
-                  qui se vit comme une panne (« j'entends pas de différence
-                  quand je change de mode »). La règle est donc dite. */}
-              <p className="mt-2.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-[12px] leading-relaxed">
-                <span className="text-[#9A9AA5]">Moteur utilisé pour vos appels :</span>
-                <span className="font-semibold text-[#7349fe]">
-                  {effectiveEngine === 'realtime'
-                    ? 'Temps réel · OpenAI'
-                    : `Classique · ${(ttsProvider ?? ttsProviderDefault) === 'cartesia' ? 'Cartesia' : 'ElevenLabs'}`}
-                </span>
-                {engineReason && <span className="text-[#8B8BA7]">({engineReason})</span>}
-              </p>
-            </div>
-            </CharacterCarousel>
+            />
 
           </div>
         )}

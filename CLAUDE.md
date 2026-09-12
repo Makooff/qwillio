@@ -752,6 +752,22 @@ ces fichiers. Les voix Cartesia « fr » proposées au portail sont les 25 de
 `config/cartesia-curated.ts`, par identifiant d'API ; une langue sans liste sert
 le catalogue entier.
 
+### 6octovicies. Un appel muet : l'URL d'accueil n'avait jamais été entendue (12/09/2026)
+Deux appels entrants en `silence-timed-out`, « personne ne parle et il
+raccroche ». L'assistant enregistré portait en `firstMessage` l'URL de
+l'accueil pré-enregistré (LAT-7, 10/09) : ce mécanisme n'avait JAMAIS été
+exercé sur un vrai appel, parce que les lignes d'accueil n'existaient pas tant
+qu'ElevenLabs refusait la clé (401), et elles sont apparues avec la clé
+Cartesia, quelques minutes avant ces deux appels. Le texte, que Vapi
+synthétise, est le chemin prouvé : l'URL n'est épinglée que sur opt-in
+(`VOICE_GREETING_PINNED=true`), à rallumer quand un appel réel aura été
+entendu avec. `voice:doctor` lit désormais la première phrase DISTANTE (et va
+chercher une URL comme Vapi le ferait) et compte les répliques de l'assistant
+sur les derniers appels : un `silence-timed-out` sans réplique, c'est la
+première phrase qui n'est pas partie, pas un appelant muet.
+La règle, encore 6sexvicies : un mécanisme qui n'a jamais atteint un appel
+réel n'est pas une optimisation, c'est un risque qui dort derrière une clé.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

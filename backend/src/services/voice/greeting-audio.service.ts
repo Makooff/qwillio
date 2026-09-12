@@ -90,6 +90,22 @@ export function voiceSignatureFor(profile: ClientVoiceProfile): VoiceSignature {
 }
 
 
+/**
+ * Ce que l'assistant ENREGISTRÉ porte en première phrase.
+ *
+ * L'URL de l'accueil pré-enregistré n'est épinglée que sur opt-in
+ * (`VOICE_GREETING_PINNED`): deux appels entrants muets le 12/09/2026, les
+ * premiers reçus avec une URL, et rien d'autre n'avait changé côté accueil.
+ * Sans URL, ou sans opt-in, le texte part, et Vapi le synthétise à l'appel.
+ */
+export function firstMessageToPin(
+  text: string,
+  audioUrl: string | null,
+  pinned: boolean = env.VOICE_GREETING_PINNED,
+): string {
+  return pinned && audioUrl ? audioUrl : text;
+}
+
 class GreetingAudioService {
   /** Public URL Vapi fetches. Must be reachable without auth. */
   private urlFor(clientId: string, variant: number): string {

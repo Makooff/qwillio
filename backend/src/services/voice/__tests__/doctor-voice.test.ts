@@ -38,3 +38,18 @@ describe('voice:doctor — la voix qui parle vraiment', () => {
     expect(CODE).toMatch(/VOICE_TTS_PROVIDER/);
   });
 });
+
+describe('voice:doctor — ce que l\'assistant dit en premier', () => {
+  /* Deux appels `silence-timed-out` le 12/09/2026, et le docteur ne lisait
+     pas la première phrase de l'assistant DISTANT: il disait « voix OK » sur
+     un assistant qui n'ouvrait pas la bouche. */
+  it('lit la première phrase distante et va chercher une URL comme Vapi le ferait', () => {
+    expect(CODE).toMatch(/assistant\.firstMessage/);
+    expect(CODE).toMatch(/fetch\(first/);
+  });
+
+  it('compte les répliques de l\'assistant sur les derniers appels', () => {
+    expect(CODE).toMatch(/assistantLines\(/);
+    expect(CODE).toMatch(/getCall\(/);
+  });
+});

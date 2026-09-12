@@ -6,6 +6,7 @@ import api from '../../../services/api';
 import { previewUrl, type Character } from './CharacterPickerV2';
 import { useVoicePreview } from '../../client/useVoicePreview';
 import VoiceMenu from './VoiceMenu';
+import Anchored, { inAnchored } from './Anchored';
 import VoiceBars from './VoiceBars';
 import type { SelectedVoice } from '../../client/VoicePicker';
 
@@ -168,6 +169,7 @@ export default function CharacterCarousel({
   useEffect(() => {
     if (!menuOpen) return;
     const onDown = (e: MouseEvent) => {
+      if (inAnchored(e.target)) return;
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
     };
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
@@ -184,6 +186,7 @@ export default function CharacterCarousel({
   useEffect(() => {
     if (!toneOpen) return;
     const onDown = (e: MouseEvent) => {
+      if (inAnchored(e.target)) return;
       if (toneRef.current && !toneRef.current.contains(e.target as Node)) setToneOpen(false);
     };
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setToneOpen(false); };
@@ -376,15 +379,20 @@ export default function CharacterCarousel({
                 onToggle={toggle}
                 previewUrlFor={previewFor}
                 isFr={isFr}
+                anchor={menuRef}
               />
             )}
           </AnimatePresence>
         </div>
 
         {/* Pendant la lecture, la phrase enregistrée remplace la accroche: on
-            lit exactement ce que la voix est en train de dire. */}
+            lit exactement ce que la voix est en train de dire.
+            La ligne a une HAUTEUR FIXE et ne passe jamais à deux lignes: le
+            texte et le bouton du ton n'ont pas la même hauteur, et la carte
+            grandissait puis rétrécissait à chaque Play (retour utilisateur). */}
+        <div className="mt-2 h-7 flex items-center justify-center">
         {playing === current.id && line ? (
-          <p className="mt-2 text-center text-[11.5px] italic text-q2-mist q2-body-text">« {line} »</p>
+          <p className="max-w-full truncate px-2 text-center text-[11.5px] italic text-q2-mist q2-body-text" title={line}>« {line} »</p>
         ) : tone ? (
           /* Le TON se choisit ici, sous le visage (demande utilisateur).
              Il occupait une section à part, plus bas, alors qu'il est déjà
@@ -392,7 +400,7 @@ export default function CharacterCarousel({
              changeait à un autre. Le chevron ouvre la liste, et la phrase
              affichée est la description du ton retenu, pas l'accroche du
              personnage: ce qu'on lit est ce qui est réglé. */
-          <div ref={toneRef} className="relative mt-2 flex justify-center">
+          <div ref={toneRef} className="relative flex max-w-full justify-center">
             <button
               type="button"
               onClick={() => setToneOpen(o => !o)}
@@ -411,11 +419,12 @@ export default function CharacterCarousel({
 
             <AnimatePresence>
               {toneOpen && (
-                /* Même partage que le menu des voix: le placement sur la boîte
-                   extérieure, l'animation sur l'intérieure. Framer écrit un
-                   `transform` inline pour animer `y`, qui effacerait le
-                   centrage porté par une classe. */
-                <div className="absolute top-full left-1/2 -translate-x-1/2 z-30 mt-1.5 w-[min(260px,calc(100vw-2rem))]">
+                /* Même partage que le menu des voix: le placement sur
+                   `Anchored`, rendu hors de la carte, l'animation sur
+                   l'intérieure. Framer écrit un `transform` inline pour
+                   animer `y`, qui effacerait un centrage porté par le
+                   conteneur. */
+                <Anchored anchor={toneRef} maxWidth={260} gap={6}>
                   <motion.ul
                     role="listbox"
                     aria-label={isFr ? 'Ton' : 'Tone'}
@@ -448,13 +457,14 @@ export default function CharacterCarousel({
                       </li>
                     ))}
                   </motion.ul>
-                </div>
+                </Anchored>
               )}
             </AnimatePresence>
           </div>
         ) : tagline ? (
-          <p className="mt-2 text-center text-[11.5px] text-q2-fog q2-body-text">{tagline}</p>
+          <p className="max-w-full truncate px-2 text-center text-[11.5px] text-q2-fog q2-body-text">{tagline}</p>
         ) : null}
+        </div>
 
         {/* La ligne de diagnostic (« 49 ko · lecteur audio · 0,7 s ») était un
             outil de mise au point, pas de l'interface: elle s'affichait à tous
