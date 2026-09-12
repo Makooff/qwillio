@@ -27,9 +27,17 @@ describe('visibleVoices', () => {
     expect(ids).toEqual(['c1', 'c2', 'k1']);
   });
 
-  it('filtre les voix Cartesia par genre, et laisse passer les clones', () => {
-    expect(visibleVoices([cartesiaF, cartesiaM, clone], 'f', '').map(x => x.voiceId)).toEqual(['c1', 'k1']);
-    expect(visibleVoices([cartesiaF, cartesiaM, clone], 'm', '').map(x => x.voiceId)).toEqual(['c2', 'k1']);
+  /**
+   * Les clones ont leur onglet: sous « Femmes » et « Hommes » on ne voit que
+   * le catalogue, sous « Clonées » rien d'autre que les siens.
+   */
+  it('filtre les voix Cartesia par genre, sans les clones', () => {
+    expect(visibleVoices([cartesiaF, cartesiaM, clone], 'f', '').map(x => x.voiceId)).toEqual(['c1']);
+    expect(visibleVoices([cartesiaF, cartesiaM, clone], 'm', '').map(x => x.voiceId)).toEqual(['c2']);
+  });
+
+  it('ne montre que les clones sous « Clonées »', () => {
+    expect(visibleVoices([cartesiaF, cartesiaM, clone, elevenStock], 'cloned', '').map(x => x.voiceId)).toEqual(['k1']);
   });
 
   it('cherche sans accents ni casse, sur le nom et la description', () => {

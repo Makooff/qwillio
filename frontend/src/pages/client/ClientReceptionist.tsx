@@ -16,7 +16,7 @@ import { type Character } from '../../components/client/CharacterPicker';
 import CharacterCarousel from '../../components/v2/app/CharacterCarousel';
 import AssistantChat from '../../components/client/AssistantChat';
 import KnowledgeGaps from '../../components/client/KnowledgeGaps';
-import VoiceCloner, { type CustomVoice } from '../../components/client/VoiceCloner';
+import { type CustomVoice } from '../../components/client/VoiceCloner';
 import OwnNumber from '../../components/client/OwnNumber';
 import { HubGroup, HubRow, HubPanel } from '../../components/client/SettingsHub';
 import { transferAdvice, type ForwardingType } from '../../lib/forwarding-codes';
@@ -126,7 +126,7 @@ const PERSONALITY_PRESETS: { v: string; l: string; d: string }[] = [
  * cinq. Le panneau le respecte, puisque c'est le MÊME arbre React — même état,
  * même sauvegarde — simplement posé au-dessus au lieu d'être déplié.
  */
-function Section({ title, hint, icon, children, id, openId, setOpenId, right }: {
+function Section({ title, hint, icon, children, id, openId, setOpenId, right, chrome }: {
   title: string;
   hint?: string;
   icon: React.ElementType;
@@ -136,12 +136,14 @@ function Section({ title, hint, icon, children, id, openId, setOpenId, right }: 
   openId: string | null;
   setOpenId: (v: string | null) => void;
   right?: React.ReactNode;
+  /** Voir `HubPanel`: `close` ne montre que l'enfant, avec une croix. */
+  chrome?: 'header' | 'close';
 }) {
   const open = openId === id;
   return (
     <>
       <HubRow title={title} hint={hint} icon={icon} right={right} onOpen={() => setOpenId(id)} />
-      <HubPanel open={open} onClose={() => setOpenId(null)} title={title} hint={hint}>
+      <HubPanel open={open} onClose={() => setOpenId(null)} title={title} hint={hint} chrome={chrome}>
         {children}
       </HubPanel>
     </>
@@ -316,7 +318,6 @@ export default function ClientReceptionist() {
      la page n'invente aucune liste de niches de son cote. */
   const [presets, setPresets] = useState<KnowledgePresets | null>(null);
   const [personalityPreset, setPersonalityPreset] = useState<string>('warm');
-  const [personalityNotes, setPersonalityNotes] = useState('');
   const [characterId, setCharacterId] = useState<string>('marie');
   const [characters, setCharacters] = useState<Character[]>([]);
   const [customVoice, setCustomVoice] = useState<CustomVoice | null>(null);
@@ -409,7 +410,6 @@ export default function ClientReceptionist() {
       setKnowledge(s?.knowledge && typeof s.knowledge === 'object' ? s.knowledge : {});
       setPresets(s?.knowledgePresets || null);
       setPersonalityPreset(s?.personalityPreset || 'warm');
-      setPersonalityNotes(s?.personalityNotes || '');
       setCharacterId(s?.characterId || 'marie');
       setCustomVoice(s?.customVoice?.voiceId ? s.customVoice : null);
       setVoiceMode(s?.voiceMode === 'realtime' || s?.voiceMode === 'classic' ? s.voiceMode : 'auto');
@@ -548,7 +548,11 @@ export default function ClientReceptionist() {
         faqEntries,
         knowledge,
         personalityPreset,
-        personalityNotes,
+        /* `personalityNotes` n'est PLUS envoyé: le champ a quitté cette page,
+           et c'est l'assistant de configuration qui l'écrit. Le PUT est
+           partiel — poster ici la copie chargée au montage écraserait, 900 ms
+           après n'importe quelle frappe ailleurs, ce que le chat vient
+           d'enregistrer. Les clés partent avec les champs, jamais après. */
         characterId,
         customVoice,
         voiceMode,
@@ -561,7 +565,7 @@ export default function ClientReceptionist() {
       invalidateLive('/my-dashboard/');
     } catch { /* silent — the next edit retries */ }
   }, [transferNumber, agentName, transferMode, forwardingType, googleCalendarId,
-      items, weekHours, faqEntries, knowledge, personalityPreset, personalityNotes, characterId, customVoice, voiceMode, ttsProvider]);
+      items, weekHours, faqEntries, knowledge, personalityPreset, characterId, customVoice, voiceMode, ttsProvider]);
 
   // Auto-save: debounce after any edit. Skips the initial hydration from load()
   // so we never fire a redundant save on mount.
@@ -749,7 +753,11 @@ export default function ClientReceptionist() {
       <Section title="Votre numéro" hint="Celui que vos clients composent déjà" id="mon-numero" openId={openId} setOpenId={setOpenId} icon={Phone}>
         <OwnNumber isFr={agentLanguage !== 'en'} />
       </Section>
-      <Section title="Identité de l'agent" hint="Nom, voix et caractère" id="identite" openId={openId} setOpenId={setOpenId} icon={Bot}>
+      {/* Carte seule (demande utilisateur): la fiche du personnage EST le
+          panneau. L'entête, le titre, la flèche et le fond autour la faisaient
+          lire comme une page dans une page; il ne reste que la carte grise et
+          une croix. */}
+      <Section title="Identité de l'agent" hint="Nom, voix et caractère" id="identite" openId={openId} setOpenId={setOpenId} icon={Bot} chrome="close">
         {/* Le champ « Nom de l'agent », le rappel entreprise/métier/langue et
             le titre du personnage sont partis (demande utilisateur). Chacun
             disait deux fois la même chose: le nom se change au crayon, sur le
@@ -787,34 +795,10 @@ export default function ClientReceptionist() {
               onTone={setPersonalityPreset}
               tones={PERSONALITY_PRESETS}
             >
-              {/* La personnalisation descend dans la fiche (demande
-                  utilisateur): elle précise ce que dit CE personnage, avec CE
-                  ton, et se lisait jusqu'ici comme un réglage de page. */}
-              <label
-                htmlFor="perso-notes"
-                className="block text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2"
-              >
-                Personnalisation
-              </label>
-              <textarea
-                id="perso-notes"
-                value={personalityNotes}
-                onChange={e => setPersonalityNotes(e.target.value)}
-                rows={4}
-                placeholder="Précisez ce qui vous est propre : promotions en cours, mots à utiliser, à éviter, formule d'accueil…"
-                className={`${inputCls} resize-y leading-relaxed`}
-                style={{ minHeight: 100 }}
-              />
-            </CharacterCarousel>
-            <VoiceCloner
-              voice={customVoice}
-              isFr={agentLanguage !== 'en'}
-              // A clone is selected the moment it exists, and deleting it falls
-              // back to the character's own voice — the character itself never
-              // moves.
-              onChange={v => setCustomVoice(v ? { ...v, cloned: true } : null)}
-            />
-
+              {/* Le moteur vocal descend dans la carte, à la place de la
+                  personnalisation: celle-ci se règle avec l'assistant de
+                  configuration (demande utilisateur), et un champ ici en
+                  écrasait la copie à chaque sauvegarde automatique. */}
             {/* —— Moteur vocal ——
                 Deux architectures, pas deux réglages de confort. En temps réel
                 le modèle entend et répond en audio, sans passer par du texte :
@@ -825,7 +809,7 @@ export default function ClientReceptionist() {
                 clonée.
                 Ce choix vivait dans le backend sans aucun moyen de le changer,
                 alors que c'est lui qui décide de ce que l'appelant entend. */}
-            <div className="mt-6 pt-6 border-t border-white/[0.06]">
+            <div>
               <label className="block text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2">
                 Moteur vocal
               </label>
@@ -898,6 +882,8 @@ export default function ClientReceptionist() {
                 {engineReason && <span className="text-[#8B8BA7]">({engineReason})</span>}
               </p>
             </div>
+            </CharacterCarousel>
+
           </div>
         )}
 

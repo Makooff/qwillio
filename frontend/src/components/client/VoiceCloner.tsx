@@ -35,8 +35,9 @@ const ERRORS: Record<string, string> = {
 /**
  * Record once, and the receptionist answers in the owner's own voice.
  *
- * Deliberately not a modal: this sits under the character grid because a cloned
- * voice is one more choice among the others, not a separate ceremony.
+ * Deliberately not a modal: it lives in the voice menu, under the « Clonées »
+ * tab, because a cloned voice is one more choice among the others, not a
+ * separate ceremony.
  */
 export default function VoiceCloner({
   voice, onChange, isFr = true,
@@ -165,7 +166,7 @@ export default function VoiceCloner({
           <div className="min-w-0">
             <p className="text-[13px] font-semibold text-[#e7bafd]">Votre voix est clonée</p>
             <p className="text-[11px] text-[#8B8BA7] mt-0.5">
-              Elle est sélectionnée dans la liste des voix ci-dessus. Le personnage, lui, ne change pas.
+              Elle est sélectionnée pour vos appels. Le personnage, lui, ne change pas.
             </p>
           </div>
           <button

@@ -1046,7 +1046,10 @@ export class ClientDashboardController {
       const id = String(req.params.id || '');
       const isCustom = id === CUSTOM_CHARACTER_ID;
       if (!isCustom && !isValidCharacterId(id)) return res.status(404).json({ error: 'Unknown character' });
-      if (!env.ELEVENLABS_API_KEY) return res.status(503).json({ error: 'elevenlabs_key_missing' });
+      /* Plus de garde sur la clé ElevenLabs ICI: une voix Cartesia s'écoute
+         sans elle, et le service lève `elevenlabs_key_missing` (503) lui-même
+         quand c'est vraiment ElevenLabs qui doit synthétiser. La garde
+         fermait tout l'aperçu, Cartesia compris, à un compte sans ElevenLabs. */
 
       // The sample follows the CLIENT's language, not the character's: a
       // character is bilingual now, so playing French to an English client
@@ -1055,6 +1058,15 @@ export class ClientDashboardController {
         where: { id: req.clientId },
         select: { agentLanguage: true, country: true, vapiConfig: true },
       });
+      /* La langue du PROFIL, la même que la liste des voix et que l'appel.
+         Cette route avait sa propre règle (`startsWith('fr')` ou pays), la
+         liste en avait une autre (`agentLanguage === 'en'`), et le profil une
+         troisième: sur un compte « en » + « BE », la liste servait des voix
+         anglaises que cette route cherchait dans le catalogue français, donc
+         404 sur chaque bouton lecture. Voir `listVoices`. */
+      const { realtimeContextService } = await import('../services/voice/realtime-context.service');
+      const previewProfile = await realtimeContextService.getClientProfile(req.clientId);
+      const previewFrench = (previewProfile?.language ?? 'fr') === 'fr';
 
       // `custom` is the old pseudo-character, kept because configs written
       // before the override model still name it. It resolves to whatever voice
@@ -1069,7 +1081,7 @@ export class ClientDashboardController {
         const voiceId = (custom?.voiceId ?? '') as string;
         if (!voiceId) return res.status(404).json({ error: 'no_custom_voice' });
         cloned = custom?.cloned === true;
-        const base = CHARACTERS[previewClient?.agentLanguage?.startsWith('fr') ? DEFAULT_CHARACTER_FR : DEFAULT_CHARACTER_EN];
+        const base = CHARACTERS[previewFrench ? DEFAULT_CHARACTER_FR : DEFAULT_CHARACTER_EN];
         character = {
           ...base,
           voiceId,
@@ -1081,12 +1093,6 @@ export class ClientDashboardController {
       if (!character) return res.status(404).json({ error: 'Unknown character' });
 
       const overrideId = String(req.query.voiceId || '').trim();
-      /* Remonté AU DESSUS du bloc `overrideId`: la langue sert maintenant à
-         choisir le catalogue à interroger, pas seulement le texte de la
-         phrase, et elle était déclarée après. */
-      const previewFrench = previewClient?.agentLanguage?.startsWith('fr')
-        || ['FR', 'BE', 'LU', 'MC', 'CH'].includes(String(previewClient?.country || '').toUpperCase());
-
       if (overrideId) {
         // Checked against the account's own voices so this route cannot be used
         // as an open text-to-speech proxy on our ElevenLabs quota.
@@ -1435,19 +1441,23 @@ export class ClientDashboardController {
       const { voiceCatalogService } = await import('../services/voice/voice-catalog.service');
       // L'identifiant FILTRE les clones: sans lui, ce client verrait les voix
       // clonées de tous les autres. Voir `cloneBelongsTo`.
-      /* La langue de l'agent: le catalogue Cartesia est filtré dessus, sans
-         quoi un gérant francophone choisirait parmi des voix anglaises. */
-      const c = await prisma.client.findUnique({
-        where: { id: req.clientId },
-        select: { agentLanguage: true, vapiConfig: true },
-      });
-      const lang = c?.agentLanguage === 'nl' ? 'nl' : c?.agentLanguage === 'en' ? 'en' : 'fr';
-      const tts = (c?.vapiConfig as any)?.ttsProvider;
+      /* La langue du PROFIL, celle que l'agent PARLE sur les appels — et pas
+         une troisième règle écrite à la main.
+         Relevé le 12/09/2026 sur un vrai compte: `agentLanguage` valait « en »
+         (un défaut d'inscription), le pays « BE ». Le profil, où le pays
+         l'emporte, faisait parler l'agent en FRANÇAIS; cette route lisait
+         `agentLanguage` et servait des voix ANGLAISES; la route d'aperçu
+         avait sa propre règle, disait français, ne retrouvait pas la voix
+         anglaise choisie et répondait 404. Trois règles, trois réponses, un
+         client qui voit des voix qui ne parlent pas la langue de ses appels
+         et qui ne peut en écouter aucune. C'est 6vicies, une fois de plus.
+         Une voix sert un appel: elle se filtre sur la langue de l'appel. */
+      const { realtimeContextService } = await import('../services/voice/realtime-context.service');
+      const profile = await realtimeContextService.getClientProfile(req.clientId);
+      const lang = profile?.language ?? 'fr';
+      const tts = profile?.ttsProvider;
       res.json({
-        voices: await voiceCatalogService.list(
-          req.clientId, lang,
-          tts === 'cartesia' || tts === '11labs' ? tts : undefined,
-        ),
+        voices: await voiceCatalogService.list(req.clientId, lang, tts),
       });
     } catch (error: any) {
       // 503 rather than 500 for a missing key: the UI shows "not configured",
