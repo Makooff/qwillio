@@ -16,6 +16,40 @@ export interface CatalogVoice {
   provider?: 'cartesia';
 }
 
+/**
+ * « masculine », « Male », « homme » → `male`. Les deux catalogues étiquettent
+ * chacun à sa façon, et le tri ne doit pas dépendre de laquelle.
+ */
+export function voiceGender(raw: string | null | undefined): 'male' | 'female' | null {
+  const g = (raw ?? '').trim().toLowerCase();
+  if (['male', 'masculine', 'm', 'homme', 'man'].includes(g)) return 'male';
+  if (['female', 'feminine', 'f', 'femme', 'woman'].includes(g)) return 'female';
+  return null;
+}
+
+export type VoiceGroup = 'cloned' | 'female' | 'male' | 'other';
+
+/**
+ * Les voix par groupe, dans l'ordre où l'écran les montre.
+ *
+ * Les clones d'abord: ce sont les seules voix qui appartiennent au client, et
+ * les seules qu'on peut supprimer. Puis femmes, hommes, et ce dont le
+ * catalogue ne dit pas le genre — servi plutôt que caché, parce qu'une voix
+ * absente ne se distingue pas d'une panne. Une voix clonée n'apparaît QUE
+ * sous « clonées », même si son étiquette porte un genre: la propriété passe
+ * avant le timbre.
+ */
+export function groupVoices(voices: CatalogVoice[]): Array<{ group: VoiceGroup; voices: CatalogVoice[] }> {
+  const by: Record<VoiceGroup, CatalogVoice[]> = { cloned: [], female: [], male: [], other: [] };
+  for (const v of voices) {
+    if (v.cloned) by.cloned.push(v);
+    else by[voiceGender(v.gender) ?? 'other'].push(v);
+  }
+  return (['cloned', 'female', 'male', 'other'] as const)
+    .map(group => ({ group, voices: by[group] }))
+    .filter(g => g.voices.length > 0);
+}
+
 export interface SelectedVoice {
   voiceId: string;
   name: string;
@@ -124,7 +158,33 @@ export default function VoicePicker({
 
   if (error) return <p role="status" className="mt-3 text-[11px] text-[#f0a0a0]">{error}</p>;
 
-  const rows: Array<{ key: string; label: string; sub: string; voice: SelectedVoice | null; cloned: boolean }> = [
+  const GROUP_LABEL: Record<VoiceGroup, string> = isFr
+    ? { cloned: 'Vos voix clonées', female: 'Voix féminines', male: 'Voix masculines', other: 'Autres voix' }
+    : { cloned: 'Your cloned voices', female: 'Female voices', male: 'Male voices', other: 'Other voices' };
+
+  type Row = { key: string; label: string; sub: string; voice: SelectedVoice | null; cloned: boolean; header?: string };
+
+  const toRow = (v: CatalogVoice): Row => ({
+    key: v.voiceId,
+    label: v.name,
+    /* Le genre n'est plus répété dans la ligne: il est devenu le titre du
+       groupe. Reste l'accent et la description, qui distinguent deux voix du
+       même groupe. */
+    sub: [v.accent, v.description].filter(Boolean).join(' · ')
+      // Le repli nomme le bon catalogue: écrire « voix ElevenLabs » sous une
+      // voix Cartesia est faux, et c'est faux à l'endroit précis où le client
+      // décide.
+      || (v.provider === 'cartesia' ? 'Voix Cartesia' : isFr ? 'Voix ElevenLabs' : 'ElevenLabs voice'),
+    voice: {
+      voiceId: v.voiceId,
+      name: v.name,
+      ...(v.cloned ? { cloned: true } : {}),
+      ...(v.provider ? { provider: v.provider } : {}),
+    },
+    cloned: v.cloned,
+  });
+
+  const rows: Row[] = [
     {
       key: 'default',
       label: isFr ? `Voix d'origine (${characterVoiceName})` : `Original voice (${characterVoiceName})`,
@@ -132,23 +192,9 @@ export default function VoicePicker({
       voice: null,
       cloned: false,
     },
-    ...voices.map(v => ({
-      key: v.voiceId,
-      label: v.name,
-      sub: [v.cloned ? (isFr ? 'Voix clonée' : 'Cloned voice') : null, v.gender, v.accent, v.description]
-        .filter(Boolean).join(' · ')
-        // Le repli nomme le bon catalogue: écrire « voix ElevenLabs » sous une
-        // voix Cartesia est faux, et c'est faux à l'endroit précis où le client
-        // décide.
-        || (v.provider === 'cartesia' ? 'Voix Cartesia' : isFr ? 'Voix ElevenLabs' : 'ElevenLabs voice'),
-      voice: {
-        voiceId: v.voiceId,
-        name: v.name,
-        ...(v.cloned ? { cloned: true } : {}),
-        ...(v.provider ? { provider: v.provider } : {}),
-      },
-      cloned: v.cloned,
-    })),
+    ...groupVoices(voices).flatMap(({ group, voices: list }) =>
+      list.map((v, i) => ({ ...toRow(v), ...(i === 0 ? { header: GROUP_LABEL[group] } : {}) })),
+    ),
   ];
 
   return (
@@ -176,7 +222,13 @@ export default function VoicePicker({
           const sel = (value?.voiceId ?? null) === (r.voice?.voiceId ?? null);
           const url = previewUrl(characterId, r.voice);
           return (
-            <div key={r.key} className="flex items-center gap-2 px-3 py-2.5">
+            <div key={r.key}>
+              {r.header && (
+                <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[#6D6D7A]">
+                  {r.header}
+                </p>
+              )}
+            <div className="flex items-center gap-2 px-3 py-2.5">
               <button
                 type="button"
                 onClick={() => onChange(r.voice)}
@@ -240,6 +292,7 @@ export default function VoicePicker({
                   </button>
                 )
               )}
+            </div>
             </div>
           );
         })}

@@ -4,6 +4,7 @@
  *   npm run voice:cartesia                 # les voix françaises
  *   npm run voice:cartesia -- --lang=nl    # une autre langue
  *   npm run voice:cartesia -- --try=<id>   # synthétise une phrase avec cette voix
+ *   npm run voice:cartesia -- --raw        # la première entrée telle que Cartesia la rend
  *
  * ## Pourquoi un script, et pas une réponse
  *
@@ -33,7 +34,7 @@
  * fabriquer une déduction fausse qui a l'air d'une lecture.
  */
 import { env } from '../config/env';
-import { listCartesiaVoices, synthesiseWithCartesia, CartesiaError } from '../services/voice/cartesia.service';
+import { listCartesiaVoices, synthesiseWithCartesia, CartesiaError, API_VERSION } from '../services/voice/cartesia.service';
 import type { VoiceLanguage } from '../services/voice/speech-plans';
 
 const arg = (name: string): string | null => {
@@ -81,6 +82,20 @@ async function main() {
     return;
   }
 
+  /* `--raw`: l'objet ENTIER de la première voix, tel que Cartesia le rend.
+     La documentation n'est pas atteignable d'ici, et le portail veut trier par
+     genre: c'est ce champ-là qu'on cherche, sous le nom exact qu'il porte, et
+     non sous celui qu'on lui suppose. Lire la réponse plutôt que deviner sa
+     forme est toute la raison de ce script. */
+  if (process.argv.includes('--raw')) {
+    const r = await fetch('https://api.cartesia.ai/voices/?limit=1', {
+      headers: { 'X-API-Key': env.CARTESIA_API_KEY, 'Cartesia-Version': API_VERSION },
+    });
+    console.log(`\nHTTP ${r.status}\n`);
+    console.log(await r.text());
+    return;
+  }
+
   const voices = await listCartesiaVoices(lang);
   if (!voices.length) {
     console.log(`\nAucune voix ${lang} sur ce compte Cartesia.\n`);
@@ -90,7 +105,7 @@ async function main() {
   console.log(`\n${voices.length} voix « ${lang} » sur ce compte:\n`);
   for (const v of voices) {
     console.log(`  ${v.voiceId}`);
-    console.log(`    ${v.name}${v.language ? ` · ${v.language}` : ''}`);
+    console.log(`    ${v.name}${v.gender ? ` · ${v.gender === 'male' ? 'homme' : 'femme'}` : ''}${v.language ? ` · ${v.language}` : ''}`);
     if (v.description) console.log(`    ${v.description}`);
   }
 

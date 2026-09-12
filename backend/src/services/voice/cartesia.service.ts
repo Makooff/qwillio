@@ -22,7 +22,7 @@ import type { VoiceLanguage } from './speech-plans';
  */
 
 /** Version d'API épinglée: Cartesia la lit dans un en-tête et refuse sans elle. */
-const API_VERSION = '2024-11-13';
+export const API_VERSION = '2024-11-13';
 const ENDPOINT = 'https://api.cartesia.ai/tts/bytes';
 
 /** Les codes de langue de Cartesia, qui sont ceux de Vapi pour ce fournisseur. */
@@ -146,6 +146,25 @@ export interface CartesiaCatalogVoice {
   name: string;
   description: string | null;
   language: string | null;
+  /**
+   * `male` / `female`, ou `null`.
+   *
+   * Cartesia le déclare sous une forme qu'on ne peut pas lire d'ici (la
+   * documentation n'est pas atteignable de cet environnement), d'où une
+   * lecture tolérante: `gender` ou `labels.gender`, « masculine » comme
+   * « male ». C'est ce champ qui permet au portail de trier hommes et femmes;
+   * absent, la voix est servie sous « autres » plutôt que cachée.
+   */
+  gender: 'male' | 'female' | null;
+}
+
+/** « masculine », « Male », « m » → `male`; le reste → `null`, jamais deviné. */
+export function normaliseGender(raw: unknown): 'male' | 'female' | null {
+  if (typeof raw !== 'string') return null;
+  const g = raw.trim().toLowerCase();
+  if (g === 'male' || g === 'masculine' || g === 'm' || g === 'homme' || g === 'man') return 'male';
+  if (g === 'female' || g === 'feminine' || g === 'f' || g === 'femme' || g === 'woman') return 'female';
+  return null;
 }
 
 export function toCartesiaVoice(raw: unknown): CartesiaCatalogVoice | null {
@@ -155,11 +174,13 @@ export function toCartesiaVoice(raw: unknown): CartesiaCatalogVoice | null {
   if (typeof id !== 'string') return null;
 
   const str = (x: unknown) => (typeof x === 'string' && x.trim() !== '' ? x : null);
+  const labels = v.labels && typeof v.labels === 'object' ? (v.labels as Record<string, unknown>) : {};
   return {
     voiceId: id,
     name: str(v.name) ?? 'Sans nom',
     description: str(v.description),
     language: str(v.language),
+    gender: normaliseGender(v.gender) ?? normaliseGender(labels.gender),
   };
 }
 

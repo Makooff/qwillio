@@ -86,3 +86,21 @@ describe('cartesiaChoice — le motif autant que la décision', () => {
     }
   });
 });
+
+/**
+ * Le genre, tel que Cartesia le déclare, sous une forme qu'on ne peut pas lire
+ * d'ici: la lecture est tolérante et ne devine jamais. Une voix sans genre est
+ * servie sous « autres » plutôt que cachée.
+ */
+describe('toCartesiaVoice — le genre', () => {
+  it('lit `gender` sous les formes plausibles, et rien d\'autre', async () => {
+    const { toCartesiaVoice, normaliseGender } = await import('../cartesia.service');
+    expect(normaliseGender('masculine')).toBe('male');
+    expect(normaliseGender('Female')).toBe('female');
+    expect(normaliseGender('neutral')).toBeNull();
+    expect(normaliseGender(42)).toBeNull();
+    expect(toCartesiaVoice({ id: 'v1', name: 'Léa', gender: 'feminine' })?.gender).toBe('female');
+    expect(toCartesiaVoice({ id: 'v2', name: 'X', labels: { gender: 'male' } })?.gender).toBe('male');
+    expect(toCartesiaVoice({ id: 'v3', name: 'Y' })?.gender).toBeNull();
+  });
+});
