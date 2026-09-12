@@ -108,8 +108,17 @@ describe('buildSystemPrompt', () => {
        plafond: elle s'est repliée dans les règles de rendez-vous et de transfert
        qui parlaient déjà d'un rappel sans dire de qui. C'est la règle quand un
        défaut se corrige par le prompt: replier d'abord, ajouter seulement quand
-       aucune ligne existante ne peut porter la précision. */
-    expect(buildSystemPrompt(profile, newCaller).length).toBeLessThan(2300);
+       aucune ligne existante ne peut porter la précision.
+       QUATRIÈME hausse, de 50 caractères, et aucune ligne n'est ajoutée: la
+       règle de rendez-vous en réécrit une, pour 29 caractères de plus. Elle
+       disait « ne demande pas une précision », ce qui laissait le modèle juger
+       ce qu'est une précision; elle nomme maintenant le geste fautif relevé
+       quatre fois (« matin ou après-midi ? » au lieu de consulter l'agenda) et
+       le geste attendu. Le français était strictement plus faible que l'anglais
+       sur ce point, qui avait gardé sa seconde règle: c'était une divergence,
+       pas une économie. Un tour de parole perdu par demande de rendez-vous
+       coûte plus cher que 29 caractères rejoués. */
+    expect(buildSystemPrompt(profile, newCaller).length).toBeLessThan(2350);
   });
 
   it('injects the pre-rendered knowledge block when one is supplied', () => {
@@ -210,7 +219,7 @@ describe('les règles de transfert, réglées par le client', () => {
   it('ne fait pas grossir le prompt, qui est rejoué à chaque tour', () => {
     // Les trois variantes tiennent la même longueur à quelques caractères près.
     const tailles = (['always', 'hours', 'never'] as const).map(m => withMode(m).length);
-    expect(Math.max(...tailles)).toBeLessThan(2300);
+    expect(Math.max(...tailles)).toBeLessThan(2350);
     expect(Math.max(...tailles) - Math.min(...tailles)).toBeLessThan(30);
   });
 });
@@ -230,17 +239,25 @@ describe('les règles de transfert, réglées par le client', () => {
  * tutoie un inconnu s'entend en une seconde.
  */
 /**
- * La discipline d'agenda, dite explicitement.
+ * La discipline d'agenda, et le geste fautif NOMMÉ.
  *
  * « Un rendez-vous demain matin » suffit pour consulter. Demander « le matin ou
  * l'après-midi ? » avant d'avoir regardé coûte un tour entier à l'appelant et
- * ne change rien à ce que l'agenda contient. Le scénario d'évaluation a attrapé
- * ce comportement deux fois: la règle manquait, elle est maintenant écrite.
+ * ne change rien à ce que l'agenda contient.
+ *
+ * La première rédaction disait « ne demande pas une précision », et le scénario
+ * a continué de tomber — quatre fois, dont deux consécutives sur un commit qui
+ * ne touchait ni le prompt ni les outils. C'est ce qui a écarté le tirage:
+ * « une précision » laisse le modèle juger ce qu'est une précision, et il
+ * jugeait que matin ou après-midi en était une. Le test s'accroche donc au
+ * GESTE nommé, pas à la formule abstraite qui n'a pas marché.
  */
 describe('buildSystemPrompt — consulter avant de préciser', () => {
-  it('interdit de demander une précision avant de consulter l\'agenda', () => {
+  it('nomme le geste fautif, au lieu d\'interdire « une précision »', () => {
     const prompt = buildSystemPrompt(profile, newCaller);
-    expect(prompt).toMatch(/checkAvailability AVANT de proposer une heure ou de demander une précision/);
+    expect(prompt).toMatch(/checkAvailability AVANT/);
+    expect(prompt).toMatch(/matin ou après-midi/);
+    expect(prompt).toMatch(/demain matin/);
   });
 
   it('le dit dans les trois langues', () => {
