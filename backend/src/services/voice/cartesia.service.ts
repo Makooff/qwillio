@@ -193,21 +193,49 @@ export function invalidateCartesiaCatalog(): void {
 }
 
 /**
- * Les voix du compte, filtrées sur la langue de l'agent.
- *
- * Le filtre est appliqué SEULEMENT quand l'entrée porte une langue: une voix
- * sans langue déclarée est servie plutôt que cachée, parce qu'une liste vide
- * ne se distingue pas d'une panne à l'écran.
+ * Combien de pages au plus. 100 voix par page: 50 pages couvrent 5 000 voix,
+ * bien au-delà de la bibliothèque publique, et bornent une boucle qui ne
+ * doit jamais tourner sans fin sur une réponse mal formée.
  */
-export async function listCartesiaVoices(lang: VoiceLanguage): Promise<CartesiaCatalogVoice[]> {
-  if (!env.CARTESIA_API_KEY) throw new CartesiaError('cartesia_key_missing');
+const MAX_CATALOG_PAGES = 50;
 
-  if (!catalog || Date.now() - catalog.at >= CATALOG_TTL_MS) {
+/**
+ * TOUT le catalogue, page après page.
+ *
+ * ── Le trou que ceci bouche ────────────────────────────────────────────────
+ *
+ * La première version demandait `?limit=100` UNE fois et filtrait sur la
+ * langue ce qu'elle avait reçu. Or la réponse réelle, lue le 12/09/2026 avec
+ * `npm run voice:cartesia -- --raw`, porte `has_more: true` et un
+ * `next_page`: Cartesia sert sa bibliothèque PUBLIQUE entière
+ * (`is_public: true`, `is_owner: false`), soit bien plus de cent voix, et les
+ * cent premières sont à peu près toutes anglaises. Le sélecteur du portail
+ * montrait donc « aucune voix française » ou une poignée, selon l'ordre du
+ * jour — et le client, qui voyait des dizaines de voix françaises sur le site
+ * de Cartesia, ne comprenait pas ce qui manquait. Rien ne manquait: on
+ * n'avait pas tourné la page.
+ *
+ * ── Le curseur, et ce qu'on n'a PAS pu vérifier ───────────────────────────
+ *
+ * `next_page` vaut l'identifiant de la dernière entrée servie. Le nom du
+ * paramètre qui le renvoie n'est pas lisible d'ici (la documentation n'est pas
+ * atteignable); `starting_after` est la forme habituelle de ce type de
+ * curseur. Si elle est fausse, la page suivante RÉPÈTE la première: la boucle
+ * le détecte (aucun identifiant nouveau), s'arrête, et le journal nomme le
+ * paramètre à corriger, plutôt que de tourner cinquante fois ou de servir la
+ * même page en boucle. Une supposition qui se vérifie elle-même vaut mieux
+ * qu'une lecture qu'on n'a pas.
+ */
+async function fetchWholeCatalog(): Promise<CartesiaCatalogVoice[]> {
+  const seen = new Set<string>();
+  const voices: CartesiaCatalogVoice[] = [];
+  let cursor: string | null = null;
+
+  for (let page = 0; page < MAX_CATALOG_PAGES; page++) {
+    const url = `https://api.cartesia.ai/voices/?limit=100${cursor ? `&starting_after=${encodeURIComponent(cursor)}` : ''}`;
     let r: Response;
     try {
-      r = await fetch('https://api.cartesia.ai/voices/?limit=100', {
-        headers: { 'X-API-Key': env.CARTESIA_API_KEY, 'Cartesia-Version': API_VERSION },
-      });
+      r = await fetch(url, { headers: { 'X-API-Key': env.CARTESIA_API_KEY, 'Cartesia-Version': API_VERSION } });
     } catch (error) {
       throw new CartesiaError('cartesia_unreachable', undefined, (error as Error).message);
     }
@@ -218,12 +246,51 @@ export async function listCartesiaVoices(lang: VoiceLanguage): Promise<CartesiaC
       throw new CartesiaError('cartesia_list_failed', r.status, detail.slice(0, 200));
     }
 
-    const body = (await r.json().catch(() => ({}))) as { data?: unknown[] } | unknown[];
+    const body = (await r.json().catch(() => ({}))) as
+      | { data?: unknown[]; has_more?: boolean; next_page?: string | null }
+      | unknown[];
     const rows = Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : [];
-    catalog = {
-      at: Date.now(),
-      voices: rows.map(toCartesiaVoice).filter((v): v is CartesiaCatalogVoice => v !== null),
-    };
+
+    let fresh = 0;
+    for (const raw of rows) {
+      const v = toCartesiaVoice(raw);
+      if (!v || seen.has(v.voiceId)) continue;
+      seen.add(v.voiceId);
+      voices.push(v);
+      fresh++;
+    }
+
+    const more = !Array.isArray(body) && body?.has_more === true && typeof body?.next_page === 'string';
+    if (!more) break;
+
+    if (fresh === 0) {
+      /* La page suivante n'a rien apporté: le curseur n'est pas relu par ce
+         paramètre. On s'arrête AVEC ce qu'on a, et on le dit, plutôt que de
+         servir cent fois la même page. */
+      logger.warn(
+        `[Cartesia] pagination sans progrès après ${voices.length} voix: ` +
+          'le paramètre `starting_after` ne relit pas `next_page`. Catalogue tronqué.',
+      );
+      break;
+    }
+    cursor = (body as { next_page: string }).next_page;
+  }
+
+  return voices;
+}
+
+/**
+ * Les voix du compte, filtrées sur la langue de l'agent.
+ *
+ * Le filtre est appliqué SEULEMENT quand l'entrée porte une langue: une voix
+ * sans langue déclarée est servie plutôt que cachée, parce qu'une liste vide
+ * ne se distingue pas d'une panne à l'écran.
+ */
+export async function listCartesiaVoices(lang: VoiceLanguage): Promise<CartesiaCatalogVoice[]> {
+  if (!env.CARTESIA_API_KEY) throw new CartesiaError('cartesia_key_missing');
+
+  if (!catalog || Date.now() - catalog.at >= CATALOG_TTL_MS) {
+    catalog = { at: Date.now(), voices: await fetchWholeCatalog() };
   }
 
   const wanted = CARTESIA_LANG[lang];
