@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { motion, useReducedMotion } from 'framer-motion';
-import { Check, Loader2, Play, Search, Square } from '../../icons';
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
+import { Check, Loader2, Mic, Play, Search, Square } from '../../icons';
+import VoiceCloner from '../../client/VoiceCloner';
 import api from '../../../services/api';
 import type { CatalogVoice, SelectedVoice } from '../../client/VoicePicker';
 import { previewUrl } from '../../client/CharacterPicker';
@@ -26,7 +27,7 @@ import type { Character } from './CharacterPickerV2';
  * n'est pas une façon de choisir.
  */
 
-type GenderFilter = 'all' | 'f' | 'm';
+export type VoiceFilter = 'all' | 'f' | 'm' | 'cloned';
 
 export interface VoiceMenuProps {
   characters: Character[];
@@ -78,18 +79,20 @@ export function genderOf(v: CatalogVoice): 'f' | 'm' | null {
  * langue). Une voix de bibliothèque ElevenLabs reste cachée, pour la raison
  * d'origine qui n'a pas changé.
  *
- * Les clones échappent au filtre de genre: ils n'en portent pas, et ce sont
- * les seules voix qui appartiennent au client.
+ * Les clones ont leur onglet (« Clonées »), avec le bouton qui en crée un:
+ * ils n'ont pas de genre, et ce sont les seules voix qui appartiennent au
+ * client. Sous « Femmes » et « Hommes » on ne voit que le catalogue.
  */
 export function visibleVoices(
   voices: CatalogVoice[],
-  gender: GenderFilter,
+  filter: VoiceFilter,
   query: string,
 ): CatalogVoice[] {
   const q = fold(query.trim());
   return voices.filter(v => {
     if (!v.cloned && v.provider !== 'cartesia') return false;
-    if (gender !== 'all' && !v.cloned && genderOf(v) !== gender) return false;
+    if (filter === 'cloned' && !v.cloned) return false;
+    if ((filter === 'f' || filter === 'm') && (v.cloned || genderOf(v) !== filter)) return false;
     if (!q) return true;
     return fold(`${v.name} ${v.accent || ''} ${v.description || ''}`).includes(q);
   });
@@ -103,7 +106,9 @@ export default function VoiceMenu({
 }: VoiceMenuProps) {
   const reduce = useReducedMotion();
   const [query, setQuery] = useState('');
-  const [gender, setGender] = useState<GenderFilter>('all');
+  const [filter, setFilter] = useState<VoiceFilter>('all');
+  /* Le clonage s'ouvre DANS le menu, sous « Clonées », par son bouton. */
+  const [cloning, setCloning] = useState(false);
   const [voices, setVoices] = useState<CatalogVoice[] | null>(null);
   const [failed, setFailed] = useState(false);
   const searchRef = useRef<HTMLInputElement | null>(null);
@@ -125,14 +130,15 @@ export default function VoiceMenu({
 
   const shownCharacters = useMemo(
     () => characters.filter(c => {
-      if (gender !== 'all' && c.gender !== gender) return false;
+      if (filter === 'cloned') return false;
+      if (filter !== 'all' && c.gender !== filter) return false;
       if (!q) return true;
       return fold(`${c.name} ${c.accent} ${(isFr ? c.taglineFr : c.taglineEn) || ''}`).includes(q);
     }),
-    [characters, gender, q, isFr],
+    [characters, filter, q, isFr],
   );
 
-  const shownVoices = useMemo(() => visibleVoices(voices ?? [], gender, query), [voices, gender, query]);
+  const shownVoices = useMemo(() => visibleVoices(voices ?? [], filter, query), [voices, filter, query]);
 
   /* La phrase du personnage courant: c'est elle que chaque voix du catalogue
      dit à l'écoute, pour auditionner ce que l'appelant entendra et non une
@@ -140,7 +146,7 @@ export default function VoiceMenu({
   const current = characters.find(c => c.id === characterId);
   const sampleText = (isFr ? current?.previewFr : current?.previewEn) || '';
 
-  const empty = !shownCharacters.length && !shownVoices.length;
+  const empty = !shownCharacters.length && !shownVoices.length && filter !== 'cloned';
 
   return (
     /* Le placement est sur ce conteneur, l'animation sur son enfant.
@@ -158,15 +164,11 @@ export default function VoiceMenu({
         transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
         role="dialog"
         aria-label={isFr ? 'Choisir une voix' : 'Choose a voice'}
-        /* Verre: le flou est ce qui distingue un menu posé AU-DESSUS de la page
-           d'un panneau qui en fait partie. Teinte très basse, la matière vient
-           du flou et de la saturation, pas de la couleur. */
-        className="rounded-2xl border border-white/10 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.75)] overflow-hidden"
-        style={{
-          background: 'rgba(18, 19, 22, 0.62)',
-          backdropFilter: 'blur(22px) saturate(160%)',
-          WebkitBackdropFilter: 'blur(22px) saturate(160%)',
-        }}
+        /* La matière des cartes, opaque (`q2-obsidian`, bord `q2-graphite-d`),
+           et plus du verre: le flou est proscrit hors de la barre de
+           navigation, et un menu de la couleur de sa carte se lit comme une
+           partie de la fiche, pas comme un objet étranger posé dessus. */
+        className="rounded-2xl border border-q2-graphite-d bg-q2-obsidian shadow-[0_24px_60px_-20px_rgba(0,0,0,0.75)] overflow-hidden"
       >
         {/* Recherche */}
         <div className="p-2 pb-1.5">
@@ -188,22 +190,20 @@ export default function VoiceMenu({
               ['all', isFr ? 'Toutes' : 'All'],
               ['f', isFr ? 'Femmes' : 'Female'],
               ['m', isFr ? 'Hommes' : 'Male'],
-            ] as [GenderFilter, string][]).map(([v, label]) => (
+              ['cloned', isFr ? 'Clonées' : 'Cloned'],
+            ] as [VoiceFilter, string][]).map(([v, label]) => (
               <button
                 key={v}
                 type="button"
-                onClick={() => setGender(v)}
-                aria-pressed={gender === v}
+                onClick={() => setFilter(v)}
+                aria-pressed={filter === v}
                 className={`rounded-full px-3 py-1.5 text-[12px] transition-colors duration-150 ${
-                  gender === v ? 'bg-q2-indigo/25 text-white' : 'text-q2-fog hover:text-white'
+                  filter === v ? 'bg-q2-indigo/25 text-white' : 'text-q2-fog hover:text-white'
                 }`}
               >
                 {label}
               </button>
             ))}
-            {/* Le filtre « Clonées » a disparu avec les voix de catalogue: il
-                ne reste que des voix clonées, un filtre qui ne filtre rien
-                donne l'impression qu'on cache quelque chose. */}
           </div>
         </div>
 
@@ -248,7 +248,7 @@ export default function VoiceMenu({
               n'y a rien dessous: une section vide fait chercher ce qui manque. */}
           {(shownVoices.length > 0 || (voices === null && !failed)) && (
             <p className="px-1.5 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-q2-fog">
-              {isFr ? 'Voix' : 'Voices'}
+              {filter === 'cloned' ? (isFr ? 'Vos voix clonées' : 'Your cloned voices') : (isFr ? 'Voix' : 'Voices')}
             </p>
           )}
 
@@ -325,6 +325,44 @@ export default function VoiceMenu({
             <p className="px-1.5 py-3 text-center text-[11.5px] text-q2-fog">
               {isFr ? 'Rien ne correspond.' : 'Nothing matches.'}
             </p>
+          )}
+
+          {/* Le clonage vit ICI, sous son onglet (demande utilisateur): c'est
+              une voix de plus parmi les autres, pas une cérémonie à part sous
+              la fiche. Le bouton ouvre l'enregistreur sur place; la révélation
+              ne bouge que `opacity` et `transform`, jamais la hauteur. */}
+          {filter === 'cloned' && voices !== null && !failed && (
+            <div className="px-1.5 pb-1">
+              {!cloning && !override?.cloned && (
+                <button
+                  type="button"
+                  onClick={() => setCloning(true)}
+                  className="mt-1.5 w-full inline-flex items-center justify-center gap-2 rounded-xl border border-dashed border-q2-graphite-d px-3 py-2.5 text-[12.5px] font-medium text-q2-mist transition-colors duration-150 hover:border-q2-smoke-d hover:text-white active:scale-[0.97] focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
+                >
+                  <Mic size={13} aria-hidden="true" />
+                  {isFr ? 'Créer ma voix' : 'Create my voice'}
+                </button>
+              )}
+              <AnimatePresence initial={false}>
+                {(cloning || override?.cloned) && (
+                  <motion.div
+                    key="cloner"
+                    initial={{ opacity: 0, y: reduce ? 0 : -6 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: reduce ? 0 : -6 }}
+                    transition={{ duration: 0.18, ease: [0.16, 1, 0.3, 1] }}
+                  >
+                    <VoiceCloner
+                      voice={override?.cloned ? { voiceId: override.voiceId, name: override.name, cloned: true } : null}
+                      isFr={isFr}
+                      /* Un clone est choisi dès qu'il existe; le supprimer rend
+                         la voix du personnage. Le personnage, lui, ne bouge pas. */
+                      onChange={v => { setCloning(false); onOverride(v ? { ...v, cloned: true } : null); }}
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </div>
           )}
         </div>
 

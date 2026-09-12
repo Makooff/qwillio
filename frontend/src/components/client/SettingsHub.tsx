@@ -2,7 +2,7 @@ import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import type { ReactNode } from 'react';
-import { ChevronLeft, ChevronRight } from '../icons';
+import { ChevronLeft, ChevronRight, X } from '../icons';
 
 /**
  * Le hub de réglages: des rangées groupées, et un PANNEAU qui s'ouvre par-dessus.
@@ -78,13 +78,21 @@ export function HubRow({ title, hint, icon: Icon, right, onOpen }: HubRowProps) 
 }
 
 export function HubPanel({
-  open, onClose, title, hint, children,
+  open, onClose, title, hint, children, chrome = 'header',
 }: {
   open: boolean;
   onClose: () => void;
   title: string;
   hint?: string;
   children: ReactNode;
+  /**
+   * `header`: un panneau, avec son entête (retour, titre, sous-titre) et son
+   * corps qui défile. `close`: RIEN d'autre que l'enfant, qui est sa propre
+   * carte, et une croix posée sur son coin. Demandé pour la fiche du
+   * personnage: elle est déjà une carte complète, et l'entête plus le panneau
+   * autour la faisaient lire comme une page dans une page.
+   */
+  chrome?: 'header' | 'close';
 }) {
   const reduce = useReducedMotion();
 
@@ -107,7 +115,11 @@ export function HubPanel({
   return createPortal(
     <AnimatePresence>
       {open && (
-        <div className="fixed inset-0 z-[70] flex sm:items-center sm:justify-center sm:p-6">
+        <div
+          className={chrome === 'close'
+            ? 'fixed inset-0 z-[70] flex items-center justify-center p-4'
+            : 'fixed inset-0 z-[70] flex sm:items-center sm:justify-center sm:p-6'}
+        >
           <motion.div
             className="absolute inset-0 bg-black/60"
             initial={{ opacity: 0 }}
@@ -133,29 +145,55 @@ export function HubPanel({
             exit={reduce
               ? { opacity: 0, transition: { duration: 0.12 } }
               : { opacity: 0, y: 12, scale: 0.99, transition: { duration: 0.18, ease: EASE } }}
-            className="relative flex w-full flex-col bg-[#0A0A0C] sm:max-w-2xl sm:rounded-3xl sm:border sm:border-white/[0.08] sm:max-h-[86vh] overflow-hidden"
+            /* La couleur est celle des CARTES du tableau de bord (`q2-obsidian`,
+               bord `q2-graphite-d`), et non un noir à part: un panneau de la
+               couleur de la page, posé sur la page assombrie, ne se lisait pas
+               comme quelque chose posé dessus. Toutes les sous-fenêtres
+               suivent la même matière. */
+            className={chrome === 'close'
+              ? 'relative w-full sm:max-w-xl max-h-[92vh] overflow-y-auto overscroll-contain'
+              : 'relative flex w-full flex-col bg-q2-obsidian sm:max-w-2xl sm:rounded-3xl sm:border sm:border-q2-graphite-d sm:max-h-[86vh] overflow-hidden'}
           >
-            {/* Entête collante: le titre du réglage reste lisible quand on
-                descend dans un formulaire long, et le retour reste sous le
-                pouce. */}
-            <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-white/[0.06] bg-[#0A0A0C] px-3 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:pt-3">
-              <button
-                type="button"
-                onClick={onClose}
-                aria-label="Retour"
-                className="w-10 h-10 -ml-1 rounded-xl grid place-items-center text-[#A1A1A8] transition-colors active:bg-white/[0.06] sm:hover:text-[#F5F5F7]"
-              >
-                <ChevronLeft size={20} aria-hidden="true" />
-              </button>
-              <div className="min-w-0">
-                <h2 className="text-[16px] font-semibold tracking-tight text-[#F5F5F7] truncate">{title}</h2>
-                {hint && <p className="text-[12px] text-[#6B6B75] truncate">{hint}</p>}
-              </div>
-            </header>
+            {chrome === 'close' ? (
+              <>
+                {/* La croix vit SUR la carte, dans son coin: c'est la seule
+                    chose ajoutée à l'enfant, qui reste exactement la carte
+                    qu'il est ailleurs. 44 px: la cible minimale au pouce. */}
+                <button
+                  type="button"
+                  onClick={onClose}
+                  aria-label="Fermer"
+                  className="absolute right-2 top-2 z-10 w-11 h-11 rounded-full grid place-items-center border border-q2-graphite-d bg-q2-obsidian text-q2-fog transition-colors duration-150 active:scale-[0.97] sm:hover:text-white sm:hover:border-q2-smoke-d focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/50"
+                >
+                  <X size={15} aria-hidden="true" />
+                </button>
+                {children}
+              </>
+            ) : (
+              <>
+                {/* Entête collante: le titre du réglage reste lisible quand on
+                    descend dans un formulaire long, et le retour reste sous le
+                    pouce. */}
+                <header className="sticky top-0 z-10 flex items-center gap-3 border-b border-q2-graphite-d bg-q2-obsidian px-3 py-3 pt-[max(0.75rem,env(safe-area-inset-top))] sm:pt-3">
+                  <button
+                    type="button"
+                    onClick={onClose}
+                    aria-label="Retour"
+                    className="w-10 h-10 -ml-1 rounded-xl grid place-items-center text-[#A1A1A8] transition-colors active:bg-white/[0.06] sm:hover:text-[#F5F5F7]"
+                  >
+                    <ChevronLeft size={20} aria-hidden="true" />
+                  </button>
+                  <div className="min-w-0">
+                    <h2 className="text-[16px] font-semibold tracking-tight text-[#F5F5F7] truncate">{title}</h2>
+                    {hint && <p className="text-[12px] text-[#6B6B75] truncate">{hint}</p>}
+                  </div>
+                </header>
 
-            <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-5 pb-[max(2rem,env(safe-area-inset-bottom))]">
-              {children}
-            </div>
+                <div className="flex-1 overflow-y-auto overscroll-contain px-4 py-5 pb-[max(2rem,env(safe-area-inset-bottom))]">
+                  {children}
+                </div>
+              </>
+            )}
           </motion.div>
         </div>
       )}

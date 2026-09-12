@@ -423,12 +423,10 @@ export default function CharacterCarousel({
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: reduce ? 0 : -6 }}
                     transition={{ duration: 0.16, ease: [0.16, 1, 0.3, 1] }}
-                    className="overflow-hidden rounded-2xl border border-white/10 p-1 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.75)]"
-                    style={{
-                      background: 'rgba(18, 19, 22, 0.62)',
-                      backdropFilter: 'blur(22px) saturate(160%)',
-                      WebkitBackdropFilter: 'blur(22px) saturate(160%)',
-                    }}
+                    /* Même matière que le menu des voix et que la carte: opaque,
+                       `q2-obsidian`, bord `q2-graphite-d`. Le verre est proscrit
+                       hors de la barre de navigation. */
+                    className="overflow-hidden rounded-2xl border border-q2-graphite-d bg-q2-obsidian p-1 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.75)]"
                   >
                     {tones.map(t => (
                       <li key={t.v}>
