@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type RefObject } from 'react';
+import Anchored from './Anchored';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { Check, Loader2, Mic, Play, Search, Square } from '../../icons';
 import VoiceCloner from '../../client/VoiceCloner';
@@ -41,6 +42,8 @@ export interface VoiceMenuProps {
   onToggle: (key: string, url: string, text: string) => void;
   previewUrlFor: (characterId: string) => string;
   isFr: boolean;
+  /** L'élément sous lequel le menu se pose; il est rendu hors de la carte. */
+  anchor: RefObject<HTMLElement | null>;
 }
 
 const ACCENT_LABEL: Record<string, string> = { FR: 'FR', BE: 'Belgique', US: 'EN' };
@@ -102,7 +105,7 @@ export default function VoiceMenu({
   characters, characterId, onCharacter,
   override, onOverride,
   playing, onToggle, previewUrlFor,
-  isFr,
+  isFr, anchor,
 }: VoiceMenuProps) {
   const reduce = useReducedMotion();
   const [query, setQuery] = useState('');
@@ -149,14 +152,12 @@ export default function VoiceMenu({
   const empty = !shownCharacters.length && !shownVoices.length && filter !== 'cloned';
 
   return (
-    /* Le placement est sur ce conteneur, l'animation sur son enfant.
-       Les deux vivaient sur la MÊME boîte, et c'est ce qui décalait le menu
-       hors de l'écran sur téléphone: framer écrit un `transform` en style
-       inline pour animer `y`, qui écrase la classe `-translate-x-1/2`. Le
-       menu n'était donc jamais recentré sur son ancre, il partait de son bord
-       gauche vers la droite et débordait. Deux boîtes, deux responsabilités,
-       et le centrage redevient du CSS que rien ne réécrit. */
-    <div className="absolute top-full left-1/2 -translate-x-1/2 z-30 mt-2 w-[min(340px,calc(100vw-1.5rem))]">
+    /* Le placement est sur `Anchored`, l'animation sur son enfant: framer
+       écrit un `transform` inline pour animer `y`, qui écraserait tout
+       centrage porté par le conteneur. Et le conteneur vit HORS de la carte:
+       posé dedans en `absolute`, le menu était coupé par son bord ou lui
+       donnait un ascenseur à chaque ouverture. */
+    <Anchored anchor={anchor} maxWidth={340}>
       <motion.div
         initial={{ opacity: 0, y: reduce ? 0 : -6 }}
         animate={{ opacity: 1, y: 0 }}
@@ -377,6 +378,6 @@ export default function VoiceMenu({
           </button>
         )}
       </motion.div>
-    </div>
+    </Anchored>
   );
 }

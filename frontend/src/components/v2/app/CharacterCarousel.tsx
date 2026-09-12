@@ -6,6 +6,7 @@ import api from '../../../services/api';
 import { previewUrl, type Character } from './CharacterPickerV2';
 import { useVoicePreview } from '../../client/useVoicePreview';
 import VoiceMenu from './VoiceMenu';
+import Anchored, { inAnchored } from './Anchored';
 import VoiceBars from './VoiceBars';
 import type { SelectedVoice } from '../../client/VoicePicker';
 
@@ -168,6 +169,7 @@ export default function CharacterCarousel({
   useEffect(() => {
     if (!menuOpen) return;
     const onDown = (e: MouseEvent) => {
+      if (inAnchored(e.target)) return;
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
     };
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setMenuOpen(false); };
@@ -184,6 +186,7 @@ export default function CharacterCarousel({
   useEffect(() => {
     if (!toneOpen) return;
     const onDown = (e: MouseEvent) => {
+      if (inAnchored(e.target)) return;
       if (toneRef.current && !toneRef.current.contains(e.target as Node)) setToneOpen(false);
     };
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setToneOpen(false); };
@@ -376,6 +379,7 @@ export default function CharacterCarousel({
                 onToggle={toggle}
                 previewUrlFor={previewFor}
                 isFr={isFr}
+                anchor={menuRef}
               />
             )}
           </AnimatePresence>
@@ -411,11 +415,12 @@ export default function CharacterCarousel({
 
             <AnimatePresence>
               {toneOpen && (
-                /* Même partage que le menu des voix: le placement sur la boîte
-                   extérieure, l'animation sur l'intérieure. Framer écrit un
-                   `transform` inline pour animer `y`, qui effacerait le
-                   centrage porté par une classe. */
-                <div className="absolute top-full left-1/2 -translate-x-1/2 z-30 mt-1.5 w-[min(260px,calc(100vw-2rem))]">
+                /* Même partage que le menu des voix: le placement sur
+                   `Anchored`, rendu hors de la carte, l'animation sur
+                   l'intérieure. Framer écrit un `transform` inline pour
+                   animer `y`, qui effacerait un centrage porté par le
+                   conteneur. */
+                <Anchored anchor={toneRef} maxWidth={260} gap={6}>
                   <motion.ul
                     role="listbox"
                     aria-label={isFr ? 'Ton' : 'Tone'}
@@ -448,7 +453,7 @@ export default function CharacterCarousel({
                       </li>
                     ))}
                   </motion.ul>
-                </div>
+                </Anchored>
               )}
             </AnimatePresence>
           </div>
