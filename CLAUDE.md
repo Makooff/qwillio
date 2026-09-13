@@ -879,6 +879,24 @@ heure l'agent a réellement réservé, au lieu de le deviner.
   l'ancien événement Google, recrée le nouveau et renvoie le SMS ; le prompt
   et `lookupBooking` disent l'ordre lookupBooking → checkAvailability →
   rescheduleBooking. Le plafond du prompt passe à 2700 pour cette ligne.
+- **Nuit du 13/09, après les fusions.** (1) « Le plus tard, c'est 11 heures »
+  pour un cabinet ouvert jusqu'à 18 h : `checkAvailability` coupait la liste
+  à TROIS créneaux (`MAX_SPOKEN_SLOTS`) pour que l'agent n'en lise pas dix, et
+  le modèle lisait la fin de la liste comme la fin de la journée. La liste est
+  entière, avec la fenêtre d'ouverture du jour ; c'est la PAROLE qui se limite
+  à un créneau à la fois, pas la connaissance. (2) `'From' +1934… is not a
+  Twilio phone number [21659]` : le « + » de #233 était bien là, c'est
+  l'expéditeur qui n'appartenait pas au compte. Le SMS part désormais de la
+  ligne MOBILE attribuée au client (`smsService.senderFor`, stock Twilio,
+  type `mobile` seul à porter le SMS), `TWILIO_PHONE_NUMBER` n'est que le
+  repli de la ligne partagée, et l'agent ne promet un SMS que si CE client a
+  un expéditeur. Le docteur demande à Twilio si le repli appartient au compte.
+  (3) « Cannot read properties of undefined (reading '0') » : un refus
+  d'OpenAI rend un corps sans `choices` ; l'analyse nomme désormais le statut
+  et le message. (4) Avec `gpt-4.1-mini`, l'agent a écrit « MAR0N », « MASR0N »
+  puis « MACRZRN » en épelant « Macron » : le petit modèle mange des lettres
+  en épelant, et la synthèse lit « zéro ». À surveiller ; `VAPI_MODEL` se
+  change sans déploiement.
 
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,

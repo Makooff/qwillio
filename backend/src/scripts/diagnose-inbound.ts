@@ -76,11 +76,12 @@ async function main() {
   /* Le SMS de confirmation ne part que si tout y est; l'agent ne le promet
      qu'à cette condition, et le docteur dit ce qui manque (12/09/2026). */
   const sms = smsReadiness();
-  console.log(`SMS de confirmation: ${sms.ok ? 'prêt à partir' : `NE PARTIRA PAS, il manque ${sms.missing.join(', ')}`}`);
+  console.log(`SMS de confirmation: ${sms.ok ? 'identifiants Twilio prêts' : `NE PARTIRA PAS, il manque ${sms.missing.join(', ')}`}`);
+  console.log(`  expéditeur plateforme (repli pour la ligne partagée): ${env.TWILIO_PHONE_NUMBER || 'ABSENT, les clients sans ligne mobile n\'auront pas de SMS'}`);
   /* Le numéro d'ENVOI doit appartenir au compte Twilio et porter le SMS:
      « 'From' +1934… is not a Twilio phone number [21659] » (13/09/2026). La
      variable était posée, le docteur disait « prêt », et rien ne partait. */
-  if (sms.ok && env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN) {
+  if (sms.ok && env.TWILIO_PHONE_NUMBER && env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN) {
     try {
       // eslint-disable-next-line @typescript-eslint/no-var-requires
       const twilio = require('twilio')(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN);
@@ -285,6 +286,20 @@ async function main() {
           + '(réglé dans le tableau de bord Vapi, section Server URL). Sans lui, tout est rejeté en 401.',
     );
     verdict(calls > 0, `appels enregistrés pour ce client (7 jours): ${calls}`, '');
+
+    /* D'où partira le SMS de ce client: sa ligne mobile, ou le repli plateforme. */
+    try {
+      const { smsService } = await import('../services/sms.service');
+      const sender = await smsService.senderFor(client.id);
+      const own = sender && sender !== env.TWILIO_PHONE_NUMBER;
+      verdict(
+        !!sender,
+        `expéditeur SMS de ce client: ${sender ?? 'AUCUN'}${own ? ' (sa propre ligne)' : sender ? ' (repli TWILIO_PHONE_NUMBER)' : ''}`,
+        'ni ligne mobile attribuée dans le stock, ni TWILIO_PHONE_NUMBER: aucun SMS ne partira.',
+      );
+    } catch (error) {
+      console.log(`  ?    expéditeur SMS illisible: ${(error as Error).message}`);
+    }
 
     /* La dernière réservation et ce qu'est devenu son SMS: « je n'ai pas reçu
        de SMS » se lit ici, dans l'erreur Twilio, au lieu de se deviner. */

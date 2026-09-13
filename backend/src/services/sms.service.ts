@@ -8,6 +8,31 @@ import { detectLanguage, getAgentName } from '../config/vapi-templates';
 export class SmsService {
   private twilioClient: any = null;
 
+  /**
+   * Le numéro d'ENVOI: la ligne du client d'abord, la plateforme en repli.
+   *
+   * Un client reçoit une ligne belge mobile à l'inscription (stock acheté
+   * d'avance, chez Twilio, importée chez Vapi pour la voix). Cette ligne porte
+   * le SMS: l'appelant reçoit la confirmation DU numéro qu'il vient
+   * d'appeler, et personne ne pose rien à la main. `TWILIO_PHONE_NUMBER`
+   * reste le repli, pour la ligne partagée des essais. Seul le type `mobile`
+   * envoie: un numéro local ou gratuit belge ne porte pas le SMS.
+   */
+  async senderFor(clientId?: string | null): Promise<string | null> {
+    if (clientId) {
+      try {
+        const line = await prisma.phoneNumberStock.findFirst({
+          where: { clientId, status: 'assigned', numberType: 'mobile', twilioSid: { not: null } },
+          select: { number: true },
+        });
+        if (line?.number) return line.number;
+      } catch {
+        /* Base indisponible: le repli plateforme vaut mieux qu'aucun SMS. */
+      }
+    }
+    return env.TWILIO_PHONE_NUMBER || null;
+  }
+
   private getTwilioClient() {
     if (this.twilioClient) return this.twilioClient;
     try {
@@ -116,15 +141,16 @@ export class SmsService {
       logger.warn(`[SMS] ${msg}`);
       return { success: false, error: msg };
     }
-    if (!env.TWILIO_PHONE_NUMBER) {
-      logger.warn('[SMS] TWILIO_PHONE_NUMBER absent: aucun SMS ne peut partir');
-      return { success: false, error: 'TWILIO_PHONE_NUMBER not set' };
+    const from = await this.senderFor(metadata?.clientId);
+    if (!from) {
+      logger.warn('[SMS] aucun expéditeur: ni ligne mobile du client, ni TWILIO_PHONE_NUMBER');
+      return { success: false, error: 'no SMS sender' };
     }
 
     try {
       const message = await client.messages.create({
         body,
-        from: env.TWILIO_PHONE_NUMBER,
+        from,
         to,
       });
 
