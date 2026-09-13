@@ -379,7 +379,7 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
       function: {
         name: 'lookupKnowledge',
         description:
-          'Look up the business knowledge base (FAQ, staff, house rules) when the caller asks something not already covered in your instructions. Never guess an answer about the business.',
+          'Look up the business knowledge base (FAQ, staff, house rules) for ANY question about the business not already covered in your instructions. Call it BEFORE saying you do not know: the base may hold the answer. Never guess an answer about the business.',
         parameters: {
           type: 'object',
           properties: {

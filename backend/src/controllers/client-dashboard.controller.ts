@@ -11,6 +11,8 @@ import { logger } from '../config/logger';
 import { listCharacters, resolveCharacter, CHARACTERS, isValidCharacterId, DEFAULT_CHARACTER_FR, DEFAULT_CHARACTER_EN, CUSTOM_CHARACTER_ID } from '../config/voice-characters';
 import { buildVapiConfigPatch, parseFaq } from '../services/client-config.service';
 import { knowledgePreset } from '../config/knowledge-presets';
+import { setupCompleteness } from '../services/setup-completeness';
+import { knowledgeGapService } from '../services/voice/knowledge-gap.service';
 import { clientMessage, type PhoneSetupState } from '../services/voice/phone-setup.service';
 import { wouldLoop, LOOP_MESSAGE } from '../services/voice/transfer-loop';
 import { vapiClient } from '../config/vapi';
@@ -166,6 +168,20 @@ export class ClientDashboardController {
     try {
       const overview = await clientDashboardService.getClientOverview(req.clientId);
       res.json(overview);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  /** GET /my-dashboard/setup — ce que la réceptionniste sait, et ce qui manque, par métier. */
+  async getMySetup(req: any, res: Response) {
+    try {
+      const client = await prisma.client.findUnique({
+        where: { id: req.clientId },
+        select: { businessType: true, transferNumber: true, vapiConfig: true },
+      });
+      if (!client) return res.status(404).json({ error: 'Client not found' });
+      res.json(setupCompleteness(client, await knowledgeGapService.openCount(req.clientId)));
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

@@ -650,9 +650,9 @@ class ToolRuntimeService {
       return `${i + 1}) ${b.customerName}, ${profile.language === 'fr' ? 'le ' : ''}${day}${b.bookingTime ? ` ${profile.language === 'fr' ? 'a' : 'at'} ${b.bookingTime}` : ''}${b.serviceType ? ` (${b.serviceType})` : ''}`;
     });
     return profile.language === 'fr'
-      ? `RESERVATION(S) DE CE CORRESPONDANT: ${lines.join(' ; ')}. Dis-lui celle qui correspond a ce qu'il decrit, sans lui faire repeter son nom. Le nom ecrit ici est le sien: appelle-le ainsi, pas comme tu l'as entendu.`
+      ? `RESERVATION(S) DE CE CORRESPONDANT: ${lines.join(' ; ')}. Dis-lui celle qui correspond a ce qu'il decrit, sans lui faire repeter son nom. Le nom ecrit ici est le sien: appelle-le ainsi, pas comme tu l'as entendu. S'il dit que ce n'est PAS lui, crois-le: demande son nom et rappelle lookupBooking avec ce nom.`
         + ' Pour la deplacer: demande la nouvelle date, verifie avec checkAvailability, puis appelle rescheduleBooking avec le nom EXACTEMENT tel qu\'ecrit ici et currentDate. Jamais bookAppointment pour un deplacement.'
-      : `BOOKING(S) FOR THIS CALLER: ${lines.join(' ; ')}. Tell the caller the one matching what they describe, without asking their name again. The name written here is theirs: use it, not what you heard.`
+      : `BOOKING(S) FOR THIS CALLER: ${lines.join(' ; ')}. Tell the caller the one matching what they describe, without asking their name again. The name written here is theirs: use it, not what you heard. If they say it is NOT them, believe them: ask their name and call lookupBooking again with it.`
         + ' To move it: ask for the new date, check with checkAvailability, then call rescheduleBooking with the name EXACTLY as written here and currentDate. Never bookAppointment for a move.';
   }
 

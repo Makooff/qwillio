@@ -1023,6 +1023,43 @@ illisible, on ne demande pas d'épeler : la relecture reste le filet.
 épelant et la synthèse lit « zéro ». `spellOut` et `normaliseSpelledName`
 lisent 0 comme O, et la règle de parole le dit. Le plafond du prompt passe à
 2900 pour cette ligne.
+**Le retour de bâton, une heure après (16:52), à ne pas refaire.** Deux
+défauts de la version ci-dessus. (1) `getCallerHistory` prenait le nom de la
+PREMIÈRE réservation à venir rendue par la base, sans tri : une vieille
+réservation de test « Paul Matthieu » sous le même numéro a nommé l'appelant.
+Elle lit désormais la plus récemment TOUCHÉE (`updatedAt desc`), et si les
+réservations à venir du numéro portent des noms différents (un numéro qui
+réserve pour plusieurs personnes), elle ne nomme PERSONNE. (2) « Appelle-le X,
+jamais par ce que tu as cru entendre » a tenu contre QUATRE démentis (« ce
+n'est pas moi, moi c'est Jean-Luc de la forge ») : une consigne absolue sur
+un nom est une consigne contre l'appelant. Le nom connu est dit
+« probablement », et la règle ajoute que l'appelant qui dément a le dernier
+mot : on redemande, on fait épeler, on cherche sous le nom qu'il donne. Le
+même repli est écrit dans le retour de `lookupBooking`.
+
+### 6novotrigesies. Le compte s'active avec quatre champs, et l'agent invente le reste (13/09/2026)
+Retour : « on laisse le client trop libre, le compte est activable avec peu
+d'informations, j'ai peur que l'IA invente ». Ce que le code disait : la
+règle anti-invention (« appelle lookupKnowledge, n'invente jamais »)
+n'existait QUE pour un client avec base de connaissances ; le compte neuf,
+celui qui en sait le moins, était le seul sans consigne « dis que tu ne sais
+pas ». Les lacunes (`knowledge_gaps`) existaient mais vivaient sous la ligne
+de flottaison de la page Réceptionniste. Et un questionnaire guidé complet
+existait dans `onboarding-flow.service.ts`, servi seulement au parcours
+vendu (`/onboarding?token=`), jamais au libre-service.
+Trois pièces, dans cet ordre. (1) `services/setup-completeness.ts` : un score
+par MÉTIER depuis le preset (même table que le formulaire et le prompt),
+pondéré (transfert 3, horaires et services 2, urgence / annulation /
+mutuelles 2, le reste 1), porté par `/my-dashboard/overview` (`setup`) et
+`/my-dashboard/setup`, affiché en carte sur la vue d'ensemble avec les trois
+manques les plus lourds et les lacunes ouvertes. (2) `/dashboard/setup/guide`
+(`ClientSetupGuide.tsx`) : ce qui manque, une question à la fois, avec
+l'exemple rempli, enregistré par le PUT partiel de la page Réceptionniste,
+UNE clé par étape ; le modèle d'horaires est partagé (`utils/week-hours.ts`).
+(3) La règle anti-invention vaut pour tous les profils ; l'outil seul dépend
+de la base. Deux scénarios d'éval (`fr-hors-base-sans-kb`,
+`fr-hors-base-avec-kb`) posent une question que rien ne couvre. Plafond du
+prompt à 3150 pour cette ligne.
 
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,

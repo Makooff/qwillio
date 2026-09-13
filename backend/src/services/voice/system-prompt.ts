@@ -86,9 +86,12 @@ export function callerHistoryBlock(lang: VoiceLanguage, caller: CallerHistory): 
     const name = sanitizeInline(caller.knownName, MAX_NAME_CHARS);
     memory.push(
       t(
-        `Il s'appelle ${name} — ne redemande pas son nom. Si le nom que tu entends y ressemble, c'est lui: appelle-le ${name}, jamais par ce que tu as cru entendre.`,
-        `Their name is ${name} — do not ask for it again. If the name you hear sounds like it, it is them: call them ${name}, never what you thought you heard.`,
-        `De beller heet ${name} — vraag niet opnieuw naar de naam. Klinkt de naam die u hoort erop, dan is het deze persoon: noem hem ${name}, nooit wat u dacht te horen.`,
+        /* La correction de l'appelant a le DERNIER mot. « Appelle-le X, jamais
+           par ce que tu as cru entendre » a fait tenir « Paul et Matthieu »
+           contre quatre démentis de l'appelant (13/09/2026, 16:52). */
+        `Il s'appelle probablement ${name} (nom de sa dernière réservation). Si ce qu'il dit y ressemble, c'est lui, ne redemande pas. S'il dit que ce n'est PAS son nom, crois-le: demande-lui son nom, fais-le épeler, et cherche sa réservation sous ce nom-là.`,
+        `Their name is probably ${name} (from their latest booking). If what they say sounds like it, it is them, do not ask again. If they say that is NOT their name, believe them: ask their name, have it spelled, and look up the booking under that name.`,
+        `De beller heet waarschijnlijk ${name} (naam op de laatste reservering). Klinkt wat hij zegt erop, dan is het hij, vraag niet opnieuw. Zegt hij dat dit NIET zijn naam is, geloof hem: vraag zijn naam, laat spellen, en zoek de reservering onder die naam.`,
       )
     );
   }
@@ -438,15 +441,27 @@ export function buildSystemPrompt(
     ),
   );
 
-  if (profile.hasKnowledgeBase) {
-    lines.push(
-      t(
-        'INFOS ENTREPRISE: pour toute question sur l\'entreprise qui n\'est pas couverte ci-dessus, appelle lookupKnowledge. N\'invente jamais une reponse sur l\'entreprise.',
-        'BUSINESS INFO: for any question about the business not covered above, call lookupKnowledge. Never invent an answer about the business.',
-        'BEDRIJFSINFO: voor elke vraag over het bedrijf die hierboven niet staat, roep lookupKnowledge aan. Verzin nooit een antwoord over het bedrijf.',
+  /* Ce que l'agent NE SAIT PAS, il le dit ; il ne l'invente jamais.
+     La règle n'existait QUE pour un client avec base de connaissances : un
+     compte neuf, celui qui a le moins d'informations, était le seul sans
+     consigne anti-invention (13/09/2026). Elle vaut pour tous ; seul l'outil
+     dépend de la base. */
+  lines.push(
+    profile.hasKnowledgeBase
+      ? t(
+        /* « Appelle d'abord » et non « appelle, sinon dis que tu ne sais pas » :
+           offert en alternative, le modèle sautait l'outil et disait ne pas
+           savoir (éval CI du 13/09), alors que la base pouvait répondre. */
+        'INFOS ENTREPRISE: question non couverte ci-dessus = appelle lookupKnowledge AVANT de repondre, meme si tu crois ne pas savoir; c\'est son resultat qui dit si l\'info existe. Rien trouve = dis que tu n\'as pas l\'information et propose un rappel. N\'invente jamais.',
+        'BUSINESS INFO: question not covered above = call lookupKnowledge BEFORE answering, even if you think you do not know; its result decides whether the info exists. Nothing found = say you do not have that information and offer a callback. Never invent.',
+        'BEDRIJFSINFO: vraag die hierboven niet staat = roep lookupKnowledge aan VOOR je antwoordt, ook als je denkt het niet te weten; het resultaat beslist of de info bestaat. Niets gevonden = zeg dat je die informatie niet hebt en bied aan terug te bellen. Verzin nooit iets.',
       )
-    );
-  }
+      : t(
+        'INFOS ENTREPRISE: question non couverte ci-dessus = dis que tu n\'as pas l\'information et propose de prendre les coordonnees pour un rappel. N\'invente jamais, ne devine jamais.',
+        'BUSINESS INFO: if a question about the business is not covered above, say you do not have that information and offer to take their details for a callback. Never invent, never guess.',
+        'BEDRIJFSINFO: staat een vraag over het bedrijf hierboven niet, zeg dat je die informatie niet hebt en bied aan de gegevens te noteren voor een terugbel. Verzin nooit iets, gok nooit.',
+      ),
+  );
 
   // ── Caller memory: the part that makes the first sentence land ──
   {

@@ -43,6 +43,7 @@ router.use(clientMiddleware);
 
 // ─── Dashboard data ─────────────────────────────────────
 router.get('/overview', (req, res) => clientDashboardController.getMyOverview(req, res));
+router.get('/setup', (req, res) => clientDashboardController.getMySetup(req, res));
 router.get('/calls', (req, res) => clientDashboardController.getMyCalls(req, res));
 /* Où les appelants s'arrêtent, découpé par index de tour (TST-9). Pas derrière
    `advancedAnalytics`: un abandon au premier tour est une panne d'installation,

@@ -67,7 +67,7 @@ describe('buildSystemPrompt', () => {
       hasUpcomingBooking: true,
     });
     expect(prompt).toContain('Julien');
-    expect(prompt).toMatch(/ne redemande pas son nom/i);
+    expect(prompt).toMatch(/ne redemande pas/i);
     expect(prompt).toContain('lookupBooking');
   });
 
@@ -129,7 +129,12 @@ describe('buildSystemPrompt', () => {
     /* 2900: UNE ligne, le nom (13/09/2026). Un inconnu épelle son nom de
        famille et un nom n'a jamais de chiffre: l'agent disait « zéro » pour O
        et gardait « Jean Lucas » pour « Jean-Luc » pendant tout l'appel. */
-    expect(buildSystemPrompt(profile, newCaller).length).toBeLessThan(2900);
+    /* 3150: la règle anti-invention vaut désormais pour TOUS les profils
+       (13/09/2026). Elle n'existait que pour un client avec base de
+       connaissances ; le compte neuf, celui qui en sait le moins, était le
+       seul sans consigne « dis que tu ne sais pas ». 200 caractères rejoués
+       à chaque tour contre une réponse inventée sur les mutuelles. */
+    expect(buildSystemPrompt(profile, newCaller).length).toBeLessThan(3150);
   });
 
   it('injects the pre-rendered knowledge block when one is supplied', () => {
@@ -230,7 +235,7 @@ describe('les règles de transfert, réglées par le client', () => {
   it('ne fait pas grossir le prompt, qui est rejoué à chaque tour', () => {
     // Les trois variantes tiennent la même longueur à quelques caractères près.
     const tailles = (['always', 'hours', 'never'] as const).map(m => withMode(m).length);
-    expect(Math.max(...tailles)).toBeLessThan(2900);
+    expect(Math.max(...tailles)).toBeLessThan(3150);
     expect(Math.max(...tailles) - Math.min(...tailles)).toBeLessThan(30);
   });
 });
