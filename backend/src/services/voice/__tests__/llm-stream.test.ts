@@ -253,7 +253,7 @@ describe('llmStreamService.handle — proxied turns', () => {
  * donc le modèle pour de bon, et vérifie qu'une phrase part AVANT.
  */
 describe('llmStreamService — un modèle qui ne répond pas', () => {
-  it('parle avant trois secondes plutôt que de laisser le silence', async () => {
+  it('parle avant trois secondes et demie plutôt que de laisser le silence', async () => {
     vi.useFakeTimers();
     const started = Date.now();
 
@@ -277,13 +277,14 @@ describe('llmStreamService — un modèle qui ne répond pas', () => {
       stream.handle,
     );
 
-    /* On avance JUSTE en dessous de la barre des trois secondes: si la phrase
-       est déjà partie à ce moment-là, le critère est tenu, et l'assertion ne
-       dépend d'aucune mesure de durée réelle. */
-    await vi.advanceTimersByTimeAsync(2_900);
+    /* On avance JUSTE en dessous de la barre (3,5 s depuis le 13/09: un tour
+       sur quatorze était coupé à 2,5 s pour une réponse qui arrivait): si la
+       phrase est déjà partie à ce moment-là, le critère est tenu, et
+       l'assertion ne dépend d'aucune mesure de durée réelle. */
+    await vi.advanceTimersByTimeAsync(3_400);
     await handling;
 
-    expect(Date.now() - started).toBeLessThan(3_000);
+    expect(Date.now() - started).toBeLessThan(3_500);
     expect(stream.text()).toMatch(/répéter/i);
     expect(stream.ended).toBe(true);
     vi.useRealTimers();
