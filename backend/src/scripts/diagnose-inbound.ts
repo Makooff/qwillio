@@ -77,6 +77,27 @@ async function main() {
      qu'à cette condition, et le docteur dit ce qui manque (12/09/2026). */
   const sms = smsReadiness();
   console.log(`SMS de confirmation: ${sms.ok ? 'prêt à partir' : `NE PARTIRA PAS, il manque ${sms.missing.join(', ')}`}`);
+  /* Le numéro d'ENVOI doit appartenir au compte Twilio et porter le SMS:
+     « 'From' +1934… is not a Twilio phone number [21659] » (13/09/2026). La
+     variable était posée, le docteur disait « prêt », et rien ne partait. */
+  if (sms.ok && env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const twilio = require('twilio')(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN);
+      const owned: Array<{ phoneNumber: string; capabilities?: { sms?: boolean } }> =
+        await twilio.incomingPhoneNumbers.list({ phoneNumber: env.TWILIO_PHONE_NUMBER, limit: 1 });
+      if (!owned.length) {
+        const mine: Array<{ phoneNumber: string; capabilities?: { sms?: boolean } }> = await twilio.incomingPhoneNumbers.list({ limit: 10 });
+        const smsCapable = mine.filter(n => n.capabilities?.sms).map(n => n.phoneNumber);
+        console.log(`  NON  TWILIO_PHONE_NUMBER (${env.TWILIO_PHONE_NUMBER}) n'appartient PAS à ce compte Twilio: aucun SMS ne partira.`);
+        console.log(`       numéros SMS du compte: ${smsCapable.length ? smsCapable.join(', ') : 'aucun'}`);
+      } else {
+        console.log(`  ${owned[0].capabilities?.sms ? 'OK  ' : 'NON '} expéditeur SMS ${owned[0].phoneNumber}${owned[0].capabilities?.sms ? '' : ': ce numéro ne porte pas le SMS'}`);
+      }
+    } catch (error) {
+      console.log(`  ?    expéditeur SMS invérifiable: ${(error as Error).message}`);
+    }
+  }
 
   /* La liste des numéros est relue UNE fois: elle couvre tout le compte, et la
      redemander par client ferait autant d'allers-retours que de clients pour

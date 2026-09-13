@@ -374,6 +374,14 @@ Return a JSON object with:
       });
 
       const data = await response.json() as any;
+      /* Un refus d'OpenAI (débit, clé, modèle) rend un corps SANS `choices`:
+         lire `choices[0]` faisait un TypeError qui ne nommait rien (alerte
+         Discord du 13/09/2026). Le statut et le message du refus sont la seule
+         chose qui dise POURQUOI l'analyse a manqué. */
+      if (!response.ok || !Array.isArray(data?.choices) || !data.choices[0]?.message?.content) {
+        const why = data?.error?.message ?? JSON.stringify(data).slice(0, 300);
+        throw new Error(`OpenAI ${response.status} sur l'analyse d'appel: ${why}`);
+      }
       return JSON.parse(data.choices[0].message.content);
     } catch (error) {
       logger.error('Error analyzing client call transcript:', error);
