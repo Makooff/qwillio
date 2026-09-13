@@ -5,7 +5,7 @@ import { env } from '../../config/env';
 import { webhookServer } from './webhook-identity';
 import { realtimeContextService, shouldRecord, type ClientVoiceProfile } from './realtime-context.service';
 import { callSessionStore } from './call-session.store';
-import { buildRealtimePlans, buildSpeech, useSpeechToSpeech } from './speech-plans';
+import { buildRealtimePlans, buildSpeech, useSpeechToSpeech, customLlmUrlFor } from './speech-plans';
 import { fitAssistantName } from './vapi-limits';
 import { buildVoiceTools } from './voice-tools';
 import { buildSystemPrompt, firstMessageVariants, ensureDisclosure, hasAiDisclosure } from './system-prompt';
@@ -173,9 +173,7 @@ class RealtimeOrchestratorService {
       hasCustomVoice: !!profile.customVoice,
       voiceMode: profile.voiceMode,
       ttsProvider: profile.ttsProvider,
-      customLlmUrl: profile.customLlm
-        ? `${env.API_BASE_URL}/api/webhooks/vapi/llm/${clientId}`
-        : undefined,
+      customLlmUrl: profile.customLlm ? customLlmUrlFor(clientId) : undefined,
     });
 
     /* Le mode retenu est consigné sur la session dès qu'il est connu: c'est

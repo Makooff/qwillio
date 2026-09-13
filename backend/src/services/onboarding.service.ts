@@ -8,7 +8,7 @@ import { discordService } from './discord.service';
 import { resolveCharacter } from '../config/voice-characters';
 import { voiceForProfile, type ProfileVoice } from './voice/profile-voice';
 import { getPersonaPrompt, PERSONALITY_PROMPTS } from '../config/personalities';
-import { buildRealtimePlans, buildVoice, type VoiceLanguage } from './voice/speech-plans';
+import { assistantModelBlock, buildRealtimePlans, buildVoice, customLlmUrlFor, type VoiceLanguage } from './voice/speech-plans';
 import { fitAssistantName } from './voice/vapi-limits';
 import { webhookServer } from './voice/webhook-identity';
 import { realtimeContextService, shouldRecord } from './voice/realtime-context.service';
@@ -80,12 +80,14 @@ export class OnboardingService {
 
       const assistantData: any = {
         name: fitAssistantName('Receptionist', client.businessName),
-        model: {
-          provider: 'openai',
-          model: env.VAPI_MODEL,
+        /* Le MÊME bloc que l'assistant bâti à l'appel: custom-LLM quand le
+           profil le dit (le défaut), sinon Vapi appelle OpenAI lui-même. */
+        model: assistantModelBlock({
+          customLlmUrl: (speech?.customLlm ?? env.VOICE_CUSTOM_LLM_DEFAULT) ? customLlmUrlFor(client.id) : undefined,
+          systemPrompt,
+          tools: [],
           temperature: 0.7,
-          messages: [{ role: 'system', content: systemPrompt }],
-        },
+        }),
         // Voice, transcriber and the start/stop speaking plans all come from
         // the real-time module so an onboarded assistant is born with the same
         // barge-in and endpointing tuning the orchestrator applies per call.
@@ -936,11 +938,16 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
 
   private async speechProfile(
     clientId: string,
-  ): Promise<{ language: VoiceLanguage; vocabulary: string[]; recording: boolean; voice: ProfileVoice['block'] } | null> {
+  ): Promise<{ language: VoiceLanguage; vocabulary: string[]; recording: boolean; voice: ProfileVoice['block']; customLlm: boolean } | null> {
     const profile = await realtimeContextService.getClientProfile(clientId);
     if (!profile) return null;
     return {
       language: profile.language,
+      /* Le chemin custom-LLM, décidé par le PROFIL comme à l'appel. C'est lui
+         qui porte la mémoire de l'appelant, la date, la reprise après coupure
+         et le choix du modèle à chaque tour: écrit en `openai` à la main, tout
+         cela n'atteignait aucun appel sur une ligne dédiée. */
+      customLlm: profile.customLlm,
       vocabulary: [profile.businessName, profile.agentName, ...(profile.services ?? [])],
       /* LA voix, résolue par la même fonction que l'appel et l'accueil.
          Cette synchronisation la résolvait elle-même, sans `customVoice`, sans
@@ -1006,22 +1013,22 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
 
     const updatedConfig: any = {
       name: fitAssistantName(client.agentName || 'Receptionist', client.businessName),
-      model: {
-        provider: 'openai',
-        model: env.VAPI_MODEL,
-        temperature: 0.7,
-        messages: [{ role: 'system', content: systemPrompt }],
-        /* Les outils, qui manquaient, et qui vivent DANS le modèle: la racine
-           de l'assistant les refuse (« property tools should not exist »).
-           Envoyés à CHAQUE synchronisation et non seulement à la création:
-           c'est ici que le numéro de transfert saisi après l'inscription
-           devient un outil de transfert, et que l'agenda branché la semaine
-           suivante ouvre la prise de rendez-vous.
-           Un tableau vide est envoyé quand il n'y a rien à offrir, jamais
-           rien: omettre le champ laisserait chez Vapi les outils d'une
-           configuration qu'on vient d'annuler. */
+      /* Le MÊME bloc que l'assistant bâti à l'appel (`assistantModelBlock`):
+         custom-LLM quand le profil le dit, sinon `openai`. Les outils vivent
+         DANS le modèle: la racine de l'assistant les refuse (« property tools
+         should not exist »). Envoyés à CHAQUE synchronisation et non seulement
+         à la création: c'est ici que le numéro de transfert saisi après
+         l'inscription devient un outil de transfert, et que l'agenda branché
+         la semaine suivante ouvre la prise de rendez-vous. Un tableau vide est
+         envoyé quand il n'y a rien à offrir, jamais rien: omettre le champ
+         laisserait chez Vapi les outils d'une configuration qu'on vient
+         d'annuler. */
+      model: assistantModelBlock({
+        customLlmUrl: (syncSpeech?.customLlm ?? env.VOICE_CUSTOM_LLM_DEFAULT) ? customLlmUrlFor(client.id) : undefined,
+        systemPrompt,
         tools: syncTools,
-      },
+        temperature: 0.7,
+      }),
       /* La voix du PROFIL, résolue une seule fois pour l'appel, l'accueil et
          cette écriture. Le repli sur le personnage nu ne sert que si le profil
          est illisible: c'est l'ancienne règle, qui ignorait la voix choisie. */

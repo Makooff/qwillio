@@ -272,11 +272,13 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
       messages: toolMessages('lookupBooking', lang),
       function: {
         name: 'lookupBooking',
-        description: 'Find an existing upcoming booking for the caller, to confirm, move or cancel it.',
+        description: 'Find the caller\'s existing upcoming bookings, to confirm, move or cancel one. Returns every upcoming booking of this caller; pass what the caller said so the right one comes first.',
         parameters: {
           type: 'object',
           properties: {
-            customerName: { type: 'string', description: 'Name the booking was made under, when given.' },
+            customerName: { type: 'string', description: 'Name the booking was made under, as heard, when given.' },
+            currentDate: { type: 'string', description: 'Date the caller says the booking is on, YYYY-MM-DD, when given.' },
+            currentTime: { type: 'string', description: 'Time the caller says the booking is at, HH:MM 24h, when given.' },
           },
         },
       },
@@ -297,6 +299,7 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
         parameters: {
           type: 'object',
           properties: {
+            currentDate: { type: 'string', description: 'Date of the booking being moved, YYYY-MM-DD, as lookupBooking listed it. Required when the caller has several bookings.' },
             date: { type: 'string', description: 'New appointment date, ISO 8601 (YYYY-MM-DD).' },
             time: { type: 'string', description: 'New start time, 24h HH:mm in the business timezone.' },
             customerName: { type: 'string', description: 'Name the booking was made under, when the caller gave one.' },

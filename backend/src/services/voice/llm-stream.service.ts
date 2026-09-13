@@ -417,7 +417,17 @@ class LlmStreamService {
   }
 
   private withClock(request: ChatCompletionRequest, lang: VoiceLanguage, timezone: string): ChatCompletionRequest {
-    return { ...request, messages: [...request.messages, { role: 'system', content: clockBlock(lang, timezone) }] };
+    /* L'assistant ENREGISTRÉ porte la date sous forme de gabarit Vapi
+       (`{{"now" | date: …}}`), que Vapi remplit avant d'appeler OpenAI. Depuis
+       qu'il passe par ici (13/09), c'est CE bloc de queue qui dit la date;
+       si le gabarit arrivait non rendu, le modèle lirait une ligne de code au
+       lieu d'un jour. La ligne est donc retirée quand elle est encore brute. */
+    const messages = request.messages.map((m, i) =>
+      i === 0 && m.role === 'system' && typeof m.content === 'string' && m.content.includes('{{"now"')
+        ? { ...m, content: m.content.split('\n').filter(line => !line.includes('{{"now"')).join('\n') }
+        : m,
+    );
+    return { ...request, messages: [...messages, { role: 'system', content: clockBlock(lang, timezone) }] };
   }
 
   /**

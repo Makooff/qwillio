@@ -14,6 +14,8 @@ import { parseSpokenPhone } from '../../utils/phone-spoken';
 import { phoneWords } from '../../utils/text-for-speech';
 import { normaliseAddress } from '../../utils/be-communes';
 import { normaliseSpelledName, familyName, spellOut } from '../../utils/spelled-name';
+import { nameSimilarity, NAME_MATCH_THRESHOLD } from '../../utils/name-match';
+import { ymdOf } from '../../utils/zoned-time';
 import { dayWindow, nextOpenDay, minutesOf } from '../../utils/opening-hours';
 import { smsReadiness } from '../sms-ready';
 import { env } from '../../config/env';
@@ -542,7 +544,8 @@ class ToolRuntimeService {
         bookingDate: date.toISOString(),
         bookingTime: time,
         serviceType: typeof serviceType === 'string' ? serviceType : null,
-        calendarUrl: `${env.API_BASE_URL}/api/public/booking/${bookingId}.ics`,
+        /* `/agenda`: le gabarit Google Agenda, pour tous (un .ics tapé depuis Messages sur iPhone ouvre un abonnement, pas un rendez-vous). */
+        calendarUrl: `${env.API_BASE_URL}/api/public/booking/${bookingId}/agenda`,
         lang: profile.language === 'fr' ? 'fr' : 'en',
         clientId: profile.clientId,
       });
@@ -603,35 +606,75 @@ class ToolRuntimeService {
     args: Record<string, any>,
   ): Promise<string> {
     const session = callSessionStore.get(vapiCallId);
-    const name = typeof args.customerName === 'string' ? args.customerName.trim() : '';
+    const found = await this.findCallerBookings(profile, session?.callerNumber ?? null, args);
 
-    const booking = await prisma.clientBooking.findFirst({
-      where: {
-        clientId: profile.clientId,
-        status: 'confirmed',
-        bookingDate: { gte: new Date() },
-        ...(session?.callerNumber
-          ? { OR: [{ customerPhone: session.callerNumber }, ...(name ? [{ customerName: { contains: name, mode: 'insensitive' as const } }] : [])] }
-          : name
-            ? { customerName: { contains: name, mode: 'insensitive' as const } }
-            : {}),
-      },
-      orderBy: { bookingDate: 'asc' },
-      select: { customerName: true, bookingDate: true, bookingTime: true, serviceType: true },
-    });
-
-    if (!booking) {
+    if (!found.length) {
       return profile.language === 'fr'
         ? 'AUCUNE RESERVATION trouvee pour ce correspondant. Demande sous quel nom elle a ete prise.'
         : 'NO BOOKING found for this caller. Ask which name it was booked under.';
     }
 
-    const day = spokenDate(booking.bookingDate, profile.language, profile.timezone);
+    /* TOUTES les réservations à venir de l'appelant, pas la première par
+       date. Appel réel du 13/09: `findFirst` rendait un autre rendez-vous du
+       même numéro (« Lucas van Devel, aujourd'hui 9 h »), et le modèle en
+       concluait que celui du 14 n'existait pas, cinq lectures du nom de
+       suite. La liste dit ce qu'il y a; le modèle choisit ce que l'appelant
+       décrit. */
+    const lines = found.slice(0, 3).map((b, i) => {
+      const day = spokenDate(b.bookingDate, profile.language, profile.timezone);
+      return `${i + 1}) ${b.customerName}, ${profile.language === 'fr' ? 'le ' : ''}${day}${b.bookingTime ? ` ${profile.language === 'fr' ? 'a' : 'at'} ${b.bookingTime}` : ''}${b.serviceType ? ` (${b.serviceType})` : ''}`;
+    });
     return profile.language === 'fr'
-      ? `RESERVATION: ${booking.customerName}, le ${day}${booking.bookingTime ? ` a ${booking.bookingTime}` : ''}${booking.serviceType ? ` (${booking.serviceType})` : ''}.`
-        + ' Pour la deplacer: demande la nouvelle date, verifie avec checkAvailability, puis appelle rescheduleBooking. Jamais bookAppointment pour un deplacement.'
-      : `BOOKING: ${booking.customerName}, ${day}${booking.bookingTime ? ` at ${booking.bookingTime}` : ''}${booking.serviceType ? ` (${booking.serviceType})` : ''}.`
-        + ' To move it: ask for the new date, check with checkAvailability, then call rescheduleBooking. Never bookAppointment for a move.';
+      ? `RESERVATION(S) DE CE CORRESPONDANT: ${lines.join(' ; ')}. Dis-lui celle qui correspond a ce qu'il decrit, sans lui faire repeter son nom.`
+        + ' Pour la deplacer: demande la nouvelle date, verifie avec checkAvailability, puis appelle rescheduleBooking avec le nom EXACTEMENT tel qu\'ecrit ici et currentDate. Jamais bookAppointment pour un deplacement.'
+      : `BOOKING(S) FOR THIS CALLER: ${lines.join(' ; ')}. Tell the caller the one matching what they describe, without asking their name again.`
+        + ' To move it: ask for the new date, check with checkAvailability, then call rescheduleBooking with the name EXACTLY as written here and currentDate. Never bookAppointment for a move.';
+  }
+
+  /**
+   * Les réservations à venir de l'appelant, les plus probables d'abord.
+   *
+   * Par le numéro d'abord; par le nom ensuite, mais en RESSEMBLANCE et non en
+   * égalité: « de la Ford », « Delaforde », « de la foireux » étaient tous
+   * « de la forge » (13/09). Une date ou une heure dites par l'appelant
+   * départagent deux rendez-vous du même numéro. Les lignes sont relues en
+   * mémoire sur les 90 prochains jours: la base ne sait pas comparer deux
+   * noms entendus, et un commerce n'a pas des milliers de rendez-vous à venir.
+   */
+  private async findCallerBookings(
+    profile: ClientVoiceProfile,
+    callerNumber: string | null,
+    args: Record<string, any>,
+  ): Promise<Array<{ id: string; customerName: string; bookingDate: Date; bookingTime: string | null; serviceType: string | null; googleEventId: string | null; score: number }>> {
+    const name = typeof args.customerName === 'string' ? normaliseSpelledName(args.customerName) : '';
+    /* `currentDate`, jamais `date`: sur rescheduleBooking, `date` est la
+       NOUVELLE date, pas celle du rendez-vous à retrouver. */
+    const saidYmd = typeof args.currentDate === 'string' && parseDate(args.currentDate) ? args.currentDate.trim() : null;
+    const saidTime = typeof args.currentTime === 'string' ? args.currentTime : null;
+    if (!callerNumber && !name) return [];
+
+    const now = new Date();
+    const horizon = new Date(now.getTime() + 90 * 24 * 3600 * 1000);
+    const rows = await prisma.clientBooking.findMany({
+      where: { clientId: profile.clientId, status: 'confirmed', bookingDate: { gte: now, lte: horizon } },
+      orderBy: { bookingDate: 'asc' },
+      take: 300,
+      select: { id: true, customerName: true, customerPhone: true, bookingDate: true, bookingTime: true, serviceType: true, googleEventId: true },
+    });
+
+    return rows
+      .map(row => {
+        let score = 0;
+        if (callerNumber && row.customerPhone === callerNumber) score += 2;
+        const sim = name ? nameSimilarity(name, row.customerName) : 0;
+        if (name && sim >= NAME_MATCH_THRESHOLD) score += 2 * sim;
+        if (score === 0) return null;
+        if (saidYmd && ymdOf(row.bookingDate) === saidYmd) score += 1;
+        if (saidTime && row.bookingTime === saidTime) score += 0.5;
+        return { ...row, score };
+      })
+      .filter((r): r is NonNullable<typeof r> => r !== null)
+      .sort((a, b) => b.score - a.score || a.bookingDate.getTime() - b.bookingDate.getTime());
   }
 
   // ── rescheduleBooking ───────────────────────────────────────────────────
@@ -665,21 +708,17 @@ class ToolRuntimeService {
     if (outside) return outside;
 
     const session = callSessionStore.get(vapiCallId);
-    const name = typeof args.customerName === 'string' ? normaliseSpelledName(args.customerName) : '';
-    const booking = await prisma.clientBooking.findFirst({
-      where: {
-        clientId: profile.clientId,
-        status: 'confirmed',
-        bookingDate: { gte: new Date() },
-        ...(session?.callerNumber
-          ? { OR: [{ customerPhone: session.callerNumber }, ...(name ? [{ customerName: { contains: name, mode: 'insensitive' as const } }] : [])] }
-          : name
-            ? { customerName: { contains: name, mode: 'insensitive' as const } }
-            : {}),
-      },
-      orderBy: { bookingDate: 'asc' },
-      select: { id: true, customerName: true, bookingDate: true, bookingTime: true, serviceType: true, googleEventId: true },
-    });
+    /* Le même chercheur que lookupBooking: par numéro, par ressemblance de
+       nom, départagé par `currentDate`. Deux rendez-vous à venir et rien
+       pour les départager: on demande lequel, on ne déplace pas au hasard. */
+    const candidates = await this.findCallerBookings(profile, session?.callerNumber ?? null, args);
+    const booking = candidates[0];
+    if (booking && candidates.length > 1 && candidates[1].score === booking.score) {
+      const list = candidates.slice(0, 3).map(b => `${b.customerName} ${spokenDate(b.bookingDate, profile.language, profile.timezone)}${b.bookingTime ? ` ${b.bookingTime}` : ''}`).join(' ; ');
+      return profile.language === 'fr'
+        ? `PLUSIEURS RESERVATIONS: ${list}. Demande laquelle deplacer, puis rappelle rescheduleBooking avec currentDate (AAAA-MM-JJ) de celle-la.`
+        : `SEVERAL BOOKINGS: ${list}. Ask which one to move, then call rescheduleBooking again with that one's currentDate (YYYY-MM-DD).`;
+    }
     if (!booking) {
       return profile.language === 'fr'
         ? 'AUCUNE RESERVATION trouvee pour ce correspondant. Demande sous quel nom elle a ete prise, puis rappelle rescheduleBooking avec ce nom.'
