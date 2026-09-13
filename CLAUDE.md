@@ -898,6 +898,20 @@ heure l'agent a réellement réservé, au lieu de le deviner.
   en épelant, et la synthèse lit « zéro ». À surveiller ; `VAPI_MODEL` se
   change sans déploiement.
 
+### 6duotrigesies. « Est-ce que gpt-4.1-mini tourne vraiment ? » se LIT, il ne se déduit pas (13/09/2026)
+Sur custom-LLM, le modèle se choisit dans le backend à CHAQUE tour, depuis
+l'environnement de Render : `VAPI_MODEL` pour le tour complet (intention
+métier, résultat d'outil à dire, plus de cinq mots), `VOICE_SMALL_MODEL`
+(`gpt-4o-mini` par défaut) pour le tour court sans enjeu. Le nom de modèle que
+porte l'assistant DISTANT chez Vapi est décoratif sur ce chemin, et
+`voice:resync` / `voice:doctor` lancés depuis un poste lisent le `.env` de CE
+poste, pas celui de Render. Trois lectures qui disent chacune autre chose que
+ce qui sert. La seule qui compte est le flux d'OpenAI, qui nomme le modèle
+daté (`gpt-4.1-mini-2025-04-14`) dans chaque tranche : il est consigné par tour
+sur la session (`models`), écrit avec les métriques de fin d'appel
+(`metadata.realtime.models`), journalisé en info sur Render (« modèle demandé
+X, servi Y ») et lu par le docteur sur le dernier appel (« modèles servis »).
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).
