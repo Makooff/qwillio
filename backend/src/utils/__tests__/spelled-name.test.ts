@@ -18,6 +18,12 @@ describe('normaliseSpelledName', () => {
     expect(normaliseSpelledName('Jean-Luc Van Damme')).toBe('Jean-Luc Van Damme');
   });
 
+  it('un nom ne contient jamais de chiffre: « Mar0n » est « Maron », « MASR0N » « Masron »', () => {
+    expect(normaliseSpelledName('Marc Mar0n')).toBe('Marc Maron');
+    expect(normaliseSpelledName('MASR0N')).toBe('Masron');
+    expect(normaliseSpelledName('0livier Dupont')).toBe('Olivier Dupont');
+  });
+
   it('lit « VAN espace H0LD » comme « Van Hold »: capitales recollées, 0 pour O, « espace » dit', () => {
     expect(normaliseSpelledName('Stéphane VAN espace H0LD')).toBe('Stéphane Van Hold');
     expect(normaliseSpelledName('Stéphane Van H 0 L D')).toBe('Stéphane Van Hold');
@@ -29,6 +35,10 @@ describe('normaliseSpelledName', () => {
 });
 
 describe('spellOut', () => {
+  it('épelle 0 comme la lettre O, au lieu de la perdre ou de dire « zéro »', () => {
+    expect(spellOut('Mar0n')).toBe('M-A-R-O-N');
+  });
+
   it("épelle le nom de famille pour que l'agent le dise lettre par lettre", () => {
     expect(spellOut(familyName('Mathieu Polle'))).toBe('P-O-L-L-E');
     expect(spellOut(familyName('Jean-Luc Van Damme'))).toBe('D-A-M-M-E');

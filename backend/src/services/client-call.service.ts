@@ -79,19 +79,20 @@ export class ClientCallService {
       durationSeconds: duration,
     });
 
+    /* Le nom CONFIRMÉ pendant l'appel prime sur le nom ENTENDU par le
+       modèle d'analyse: la réservation dit « Jean-Luc de la forge » (relu,
+       épelé), le transcript dit « Jean Lucas », et le portail affichait le
+       second (13/09). Même source pour la fiche d'appel et le contact CRM.
+       Il est lu AVANT l'analyse et lui est dit: sinon le résumé (« Jean Lucas
+       a appelé pour… ») garde le nom entendu alors que la fiche porte le bon. */
+    const known = spam.isSpam ? null : await this.knownCallerName(clientId, callerNumber, extra.liveBookingId ?? null);
+
     // A spam call skips the GPT-4 transcript analysis entirely (cost saver).
     // A real call gets the full treatment as before.
     const analysis = spam.isSpam
       ? this.emptyAnalysis()
-      : await this.analyzeClientCallTranscript(transcript, client);
-    /* Le nom CONFIRMÉ pendant l'appel prime sur le nom ENTENDU par le
-       modèle d'analyse: la réservation dit « Jean-Luc de la forge » (relu,
-       épelé), le transcript dit « Jean Lucas », et le portail affichait le
-       second (13/09). Même source pour la fiche d'appel et le contact CRM. */
-    if (!spam.isSpam) {
-      const known = await this.knownCallerName(clientId, callerNumber, extra.liveBookingId ?? null);
-      if (known) analysis.callerName = known;
-    }
+      : await this.analyzeClientCallTranscript(transcript, client, known);
+    if (known) analysis.callerName = known;
 
     // Create client call record
     const clientCall = await prisma.clientCall.create({
@@ -367,7 +368,13 @@ export class ClientCallService {
   // ═══════════════════════════════════════════════════════════
   // ANALYZE CLIENT CALL TRANSCRIPT - GPT-4 analysis
   // ═══════════════════════════════════════════════════════════
-  private async analyzeClientCallTranscript(transcript: string, client: any): Promise<ClientCallAnalysis> {
+  private async analyzeClientCallTranscript(transcript: string, client: any, knownName: string | null = null): Promise<ClientCallAnalysis> {
+    /* Le nom confirmé (réservation relue et épelée, ou mémoire d'appelant)
+       est donné au modèle d'analyse: le transcripteur écrit « Jean Lucas »
+       pour « Jean-Luc », et sans cette ligne le résumé le répète. */
+    const nameHint = knownName
+      ? `\n\nThe caller's confirmed name is "${knownName.replace(/["\n]/g, ' ').trim()}" (verified against their booking or prior calls). Use exactly this name for callerName and in the summary, even if the transcript spells it differently.`
+      : '';
     try {
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -399,7 +406,7 @@ Return a JSON object with:
 - isLead: is this person a potential customer/qualified lead? (boolean)
 - leadScore: lead quality score 1-10 (number)
 - tags: relevant tags like ["new_customer", "complaint", "urgent", "vip", "repeat_customer"] (string[])
-- unansweredQuestions: questions the CALLER asked that the receptionist could not answer, each in the caller's own words, at most 3. Only genuine gaps in business knowledge (prices, hours, services, policies) — never a question the receptionist answered, and never something only the caller could know such as their own name or booking. Empty array when there is none. (string[])`,
+- unansweredQuestions: questions the CALLER asked that the receptionist could not answer, each in the caller's own words, at most 3. Only genuine gaps in business knowledge (prices, hours, services, policies) — never a question the receptionist answered, and never something only the caller could know such as their own name or booking. Empty array when there is none. (string[])${nameHint}`,
             },
             {
               role: 'user',

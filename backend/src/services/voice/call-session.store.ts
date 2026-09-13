@@ -138,6 +138,8 @@ export interface CallSession {
   phoneReadBack: string | null;
   /** Le nom déjà relu à l'appelant dans cet appel (minuscules), pour ne le relire qu'une fois. */
   nameReadBack: string | null;
+  /** L'épellation du nom de famille a déjà été demandée à cet appelant inconnu. */
+  nameSpellingAsked: boolean;
   /**
    * L'agent a-t-il été coupé au milieu d'une VRAIE phrase, sans avoir encore
    * repris la parole depuis ? Posé par `recordBargeIn`, consommé au tour
@@ -263,6 +265,7 @@ class CallSessionStore {
       phoneCaptureFailures: 0,
       phoneReadBack: null,
       nameReadBack: null,
+      nameSpellingAsked: false,
       pendingHardBargeIn: false,
       interruptedSpeechMs: null,
       repair: newRepairState(),
@@ -420,6 +423,20 @@ class CallSessionStore {
        le dernier mot. */
     if (session.nameReadBack) return false;
     session.nameReadBack = key;
+    return true;
+  }
+
+  /**
+   * Vrai UNE fois par appel: un appelant INCONNU épelle son nom de famille
+   * avant que quoi que ce soit ne soit enregistré (demande du 13/09/2026:
+   * « la première fois que le client se présente, il devrait épeler son
+   * nom »). Ensuite l'orthographe validée est celle du lead, et l'appelant
+   * suivant qui redit ce nom n'est plus interrogé.
+   */
+  needsNameSpelling(vapiCallId: string | null): boolean {
+    const session = this.get(vapiCallId);
+    if (!session || session.nameSpellingAsked) return false;
+    session.nameSpellingAsked = true;
     return true;
   }
 

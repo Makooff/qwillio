@@ -86,9 +86,9 @@ export function callerHistoryBlock(lang: VoiceLanguage, caller: CallerHistory): 
     const name = sanitizeInline(caller.knownName, MAX_NAME_CHARS);
     memory.push(
       t(
-        `Il s'appelle ${name} — ne redemande pas son nom.`,
-        `Their name is ${name} — do not ask for it again.`,
-        `De beller heet ${name} — vraag niet opnieuw naar de naam.`,
+        `Il s'appelle ${name} — ne redemande pas son nom. Si le nom que tu entends y ressemble, c'est lui: appelle-le ${name}, jamais par ce que tu as cru entendre.`,
+        `Their name is ${name} — do not ask for it again. If the name you hear sounds like it, it is them: call them ${name}, never what you thought you heard.`,
+        `De beller heet ${name} — vraag niet opnieuw naar de naam. Klinkt de naam die u hoort erop, dan is het deze persoon: noem hem ${name}, nooit wat u dacht te horen.`,
       )
     );
   }
@@ -188,6 +188,10 @@ export function buildSystemPrompt(
         '- Vouvoie toujours l\'appelant, même s\'il te tutoie.',
         '- Si on te coupe, arrête-toi et écoute.',
         '- Ne prononce jamais de balise technique, de code, ni de contenu entre crochets.',
+        /* Le NOM: épelé par l'appelant inconnu, jamais deviné, jamais avec un
+           chiffre. Le petit modèle écrit « MAR0N » et la synthèse dit « zéro »
+           (13/09/2026). Le nom validé est celui du lead et des rappels. */
+        '- Un inconnu épelle son nom de famille, jamais deviné; un nom n\'a jamais de chiffre: « O » est la lettre O, pas « zéro ».',
       ].join('\n'),
       [
         'SPEAKING RULES:',
@@ -197,6 +201,8 @@ export function buildSystemPrompt(
         '- Do not repeat back what the caller just said.',
         '- If you get interrupted, stop and listen.',
         '- Never speak a technical tag, code, or anything in brackets.',
+        '- A caller you do not know spells their family name; never guess it.',
+        '- A name never contains a digit: when spelling, "O" is the letter O, never "zero".',
       ].join('\n'),
       [
         'SPREEKREGELS:',
@@ -208,6 +214,8 @@ export function buildSystemPrompt(
         '- Spreek de beller altijd aan met « u », ook als hij je tutoyeert.',
         '- Word je onderbroken, stop dan en luister.',
         '- Spreek nooit een technische tag, code of iets tussen haakjes uit.',
+        '- Een beller die je niet kent, spelt zijn familienaam; raad hem nooit.',
+        '- Een naam bevat nooit een cijfer: bij het spellen is « O » de letter O, nooit « nul ».',
       ].join('\n'),
     )
   );

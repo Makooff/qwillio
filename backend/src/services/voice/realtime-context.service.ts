@@ -387,21 +387,27 @@ class RealtimeContextService {
           status: 'confirmed',
           bookingDate: { gte: new Date() },
         },
-        select: { id: true },
+        select: { id: true, customerName: true },
       }),
     ]);
 
     // CallerMemory is the collapsed, authoritative view when it exists; the
     // ClientCall scan is the fallback for callers who rang before this table.
+    /* Le nom d'une réservation CONFIRMÉE prime sur la mémoire d'appelant:
+       la réservation a été relue et épelée pendant l'appel, la mémoire porte
+       ce que le transcripteur a entendu (« Jean Lucas » pour « Jean-Luc »,
+       13/09/2026). Même ordre que `knownCallerName` en fin d'appel, pour que
+       l'agent en ligne et la fiche du portail disent le même nom. */
     const history: CallerHistory = {
       previousCalls: memory?.totalCalls ?? calls.length,
       lastCallAt: (memory?.lastCallAt ?? calls[0]?.createdAt)?.toISOString() ?? null,
       lastSummary: memory?.profileSummary ?? memory?.lastSummary ?? calls[0]?.summary ?? null,
       knownName:
-        memory?.knownName
-        ?? calls.find(c => c.nameCollected)?.nameCollected
-        ?? calls.find(c => c.callerName)?.callerName
-        ?? null,
+        booking?.customerName?.trim()
+        || memory?.knownName
+        || calls.find(c => c.nameCollected)?.nameCollected
+        || calls.find(c => c.callerName)?.callerName
+        || null,
       hasUpcomingBooking: Boolean(booking),
     };
 

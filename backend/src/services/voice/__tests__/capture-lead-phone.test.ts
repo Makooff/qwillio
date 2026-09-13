@@ -15,7 +15,8 @@ vi.mock('../../../config/logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 vi.mock('../realtime-context.service', () => ({
-  realtimeContextService: { getClientProfile: getProfile },
+  // Appelant CONNU: ces scénarios testent le numéro, pas l'épellation du nom.
+  realtimeContextService: { getClientProfile: getProfile, getCallerHistory: vi.fn(async () => ({ knownName: 'Connu' })) },
 }));
 vi.mock('../call-session.store', () => ({
   callSessionStore: {
@@ -27,6 +28,7 @@ vi.mock('../call-session.store', () => ({
     needsPhoneReadBack: needsReadBack,
     // Le nom se relit aussi, mais pas dans ces scénarios: ils testent le numéro.
     needsNameReadBack: vi.fn(() => false),
+    needsNameSpelling: vi.fn(() => false),
   },
 }));
 vi.mock('../caller-memory.service', () => ({ callerMemoryService: { remember } }));

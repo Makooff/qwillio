@@ -50,7 +50,14 @@ export function normaliseSpelledName(raw: string): string {
     out.push(token);
   }
   flush();
-  return out.join(' ').replace(/\s+/g, ' ').trim();
+  /* Un nom ne contient JAMAIS de chiffre. Le petit modèle écrit « MAR0N »,
+     « Mar0n » en épelant (13/09/2026), et la synthèse lit « zéro ». Dans
+     tout mot qui porte au moins une lettre, 0 est la lettre O. */
+  return out
+    .map(w => (/\p{L}/u.test(w) ? w.replace(/0/g, (_m, i: number) => (i === 0 ? 'O' : 'o')) : w))
+    .join(' ')
+    .replace(/\s+/g, ' ')
+    .trim();
 }
 
 /** Le nom de famille: le dernier mot du nom complet. */
@@ -65,7 +72,9 @@ export function familyName(name: string): string {
  * deux se prononcent pareil. Les lettres, elles, ne se confondent pas.
  */
 export function spellOut(word: string): string {
-  return Array.from(word.normalize('NFC'))
+  /* 0 est la lettre O: filtrer le chiffre ferait disparaître une lettre
+     (« MAR0N » épelé M-A-R-N), et la dire ferait entendre « zéro ». */
+  return Array.from(word.normalize('NFC').replace(/0/g, 'O'))
     .filter(c => /\p{L}/u.test(c))
     .map(c => c.toUpperCase())
     .join('-');

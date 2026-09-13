@@ -483,7 +483,7 @@ export default function ClientCalls() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 z-50"
+              className="fixed inset-0 bg-black/40 z-50"
               onClick={() => setSelectedCall(null)}
               aria-hidden="true"
             />
@@ -494,8 +494,9 @@ export default function ClientCalls() {
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
               /* #131313 est la surface des cartes de la page Analytique
                   (`bg-white/[0.04]` composé sur #0a0a0a). Le panneau la porte à
-                  80 % avec un flou fort : demande utilisateur du 13/09,
-                  « légèrement transparent et flou ». C'est le PANNEAU qui est
+                  65 % avec un flou moyen : demande utilisateur du 13/09,
+                  « légèrement transparent et flou ». À 80 % sur une page sombre,
+                  rien ne passait ; le voile est à 40 % pour la même raison. C'est le PANNEAU qui est
                   translucide, jamais le voile : le voile assombrit sans flouter,
                   pour que la page derrière reste nette. Le flou fort tient le
                   gris stable quoi qu'il y ait derrière ; à 2 % de blanc sans flou
@@ -503,16 +504,16 @@ export default function ClientCalls() {
                   Historique, pour ne pas refaire le tour: `oklch(10% 0 0)`
                   (#171717) se lisait comme du noir; #1a1a1a, essayé ensuite,
                   était le bon registre mais pas la bonne valeur. */
-              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-[#131313]/80 backdrop-blur-2xl border-l border-white/[0.07] shadow-2xl z-50 overflow-y-auto"
+              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-[#131313]/65 backdrop-blur-xl border-l border-white/[0.07] shadow-2xl z-50 overflow-y-auto"
               role="dialog"
               aria-modal="true"
               aria-label="Détails de l'appel"
             >
-              {/* L'entête porte la MÊME surface que le panneau (80 %, flou fort) :
+              {/* L'entête porte la MÊME surface que le panneau (65 %, flou moyen) :
                   une entête opaque sur un panneau translucide se lirait comme une
                   bande rapportée. Le panneau défile sous elle ; le flou fort fond
                   ce qui passe dessous dans le gris au lieu de le laisser lire. */}
-              <div className="sticky top-0 z-10 bg-[#131313]/80 backdrop-blur-2xl border-b border-white/[0.07] px-6 py-4 flex items-center justify-between">
+              <div className="sticky top-0 z-10 bg-[#131313]/65 backdrop-blur-xl border-b border-white/[0.07] px-6 py-4 flex items-center justify-between">
                 <h2 className="text-base font-semibold text-[#F5F5F7]">Détails de l'appel</h2>
                 <button
                   type="button"

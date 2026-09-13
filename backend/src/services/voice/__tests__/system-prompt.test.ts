@@ -126,7 +126,10 @@ describe('buildSystemPrompt', () => {
     /* 2800: la ligne « déplacer un rendez-vous » et « même si le jour demandé
        est fermé » (12/09/2026) valent leur coût: un second rendez-vous créé à
        la place d'un déplacement, et un jour fermé répondu sans l'outil. */
-    expect(buildSystemPrompt(profile, newCaller).length).toBeLessThan(2800);
+    /* 2900: UNE ligne, le nom (13/09/2026). Un inconnu épelle son nom de
+       famille et un nom n'a jamais de chiffre: l'agent disait « zéro » pour O
+       et gardait « Jean Lucas » pour « Jean-Luc » pendant tout l'appel. */
+    expect(buildSystemPrompt(profile, newCaller).length).toBeLessThan(2900);
   });
 
   it('injects the pre-rendered knowledge block when one is supplied', () => {
@@ -227,7 +230,7 @@ describe('les règles de transfert, réglées par le client', () => {
   it('ne fait pas grossir le prompt, qui est rejoué à chaque tour', () => {
     // Les trois variantes tiennent la même longueur à quelques caractères près.
     const tailles = (['always', 'hours', 'never'] as const).map(m => withMode(m).length);
-    expect(Math.max(...tailles)).toBeLessThan(2800);
+    expect(Math.max(...tailles)).toBeLessThan(2900);
     expect(Math.max(...tailles) - Math.min(...tailles)).toBeLessThan(30);
   });
 });
