@@ -535,6 +535,9 @@ class RealtimeOrchestratorService {
           /* Le modèle qui a servi, par tour: la réponse à « quel modèle
              tourne vraiment », lue dans le flux d'OpenAI et non dans l'env. */
           models: session.models,
+          /* Les tours partis en repli, avec la raison: « Pardon, je vous ai mal
+             entendu » trois fois de suite (13/09) n'a de sens qu'avec elle. */
+          llmFailures: session.llmFailures,
           toolCalls: session.toolCalls,
           bookingId: session.bookingId,
           lead: session.lead,

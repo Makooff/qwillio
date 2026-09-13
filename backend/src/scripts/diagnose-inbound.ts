@@ -395,6 +395,16 @@ async function main() {
             ? `      modèles servis (OpenAI): ${models.map(([m, n]) => `${m} ×${n}`).join(', ')}`
             : '      modèles servis: aucun relevé (appel antérieur à ce relevé, ou aucun tour passé par le backend)',
         );
+        /* Les tours partis en PHRASE DE REPLI (« Pardon, je vous ai mal
+           entendu »), avec la raison: sans elle, l'appelant entend une panne
+           de micro là où c'est OpenAI qui a refusé, ou le premier jeton qui
+           a dépassé `VOICE_FIRST_TOKEN_TIMEOUT_MS`. */
+        const failures = (realtime.llmFailures ?? []) as string[];
+        if (failures.length) {
+          const counts = new Map<string, number>();
+          for (const f of failures) counts.set(f, (counts.get(f) ?? 0) + 1);
+          console.log(`      TOURS EN REPLI: ${[...counts].map(([r, n]) => `${r} ×${n}`).join(' ; ')}`);
+        }
       }
       /* L'URL d'enregistrement que le PORTAIL joue, allée chercher comme le
          navigateur le ferait. « Chez nous oui » dit qu'une URL est stockée,

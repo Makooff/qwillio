@@ -569,3 +569,73 @@ describe('llmStreamService — le gabarit de date de l\'assistant enregistré, s
     expect(body.messages.some((m: any) => m.role === 'system' && /Nous sommes le/.test(m.content))).toBe(true);
   });
 });
+
+describe('llmStreamService — seuls les champs OpenAI partent chez OpenAI', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    callSessionStore.end('call_keys');
+  });
+
+  function mockStream(payloads: string[]) {
+    const encoder = new TextEncoder();
+    let i = 0;
+    return vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      body: {
+        getReader: () => ({
+          read: async () =>
+            i < payloads.length ? { done: false, value: encoder.encode(payloads[i++]) } : { done: true, value: undefined },
+          releaseLock: () => {},
+        }),
+      },
+    } as unknown as Response);
+  }
+
+  it('retire call, phoneNumber, customer et metadata que Vapi ajoute', async () => {
+    /* Appel réel du 13/09: quatre « Pardon, je vous ai mal entendu » de
+       suite. Le corps de Vapi partait entier, et OpenAI refuse `call`. */
+    const fetchSpy = mockStream(['data: {"model":"gpt-4.1-mini-2025-04-14","choices":[{"delta":{"content":"Oui"}}]}\n\n', 'data: [DONE]\n\n']);
+    const stream = makeStream();
+    await llmStreamService.handle(
+      'client_1',
+      null,
+      'fr',
+      {
+        messages: [systemTurn, userTurn('je voudrais reserver un rendez-vous')],
+        tools: [{ type: 'function', function: { name: 'captureLead', parameters: {} } }],
+        temperature: 0.7,
+        max_tokens: 120,
+        call: { id: 'c', customer: { number: '+32483620980' } },
+        phoneNumber: { id: 'p' },
+        customer: { number: '+32483620980' },
+        metadata: { x: 1 },
+      } as never,
+      stream.handle,
+    );
+    const body = JSON.parse(String((fetchSpy.mock.calls[0][1] as RequestInit).body));
+    expect(body.call).toBeUndefined();
+    expect(body.phoneNumber).toBeUndefined();
+    expect(body.customer).toBeUndefined();
+    expect(body.metadata).toBeUndefined();
+    expect(body.tools).toHaveLength(1);
+    expect(body.temperature).toBe(0.7);
+    expect(body.max_tokens).toBe(120);
+    expect(body.stream).toBe(true);
+    expect(Array.isArray(body.messages)).toBe(true);
+  });
+
+  it('consigne la raison du repli sur la session, corps de la réponse compris', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: false,
+      status: 400,
+      text: async () => '{"error":{"message":"Unrecognized request argument supplied: call"}}',
+      body: null,
+    } as unknown as Response);
+    callSessionStore.start({ vapiCallId: 'call_keys', clientId: 'client_1', callerNumber: null, language: 'fr' });
+    const stream = makeStream();
+    await llmStreamService.handle('client_1', 'call_keys', 'fr', { messages: [systemTurn, userTurn('je voudrais reserver un rendez-vous')] }, stream.handle);
+    expect(stream.text()).toContain('Pardon');
+    expect(callSessionStore.get('call_keys')?.llmFailures[0]).toMatch(/^OpenAI responded 400: .*Unrecognized request argument/);
+  });
+});

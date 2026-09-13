@@ -35,6 +35,8 @@ export interface RealtimeMetrics {
   tokens?: { input: number; cached: number; output: number };
   /** Tours servis par modèle, tel qu'OpenAI le nomme (`gpt-4.1-mini-2025-04-14`). */
   models?: Record<string, number>;
+  /** Tours partis en phrase de repli, avec la raison (`OpenAI responded 429`…). */
+  llmFailures?: string[];
 }
 
 interface Stat {
