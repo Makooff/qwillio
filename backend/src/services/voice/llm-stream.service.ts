@@ -49,6 +49,37 @@ export interface ChatCompletionRequest {
   [key: string]: unknown;
 }
 
+/**
+ * Les SEULS champs qui partent chez OpenAI.
+ *
+ * La requête de Vapi porte, à côté de `messages` et `tools`, tout ce qui
+ * décrit l'appel: `call`, `phoneNumber`, `customer`, `metadata`… Le corps
+ * était recopié ENTIER (`...request`), et OpenAI refuse un argument qu'il ne
+ * connaît pas: 400 « Unrecognized request argument supplied: call ». Chaque
+ * tour tombait donc en phrase de repli (« Pardon, je vous ai mal entendu »,
+ * quatre fois de suite, 13/09), et le harnais d'évals ne pouvait pas le voir:
+ * il fabrique des requêtes propres. On ne recopie que ce qu'OpenAI lit.
+ */
+const OPENAI_REQUEST_KEYS = [
+  'messages',
+  'tools',
+  'tool_choice',
+  'parallel_tool_calls',
+  'temperature',
+  'max_tokens',
+  'max_completion_tokens',
+  'prompt_cache_key',
+  'response_format',
+] as const;
+
+export function toOpenAiBody(request: ChatCompletionRequest): Record<string, unknown> {
+  const body: Record<string, unknown> = {};
+  for (const key of OPENAI_REQUEST_KEYS) {
+    if (request[key] !== undefined) body[key] = request[key];
+  }
+  return body;
+}
+
 /** What the controller needs to write to the wire. */
 export interface StreamHandle {
   write(chunk: string): void;
@@ -333,6 +364,7 @@ class LlmStreamService {
          tient une conversation entière de « pouvez-vous répéter ? » sans
          qu'aucun voyant ne s'allume. Le compteur est ce voyant. */
       fallbackWatchService.record(true, reason);
+      callSessionStore.recordLlmFailure(vapiCallId, reason);
       emitLocal(stream, this.fallbackLine(lang), plan.model);
       callSessionStore.markLatency(vapiCallId, 'llmEnd');
     }
@@ -535,7 +567,7 @@ class LlmStreamService {
         // including `cached_tokens` — the only way to verify the cache is
         // actually engaging rather than assume it from the config.
         body: JSON.stringify({
-          ...request,
+          ...toOpenAiBody(request),
           model,
           stream: true,
           stream_options: { include_usage: true },
@@ -548,7 +580,11 @@ class LlmStreamService {
 
     if (!response.ok || !response.body) {
       clearTimeout(firstTokenTimer);
-      throw new Error(`OpenAI responded ${response.status}`);
+      /* Le corps ENTIER: c'est lui qui nomme l'argument refusé ou le quota
+         épuisé. Sans lui, « OpenAI responded 400 » est une devinette
+         (6quinvicies: couper la réponse d'une API fabrique une déduction). */
+      const why = response.ok ? 'sans corps' : (await response.text().catch(() => '')).replace(/\s+/g, ' ');
+      throw new Error(`OpenAI responded ${response.status}: ${why}`);
     }
 
     const reader = response.body.getReader();

@@ -955,6 +955,26 @@ avec jeton ; l'ancienne route sans jeton reste pour les assistants pas encore
 resynchronisés. Cause à CONFIRMER au docteur (`endedReason` du dernier appel)
 et dans les journaux Render (`[VoiceLLM] 401`).
 
+### 6quinquetrigesies. « Pardon, je vous ai mal entendu » quatre fois : le corps de Vapi partait ENTIER chez OpenAI (13/09/2026)
+Le 401 réglé, l'agent décroche et chaque tour tombe en phrase de repli. Le
+docteur : 4 répliques, « modèles servis : aucun relevé ». Cause : `proxy()`
+recopiait la requête de Vapi entière (`...request`), donc `call`,
+`phoneNumber`, `customer`, `metadata`, et OpenAI refuse tout argument
+inconnu (400 « Unrecognized request argument supplied »). Le harnais d'évals
+ne pouvait pas le voir : il fabrique des requêtes propres. Donc le chemin
+custom-LLM n'avait JAMAIS servi un appel réel, sur aucune ligne, et tout ce
+qui a été mesuré aux évals depuis des semaines l'a été sur un chemin mort.
+`toOpenAiBody` ne recopie que les champs qu'OpenAI lit ; l'erreur porte le
+corps entier de la réponse ; chaque tour en repli est consigné sur la session
+(`llmFailures`) et écrit avec les métriques, et le docteur l'affiche
+(« TOURS EN REPLI : raison ×n »). La règle : un chemin qui n'a jamais
+atteint un appel réel n'est pas prouvé, quel que soit le vert des évals
+(6octovicies, encore).
+Même relevé : les QUATRE adresses d'enregistrement de l'appel sont des
+adresses R2 nues du même compte, donc le stockage Vapi de ce compte est
+privé ; ce n'est pas une adresse à choisir, c'est un réglage Vapi ou des
+clés R2 à donner au backend.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

@@ -111,6 +111,8 @@ export interface CallSession {
    * n'a pas de réponse, seulement une lecture de variable.
    */
   models: Record<string, number>;
+  /** Chaque tour parti en phrase de repli, avec la raison: « OpenAI responded 429 », délai au premier jeton… */
+  llmFailures: string[];
   /**
    * Combien de fois le numéro dicté n'a rien donné, sur CET appel (BEL-4).
    *
@@ -257,6 +259,7 @@ class CallSessionStore {
       mood: 'neutral',
       tokens: { input: 0, cached: 0, output: 0 },
       models: {},
+      llmFailures: [],
       phoneCaptureFailures: 0,
       phoneReadBack: null,
       nameReadBack: null,
@@ -346,6 +349,13 @@ class CallSessionStore {
   setMood(vapiCallId: string | null, mood: CallerMood): void {
     const session = this.get(vapiCallId);
     if (session) session.mood = mood;
+  }
+
+  /** Un tour tombé en repli, et pourquoi: c'est ce que le docteur lit après coup. */
+  recordLlmFailure(vapiCallId: string | null, reason: string): void {
+    const session = this.get(vapiCallId);
+    if (!session) return;
+    session.llmFailures.push(reason.slice(0, 200));
   }
 
   /** Un tour servi par `model`, tel qu'OpenAI l'a nommé dans son flux. */
