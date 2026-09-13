@@ -492,29 +492,27 @@ export default function ClientCalls() {
               animate={{ x: 0 }}
               exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              /* #131313, ET CE N'EST PAS UNE VALEUR CHOISIE À L'OEIL: c'est ce que
-                  donne `bg-white/[0.04]` posé sur le fond du portail (#0a0a0a),
-                  autrement dit la surface EXACTE des cartes de la page
-                  Analytique. Les deux rangées produit de l'accueil montrent une
-                  capture chacune; si les deux panneaux photographiés n'ont pas
-                  le même gris, la page le montre.
-                  La couleur est écrite composée plutôt qu'en `bg-white/[0.04]`
-                  parce que ce panneau flotte au-dessus d'un voile assombri: une
-                  translucidité laisserait voir ce voile au travers, et le gris
-                  ne serait plus le même.
+              /* #131313 est la surface des cartes de la page Analytique
+                  (`bg-white/[0.04]` composé sur #0a0a0a). Le panneau la porte à
+                  80 % avec un flou fort : demande utilisateur du 13/09,
+                  « légèrement transparent et flou ». C'est le PANNEAU qui est
+                  translucide, jamais le voile : le voile assombrit sans flouter,
+                  pour que la page derrière reste nette. Le flou fort tient le
+                  gris stable quoi qu'il y ait derrière ; à 2 % de blanc sans flou
+                  (l'ancienne fiche lead), la liste se lisait au travers.
                   Historique, pour ne pas refaire le tour: `oklch(10% 0 0)`
                   (#171717) se lisait comme du noir; #1a1a1a, essayé ensuite,
                   était le bon registre mais pas la bonne valeur. */
-              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-[#131313] border-l border-white/[0.07] shadow-2xl z-50 overflow-y-auto"
+              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-[#131313]/80 backdrop-blur-2xl border-l border-white/[0.07] shadow-2xl z-50 overflow-y-auto"
               role="dialog"
               aria-modal="true"
               aria-label="Détails de l'appel"
             >
-              {/* Entête OPAQUE, et non à 90 %: le panneau défile SOUS elle, et les 10 %
-                  restants laissaient lire des mots fantômes derrière le titre. Un flou
-                  ne rattrape pas ça, il les rend seulement illisibles au lieu de les
-                  cacher. Le fond est celui du panneau, donc rien ne se voit du raccord. */}
-              <div className="sticky top-0 z-10 bg-[#131313] border-b border-white/[0.07] px-6 py-4 flex items-center justify-between">
+              {/* L'entête porte la MÊME surface que le panneau (80 %, flou fort) :
+                  une entête opaque sur un panneau translucide se lirait comme une
+                  bande rapportée. Le panneau défile sous elle ; le flou fort fond
+                  ce qui passe dessous dans le gris au lieu de le laisser lire. */}
+              <div className="sticky top-0 z-10 bg-[#131313]/80 backdrop-blur-2xl border-b border-white/[0.07] px-6 py-4 flex items-center justify-between">
                 <h2 className="text-base font-semibold text-[#F5F5F7]">Détails de l'appel</h2>
                 <button
                   type="button"
