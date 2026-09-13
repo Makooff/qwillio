@@ -449,9 +449,12 @@ export function buildSystemPrompt(
   lines.push(
     profile.hasKnowledgeBase
       ? t(
-        'INFOS ENTREPRISE: pour toute question sur l\'entreprise non couverte ci-dessus, appelle lookupKnowledge. S\'il ne rend rien, dis que tu n\'as pas cette information et propose de faire rappeler. N\'invente jamais.',
-        'BUSINESS INFO: for any question about the business not covered above, call lookupKnowledge. If it returns nothing, say you do not have that information and offer a callback. Never invent.',
-        'BEDRIJFSINFO: voor elke vraag over het bedrijf die hierboven niet staat, roep lookupKnowledge aan. Levert dat niets op, zeg dat je die informatie niet hebt en bied aan terug te bellen. Verzin nooit iets.',
+        /* « Appelle d'abord » et non « appelle, sinon dis que tu ne sais pas » :
+           offert en alternative, le modèle sautait l'outil et disait ne pas
+           savoir (éval CI du 13/09), alors que la base pouvait répondre. */
+        'INFOS ENTREPRISE: question non couverte ci-dessus = appelle lookupKnowledge AVANT de repondre, meme si tu crois ne pas savoir; c\'est son resultat qui dit si l\'info existe. Rien trouve = dis que tu n\'as pas l\'information et propose un rappel. N\'invente jamais.',
+        'BUSINESS INFO: question not covered above = call lookupKnowledge BEFORE answering, even if you think you do not know; its result decides whether the info exists. Nothing found = say you do not have that information and offer a callback. Never invent.',
+        'BEDRIJFSINFO: vraag die hierboven niet staat = roep lookupKnowledge aan VOOR je antwoordt, ook als je denkt het niet te weten; het resultaat beslist of de info bestaat. Niets gevonden = zeg dat je die informatie niet hebt en bied aan terug te bellen. Verzin nooit iets.',
       )
       : t(
         'INFOS ENTREPRISE: question non couverte ci-dessus = dis que tu n\'as pas l\'information et propose de prendre les coordonnees pour un rappel. N\'invente jamais, ne devine jamais.',
