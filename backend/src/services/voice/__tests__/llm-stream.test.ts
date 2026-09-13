@@ -534,3 +534,38 @@ describe('llmStreamService — le modèle servi est consigné sur la session', (
     expect(callSessionStore.get('call_model')?.models).toEqual({ 'gpt-4.1-mini-2025-04-14': 1 });
   });
 });
+
+describe('llmStreamService — le gabarit de date de l\'assistant enregistré, s\'il arrive brut', () => {
+  afterEach(() => vi.restoreAllMocks());
+
+  it('retire la ligne {{"now"}} non rendue et laisse le bloc de queue dire la date', async () => {
+    const encoder = new TextEncoder();
+    const payloads = ['data: [DONE]\n\n'];
+    let i = 0;
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      body: {
+        getReader: () => ({
+          read: async () =>
+            i < payloads.length ? { done: false, value: encoder.encode(payloads[i++]) } : { done: true, value: undefined },
+          releaseLock: () => {},
+        }),
+      },
+    } as unknown as Response);
+    const stream = makeStream();
+    const raw = 'Tu es Lucas.\nNous sommes le {{"now" | date: "%A", "Europe/Brussels"}} (Europe/Brussels).\nRègles.';
+
+    await llmStreamService.handle(
+      'client_1',
+      null,
+      'fr',
+      { messages: [{ role: 'system', content: raw }, userTurn('je voudrais reserver un rendez-vous')] },
+      stream.handle,
+    );
+
+    const body = JSON.parse(String((fetchSpy.mock.calls[0][1] as RequestInit).body));
+    expect(body.messages[0].content).toBe('Tu es Lucas.\nRègles.');
+    expect(body.messages.some((m: any) => m.role === 'system' && /Nous sommes le/.test(m.content))).toBe(true);
+  });
+});

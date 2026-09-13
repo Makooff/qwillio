@@ -308,6 +308,25 @@ app.get('/api/public/booking/:id.ics', async (req, res) => {
   }
 });
 
+/* LE lien du SMS de confirmation: « ajouter à l'agenda », en un geste.
+   Un iPhone ouvre un .ics dans Calendrier nativement; tout le reste (Android
+   d'abord) reçoit le gabarit Google Agenda, qui ouvre l'application avec le
+   rendez-vous pré-rempli. Le .ics seul, sur Android, se téléchargeait sans
+   rien ouvrir (13/09). Même règle d'accès que le .ics: public, UUID. */
+app.get('/api/public/booking/:id/agenda', async (req, res) => {
+  try {
+    const { bookingEvent, googleCalendarTemplateUrl } = await import('./services/booking-ics');
+    const event = await bookingEvent(req.params.id);
+    if (!event) return res.status(404).end();
+    const ua = String(req.headers['user-agent'] ?? '');
+    if (/iPhone|iPad|Macintosh/.test(ua)) return res.redirect(302, `/api/public/booking/${event.id}.ics`);
+    res.setHeader('Cache-Control', 'private, max-age=300');
+    return res.redirect(302, googleCalendarTemplateUrl(event));
+  } catch {
+    return res.status(404).end();
+  }
+});
+
 // Neon keepalive, pinged every 5 minutes by .github/workflows/keepalive.yml
 // (not Vercel cron, which needed a paid plan for sub-daily schedules).
 //

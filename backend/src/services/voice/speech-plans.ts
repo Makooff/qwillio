@@ -827,6 +827,54 @@ export function useSpeechToSpeech(opts: {
  * copies d'un choix, c'est trois occasions de diverger, et le client a déjà
  * demandé que la réceptionniste soit la même partout. Le branchement vit ici.
  */
+/** L'URL du chemin custom-LLM d'un client, sous sa forme de production. */
+export function customLlmUrlFor(clientId: string): string {
+  return `${env.API_BASE_URL}/api/webhooks/vapi/llm/${clientId}`;
+}
+
+/**
+ * Le bloc `model` d'un assistant, classique (hors parole-à-parole).
+ *
+ * UNE source pour les trois écritures: l'assistant bâti à l'appel
+ * (`buildSpeech`) et les deux écritures de l'assistant ENREGISTRÉ
+ * (`onboarding.service.ts`). Ce dernier posait `provider: 'openai'` à la
+ * main, donc tout ce que le chemin custom-LLM ajoute à chaque tour (mémoire
+ * de l'appelant, date, reprise après coupure, étages de modèle, cache de
+ * préfixe) n'atteignait AUCUN appel sur une ligne dédiée, et le modèle qui
+ * servait était celui figé à la synchronisation. Sixième trou de la famille
+ * 6quindecies, relevé au docteur le 13/09.
+ */
+export function assistantModelBlock(opts: {
+  /** Posé: le backend tient la boucle. Absent: Vapi appelle OpenAI lui-même. */
+  customLlmUrl?: string;
+  systemPrompt: string;
+  tools: any[];
+  temperature: number;
+  /** Absent: `VAPI_MODEL`. Décoratif sur custom-LLM, où le backend choisit à chaque tour. */
+  llmModel?: string;
+  /** Voir `SpeechOptions`: `false` sur les appels navigateur. */
+  fallbacks?: boolean;
+}): any {
+  return {
+    ...(opts.customLlmUrl
+      ? { provider: 'custom-llm', url: opts.customLlmUrl }
+      : { provider: 'openai' }),
+    model: opts.llmModel ?? env.VAPI_MODEL,
+    temperature: opts.temperature,
+    // Cap the completion: a receptionist turn that runs past ~60 tokens is
+    // a monologue, and long completions are the other half of TTS latency.
+    maxTokens: env.VOICE_MAX_COMPLETION_TOKENS,
+    messages: [{ role: 'system', content: opts.systemPrompt }],
+    tools: opts.tools,
+    /* Modèles de secours, opt-in par env, et seulement sur le chemin où
+       Vapi tient lui-même la boucle: sur custom-llm c'est CE backend qui
+       est le fournisseur, un fallback déclaré ici n'aurait pas de sens. */
+    ...(!opts.customLlmUrl && opts.fallbacks !== false && env.VOICE_LLM_FALLBACK_MODELS.length
+      ? { fallbackModels: env.VOICE_LLM_FALLBACK_MODELS }
+      : {}),
+  };
+}
+
 export function buildSpeech(opts: {
   lang: VoiceLanguage;
   systemPrompt: string;
@@ -879,24 +927,14 @@ export function buildSpeech(opts: {
 
   return {
     speechToSpeech,
-    model: {
-      ...(opts.customLlmUrl
-        ? { provider: 'custom-llm', url: opts.customLlmUrl }
-        : { provider: 'openai' }),
-      model: tuning.llmModel,
-      temperature: opts.temperature ?? tuning.temperature,
-      // Cap the completion: a receptionist turn that runs past ~60 tokens is
-      // a monologue, and long completions are the other half of TTS latency.
-      maxTokens: env.VOICE_MAX_COMPLETION_TOKENS,
-      messages: [{ role: 'system', content: opts.systemPrompt }],
+    model: assistantModelBlock({
+      customLlmUrl: opts.customLlmUrl,
+      systemPrompt: opts.systemPrompt,
       tools: opts.tools,
-      /* Modèles de secours, opt-in par env, et seulement sur le chemin où
-         Vapi tient lui-même la boucle: sur custom-llm c'est CE backend qui
-         est le fournisseur, un fallback déclaré ici n'aurait pas de sens. */
-      ...(!opts.customLlmUrl && opts.fallbacks !== false && env.VOICE_LLM_FALLBACK_MODELS.length
-        ? { fallbackModels: env.VOICE_LLM_FALLBACK_MODELS }
-        : {}),
-    },
+      temperature: opts.temperature ?? tuning.temperature,
+      llmModel: tuning.llmModel,
+      fallbacks: opts.fallbacks,
+    }),
     voice: buildVoice({
       voiceId: opts.character.voiceId,
       stability: opts.character.stability,

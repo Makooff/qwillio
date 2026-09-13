@@ -912,6 +912,34 @@ sur la session (`models`), écrit avec les métriques de fin d'appel
 (`metadata.realtime.models`), journalisé en info sur Render (« modèle demandé
 X, servi Y ») et lu par le docteur sur le dernier appel (« modèles servis »).
 
+### 6tertrigesies. L'assistant enregistré n'était PAS sur custom-LLM (13/09/2026)
+Sixième trou de la famille 6quindecies, relevé au docteur : « modèle porté par
+l'assistant qui décroche (openai) : gpt-4.1 », « modèles servis : aucun
+relevé ». Les deux écritures de `onboarding.service.ts` posaient
+`provider: 'openai'` à la main, donc Vapi appelait OpenAI lui-même avec le
+modèle figé à la synchronisation, et TOUT ce que `llm-stream` ajoute à chaque
+tour (mémoire de l'appelant, date, reprise après coupure, étages de modèle,
+cache de préfixe, transfert explicite, relevé du modèle servi) n'atteignait
+aucun appel sur une ligne dédiée. `assistantModelBlock` (`speech-plans.ts`)
+est désormais LE bloc `model`, appelé par `buildSpeech` et par les deux
+écritures ; le choix custom-LLM se lit sur le profil ; `customLlmUrlFor` est
+la seule source de l'URL. Un test de source interdit `provider: 'openai'`
+dans `onboarding.service.ts`. Après déploiement : `npm run voice:validate`
+puis `voice:resync --confirm`, sinon l'assistant distant reste en `openai`.
+Même journée, trois autres : (1) lookupBooking rendait la PREMIÈRE réservation
+du numéro par date, donc un autre rendez-vous du même appelant, et le modèle
+concluait « rien le 14 » puis faisait répéter le nom cinq fois (« de la
+Ford », « Delaforde », « de la foireux »…). Il rend maintenant TOUTES les
+réservations à venir de l'appelant, classées par ressemblance de nom
+(`utils/name-match.ts`, Levenshtein sur le nom entier et sur le nom de
+famille, seuil 0,6) et par `currentDate` ; rescheduleBooking demande laquelle
+quand deux se valent. (2) Le SMS lie `/api/public/booking/:id/agenda` :
+gabarit Google Agenda pour Android, `.ics` pour iPhone ; le `.ics` seul se
+téléchargeait sans rien ouvrir. (3) Le docteur décode `X-Amz-Date` et
+`X-Amz-Expires` de l'URL d'enregistrement et dit si Vapi rend la même URL
+signée qu'à la fin de l'appel : « 400 InvalidArgument Authorization » quatre
+minutes après l'appel n'est pas une expiration, c'est à lire là.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

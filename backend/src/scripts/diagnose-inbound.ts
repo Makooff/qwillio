@@ -322,7 +322,7 @@ async function main() {
       verdict(
         !!sender,
         `expéditeur SMS de ce client: ${sender ?? 'AUCUN'}${own ? ' (sa propre ligne)' : sender ? ' (repli TWILIO_PHONE_NUMBER)' : ''}`,
-        'ni ligne mobile attribuée dans le stock, ni TWILIO_PHONE_NUMBER: aucun SMS ne partira.',
+        sender ? '' : 'ni ligne mobile attribuée dans le stock, ni TWILIO_PHONE_NUMBER: aucun SMS ne partira.',
       );
     } catch (error) {
       console.log(`  ?    expéditeur SMS illisible: ${(error as Error).message}`);
@@ -407,6 +407,10 @@ async function main() {
          morte et celle-ci vit, l'URL a une durée de vie et se redemande. */
       if (call === mine[0] && seen?.recordingUrl && seen.recordingUrl !== ours?.recordingUrl) {
         console.log(`      enregistrement servi (URL fraîche Vapi): ${await servedAs(seen.recordingUrl)}`);
+      } else if (call === mine[0] && seen?.recordingUrl) {
+        /* Vapi rend la MÊME URL signée qu'à la fin de l'appel: la redemander
+           ne la rafraîchit pas, et le portail passe par cette route. */
+        console.log('      URL fraîche Vapi: IDENTIQUE à la stockée (Vapi ne re-signe pas à la lecture)');
       }
     }
   } catch (error) {
@@ -414,6 +418,27 @@ async function main() {
   }
 
   console.log('');
+}
+
+/**
+ * Ce qu'une URL SIGNÉE (S3 / R2) dit d'elle-même: quand elle a été signée et
+ * pour combien de temps. « 400 InvalidArgument Authorization » quatre minutes
+ * après l'appel (13/09) ne se comprend pas sans ça: expirée, ou mal signée
+ * dès la naissance, ce sont deux réparations différentes.
+ */
+function signedUrlLife(url: string): string {
+  try {
+    const q = new URL(url).searchParams;
+    const date = q.get('X-Amz-Date');
+    const expires = Number(q.get('X-Amz-Expires'));
+    if (!date || !expires) return q.has('X-Amz-Signature') ? 'signée, sans date lisible' : 'non signée';
+    const signedAt = new Date(date.replace(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/, '$1-$2-$3T$4:$5:$6Z'));
+    const until = new Date(signedAt.getTime() + expires * 1000);
+    const left = Math.round((until.getTime() - Date.now()) / 60000);
+    return `signée le ${signedAt.toISOString()} pour ${Math.round(expires / 60)} min, ${left >= 0 ? `valide encore ${left} min` : `EXPIRÉE depuis ${-left} min`}`;
+  } catch {
+    return 'URL illisible';
+  }
 }
 
 /** Ce qu'une URL rend quand on la joue: statut, type, taille, ou l'erreur. */
@@ -425,7 +450,7 @@ async function servedAs(url: string): Promise<string> {
     /* Sur un refus, le corps dit POURQUOI (un XML S3: signature expirée,
        paramètre refusé); sans lui, un 400 est une devinette. */
     const why = r.ok ? '' : ` · ${(await r.text()).replace(/\s+/g, ' ').slice(0, 200)}`;
-    return `${r.status} ${type} ${size} octets · ${new URL(url).host}${why}`;
+    return `${r.status} ${type} ${size} octets · ${new URL(url).host} · ${signedUrlLife(url)}${why}`;
   } catch (error) {
     return `injoignable: ${(error as Error).message}`;
   }

@@ -9,18 +9,19 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
  * jour. Et un jour libre est rendu AVEC son jour de semaine: « lundi 17
  * juin » annoncé pour un jour qui n'était pas un lundi.
  */
-const { getProfile, freeSlots, createBooking, needsNameReadBack, findBooking, updateBooking } = vi.hoisted(() => ({
+const { getProfile, freeSlots, createBooking, needsNameReadBack, findBooking, findBookings, updateBooking } = vi.hoisted(() => ({
   getProfile: vi.fn(),
   freeSlots: vi.fn(),
   createBooking: vi.fn(),
   needsNameReadBack: vi.fn(),
   findBooking: vi.fn(),
+  findBookings: vi.fn(),
   updateBooking: vi.fn(),
 }));
 
 vi.mock('../../../config/database', () => ({
   prisma: {
-    clientBooking: { create: createBooking, update: updateBooking, findFirst: findBooking },
+    clientBooking: { create: createBooking, update: updateBooking, findFirst: findBooking, findMany: findBookings },
     // Pas d'agenda lié: la synchronisation, lancée sans être attendue, s'arrête là.
     client: { findUnique: vi.fn(() => Promise.resolve(null)) },
   },
@@ -77,6 +78,7 @@ async function book(args: Record<string, unknown>) {
 beforeEach(() => {
   vi.clearAllMocks();
   getProfile.mockResolvedValue(profile);
+  findBookings.mockResolvedValue([]);
   freeSlots.mockResolvedValue(['09:00', '10:30']);
   createBooking.mockResolvedValue({ id: 'b1' });
   needsNameReadBack.mockReturnValue(false);
@@ -156,10 +158,10 @@ describe('rescheduleBooking — déplacer, pas dupliquer', () => {
   }
 
   it('retrouve la réservation par le numéro et la déplace, sans en créer une autre', async () => {
-    findBooking.mockResolvedValueOnce({
-      id: 'b1', customerName: 'Stéphane Van Hold', bookingDate: new Date('2099-10-04T12:00:00Z'),
+    findBookings.mockResolvedValueOnce([{
+      id: 'b1', customerName: 'Stéphane Van Hold', customerPhone: '32483620980', bookingDate: new Date('2099-10-04T12:00:00Z'),
       bookingTime: '14:00', serviceType: 'extraction', googleEventId: null,
-    });
+    }]);
     const out = await move({ date: '2099-10-05', time: '09:00' });
     expect(out).toMatch(/^DEPLACE: Stéphane Van Hold, du dimanche 4 octobre 2099 14:00 au lundi 5 octobre 2099 a 09:00/);
     // La première écriture est le déplacement; la synchronisation d'agenda (sans agenda lié) en ajoute une.
@@ -171,12 +173,78 @@ describe('rescheduleBooking — déplacer, pas dupliquer', () => {
   it('refuse un jour fermé avant même de chercher la réservation', async () => {
     const out = await move({ date: '2099-10-04', time: '14:00' });
     expect(out).toMatch(/^FERME le dimanche/);
-    expect(findBooking).not.toHaveBeenCalled();
+    expect(findBookings).not.toHaveBeenCalled();
   });
 
   it("dit qu'il n'y a rien à déplacer quand aucune réservation n'existe", async () => {
     const out = await move({ date: '2099-10-05', time: '09:00' });
     expect(out).toMatch(/^AUCUNE RESERVATION/);
     expect(updateBooking).not.toHaveBeenCalled();
+  });
+});
+
+/* Appel réel du 13/09/2026: deux rendez-vous à venir pour le même numéro, et
+   `findFirst` rendait toujours le premier par date (« Lucas van Devel,
+   aujourd'hui 9 h »). Le modèle en concluait que celui du 14 n'existait pas,
+   et a fait répéter le nom cinq fois: « de la Ford », « Delaforde », « de la
+   foireux », « de la foire », « de la forge ». */
+describe('lookupBooking — toutes les réservations de l\'appelant, le nom en ressemblance', () => {
+  const rows = [
+    { id: 'b0', customerName: 'Lucas van Devel', customerPhone: '32483620980', bookingDate: new Date('2099-09-13T07:00:00Z'), bookingTime: '09:00', serviceType: 'douleur', googleEventId: null },
+    { id: 'b1', customerName: 'Jean-Luc de la forge', customerPhone: '32483620980', bookingDate: new Date('2099-09-14T15:00:00Z'), bookingTime: '17:00', serviceType: 'opération dents de sagesse', googleEventId: null },
+  ];
+  async function lookup(args: Record<string, unknown>) {
+    const out = await toolRuntimeService.execute('c1', 'call_1', { name: 'lookupBooking', args, toolCallId: 't4' } as never);
+    return String(out.result);
+  }
+
+  it('liste les deux rendez-vous du numéro, sans nom', async () => {
+    findBookings.mockResolvedValueOnce(rows);
+    const out = await lookup({});
+    expect(out).toMatch(/^RESERVATION\(S\) DE CE CORRESPONDANT: 1\) Lucas van Devel/);
+    expect(out).toContain('2) Jean-Luc de la forge');
+  });
+
+  it('met en premier celui dont le nom RESSEMBLE, même mal transcrit', async () => {
+    for (const heard of ['Jean-Luc de la Ford', 'Jean-Luc Delaforde', 'Jean-Luc de la foireux']) {
+      findBookings.mockResolvedValueOnce(rows);
+      const out = await lookup({ customerName: heard });
+      expect(out, heard).toMatch(/1\) Jean-Luc de la forge, le .*14 septembre 2099 a 17:00/);
+    }
+  });
+
+  it('la date dite par l\'appelant départage', async () => {
+    findBookings.mockResolvedValueOnce(rows);
+    const out = await lookup({ currentDate: '2099-09-14' });
+    expect(out).toMatch(/1\) Jean-Luc de la forge/);
+  });
+
+  it('retrouve par le nom seul quand le numéro est un autre', async () => {
+    findBookings.mockResolvedValueOnce(rows.map(r => ({ ...r, customerPhone: '32400000000' })));
+    const out = await lookup({ customerName: 'de la forge' });
+    expect(out).toMatch(/^RESERVATION\(S\) DE CE CORRESPONDANT: 1\) Jean-Luc de la forge/);
+    expect(out).not.toContain('Lucas van Devel');
+  });
+});
+
+describe('rescheduleBooking — deux rendez-vous, on demande lequel', () => {
+  it('ne déplace pas au hasard', async () => {
+    findBookings.mockResolvedValueOnce([
+      { id: 'b0', customerName: 'A', customerPhone: '32483620980', bookingDate: new Date('2099-10-06T07:00:00Z'), bookingTime: '09:00', serviceType: null, googleEventId: null },
+      { id: 'b1', customerName: 'B', customerPhone: '32483620980', bookingDate: new Date('2099-10-07T07:00:00Z'), bookingTime: '09:00', serviceType: null, googleEventId: null },
+    ]);
+    const out = await toolRuntimeService.execute('c1', 'call_1', { name: 'rescheduleBooking', args: { date: '2099-10-08', time: '10:00' }, toolCallId: 't5' } as never);
+    expect(String(out.result)).toMatch(/^PLUSIEURS RESERVATIONS/);
+    expect(updateBooking).not.toHaveBeenCalled();
+  });
+
+  it('currentDate désigne celui à déplacer', async () => {
+    findBookings.mockResolvedValueOnce([
+      { id: 'b0', customerName: 'A', customerPhone: '32483620980', bookingDate: new Date('2099-10-06T07:00:00Z'), bookingTime: '09:00', serviceType: null, googleEventId: null },
+      { id: 'b1', customerName: 'B', customerPhone: '32483620980', bookingDate: new Date('2099-10-07T07:00:00Z'), bookingTime: '09:00', serviceType: null, googleEventId: null },
+    ]);
+    const out = await toolRuntimeService.execute('c1', 'call_1', { name: 'rescheduleBooking', args: { date: '2099-10-08', time: '10:00', currentDate: '2099-10-07' }, toolCallId: 't6' } as never);
+    expect(String(out.result)).toMatch(/^DEPLACE: B/);
+    expect(updateBooking.mock.calls[0][0].where).toEqual({ id: 'b1' });
   });
 });
