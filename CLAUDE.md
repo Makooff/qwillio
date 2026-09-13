@@ -987,6 +987,22 @@ REPLI » du docteur, à lire avant de toucher `VOICE_FIRST_TOKEN_TIMEOUT_MS`.
 (3) « 2 0 2 6 » lu chiffre par chiffre par Cartesia : le modèle a recopié
 l'année de la ligne de date ; à traiter si ça se répète.
 
+### 6septtrigesies. L'enregistrement se lit par la route documentée, jamais par l'adresse de l'appel (13/09/2026)
+Tranché avec l'onglet Réseau du tableau de bord Vapi : les adresses que
+porte l'appel (`artifact.recordingUrl`, stéréo, par canal) sont des adresses
+R2 NUES sur le stockage privé de Vapi (bucket `hipaa-recordings`, nom
+interne, sans rapport avec un réglage HIPAA du compte ; aucun stockage
+Cloudflare n'est configuré chez nous). Elles répondent « InvalidArgument /
+Authorization » à tout le monde, et ce n'est pas une expiration. Le tableau
+de bord obtient une adresse signée pour 30 minutes ; pour une clé API, le
+chemin documenté est `GET /call/{id}/mono-recording` (ou `stereo-`,
+`assistant-`, `customer-recording`), qui répond **302** vers cette adresse.
+`vapiClient.recordingUrl` lit le `Location` sans suivre la redirection, le
+portail l'essaie en premier, le docteur affiche « adresse signée
+(/call/:id/mono-recording) ». La règle : une adresse rendue par une API
+n'est pas forcément une adresse qui se lit ; quand le tableau de bord du
+fournisseur y arrive et pas nous, l'onglet Réseau dit comment il fait.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

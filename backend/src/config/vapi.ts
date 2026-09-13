@@ -45,6 +45,31 @@ class VapiClient {
   }
 
   /**
+   * L'adresse SIGNÉE d'un enregistrement, obtenue comme Vapi le documente.
+   *
+   * Les adresses que porte l'appel (`artifact.recordingUrl` et les autres)
+   * sont des adresses R2 nues, privées au stockage de Vapi: elles répondent
+   * « InvalidArgument / Authorization » à quiconque, et ce n'est pas une
+   * expiration (13/09/2026, quatre adresses testées). Le tableau de bord de
+   * Vapi, lui, obtient une adresse signée pour trente minutes. Le chemin
+   * documenté pour une clé API est `GET /call/{id}/mono-recording` (ou
+   * `stereo-recording`, `assistant-recording`, `customer-recording`), qui
+   * répond 302 vers cette adresse signée. On ne suit pas la redirection ici:
+   * c'est l'adresse qu'on veut, l'appelant la lit avec `Range`.
+   */
+  async recordingUrl(callId: string, kind: 'mono' | 'stereo' | 'assistant' | 'customer' = 'mono'): Promise<string | null> {
+    const response = await fetch(`${this.baseUrl}/call/${callId}/${kind}-recording`, {
+      headers: { Authorization: `Bearer ${this.privateKey}` },
+      redirect: 'manual',
+    });
+    const location = response.headers.get('location');
+    if ((response.status === 302 || response.status === 301 || response.status === 307) && location) return location;
+    if (response.status === 404) return null;
+    const body = await response.text().catch(() => '');
+    throw new Error(`VAPI API error (${response.status}) sur ${kind}-recording: ${body}`);
+  }
+
+  /**
    * Les derniers appels du compte, du plus récent au plus ancien.
    *
    * Sert au diagnostic de l'appel de test: le SDK web ne rend son identifiant
