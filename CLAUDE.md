@@ -1037,6 +1037,30 @@ un nom est une consigne contre l'appelant. Le nom connu est dit
 mot : on redemande, on fait épeler, on cherche sous le nom qu'il donne. Le
 même repli est écrit dans le retour de `lookupBooking`.
 
+### 6novotrigesies. Le compte s'active avec quatre champs, et l'agent invente le reste (13/09/2026)
+Retour : « on laisse le client trop libre, le compte est activable avec peu
+d'informations, j'ai peur que l'IA invente ». Ce que le code disait : la
+règle anti-invention (« appelle lookupKnowledge, n'invente jamais »)
+n'existait QUE pour un client avec base de connaissances ; le compte neuf,
+celui qui en sait le moins, était le seul sans consigne « dis que tu ne sais
+pas ». Les lacunes (`knowledge_gaps`) existaient mais vivaient sous la ligne
+de flottaison de la page Réceptionniste. Et un questionnaire guidé complet
+existait dans `onboarding-flow.service.ts`, servi seulement au parcours
+vendu (`/onboarding?token=`), jamais au libre-service.
+Trois pièces, dans cet ordre. (1) `services/setup-completeness.ts` : un score
+par MÉTIER depuis le preset (même table que le formulaire et le prompt),
+pondéré (transfert 3, horaires et services 2, urgence / annulation /
+mutuelles 2, le reste 1), porté par `/my-dashboard/overview` (`setup`) et
+`/my-dashboard/setup`, affiché en carte sur la vue d'ensemble avec les trois
+manques les plus lourds et les lacunes ouvertes. (2) `/dashboard/setup/guide`
+(`ClientSetupGuide.tsx`) : ce qui manque, une question à la fois, avec
+l'exemple rempli, enregistré par le PUT partiel de la page Réceptionniste,
+UNE clé par étape ; le modèle d'horaires est partagé (`utils/week-hours.ts`).
+(3) La règle anti-invention vaut pour tous les profils ; l'outil seul dépend
+de la base. Deux scénarios d'éval (`fr-hors-base-sans-kb`,
+`fr-hors-base-avec-kb`) posent une question que rien ne couvre. Plafond du
+prompt à 3150 pour cette ligne.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

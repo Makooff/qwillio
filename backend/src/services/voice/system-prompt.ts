@@ -441,15 +441,24 @@ export function buildSystemPrompt(
     ),
   );
 
-  if (profile.hasKnowledgeBase) {
-    lines.push(
-      t(
-        'INFOS ENTREPRISE: pour toute question sur l\'entreprise qui n\'est pas couverte ci-dessus, appelle lookupKnowledge. N\'invente jamais une reponse sur l\'entreprise.',
-        'BUSINESS INFO: for any question about the business not covered above, call lookupKnowledge. Never invent an answer about the business.',
-        'BEDRIJFSINFO: voor elke vraag over het bedrijf die hierboven niet staat, roep lookupKnowledge aan. Verzin nooit een antwoord over het bedrijf.',
+  /* Ce que l'agent NE SAIT PAS, il le dit ; il ne l'invente jamais.
+     La règle n'existait QUE pour un client avec base de connaissances : un
+     compte neuf, celui qui a le moins d'informations, était le seul sans
+     consigne anti-invention (13/09/2026). Elle vaut pour tous ; seul l'outil
+     dépend de la base. */
+  lines.push(
+    profile.hasKnowledgeBase
+      ? t(
+        'INFOS ENTREPRISE: pour toute question sur l\'entreprise non couverte ci-dessus, appelle lookupKnowledge. S\'il ne rend rien, dis que tu n\'as pas cette information et propose de faire rappeler. N\'invente jamais.',
+        'BUSINESS INFO: for any question about the business not covered above, call lookupKnowledge. If it returns nothing, say you do not have that information and offer a callback. Never invent.',
+        'BEDRIJFSINFO: voor elke vraag over het bedrijf die hierboven niet staat, roep lookupKnowledge aan. Levert dat niets op, zeg dat je die informatie niet hebt en bied aan terug te bellen. Verzin nooit iets.',
       )
-    );
-  }
+      : t(
+        'INFOS ENTREPRISE: question non couverte ci-dessus = dis que tu n\'as pas l\'information et propose de prendre les coordonnees pour un rappel. N\'invente jamais, ne devine jamais.',
+        'BUSINESS INFO: if a question about the business is not covered above, say you do not have that information and offer to take their details for a callback. Never invent, never guess.',
+        'BEDRIJFSINFO: staat een vraag over het bedrijf hierboven niet, zeg dat je die informatie niet hebt en bied aan de gegevens te noteren voor een terugbel. Verzin nooit iets, gok nooit.',
+      ),
+  );
 
   // ── Caller memory: the part that makes the first sentence land ──
   {

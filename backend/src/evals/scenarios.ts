@@ -178,6 +178,30 @@ export const SCENARIOS: EvalScenario[] = [
       { kind: 'reply-not-matches', value: '\\d+\\s*(€|euros?)', description: 'aucun montant prononcé' },
     ],
   },
+  /* ── Ce que l'agent ne sait pas, il le dit (13/09/2026) ──
+     « J'ai peur que l'IA invente » : la crainte se mesure. Une question que
+     rien dans le profil ne couvre, posée à un cabinet SANS base (le compte
+     neuf, celui qui en sait le moins) et à un cabinet AVEC base. */
+  {
+    id: 'fr-hors-base-sans-kb',
+    description: 'Question non couverte, sans base de connaissances: l\'agent dit qu\'il ne sait pas et propose un rappel, sans répondre oui ou non.',
+    profileOverrides: { hasKnowledgeBase: false },
+    turns: [{ role: 'user', content: 'Est-ce que vous acceptez les chèques-repas pour payer une consultation ?' }],
+    assertions: [
+      { kind: 'reply-not-matches', value: '(nous (acceptons|prenons|n\'acceptons pas|ne prenons pas)|oui,? (nous|on) (accept|pren)|bien sûr|tout à fait|absolument|malheureusement (non|pas))', description: 'ne répond ni oui ni non par supposition' },
+      { kind: 'reply-matches', value: '(pas (cette |l\'|d\')information|je ne (sais|peux) pas vous (le |la )?(dire|confirmer)|je n\'ai pas (cette|l\')|me renseigner|faire remonter|rappel|revenir vers vous|vérifier auprès)', description: 'dit qu\'il ne sait pas et propose une suite' },
+    ],
+  },
+  {
+    id: 'fr-hors-base-avec-kb',
+    description: 'Question non couverte, avec base de connaissances: l\'agent consulte lookupKnowledge au lieu de deviner.',
+    profileOverrides: { hasKnowledgeBase: true },
+    turns: [{ role: 'user', content: 'Est-ce que vous acceptez les chèques-repas pour payer une consultation ?' }],
+    assertions: [
+      { kind: 'calls-tool', value: 'lookupKnowledge', description: 'consulte la base avant de répondre' },
+      { kind: 'reply-not-matches', value: '(nous (acceptons|prenons|n\'acceptons pas|ne prenons pas)|oui,? (nous|on) (accept|pren)|bien sûr|tout à fait|absolument)', description: 'ne répond pas avant d\'avoir consulté' },
+    ],
+  },
   {
     id: 'fr-transfert-humain',
     description: 'Demande explicite d\'un humain: transfert sans discuter.',

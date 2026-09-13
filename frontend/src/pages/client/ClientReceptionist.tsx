@@ -8,6 +8,7 @@ import {
   BookOpen, Tag, HelpCircle, Clock3, Plus, X,
 } from '../../components/icons';
 import api from '../../services/api';
+import { DAYS, DEFAULT_HOURS, type WeekHours } from '../../utils/week-hours';
 /* Le cache `liveData` vient de master, le carrousel vient d'ici: les deux se
    cumulent. CharacterPicker (la grille) n'est plus importé, c'est le carrousel
    qui a pris sa place dans le rendu. */
@@ -54,9 +55,7 @@ interface KnowledgePresets {
   fields: { id: string; label: string; placeholder: string; multiline?: boolean }[];
   faq: FaqEntry[];
 }
-interface DayHours { open: boolean; from: string; to: string; }
-type WeekDay = 'monday'|'tuesday'|'wednesday'|'thursday'|'friday'|'saturday'|'sunday';
-type WeekHours = Record<WeekDay, DayHours>;
+/* Le modèle d'horaires est partagé avec le parcours guidé (`utils/week-hours`). */
 
 /**
  * Pour AFFICHER le métier, pas pour le choisir: le choix est dans Paramètres,
@@ -82,26 +81,6 @@ const ITEM_CATEGORIES: { v: string; l: string }[] = [
   { v: 'prestation', l: 'Prestation' },
   { v: 'autre',      l: 'Autre' },
 ];
-
-const DAYS: { k: WeekDay; l: string }[] = [
-  { k: 'monday',    l: 'Lundi' },
-  { k: 'tuesday',   l: 'Mardi' },
-  { k: 'wednesday', l: 'Mercredi' },
-  { k: 'thursday',  l: 'Jeudi' },
-  { k: 'friday',    l: 'Vendredi' },
-  { k: 'saturday',  l: 'Samedi' },
-  { k: 'sunday',    l: 'Dimanche' },
-];
-
-const DEFAULT_HOURS: WeekHours = {
-  monday:    { open: true,  from: '09:00', to: '18:00' },
-  tuesday:   { open: true,  from: '09:00', to: '18:00' },
-  wednesday: { open: true,  from: '09:00', to: '18:00' },
-  thursday:  { open: true,  from: '09:00', to: '18:00' },
-  friday:    { open: true,  from: '09:00', to: '18:00' },
-  saturday:  { open: false, from: '10:00', to: '16:00' },
-  sunday:    { open: false, from: '10:00', to: '16:00' },
-};
 
 const newId = () => Math.random().toString(36).slice(2, 10);
 

@@ -41,6 +41,7 @@ const ClientLeads = lazy(() => import('./pages/client/ClientLeads'));
 const ClientReceptionist = lazy(() => import('./pages/client/ClientReceptionist'));
 const ClientAccount = lazy(() => import('./pages/client/ClientAccount'));
 const ClientSetupForwarding = lazy(() => import('./pages/client/ClientSetupForwarding'));
+const ClientSetupGuide = lazy(() => import('./pages/client/ClientSetupGuide'));
 const ClientSetupCustomize  = lazy(() => import('./pages/client/ClientSetupCustomize'));
 const ClientSupport = lazy(() => import('./pages/client/ClientSupport'));
 const ClientIntegrations = lazy(() => import('./pages/client/ClientIntegrations'));
@@ -414,6 +415,8 @@ export default function App() {
           <Route path="account" element={<Suspense fallback={<Spinner />}><ClientAccount /></Suspense>} />
           <Route path="setup/call-forwarding" element={<Suspense fallback={<Spinner />}><ClientSetupForwarding /></Suspense>} />
           <Route path="setup/customize"       element={<Suspense fallback={<Spinner />}><ClientSetupCustomize /></Suspense>} />
+          {/* Le parcours guidé : ce qui manque au métier, une question à la fois (13/09/2026). */}
+          <Route path="setup/guide"           element={<Suspense fallback={<Spinner />}><ClientSetupGuide /></Suspense>} />
           <Route path="support" element={<Suspense fallback={<Spinner />}><ClientSupport /></Suspense>} />
           <Route path="integrations" element={<Suspense fallback={<Spinner />}><ClientIntegrations /></Suspense>} />
           {/* Agent IA — OUVERT module par module, jamais en bloc.
