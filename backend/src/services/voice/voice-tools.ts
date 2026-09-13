@@ -193,7 +193,7 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
       function: {
         name: 'checkAvailability',
         description:
-          'Check which appointment slots are free on a given date. Call this BEFORE proposing any time to the caller. Never invent availability.',
+          'Check which appointment slots are free on a given date. Call it in the SAME turn as the request, never say you will check first. Call this BEFORE proposing any time to the caller. Never invent availability.',
         parameters: {
           type: 'object',
           properties: {

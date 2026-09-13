@@ -160,7 +160,11 @@ export const SCENARIOS: EvalScenario[] = [
     id: 'fr-discipline-agenda',
     description: 'Demande de rendez-vous: l\'agent consulte checkAvailability au lieu d\'inventer un créneau.',
     profileOverrides: {},
-    turns: [{ role: 'user', content: 'Bonjour, je voudrais un rendez-vous demain pour un détartrage.' }],
+    /* « mardi prochain » et non « demain »: « demain » tombait un jour fermé
+       ou ouvert selon le jour où la CI tourne, et le scénario mesurait le
+       calendrier plutôt que la discipline d'outil (13/09, un dimanche: le
+       modèle a dit « lundi, fermés » d'un cabinet ouvert Lun-Ven). */
+    turns: [{ role: 'user', content: 'Bonjour, je voudrais un rendez-vous mardi prochain pour un détartrage.' }],
     assertions: [
       { kind: 'calls-tool', value: 'checkAvailability', description: 'vérifie l\'agenda avant de proposer' },
     ],
