@@ -4,7 +4,7 @@ import { llmStreamService, type ChatCompletionRequest } from '../services/voice/
 import { realtimeContextService } from '../services/voice/realtime-context.service';
 import { callSessionStore } from '../services/voice/call-session.store';
 import { normalizeNumber } from '../services/voice/phone-allocation.service';
-import { isVapiWebhookAuthorized } from '../utils/vapi-webhook-auth';
+import { isCustomLlmAuthorized } from '../utils/vapi-webhook-auth';
 
 /**
  * OpenAI-compatible streaming endpoint Vapi calls when a client is on the
@@ -17,11 +17,17 @@ import { isVapiWebhookAuthorized } from '../utils/vapi-webhook-auth';
 
 export class VoiceLlmController {
   async chatCompletions(req: Request, res: Response) {
-    if (!isVapiWebhookAuthorized(req)) {
+    const clientId = req.params.clientId as string;
+    if (!isCustomLlmAuthorized(req, clientId)) {
+      /* Un 401 ici ne se voit nulle part ailleurs: Vapi raccroche après
+         l'accueil et l'appelant n'entend rien. La ligne dit CE qui manque. */
+      const header = req.headers['x-vapi-secret'];
+      logger.warn(
+        `[VoiceLLM] 401 pour ${clientId}: en-tête x-vapi-secret ${header ? 'présent mais différent' : 'ABSENT'}, jeton de chemin ${req.params.token ? 'présent mais différent' : 'absent'}. Resynchroniser l'assistant pose l'URL avec jeton.`,
+      );
       return res.status(401).json({ error: 'Invalid webhook secret' });
     }
 
-    const clientId = req.params.clientId as string;
     const body = req.body as ChatCompletionRequest;
 
     if (!body || !Array.isArray(body.messages)) {
