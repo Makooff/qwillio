@@ -2,6 +2,8 @@ import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { planFeatures } from '../config/plan-features';
 import { getPlan } from '../config/plans';
+import { setupCompleteness } from './setup-completeness';
+import { knowledgeGapService } from './voice/knowledge-gap.service';
 
 export class ClientDashboardService {
 
@@ -246,7 +248,16 @@ export class ClientDashboardService {
     );
     const hasTestCall = totalCallsAllTime > 0 || (client.totalCallsMade ?? 0) > 0;
 
+    /* Ce que la réceptionniste SAIT, par métier, et ce qu'on lui a demandé
+       sans qu'elle sache répondre. `hasCustomConfig` se cochait dès un seul
+       réglage ; ceci dit combien il en manque (13/09/2026). */
+    const setup = setupCompleteness(
+      { businessType: client.businessType, transferNumber: client.transferNumber, vapiConfig: client.vapiConfig },
+      await knowledgeGapService.openCount(clientId),
+    );
+
     return {
+      setup,
       client: {
         id: client.id,
         businessName: client.businessName,

@@ -9,6 +9,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { fetchLive, peekLive, subscribeLive } from '../../services/liveData';
 import { daysUntil } from '../../utils/format';
 import OnboardingChecklist from '../../components/client/OnboardingChecklist';
+import SetupCompleteness, { type SetupState } from '../../components/client/SetupCompleteness';
 import {
   KpiSplit, HeroTrendPanel, RadialGauge, TallyMeter, DetailCard,
   SegmentBar, InsightCard,
@@ -292,6 +293,10 @@ export default function ClientOverview() {
 
       {/* Onboarding */}
       {!onboardingDone && <OnboardingChecklist client={onboardingClient} />}
+
+      {/* Ce que la réceptionniste sait, par métier, et les questions restées
+          sans réponse. Visible tant qu'il manque quelque chose (13/09/2026). */}
+      <SetupCompleteness setup={(data as { setup?: SetupState } | null)?.setup ?? null} />
 
       {/* KPI split row — borderless figures with a hairline under */}
       <section aria-label="Indicateurs clés" className="pb-6 border-b border-white/[0.06]">
