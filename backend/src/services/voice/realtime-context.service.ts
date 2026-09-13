@@ -3,6 +3,7 @@ import { prisma } from '../../config/database';
 import { clientLocale } from '../../utils/client-locale';
 import { businessTimezone } from '../../utils/zoned-time';
 import { knowledgeFieldsBlock } from '../../config/knowledge-presets';
+import { namesMatch } from '../../utils/name-match';
 import { logger } from '../../config/logger';
 import { env } from '../../config/env';
 import type { CustomVoice } from '../../config/voice-characters';
@@ -369,7 +370,7 @@ class RealtimeContextService {
     const cached = await this.get<CallerHistory>(key);
     if (cached) return cached;
 
-    const [memory, calls, booking] = await Promise.all([
+    const [memory, calls, bookings] = await Promise.all([
       prisma.callerMemory.findUnique({
         where: { clientId_callerNumber: { clientId, callerNumber } },
         select: { knownName: true, profileSummary: true, lastSummary: true, lastCallAt: true, totalCalls: true },
@@ -380,16 +381,31 @@ class RealtimeContextService {
         take: 3,
         select: { createdAt: true, summary: true, nameCollected: true, callerName: true },
       }),
-      prisma.clientBooking.findFirst({
+      prisma.clientBooking.findMany({
         where: {
           clientId,
           customerPhone: callerNumber,
           status: 'confirmed',
           bookingDate: { gte: new Date() },
         },
-        select: { id: true, customerName: true },
+        /* La plus récemment TOUCHÉE d'abord, et non la première rendue par la
+           base: sans tri, c'était une vieille réservation de test (« Paul
+           Matthieu ») qui nommait l'appelant, et l'agent l'a appelé ainsi
+           pendant tout l'appel (13/09/2026, 16:52). */
+        orderBy: { updatedAt: 'desc' },
+        take: 5,
+        select: { customerName: true },
       }),
     ]);
+
+    /* Un numéro peut réserver pour PLUSIEURS personnes (un parent pour ses
+       enfants, un cabinet de test pour trois prénoms). Si les réservations à
+       venir ne portent pas le même nom, aucune ne dit qui appelle: on ne
+       nomme personne plutôt que de nommer le mauvais. */
+    const bookingNames = bookings.map(b => b.customerName?.trim() ?? '').filter(Boolean);
+    const bookingName = bookingNames.length && bookingNames.every(n => namesMatch(n, bookingNames[0]))
+      ? bookingNames[0]
+      : null;
 
     // CallerMemory is the collapsed, authoritative view when it exists; the
     // ClientCall scan is the fallback for callers who rang before this table.
@@ -403,12 +419,12 @@ class RealtimeContextService {
       lastCallAt: (memory?.lastCallAt ?? calls[0]?.createdAt)?.toISOString() ?? null,
       lastSummary: memory?.profileSummary ?? memory?.lastSummary ?? calls[0]?.summary ?? null,
       knownName:
-        booking?.customerName?.trim()
+        bookingName
         || memory?.knownName
         || calls.find(c => c.nameCollected)?.nameCollected
         || calls.find(c => c.callerName)?.callerName
         || null,
-      hasUpcomingBooking: Boolean(booking),
+      hasUpcomingBooking: bookings.length > 0,
     };
 
     await this.set(key, history, HISTORY_TTL_MS);

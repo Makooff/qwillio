@@ -67,7 +67,7 @@ describe('buildSystemPrompt', () => {
       hasUpcomingBooking: true,
     });
     expect(prompt).toContain('Julien');
-    expect(prompt).toMatch(/ne redemande pas son nom/i);
+    expect(prompt).toMatch(/ne redemande pas/i);
     expect(prompt).toContain('lookupBooking');
   });
 

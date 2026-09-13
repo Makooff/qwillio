@@ -1023,6 +1023,19 @@ illisible, on ne demande pas d'épeler : la relecture reste le filet.
 épelant et la synthèse lit « zéro ». `spellOut` et `normaliseSpelledName`
 lisent 0 comme O, et la règle de parole le dit. Le plafond du prompt passe à
 2900 pour cette ligne.
+**Le retour de bâton, une heure après (16:52), à ne pas refaire.** Deux
+défauts de la version ci-dessus. (1) `getCallerHistory` prenait le nom de la
+PREMIÈRE réservation à venir rendue par la base, sans tri : une vieille
+réservation de test « Paul Matthieu » sous le même numéro a nommé l'appelant.
+Elle lit désormais la plus récemment TOUCHÉE (`updatedAt desc`), et si les
+réservations à venir du numéro portent des noms différents (un numéro qui
+réserve pour plusieurs personnes), elle ne nomme PERSONNE. (2) « Appelle-le X,
+jamais par ce que tu as cru entendre » a tenu contre QUATRE démentis (« ce
+n'est pas moi, moi c'est Jean-Luc de la forge ») : une consigne absolue sur
+un nom est une consigne contre l'appelant. Le nom connu est dit
+« probablement », et la règle ajoute que l'appelant qui dément a le dernier
+mot : on redemande, on fait épeler, on cherche sous le nom qu'il donne. Le
+même repli est écrit dans le retour de `lookupBooking`.
 
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,

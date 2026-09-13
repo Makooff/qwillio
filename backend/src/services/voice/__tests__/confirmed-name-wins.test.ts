@@ -6,16 +6,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
    CONFIRMÉ doit primer partout : historique posé à chaque tour, consigne au
    modèle, résumé post-appel, mémoire d'appelant. */
 
-const { findMemory, findCalls, findBooking } = vi.hoisted(() => ({
+const { findMemory, findCalls, findBookings } = vi.hoisted(() => ({
   findMemory: vi.fn(),
   findCalls: vi.fn(),
-  findBooking: vi.fn(),
+  findBookings: vi.fn(),
 }));
 vi.mock('../../../config/database', () => ({
   prisma: {
     callerMemory: { findUnique: findMemory },
     clientCall: { findMany: findCalls },
-    clientBooking: { findFirst: findBooking },
+    clientBooking: { findMany: findBookings },
     client: { findUnique: vi.fn() },
   },
 }));
@@ -29,13 +29,14 @@ describe('getCallerHistory — la réservation confirmée nomme l\'appelant', ()
   beforeEach(() => {
     findMemory.mockReset();
     findCalls.mockReset();
-    findBooking.mockReset();
+    findBookings.mockReset();
     findCalls.mockResolvedValue([]);
+    findBookings.mockResolvedValue([]);
   });
 
   it('le nom de la réservation prime sur la mémoire d\'appelant', async () => {
     findMemory.mockResolvedValue({ knownName: 'Jean Lucas', profileSummary: null, lastSummary: null, lastCallAt: new Date(), totalCalls: 3 });
-    findBooking.mockResolvedValue({ id: 'b1', customerName: 'Jean-Luc de la Forge' });
+    findBookings.mockResolvedValue([{ customerName: 'Jean-Luc de la Forge' }]);
     const h = await realtimeContextService.getCallerHistory('c-name-1', '32483620980');
     expect(h.knownName).toBe('Jean-Luc de la Forge');
     expect(h.hasUpcomingBooking).toBe(true);
@@ -43,7 +44,6 @@ describe('getCallerHistory — la réservation confirmée nomme l\'appelant', ()
 
   it('sans réservation, la mémoire, puis les appels', async () => {
     findMemory.mockResolvedValue({ knownName: 'Élodie', profileSummary: null, lastSummary: null, lastCallAt: new Date(), totalCalls: 1 });
-    findBooking.mockResolvedValue(null);
     expect((await realtimeContextService.getCallerHistory('c-name-2', '32483620981')).knownName).toBe('Élodie');
 
     findMemory.mockResolvedValue(null);
@@ -51,11 +51,27 @@ describe('getCallerHistory — la réservation confirmée nomme l\'appelant', ()
     expect((await realtimeContextService.getCallerHistory('c-name-3', '32483620982')).knownName).toBe('Marc');
   });
 
-  it('la sélection lit le nom de la réservation', async () => {
+  /* Appel réel du 13/09 à 16:52 : sans tri, la base rendait une vieille
+     réservation de test (« Paul Matthieu ») et l'agent a appelé Jean-Luc
+     ainsi pendant tout l'appel, malgré quatre démentis. */
+  it('lit la réservation la plus récemment touchée, et son nom', async () => {
     findMemory.mockResolvedValue(null);
-    findBooking.mockResolvedValue(null);
     await realtimeContextService.getCallerHistory('c-name-4', '32483620983');
-    expect(findBooking.mock.calls[0][0].select).toMatchObject({ customerName: true });
+    const q = findBookings.mock.calls[0][0];
+    expect(q.select).toMatchObject({ customerName: true });
+    expect(q.orderBy).toEqual({ updatedAt: 'desc' });
+  });
+
+  it('un numéro qui réserve pour plusieurs personnes ne nomme personne', async () => {
+    findMemory.mockResolvedValue(null);
+    findBookings.mockResolvedValue([{ customerName: 'Jean-Luc de la Forge' }, { customerName: 'Paul Matthieu' }]);
+    const h = await realtimeContextService.getCallerHistory('c-name-5', '32483620984');
+    expect(h.knownName).toBeNull();
+    expect(h.hasUpcomingBooking).toBe(true);
+
+    /* Deux réservations sous le MÊME nom, entendu différemment : un seul nom. */
+    findBookings.mockResolvedValue([{ customerName: 'Jean-Luc de la Forge' }, { customerName: 'Jean-Luc Delaforge' }]);
+    expect((await realtimeContextService.getCallerHistory('c-name-6', '32483620985')).knownName).toBe('Jean-Luc de la Forge');
   });
 });
 
@@ -64,11 +80,14 @@ describe('callerHistoryBlock — le nom connu vaut plus que le nom entendu', () 
     const block = callerHistoryBlock('fr', {
       previousCalls: 2, lastCallAt: null, lastSummary: null, knownName: 'Jean-Luc de la Forge', hasUpcomingBooking: true,
     })!;
-    expect(block).toMatch(/ne redemande pas son nom/);
-    expect(block).toMatch(/appelle-le Jean-Luc de la Forge, jamais par ce que tu as cru entendre/);
+    expect(block).toMatch(/probablement Jean-Luc de la Forge/);
+    expect(block).toMatch(/ne redemande pas/);
+    /* Et l'appelant qui dément a le dernier mot (16:52). */
+    expect(block).toMatch(/S'il dit que ce n'est PAS son nom, crois-le/);
     const en = callerHistoryBlock('en', {
       previousCalls: 1, lastCallAt: null, lastSummary: null, knownName: 'Jean-Luc', hasUpcomingBooking: false,
     })!;
-    expect(en).toMatch(/call them Jean-Luc, never what you thought you heard/);
+    expect(en).toMatch(/probably Jean-Luc/);
+    expect(en).toMatch(/If they say that is NOT their name, believe them/);
   });
 });

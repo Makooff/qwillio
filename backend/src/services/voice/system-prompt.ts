@@ -86,9 +86,12 @@ export function callerHistoryBlock(lang: VoiceLanguage, caller: CallerHistory): 
     const name = sanitizeInline(caller.knownName, MAX_NAME_CHARS);
     memory.push(
       t(
-        `Il s'appelle ${name} — ne redemande pas son nom. Si le nom que tu entends y ressemble, c'est lui: appelle-le ${name}, jamais par ce que tu as cru entendre.`,
-        `Their name is ${name} — do not ask for it again. If the name you hear sounds like it, it is them: call them ${name}, never what you thought you heard.`,
-        `De beller heet ${name} — vraag niet opnieuw naar de naam. Klinkt de naam die u hoort erop, dan is het deze persoon: noem hem ${name}, nooit wat u dacht te horen.`,
+        /* La correction de l'appelant a le DERNIER mot. « Appelle-le X, jamais
+           par ce que tu as cru entendre » a fait tenir « Paul et Matthieu »
+           contre quatre démentis de l'appelant (13/09/2026, 16:52). */
+        `Il s'appelle probablement ${name} (nom de sa dernière réservation). Si ce qu'il dit y ressemble, c'est lui, ne redemande pas. S'il dit que ce n'est PAS son nom, crois-le: demande-lui son nom, fais-le épeler, et cherche sa réservation sous ce nom-là.`,
+        `Their name is probably ${name} (from their latest booking). If what they say sounds like it, it is them, do not ask again. If they say that is NOT their name, believe them: ask their name, have it spelled, and look up the booking under that name.`,
+        `De beller heet waarschijnlijk ${name} (naam op de laatste reservering). Klinkt wat hij zegt erop, dan is het hij, vraag niet opnieuw. Zegt hij dat dit NIET zijn naam is, geloof hem: vraag zijn naam, laat spellen, en zoek de reservering onder die naam.`,
       )
     );
   }
