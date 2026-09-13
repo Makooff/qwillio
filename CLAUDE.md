@@ -933,9 +933,10 @@ Ford », « Delaforde », « de la foireux »…). Il rend maintenant TOUTES les
 réservations à venir de l'appelant, classées par ressemblance de nom
 (`utils/name-match.ts`, Levenshtein sur le nom entier et sur le nom de
 famille, seuil 0,6) et par `currentDate` ; rescheduleBooking demande laquelle
-quand deux se valent. (2) Le SMS lie `/api/public/booking/:id/agenda` :
-gabarit Google Agenda pour Android, `.ics` pour iPhone ; le `.ics` seul se
-téléchargeait sans rien ouvrir. (3) Le docteur décode `X-Amz-Date` et
+quand deux se valent. (2) Le SMS lie `/api/public/booking/:id/agenda`, le
+gabarit Google Agenda pour tous : un lien https vers un `.ics` tapé depuis
+Messages sur iPhone ouvre « Ajouter un calendrier avec abonnement », un flux,
+pas un rendez-vous, et sur Android il se téléchargeait sans rien ouvrir. (3) Le docteur décode `X-Amz-Date` et
 `X-Amz-Expires` de l'URL d'enregistrement et dit si Vapi rend la même URL
 signée qu'à la fin de l'appel : « 400 InvalidArgument Authorization » quatre
 minutes après l'appel n'est pas une expiration, c'est à lire là.

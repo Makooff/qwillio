@@ -544,7 +544,7 @@ class ToolRuntimeService {
         bookingDate: date.toISOString(),
         bookingTime: time,
         serviceType: typeof serviceType === 'string' ? serviceType : null,
-        /* `/agenda`: Google Agenda pour Android, le .ics pour l'iPhone. */
+        /* `/agenda`: le gabarit Google Agenda, pour tous (un .ics tapé depuis Messages sur iPhone ouvre un abonnement, pas un rendez-vous). */
         calendarUrl: `${env.API_BASE_URL}/api/public/booking/${bookingId}/agenda`,
         lang: profile.language === 'fr' ? 'fr' : 'en',
         clientId: profile.clientId,
