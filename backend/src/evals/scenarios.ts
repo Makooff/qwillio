@@ -189,7 +189,7 @@ export const SCENARIOS: EvalScenario[] = [
     turns: [{ role: 'user', content: 'Est-ce que vous acceptez les chèques-repas pour payer une consultation ?' }],
     assertions: [
       { kind: 'reply-not-matches', value: '(nous (acceptons|prenons|n\'acceptons pas|ne prenons pas)|oui,? (nous|on) (accept|pren)|bien sûr|tout à fait|absolument|malheureusement (non|pas))', description: 'ne répond ni oui ni non par supposition' },
-      { kind: 'reply-matches', value: '(pas (cette |l\'|d\')information|je ne (sais|peux) pas vous (le |la )?(dire|confirmer)|je n\'ai pas (cette|l\')|me renseigner|faire remonter|rappel|revenir vers vous|vérifier auprès)', description: 'dit qu\'il ne sait pas et propose une suite' },
+      { kind: 'reply-matches', value: '(pas (cette |l\'|d\')information|je ne (sais|peux) pas vous (le |la )?(dire|confirmer)|je n\'ai pas (cette|l\')|je ne suis pas (sûr|certain)|me renseigner|faire remonter|rappel|coordonn|revenir vers vous|vérifier auprès)', description: 'dit qu\'il ne sait pas et propose une suite' },
     ],
   },
   {
