@@ -975,6 +975,18 @@ adresses R2 nues du même compte, donc le stockage Vapi de ce compte est
 privé ; ce n'est pas une adresse à choisir, c'est un réglage Vapi ou des
 clés R2 à donner au backend.
 
+### 6sextrigesies. Premier appel réel sur custom-LLM qui tient (13/09/2026, 06:13) et ce qu'il laisse
+Reconnu par le numéro, réservation retrouvée du premier coup, samedi refusé,
+déplacement sans doublon, date connue. Trois restes. (1) La fiche d'appel et
+le contact CRM portaient le nom ENTENDU par l'analyse (« Jean Lucas ») alors
+que la réservation, relue et épelée, dit « Jean-Luc de la forge » :
+`knownCallerName` fait primer la réservation de l'appel, puis la dernière
+réservation du numéro, puis la mémoire d'appelant, sur le nom du transcript.
+(2) Un tour en repli au milieu de l'appel : la raison est dans « TOURS EN
+REPLI » du docteur, à lire avant de toucher `VOICE_FIRST_TOKEN_TIMEOUT_MS`.
+(3) « 2 0 2 6 » lu chiffre par chiffre par Cartesia : le modèle a recopié
+l'année de la ligne de date ; à traiter si ça se répète.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).
