@@ -941,6 +941,20 @@ pas un rendez-vous, et sur Android il se téléchargeait sans rien ouvrir. (3) L
 signée qu'à la fin de l'appel : « 400 InvalidArgument Authorization » quatre
 minutes après l'appel n'est pas une expiration, c'est à lire là.
 
+### 6quattuortrigesies. Premier appel en custom-LLM sur l'assistant enregistré : raccroché après l'accueil (13/09/2026)
+Le bloc `server` de l'assistant porte `x-vapi-secret` (`webhookServer`), le
+bloc `model` d'un custom-LLM n'a pas d'en-têtes : ce que Vapi envoie sur ce
+chemin dépend d'un réglage hors du dépôt. Un 401 sur le premier tour de
+modèle se manifeste exactement ainsi : l'accueil (synthétisé par Vapi) part,
+puis Vapi raccroche, et rien ne s'affiche nulle part. Le secret voyage donc
+AUSSI dans l'URL (`customLlmPathToken`, HMAC par client, 32 caractères), et
+`isCustomLlmAuthorized` accepte l'en-tête OU le jeton ; l'URL n'est connue que
+de Vapi, même confidentialité qu'un en-tête. Le 401 est journalisé en warn en
+disant ce qui manque. Après déploiement : `voice:resync --confirm` pose l'URL
+avec jeton ; l'ancienne route sans jeton reste pour les assistants pas encore
+resynchronisés. Cause à CONFIRMER au docteur (`endedReason` du dernier appel)
+et dans les journaux Render (`[VoiceLLM] 401`).
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

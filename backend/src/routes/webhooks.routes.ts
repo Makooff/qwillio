@@ -31,6 +31,10 @@ router.get('/vapi/health', (req, res) => voiceWebhookController.health(req, res)
 // custom-LLM path, which is what lets the intent router actually skip the model
 // instead of merely counting the turns it could have skipped.
 router.post('/vapi/llm/:clientId/chat/completions', (req, res) => voiceLlmController.chatCompletions(req, res));
+/* La même route avec le jeton de chemin (`customLlmPathToken`): c'est l'URL
+   que porte désormais l'assistant, la précédente reste pour les assistants
+   non encore resynchronisés. */
+router.post('/vapi/llm/:clientId/:token/chat/completions', (req, res) => voiceLlmController.chatCompletions(req, res));
 
 // Twilio inbound SMS — handles prospect email corrections via SMS reply
 router.post('/twilio/sms', validateTwilioSignature, (req, res) => webhooksController.twilioInboundSMS(req, res));

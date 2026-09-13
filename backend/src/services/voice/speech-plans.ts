@@ -1,4 +1,5 @@
 import { env } from '../../config/env';
+import { customLlmPathToken } from '../../utils/vapi-webhook-auth';
 import { buildIdleMessagePlan } from './conversational-repair';
 import { CARTESIA_LANG, cartesiaVoiceFor } from './cartesia.service';
 
@@ -829,7 +830,10 @@ export function useSpeechToSpeech(opts: {
  */
 /** L'URL du chemin custom-LLM d'un client, sous sa forme de production. */
 export function customLlmUrlFor(clientId: string): string {
-  return `${env.API_BASE_URL}/api/webhooks/vapi/llm/${clientId}`;
+  /* Le jeton dans le chemin: voir `customLlmPathToken`. Vapi ajoute
+     `/chat/completions` derrière. */
+  const token = customLlmPathToken(clientId);
+  return `${env.API_BASE_URL}/api/webhooks/vapi/llm/${clientId}${token ? `/${token}` : ''}`;
 }
 
 /**

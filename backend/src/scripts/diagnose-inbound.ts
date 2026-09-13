@@ -33,6 +33,7 @@ import { prisma } from '../config/database';
 import { env } from '../config/env';
 import { vapiClient } from '../config/vapi';
 import { smsReadiness } from '../services/sms-ready';
+import { recordingCandidates, type RecordingCandidate } from '../services/voice/recording-urls';
 
 const arg = (name: string): string | null => {
   const hit = process.argv.find(a => a.startsWith(`--${name}=`));
@@ -412,6 +413,14 @@ async function main() {
            ne la rafraîchit pas, et le portail passe par cette route. */
         console.log('      URL fraîche Vapi: IDENTIQUE à la stockée (Vapi ne re-signe pas à la lecture)');
       }
+      /* Les AUTRES adresses du même appel (stéréo, par canal): une adresse R2
+         nue est privée au compte, mais Vapi en pose souvent plusieurs, et
+         c'est ici qu'on voit laquelle se sert. */
+      if (call === mine[0] && seen && seen.candidates.length > 1) {
+        for (const c of seen.candidates.slice(1)) {
+          console.log(`      autre adresse (${c.field}): ${await servedAs(c.url)}`);
+        }
+      }
     }
   } catch (error) {
     console.log(`\nListe des appels Vapi illisible: ${(error as Error).message}`);
@@ -461,12 +470,13 @@ async function servedAs(url: string): Promise<string> {
  * enregistrement, et appels d'outils avec leurs arguments et leurs réponses.
  * `null` si l'appel est illisible.
  */
-async function callReading(callId: string): Promise<{ said: number; recording: boolean; recordingUrl: string | null; tools: string[] } | null> {
+async function callReading(callId: string): Promise<{ said: number; recording: boolean; recordingUrl: string | null; candidates: RecordingCandidate[]; tools: string[] } | null> {
   try {
     const full = (await vapiClient.getCall(callId)) as Record<string, any>;
     const messages: Array<Record<string, any>> = full?.artifact?.messages ?? full?.messages ?? [];
     const said = messages.filter(m => m.role === 'bot' || m.role === 'assistant').length;
-    const recordingUrl: string | null = full?.artifact?.recordingUrl || full?.recordingUrl || full?.artifact?.recording?.mono?.combinedUrl || null;
+    const candidates = recordingCandidates(full);
+    const recordingUrl: string | null = candidates[0]?.url ?? null;
     const recording = !!recordingUrl;
     const tools: string[] = [];
     /* Les DÉLAIS, lus sur l'horloge de Vapi: « il y a un délai qui ne
@@ -503,7 +513,7 @@ async function callReading(callId: string): Promise<{ said: number; recording: b
       const median = sorted[Math.floor(sorted.length / 2)];
       tools.push(`⏱ réponse après la fin de parole de l'appelant: médiane ${median.toFixed(1)} s, max ${sorted[sorted.length - 1].toFixed(1)} s, sur ${gaps.length} tour(s)`);
     }
-    return { said, recording, recordingUrl, tools };
+    return { said, recording, recordingUrl, candidates, tools };
   } catch {
     return null;
   }
