@@ -76,7 +76,42 @@ async function main() {
   /* Le SMS de confirmation ne part que si tout y est; l'agent ne le promet
      qu'à cette condition, et le docteur dit ce qui manque (12/09/2026). */
   const sms = smsReadiness();
-  console.log(`SMS de confirmation: ${sms.ok ? 'prêt à partir' : `NE PARTIRA PAS, il manque ${sms.missing.join(', ')}`}`);
+  console.log(`SMS de confirmation: ${sms.ok ? 'identifiants Twilio prêts' : `NE PARTIRA PAS, il manque ${sms.missing.join(', ')}`}`);
+  console.log(`  expéditeur plateforme (repli pour la ligne partagée): ${env.TWILIO_PHONE_NUMBER || 'ABSENT, les clients sans ligne mobile n\'auront pas de SMS'}`);
+  /* Le numéro d'ENVOI doit appartenir au compte Twilio et porter le SMS:
+     « 'From' +1934… is not a Twilio phone number [21659] » (13/09/2026). La
+     variable était posée, le docteur disait « prêt », et rien ne partait. */
+  if (sms.ok && env.TWILIO_PHONE_NUMBER && env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN) {
+    try {
+      // eslint-disable-next-line @typescript-eslint/no-var-requires
+      const twilio = require('twilio')(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN);
+      const owned: Array<{ phoneNumber: string; capabilities?: { sms?: boolean } }> =
+        await twilio.incomingPhoneNumbers.list({ phoneNumber: env.TWILIO_PHONE_NUMBER, limit: 1 });
+      if (!owned.length) {
+        const mine: Array<{ phoneNumber: string; capabilities?: { sms?: boolean } }> = await twilio.incomingPhoneNumbers.list({ limit: 10 });
+        const smsCapable = mine.filter(n => n.capabilities?.sms).map(n => n.phoneNumber);
+        console.log(`  NON  TWILIO_PHONE_NUMBER (${env.TWILIO_PHONE_NUMBER}) n'appartient PAS à ce compte Twilio: aucun SMS ne partira.`);
+        console.log(`       numéros SMS du compte: ${smsCapable.length ? smsCapable.join(', ') : 'aucun'}`);
+      } else {
+        console.log(`  ${owned[0].capabilities?.sms ? 'OK  ' : 'NON '} expéditeur SMS ${owned[0].phoneNumber}${owned[0].capabilities?.sms ? '' : ': ce numéro ne porte pas le SMS'}`);
+      }
+    } catch (error) {
+      console.log(`  ?    expéditeur SMS invérifiable: ${(error as Error).message}`);
+    }
+  }
+
+  /* Le modèle de langage, tel que CE processus le choisirait. Deux étages:
+     le tour COMPLET (intention métier, résultat d'outil à dire, phrase de
+     plus de cinq mots) va à `VAPI_MODEL`, le tour COURT et sans enjeu
+     (« bonjour », « ça va ? ») à `VOICE_SMALL_MODEL`. Le choix se fait à
+     chaque tour dans le backend, JAMAIS chez Vapi: sur custom-LLM, le nom de
+     modèle que porte l'assistant distant est décoratif.
+     Ce script lit l'environnement de la machine qui le lance, pas celui de
+     Render: pour savoir ce qui a VRAIMENT servi, lire la ligne « modèles
+     servis » du dernier appel, plus bas, relevée dans le flux d'OpenAI. */
+  console.log('\n── Modèle de langage (environnement de CE script, pas forcément Render) ──');
+  console.log(`  tour complet: ${env.VAPI_MODEL} · tour court: ${env.VOICE_SMALL_MODEL}`);
+  console.log(`  chemin custom-LLM par défaut: ${env.VOICE_CUSTOM_LLM_DEFAULT ? 'oui (le backend choisit le modèle à chaque tour)' : 'non (Vapi appelle OpenAI avec le modèle de l\'assistant)'}`);
 
   /* La liste des numéros est relue UNE fois: elle couvre tout le compte, et la
      redemander par client ferait autant d'allers-retours que de clients pour
@@ -129,6 +164,20 @@ async function main() {
           ? names.join(', ')
           : "aucun outil: l'agent ne peut ni transférer, ni enregistrer un lead, ni lire la base de connaissances. "
             + 'Relancer `npm run voice:resync -- --email=... --confirm`, qui dit ce que Vapi répond.',
+      );
+
+      /* Le bloc `model` DISTANT. Sur custom-LLM, `provider` et `url` sont ce
+         qui compte (c'est nous qui répondons); `model` n'est qu'un nom que
+         Vapi exige et n'utilise pas. Le dire, sinon on lit « gpt-4o » ici et
+         on conclut que gpt-4.1-mini ne tourne pas. */
+      const rm = assistant.model ?? {};
+      const customLlm = rm.provider === 'custom-llm';
+      verdict(
+        true,
+        `modèle porté par l'assistant qui décroche (${rm.provider ?? 'aucun'})`,
+        customLlm
+          ? `${rm.url ?? '(sans url)'} · nom décoratif « ${rm.model ?? '?'} »: le modèle réel se choisit dans le backend à chaque tour, voir « modèles servis » plus bas`
+          : `${rm.model ?? '?'}: c'est Vapi qui appelle OpenAI avec CE modèle`,
       );
 
       const expected = `${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`;
@@ -265,6 +314,20 @@ async function main() {
     );
     verdict(calls > 0, `appels enregistrés pour ce client (7 jours): ${calls}`, '');
 
+    /* D'où partira le SMS de ce client: sa ligne mobile, ou le repli plateforme. */
+    try {
+      const { smsService } = await import('../services/sms.service');
+      const sender = await smsService.senderFor(client.id);
+      const own = sender && sender !== env.TWILIO_PHONE_NUMBER;
+      verdict(
+        !!sender,
+        `expéditeur SMS de ce client: ${sender ?? 'AUCUN'}${own ? ' (sa propre ligne)' : sender ? ' (repli TWILIO_PHONE_NUMBER)' : ''}`,
+        'ni ligne mobile attribuée dans le stock, ni TWILIO_PHONE_NUMBER: aucun SMS ne partira.',
+      );
+    } catch (error) {
+      console.log(`  ?    expéditeur SMS illisible: ${(error as Error).message}`);
+    }
+
     /* La dernière réservation et ce qu'est devenu son SMS: « je n'ai pas reçu
        de SMS » se lit ici, dans l'erreur Twilio, au lieu de se deviner. */
     const lastBooking = await prisma.clientBooking.findFirst({
@@ -302,7 +365,7 @@ async function main() {
          réplique de l'assistant, c'est la première phrase qui n'est pas partie
          (URL audio muette, voix refusée), pas un appelant silencieux. */
       const seen = await callReading(call.id);
-      const ours = await prisma.clientCall.findFirst({ where: { vapiCallId: call.id }, select: { recordingUrl: true } });
+      const ours = await prisma.clientCall.findFirst({ where: { vapiCallId: call.id }, select: { recordingUrl: true, metadata: true } });
       console.log(
         `  ${call.startedAt || call.createdAt} · ${call.type || 'inbound'} · ${call.endedReason || '?'}` +
           `  ${known ? 'enregistré chez nous' : 'ABSENT de notre base'}` +
@@ -317,6 +380,20 @@ async function main() {
          que l'agenda lui a répondu. Sans ça, on devine. */
       if (call === mine[0] && seen?.tools.length) {
         for (const line of seen.tools) console.log(`      ${line}`);
+      }
+      /* Les MODÈLES qui ont servi, tels qu'OpenAI les a nommés dans son flux,
+         consignés en fin d'appel. C'est la seule réponse à « gpt-4.1-mini
+         est-il vraiment utilisé ? »: la variable dit ce qu'on demande, le
+         flux dit ce qui a répondu. Absent = appel antérieur à ce relevé,
+         chemin sans custom-LLM, ou processus redémarré pendant l'appel. */
+      if (call === mine[0]) {
+        const realtime = ((ours?.metadata as Record<string, any> | null)?.realtime ?? {}) as Record<string, any>;
+        const models = Object.entries((realtime.models ?? {}) as Record<string, number>);
+        console.log(
+          models.length
+            ? `      modèles servis (OpenAI): ${models.map(([m, n]) => `${m} ×${n}`).join(', ')}`
+            : '      modèles servis: aucun relevé (appel antérieur à ce relevé, ou aucun tour passé par le backend)',
+        );
       }
       /* L'URL d'enregistrement que le PORTAIL joue, allée chercher comme le
          navigateur le ferait. « Chez nous oui » dit qu'une URL est stockée,

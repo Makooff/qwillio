@@ -534,6 +534,9 @@ class RealtimeOrchestratorService {
           falseCuts: session.falseCuts,
           mood: session.mood,
           tokens: session.tokens,
+          /* Le modèle qui a servi, par tour: la réponse à « quel modèle
+             tourne vraiment », lue dans le flux d'OpenAI et non dans l'env. */
+          models: session.models,
           toolCalls: session.toolCalls,
           bookingId: session.bookingId,
           lead: session.lead,
@@ -558,6 +561,8 @@ class RealtimeOrchestratorService {
         const hitRate = Math.round((cached / input) * 100);
         logger.info(`[Voice] call ${vapiCallId} tokens — in ${input} (cache ${hitRate}%), out ${output}`);
       }
+      const served = Object.entries(session!.models).map(([m, n]) => `${m} ×${n}`);
+      if (served.length) logger.info(`[Voice] call ${vapiCallId} modèles servis — ${served.join(', ')}`);
     }
 
     /* Le coût RÉEL de l'appel, tel que Vapi le facture.

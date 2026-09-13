@@ -48,7 +48,6 @@ export interface ToolCallResult {
 /** Hard ceiling on any single external call inside a tool. */
 const EXTERNAL_TIMEOUT_MS = 2_500;
 /** Slots we offer in one breath — more than three is unlistenable on a phone. */
-const MAX_SPOKEN_SLOTS = 3;
 
 function withTimeout<T>(promise: Promise<T>, ms: number, label: string): Promise<T> {
   return Promise.race([
@@ -389,26 +388,34 @@ class ToolRuntimeService {
     const held = callSessionStore.heldSlots(profile.clientId, date);
     const free = filtered.filter(slot => !held.includes(slot));
 
+    /* La fenêtre d'ouverture du jour, DITE avec les créneaux: sans elle,
+       une liste coupée à trois faisait dire « le plus tard, c'est 11 heures »
+       à un cabinet ouvert jusqu'à 18 h (appel réel, 13/09/2026). Le modèle
+       lisait la fin de la liste comme la fin de la journée. La liste est
+       désormais ENTIÈRE, et c'est la parole qui se limite à un créneau à la
+       fois, pas la connaissance. */
+    const window = dayWindow(profile.weekHours, String(args.date).trim(), profile.timezone);
+    const hours = window.open ? `${window.from}-${window.to}` : '';
+    const day = spokenDate(date, profile.language, profile.timezone);
+
     if (free.length === 0) {
-      const fallback = slots.filter(s => !held.includes(s)).slice(0, MAX_SPOKEN_SLOTS);
+      const fallback = slots.filter(s => !held.includes(s));
       if (fallback.length === 0) {
         return profile.language === 'fr'
-          ? `AUCUN CRENEAU le ${args.date}. Propose un autre jour.`
-          : `NO SLOTS on ${args.date}. Offer another day.`;
+          ? `AUCUN CRENEAU le ${day} (${args.date}, ouvert ${hours}): tout est pris. Propose un autre jour.`
+          : `NO SLOTS on ${day} (${args.date}, open ${hours}): fully booked. Offer another day.`;
       }
       return profile.language === 'fr'
-        ? `RIEN sur la plage demandee le ${args.date}, mais libre a: ${fallback.join(', ')}. Propose ces horaires.`
-        : `NOTHING in the requested window on ${args.date}, but free at: ${fallback.join(', ')}. Offer these instead.`;
+        ? `RIEN sur la plage demandee le ${day} (${args.date}, ouvert ${hours}), mais libre a: ${fallback.join(', ')}. Propose ces horaires, un par un.`
+        : `NOTHING in the requested window on ${day} (${args.date}, open ${hours}), but free at: ${fallback.join(', ')}. Offer these instead, one at a time.`;
     }
 
-    const spoken = free.slice(0, MAX_SPOKEN_SLOTS);
     /* Le jour de la semaine est DIT avec la date: « lundi 17 juin » annoncé
        pour un jour qui n'était pas un lundi (appel réel, 12/09/2026). Le
        modèle ne calcule pas les jours, il les lit. */
-    const day = spokenDate(date, profile.language, profile.timezone);
     return profile.language === 'fr'
-      ? `LIBRE le ${day} (${args.date}) a: ${spoken.join(', ')}. Propose au maximum ces horaires, un par un, en nommant le jour.`
-      : `FREE on ${day} (${args.date}) at: ${spoken.join(', ')}. Offer these times, one at a time, naming the day.`;
+      ? `LIBRE le ${day} (${args.date}, ouvert ${hours}) a: ${free.join(', ')}. Ce sont TOUS les creneaux libres de la plage. Propose-les un par un, en nommant le jour.`
+      : `FREE on ${day} (${args.date}, open ${hours}) at: ${free.join(', ')}. These are ALL the free slots in the window. Offer them one at a time, naming the day.`;
   }
 
   // ── bookAppointment ─────────────────────────────────────────────────────
@@ -493,7 +500,7 @@ class ToolRuntimeService {
        sur Twilio. La phrase rendue au modèle dépend de ce qui est possible:
        promettre un SMS sans numéro serait un mensonge de plus. */
     const smsTo = session?.callerNumber ?? null;
-    const smsPromised = !!smsTo && smsReadiness().ok;
+    const smsPromised = !!smsTo && (await this.canSendSms(profile.clientId));
     if (smsPromised) {
       void this.sendBookingSms(profile, booking.id, smsTo, customerName, date, String(args.time), args.serviceType);
     }
@@ -507,6 +514,13 @@ class ToolRuntimeService {
     return `BOOKED: ${customerName}, ${day} at ${args.time}. Confirm it out loud, naming the day.`
       + (smsPromised ? ' Tell them a confirmation text with a calendar link is on its way to their number.' : '')
       + ' Ask if they need anything else.';
+  }
+
+  /** Un SMS ne se promet que s'il peut partir: identifiants, et un expéditeur pour CE client. */
+  private async canSendSms(clientId: string): Promise<boolean> {
+    if (!smsReadiness().ok) return false;
+    const { smsService } = await import('../sms.service');
+    return !!(await smsService.senderFor(clientId));
   }
 
   /** Le SMS de confirmation, avec le lien d'agenda public de la réservation. */
@@ -692,7 +706,7 @@ class ToolRuntimeService {
     void this.moveCalendarEvent(profile.clientId, booking.id, booking.googleEventId);
 
     const smsTo = session?.callerNumber ?? null;
-    const smsPromised = !!smsTo && smsReadiness().ok;
+    const smsPromised = !!smsTo && (await this.canSendSms(profile.clientId));
     if (smsPromised) {
       void this.sendBookingSms(profile, booking.id, smsTo, booking.customerName, date, time, booking.serviceType);
     }

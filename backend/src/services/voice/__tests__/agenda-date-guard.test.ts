@@ -92,9 +92,13 @@ describe('checkAvailability — la date', () => {
     expect(freeSlots).not.toHaveBeenCalled();
   });
 
-  it('rend un jour libre AVEC son jour de semaine', async () => {
+  it('rend un jour libre AVEC son jour de semaine, la fenêtre d\'ouverture et TOUS les créneaux', async () => {
+    /* « Le plus tard, c'est 11 heures » pour un cabinet ouvert jusqu'à 18 h
+       (13/09/2026): la liste était coupée à trois. */
+    freeSlots.mockResolvedValueOnce(['09:00', '10:00', '11:00', '14:00', '16:00']);
     const out = String(await check({ date: '2099-09-16' }));
-    expect(out).toMatch(/^LIBRE le mercredi 16 septembre 2099 \(2099-09-16\)/);
+    expect(out).toMatch(/^LIBRE le mercredi 16 septembre 2099 \(2099-09-16, ouvert 09:00-18:00\) a: 09:00, 10:00, 11:00, 14:00, 16:00\./);
+    expect(out).toContain('TOUS les creneaux');
   });
 
   /* Un rendez-vous pris un DIMANCHE chez un commerce fermé le dimanche (appel

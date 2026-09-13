@@ -103,6 +103,15 @@ export interface CallSession {
   /** Token accounting, so the prompt cache is verified rather than assumed. */
   tokens: { input: number; cached: number; output: number };
   /**
+   * Le modèle qui a RÉELLEMENT servi chaque tour, tel qu'OpenAI le nomme dans
+   * son flux (`gpt-4.1-mini-2025-04-14`), compté par nom. Ce n'est pas ce que
+   * l'assistant enregistré porte chez Vapi: sur custom-LLM ce champ est
+   * décoratif, le modèle se choisit ici à chaque tour depuis l'environnement
+   * de Render. Sans ce relevé, « est-ce que gpt-4.1-mini tourne vraiment ? »
+   * n'a pas de réponse, seulement une lecture de variable.
+   */
+  models: Record<string, number>;
+  /**
    * Combien de fois le numéro dicté n'a rien donné, sur CET appel (BEL-4).
    *
    * Par appel et non par tour: c'est la répétition de l'échec qui décide de
@@ -247,6 +256,7 @@ class CallSessionStore {
       falseCuts: 0,
       mood: 'neutral',
       tokens: { input: 0, cached: 0, output: 0 },
+      models: {},
       phoneCaptureFailures: 0,
       phoneReadBack: null,
       nameReadBack: null,
@@ -336,6 +346,13 @@ class CallSessionStore {
   setMood(vapiCallId: string | null, mood: CallerMood): void {
     const session = this.get(vapiCallId);
     if (session) session.mood = mood;
+  }
+
+  /** Un tour servi par `model`, tel qu'OpenAI l'a nommé dans son flux. */
+  recordModel(vapiCallId: string | null, model: string): void {
+    const session = this.get(vapiCallId);
+    if (!session || !model) return;
+    session.models[model] = (session.models[model] ?? 0) + 1;
   }
 
   recordTokens(vapiCallId: string | null, usage: { input: number; cached: number; output: number }): void {

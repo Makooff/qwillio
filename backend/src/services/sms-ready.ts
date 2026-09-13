@@ -14,6 +14,7 @@ export function smsReadiness(): { ok: boolean; missing: string[] } {
   if (!env.SMS_ENABLED) missing.push('SMS_ENABLED');
   const auth = (env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN) || (env.TWILIO_API_KEY_SID && env.TWILIO_API_KEY_SECRET);
   if (!auth) missing.push('TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN');
-  if (!env.TWILIO_PHONE_NUMBER) missing.push('TWILIO_PHONE_NUMBER');
+  /* Le numéro d'ENVOI n'est plus ici: il se choisit par client (sa ligne
+     mobile, `smsService.senderFor`), la plateforme en repli. */
   return { ok: missing.length === 0, missing };
 }

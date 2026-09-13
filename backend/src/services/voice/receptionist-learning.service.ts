@@ -33,6 +33,8 @@ export interface RealtimeMetrics {
   toolCalls?: Array<{ name: string; ms: number }>;
   latency?: { stt?: Stat; llm?: Stat; tts?: Stat; total?: Stat };
   tokens?: { input: number; cached: number; output: number };
+  /** Tours servis par modèle, tel qu'OpenAI le nomme (`gpt-4.1-mini-2025-04-14`). */
+  models?: Record<string, number>;
 }
 
 interface Stat {

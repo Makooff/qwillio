@@ -172,6 +172,26 @@ export function parseUsageChunk(chunk: string): { input: number; cached: number;
   return null;
 }
 
+/**
+ * Le nom du modèle tel qu'OpenAI le rend dans chaque tranche du flux
+ * (`gpt-4.1-mini-2025-04-14`): c'est le modèle qui a servi, daté, et non celui
+ * qu'on a demandé. Un alias (`gpt-4.1-mini`) se résout côté OpenAI, et seule
+ * la réponse dit vers quoi.
+ */
+export function parseModelChunk(chunk: string): string | null {
+  if (!chunk.includes('"model"')) return null;
+  for (const line of chunk.split('\n')) {
+    if (!line.startsWith('data: ') || line.includes('[DONE]')) continue;
+    try {
+      const model = JSON.parse(line.slice(6))?.model;
+      if (typeof model === 'string' && model) return model;
+    } catch {
+      /* tranche partielle: le nom arrive entier dans une suivante */
+    }
+  }
+  return null;
+}
+
 /** Last thing the caller actually said, ignoring tool plumbing. */
 function lastUserMessage(messages: ChatMessage[]): string {
   for (let i = messages.length - 1; i >= 0; i--) {
@@ -524,6 +544,7 @@ class LlmStreamService {
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let sawFirstChunk = false;
+    let served: string | null = null;
 
     try {
       for (;;) {
@@ -538,6 +559,17 @@ class LlmStreamService {
           sawFirstChunk = true;
         }
         const text = decoder.decode(value, { stream: true });
+        if (!served) {
+          served = parseModelChunk(text);
+          if (served) {
+            callSessionStore.recordModel(vapiCallId, served);
+            /* Demandé ET servi, sur la même ligne: c'est la seule trace qui
+               tranche « gpt-4.1-mini est-il vraiment utilisé ? » (13/09). Le
+               niveau info, parce que les journaux Render ne montrent pas le
+               debug, et c'est là que la question se pose. */
+            logger.info(`[VoiceLLM] modèle demandé ${model}, servi ${served}`);
+          }
+        }
         const usage = parseUsageChunk(text);
         if (usage) callSessionStore.recordTokens(vapiCallId, usage);
         stream.write(text);

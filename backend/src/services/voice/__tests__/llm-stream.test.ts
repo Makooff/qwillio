@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { llmStreamService, parseUsageChunk } from '../llm-stream.service';
+import { llmStreamService, parseUsageChunk, parseModelChunk } from '../llm-stream.service';
 import { callSessionStore } from '../call-session.store';
 
 /** Collects everything written to the SSE channel. */
@@ -477,5 +477,60 @@ describe('parseUsageChunk — the prompt cache must be verified, not assumed', (
 
   it('survives a malformed chunk instead of throwing mid-stream', () => {
     expect(parseUsageChunk('data: {"usage":{broken\n\n')).toBeNull();
+  });
+});
+
+describe('parseModelChunk — le modèle qui a SERVI, pas celui qu\'on a demandé', () => {
+  it('lit le nom daté que OpenAI rend dans la tranche', () => {
+    const chunk = 'data: {"id":"x","model":"gpt-4.1-mini-2025-04-14","choices":[{"delta":{"content":"Bien"}}]}\n\n';
+    expect(parseModelChunk(chunk)).toBe('gpt-4.1-mini-2025-04-14');
+  });
+
+  it('rend null sans champ model, sur [DONE], ou sur une tranche partielle', () => {
+    expect(parseModelChunk('data: {"choices":[{"delta":{"content":"Bien"}}]}\n\n')).toBeNull();
+    expect(parseModelChunk('data: [DONE]\n\n')).toBeNull();
+    expect(parseModelChunk('data: {"model":"gpt-4.1-mi\n\n')).toBeNull();
+  });
+});
+
+describe('llmStreamService — le modèle servi est consigné sur la session', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    callSessionStore.end('call_model');
+  });
+
+  it('compte, par nom OpenAI, chaque tour proxy', async () => {
+    /* « toujours pas gpt-4.1-mini utilisé je pense » (13/09): la variable dit
+       ce qu'on demande, seul le flux dit ce qui a répondu. Le relevé part
+       avec les métriques de fin d'appel, donc le docteur peut le lire. */
+    const encoder = new TextEncoder();
+    const payloads = [
+      'data: {"model":"gpt-4.1-mini-2025-04-14","choices":[{"delta":{"content":"Bien"}}]}\n\n',
+      'data: [DONE]\n\n',
+    ];
+    let i = 0;
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      body: {
+        getReader: () => ({
+          read: async () =>
+            i < payloads.length ? { done: false, value: encoder.encode(payloads[i++]) } : { done: true, value: undefined },
+          releaseLock: () => {},
+        }),
+      },
+    } as unknown as Response);
+    callSessionStore.start({ vapiCallId: 'call_model', clientId: 'client_1', callerNumber: null, language: 'fr' });
+    const stream = makeStream();
+
+    await llmStreamService.handle(
+      'client_1',
+      'call_model',
+      'fr',
+      { messages: [systemTurn, userTurn('je voudrais reserver un rendez-vous')] },
+      stream.handle,
+    );
+
+    expect(callSessionStore.get('call_model')?.models).toEqual({ 'gpt-4.1-mini-2025-04-14': 1 });
   });
 });
