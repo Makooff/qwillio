@@ -210,6 +210,27 @@ function readBackName(lang: string, name: string): string {
   return base[lang] ?? base.en;
 }
 
+/**
+ * Un appelant INCONNU épelle son nom de famille, à la première présentation.
+ *
+ * Demande du 13/09/2026: « le prénom ça va, mais le nom de famille il faudra
+ * demander au client d'épeler, et une fois l'orthographe validée on garde
+ * celle-là pour le lead et à chaque rappel ». Rien n'est enregistré avant:
+ * un nom entendu qui entre dans la mémoire d'appelant y reste, et l'agent le
+ * redit à l'appel suivant (« Jean Lucas » pour « Jean-Luc »).
+ */
+function askCallerToSpell(lang: string, name: string): string {
+  const base: Record<string, string> = {
+    fr: `NOM ENTENDU: « ${name} », correspondant INCONNU. Demande-lui d'ÉPELER son nom de famille lettre par lettre (le prénom suffit tel quel). `
+      + "Laisse-le finir sans l'interrompre ni dire « merci » entre les lettres, puis rappelle l'outil avec le prénom et le nom tel qu'épelé. Un nom ne contient jamais de chiffre: « O » est la lettre O.",
+    en: `NAME HEARD: "${name}", UNKNOWN caller. Ask them to SPELL their family name letter by letter (the first name is fine as is). `
+      + 'Let them finish without interrupting, then call the tool again with the first name and the family name exactly as spelled. A name never contains a digit: "O" is the letter O.',
+    nl: `NAAM GEHOORD: « ${name} », ONBEKENDE beller. Vraag om de familienaam letter voor letter te SPELLEN (de voornaam volstaat zo). `
+      + 'Laat de beller uitspreken zonder te onderbreken en roep de tool daarna opnieuw aan met de voornaam en de gespelde familienaam. Een naam bevat nooit een cijfer: « O » is de letter O.',
+  };
+  return base[lang] ?? base.en;
+}
+
 /** Avant de RÉSERVER: le nom va dans l'agenda du commerçant, il doit être juste. */
 function confirmNameBeforeBooking(lang: string, name: string): string {
   const spelled = spellOut(familyName(name));
@@ -443,6 +464,10 @@ class ToolRuntimeService {
     const outside = outsideHoursReply(profile, String(args.date).trim(), minutes);
     if (outside) return outside;
 
+    /* Un appelant inconnu ÉPELLE d'abord son nom de famille (13/09). */
+    if (await this.needsCallerSpelling(profile, vapiCallId)) {
+      return askCallerToSpell(profile.language, customerName);
+    }
     /* Le nom est relu AVANT d'écrire dans l'agenda: une réservation au
        mauvais nom se corrige à la main par le commerçant, et il ne le sait
        même pas. Une fois par nom et par appel; un nom déjà relu pendant
@@ -625,9 +650,9 @@ class ToolRuntimeService {
       return `${i + 1}) ${b.customerName}, ${profile.language === 'fr' ? 'le ' : ''}${day}${b.bookingTime ? ` ${profile.language === 'fr' ? 'a' : 'at'} ${b.bookingTime}` : ''}${b.serviceType ? ` (${b.serviceType})` : ''}`;
     });
     return profile.language === 'fr'
-      ? `RESERVATION(S) DE CE CORRESPONDANT: ${lines.join(' ; ')}. Dis-lui celle qui correspond a ce qu'il decrit, sans lui faire repeter son nom.`
+      ? `RESERVATION(S) DE CE CORRESPONDANT: ${lines.join(' ; ')}. Dis-lui celle qui correspond a ce qu'il decrit, sans lui faire repeter son nom. Le nom ecrit ici est le sien: appelle-le ainsi, pas comme tu l'as entendu.`
         + ' Pour la deplacer: demande la nouvelle date, verifie avec checkAvailability, puis appelle rescheduleBooking avec le nom EXACTEMENT tel qu\'ecrit ici et currentDate. Jamais bookAppointment pour un deplacement.'
-      : `BOOKING(S) FOR THIS CALLER: ${lines.join(' ; ')}. Tell the caller the one matching what they describe, without asking their name again.`
+      : `BOOKING(S) FOR THIS CALLER: ${lines.join(' ; ')}. Tell the caller the one matching what they describe, without asking their name again. The name written here is theirs: use it, not what you heard.`
         + ' To move it: ask for the new date, check with checkAvailability, then call rescheduleBooking with the name EXACTLY as written here and currentDate. Never bookAppointment for a move.';
   }
 
@@ -814,6 +839,13 @@ class ToolRuntimeService {
        plus bas. Le lead n'est plus posé ici: le poser avant le numéro était
        exactement ce qui le perdait. */
 
+    /* AVANT toute écriture: un appelant inconnu épelle son nom de famille, et
+       c'est l'orthographe épelée qui entre dans le CRM et la mémoire, jamais
+       le nom entendu (13/09/2026). */
+    if (lead.name && await this.needsCallerSpelling(profile, vapiCallId)) {
+      return askCallerToSpell(profile.language, lead.name);
+    }
+
     /* L'adresse, avec sa commune ramenée à UNE forme (BEL-6).
        Ixelles et Elsene sont le même endroit et deux noms également
        officiels. Sans cette normalisation, deux appelants qui donnent la même
@@ -914,6 +946,27 @@ class ToolRuntimeService {
     if (readBacks.length) return readBacks.join(' ');
 
     return profile.language === 'fr' ? 'NOTE. Continue la conversation.' : 'NOTED. Continue the conversation.';
+  }
+
+  /**
+   * L'appelant est-il INCONNU, et l'épellation pas encore demandée ?
+   *
+   * Connu = un nom sur une réservation confirmée, la mémoire d'appelant ou un
+   * appel passé (`getCallerHistory`, lu en cache, une fois par appel). Si
+   * l'historique est illisible, on ne demande pas d'épeler: la relecture
+   * épelée par l'agent, qui suit, reste le filet.
+   */
+  private async needsCallerSpelling(profile: ClientVoiceProfile, vapiCallId: string | null): Promise<boolean> {
+    const session = callSessionStore.get(vapiCallId);
+    if (!session) return false;
+    try {
+      const history = await realtimeContextService.getCallerHistory(profile.clientId, session.callerNumber ?? null);
+      if (history.knownName) return false;
+    } catch (error) {
+      logger.warn(`[VoiceTools] historique appelant illisible, pas d'épellation demandée: ${(error as Error).message}`);
+      return false;
+    }
+    return callSessionStore.needsNameSpelling(vapiCallId);
   }
 
   // ── lookupKnowledge ─────────────────────────────────────────────────────

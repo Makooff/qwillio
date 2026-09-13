@@ -341,22 +341,24 @@ export default function ClientLeads() {
                 entière illisible derrière le panneau (retour du 13/09), et le
                 glass décoratif est banni de toute façon. */}
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/50 z-50" onClick={() => setSelectedLead(null)}
+              className="fixed inset-0 bg-black/40 z-50" onClick={() => setSelectedLead(null)}
               aria-hidden="true"
             />
-            {/* Même surface que le panneau des appels : #131313 à 80 % avec un
-                flou fort (demande du 13/09, « légèrement transparent et flou »).
+            {/* Même surface que le panneau des appels : #131313 à 65 % avec un
+                flou moyen (demande du 13/09, « légèrement transparent et flou » ;
+                à 80 % sur une page sombre, rien ne passait). Le voile est à 40 %
+                pour la même raison.
                 Pas `bg-white/[0.02]` sans flou, qui laissait lire la liste au
                 travers de la fiche. L'entête porte la même surface, le contenu
                 défilant dessous. */}
             <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
               transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-[#131313]/80 backdrop-blur-2xl border-l border-white/[0.07] shadow-2xl z-50 overflow-y-auto"
+              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-[#131313]/65 backdrop-blur-xl border-l border-white/[0.07] shadow-2xl z-50 overflow-y-auto"
               role="dialog"
               aria-modal="true"
               aria-label="Détails du lead"
             >
-              <div className="sticky top-0 z-10 bg-[#131313]/80 backdrop-blur-2xl border-b border-white/[0.07] px-6 py-4 flex items-center justify-between">
+              <div className="sticky top-0 z-10 bg-[#131313]/65 backdrop-blur-xl border-b border-white/[0.07] px-6 py-4 flex items-center justify-between">
                 <h2 className="text-base font-semibold text-[#F5F5F7]">Détails du lead</h2>
                 <button onClick={() => setSelectedLead(null)}
                   className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center hover:bg-white/[0.10] text-[#A1A1A8] hover:text-[#F5F5F7] transition-colors"

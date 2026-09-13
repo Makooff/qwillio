@@ -15,3 +15,14 @@ describe('needsNameReadBack', () => {
     expect(callSessionStore.needsNameReadBack('call_rb', 'Stéphane Vonasch')).toBe(false);
   });
 });
+
+/* Demande du 13/09/2026: un appelant inconnu épelle son nom de famille, une
+   fois par appel; après, l'orthographe épelée est celle qu'on garde. */
+describe('needsNameSpelling', () => {
+  it('vrai une fois par appel, puis faux', () => {
+    callSessionStore.start({ vapiCallId: 'call_sp', clientId: 'c1', callerNumber: null, language: 'fr' });
+    expect(callSessionStore.needsNameSpelling('call_sp')).toBe(true);
+    expect(callSessionStore.needsNameSpelling('call_sp')).toBe(false);
+    expect(callSessionStore.needsNameSpelling('call_absent')).toBe(false);
+  });
+});

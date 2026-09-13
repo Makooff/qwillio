@@ -30,7 +30,8 @@ vi.mock('../../../config/logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 vi.mock('../realtime-context.service', () => ({
-  realtimeContextService: { getClientProfile: getProfile },
+  // Appelant CONNU: l'épellation du nom a son propre test (first-caller-spells).
+  realtimeContextService: { getClientProfile: getProfile, getCallerHistory: vi.fn(async () => ({ knownName: 'Connu' })) },
 }));
 vi.mock('../call-session.store', () => ({
   callSessionStore: {
@@ -42,6 +43,7 @@ vi.mock('../call-session.store', () => ({
     recordLead: vi.fn(),
     markLeadActivity: vi.fn(),
     needsNameReadBack,
+    needsNameSpelling: vi.fn(() => false),
   },
 }));
 vi.mock('../caller-memory.service', () => ({ callerMemoryService: { remember: vi.fn() } }));

@@ -647,7 +647,11 @@ class RealtimeOrchestratorService {
       await callerMemoryService.remember({
         clientId: input.clientId,
         callerNumber: input.callerNumber,
-        name: input.metrics?.lead?.name ?? call?.nameCollected ?? null,
+        /* `nameCollected` d'abord: il porte le nom CONFIRMÉ (réservation
+           relue, mémoire), le lead capté en cours d'appel porte le nom
+           ENTENDU. L'ordre inverse réécrivait « Jean Lucas » dans la mémoire
+           à chaque appel, et l'agent le redisait à l'appel suivant (13/09). */
+        name: call?.nameCollected ?? input.metrics?.lead?.name ?? null,
         email: input.metrics?.lead?.email ?? call?.emailCollected ?? null,
         summary: call?.summary ?? input.metrics?.lead?.reason ?? null,
         outcome: call?.outcome ?? null,

@@ -1003,6 +1003,27 @@ portail l'essaie en premier, le docteur affiche « adresse signée
 n'est pas forcément une adresse qui se lit ; quand le tableau de bord du
 fournisseur y arrive et pas nous, l'onglet Réseau dit comment il fait.
 
+### 6octotrigesies. Le nom : celui qui est ÉPELÉ, jamais celui qui est entendu (13/09/2026)
+Appel réel : l'appelant dit « Jean-Luc », le transcripteur écrit « Jean Lucas »,
+l'agent l'appelle ainsi tout l'appel alors que sa réservation, relue et épelée,
+dit « Jean-Luc de la Forge » ; et la mémoire d'appelant, écrite depuis le lead
+capté en cours d'appel, gardait le nom ENTENDU et le redisait à l'appel suivant.
+Quatre endroits tiennent la même règle, le nom confirmé prime partout :
+`getCallerHistory` lit d'abord le nom de la réservation confirmée (même ordre
+que `knownCallerName`), le bloc d'historique dit au modèle « appelle-le X,
+jamais par ce que tu as cru entendre », `persistMemory` écrit `nameCollected`
+avant le nom du lead, et l'analyse post-appel reçoit le nom confirmé pour que
+le résumé ne redise pas le nom entendu.
+Un appelant INCONNU épelle son nom de famille à la première présentation
+(`needsCallerSpelling`, une fois par appel, AVANT toute écriture) ; l'agent
+relit ensuite les lettres une fois, et l'orthographe épelée est celle du lead
+et des rappels. Un appelant connu n'est pas interrogé. Si l'historique est
+illisible, on ne demande pas d'épeler : la relecture reste le filet.
+**Un nom ne contient jamais de chiffre** : le petit modèle écrit « MAR0N » en
+épelant et la synthèse lit « zéro ». `spellOut` et `normaliseSpelledName`
+lisent 0 comme O, et la règle de parole le dit. Le plafond du prompt passe à
+2900 pour cette ligne.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).
