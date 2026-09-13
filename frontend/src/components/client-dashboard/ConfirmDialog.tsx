@@ -19,7 +19,7 @@ export default function ConfirmDialog({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/30 backdrop-blur-sm" onClick={onCancel} />
+      <div className="absolute inset-0 bg-black/50" onClick={onCancel} />
       <div className="relative bg-white rounded-2xl shadow-xl max-w-sm w-full mx-4 p-6">
         <button onClick={onCancel} className="absolute top-4 right-4 text-[#86868b] hover:text-[#1d1d1f]">
           <X size={18} />
