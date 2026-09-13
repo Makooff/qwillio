@@ -9,7 +9,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { fetchLive, peekLive, subscribeLive } from '../../services/liveData';
 import { daysUntil } from '../../utils/format';
 import OnboardingChecklist from '../../components/client/OnboardingChecklist';
-import SetupCompleteness, { type SetupState } from '../../components/client/SetupCompleteness';
+import { knowsEnough, type SetupState } from '../../components/client/setup-state';
 import {
   KpiSplit, HeroTrendPanel, RadialGauge, TallyMeter, DetailCard,
   SegmentBar, InsightCard,
@@ -215,9 +215,14 @@ export default function ClientOverview() {
      numéro de transfert et sans renvoi d'appel voyait le bandeau disparaître
      comme si tout était réglé, alors que les deux réglages qui font sonner le
      téléphone chez le bon interlocuteur manquaient encore. */
+  /* Et ce que la réceptionniste SAIT (13/09/2026) : le bandeau reste tant
+     qu'elle ne connaît pas assez son métier, ou qu'une question d'appelant
+     attend une réponse. C'est le retour au client qui remplace l'invention. */
+  const setup = (data as { setup?: SetupState } | null)?.setup ?? null;
   const onboardingDone = onboardingClient.hasTestCall && onboardingClient.hasCustomConfig
     && onboardingClient.isActive && !!onboardingClient.transferNumber
-    && onboardingClient.hasCallForwarding;
+    && onboardingClient.hasCallForwarding
+    && knowsEnough(setup) && (setup?.openGaps ?? 0) === 0;
 
   // --- Loading skeleton ---
   if (loading) {
@@ -291,12 +296,8 @@ export default function ClientOverview() {
         </p>
       </section>
 
-      {/* Onboarding */}
-      {!onboardingDone && <OnboardingChecklist client={onboardingClient} />}
-
-      {/* Ce que la réceptionniste sait, par métier, et les questions restées
-          sans réponse. Visible tant qu'il manque quelque chose (13/09/2026). */}
-      <SetupCompleteness setup={(data as { setup?: SetupState } | null)?.setup ?? null} />
+      {/* Onboarding, score de complétude compris (13/09/2026) */}
+      {!onboardingDone && <OnboardingChecklist client={onboardingClient} setup={setup} />}
 
       {/* KPI split row — borderless figures with a hairline under */}
       <section aria-label="Indicateurs clés" className="pb-6 border-b border-white/[0.06]">

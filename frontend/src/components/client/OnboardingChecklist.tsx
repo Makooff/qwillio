@@ -1,9 +1,10 @@
 ﻿import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-  Check, Phone, PhoneCall, Settings, Rocket, X, PartyPopper,
-  PhoneForwarded, ChevronRight, ChevronDown,
+  Check, Phone, PhoneCall, Rocket, X, PartyPopper,
+  PhoneForwarded, ChevronRight, ChevronDown, BookOpen, HelpCircle,
 } from '../icons';
+import { GAPS_LINK, GUIDE_LINK, knowsEnough, nichePhrase, type SetupState } from './setup-state';
 import { motion } from 'framer-motion';
 import { pro } from '../../styles/pro-theme';
 
@@ -23,6 +24,8 @@ interface OnboardingClient {
 
 interface Props {
   client: OnboardingClient;
+  /** Ce que la réceptionniste sait, calculé par le serveur ; `null` tant que l'aperçu n'est pas là. */
+  setup?: SetupState | null;
   onDismiss?: () => void;
 }
 
@@ -35,7 +38,7 @@ interface Step {
   icon: React.ElementType;
 }
 
-export default function OnboardingChecklist({ client, onDismiss }: Props) {
+export default function OnboardingChecklist({ client, setup = null, onDismiss }: Props) {
   const [dismissed, setDismissed] = useState(false);
   const [showDone, setShowDone] = useState(false);
 
@@ -92,13 +95,34 @@ export default function OnboardingChecklist({ client, onDismiss }: Props) {
       to:    qwillioNumber ? undefined : '/dashboard/receptionist',
       icon:  PhoneCall,
     },
+    /* Ce que la réceptionniste SAIT, par métier (13/09/2026). L'étape se
+       cochait dès un seul réglage (`hasCustomConfig`) ; elle porte désormais
+       le score pondéré du serveur, les manques les plus lourds, et mène au
+       parcours guidé. Une carte à part sur la même page redisait la même
+       chose : elle a été fondue ici. Sans score (aperçu pas encore là),
+       l'ancienne condition tient. */
     {
-      label: 'Personnaliser votre réceptionniste',
-      hint:  'Étapes guidées : ton, services, horaires, FAQ',
-      done:  !!client.hasCustomConfig,
-      to:    '/dashboard/setup/customize',
-      icon:  Settings,
+      label: 'Apprendre son métier à votre réceptionniste',
+      hint:  setup
+        ? `${setup.score} % de ce qu’${nichePhrase(setup.niche)} doit savoir`
+          + (setup.missing.length ? ` · à compléter : ${setup.missing.slice(0, 3).map(m => m.label.replace(/^Vos? /, '')).join(', ')}` : '')
+        : 'Étapes guidées : horaires, services, questions fréquentes',
+      done:  setup ? knowsEnough(setup) : !!client.hasCustomConfig,
+      to:    GUIDE_LINK,
+      icon:  BookOpen,
     },
+    /* Les questions d'appelants restées sans réponse : une étape à part,
+       parce qu'elle revient. Elles vivaient sous la ligne de flottaison de
+       la page Réceptionniste, là où personne ne les voyait. */
+    ...(setup && setup.openGaps > 0 ? [{
+      label: setup.openGaps === 1
+        ? 'Une question d’appelant restée sans réponse'
+        : `${setup.openGaps} questions d’appelants restées sans réponse`,
+      hint:  'Répondez une fois, l’agent saura la prochaine fois.',
+      done:  false,
+      to:    GAPS_LINK,
+      icon:  HelpCircle,
+    } satisfies Step] : []),
     {
       label: 'Activer en production',
       hint:  'Abonnement actif — appels comptabilisés dans votre quota',

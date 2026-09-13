@@ -1,6 +1,6 @@
 import {
   LayoutDashboard, Phone, Users, BarChart3, CreditCard,
-  Bot, UserCircle, HelpCircle, Target, Activity, Link2,
+  Bot, UserCircle, HelpCircle, Target, Activity, Link2, Calendar,
 } from '../icons';
 import AiStatusPill from '../AiStatusPill';
 import DashboardShell, { NavItem } from './DashboardShell';
@@ -16,6 +16,10 @@ const PRIMARY_NAV: PlanNavItem[] = [
   { path: '/dashboard',              icon: LayoutDashboard, label: "Vue d'ensemble", exact: true },
   { path: '/dashboard/calls',        icon: Phone,           label: 'Appels' },
   { path: '/dashboard/leads',        icon: Users,           label: 'Leads' },
+  /* Les rendez-vous pris par l'agent, et le seul endroit où en annuler un
+     (13/09/2026) : c'est la réservation en base que l'agent lit, pas
+     l'agenda Google. */
+  { path: '/dashboard/bookings',     icon: Calendar,        label: 'Rendez-vous' },
   { path: '/dashboard/analytics',    icon: BarChart3,       label: 'Analytique', capability: 'advancedAnalytics' },
   /* « Contacts » a disparu du menu: les leads et les contacts sont les mêmes
      personnes, puisqu'un contact naît de l'appel qui a produit le lead. Deux
@@ -63,6 +67,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/dashboard':              'Vue d\'ensemble',
   '/dashboard/calls':        'Appels',
   '/dashboard/leads':        'Leads et contacts',
+  '/dashboard/bookings':     'Rendez-vous',
   '/dashboard/analytics':    'Analytique',
   '/dashboard/receptionist': 'Réceptionniste IA',
   '/dashboard/crm/:id':        'Contact',

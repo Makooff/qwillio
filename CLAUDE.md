@@ -1051,8 +1051,13 @@ Trois pièces, dans cet ordre. (1) `services/setup-completeness.ts` : un score
 par MÉTIER depuis le preset (même table que le formulaire et le prompt),
 pondéré (transfert 3, horaires et services 2, urgence / annulation /
 mutuelles 2, le reste 1), porté par `/my-dashboard/overview` (`setup`) et
-`/my-dashboard/setup`, affiché en carte sur la vue d'ensemble avec les trois
-manques les plus lourds et les lacunes ouvertes. (2) `/dashboard/setup/guide`
+`/my-dashboard/setup`. Il vit DANS le bandeau « Démarrer avec Qwillio »,
+comme l'étape « Apprendre son métier à votre réceptionniste » (cochée à
+70 % pondérés, pas à 100 : « laissez vide ce qui ne vous concerne pas » est
+écrit sur le formulaire), plus une étape par lot de questions d'appelants
+sans réponse ; une carte à part sur la même page redisait la même chose et
+a été fondue (retour du soir). Le bandeau reste tant que l'un des deux
+manque. (2) `/dashboard/setup/guide`
 (`ClientSetupGuide.tsx`) : ce qui manque, une question à la fois, avec
 l'exemple rempli, enregistré par le PUT partiel de la page Réceptionniste,
 UNE clé par étape ; le modèle d'horaires est partagé (`utils/week-hours.ts`).
@@ -1060,6 +1065,11 @@ UNE clé par étape ; le modèle d'horaires est partagé (`utils/week-hours.ts`)
 de la base. Deux scénarios d'éval (`fr-hors-base-sans-kb`,
 `fr-hors-base-avec-kb`) posent une question que rien ne couvre. Plafond du
 prompt à 3150 pour cette ligne.
+(4) Page « Rendez-vous » (`/dashboard/bookings`) avec annulation : le
+portail listait les réservations sans jamais permettre d'en annuler une, or
+c'est la réservation EN BASE que l'agent lit pour reconnaître un appelant ;
+supprimer l'événement Google ne la touche pas. L'annulation retire aussi
+l'événement et oublie le nom en cache.
 
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
