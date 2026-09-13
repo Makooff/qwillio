@@ -17,6 +17,36 @@ import { readEndedReason, transferFunnel } from './voice/call-outcome';
 
 export class ClientCallService {
 
+  /**
+   * Le nom sous lequel l'appelant est DÉJÀ connu: la réservation prise ou
+   * déplacée pendant l'appel d'abord (nom relu et épelé), puis la dernière
+   * réservation de ce numéro, puis la mémoire d'appelant. `null` si rien:
+   * le nom entendu par l'analyse reste alors le seul disponible.
+   */
+  private async knownCallerName(clientId: string, callerNumber: string | undefined, liveBookingId: string | null): Promise<string | null> {
+    try {
+      if (liveBookingId) {
+        const live = await prisma.clientBooking.findFirst({ where: { id: liveBookingId, clientId }, select: { customerName: true } });
+        if (live?.customerName?.trim()) return live.customerName.trim();
+      }
+      if (!callerNumber) return null;
+      const booked = await prisma.clientBooking.findFirst({
+        where: { clientId, customerPhone: callerNumber, status: 'confirmed' },
+        orderBy: { updatedAt: 'desc' },
+        select: { customerName: true },
+      });
+      if (booked?.customerName?.trim()) return booked.customerName.trim();
+      const memory = await prisma.callerMemory.findUnique({
+        where: { clientId_callerNumber: { clientId, callerNumber } },
+        select: { knownName: true },
+      });
+      return memory?.knownName?.trim() || null;
+    } catch (error) {
+      logger.warn(`[ClientCall] nom connu illisible pour ${callerNumber ?? '?'}: ${(error as Error).message}`);
+      return null;
+    }
+  }
+
   // ═══════════════════════════════════════════════════════════
   // HANDLE INCOMING CALL COMPLETED - Processes end-of-call report
   // from VAPI for a client's AI receptionist
@@ -54,6 +84,14 @@ export class ClientCallService {
     const analysis = spam.isSpam
       ? this.emptyAnalysis()
       : await this.analyzeClientCallTranscript(transcript, client);
+    /* Le nom CONFIRMÉ pendant l'appel prime sur le nom ENTENDU par le
+       modèle d'analyse: la réservation dit « Jean-Luc de la forge » (relu,
+       épelé), le transcript dit « Jean Lucas », et le portail affichait le
+       second (13/09). Même source pour la fiche d'appel et le contact CRM. */
+    if (!spam.isSpam) {
+      const known = await this.knownCallerName(clientId, callerNumber, extra.liveBookingId ?? null);
+      if (known) analysis.callerName = known;
+    }
 
     // Create client call record
     const clientCall = await prisma.clientCall.create({
