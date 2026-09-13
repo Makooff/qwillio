@@ -243,17 +243,18 @@ export const env = {
    * Le temps qu'on accorde au modèle pour son PREMIER token, avant de parler à
    * sa place.
    *
-   * 2,5 s et non 4: le silence est le mode d'échec le plus fréquent et le plus
-   * dommageable d'un appel, et trois secondes sans réponse s'entendent comme
-   * une ligne coupée. Le coût du compromis est réel et assumé: un modèle lent
-   * mais vivant se fait couper, et l'appelant entend « pouvez-vous répéter ? »
-   * au lieu de la vraie réponse. Entre les deux, on préfère une phrase de trop
-   * à un silence de trop.
+   * 3,5 s, relevé de 2,5 le 13/09 sur un appel réel: un tour sur quatorze a
+   * été coupé (« This operation was aborted », lu au docteur) et l'appelant a
+   * entendu « pouvez-vous répéter ? » pour une réponse qui arrivait. Une
+   * phrase de repli coûte un tour entier (la redite, puis la vraie réponse),
+   * soit bien plus qu'une seconde de silence de plus. Le silence reste le
+   * mode d'échec le plus dommageable, d'où un plafond plutôt qu'aucun: au-delà
+   * on parle à la place du modèle. Se règle sans déploiement.
    * Au-delà du premier token la limite ne s'applique plus: le tour est vivant.
    */
   VOICE_FIRST_TOKEN_TIMEOUT_MS: Math.max(
     500,
-    parseInt(process.env.VOICE_FIRST_TOKEN_TIMEOUT_MS || '2500', 10) || 2500,
+    parseInt(process.env.VOICE_FIRST_TOKEN_TIMEOUT_MS || '3500', 10) || 3500,
   ),
   /**
    * Le silence toléré APRÈS un chiffre avant de considérer le tour fini.
