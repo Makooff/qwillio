@@ -279,6 +279,16 @@ export class ClientDashboardController {
          au compte, et le même appel en porte d'autres (13/09). */
       const urls: string[] = [];
       if (call.vapiCallId) {
+        /* L'adresse SIGNÉE d'abord (`/call/:id/mono-recording`, 302): c'est
+           la seule qui se lit sur le stockage privé de Vapi. Les adresses
+           nues de l'appel restent en repli pour un compte dont le stockage
+           serait public. */
+        try {
+          const signed = await vapiClient.recordingUrl(call.vapiCallId, 'mono');
+          if (signed) urls.push(signed);
+        } catch (error) {
+          logger.warn(`[Recording] adresse signée illisible pour ${call.vapiCallId}: ${(error as Error).message}`);
+        }
         try {
           const remote = (await vapiClient.getCall(call.vapiCallId)) as Record<string, any>;
           urls.push(...recordingCandidates(remote).map(c => c.url));

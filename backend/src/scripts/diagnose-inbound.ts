@@ -423,6 +423,18 @@ async function main() {
            ne la rafraîchit pas, et le portail passe par cette route. */
         console.log('      URL fraîche Vapi: IDENTIQUE à la stockée (Vapi ne re-signe pas à la lecture)');
       }
+      /* L'adresse SIGNÉE, obtenue par la route documentée
+         (`GET /call/:id/mono-recording`, 302): c'est celle que le portail
+         joue désormais. Les adresses nues de l'appel sont privées au stockage
+         de Vapi et ne se liront jamais; les lignes suivantes le rappellent. */
+      if (call === mine[0]) {
+        try {
+          const signed = await vapiClient.recordingUrl(call.id, 'mono');
+          console.log(`      adresse signée (/call/:id/mono-recording): ${signed ? await servedAs(signed) : 'AUCUNE (404: pas d\'enregistrement mono)'}`);
+        } catch (error) {
+          console.log(`      adresse signée (/call/:id/mono-recording): ÉCHEC ${(error as Error).message}`);
+        }
+      }
       /* Les AUTRES adresses du même appel (stéréo, par canal): une adresse R2
          nue est privée au compte, mais Vapi en pose souvent plusieurs, et
          c'est ici qu'on voit laquelle se sert. */
