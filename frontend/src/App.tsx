@@ -42,6 +42,7 @@ const ClientReceptionist = lazy(() => import('./pages/client/ClientReceptionist'
 const ClientAccount = lazy(() => import('./pages/client/ClientAccount'));
 const ClientSetupForwarding = lazy(() => import('./pages/client/ClientSetupForwarding'));
 const ClientSetupGuide = lazy(() => import('./pages/client/ClientSetupGuide'));
+const ClientBookings = lazy(() => import('./pages/client/ClientBookings'));
 const ClientSetupCustomize  = lazy(() => import('./pages/client/ClientSetupCustomize'));
 const ClientSupport = lazy(() => import('./pages/client/ClientSupport'));
 const ClientIntegrations = lazy(() => import('./pages/client/ClientIntegrations'));
@@ -409,6 +410,7 @@ export default function App() {
           <Route index element={<Suspense fallback={<Spinner />}><ClientOverview /></Suspense>} />
           <Route path="calls" element={<Suspense fallback={<Spinner />}><ClientCalls /></Suspense>} />
           <Route path="leads" element={<Suspense fallback={<Spinner />}><ClientLeads /></Suspense>} />
+          <Route path="bookings" element={<Suspense fallback={<Spinner />}><ClientBookings /></Suspense>} />
           <Route path="receptionist" element={<Suspense fallback={<Spinner />}><ClientReceptionist /></Suspense>} />
           <Route path="analytics" element={<Suspense fallback={<Spinner />}><ClientAnalytics /></Suspense>} />
           <Route path="billing" element={<Suspense fallback={<Spinner />}><ClientBilling /></Suspense>} />

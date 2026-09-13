@@ -12,6 +12,7 @@ import { listCharacters, resolveCharacter, CHARACTERS, isValidCharacterId, DEFAU
 import { buildVapiConfigPatch, parseFaq } from '../services/client-config.service';
 import { knowledgePreset } from '../config/knowledge-presets';
 import { setupCompleteness } from '../services/setup-completeness';
+import { realtimeContextService } from '../services/voice/realtime-context.service';
 import { knowledgeGapService } from '../services/voice/knowledge-gap.service';
 import { clientMessage, type PhoneSetupState } from '../services/voice/phone-setup.service';
 import { wouldLoop, LOOP_MESSAGE } from '../services/voice/transfer-loop';
@@ -213,6 +214,52 @@ export class ClientDashboardController {
       const upcoming = req.query.upcoming !== 'false';
       const result = await clientDashboardService.getClientBookings(req.clientId, page, limit, upcoming);
       res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  /**
+   * POST /my-dashboard/bookings/:id/cancel — annuler un rendez-vous.
+   *
+   * Le portail ne savait que lister (13/09/2026). Or c'est la réservation
+   * EN BASE que l'agent lit pour reconnaître un appelant et retrouver son
+   * rendez-vous : supprimer l'événement dans Google Agenda ne la touche pas.
+   * L'événement Google part aussi quand il existe, en meilleur effort ; le
+   * nom de l'appelant est oublié du cache, sinon l'agent le redit une minute.
+   */
+  async cancelMyBooking(req: any, res: Response) {
+    try {
+      const booking = await prisma.clientBooking.findFirst({
+        where: { id: String(req.params.id), clientId: req.clientId },
+        select: { id: true, clientId: true, status: true, googleEventId: true, customerPhone: true },
+      });
+      if (!booking) return res.status(404).json({ error: 'Réservation introuvable' });
+      if (booking.status === 'cancelled') return res.json({ ok: true, alreadyCancelled: true });
+
+      if (booking.googleEventId) {
+        try {
+          const client = await prisma.client.findUnique({
+            where: { id: req.clientId },
+            select: { googleCalendarRefreshToken: true, googleCalendarId: true },
+          });
+          if (client?.googleCalendarRefreshToken) {
+            const accessToken = await googleCalendarService.getAccessTokenFromRefresh(client.googleCalendarRefreshToken);
+            await googleCalendarService.deleteEvent(booking.googleEventId, accessToken, client.googleCalendarId || 'primary');
+          }
+        } catch (error) {
+          logger.warn(`[Bookings] événement Google non retiré (${booking.id}): ${(error as Error).message}`);
+        }
+      }
+
+      await prisma.clientBooking.updateMany({
+        where: { id: booking.id, clientId: req.clientId },
+        data: { status: 'cancelled', googleEventId: null, calendarSyncedAt: null },
+      });
+      if (booking.customerPhone) {
+        await realtimeContextService.invalidateCaller(req.clientId, booking.customerPhone).catch(() => undefined);
+      }
+      res.json({ ok: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
