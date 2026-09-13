@@ -14,6 +14,7 @@ import { knowledgePreset } from '../config/knowledge-presets';
 import { clientMessage, type PhoneSetupState } from '../services/voice/phone-setup.service';
 import { wouldLoop, LOOP_MESSAGE } from '../services/voice/transfer-loop';
 import { vapiClient } from '../config/vapi';
+import { recordingCandidates } from '../services/voice/recording-urls';
 import { Readable } from 'stream';
 
 /**
@@ -273,25 +274,39 @@ export class ClientDashboardController {
       });
       if (!call) return res.status(404).json({ error: 'Call not found' });
 
-      let url = call.recordingUrl;
+      /* TOUTES les adresses de l'appel, fraîches chez Vapi, puis la stockée:
+         la première (`artifact.recordingUrl`) est une adresse R2 nue, privée
+         au compte, et le même appel en porte d'autres (13/09). */
+      const urls: string[] = [];
       if (call.vapiCallId) {
         try {
           const remote = (await vapiClient.getCall(call.vapiCallId)) as Record<string, any>;
-          url = remote?.artifact?.recordingUrl || remote?.recordingUrl || remote?.artifact?.recording?.mono?.combinedUrl || url;
+          urls.push(...recordingCandidates(remote).map(c => c.url));
         } catch (error) {
           logger.warn(`[Recording] Vapi illisible pour ${call.vapiCallId}: ${(error as Error).message}`);
         }
       }
-      if (!url) return res.status(404).json({ error: 'no_recording' });
+      if (call.recordingUrl && !urls.includes(call.recordingUrl)) urls.push(call.recordingUrl);
+      if (!urls.length) return res.status(404).json({ error: 'no_recording' });
 
       const range = typeof req.headers.range === 'string' ? req.headers.range : undefined;
-      const upstream = await fetch(url, { headers: range ? { Range: range } : {} });
-      if (!upstream.ok) {
-        /* Le corps du refus nomme la cause (un XML S3: signature expirée,
-           paramètre refusé); sans lui, un 502 au portail est une devinette. */
-        const why = (await upstream.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 300);
-        logger.warn(`[Recording] ${new URL(url).host} répond ${upstream.status} pour l'appel ${id}: ${why}`);
-        return res.status(502).json({ error: 'recording_unavailable', upstream: upstream.status, detail: why });
+      let upstream: Awaited<ReturnType<typeof fetch>> | null = null;
+      let why = '';
+      let lastStatus = 0;
+      for (const url of urls) {
+        const attempt = await fetch(url, { headers: range ? { Range: range } : {} });
+        if (attempt.ok) {
+          upstream = attempt;
+          break;
+        }
+        /* Le corps du refus nomme la cause (un XML S3: adresse privée,
+           signature expirée); sans lui, un 502 au portail est une devinette. */
+        lastStatus = attempt.status;
+        why = (await attempt.text().catch(() => '')).replace(/\s+/g, ' ').slice(0, 300);
+        logger.warn(`[Recording] ${new URL(url).host} répond ${attempt.status} pour l'appel ${id}: ${why}`);
+      }
+      if (!upstream) {
+        return res.status(502).json({ error: 'recording_unavailable', upstream: lastStatus, detail: why });
       }
       res.status(upstream.status);
       for (const header of ['content-type', 'content-length', 'content-range', 'accept-ranges']) {
