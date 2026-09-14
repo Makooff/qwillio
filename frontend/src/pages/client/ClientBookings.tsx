@@ -33,7 +33,10 @@ interface Booking {
 function dayLabel(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return '';
-  return d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  /* Majuscule au jour seulement : « Lundi 14 septembre », jamais
+     « Septembre ». Le `capitalize` de Tailwind mettait le mois en majuscule. */
+  const label = d.toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' });
+  return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
 export default function ClientBookings() {
@@ -115,7 +118,7 @@ export default function ClientBookings() {
                 </p>
               </div>
               <div className="text-[13px] text-[#F5F5F7] tabular-nums">
-                <span className="capitalize">{dayLabel(b.bookingDate)}</span>
+                <span>{dayLabel(b.bookingDate)}</span>
                 {b.bookingTime && <span className="text-[#A1A1A8]"> à {b.bookingTime}</span>}
               </div>
               <button
