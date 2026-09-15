@@ -45,6 +45,28 @@ class VapiClient {
   }
 
   /**
+   * Raccroche un appel EN COURS par son adresse de contrôle
+   * (`call.monitor.controlUrl`, portée par chaque événement de Vapi).
+   *
+   * Sert au garde-fou de boucle entrant (15/09/2026): un appel dont
+   * l'appelant est notre propre ligne est un transfert que le renvoi du
+   * client nous a ramené. Le message `end-call` est celui que Vapi documente
+   * pour cette adresse; jamais vérifié sur un appel réel au moment d'écrire
+   * ces lignes, donc journalisé en warn s'il est refusé, et à confirmer au
+   * docteur sur le premier cas rencontré.
+   */
+  async endCall(controlUrl: string): Promise<void> {
+    const response = await fetch(controlUrl, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${this.privateKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'end-call' }),
+    });
+    if (!response.ok) {
+      throw new Error(`VAPI control error (${response.status}): ${await response.text()}`);
+    }
+  }
+
+  /**
    * L'adresse SIGNÉE d'un enregistrement, obtenue comme Vapi le documente.
    *
    * Les adresses que porte l'appel (`artifact.recordingUrl` et les autres)

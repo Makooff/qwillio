@@ -74,9 +74,9 @@ export const FORWARDING_CODES: Record<Exclude<ForwardingType, ''>, ForwardingCod
   no_answer: {
     activate: '*61*',
     cancel: '##61#',
-    effect: "L'IA prend l'appel quand vous ne répondez pas après quelques sonneries.",
+    effect: "L'IA prend l'appel quand vous ne répondez pas après 30 secondes de sonnerie.",
     voicemailRisk: true,
-    caveat: "L'appelant patiente pendant les sonneries avant d'entendre l'IA.",
+    caveat: "L'appelant patiente pendant les sonneries avant d'entendre l'IA. En échange, l'IA peut vous transférer un appel sur ce même téléphone.",
   },
   scheduled: {
     /* Le renvoi « conditionnel complet »: occupé, sans réponse ET injoignable.
@@ -100,18 +100,37 @@ export function forwardingFor(type: string | null | undefined): ForwardingCode &
   return { ...FORWARDING_CODES[resolved], type: resolved };
 }
 
+/**
+ * Le délai du renvoi sur NON-RÉPONSE, en secondes, écrit dans le code composé
+ * (`*61*numéro**30#`, la syntaxe MMI, bornée à 30 par le GSM).
+ *
+ * Il doit être PLUS LONG que la sonnerie d'un transfert (20 s côté serveur,
+ * `VOICE_TRANSFER_RING_SECONDS`): quand l'IA transfère vers le mobile du
+ * client et qu'il ne répond pas, Vapi abandonne à 20 s, avant que le renvoi
+ * ne ramène le transfert chez nous. C'est ce qui rend le montage à UN numéro
+ * possible (15/09/2026). Sans délai écrit, l'opérateur applique le sien,
+ * souvent 15 s, et le transfert reviendrait vers l'IA.
+ */
+export const NO_ANSWER_DELAY_SECONDS = 30;
+
+/** Le suffixe de délai, seulement pour les renvois qui en portent un. */
+function delaySuffix(type: Exclude<ForwardingType, ''>): string {
+  return type === 'no_answer' || type === 'scheduled' ? `**${NO_ANSWER_DELAY_SECONDS}` : '';
+}
+
 /** Le code complet à composer, numéro inclus. */
 export function activationCode(type: string | null | undefined, number: string): string {
   const digits = (number || '').replace(/[^\d+]/g, '');
-  const { activate } = forwardingFor(type);
-  return digits ? `${activate}${digits}#` : `${activate}NUMERO#`;
+  const renvoi = forwardingFor(type);
+  return `${renvoi.activate}${digits || 'NUMERO'}${delaySuffix(renvoi.type)}#`;
 }
 
 /** Le lien `tel:` correspondant, `#` échappé pour que le clavier l'accepte. */
 export function activationLink(type: string | null | undefined, number: string): string | undefined {
   const digits = (number || '').replace(/[^\d+]/g, '');
   if (!digits) return undefined;
-  return `tel:${forwardingFor(type).activate}${digits}%23`;
+  const renvoi = forwardingFor(type);
+  return `tel:${renvoi.activate}${digits}${delaySuffix(renvoi.type)}%23`;
 }
 
 export function cancelLink(type: string | null | undefined): string {
@@ -165,10 +184,14 @@ export const TRANSFER_CONSTRAINT: Record<ForwardingType, string> = {
   '': "Tous les appels arrivent à l'IA, donc c'est elle qui décroche. Indiquez une ligne qui ne renvoie pas vers elle, sinon l'appel repart en boucle.",
   unconditional:
     "Tous les appels arrivent à l'IA, donc c'est elle qui décroche. Indiquez une ligne qui ne renvoie pas vers elle, sinon l'appel repart en boucle.",
-  busy: "L'IA prend le relais quand votre ligne est occupée. Lui repasser l'appel retomberait sur cette même ligne occupée : indiquez une autre ligne.",
+  /* Renvoi CONDITIONNEL : le téléphone du client sonne AVANT l'IA, donc son
+     propre mobile est une cible valide. C'est le montage à un seul numéro
+     (15/09/2026). Si sa ligne est occupée, le transfert revient vers l'IA,
+     qui le raccroche et prend un message. */
+  busy: "L'IA prend le relais quand votre ligne est occupée. Votre propre numéro convient : si vous êtes encore en ligne au moment du transfert, l'IA prend un message.",
   no_answer:
-    "L'IA prend le relais quand personne n'a décroché. Lui repasser l'appel sonnerait dans le vide : indiquez une autre ligne, celle d'un collègue par exemple.",
-  scheduled: "L'IA prend le relais en dehors de vos heures. Indiquez la ligne joignable à ces moments-là.",
+    "L'IA prend le relais quand personne n'a décroché. Votre propre numéro convient : il sonne 20 secondes, et si vous ne répondez pas, l'IA prend un message.",
+  scheduled: "L'IA prend tout ce que vous ne prenez pas. Votre propre numéro convient : il sonne d'abord, et si vous ne répondez pas, l'IA prend un message.",
 };
 
 /** Aide contextuelle du champ « Numéro de transfert ». */

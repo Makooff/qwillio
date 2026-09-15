@@ -558,12 +558,16 @@ export class ClientDashboardController {
         if (body.transferNumber) {
           const lignes = await prisma.client.findUnique({
             where: { id: req.clientId },
-            select: { vapiPhoneNumber: true, phoneNumbers: { select: { number: true } } },
+            select: { vapiPhoneNumber: true, forwardingType: true, phoneNumbers: { select: { number: true } } },
           });
+          /* Le type de renvoi ENVOYÉ prime sur celui en base: l'écran
+             enregistre les deux champs d'un coup, et juger le numéro contre
+             l'ancien renvoi refuserait le montage qu'on est en train de poser. */
+          const renvoi = body.forwardingType !== undefined ? body.forwardingType : lignes?.forwardingType;
           if (wouldLoop(body.transferNumber, {
             vapiPhoneNumber: lignes?.vapiPhoneNumber,
             declared: lignes?.phoneNumbers,
-          })) {
+          }, renvoi)) {
             return res.status(400).json({ error: 'transfer_loop', message: LOOP_MESSAGE });
           }
         }
@@ -1545,12 +1549,12 @@ export class ClientDashboardController {
       if (data.transferNumber) {
         const lignes = await prisma.client.findUnique({
           where: { id: req.clientId },
-          select: { vapiPhoneNumber: true, phoneNumbers: { select: { number: true } } },
+          select: { vapiPhoneNumber: true, forwardingType: true, phoneNumbers: { select: { number: true } } },
         });
         if (wouldLoop(data.transferNumber, {
           vapiPhoneNumber: lignes?.vapiPhoneNumber,
           declared: lignes?.phoneNumbers,
-        })) {
+        }, lignes?.forwardingType)) {
           return res.status(400).json({ error: 'transfer_loop', message: LOOP_MESSAGE });
         }
       }

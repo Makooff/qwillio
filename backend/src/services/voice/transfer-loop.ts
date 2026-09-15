@@ -40,8 +40,43 @@ export interface ClientLines {
  * différents, ce qui laisserait passer précisément la faute qu'on veut
  * empêcher.
  */
-export function wouldLoop(transferNumber: unknown, lines: ClientLines): boolean {
-  const cible = normalizeNumber(transferNumber);
+/**
+ * Un renvoi CONDITIONNEL fait sonner le téléphone du client AVANT l'IA:
+ * occupé, sans réponse, ou le « conditionnel complet » posé pour un horaire.
+ * Seul le renvoi de tous les appels (`unconditional`, ou rien de déclaré, qui
+ * vaut le pire cas) empêche le téléphone de sonner par construction.
+ */
+export function isConditionalForwarding(forwardingType: unknown): boolean {
+  return forwardingType === 'busy' || forwardingType === 'no_answer' || forwardingType === 'scheduled';
+}
+
+/**
+ * Vrai si transférer vers ce numéro renverrait l'appel à l'IA.
+ *
+ * Le renvoi CONDITIONNEL change la réponse (15/09/2026). Le client qui a choisi
+ * « si pas de réponse » ou « si occupé » accepte que son téléphone sonne
+ * d'abord: son propre mobile est alors une cible valide, c'est même le montage
+ * à UN numéro que tout le monde demande. Le transfert sonne
+ * `VOICE_TRANSFER_RING_SECONDS` (20 s) et abandonne AVANT le renvoi sur
+ * non-réponse (30 s dans le code donné au client); le cas « occupé » revient
+ * bien chez nous, et c'est `isOwnLine` qui le raccroche à l'arrivée.
+ * Sans type déclaré, on suppose le renvoi total: le laisser passer au bénéfice
+ * du doute rouvrirait la boucle en silence.
+ */
+export function wouldLoop(transferNumber: unknown, lines: ClientLines, forwardingType?: unknown): boolean {
+  if (isConditionalForwarding(forwardingType)) return false;
+  return isOwnLine(transferNumber, lines);
+}
+
+/**
+ * Ce numéro est-il une ligne qui aboutit à l'IA ?
+ *
+ * Sert aussi au garde-fou ENTRANT: un appel dont l'appelant est notre propre
+ * ligne est un transfert que le renvoi du client nous a ramené (occupé, ou un
+ * délai mal réglé). Il se raccroche, il ne se décroche pas.
+ */
+export function isOwnLine(candidate: unknown, lines: ClientLines): boolean {
+  const cible = normalizeNumber(candidate);
   if (!cible) return false;
 
   const versLIa = [
@@ -71,4 +106,5 @@ export function wouldLoop(transferNumber: unknown, lines: ClientLines): boolean 
 export const LOOP_MESSAGE =
   "Ce numéro est déjà renvoyé vers votre réceptionniste : l'IA se transférerait "
   + "l'appel à elle-même, en boucle. Indiquez une autre ligne, par exemple votre "
-  + "mobile personnel ou celle d'un collègue.";
+  + "mobile personnel ou celle d'un collègue. Ou choisissez un renvoi « si pas de "
+  + "réponse » : votre téléphone sonne d'abord, et ce numéro devient valide.";

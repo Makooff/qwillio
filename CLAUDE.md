@@ -1098,6 +1098,35 @@ réservation (épellation, relecture) COMMENCE par « RIEN N'EST ENCORE RESERVE,
 ne l'annonce pas et ne raccroche pas » : la consigne seule ne suffisait pas,
 l'état doit être dit avant. `fr-reservation-nom-bidon` rejoue le résultat exact.
 
+### 6unquadragesies. Le montage à UN numéro : possible avec un renvoi conditionnel (15/09/2026)
+Demande : « mon numéro, l'IA répond dessus, et si besoin ça sonne sur mon
+téléphone ». Le code refusait le propre mobile du client en numéro de
+transfert (`wouldLoop`), pour tout type de renvoi, et l'écran disait
+« indiquez une autre ligne ». C'est vrai SEULEMENT pour le renvoi de tous les
+appels (`*21*`) : le réseau ne fait alors plus jamais sonner le téléphone, y
+compris quand c'est l'IA qui l'appelle, et aucun code ne contourne ça. Le
+défaut « Automatique » reste ce renvoi-là, par choix : sinon chaque appelant
+attend la sonnerie avant l'IA.
+Avec un renvoi CONDITIONNEL (occupé, non-réponse, ou le complet `**004*`), le
+téléphone sonne d'abord, donc son propre mobile devient une cible valide.
+Trois pièces tiennent le montage, et il les faut toutes : (1) `wouldLoop`
+reçoit le type de renvoi (envoyé par le PUT, sinon celui en base, sinon le
+pire cas) et ne refuse plus en conditionnel ; le profil d'appel porte
+`forwardingType` pour la même décision à la construction des outils.
+(2) Le délai est ÉCRIT dans le code composé, `*61*numéro**30#`
+(`NO_ANSWER_DELAY_SECONDS`), et doit rester plus long que
+`VOICE_TRANSFER_RING_SECONDS` (20 s) : Vapi abandonne le transfert avant que
+le renvoi ne le ramène chez nous. Sans délai écrit, l'opérateur applique le
+sien, souvent 15 s, et le transfert reviendrait vers l'IA. (3) Le cas
+« occupé » revient chez nous immédiatement : `self-call-guard.ts` raccroche
+tout appel dont l'appelant PRÉSENTÉ est une ligne de la PLATEFORME (dédiée ou
+partagée), par l'adresse de contrôle de l'appel (`vapiClient.endCall`). Jamais
+comparé aux numéros déclarés par le client : un opérateur peut présenter la
+ligne qui renvoie sur un vrai appel renvoyé (REL-11), et raccrocher là
+couperait un client. **Le message `end-call` sur `controlUrl` n'a pas encore
+été vu sur un appel réel** : à confirmer dans les journaux Render
+(`[Voice] BOUCLE entrante`) au premier cas.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).
