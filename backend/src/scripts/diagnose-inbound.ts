@@ -220,6 +220,29 @@ async function main() {
             : `distant: ${remoteVoice}\n       attendu: ${want.provider} / ${want.voiceId} / ${want.model}`
               + `\n       L'assistant enregistré est périmé: \`npm run voice:resync -- --email=${client.contactEmail} --confirm\`.`,
         );
+        /* Le DÉTECTEUR DE FIN DE TOUR et les attentes avant de répondre, tels
+           que l'assistant distant les porte (15/09/2026). « LiveKit est-il
+           branché ? » se lit ici: la variable Render dit ce que la prochaine
+           synchronisation enverra, l'assistant distant dit ce qui décroche.
+           Comparé au plan calculé par la MÊME fonction que la synchronisation. */
+        {
+          const { buildStartSpeakingPlan } = await import('../services/voice/speech-plans');
+          const want = buildStartSpeakingPlan(profile.language as 'fr' | 'en' | 'nl');
+          const got = (assistant.startSpeakingPlan ?? {}) as Record<string, any>;
+          const gotProvider = got.smartEndpointingPlan?.provider ?? (got.smartEndpointingEnabled ? 'vapi' : 'aucun');
+          const wantProvider = want.smartEndpointingPlan.provider;
+          const gotWait = got.waitSeconds;
+          const gotPunct = got.transcriptionEndpointingPlan?.onPunctuationSeconds;
+          const same = gotProvider === wantProvider && gotWait === want.waitSeconds
+            && gotPunct === want.transcriptionEndpointingPlan.onPunctuationSeconds;
+          verdict(
+            same,
+            `fin de tour de l'assistant qui décroche (${gotProvider})`,
+            `distant: détecteur ${gotProvider}, attente ${gotWait ?? '?'} s, ponctuation ${gotPunct ?? '?'} s`
+              + (same ? '' : `\n       attendu: détecteur ${wantProvider}, attente ${want.waitSeconds} s, ponctuation ${want.transcriptionEndpointingPlan.onPunctuationSeconds} s`
+                + `\n       L'assistant enregistré est périmé: \`npm run voice:resync -- --email=${client.contactEmail} --confirm\`.`),
+          );
+        }
         /* Le réglage lui-même, dit en clair: « attendu 11labs » alors que le
            client croit être chez Cartesia n'est pas une panne de
            synchronisation, c'est le réglage qui n'a jamais basculé. */
