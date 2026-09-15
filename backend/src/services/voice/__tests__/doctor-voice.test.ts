@@ -53,3 +53,15 @@ describe('voice:doctor — ce que l\'assistant dit en premier', () => {
     expect(CODE).toMatch(/getCall\(/);
   });
 });
+
+/* « LiveKit est-il branché ? » (15/09/2026): la variable Render dit ce que la
+   prochaine synchronisation enverra; seul l'assistant DISTANT dit ce qui
+   décroche. Le docteur lit `startSpeakingPlan` et le compare au plan calculé
+   par la fonction de la synchronisation, jamais à une copie. */
+describe('voice:doctor — le détecteur de fin de tour qui décroche vraiment', () => {
+  it('lit le plan DISTANT et le compare à buildStartSpeakingPlan', () => {
+    expect(CODE).toMatch(/assistant\.startSpeakingPlan/);
+    expect(CODE).toMatch(/buildStartSpeakingPlan\(/);
+    expect(CODE).toMatch(/smartEndpointingPlan\?\.provider/);
+  });
+});
