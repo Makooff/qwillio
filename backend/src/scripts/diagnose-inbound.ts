@@ -32,6 +32,7 @@
 import { prisma } from '../config/database';
 import { env } from '../config/env';
 import { vapiClient } from '../config/vapi';
+import { describeStoredLatency } from '../services/voice/latency-tracker';
 import { smsReadiness } from '../services/sms-ready';
 import { recordingCandidates, type RecordingCandidate } from '../services/voice/recording-urls';
 
@@ -404,6 +405,14 @@ async function main() {
           const counts = new Map<string, number>();
           for (const f of failures) counts.set(f, (counts.get(f) ?? 0) + 1);
           console.log(`      TOURS EN REPLI: ${[...counts].map(([r, n]) => `${r} ×${n}`).join(' ; ')}`);
+        }
+        /* OÙ part le temps, étape par étape (15/09/2026): « il est lent »
+           se règle sur l'étape qui l'est, pas sur une impression. */
+        if (realtime.latency) {
+          console.log('      LATENCE PAR ÉTAPE (notre horloge):');
+          for (const l of describeStoredLatency(realtime.latency)) console.log(`        ${l}`);
+        } else {
+          console.log('      LATENCE PAR ÉTAPE: aucun relevé (appel antérieur, ou processus redémarré pendant l\'appel)');
         }
       }
       /* L'URL d'enregistrement que le PORTAIL joue, allée chercher comme le

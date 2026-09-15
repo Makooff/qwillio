@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { CallLatencyTracker } from '../latency-tracker';
+import { describeStoredLatency } from '../latency-tracker';
 
 /** Drive one full turn with explicit timestamps, so the test is not timing-dependent. */
 function playTurn(
@@ -200,5 +201,30 @@ describe('CallLatencyTracker — aggregation', () => {
   it('says n/a for a stage it never observed, instead of zero', () => {
     // Zero would read as "instant"; n/a reads as "not measured", which is true.
     expect(new CallLatencyTracker().summaryLine()).toContain('STT n/a');
+  });
+});
+
+/* « Il est lent » (15/09/2026): le docteur lit le relevé STOCKÉ par étape,
+   pour que le réglage se choisisse sur un chiffre. */
+describe('describeStoredLatency', () => {
+  it('une ligne par étape, avec ce qu\'elle mesure, et la part de son parti avant la fin du texte', () => {
+    const lines = describeStoredLatency({
+      stt: { count: 4, median: 900, p95: 1200, max: 1300 },
+      llm: { count: 4, median: 1400, p95: 2100, max: 2300 },
+      ttfa: { count: 4, median: 600, p95: 800, max: 900 },
+      total: { count: 4, median: 3400, p95: 3800, max: 3800 },
+      streaming: { streamed: 1, buffered: 3 },
+    });
+    expect(lines[0]).toMatch(/^STT: médiane 900 ms, p95 1200 ms, max 1300 ms sur 4 tour\(s\) · fin de parole/);
+    expect(lines[1]).toMatch(/^LLM: médiane 1400 ms/);
+    expect(lines[2]).toMatch(/^TTFA: médiane 600 ms/);
+    expect(lines[3]).toMatch(/^TOTAL: médiane 3400 ms/);
+    expect(lines[4]).toBe('son parti avant la fin du texte: 1/4 tour(s)');
+  });
+
+  it('une étape absente est dite absente, jamais zéro', () => {
+    const lines = describeStoredLatency({ total: { count: 2, median: 2000, p95: 2500, max: 2500 } });
+    expect(lines[1]).toMatch(/^LLM: pas de mesure/);
+    expect(lines).toHaveLength(4);
   });
 });
