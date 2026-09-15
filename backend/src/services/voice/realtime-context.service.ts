@@ -83,6 +83,8 @@ export interface ClientVoiceProfile {
    */
   inboundNumber?: string | null;
   inboundLines?: Array<{ number: string }>;
+  /** Le type de renvoi posé par le client: un renvoi conditionnel autorise son propre mobile en transfert. */
+  forwardingType?: string | null;
   /** Free-text client instructions from onboarding ("never quote prices"). */
   instructions: string | null;
   services: string[];
@@ -282,6 +284,7 @@ class RealtimeContextService {
         // Les lignes qui aboutissent à la réceptionniste, pour refuser un
         // transfert qui bouclerait vers elle. Voir `transfer-loop.ts`.
         vapiPhoneNumber: true,
+        forwardingType: true,
         phoneNumbers: { where: { isActive: true }, select: { number: true } },
         planType: true,
         onboardingData: true,
@@ -315,6 +318,7 @@ class RealtimeContextService {
       transferNumber: client.transferNumber,
       inboundNumber: client.vapiPhoneNumber,
       inboundLines: client.phoneNumbers ?? [],
+      forwardingType: client.forwardingType,
       transferMode: ['always', 'hours', 'never'].includes(String(vapiConfig.transferMode))
         ? (vapiConfig.transferMode as 'always' | 'hours' | 'never')
         : 'always',

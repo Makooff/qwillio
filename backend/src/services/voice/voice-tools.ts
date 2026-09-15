@@ -407,7 +407,7 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
   if (wouldLoop(profile.transferNumber, {
     vapiPhoneNumber: profile.inboundNumber,
     declared: profile.inboundLines,
-  })) {
+  }, profile.forwardingType)) {
     logger.error(
       `[VoiceTools] transfert en BOUCLE pour ${profile.clientId}: le numéro de transfert `
         + 'est renvoyé vers la réceptionniste. Outil retiré, l\'agent prendra un message.'

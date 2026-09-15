@@ -993,7 +993,7 @@ export default function ClientReceptionist() {
             <p className="text-[10px] text-[#8B8BA7]/80 mt-1">{advice.constraint}</p>
           </div>
           <div>
-            <label className="text-xs text-[#8B8BA7] mb-1.5 block">Type de transfert</label>
+            <label className="text-xs text-[#8B8BA7] mb-1.5 block">Type de renvoi</label>
             <select value={forwardingType} onChange={e => setForwardingType(e.target.value)} className={selectCls}>
               <option value="">Automatique</option>
               <option value="unconditional">Inconditionnel (tous les appels)</option>

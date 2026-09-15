@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { wouldLoop } from '../services/voice/transfer-loop';
+import { wouldLoop, isOwnLine, isConditionalForwarding } from '../services/voice/transfer-loop';
 
 /**
  * La boucle de transfert.
@@ -59,5 +59,29 @@ describe('ce qui doit rester autorisé', () => {
        suffixe de la moitié des numéros du pays et bloquerait des transferts
        parfaitement valides. */
     expect(wouldLoop('4455', { declared: [{ number: '+3223334455' }] })).toBe(false);
+  });
+});
+
+/* Le montage à UN numéro (15/09/2026): avec un renvoi conditionnel, le
+   téléphone du client sonne d'abord, donc son propre mobile est une cible
+   valide. Sans type déclaré, on suppose le renvoi total. */
+describe('renvoi conditionnel: le propre mobile du client devient valide', () => {
+  const lignes = { vapiPhoneNumber: '+3225550011', declared: [{ number: '+32470112233' }] };
+
+  it.each(['busy', 'no_answer', 'scheduled'])('%s: autorisé', type => {
+    expect(wouldLoop('+32470112233', lignes, type)).toBe(false);
+    expect(isConditionalForwarding(type)).toBe(true);
+  });
+
+  it.each(['', 'unconditional', undefined, null])('%s: toujours refusé', type => {
+    expect(wouldLoop('+32470112233', lignes, type)).toBe(true);
+    expect(isConditionalForwarding(type)).toBe(false);
+  });
+
+  it('la ligne de la PLATEFORME reste refusée même en conditionnel ? non: le renvoi est posé sur le mobile, pas sur elle', () => {
+    /* Transférer vers la ligne Qwillio elle-même n'a aucun sens, mais elle ne
+       renvoie nulle part: c'est l'IA qui décroche, ce qui est le même résultat
+       qu'un refus. On ne complique pas la règle pour un cas absurde. */
+    expect(isOwnLine('+3225550011', lignes)).toBe(true);
   });
 });

@@ -20,6 +20,8 @@ import { callerMemoryService } from './caller-memory.service';
 import { toolRuntimeService, type ToolCallInput, type ToolCallResult } from './tool-runtime.service';
 import { resolveCharacter } from '../../config/voice-characters';
 import { callerIdentity, type LineAgent } from './inbound-routing.service';
+import { isSelfCall, hangUpSelfCall } from './self-call-guard';
+import { vapiClient } from '../../config/vapi';
 
 /**
  * Real-time call orchestrator (Phases 1, 2, 3).
@@ -295,6 +297,12 @@ class RealtimeOrchestratorService {
 
     if (!callSessionStore.get(vapiCallId)) {
       const profile = await realtimeContextService.getClientProfile(clientId);
+      /* Notre propre transfert, revenu par le renvoi du client (occupé):
+         raccroché, pas décroché. Voir `self-call-guard.ts`. */
+      if (isSelfCall(event, { dedicated: profile?.inboundNumber ?? null, shared: env.VAPI_PHONE_NUMBER || null })) {
+        await hangUpSelfCall(event, clientId, url => vapiClient.endCall(url));
+        return;
+      }
       callSessionStore.start({
         vapiCallId,
         clientId,
