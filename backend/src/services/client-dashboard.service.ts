@@ -331,10 +331,13 @@ export class ClientDashboardService {
     isSpam?: boolean;
     startDate?: Date;
     endDate?: Date;
+    /** Les appels d'UN numéro, sous ses deux écritures (chiffres seuls, ou avec +). */
+    phone?: string;
   }) {
     const where: any = { clientId };
     if (filters?.status) where.status = filters.status;
     if (filters?.sentiment) where.sentiment = filters.sentiment;
+    if (filters?.phone) where.callerNumber = { in: phoneForms(filters.phone) };
     if (filters?.isLead !== undefined) where.isLead = filters.isLead;
     // Default view hides spam; pass isSpam=true to see the spam-only list.
     where.isSpam = filters?.isSpam === true;
@@ -363,10 +366,22 @@ export class ClientDashboardService {
   // ═══════════════════════════════════════════════════════════
   // BOOKINGS - Upcoming & past bookings for client
   // ═══════════════════════════════════════════════════════════
-  async getClientBookings(clientId: string, page = 1, limit = 20, upcoming = true) {
+  async getClientBookings(
+    clientId: string,
+    page = 1,
+    limit = 20,
+    upcoming = true,
+    range?: { from: Date; to: Date },
+  ) {
     const now = new Date();
     const where: any = { clientId };
-    if (upcoming) {
+    /* Une PLAGE (le calendrier du portail, 15/09/2026): tous les rendez-vous
+       du mois, passés compris, sauf les annulés. « À venir » reste le défaut
+       des autres lecteurs. */
+    if (range) {
+      where.bookingDate = { gte: range.from, lte: range.to };
+      where.status = { not: 'cancelled' };
+    } else if (upcoming) {
       where.bookingDate = { gte: now };
       where.status = 'confirmed';
     }
@@ -374,7 +389,7 @@ export class ClientDashboardService {
     const [bookings, total] = await Promise.all([
       prisma.clientBooking.findMany({
         where,
-        orderBy: { bookingDate: upcoming ? 'asc' : 'desc' },
+        orderBy: range ? [{ bookingDate: 'asc' }, { bookingTime: 'asc' }] : { bookingDate: upcoming ? 'asc' : 'desc' },
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -390,8 +405,9 @@ export class ClientDashboardService {
   // ═══════════════════════════════════════════════════════════
   // LEADS - People who showed interest during calls
   // ═══════════════════════════════════════════════════════════
-  async getClientLeads(clientId: string, page = 1, limit = 20) {
-    const where = { clientId, isLead: true };
+  async getClientLeads(clientId: string, page = 1, limit = 20, phone?: string) {
+    const where: any = { clientId, isLead: true };
+    if (phone) where.callerNumber = { in: phoneForms(phone) };
 
     const [leads, total] = await Promise.all([
       prisma.clientCall.findMany({
@@ -592,6 +608,17 @@ export class ClientDashboardService {
 
     return aggregated;
   }
+}
+
+/**
+ * Les écritures d'un même numéro dans la base: `normalizeNumber` ne garde que
+ * les chiffres (clé d'attribution et de mémoire), les appels plus anciens ont
+ * pu être écrits avec le « + ». Chercher les deux, jamais l'une.
+ */
+export function phoneForms(raw: string): string[] {
+  const digits = String(raw).replace(/\D/g, '');
+  if (!digits) return [raw];
+  return Array.from(new Set([digits, `+${digits}`, raw.trim()]));
 }
 
 export const clientDashboardService = new ClientDashboardService();

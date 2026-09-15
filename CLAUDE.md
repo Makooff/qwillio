@@ -1070,6 +1070,15 @@ portail listait les réservations sans jamais permettre d'en annuler une, or
 c'est la réservation EN BASE que l'agent lit pour reconnaître un appelant ;
 supprimer l'événement Google ne la touche pas. L'annulation retire aussi
 l'événement et oublie le nom en cache.
+(5) Le 15/09, la page devient un CALENDRIER (`utils/month-grid.ts`, semaine du
+lundi, fuseau du navigateur comme les libellés) : un compte par jour, un jour
+choisi ouvre ses rendez-vous, un rendez-vous déplié lit
+`GET /my-dashboard/bookings/:id/context` (mémoire d'appelant, appels du
+numéro, dernier lead, autres rendez-vous, tout sous le `clientId` du jeton et
+le numéro sous ses deux écritures, `phoneForms`) et mène à Appels et Leads
+filtrés par `?phone=`, un filtre SERVEUR : la recherche locale de ces pages ne
+voit qu'une page de vingt. `GET /bookings?from&to` sert le mois, annulés
+exclus. Les cartes exposent `initialMonth` pour les tests.
 
 ### 6quadragesies. « Parfait, je vous réserve ça » sans nom, donc sans réservation (15/09/2026)
 Appel réel depuis un numéro INCONNU : créneau proposé, « oui, je confirme »,

@@ -3,7 +3,7 @@ import { clientLocale } from '../utils/client-locale';
 import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import { clientDashboardService } from '../services/client-dashboard.service';
+import { clientDashboardService, phoneForms } from '../services/client-dashboard.service';
 import { googleCalendarService } from '../services/google-calendar.service';
 import { prisma } from '../config/database';
 import { env } from '../config/env';
@@ -199,6 +199,7 @@ export class ClientDashboardController {
         isSpam: req.query.isSpam === 'true' ? true : undefined,
         startDate: req.query.startDate ? new Date(req.query.startDate as string) : undefined,
         endDate: req.query.endDate ? new Date(req.query.endDate as string) : undefined,
+        phone: typeof req.query.phone === 'string' && req.query.phone.trim() ? req.query.phone.trim() : undefined,
       };
       const result = await clientDashboardService.getClientCalls(req.clientId, page, limit, filters);
       res.json(result);
@@ -212,8 +213,81 @@ export class ClientDashboardController {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
       const upcoming = req.query.upcoming !== 'false';
-      const result = await clientDashboardService.getClientBookings(req.clientId, page, limit, upcoming);
+      /* `from` / `to` (YYYY-MM-DD): le mois du calendrier, passés compris. */
+      const from = typeof req.query.from === 'string' ? new Date(`${req.query.from}T00:00:00.000Z`) : null;
+      const to = typeof req.query.to === 'string' ? new Date(`${req.query.to}T23:59:59.999Z`) : null;
+      const range = from && to && !Number.isNaN(from.getTime()) && !Number.isNaN(to.getTime()) ? { from, to } : undefined;
+      const result = await clientDashboardService.getClientBookings(req.clientId, page, limit, upcoming, range);
       res.json(result);
+    } catch (error: any) {
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  /**
+   * GET /my-dashboard/bookings/:id/context — ce qu'on sait de l'appelant
+   * derrière un rendez-vous (15/09/2026): la mémoire d'appelant, ses appels
+   * chez ce client, son dernier lead et ses autres rendez-vous. C'est ce qui
+   * fait du calendrier une porte vers le reste du portail, au lieu d'une
+   * liste de noms. Tout est lu sous le `clientId` du jeton.
+   */
+  async getMyBookingContext(req: any, res: Response) {
+    try {
+      const booking = await prisma.clientBooking.findFirst({
+        where: { id: String(req.params.id), clientId: req.clientId },
+        select: { id: true, customerName: true, customerPhone: true, clientCallId: true },
+      });
+      if (!booking) return res.status(404).json({ error: 'Réservation introuvable' });
+
+      const phone = booking.customerPhone;
+      const forms = phone ? phoneForms(phone) : [];
+      const callSelect = {
+        id: true, callerName: true, callerNumber: true, createdAt: true, durationSeconds: true,
+        summary: true, sentiment: true, outcome: true, isLead: true, leadScore: true,
+      } as const;
+
+      const [caller, calls, lead, otherBookings, linkedCall] = await Promise.all([
+        phone
+          ? prisma.callerMemory.findFirst({
+              where: { clientId: req.clientId, callerNumber: { in: forms } },
+              select: { knownName: true, totalCalls: true, lastCallAt: true, lastSummary: true, lastOutcome: true, profileSummary: true, preferences: true, email: true },
+            })
+          : Promise.resolve(null),
+        phone
+          ? prisma.clientCall.findMany({
+              where: { clientId: req.clientId, callerNumber: { in: forms }, isSpam: false },
+              orderBy: { createdAt: 'desc' },
+              take: 10,
+              select: callSelect,
+            })
+          : Promise.resolve([]),
+        phone
+          ? prisma.clientCall.findFirst({
+              where: { clientId: req.clientId, callerNumber: { in: forms }, isLead: true },
+              orderBy: { createdAt: 'desc' },
+              select: { ...callSelect, nameCollected: true, emailCollected: true, phoneCollected: true, bookingRequested: true, tags: true },
+            })
+          : Promise.resolve(null),
+        phone
+          ? prisma.clientBooking.findMany({
+              where: { clientId: req.clientId, customerPhone: { in: forms }, id: { not: booking.id }, status: { not: 'cancelled' } },
+              orderBy: { bookingDate: 'desc' },
+              take: 5,
+              select: { id: true, customerName: true, bookingDate: true, bookingTime: true, serviceType: true, status: true },
+            })
+          : Promise.resolve([]),
+        booking.clientCallId
+          ? prisma.clientCall.findFirst({ where: { id: booking.clientCallId, clientId: req.clientId }, select: callSelect })
+          : Promise.resolve(null),
+      ]);
+
+      res.json({
+        booking: { id: booking.id, customerName: booking.customerName, customerPhone: phone },
+        caller,
+        calls: linkedCall && !calls.some(c => c.id === linkedCall.id) ? [linkedCall, ...calls] : calls,
+        lead,
+        otherBookings,
+      });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -269,7 +343,8 @@ export class ClientDashboardController {
     try {
       const page = parseInt(req.query.page as string) || 1;
       const limit = parseInt(req.query.limit as string) || 20;
-      const result = await clientDashboardService.getClientLeads(req.clientId, page, limit);
+      const phone = typeof req.query.phone === 'string' && req.query.phone.trim() ? req.query.phone.trim() : undefined;
+      const result = await clientDashboardService.getClientLeads(req.clientId, page, limit, phone);
       res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });
