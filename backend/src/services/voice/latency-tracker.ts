@@ -267,6 +267,37 @@ export class CallLatencyTracker {
   }
 }
 
+/**
+ * Le relevé par ÉTAPE d'un appel, tel qu'il est stocké
+ * (`metadata.realtime.latency`), rendu lisible pour le docteur.
+ *
+ * « Il est lent et pas naturel » (15/09/2026) se tranche ici et nulle part
+ * ailleurs: le serveur mesurait déjà STT, LLM, TTS et le total à chaque
+ * tour, mais ne les montrait que dans les journaux Render. Le docteur ne
+ * lisait que le délai global à l'horloge de Vapi, qui dit QUE c'est lent,
+ * jamais QUOI. Une ligne par étape, avec ce qu'elle mesure, pour qu'un
+ * réglage soit choisi sur un chiffre et non sur un ressenti.
+ */
+export function describeStoredLatency(raw: unknown): string[] {
+  const snap = (raw ?? {}) as Record<string, unknown>;
+  const stage = (name: string) => snap[name] as StageStats | undefined;
+  const line = (label: string, what: string, s?: StageStats) =>
+    s ? `${label}: médiane ${s.median} ms, p95 ${s.p95} ms, max ${s.max} ms sur ${s.count} tour(s) · ${what}`
+      : `${label}: pas de mesure · ${what}`;
+  const out = [
+    line('STT', 'fin de parole de l\'appelant → transcription finale (Vapi, endpointing compris)', stage('stt')),
+    line('LLM', 'requête reçue → premier jeton rendu (notre serveur + OpenAI)', stage('llm')),
+    line('TTFA', 'premier jeton → premier son (découpe TTS + synthèse)', stage('ttfa')),
+    line('TOTAL', 'fin de parole → premier son, mesuré de bout en bout', stage('total')),
+  ];
+  const streaming = snap.streaming as { streamed?: number; buffered?: number } | undefined;
+  if (streaming && (streaming.streamed ?? 0) + (streaming.buffered ?? 0) > 0) {
+    const total = (streaming.streamed ?? 0) + (streaming.buffered ?? 0);
+    out.push(`son parti avant la fin du texte: ${streaming.streamed ?? 0}/${total} tour(s)`);
+  }
+  return out;
+}
+
 function summarise(values: number[]): StageStats | null {
   if (!values.length) return null;
   const sorted = [...values].sort((a, b) => a - b);
