@@ -129,6 +129,23 @@ describe('bookAppointment — le nom et le jour', () => {
     expect(createBooking).not.toHaveBeenCalled();
   });
 
+  /* Ce que le docteur a montré sur cet appel: `customerName: "client"`.
+     Le modèle a rempli le champ obligatoire avec un mot, et l'outil l'a
+     pris pour un inconnu à faire épeler. */
+  it('« client » n\'est pas un nom: rien n\'est réservé, et le résultat le dit', async () => {
+    const out = await book({ customerName: 'client', date: '2099-09-16', time: '09:00' });
+    expect(out).toMatch(/^RIEN N'EST RESERVE: il manque un vrai nom \(« client » n'est pas un nom, ne l'invente pas\)\./);
+    expect(out).toMatch(/ne raccroche pas/);
+    expect(createBooking).not.toHaveBeenCalled();
+  });
+
+  it('un prénom seul: il manque le nom de famille, et rien n\'est réservé', async () => {
+    const out = await book({ customerName: 'Marc', date: '2099-09-16', time: '09:00' });
+    expect(out).toMatch(/^RIEN N'EST RESERVE: il manque le NOM DE FAMILLE \(tu n'as que « Marc »\)\./);
+    expect(out).toMatch(/Demande à l'appelant son nom de famille/);
+    expect(createBooking).not.toHaveBeenCalled();
+  });
+
   it('sans heure: nomme l\'heure, pas le nom', async () => {
     const out = await book({ customerName: 'Marc Dupont', date: '2099-09-16' });
     expect(out).toMatch(/^RIEN N'EST RESERVE: il manque l'heure exacte\./);
@@ -142,10 +159,17 @@ describe('bookAppointment — le nom et le jour', () => {
     expect(out).toMatch(/prenom et nom de famille .*puis bookAppointment; c'est reserve seulement apres son retour RESERVE\.$/);
   });
 
+  it('la relecture du nom commence par « rien n\'est encore réservé »', async () => {
+    needsNameReadBack.mockReturnValue(true);
+    const out = await book({ customerName: 'Mathieu Polle', date: '2099-09-16', time: '09:00' });
+    expect(out).toMatch(/^RIEN N'EST ENCORE RESERVE, ne l'annonce pas et ne raccroche pas\. NOM À CONFIRMER AVANT DE RÉSERVER/);
+    expect(createBooking).not.toHaveBeenCalled();
+  });
+
   it('fait confirmer le nom avant de réserver, et ne réserve pas encore', async () => {
     needsNameReadBack.mockReturnValueOnce(true);
     const out = String(await book({ customerName: 'Paul Matthieu', date: '2099-09-17', time: '09:00' }));
-    expect(out).toMatch(/^NOM À CONFIRMER AVANT DE RÉSERVER: « Paul Matthieu »/);
+    expect(out).toMatch(/NOM À CONFIRMER AVANT DE RÉSERVER: « Paul Matthieu »/);
     // L'agent épelle LUI-MÊME le nom de famille: « Polle » relu se confond avec « Paul », pas ses lettres.
     expect(out).toContain('M-A-T-T-H-I-E-U');
     expect(createBooking).not.toHaveBeenCalled();

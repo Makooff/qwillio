@@ -13,7 +13,7 @@ import { availabilitySpeculator } from './availability-speculator';
 import { parseSpokenPhone } from '../../utils/phone-spoken';
 import { phoneWords } from '../../utils/text-for-speech';
 import { normaliseAddress } from '../../utils/be-communes';
-import { normaliseSpelledName, familyName, spellOut } from '../../utils/spelled-name';
+import { normaliseSpelledName, familyName, spellOut, nameProblem, isPlaceholderName, type NameProblem } from '../../utils/spelled-name';
 import { nameSimilarity, NAME_MATCH_THRESHOLD } from '../../utils/name-match';
 import { ymdOf } from '../../utils/zoned-time';
 import { dayWindow, nextOpenDay, minutesOf } from '../../utils/opening-hours';
@@ -238,20 +238,49 @@ function askCallerToSpell(lang: string, name: string): string {
  * épelle, puis rappelle l'outil. « Je vous réserve ça » ne se dit qu'après
  * un retour RESERVE.
  */
-function missingBookingInfo(lang: string, missing: { name: boolean; date: boolean; time: boolean }): string {
-  const fr = [missing.name && 'le prénom et le NOM DE FAMILLE', missing.date && 'la date', missing.time && "l'heure exacte"].filter(Boolean).join(', ');
-  const en = [missing.name && 'the first name and FAMILY NAME', missing.date && 'the date', missing.time && 'the exact time'].filter(Boolean).join(', ');
-  const nl = [missing.name && 'de voornaam en de FAMILIENAAM', missing.date && 'de datum', missing.time && 'het exacte uur'].filter(Boolean).join(', ');
+function missingBookingInfo(lang: string, missing: { name: NameProblem; date: boolean; time: boolean }, given = ''): string {
+  /* Le nom, selon ce qui cloche: absent, bidon (« client », posé par le modèle
+     pour remplir le champ, appel réel du 15/09/2026), ou prénom seul. */
+  const nameFr = missing.name === 'placeholder' ? `un vrai nom (« ${given} » n'est pas un nom, ne l'invente pas)`
+    : missing.name === 'firstOnly' ? `le NOM DE FAMILLE (tu n'as que « ${given} »)`
+    : missing.name ? 'le prénom et le NOM DE FAMILLE' : '';
+  const nameEn = missing.name === 'placeholder' ? `a real name ("${given}" is not a name, do not make one up)`
+    : missing.name === 'firstOnly' ? `the FAMILY NAME (you only have "${given}")`
+    : missing.name ? 'the first name and FAMILY NAME' : '';
+  const nameNl = missing.name === 'placeholder' ? `een echte naam (« ${given} » is geen naam, verzin er geen)`
+    : missing.name === 'firstOnly' ? `de FAMILIENAAM (je hebt alleen « ${given} »)`
+    : missing.name ? 'de voornaam en de FAMILIENAAM' : '';
+  const fr = [nameFr, missing.date && 'la date', missing.time && "l'heure exacte"].filter(Boolean).join(', ');
+  const en = [nameEn, missing.date && 'the date', missing.time && 'the exact time'].filter(Boolean).join(', ');
+  const nl = [nameNl, missing.date && 'de datum', missing.time && 'het exacte uur'].filter(Boolean).join(', ');
+  const askFr = missing.name === 'firstOnly' ? "Demande à l'appelant son nom de famille (un inconnu l'épelle), "
+    : missing.name ? "Demande à l'appelant son prénom et son nom de famille (un inconnu l'épelle), " : 'Demande ce qui manque, ';
+  const askEn = missing.name === 'firstOnly' ? 'Ask the caller for their family name (an unknown caller spells it), '
+    : missing.name ? 'Ask the caller for their first name and family name (an unknown caller spells it), ' : 'Ask for what is missing, ';
+  const askNl = missing.name === 'firstOnly' ? 'Vraag de beller om de familienaam (een onbekende beller spelt die), '
+    : missing.name ? 'Vraag de beller om voornaam en familienaam (een onbekende beller spelt die), ' : 'Vraag wat ontbreekt, ';
   const base: Record<string, string> = {
-    fr: `RIEN N'EST RESERVE: il manque ${fr}. `
-      + (missing.name ? "Demande à l'appelant son prénom et son nom de famille (un inconnu l'épelle), " : 'Demande ce qui manque, ')
-      + "puis rappelle bookAppointment avec le nom, la date et l'heure. Ne dis pas « je vous réserve » ni « c'est noté » avant un retour RESERVE.",
-    en: `NOTHING IS BOOKED: missing ${en}. `
-      + (missing.name ? 'Ask the caller for their first name and family name (an unknown caller spells it), ' : 'Ask for what is missing, ')
-      + 'then call bookAppointment again with the name, the date and the time. Do not say it is booked before a BOOKED result.',
-    nl: `NIETS IS GEBOEKT: ontbreekt ${nl}. `
-      + (missing.name ? 'Vraag de beller om voornaam en familienaam (een onbekende beller spelt die), ' : 'Vraag wat ontbreekt, ')
-      + 'en roep bookAppointment daarna opnieuw aan met naam, datum en uur. Zeg niet dat het geboekt is voor een GEBOEKT-resultaat.',
+    fr: `RIEN N'EST RESERVE: il manque ${fr}. ` + askFr
+      + "puis rappelle bookAppointment avec le nom, la date et l'heure. Ne dis pas « je vous réserve » ni « c'est noté » avant un retour RESERVE, et ne raccroche pas.",
+    en: `NOTHING IS BOOKED: missing ${en}. ` + askEn
+      + 'then call bookAppointment again with the name, the date and the time. Do not say it is booked before a BOOKED result, and do not hang up.',
+    nl: `NIETS IS GEBOEKT: ontbreekt ${nl}. ` + askNl
+      + 'en roep bookAppointment daarna opnieuw aan met naam, datum en uur. Zeg niet dat het geboekt is voor een GEBOEKT-resultaat, en hang niet op.',
+  };
+  return base[lang] ?? base.en;
+}
+
+/**
+ * Posé devant toute relecture ou épellation demandée par bookAppointment:
+ * le modèle a lu « demande-lui d'épeler » et a quand même annoncé la
+ * réservation avant de raccrocher (appel réel, 15/09/2026). Le résultat
+ * commence donc par l'état, avant la consigne.
+ */
+function notBookedYet(lang: string): string {
+  const base: Record<string, string> = {
+    fr: "RIEN N'EST ENCORE RESERVE, ne l'annonce pas et ne raccroche pas. ",
+    en: 'NOTHING IS BOOKED YET, do not announce it and do not hang up. ',
+    nl: 'ER IS NOG NIETS GEBOEKT, kondig het niet aan en hang niet op. ',
   };
   return base[lang] ?? base.en;
 }
@@ -487,8 +516,9 @@ class ToolRuntimeService {
        réserve ça », au revoir. Aucun nom demandé, aucune réservation, aucun
        SMS. L'ancien « INFOS MANQUANTES » ne disait ni que rien n'était pris,
        ni quoi faire: le modèle a annoncé une réservation qui n'existait pas. */
-    if (!date || minutes === null || !customerName) {
-      return missingBookingInfo(profile.language, { name: !customerName, date: !date, time: minutes === null });
+    const nameIssue = nameProblem(customerName);
+    if (!date || minutes === null || nameIssue) {
+      return missingBookingInfo(profile.language, { name: nameIssue, date: !date, time: minutes === null }, customerName);
     }
     const past = pastDateReply(profile, args.date);
     if (past) return past;
@@ -499,14 +529,14 @@ class ToolRuntimeService {
 
     /* Un appelant inconnu ÉPELLE d'abord son nom de famille (13/09). */
     if (await this.needsCallerSpelling(profile, vapiCallId)) {
-      return askCallerToSpell(profile.language, customerName);
+      return notBookedYet(profile.language) + askCallerToSpell(profile.language, customerName);
     }
     /* Le nom est relu AVANT d'écrire dans l'agenda: une réservation au
        mauvais nom se corrige à la main par le commerçant, et il ne le sait
        même pas. Une fois par nom et par appel; un nom déjà relu pendant
        `captureLead` ne l'est pas deux fois. */
     if (callSessionStore.needsNameReadBack(vapiCallId, customerName)) {
-      return confirmNameBeforeBooking(profile.language, customerName);
+      return notBookedYet(profile.language) + confirmNameBeforeBooking(profile.language, customerName);
     }
 
     const session = callSessionStore.get(vapiCallId);
@@ -863,7 +893,9 @@ class ToolRuntimeService {
   ): Promise<string> {
     const session = callSessionStore.get(vapiCallId);
     const lead = {
-      name: typeof args.name === 'string' ? normaliseSpelledName(args.name) || null : null,
+      /* Un nom bidon (« client », « inconnu ») n'entre ni dans le CRM ni
+         dans la mémoire d'appelant: il y resterait, et l'agent le redirait. */
+      name: typeof args.name === 'string' && !isPlaceholderName(args.name) ? normaliseSpelledName(args.name) || null : null,
       email: typeof args.email === 'string' ? args.email.trim() || null : null,
       reason: typeof args.reason === 'string' ? args.reason.trim() : '',
       urgency: ['low', 'normal', 'high'].includes(args.urgency) ? String(args.urgency) : 'normal',
