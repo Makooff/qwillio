@@ -83,12 +83,28 @@ describe('ClientBookings, le calendrier', () => {
     expect(screen.getByText('Jean-Luc de la Forge')).toBeInTheDocument();
   });
 
-  it('changer de mois recharge la bonne plage', async () => {
+  it('changer de mois recharge la bonne plage, et vide l\'écran AU CLIC, sans attendre le serveur', async () => {
+    /* Retour du 15/09: les rendez-vous de septembre restaient affichés le
+       temps de la requête d'octobre, puis disparaissaient. */
+    let releaseOctober: (v: unknown) => void = () => {};
+    get.mockImplementation((url: string) => {
+      if (url.includes('from=2026-10-01')) return new Promise(r => { releaseOctober = r; });
+      return Promise.resolve({ data: { data: rows } });
+    });
     mount();
-    await screen.findByText('Septembre 2026');
+    await screen.findByText('Jean-Luc de la Forge');
     fireEvent.click(screen.getByRole('button', { name: 'Mois suivant' }));
-    await waitFor(() => expect(get).toHaveBeenCalledWith('/my-dashboard/bookings?from=2026-10-01&to=2026-10-31&limit=500'));
     expect(screen.getByText('Octobre 2026')).toBeInTheDocument();
+    expect(screen.queryByText('Jean-Luc de la Forge')).toBeNull();
+    expect(screen.getByText('Chargement…')).toBeInTheDocument();
+    await waitFor(() => expect(get).toHaveBeenCalledWith('/my-dashboard/bookings?from=2026-10-01&to=2026-10-31&limit=500'));
+    releaseOctober({ data: { data: [] } });
+    expect(await screen.findByText('Rien de prévu pour l’instant.')).toBeInTheDocument();
+    /* Retour en septembre: servi du cache, sans nouvelle requête. */
+    const calls = get.mock.calls.length;
+    fireEvent.click(screen.getByRole('button', { name: 'Mois précédent' }));
+    expect(screen.getByText('Jean-Luc de la Forge')).toBeInTheDocument();
+    await waitFor(() => expect(get.mock.calls.length).toBe(calls + 1));
   });
 
   it('la vue liste montre tout le mois, groupé par jour', async () => {
