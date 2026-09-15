@@ -1071,6 +1071,22 @@ c'est la réservation EN BASE que l'agent lit pour reconnaître un appelant ;
 supprimer l'événement Google ne la touche pas. L'annulation retire aussi
 l'événement et oublie le nom en cache.
 
+### 6quadragesies. « Parfait, je vous réserve ça » sans nom, donc sans réservation (15/09/2026)
+Appel réel depuis un numéro INCONNU : créneau proposé, « oui, je confirme »,
+« parfait, je vous réserve ça », au revoir. Aucun nom demandé, rien dans
+l'agenda, aucun SMS. Le SMS ne part qu'APRÈS une ligne de réservation, et
+`bookAppointment` refuse sans `customerName` : soit l'outil n'a pas été appelé,
+soit il a rendu « INFOS MANQUANTES », un texte qui ne disait ni que rien n'était
+pris, ni quoi faire, et le modèle a annoncé une réservation qui n'existait pas.
+Trois choses tiennent la règle, au moment où le modèle la lit : le résultat des
+créneaux dit la suite (prénom et nom de famille, puis l'outil, réservé
+seulement après RESERVE) ; `missingBookingInfo` dit « RIEN N'EST RESERVE », ce
+qui manque et l'ordre ; la règle de prompt porte le nom et interdit « c'est
+réservé » avant le retour de l'outil. `fr-reservation-sans-nom` mesure le cas
+exact. Plafond du prompt à 3300 pour cette ligne. `npm run voice:doctor` dit si
+l'outil a été appelé sur l'appel et avec quels arguments : c'est ce qui tranche
+entre « pas appelé » et « appelé sans nom ».
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).
