@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import { Calendar, ChevronLeft, ChevronRight, List, X, Phone, Users, ArrowUpRight, Clock } from '../../components/icons';
@@ -81,11 +81,20 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
 
   const range = useMemo(() => monthRange(month), [month]);
 
+  /* Un cache par mois: changer de mois vide l'écran AU CLIC (ou remet le
+     mois déjà vu, sans attendre), et la réponse du serveur ne fait que
+     confirmer. Sans lui, les rendez-vous du mois précédent restaient affichés
+     le temps de la requête, puis disparaissaient: un délai qui ressemblait à
+     un bug (retour du 15/09/2026). */
+  const cache = useRef(new Map<string, Booking[]>());
+
   const load = useCallback(async () => {
     setError(null);
     try {
       const { data } = await api.get(`/my-dashboard/bookings?from=${range.from}&to=${range.to}&limit=500`);
-      setBookings(Array.isArray(data?.data) ? data.data : []);
+      const list: Booking[] = Array.isArray(data?.data) ? data.data : [];
+      cache.current.set(range.from, list);
+      setBookings(list);
     } catch (err) {
       const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error;
       setError(msg || 'Les rendez-vous n’ont pas pu être chargés.');
@@ -100,14 +109,15 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
     const map = new Map<string, Booking[]>();
     for (const b of bookings) {
       const key = bookingDay(b);
-      if (!key) continue;
+      /* Jamais un rendez-vous hors du mois affiché, quoi que porte l'état. */
+      if (!key || key < range.from || key > range.to) continue;
       const list = map.get(key) ?? [];
       list.push(b);
       map.set(key, list);
     }
     for (const list of map.values()) list.sort((a, b) => (a.bookingTime ?? '').localeCompare(b.bookingTime ?? ''));
     return map;
-  }, [bookings]);
+  }, [bookings, range]);
 
   const cells = useMemo(() => monthGrid(month), [month]);
   const todayIso = isoDay(new Date());
@@ -153,8 +163,18 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
     }
   };
 
-  const goMonth = (n: number) => { setMonth(m => addMonths(m, n)); setSelectedDay(null); setExpanded(null); };
-  const goToday = () => { setMonth(firstOfMonth(new Date())); setSelectedDay(todayIso); setExpanded(null); };
+  /* Le mois change dans le même rendu que la liste: ce qui est à l'écran est
+     toujours celui du mois affiché, jamais celui d'avant. */
+  const showMonth = (next: Date) => {
+    const key = monthRange(next).from;
+    const held = cache.current.get(key);
+    setBookings(held ?? []);
+    setLoading(!held);
+    setMonth(next);
+    setExpanded(null);
+  };
+  const goMonth = (n: number) => { showMonth(addMonths(month, n)); setSelectedDay(null); };
+  const goToday = () => { showMonth(firstOfMonth(new Date())); setSelectedDay(todayIso); };
 
   const monthCount = bookings.length;
   const subtitle = loading ? 'Chargement…'
