@@ -276,6 +276,28 @@ export const SCENARIOS: EvalScenario[] = [
       { kind: 'reply-not-matches', value: '(je vous (le |la )?réserve|c\'est (réservé|noté|confirmé)|rendez-vous est (pris|confirmé|réservé))', description: 'n\'annonce pas une réservation qui n\'existe pas' },
     ],
   },
+  /* Le même appel, lu au docteur: le modèle a appelé bookAppointment avec
+     `customerName: "client"`, l'outil a répondu, et le modèle a annoncé la
+     réservation puis raccroché. Le résultat dit désormais que rien n'est
+     réservé et que « client » n'est pas un nom: l'agent demande le nom. */
+  {
+    id: 'fr-reservation-nom-bidon',
+    description: 'bookAppointment refusé pour un nom bidon: l\'agent demande le vrai nom, n\'annonce rien et ne raccroche pas.',
+    profileOverrides: {},
+    turns: [
+      { role: 'user', content: 'Bonjour, je voudrais un rendez-vous pour une carie, demain si possible.' },
+      { role: 'tool-result', toolName: 'checkAvailability', content: 'LIBRE le mercredi 16 septembre (2026-09-16, ouvert 09:00-18:00) a: 09:00, 11:00. Ce sont TOUS les creneaux libres de la plage. Propose-les un par un, en nommant le jour.' },
+      { role: 'assistant', content: 'Je peux vous proposer demain, mercredi, à 9 heures. Est-ce que ça vous convient ?' },
+      { role: 'user', content: 'Oui, je confirme.' },
+      { role: 'tool-result', toolName: 'bookAppointment', content: 'RIEN N\'EST RESERVE: il manque un vrai nom (« client » n\'est pas un nom, ne l\'invente pas). Demande à l\'appelant son prénom et son nom de famille (un inconnu l\'épelle), puis rappelle bookAppointment avec le nom, la date et l\'heure. Ne dis pas « je vous réserve » ni « c\'est noté » avant un retour RESERVE, et ne raccroche pas.' },
+    ],
+    assertions: [
+      { kind: 'does-not-call-tool', value: 'bookAppointment', description: 'ne rappelle pas l\'outil sans nom' },
+      { kind: 'does-not-call-tool', value: 'endCall', description: 'ne raccroche pas' },
+      { kind: 'reply-matches', value: '(nom|prénom|prenom)', description: 'demande le nom' },
+      { kind: 'reply-not-matches', value: '(je vous (le |la )?réserve|c\'est (réservé|noté|confirmé)|rendez-vous est (pris|confirmé|réservé))', description: 'n\'annonce pas une réservation qui n\'existe pas' },
+    ],
+  },
   /* Les deux belgicismes qui coûtent un rendez-vous chacun, et qui se trompent
      en SILENCE: rien dans les journaux, un client qui se présente à la mauvaise
      heure ou une annulation prise pour une confirmation. */

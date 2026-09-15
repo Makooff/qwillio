@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normaliseSpelledName, spellOut, familyName } from '../spelled-name';
+import { normaliseSpelledName, spellOut, familyName, nameProblem, isPlaceholderName } from '../spelled-name';
 
 /**
  * Un nom épelé arrive lettre par lettre; il faut le recoller. « Polle »
@@ -43,5 +43,29 @@ describe('spellOut', () => {
     expect(spellOut(familyName('Mathieu Polle'))).toBe('P-O-L-L-E');
     expect(spellOut(familyName('Jean-Luc Van Damme'))).toBe('D-A-M-M-E');
     expect(spellOut('Émile')).toBe('É-M-I-L-E');
+  });
+});
+
+/* Appel réel du 15/09/2026: le modèle a réservé au nom de « client » pour
+   remplir le champ obligatoire, puis a annoncé la réservation. */
+describe('nameProblem: un nom bidon vaut absence de nom', () => {
+  it('reconnaît les remplissages du modèle, avec ou sans article ni titre', () => {
+    for (const n of ['client', 'Client', 'le client', 'Inconnu', 'Monsieur', 'Madame', 'unknown', 'Caller', 'the caller', 'N/A', 'Prénom Nom', 'Monsieur le client', 'Mr. Unknown']) {
+      expect(isPlaceholderName(n), n).toBe(true);
+      expect(nameProblem(n), n).toBe('placeholder');
+    }
+  });
+  it('un prénom seul manque le nom de famille', () => {
+    expect(nameProblem('Marc')).toBe('firstOnly');
+    expect(nameProblem('Monsieur Marc')).toBe('firstOnly');
+  });
+  it('un vrai nom passe, titre ou pas, particule ou pas', () => {
+    for (const n of ['Marc Dupont', 'Madame Marie Client', 'Jean-Luc de la Forge', 'Mr Van Hold', 'Mathieu Polle']) {
+      expect(nameProblem(n), n).toBeNull();
+    }
+  });
+  it('vide: manquant', () => {
+    expect(nameProblem('')).toBe('missing');
+    expect(nameProblem('   ')).toBe('missing');
   });
 });

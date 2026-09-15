@@ -72,6 +72,14 @@ describe('captureLead — un appelant inconnu épelle son nom de famille', () =>
     expect(remember.mock.calls[0][0].name).toBe('Jean-Luc Delaforge');
   });
 
+  it('un nom bidon n\'est pas un nom: le lead s\'enregistre sans nom, rien à épeler', async () => {
+    getHistory.mockResolvedValue({ knownName: null, previousCalls: 0 });
+    const out = String(await capture({ name: 'client', reason: 'rendez-vous' }));
+    expect(out).not.toMatch(/NOM ENTENDU/);
+    expect(create).toHaveBeenCalled();
+    expect(create.mock.calls[0][0].data.content.contact.name).toBeNull();
+  });
+
   it('un appelant CONNU n\'épelle pas', async () => {
     getHistory.mockResolvedValue({ knownName: 'Jean-Luc de la Forge', previousCalls: 2 });
     const out = String(await capture({ name: 'Jean Lucas', reason: 'rendez-vous' }));

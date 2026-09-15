@@ -79,3 +79,58 @@ export function spellOut(word: string): string {
     .map(c => c.toUpperCase())
     .join('-');
 }
+
+/**
+ * Un nom BIDON n'est pas un nom.
+ *
+ * Appel réel du 15/09/2026, appelant inconnu qui ne s'est jamais nommé: le
+ * modèle a appelé bookAppointment avec `customerName: "client"` pour
+ * satisfaire le champ obligatoire, puis a annoncé la réservation. Un
+ * remplissage n'identifie personne dans l'agenda; il vaut absence de nom.
+ * Les titres seuls (« Monsieur ») aussi.
+ */
+const PLACEHOLDERS = new Set([
+  'client', 'cliente', 'clients', 'inconnu', 'inconnue', 'appelant', 'appelante', 'patient', 'patiente',
+  'anonyme', 'personne', 'nom', 'prenom', 'prenom nom', 'nom prenom', 'nom de famille',
+  'unknown', 'caller', 'customer', 'anonymous', 'name', 'first name', 'last name', 'full name', 'first last',
+  'onbekend', 'onbekende', 'beller', 'klant', 'naam', 'voornaam',
+  'n/a', 'na', 'none', 'null', 'undefined', 'x', 'xxx', 'test',
+]);
+const TITLES = /^(monsieur|madame|mademoiselle|mr|mrs|ms|mme|mlle|m|dr|docteur|meneer|mevrouw|dhr|mevr|sir|madam)\.?$/i;
+
+function fold(word: string): string {
+  return word.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+/** Les mots du nom, sans les titres de civilité. */
+function nameWords(name: string): string[] {
+  return name.trim().split(/\s+/).filter(w => w && !TITLES.test(w));
+}
+
+export function isPlaceholderName(name: string): boolean {
+  const words = nameWords(name);
+  if (words.length === 0) return true;
+  const joined = words.map(fold).join(' ');
+  if (PLACEHOLDERS.has(joined)) return true;
+  /* « le client », « un inconnu », « the caller ». */
+  const stripped = joined.replace(/^(le|la|l'|un|une|the|a|an|de|het|een)\s+/, '');
+  if (PLACEHOLDERS.has(stripped)) return true;
+  return !words.some(w => /\p{L}/u.test(w));
+}
+
+/** Prénom ET nom de famille: au moins deux mots portant des lettres. */
+export function hasFamilyName(name: string): boolean {
+  return nameWords(name).filter(w => /\p{L}/u.test(w)).length >= 2;
+}
+
+/**
+ * Ce qui manque au nom pour réserver: rien, tout, un remplissage, ou le nom
+ * de famille. Un nom épelé lettre par lettre est d'abord recollé par l'appelant.
+ */
+export type NameProblem = 'missing' | 'placeholder' | 'firstOnly' | null;
+export function nameProblem(name: string): NameProblem {
+  if (!name.trim()) return 'missing';
+  if (isPlaceholderName(name)) return 'placeholder';
+  if (!hasFamilyName(name)) return 'firstOnly';
+  return null;
+}

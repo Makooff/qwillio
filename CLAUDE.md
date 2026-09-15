@@ -1086,6 +1086,17 @@ réservé » avant le retour de l'outil. `fr-reservation-sans-nom` mesure le cas
 exact. Plafond du prompt à 3300 pour cette ligne. `npm run voice:doctor` dit si
 l'outil a été appelé sur l'appel et avec quels arguments : c'est ce qui tranche
 entre « pas appelé » et « appelé sans nom ».
+**Ce que le docteur a dit une heure après, et qui n'était ni l'un ni l'autre :**
+`bookAppointment { customerName: "client" }`. Le modèle a REMPLI le champ
+obligatoire avec un mot, l'outil a pris « client » pour un inconnu à faire
+épeler, et le modèle a annoncé la réservation puis appelé `endCall`. Deux
+règles en sortent. Un nom bidon vaut absence de nom : `nameProblem()`
+(`utils/spelled-name.ts`) écarte les remplissages (« client », « inconnu »,
+« Monsieur », « unknown »…) et un prénom seul, et `captureLead` n'écrit jamais
+un tel nom dans le CRM ni la mémoire. Et tout résultat qui retarde la
+réservation (épellation, relecture) COMMENCE par « RIEN N'EST ENCORE RESERVE,
+ne l'annonce pas et ne raccroche pas » : la consigne seule ne suffisait pas,
+l'état doit être dit avant. `fr-reservation-nom-bidon` rejoue le résultat exact.
 
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
