@@ -118,6 +118,30 @@ describe('checkAvailability — la date', () => {
 describe('bookAppointment — le nom et le jour', () => {
   /* « Polle » entendu « Paul » (appel réel, 12/09/2026): le nom est relu
      AVANT d'écrire dans l'agenda, une fois par nom et par appel. */
+  /* Appel réel du 15/09/2026: « oui je confirme » → « je vous réserve ça »,
+     sans nom, donc sans réservation ni SMS. Le résultat dit que RIEN n'est
+     pris, ce qui manque, et quoi faire. */
+  it('sans nom: dit que rien n\'est réservé, demande prénom et nom, et n\'écrit rien', async () => {
+    const out = await book({ date: '2099-09-16', time: '09:00' });
+    expect(out).toMatch(/^RIEN N'EST RESERVE: il manque le prénom et le NOM DE FAMILLE\./);
+    expect(out).toMatch(/rappelle bookAppointment/);
+    expect(out).toMatch(/Ne dis pas « je vous réserve »/);
+    expect(createBooking).not.toHaveBeenCalled();
+  });
+
+  it('sans heure: nomme l\'heure, pas le nom', async () => {
+    const out = await book({ customerName: 'Marc Dupont', date: '2099-09-16' });
+    expect(out).toMatch(/^RIEN N'EST RESERVE: il manque l'heure exacte\./);
+    expect(out).not.toMatch(/NOM DE FAMILLE/);
+    expect(createBooking).not.toHaveBeenCalled();
+  });
+
+  it('les créneaux disent que réserver demande prénom et nom de famille', async () => {
+    freeSlots.mockResolvedValue(['09:00', '11:00']);
+    const out = await check({ date: '2099-09-16' });
+    expect(out).toMatch(/prenom et nom de famille .*puis bookAppointment; c'est reserve seulement apres son retour RESERVE\.$/);
+  });
+
   it('fait confirmer le nom avant de réserver, et ne réserve pas encore', async () => {
     needsNameReadBack.mockReturnValueOnce(true);
     const out = String(await book({ customerName: 'Paul Matthieu', date: '2099-09-17', time: '09:00' }));

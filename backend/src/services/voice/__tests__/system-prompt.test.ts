@@ -134,7 +134,11 @@ describe('buildSystemPrompt', () => {
        connaissances ; le compte neuf, celui qui en sait le moins, était le
        seul sans consigne « dis que tu ne sais pas ». 200 caractères rejoués
        à chaque tour contre une réponse inventée sur les mutuelles. */
-    expect(buildSystemPrompt(profile, newCaller).length).toBeLessThan(3150);
+    /* 3300: la règle de réservation dit le NOM et l'ordre (15/09/2026).
+       Appel réel d'un inconnu: créneau accepté, « parfait, je vous réserve
+       ça », au revoir. Aucun nom demandé, aucune réservation, aucun SMS.
+       « C'est réservé » ne se dit qu'après le retour RESERVE de l'outil. */
+    expect(buildSystemPrompt(profile, newCaller).length).toBeLessThan(3300);
   });
 
   it('injects the pre-rendered knowledge block when one is supplied', () => {
@@ -235,7 +239,7 @@ describe('les règles de transfert, réglées par le client', () => {
   it('ne fait pas grossir le prompt, qui est rejoué à chaque tour', () => {
     // Les trois variantes tiennent la même longueur à quelques caractères près.
     const tailles = (['always', 'hours', 'never'] as const).map(m => withMode(m).length);
-    expect(Math.max(...tailles)).toBeLessThan(3150);
+    expect(Math.max(...tailles)).toBeLessThan(3300);
     expect(Math.max(...tailles) - Math.min(...tailles)).toBeLessThan(30);
   });
 });

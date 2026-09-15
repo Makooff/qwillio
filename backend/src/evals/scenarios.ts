@@ -255,6 +255,27 @@ export const SCENARIOS: EvalScenario[] = [
       { kind: 'calls-tool', value: 'bookAppointment', description: 'réserve après accord explicite' },
     ],
   },
+  /* Appel réel du 15/09/2026, depuis un numéro inconnu: créneau proposé,
+     « oui, je confirme », « parfait, je vous réserve ça », au revoir. L'agent
+     n'a jamais demandé le nom, donc rien n'a été réservé et aucun SMS n'est
+     parti. Sans nom, l'outil ne peut pas réserver: l'agent le demande, et
+     ne dit pas « c'est réservé ». */
+  {
+    id: 'fr-reservation-sans-nom',
+    description: 'Créneau accepté par un appelant qui ne s\'est pas nommé: l\'agent demande le nom au lieu d\'annoncer une réservation.',
+    profileOverrides: {},
+    turns: [
+      { role: 'user', content: 'Bonjour, je voudrais un rendez-vous pour une carie, demain si possible.' },
+      { role: 'tool-result', toolName: 'checkAvailability', content: 'LIBRE le mercredi 16 septembre (2026-09-16, ouvert 09:00-18:00) a: 09:00, 11:00. Ce sont TOUS les creneaux libres de la plage. Propose-les un par un, en nommant le jour. Quand l\'appelant accepte une heure: prenom et nom de famille (s\'il ne les a pas deja donnes, un inconnu epelle le nom), puis bookAppointment; c\'est reserve seulement apres son retour RESERVE.' },
+      { role: 'assistant', content: 'Je peux vous proposer demain, mercredi, à 9 heures. Est-ce que ça vous convient ?' },
+      { role: 'user', content: 'Oui, je confirme.' },
+    ],
+    assertions: [
+      { kind: 'does-not-call-tool', value: 'bookAppointment', description: 'ne réserve pas sans nom' },
+      { kind: 'reply-matches', value: '(nom|prénom|prenom)', description: 'demande le nom' },
+      { kind: 'reply-not-matches', value: '(je vous (le |la )?réserve|c\'est (réservé|noté|confirmé)|rendez-vous est (pris|confirmé|réservé))', description: 'n\'annonce pas une réservation qui n\'existe pas' },
+    ],
+  },
   /* Les deux belgicismes qui coûtent un rendez-vous chacun, et qui se trompent
      en SILENCE: rien dans les journaux, un client qui se présente à la mauvaise
      heure ou une annulation prise pour une confirmation. */

@@ -231,6 +231,31 @@ function askCallerToSpell(lang: string, name: string): string {
   return base[lang] ?? base.en;
 }
 
+/**
+ * Il manque quelque chose pour réserver: rien n'est pris, et le modèle doit
+ * le savoir. Le nom est le cas courant (l'appelant a dit oui à une heure,
+ * jamais qui il est): l'agent demande prénom et nom de famille, un inconnu
+ * épelle, puis rappelle l'outil. « Je vous réserve ça » ne se dit qu'après
+ * un retour RESERVE.
+ */
+function missingBookingInfo(lang: string, missing: { name: boolean; date: boolean; time: boolean }): string {
+  const fr = [missing.name && 'le prénom et le NOM DE FAMILLE', missing.date && 'la date', missing.time && "l'heure exacte"].filter(Boolean).join(', ');
+  const en = [missing.name && 'the first name and FAMILY NAME', missing.date && 'the date', missing.time && 'the exact time'].filter(Boolean).join(', ');
+  const nl = [missing.name && 'de voornaam en de FAMILIENAAM', missing.date && 'de datum', missing.time && 'het exacte uur'].filter(Boolean).join(', ');
+  const base: Record<string, string> = {
+    fr: `RIEN N'EST RESERVE: il manque ${fr}. `
+      + (missing.name ? "Demande à l'appelant son prénom et son nom de famille (un inconnu l'épelle), " : 'Demande ce qui manque, ')
+      + "puis rappelle bookAppointment avec le nom, la date et l'heure. Ne dis pas « je vous réserve » ni « c'est noté » avant un retour RESERVE.",
+    en: `NOTHING IS BOOKED: missing ${en}. `
+      + (missing.name ? 'Ask the caller for their first name and family name (an unknown caller spells it), ' : 'Ask for what is missing, ')
+      + 'then call bookAppointment again with the name, the date and the time. Do not say it is booked before a BOOKED result.',
+    nl: `NIETS IS GEBOEKT: ontbreekt ${nl}. `
+      + (missing.name ? 'Vraag de beller om voornaam en familienaam (een onbekende beller spelt die), ' : 'Vraag wat ontbreekt, ')
+      + 'en roep bookAppointment daarna opnieuw aan met naam, datum en uur. Zeg niet dat het geboekt is voor een GEBOEKT-resultaat.',
+  };
+  return base[lang] ?? base.en;
+}
+
 /** Avant de RÉSERVER: le nom va dans l'agenda du commerçant, il doit être juste. */
 function confirmNameBeforeBooking(lang: string, name: string): string {
   const spelled = spellOut(familyName(name));
@@ -436,9 +461,13 @@ class ToolRuntimeService {
     /* Le jour de la semaine est DIT avec la date: « lundi 17 juin » annoncé
        pour un jour qui n'était pas un lundi (appel réel, 12/09/2026). Le
        modèle ne calcule pas les jours, il les lit. */
+    /* La suite est dite ICI, au moment où le modèle la lit: réserver demande
+       prénom et nom de famille. Sans cette ligne, « oui je confirme » menait
+       droit à « je vous réserve ça » sans nom, donc sans réservation
+       (appel réel, 15/09/2026). */
     return profile.language === 'fr'
-      ? `LIBRE le ${day} (${args.date}, ouvert ${hours}) a: ${free.join(', ')}. Ce sont TOUS les creneaux libres de la plage. Propose-les un par un, en nommant le jour.`
-      : `FREE on ${day} (${args.date}, open ${hours}) at: ${free.join(', ')}. These are ALL the free slots in the window. Offer them one at a time, naming the day.`;
+      ? `LIBRE le ${day} (${args.date}, ouvert ${hours}) a: ${free.join(', ')}. Ce sont TOUS les creneaux libres de la plage. Propose-les un par un, en nommant le jour. Quand l'appelant accepte une heure: prenom et nom de famille (s'il ne les a pas deja donnes, un inconnu epelle le nom), puis bookAppointment; c'est reserve seulement apres son retour RESERVE.`
+      : `FREE on ${day} (${args.date}, open ${hours}) at: ${free.join(', ')}. These are ALL the free slots in the window. Offer them one at a time, naming the day. Once the caller accepts a time: first name and family name (unless already given; an unknown caller spells it), then bookAppointment; it is booked only after its BOOKED result.`;
   }
 
   // ── bookAppointment ─────────────────────────────────────────────────────
@@ -452,10 +481,14 @@ class ToolRuntimeService {
     const minutes = parseTimeToMinutes(args.time);
     const customerName = typeof args.customerName === 'string' ? normaliseSpelledName(args.customerName) : '';
 
+    /* RIEN n'est réservé tant qu'il manque quelque chose, et le résultat le
+       DIT, en nommant ce qui manque. Appel réel du 15/09/2026, appelant
+       inconnu: créneau proposé, « oui je confirme », « parfait, je vous
+       réserve ça », au revoir. Aucun nom demandé, aucune réservation, aucun
+       SMS. L'ancien « INFOS MANQUANTES » ne disait ni que rien n'était pris,
+       ni quoi faire: le modèle a annoncé une réservation qui n'existait pas. */
     if (!date || minutes === null || !customerName) {
-      return profile.language === 'fr'
-        ? 'INFOS MANQUANTES: il faut le nom, la date et l\'heure exacte avant de reserver.'
-        : 'MISSING INFO: you need the name, the date and the exact time before booking.';
+      return missingBookingInfo(profile.language, { name: !customerName, date: !date, time: minutes === null });
     }
     const past = pastDateReply(profile, args.date);
     if (past) return past;
