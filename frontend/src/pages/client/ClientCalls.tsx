@@ -1,4 +1,5 @@
 ﻿import { useEffect, useState, useCallback, useMemo } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Phone, Download, CheckCircle2,
@@ -102,6 +103,11 @@ export default function ClientCalls() {
   const [overview, setOverview] = useState<Overview | null>(null);
 
   const [search, setSearch] = useState('');
+  /* `?phone=`: les appels d'UN numéro, filtrés par le serveur et non par la
+     recherche locale, qui ne voit qu'une page. C'est le lien que pose le
+     calendrier des rendez-vous (15/09/2026). */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const phoneParam = (searchParams.get('phone') ?? '').trim();
   const [sentimentFilter, setSentimentFilter] = useState('');
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
@@ -115,6 +121,7 @@ export default function ClientCalls() {
     if (sentimentFilter) params.set('sentiment', sentimentFilter);
     if (dateFrom) params.set('startDate', dateFrom);
     if (dateTo) params.set('endDate', dateTo);
+    if (phoneParam) params.set('phone', phoneParam);
     const key = `/my-dashboard/calls?${params}`;
 
     // Whatever is cached goes on screen first. Coming back to this tab with the
@@ -136,7 +143,7 @@ export default function ClientCalls() {
     } finally {
       setLoading(false);
     }
-  }, [sentimentFilter, dateFrom, dateTo]);
+  }, [sentimentFilter, dateFrom, dateTo, phoneParam]);
 
   useEffect(() => { fetchCalls(1); }, [fetchCalls]);
 
@@ -281,7 +288,18 @@ export default function ClientCalls() {
           et sa propre hauteur de barre de recherche. */}
       <PageHeader
         title="Appels"
-        subtitle={`${pagination.total} appels au total`}
+        subtitle={phoneParam ? (
+          <span className="inline-flex flex-wrap items-center gap-2">
+            <span>{pagination.total} appel{pagination.total > 1 ? 's' : ''} de {phoneParam}</span>
+            <button
+              type="button"
+              onClick={() => setSearchParams({})}
+              className="inline-flex h-6 items-center gap-1 rounded-full bg-white/[0.06] px-2.5 text-[11.5px] text-white hover:bg-white/[0.1] transition-colors"
+            >
+              <X size={11} aria-hidden="true" /> Tous les appels
+            </button>
+          </span>
+        ) : `${pagination.total} appels au total`}
         action={
           <button
             type="button"

@@ -58,6 +58,7 @@ router.get('/calls/:id/recording', (req, res) => clientDashboardController.getMy
    l'agent ne lui a pas passé l'appel. */
 router.get('/transfers', (req, res) => clientDashboardController.getTransferFunnel(req, res));
 router.get('/bookings', (req, res) => clientDashboardController.getMyBookings(req, res));
+router.get('/bookings/:id/context', (req, res) => clientDashboardController.getMyBookingContext(req, res));
 router.post('/bookings/:id/cancel', (req, res) => clientDashboardController.cancelMyBooking(req, res));
 router.get('/leads', (req, res) => clientDashboardController.getMyLeads(req, res));
 /* « Analytiques avancées » est vendue à partir de Pro sur la page tarifs. La

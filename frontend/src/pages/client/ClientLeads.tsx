@@ -1,5 +1,5 @@
 ﻿import { useEffect, useState, useCallback, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Phone, Mail, X, ChevronRight, StickyNote, Star, List, Columns3,
@@ -69,8 +69,13 @@ export default function ClientLeads() {
   const [noteText, setNoteText] = useState('');
   const [savingNote, setSavingNote] = useState(false);
 
+  /* `?phone=`: le lead d'UN numéro, filtré par le serveur (lien posé par le
+     calendrier des rendez-vous, 15/09/2026). */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const phoneParam = (searchParams.get('phone') ?? '').trim();
+
   const fetchLeads = useCallback(async (page = 1) => {
-    const key = `/my-dashboard/leads?page=${page}&limit=50`;
+    const key = `/my-dashboard/leads?page=${page}&limit=50${phoneParam ? `&phone=${encodeURIComponent(phoneParam)}` : ''}`;
 
     // The cached page goes up first, then the fresh one replaces it. Returning
     // to this tab should not blank a list that was correct a moment ago.
@@ -90,7 +95,7 @@ export default function ClientLeads() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [phoneParam]);
 
   useEffect(() => { fetchLeads(1); }, [fetchLeads]);
 
@@ -172,7 +177,18 @@ export default function ClientLeads() {
         title="Leads et contacts"
         /* Le compte porte sur les LIGNES, pas sur la pagination des seuls
            appels: la liste contient aussi les fiches sans appel. */
-        subtitle={`${rows.length} personne${rows.length > 1 ? 's' : ''}, appels qualifiés et fiches`}
+        subtitle={phoneParam ? (
+          <span className="inline-flex flex-wrap items-center gap-2">
+            <span>Lead du {phoneParam}</span>
+            <button
+              type="button"
+              onClick={() => setSearchParams({})}
+              className="inline-flex h-6 items-center gap-1 rounded-full bg-white/[0.06] px-2.5 text-[11.5px] text-white hover:bg-white/[0.1] transition-colors"
+            >
+              <X size={11} aria-hidden="true" /> Tous les leads
+            </button>
+          </span>
+        ) : `${rows.length} personne${rows.length > 1 ? 's' : ''}, appels qualifiés et fiches`}
         action={
           <div className="flex items-center gap-1 bg-white/[0.04] rounded-xl p-1">
             <button onClick={() => setView('table')} aria-label="Vue liste"
