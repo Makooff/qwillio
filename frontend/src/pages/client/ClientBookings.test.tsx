@@ -208,16 +208,32 @@ describe('ClientBookings, le calendrier', () => {
     expect(box.className).toContain('focus-visible:outline-none');
   });
 
-  it('le champ fait la largeur du cadre, et le sélecteur de vue en touche le bord droit', async () => {
-    /* jsdom ne mesure aucune largeur: ce sont les classes qui portent la
-       règle, et ce sont elles qu'on gèle. Le champ ne partage plus sa ligne
-       (`w-full` sur sa propre rangée, plus de `flex-1` qui lui laissait ce
-       qui restait), et le sélecteur est poussé au bord par `ml-auto`. */
+  it("la barre d'outils s'arrête au bord de l'agenda, pas au bord de la page", () => {
+    /* L'agenda ne prend pas toute la page: il est la colonne `1fr` d'une grille
+       dont la seconde colonne (420 px) porte « À venir ». Une barre posée
+       directement dans `main` passe donc PAR-DESSUS cette colonne, ce qui est le
+       défaut relevé en capture. La preuve qu'elle est au bon endroit: son
+       conteneur porte la MÊME définition de colonnes que le contenu. jsdom ne
+       mesurant aucune largeur, c'est cette égalité qu'on gèle, pas des pixels. */
     mount();
-    const box = await screen.findByRole('searchbox', { name: /Rechercher un rendez-vous/ });
-    expect(box.className).toContain('w-full');
-    expect(box.parentElement!.className).not.toMatch(/flex-1/);
-    expect(screen.getByRole('group', { name: 'Affichage' }).className).toContain('ml-auto');
+    const box = screen.getByRole('searchbox', { name: /Rechercher un rendez-vous/ });
+    const toolbarRail = box.closest('[class*="lg:grid-cols-"]');
+    const agendaRail = screen.getByRole('grid').closest('[class*="lg:grid-cols-"]');
+    expect(toolbarRail).not.toBeNull();
+    expect(agendaRail).not.toBeNull();
+    expect(toolbarRail!.className).toBe(agendaRail!.className);
+  });
+
+  it("tout tient sur une ligne: la recherche prend ce qui reste", () => {
+    /* `flex-1` sur le champ, et le mois, « Aujourd'hui » et le sélecteur sur la
+       MÊME rangée. C'est ce qui pousse le sélecteur au bord droit de l'agenda
+       sans `ml-auto`, et c'est la forme demandée. */
+    mount();
+    const box = screen.getByRole('searchbox', { name: /Rechercher un rendez-vous/ });
+    const row = box.closest('.flex')!;
+    expect(box.parentElement!.className).toContain('flex-1');
+    expect(row.contains(screen.getByRole('group', { name: 'Affichage' }))).toBe(true);
+    expect(row.contains(screen.getByRole('button', { name: 'Mois précédent' }))).toBe(true);
   });
 
   it('la vue liste montre tout le mois, groupé par jour', async () => {

@@ -1542,11 +1542,17 @@ vide pour un import CSS, `?raw` compris. Et `fs`/`__dirname` dans un test du
 front passent sous vitest et font tomber `tsc -b` du build, le tsconfig ne
 portant pas les types de Node: c'est le `npm run build` qui l'attrape, pas les
 tests.
-Même passage, la largeur: la barre d'outils tenait sur une ligne, donc la
-recherche prenait ce qui RESTAIT à droite des contrôles. Elle a sa propre
-rangée, pleine largeur du cadre de l'agenda, et le sélecteur de vue est poussé
-au bord droit par `ml-auto` — aligné sur le cadre, plus sur la fin d'un nom de
-mois dont la longueur change tous les mois.
+Même passage, la largeur, et il a fallu DEUX essais parce que « la largeur de
+l'agenda » n'est pas celle de la page. Premier essai: la barre sur sa propre
+rangée, pleine largeur de `main` — donc passant par-dessus la colonne
+« À venir », ce que la capture d'écran a montré tout de suite. L'agenda est la
+colonne `1fr` d'une grille `lg:grid-cols-[minmax(0,1fr)_420px]`. La barre reste
+donc sur UNE ligne (recherche en `flex-1`, mois, « Aujourd'hui » et sélecteur à
+sa suite) et son conteneur porte la **même constante de grille** que le contenu,
+`RAIL`: elle occupe la colonne du calendrier et s'arrête avant « À venir », sans
+`calc(100% - 444px)` écrit quelque part qui mentirait le jour où cette colonne
+change. Elle reprend la page entière en vue liste et en recherche, où l'agenda
+ne partage plus la largeur (`railed`).
 
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
