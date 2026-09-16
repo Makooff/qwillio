@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { llmStreamService, parseUsageChunk, parseModelChunk } from '../llm-stream.service';
+import { llmStreamService, parseUsageChunk, parseModelChunk, cacheablePrefixChars } from '../llm-stream.service';
 import { callSessionStore } from '../call-session.store';
 
 /** Collects everything written to the SSE channel. */
@@ -639,5 +639,66 @@ describe('llmStreamService — seuls les champs OpenAI partent chez OpenAI', () 
     await llmStreamService.handle('client_1', 'call_keys', 'fr', { messages: [systemTurn, userTurn('je voudrais reserver un rendez-vous')] }, stream.handle);
     expect(stream.text()).toContain('Pardon');
     expect(callSessionStore.get('call_keys')?.llmFailures[0]).toMatch(/^OpenAI responded 400: .*Unrecognized request argument/);
+  });
+});
+
+describe('llmStreamService — la clé de cache se pose sur le VRAI préfixe, outils compris', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    callSessionStore.end('call_cache');
+  });
+
+  function mockStream(payloads: string[]) {
+    const encoder = new TextEncoder();
+    let i = 0;
+    return vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      body: {
+        getReader: () => ({
+          read: async () =>
+            i < payloads.length ? { done: false, value: encoder.encode(payloads[i++]) } : { done: true, value: undefined },
+          releaseLock: () => {},
+        }),
+      },
+    } as unknown as Response);
+  }
+
+  it('compte le message système et les définitions d\'outils', () => {
+    const tools = [{ type: 'function', function: { name: 'captureLead', description: 'x'.repeat(3000), parameters: {} } }];
+    expect(cacheablePrefixChars({ messages: [{ role: 'system', content: 'a'.repeat(1500) }], tools })).toBeGreaterThan(4500);
+    expect(cacheablePrefixChars({ messages: [{ role: 'system', content: 'a'.repeat(1500) }] })).toBe(1500);
+  });
+
+  it('pose prompt_cache_key quand le prompt seul est court mais que les outils font le poids', async () => {
+    /* Le cas réel: un prompt de 3 000 caractères et dix outils. Mesuré sur le
+       seul message système, le seuil de 4 000 n'était jamais atteint. */
+    const fetchSpy = mockStream(['data: {"choices":[{"delta":{"content":"Oui"}}]}\n\n', 'data: [DONE]\n\n']);
+    callSessionStore.start({ vapiCallId: 'call_cache', clientId: 'client_1', callerNumber: null, language: 'fr' });
+    const stream = makeStream();
+    await llmStreamService.handle(
+      'client_1',
+      'call_cache',
+      'fr',
+      {
+        messages: [{ role: 'system', content: 'Tu es la receptionniste. '.repeat(120) }, userTurn('je voudrais reserver un rendez-vous')],
+        tools: [{ type: 'function', function: { name: 'captureLead', description: 'd'.repeat(2500), parameters: {} } }],
+      },
+      stream.handle,
+    );
+    const body = JSON.parse(String((fetchSpy.mock.calls[0][1] as RequestInit).body));
+    expect(body.prompt_cache_key).toBe('call_cache');
+  });
+
+  it('marque l\'envoi de la requête, pour séparer notre préparation du délai OpenAI', async () => {
+    mockStream(['data: {"choices":[{"delta":{"content":"Oui"}}]}\n\n', 'data: [DONE]\n\n']);
+    callSessionStore.start({ vapiCallId: 'call_cache', clientId: 'client_1', callerNumber: null, language: 'fr' });
+    const session = callSessionStore.get('call_cache')!;
+    session.latency.markCallerSpeechEnd();
+    const stream = makeStream();
+    await llmStreamService.handle('client_1', 'call_cache', 'fr', { messages: [systemTurn, userTurn('je voudrais reserver un rendez-vous')] }, stream.handle);
+    const report = session.latency.report();
+    expect(report.prep?.count).toBe(1);
+    expect(report.llm?.count).toBe(1);
   });
 });
