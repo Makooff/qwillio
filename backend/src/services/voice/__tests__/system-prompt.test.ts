@@ -138,7 +138,18 @@ describe('buildSystemPrompt', () => {
        Appel réel d'un inconnu: créneau accepté, « parfait, je vous réserve
        ça », au revoir. Aucun nom demandé, aucune réservation, aucun SMS.
        « C'est réservé » ne se dit qu'après le retour RESERVE de l'outil. */
-    expect(buildSystemPrompt(profile, newCaller).length).toBeLessThan(3300);
+    /* 3500: trois lignes pour trois défauts d'un même appel (16/09/2026).
+       L'outil a répondu « AUCUNE RESERVATION trouvee » NEUF fois, et l'agent
+       a dit « j'ai bien votre rendez-vous jeudi à 9 heures »: la règle
+       anti-invention couvrait la base de connaissances, pas un retour d'outil
+       négatif, qui est pourtant le cas où la réponse est sous ses yeux. Puis
+       il a promis « je note et je transmets à l'équipe » sans un seul appel à
+       captureLead: personne n'a jamais rappelé. Et il a rappelé le même outil
+       neuf fois, la cause ne bougeant pas entre deux essais (6septies, sur les
+       outils cette fois). 170 caractères rejoués à chaque tour contre un agent
+       qui annonce ce qu'il n'a pas fait: c'est le défaut qui perd un client,
+       pas celui qui l'agace. */
+    expect(buildSystemPrompt(profile, newCaller).length).toBeLessThan(3500);
   });
 
   it('injects the pre-rendered knowledge block when one is supplied', () => {
@@ -239,7 +250,7 @@ describe('les règles de transfert, réglées par le client', () => {
   it('ne fait pas grossir le prompt, qui est rejoué à chaque tour', () => {
     // Les trois variantes tiennent la même longueur à quelques caractères près.
     const tailles = (['always', 'hours', 'never'] as const).map(m => withMode(m).length);
-    expect(Math.max(...tailles)).toBeLessThan(3300);
+    expect(Math.max(...tailles)).toBeLessThan(3500);
     expect(Math.max(...tailles) - Math.min(...tailles)).toBeLessThan(30);
   });
 });

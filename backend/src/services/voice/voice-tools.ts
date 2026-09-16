@@ -29,6 +29,27 @@ import { webhookServer } from './webhook-identity';
  * fires only if the tool is still running after `timingMilliseconds` — that is
  * the second reassurance for a slow calendar, and it is why the first line can
  * stay short.
+ *
+ * ── LA RÈGLE, payée sur deux appels réels le 16/09/2026 ───────────────────
+ *
+ * Une phrase de démarrage décrit ce qui est EN COURS, jamais son ISSUE. Elle
+ * est dite AVANT que l'outil ne réponde, donc toute phrase qui affirme un
+ * résultat ment une fois sur deux, et ment toujours quand l'outil échoue.
+ *
+ * Ce que ça a donné, mot pour mot: « Parfait, je vous réserve ça. » suivi
+ * immédiatement de « pourriez-vous épeler votre nom de famille » — rien n'était
+ * réservé, et rien ne l'a jamais été sur cet appel. Puis, l'appel suivant,
+ * « Je déplace votre rendez-vous, un instant. » SEPT fois, pendant que l'outil
+ * répondait sept fois « AUCUNE RESERVATION trouvee ».
+ *
+ * Le plus dur à voir: le prompt avait été durci pendant des semaines contre
+ * exactement ça (6quadragesies, `missingBookingInfo`, « RIEN N'EST ENCORE
+ * RESERVE »), pendant que cette table le disait à voix haute avant même que
+ * l'outil ne tourne. Le modèle n'y était pour rien.
+ *
+ * `checkAvailability` portait déjà la bonne forme et sert de modèle:
+ * « Je regarde ça tout de suite » décrit le geste, pas ce qu'il trouvera.
+ * `filler-says-nothing-done.test.ts` interdit le retour en arrière.
  */
 const FILLER: Record<string, Record<VoiceLanguage, { start: string[]; delayed: string[] }>> = {
   checkAvailability: {
@@ -68,39 +89,39 @@ const FILLER: Record<string, Record<VoiceLanguage, { start: string[]; delayed: s
   },
   bookAppointment: {
     fr: {
-      start: ['Parfait, je vous réserve ça.', 'Très bien, j\'enregistre le rendez-vous.'],
-      delayed: ['Je finalise la réservation, un instant.'],
+      start: ['Un instant, je m\'en occupe.', 'Je vérifie ça, un instant.'],
+      delayed: ['Encore un instant, je suis dessus.'],
     },
     en: {
-      start: ['Perfect, let me lock that in for you.', 'Great, I\'m booking that now.'],
-      delayed: ['Just finishing the booking, one moment.'],
+      start: ['One moment, I\'m on it.', 'Let me take care of that, one second.'],
+      delayed: ['Still on it, one moment.'],
     },
     nl: {
-      start: ['Perfect, ik leg dat voor u vast.', 'Prima, ik boek dat meteen in.'],
-      delayed: ['Ik rond de reservatie af, een ogenblikje.'],
+      start: ['Een ogenblikje, ik kijk dat na.', 'Momentje, ik ben ermee bezig.'],
+      delayed: ['Nog even geduld, ik ben ermee bezig.'],
     },
   },
   captureLead: {
     fr: {
-      start: ['C\'est noté.'],
+      start: ['Un instant, je prends note.'],
       delayed: [],
     },
     en: {
-      start: ['Got it, noting that down.'],
+      start: ['One moment, taking that down.'],
       delayed: [],
     },
     nl: {
-      start: ['Genoteerd.'],
+      start: ['Een momentje, ik noteer het.'],
       delayed: [],
     },
   },
   lookupBooking: {
     fr: {
-      start: ['Je retrouve votre réservation, un instant.'],
+      start: ['Je cherche votre réservation, un instant.'],
       delayed: ['Je cherche encore, merci de patienter.'],
     },
     en: {
-      start: ['Let me find your booking.'],
+      start: ['Let me look for your booking.'],
       delayed: ['Still looking, one moment.'],
     },
     nl: {
@@ -110,16 +131,16 @@ const FILLER: Record<string, Record<VoiceLanguage, { start: string[]; delayed: s
   },
   rescheduleBooking: {
     fr: {
-      start: ['Je déplace votre rendez-vous, un instant.'],
-      delayed: ['Encore un instant, je mets l\'agenda à jour.'],
+      start: ['Un instant, je regarde votre rendez-vous.'],
+      delayed: ['Encore un instant, je consulte l\'agenda.'],
     },
     en: {
-      start: ['Let me move your appointment.'],
-      delayed: ['One moment, updating the calendar.'],
+      start: ['One moment, let me look at your appointment.'],
+      delayed: ['One moment, I\'m checking the calendar.'],
     },
     nl: {
-      start: ['Ik verplaats uw afspraak even.'],
-      delayed: ['Een momentje, ik werk de agenda bij.'],
+      start: ['Een momentje, ik bekijk uw afspraak.'],
+      delayed: ['Een momentje, ik raadpleeg de agenda.'],
     },
   },
   lookupKnowledge: {

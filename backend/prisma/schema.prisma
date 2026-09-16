@@ -354,6 +354,12 @@ model Client {
   phoneSetupReason           String?                   @map("phone_setup_reason")
   phoneSetupAt               DateTime?                 @map("phone_setup_at")
   vapiConfig                 Json?                     @map("vapi_config")
+  /// L'option Superagent (parole-a-parole), ACHETEE, pour un palier qui ne
+  /// l'inclut pas. Les paliers qui l'incluent passent par `planAllows`, jamais
+  /// par ce drapeau: deux sources pour le meme droit finissent par diverger.
+  /// Elle vit ici et non dans `vapiConfig` parce que c'est un droit FACTURE et
+  /// que `vapiConfig` est le blob que le client ecrit lui-meme par son PUT.
+  superagentOption           Boolean                   @default(false) @map("superagent_option")
   onboardingStatus           String                    @default("pending") @map("onboarding_status") @db.VarChar(50)
   onboardingCompletedAt      DateTime?                 @map("onboarding_completed_at")
   activationDate             DateTime?                 @map("activation_date")

@@ -40,12 +40,14 @@ const good = (): CallFacts => ({
   ours: { found: true, isLead: true, nameCollected: 'Jean-Luc de la Forge', callerName: 'Jean Lucas', summary: 'Prise de rendez-vous pour un détartrage.', language: 'fr' },
   booking: { id: 'bk_0000001', smsSent: true, smsLogs: [{ status: 'sent', errorMsg: null }] },
   recordingReadable: true,
-  remote: { customLlm: true, endpointing: { provider: 'livekit', waitSeconds: 0.4, punctuationSeconds: 0.4 } },
+  remote: { customLlm: true, endpointing: { provider: 'livekit', waitSeconds: 0.4, punctuationSeconds: 0.4 }, speechToSpeech: false },
   expected: {
     endpointing: { provider: 'livekit', waitSeconds: 0.4, punctuationSeconds: 0.4 },
     fullModel: 'gpt-4.1-mini',
     miniModel: 'gpt-4.1-nano',
     greetingPinned: false,
+    tierRequested: null,
+    tierServed: 'base',
     smsReady: true,
   },
 });

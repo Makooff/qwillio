@@ -74,6 +74,8 @@ const baseProfile: ClientVoiceProfile = {
   // les déclare dans ses `profileOverrides`, là où on peut les lire.
   knowledgeFields: '',
   recordCalls: true,
+  // Un harnais ne se bride pas: il doit pouvoir mesurer les deux moteurs.
+  superagentAllowed: true,
 };
 
 export function profileFor(scenario: EvalScenario): ClientVoiceProfile {

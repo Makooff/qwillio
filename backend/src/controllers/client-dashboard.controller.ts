@@ -19,6 +19,10 @@ import { wouldLoop, LOOP_MESSAGE } from '../services/voice/transfer-loop';
 import { vapiClient } from '../config/vapi';
 import { recordingCandidates } from '../services/voice/recording-urls';
 import { Readable } from 'stream';
+import { voiceModeFor } from '../services/voice/voice-tiers';
+import { lowestPlanFor, superagentAllowed } from '../config/plan-features';
+import { PLANS } from '../config/plans';
+import { readTierId } from '../services/voice/voice-tiers';
 
 /**
  * Rebâtir l'assistant DISTANT après un changement d'intégration.
@@ -573,6 +577,12 @@ export class ClientDashboardController {
            découvre sur la facture, et c'est ainsi qu'on récolte un litige
            plutôt qu'un client. 0 = option non vendue, l'écran n'en parle pas. */
         realtimeSurchargeEur: env.VOICE_REALTIME_SURCHARGE_EUR,
+        /* Le NIVEAU, et le droit d'y toucher. Sans les deux, l'écran ne peut
+           qu'afficher un bouton qui échouera: le Superagent est inclus à
+           partir de Pro et s'achète en dessous. */
+        voiceTier:         readTierId(cfg.voiceTier) ?? 'base',
+        superagentAllowed: superagentAllowed(client),
+        superagentIncludedFrom: lowestPlanFor('superagent'),
         /* Ce que « Automatique » vaut RÉELLEMENT aujourd'hui, calculé par la
            règle qui sert les appels et non recopié dans l'écran. Sans lui,
            l'interface devrait deviner le réglage global du serveur, et
@@ -733,6 +743,7 @@ export class ClientDashboardController {
         body.characterId !== undefined ||
         body.customVoice !== undefined ||
         body.voiceMode !== undefined ||
+        body.voiceTier !== undefined ||
         body.ttsProvider !== undefined ||
         body.notificationChannel !== undefined ||
         body.leadAlert !== undefined ||
@@ -740,8 +751,21 @@ export class ClientDashboardController {
       if (hasKnowledgeUpdate) {
         const existing = await prisma.client.findUnique({
           where: { id: req.clientId },
-          select: { vapiConfig: true },
+          select: { vapiConfig: true, planType: true, superagentOption: true },
         });
+        /* Un droit facturé se REFUSE à l'écriture, il ne se rattrape pas en
+           silence à la lecture. La résolution le borne déjà (`entitledTier`),
+           mais s'arrêter là produirait exactement le défaut que ce dépôt a payé
+           six fois: l'écran dit « enregistré » et l'appelant entend l'autre
+           moteur, sans que rien ne dise pourquoi. */
+        if (body.voiceTier === 'superagent' && existing && !superagentAllowed(existing)) {
+          return res.status(403).json({
+            error: 'superagent_not_allowed',
+            message: `Le Superagent est inclus à partir du forfait ${PLANS[lowestPlanFor('superagent')].name}. `
+              + 'Sur votre forfait, il s\'active en option depuis Facturation.',
+            includedFrom: lowestPlanFor('superagent'),
+          });
+        }
         const prev = (existing?.vapiConfig as any) || {};
         updateData.vapiConfig = buildVapiConfigPatch(prev, {
           items:             body.items,
@@ -758,6 +782,10 @@ export class ClientDashboardController {
              bout SAUF ici, donc changer de moteur était impossible, y compris
              en appelant l'API à la main. */
           voiceMode:         body.voiceMode,
+          /* Le NIVEAU, qui prime sur `voiceMode` et le remplacera. Passé ici
+             dès sa naissance: le commentaire juste au-dessus dit ce que coûte
+             l'oubli, et il a été écrit après l'avoir payé. */
+          voiceTier:         body.voiceTier,
           ttsProvider:       body.ttsProvider,
           notificationChannel: body.notificationChannel,
           /* Le piège que `voiceMode` a déjà tendu une fois: un réglage validé
@@ -782,7 +810,8 @@ export class ClientDashboardController {
          répondre pendant tout le TTL. Sur un réglage qu'on change précisément
          pour comparer deux moteurs, l'oubli ferait juger le mauvais. */
       if (body.characterId !== undefined || body.customVoice !== undefined
-          || body.voiceMode !== undefined || body.ttsProvider !== undefined) {
+          || body.voiceMode !== undefined || body.voiceTier !== undefined
+          || body.ttsProvider !== undefined) {
         const { realtimeContextService } = await import('../services/voice/realtime-context.service');
         await realtimeContextService.invalidateClient(req.clientId);
       }
@@ -1053,7 +1082,7 @@ export class ClientDashboardController {
         hasCustomVoice: !!profile.customVoice,
         // L'appel test suit le mode du client, sinon il teste autre chose que
         // ce que l'appelant entendra.
-        voiceMode: profile.voiceMode,
+        voiceMode: voiceModeFor(profile),
         // L'appel test doit sonner comme l'appel réel, synthèse comprise.
         ttsProvider: profile.ttsProvider,
         /* Pas de secours SUR CET APPEL-CI. Ils font préparer un second
@@ -1119,7 +1148,7 @@ export class ClientDashboardController {
       const effectiveMode = useSpeechToSpeech({
         hasCustomVoice: !!profile.customVoice,
         clonedVoice: profile.customVoice?.cloned,
-        voiceMode: profile.voiceMode,
+        voiceMode: voiceModeFor(profile),
       }) ? 'realtime' : 'classic';
 
       const { vapiClient } = await import('../config/vapi');
