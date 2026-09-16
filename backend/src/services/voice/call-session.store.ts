@@ -77,6 +77,21 @@ export interface CallSession {
   /** Times the caller cut the assistant off. High counts mean bad pacing. */
   bargeIns: number;
   toolCalls: Array<{ name: string; ms: number }>;
+  /**
+   * Combien de fois un outil a échoué de la MÊME façon sur cet appel.
+   *
+   * Clé = `outil:raison`. Ce compteur existe parce qu'un résultat d'outil qui
+   * dit « demande le nom, puis rappelle-moi » invite le rappel, et que rien ne
+   * comptait les tentatives: le 16/09/2026, `rescheduleBooking` a été appelé
+   * NEUF fois avec les mêmes arguments, chacune de 2,4 à 9,4 secondes, pendant
+   * que l'appelant entendait « je déplace votre rendez-vous » à chaque tour.
+   *
+   * C'est la leçon 6septies, déjà payée sur les numéros dictés, appliquée aux
+   * outils: au deuxième échec identique on change de canal, on ne refait pas ce
+   * qui vient de rater deux fois. La cause (nom introuvable, réservation
+   * inexistante) ne bouge pas entre deux essais.
+   */
+  toolFailures: Record<string, number>;
   lead: LeadCapture | null;
   /** AgentCrmActivity row created for the lead, linked to the call at the end. */
   leadActivityId: string | null;
@@ -249,6 +264,7 @@ class CallSessionStore {
       deflectedTurns: 0,
       bargeIns: 0,
       toolCalls: [],
+      toolFailures: {},
       lead: null,
       leadActivityId: null,
       bookingId: null,
@@ -548,6 +564,21 @@ class CallSessionStore {
   recordToolCall(vapiCallId: string | null, name: string, ms: number): void {
     const session = this.get(vapiCallId);
     if (session) session.toolCalls.push({ name, ms });
+  }
+
+  /**
+   * Compte un échec d'outil et rend le nombre d'essais, celui-ci compris.
+   *
+   * Sans session (appel qui a traversé un déploiement, cas réel du 13/09), on
+   * rend 1: le doute penche vers « laisse-le réessayer une fois » plutôt que
+   * vers un blocage qu'on ne saurait pas expliquer à l'appelant.
+   */
+  noteToolFailure(vapiCallId: string | null, key: string): number {
+    const session = this.get(vapiCallId);
+    if (!session) return 1;
+    const next = (session.toolFailures[key] ?? 0) + 1;
+    session.toolFailures[key] = next;
+    return next;
   }
 
   recordLead(vapiCallId: string | null, lead: LeadCapture): void {

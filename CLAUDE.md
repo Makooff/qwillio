@@ -1262,6 +1262,56 @@ Reste à faire, et qui demande une décision : la caisse Stripe qui vend l'optio
 équivalent serait +20 €/mois sur Solo et +40 € sur Starter, et il n'est tenable
 que parce que le surcoût par minute est petit.
 
+### 6sexquadragesies. La phrase d'attente disait que c'était fait (16/09/2026)
+Deux appels réels, et le relevé renverse l'hypothèse de départ. **La latence va
+bien** : TOTAL médiane 1620 ms, dans la médiane publiée de l'industrie
+(1,4-1,7 s), PREP à 1 ms, cache de préfixe à 76 % (la correction de
+6duoquadragesies a marché). Ce qui a rendu ces appels pénibles est fonctionnel.
+**La cause principale n'était pas le modèle, c'était une constante.**
+`voice-tools.ts`, table `FILLER`, phrases dites au DÉMARRAGE d'un outil, avant
+sa réponse : `bookAppointment` disait « Parfait, je vous réserve ça »,
+`rescheduleBooking` disait « Je déplace votre rendez-vous ». Entendu : « Parfait,
+je vous réserve ça » suivi dans la seconde de « pourriez-vous épeler votre nom de
+famille » (rien n'était réservé, et rien ne l'a été de tout l'appel), puis
+« Je déplace votre rendez-vous » SEPT fois pendant que l'outil répondait sept
+fois « AUCUNE RESERVATION trouvee ». Le prompt avait été durci pendant des
+semaines contre exactement ça (6quadragesies) pendant qu'une chaîne de
+caractères le disait à voix haute avant que l'outil ne tourne.
+**La règle** : une phrase d'attente décrit ce qui est EN COURS, jamais son
+ISSUE. `checkAvailability` portait déjà la bonne forme (« Je regarde ça tout de
+suite ») et sert de modèle. `filler-says-nothing-done.test.ts` gèle les formes
+fautives et impose que chaque phrase de démarrage se lise comme une action en
+cours. Un piège de méthode : ajouter une méthode au magasin de session casse les
+tests qui le bouchonnent partiellement, et l'outil retombe alors sur « AGENDA
+INDISPONIBLE », un repli sûr qui MASQUE le vrai message.
+**La boucle, second défaut** : `rescheduleBooking` appelé NEUF fois avec les
+mêmes arguments, 2,4 à 9,4 s chacun. Deux causes qui se renforcent : le résultat
+INVITAIT le rappel (« puis rappelle rescheduleBooking avec ce nom ») et rien ne
+comptait les essais. `CallSession.toolFailures` compte par `outil:raison`, et au
+DEUXIÈME échec le résultat cesse d'inviter, nomme l'outil à ne plus appeler et
+exige `captureLead`. C'est 6septies (le repli clavier au deuxième numéro dicté
+illisible) appliqué aux outils : la cause ne bouge pas entre deux essais.
+**Le troisième défaut est le plus coûteux commercialement** : l'agent a fini par
+dire « je note votre demande et je transmets à l'équipe pour qu'ils vous
+recontactent » **sans un seul appel à `captureLead`**. Rien n'a été noté,
+personne ne rappellera, et l'appelant a raccroché rassuré. Trois lignes de
+prompt en sortent (plafond à 3500) : un outil qui dit NON veut dire non,
+promettre un rappel EXIGE `captureLead`, un outil qui échoue deux fois ne se
+rappelle pas une troisième.
+**Ce qu'il ne faut PAS faire** : baisser `VOICE_START_WAIT_SECONDS` ou
+`VOICE_ENDPOINTING_PUNCTUATION_SECONDS`. Le ressenti à 2,2 s est TOTAL plus la
+détection de fin de tour ; ces deux seuils ont été montés exprès le 12/09 après
+« il parle par-dessus moi », et la chaîne est déjà dans les clous. Ce qui a duré,
+ce sont les outils en boucle, pas les tours de conversation.
+**Le SIP natif d'OpenAI, tranché le même jour** : l'API Realtime accepte
+désormais un trunk SIP direct (250-350 ms, verbes `reject`, `refer`, `hangup`).
+Ce n'est pas la réponse ici : les trois défauts ci-dessus sont notre code et la
+discipline du modèle, donc ils voyageraient tels quels, et le parole-à-parole est
+justement le terrain où l'appel d'outils est le plus faible. Coût caché relevé
+en passant : **le traqueur de latence se nourrit des webhooks `speech-update` de
+Vapi**, donc partir en SIP, c'est perdre la mesure. À rouvrir seulement quand les
+défauts fonctionnels seront corrigés et qu'une cible sous 600 ms sera visée.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).
