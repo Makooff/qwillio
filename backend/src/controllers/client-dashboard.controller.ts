@@ -20,6 +20,9 @@ import { vapiClient } from '../config/vapi';
 import { recordingCandidates } from '../services/voice/recording-urls';
 import { Readable } from 'stream';
 import { voiceModeFor } from '../services/voice/voice-tiers';
+import { lowestPlanFor, superagentAllowed } from '../config/plan-features';
+import { PLANS } from '../config/plans';
+import { readTierId } from '../services/voice/voice-tiers';
 
 /**
  * Rebâtir l'assistant DISTANT après un changement d'intégration.
@@ -572,6 +575,12 @@ export class ClientDashboardController {
            découvre sur la facture, et c'est ainsi qu'on récolte un litige
            plutôt qu'un client. 0 = option non vendue, l'écran n'en parle pas. */
         realtimeSurchargeEur: env.VOICE_REALTIME_SURCHARGE_EUR,
+        /* Le NIVEAU, et le droit d'y toucher. Sans les deux, l'écran ne peut
+           qu'afficher un bouton qui échouera: le Superagent est inclus à
+           partir de Pro et s'achète en dessous. */
+        voiceTier:         readTierId(cfg.voiceTier) ?? 'base',
+        superagentAllowed: superagentAllowed(client),
+        superagentIncludedFrom: lowestPlanFor('superagent'),
         /* Ce que « Automatique » vaut RÉELLEMENT aujourd'hui, calculé par la
            règle qui sert les appels et non recopié dans l'écran. Sans lui,
            l'interface devrait deviner le réglage global du serveur, et
@@ -740,8 +749,21 @@ export class ClientDashboardController {
       if (hasKnowledgeUpdate) {
         const existing = await prisma.client.findUnique({
           where: { id: req.clientId },
-          select: { vapiConfig: true },
+          select: { vapiConfig: true, planType: true, superagentOption: true },
         });
+        /* Un droit facturé se REFUSE à l'écriture, il ne se rattrape pas en
+           silence à la lecture. La résolution le borne déjà (`entitledTier`),
+           mais s'arrêter là produirait exactement le défaut que ce dépôt a payé
+           six fois: l'écran dit « enregistré » et l'appelant entend l'autre
+           moteur, sans que rien ne dise pourquoi. */
+        if (body.voiceTier === 'superagent' && existing && !superagentAllowed(existing)) {
+          return res.status(403).json({
+            error: 'superagent_not_allowed',
+            message: `Le Superagent est inclus à partir du forfait ${PLANS[lowestPlanFor('superagent')].name}. `
+              + 'Sur votre forfait, il s\'active en option depuis Facturation.',
+            includedFrom: lowestPlanFor('superagent'),
+          });
+        }
         const prev = (existing?.vapiConfig as any) || {};
         updateData.vapiConfig = buildVapiConfigPatch(prev, {
           items:             body.items,

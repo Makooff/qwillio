@@ -10,6 +10,7 @@ import { discordService } from './discord.service';
 import { emailService } from './email.service';
 import { onboardingService } from './onboarding.service';
 import { releaseClientNumbers } from './voice/phone-stock.service';
+import { planAllows } from '../config/plan-features';
 
 export class StripeService {
   async handleCheckoutCompleted(session: any) {
@@ -494,12 +495,28 @@ export class StripeService {
     clientId: string;
     customerId: string | null;
     businessName: string;
+    planType: string;
     billedMonth: string;
     billedMonthStart: Date;
     monthStart: Date;
   }): Promise<void> {
     const rate = env.VOICE_REALTIME_SURCHARGE_EUR;
     if (rate <= 0 || !input.customerId) return;
+
+    /* Un forfait qui INCLUT le Superagent ne le paie pas une seconde fois.
+       Sans cette ligne, poser le prix de l'option facturerait la minute temps
+       réel à un client Pro qui l'a déjà payée dans son abonnement: un double
+       prélèvement, sur une vraie carte, invisible jusqu'au relevé. C'est le
+       mode d'échec de 6duodecies, depuis l'autre bout de la chaîne.
+       Le droit ACHETÉ (`superagentOption`), lui, se facture: c'est ce qu'il
+       est. La distinction se lit dans `planAllows`, pas ici. */
+    if (planAllows(input.planType, 'superagent')) {
+      logger.info(
+        `[Stripe] supplément temps réel non facturé à ${input.businessName}: ` +
+          `le forfait ${input.planType} l'inclut.`,
+      );
+      return;
+    }
 
     const agg = await prisma.clientCall.aggregate({
       where: {
@@ -578,6 +595,7 @@ export class StripeService {
       clientId,
       customerId: client.stripeCustomerId,
       businessName: client.businessName,
+      planType: client.planType,
       billedMonth,
       billedMonthStart,
       monthStart,

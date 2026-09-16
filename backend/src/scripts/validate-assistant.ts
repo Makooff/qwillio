@@ -96,6 +96,11 @@ function probeProfile(lang: VoiceLanguage): ClientVoiceProfile {
     // Vide: ce script valide la FORME de la charge, pas le contenu d'un client.
     knowledgeFields: '',
     recordCalls: true,
+  /* OUI: ce script existe pour soumettre les SIX variantes à l'API vivante,
+     trois langues fois deux moteurs. Un profil non autorisé ramènerait les
+     trois variantes temps réel au classique, et elles ne testeraient plus
+     rien (6sexdecies, exactement). */
+  superagentAllowed: true,
   };
 }
 

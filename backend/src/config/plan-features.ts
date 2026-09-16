@@ -30,6 +30,7 @@ const STARTER: string[] = [...BASE, 'Capture de leads', 'Support par email'];
 
 const PRO: string[] = [
   ...STARTER,
+  'Superagent : voix temps réel, plus rapide et plus naturelle',
   'Analytiques avancées',
   'Intégrations CRM natives',
   'Support prioritaire',
@@ -70,13 +71,33 @@ export function planFeatures(plan: string | null | undefined): string[] {
  * Elles ont donc été corrigées sur la page tarifs plutôt que bridées ici. Une
  * restriction artificielle coûte toujours plus qu'elle ne rapporte.
  */
-export type PlanCapability = 'advancedAnalytics' | 'crm' | 'api';
+export type PlanCapability = 'advancedAnalytics' | 'crm' | 'api' | 'superagent';
 
 const PLAN_CAPABILITIES: Record<PlanCapability, PlanId[]> = {
   advancedAnalytics: ['pro', 'enterprise'],
   crm: ['pro', 'enterprise'],
   api: ['enterprise'],
+  /* Le parole-à-parole, INCLUS à partir de Pro. En dessous il se vend en
+     option (`Client.superagentOption`), et les deux droits se lisent ensemble
+     dans `superagentAllowed`: une seule question, deux réponses possibles,
+     jamais deux règles. */
+  superagent: ['pro', 'enterprise'],
 };
+
+/**
+ * Ce client a-t-il droit au Superagent, par son forfait OU par son option ?
+ *
+ * Le seul endroit qui répond. Le forfait l'inclut à partir de Pro; en dessous
+ * il s'achète. Poser la question en deux fois ailleurs, c'est la faute que ce
+ * dépôt a déjà payée six fois: deux lectures d'un même droit divergent, et
+ * celle qui décide n'est pas celle qu'on a corrigée.
+ *
+ * Un forfait inconnu n'accorde rien, l'option reste lisible: un compte en
+ * cours de migration qui a payé l'option ne perd pas ce qu'il a payé.
+ */
+export function superagentAllowed(client: { planType?: string | null; superagentOption?: boolean | null }): boolean {
+  return planAllows(client.planType, 'superagent') || client.superagentOption === true;
+}
 
 /** Le palier le plus bas qui ouvre la capacité, pour le dire à l'écran. */
 export function lowestPlanFor(capability: PlanCapability): PlanId {

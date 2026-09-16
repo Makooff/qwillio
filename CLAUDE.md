@@ -1222,6 +1222,96 @@ recette de 0,26 à 0,40 € la minute incluse).
 chose qui compte avant de le proposer par défaut : un mécanisme qui n'a pas
 atteint un appel n'est pas une optimisation (6octovicies, 6quinquetrigesies).
 
+### 6quinquequadragesies. Le Superagent se VEND, et le modèle est la décision (16/09/2026)
+Demande : inclus à partir de Pro, en option sur les petits forfaits, activable
+à l'achat et après, sans perdre la marge. `config/voice-economics.ts` pose
+chaque tarif fournisseur avec sa SOURCE, et `npm run voice:pricing` rend la
+feuille. Ce que ça dit, et qui n'était devinable nulle part : la minute
+classique coûte 0,094 € (la grille était posée sur « ~0,15 », donc
+prudemment), le mini coûte 0,110 €, soit **1,6 centime de surcoût**, donc
+l'inclure haut de gamme coûte 4 à 6 % du prix du forfait et la grille n'a pas
+besoin de bouger. Avec `gpt-realtime-2`, la minute coûte 0,651 € quand la plus
+chère de la grille en rapporte 0,396 : **tous les paliers paient pour vendre**,
+et aucun prix d'option ne rattrape ça. Le choix du modèle n'est pas un réglage
+technique, c'est la décision tarifaire.
+**Le tarif du modèle par DÉFAUT (`gpt-realtime-2025-08-28`) n'a jamais été
+relevé**, et le module REFUSE de calculer plutôt que d'inventer : c'est
+6quinvicies appliqué à l'argent, une valeur supposée qui a l'air d'une lecture
+coûte plus cher que pas de valeur.
+Le droit : `superagent` entre dans `PLAN_CAPABILITIES` (pro, enterprise) et
+`superagentAllowed(client)` est la SEULE lecture, forfait puis option achetée.
+L'option vit sur une COLONNE (`superagent_option`), jamais dans `vapiConfig` :
+ce JSON est celui que le PUT du portail fusionne, donc un droit facturé qui
+vivrait là serait accordable depuis le navigateur de celui qui doit le payer.
+Le contrôle est posé à deux endroits et il faut les deux : le PUT répond 403 en
+nommant le forfait (sinon l'écran dit « enregistré » et l'appelant entend
+l'autre moteur), et `entitledTier` borne à la RÉSOLUTION, parce qu'un compte
+qui redescend de Pro à Starter perd le droit sans que rien ne réécrive son
+réglage. `ClientVoiceProfile.superagentAllowed` est obligatoire : ça a fait
+sortir les trois autres constructeurs au compilateur, et ils n'ont pas la même
+réponse (évals oui, `voice:validate` oui sinon trois variantes sur six ne
+testent rien, démo publique NON, c'est un coût sans recette en face).
+Facturation : `reportRealtimeSurcharge` ne facture PAS un forfait qui inclut le
+Superagent. Sans cette ligne, poser le prix de l'option prélèverait deux fois
+la même chose à un client Pro, sur une vraie carte, invisible jusqu'au relevé.
+`npm run voice:tier -- --option=on` vend l'option ; sans argument le script
+liste le niveau ET le droit, et il REFUSE de poser « superagent » sur un client
+qui n'y a pas droit plutôt que d'écrire un réglage sans effet.
+Reste à faire, et qui demande une décision : la caisse Stripe qui vend l'option
+à l'inscription. Le supplément à la minute existe déjà ; le forfait mensuel
+équivalent serait +20 €/mois sur Solo et +40 € sur Starter, et il n'est tenable
+que parce que le surcoût par minute est petit.
+
+### 6sexquadragesies. La phrase d'attente disait que c'était fait (16/09/2026)
+Deux appels réels, et le relevé renverse l'hypothèse de départ. **La latence va
+bien** : TOTAL médiane 1620 ms, dans la médiane publiée de l'industrie
+(1,4-1,7 s), PREP à 1 ms, cache de préfixe à 76 % (la correction de
+6duoquadragesies a marché). Ce qui a rendu ces appels pénibles est fonctionnel.
+**La cause principale n'était pas le modèle, c'était une constante.**
+`voice-tools.ts`, table `FILLER`, phrases dites au DÉMARRAGE d'un outil, avant
+sa réponse : `bookAppointment` disait « Parfait, je vous réserve ça »,
+`rescheduleBooking` disait « Je déplace votre rendez-vous ». Entendu : « Parfait,
+je vous réserve ça » suivi dans la seconde de « pourriez-vous épeler votre nom de
+famille » (rien n'était réservé, et rien ne l'a été de tout l'appel), puis
+« Je déplace votre rendez-vous » SEPT fois pendant que l'outil répondait sept
+fois « AUCUNE RESERVATION trouvee ». Le prompt avait été durci pendant des
+semaines contre exactement ça (6quadragesies) pendant qu'une chaîne de
+caractères le disait à voix haute avant que l'outil ne tourne.
+**La règle** : une phrase d'attente décrit ce qui est EN COURS, jamais son
+ISSUE. `checkAvailability` portait déjà la bonne forme (« Je regarde ça tout de
+suite ») et sert de modèle. `filler-says-nothing-done.test.ts` gèle les formes
+fautives et impose que chaque phrase de démarrage se lise comme une action en
+cours. Un piège de méthode : ajouter une méthode au magasin de session casse les
+tests qui le bouchonnent partiellement, et l'outil retombe alors sur « AGENDA
+INDISPONIBLE », un repli sûr qui MASQUE le vrai message.
+**La boucle, second défaut** : `rescheduleBooking` appelé NEUF fois avec les
+mêmes arguments, 2,4 à 9,4 s chacun. Deux causes qui se renforcent : le résultat
+INVITAIT le rappel (« puis rappelle rescheduleBooking avec ce nom ») et rien ne
+comptait les essais. `CallSession.toolFailures` compte par `outil:raison`, et au
+DEUXIÈME échec le résultat cesse d'inviter, nomme l'outil à ne plus appeler et
+exige `captureLead`. C'est 6septies (le repli clavier au deuxième numéro dicté
+illisible) appliqué aux outils : la cause ne bouge pas entre deux essais.
+**Le troisième défaut est le plus coûteux commercialement** : l'agent a fini par
+dire « je note votre demande et je transmets à l'équipe pour qu'ils vous
+recontactent » **sans un seul appel à `captureLead`**. Rien n'a été noté,
+personne ne rappellera, et l'appelant a raccroché rassuré. Trois lignes de
+prompt en sortent (plafond à 3500) : un outil qui dit NON veut dire non,
+promettre un rappel EXIGE `captureLead`, un outil qui échoue deux fois ne se
+rappelle pas une troisième.
+**Ce qu'il ne faut PAS faire** : baisser `VOICE_START_WAIT_SECONDS` ou
+`VOICE_ENDPOINTING_PUNCTUATION_SECONDS`. Le ressenti à 2,2 s est TOTAL plus la
+détection de fin de tour ; ces deux seuils ont été montés exprès le 12/09 après
+« il parle par-dessus moi », et la chaîne est déjà dans les clous. Ce qui a duré,
+ce sont les outils en boucle, pas les tours de conversation.
+**Le SIP natif d'OpenAI, tranché le même jour** : l'API Realtime accepte
+désormais un trunk SIP direct (250-350 ms, verbes `reject`, `refer`, `hangup`).
+Ce n'est pas la réponse ici : les trois défauts ci-dessus sont notre code et la
+discipline du modèle, donc ils voyageraient tels quels, et le parole-à-parole est
+justement le terrain où l'appel d'outils est le plus faible. Coût caché relevé
+en passant : **le traqueur de latence se nourrit des webhooks `speech-update` de
+Vapi**, donc partir en SIP, c'est perdre la mesure. À rouvrir seulement quand les
+défauts fonctionnels seront corrigés et qu'une cible sous 600 ms sera visée.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

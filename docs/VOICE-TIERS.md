@@ -46,6 +46,66 @@ incluse va de 0,26 à 0,40 €. `VOICE_REALTIME_MODEL` tranche, et
 Seuls les identifiants énumérés par l'API vivante existent ; un nom lu dans un
 catalogue ou déduit d'un message d'erreur fait refuser l'assistant en entier.
 
+## Qui y a droit
+
+**Inclus à partir de Pro.** Sur Solo et Starter, il s'achète en option. Une
+seule fonction répond, `superagentAllowed` (`config/plan-features.ts`) : le
+forfait d'abord, l'option ensuite. Poser la question deux fois ailleurs est la
+faute que ce dépôt a déjà payée six fois.
+
+Le droit du forfait est une table dans le code. Le droit ACHETÉ est une colonne
+sur la fiche client (`superagent_option`), et surtout pas une clé de
+`vapiConfig` : ce JSON est celui que le PUT du portail fusionne, donc ce que le
+client écrit lui-même. Un droit facturé qui vivrait là serait accordable depuis
+le navigateur de celui qui doit le payer.
+
+Le contrôle est posé à DEUX endroits, et il faut les deux. À l'écriture, le PUT
+répond 403 en nommant le forfait : sans ça, l'écran dirait « enregistré » et
+l'appelant entendrait l'autre moteur. À la résolution (`entitledTier`), parce
+qu'un compte qui redescend de Pro à Starter perd le droit sans que rien ne
+réécrive son réglage, et serait sinon servi par un moteur plus cher jusqu'à ce
+qu'une facture le signale.
+
+## Le prix, calculé et non supposé
+
+`npm run voice:pricing` rend la feuille complète. Les tarifs fournisseurs
+vivent dans `config/voice-economics.ts`, chacun avec sa source ; un tarif qui
+change se corrige là et toute la grille suit.
+
+Ce que ça donne aujourd'hui, par minute :
+
+| | coût | Solo (0,396 € de recette) | Enterprise (0,258 €) |
+|---|---|---|---|
+| Classique | 0,094 € | 76 % de marge | 64 % |
+| Superagent, `gpt-realtime-mini` | 0,110 € | 72 % | 57 % |
+| Superagent, `gpt-realtime-2` | 0,651 € | **perte de 0,26 €** | **perte de 0,39 €** |
+
+Le surcoût du mini est de **0,016 € la minute**. Inclure le Superagent coûte
+donc 4 à 6 % du prix du forfait, au pire mois (toutes les minutes incluses
+passées en temps réel). C'est pourquoi il est inclus haut de gamme sans que la
+grille bouge.
+
+Avec `gpt-realtime-2`, aucun prix d'option ne rattrape l'écart : le modèle
+coûte plus qu'une minute ne rapporte, sur tous les paliers. **Le choix du
+modèle n'est pas un réglage technique, c'est la décision tarifaire.**
+
+**Le tarif du modèle par DÉFAUT (`gpt-realtime-2025-08-28`) n'a jamais été
+relevé**, et le module refuse de calculer plutôt que d'inventer. Il se lit sur
+le tableau de bord Vapi, qui est ce qui nous facture. Tant qu'il ne l'est pas,
+le seul modèle dont l'économie est connue est le mini.
+
+L'option se facture à la minute réellement passée en temps réel
+(`VOICE_REALTIME_SURCHARGE_EUR`, ligne distincte sur la facture, idempotente).
+Poser ce prix est l'unique interrupteur : il met l'option en vente ET fait
+cesser `auto` de résoudre en temps réel, pour qu'aucun client ne découvre un
+supplément qu'il n'a pas demandé. Un forfait qui inclut le Superagent n'est
+jamais facturé de ce supplément.
+
+Le forfait mensuel équivalent, si tu préfères le vendre ainsi (×3 sur le pire
+mois) : **+20 €/mois sur Solo, +40 €/mois sur Starter**. Il n'est tenable que
+parce que le surcoût par minute est petit ; il ne le serait pas avec
+`gpt-realtime-2`.
+
 ## Poser un niveau
 
 ```
@@ -53,7 +113,12 @@ npm run voice:tier                                              # l'état de la 
 npm run voice:tier -- --email=a@b.com --tier=superagent         # simulation
 npm run voice:tier -- --email=a@b.com --tier=superagent --confirm
 npm run voice:tier -- --email=a@b.com --tier=auto --confirm     # retire le choix
+npm run voice:tier -- --email=a@b.com --option=on --confirm     # vend l'option
 ```
+
+Sans argument, il liste le niveau ET le droit de chaque client. Poser
+« superagent » sur un client qui n'y a pas droit est REFUSÉ plutôt qu'écrit :
+le réglage serait ramené au classique à la résolution, et l'écran mentirait.
 
 Le script fait les **trois** gestes, et il faut les trois : écrire le champ,
 vider le cache de profil, resynchroniser l'assistant distant. Écrire seulement
@@ -92,9 +157,12 @@ réglage s'enregistre, l'écran dit enregistré, et l'appelant entend autre chos
   trois langues × deux moteurs), mais un mécanisme qui n'a jamais atteint un
   appel n'est pas une optimisation, c'est un risque qui dort. Le premier appel
   se passe avec `docs/SCRIPT-APPEL-TEST.md` et se lit à `voice:audit`.
-- **Pas de bouton dans le portail client.** Le niveau se pose au script. Un
-  bouton se posera quand le niveau aura tenu un appel réel, et il demandera de
-  trancher le supplément d'abord.
+- **Pas de bouton dans le portail client, ni d'achat en caisse.** Le niveau et
+  l'option se posent au script. La caisse Stripe qui vend l'option à
+  l'inscription reste à écrire, et elle demande d'avoir tranché entre le
+  supplément à la minute (déjà en place) et le forfait mensuel. Le portail sait
+  déjà dire le droit : `superagentAllowed` et `superagentIncludedFrom` sont
+  rendus par `/my-dashboard/settings`.
 - **Les curseurs de latence ne sont pas préréglés par niveau.** Ils se touchent
   après un relevé, jamais avant : un seuil posé à l'aveugle dans une table a
   l'air d'une décision.

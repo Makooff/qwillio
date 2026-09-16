@@ -44,6 +44,10 @@ vi.mock('../call-session.store', () => ({
     markLeadActivity: vi.fn(),
     needsNameReadBack,
     needsNameSpelling: vi.fn(() => false),
+    /* Le compteur d'échecs par outil (16/09/2026). Absent du bouchon, l'appel
+       levait et l'outil rendait « AGENDA INDISPONIBLE »: un repli sûr, mais
+       qui masquait le vrai message. */
+    noteToolFailure: vi.fn(() => 1),
   },
 }));
 vi.mock('../caller-memory.service', () => ({ callerMemoryService: { remember: vi.fn() } }));
@@ -230,6 +234,40 @@ describe('rescheduleBooking — déplacer, pas dupliquer', () => {
     const out = await move({ date: '2099-10-05', time: '09:00' });
     expect(out).toMatch(/^AUCUNE RESERVATION/);
     expect(updateBooking).not.toHaveBeenCalled();
+  });
+
+  /**
+   * Le garde de boucle (16/09/2026).
+   *
+   * Appel réel: `rescheduleBooking` appelé NEUF fois avec les mêmes arguments,
+   * 2,4 à 9,4 secondes chacun, pendant que l'appelant entendait « je déplace
+   * votre rendez-vous » à chaque tour. Deux causes: le résultat INVITAIT le
+   * rappel (« puis rappelle rescheduleBooking avec ce nom »), et rien ne
+   * comptait les essais. Puis l'agent a promis « je note et je transmets à
+   * l'équipe » sans un seul appel à captureLead: personne n'a jamais rappelé.
+   *
+   * La règle vient de 6septies, payée sur les numéros dictés: au DEUXIÈME
+   * échec on change de canal. La cause ne bouge pas entre deux essais.
+   */
+  it('invite UN seul rappel, puis coupe court', async () => {
+    const { callSessionStore } = await import('../call-session.store');
+    let essais = 0;
+    (callSessionStore.noteToolFailure as any).mockImplementation(() => ++essais);
+
+    const premier = await move({ date: '2099-10-05', time: '09:00' });
+    expect(premier).toMatch(/rappelle rescheduleBooking/);
+    expect(premier).toMatch(/une seule fois/i);
+
+    const second = await move({ date: '2099-10-05', time: '09:00' });
+    // Au deuxième, le résultat cesse d'inviter le rappel et le nomme.
+    expect(second).toMatch(/N'appelle PLUS rescheduleBooking/);
+    expect(second).not.toMatch(/rappelle rescheduleBooking avec ce nom/);
+    // Et il exige l'outil qui enregistre le message, pas la seule promesse:
+    // « je transmets à l'équipe » sans captureLead ne rappelle personne.
+    expect(second).toMatch(/captureLead/);
+    expect(updateBooking).not.toHaveBeenCalled();
+
+    (callSessionStore.noteToolFailure as any).mockImplementation(() => 1);
   });
 });
 

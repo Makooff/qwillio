@@ -7,6 +7,7 @@ import { namesMatch } from '../../utils/name-match';
 import { logger } from '../../config/logger';
 import { env } from '../../config/env';
 import { readTierId, type VoiceTierId } from './voice-tiers';
+import { superagentAllowed } from '../../config/plan-features';
 import type { CustomVoice } from '../../config/voice-characters';
 
 /**
@@ -122,6 +123,16 @@ export interface ClientVoiceProfile {
    * qui est seul à la lire: voir `requestedTier`.
    */
   voiceTier?: VoiceTierId | null;
+  /**
+   * Ce client a-t-il DROIT au Superagent ?
+   *
+   * Inclus à partir de Pro, acheté en option en dessous. Posé sur le profil
+   * parce que c'est le profil que l'appel lit: un droit vérifié seulement à
+   * l'écriture laisserait servir un moteur dix fois plus cher à un compte qui
+   * a changé de forfait entre-temps, et la facture arriverait sans personne
+   * pour la voir venir.
+   */
+  superagentAllowed: boolean;
   /**
    * Quelle SYNTHÈSE sert ce client, en mode classique.
    *
@@ -295,6 +306,9 @@ class RealtimeContextService {
         forwardingType: true,
         phoneNumbers: { where: { isActive: true }, select: { number: true } },
         planType: true,
+        // Le droit ACHETÉ au Superagent, lu avec le forfait: `superagentAllowed`
+        // répond avec les deux, et c'est la seule lecture.
+        superagentOption: true,
         onboardingData: true,
         googleCalendarRefreshToken: true,
         vapiConfig: true,
@@ -355,6 +369,7 @@ class RealtimeContextService {
       // pas un niveau. Un réglage mal orthographié ne doit pas décider en
       // silence du moteur, ni d'un supplément.
       voiceTier: readTierId(vapiConfig.voiceTier),
+      superagentAllowed: superagentAllowed(client),
       // Liste fermée: une valeur inconnue retombe sur le réglage global plutôt
       // que de décider en silence de ce que l'appelant entend.
       ttsProvider: ['11labs', 'cartesia'].includes(vapiConfig.ttsProvider) ? vapiConfig.ttsProvider : undefined,

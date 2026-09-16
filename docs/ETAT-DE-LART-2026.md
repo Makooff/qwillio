@@ -13,14 +13,41 @@ recherche.
 
 ## Ce que le dépôt utilise aujourd'hui
 
+**Corrigé le 16/09/2026 contre `voice:doctor`, qui lit l'assistant DISTANT.**
+Trois lignes de ce tableau décrivaient un état qui n'existait plus, et un
+document d'état de l'art faux coûte plus cher qu'un document absent
+(6sexvicies).
+
 | Étage | Valeur | Source |
 |---|---|---|
-| Speech-to-speech (défaut) | `gpt-realtime-2025-08-28` | `env.ts:97` |
-| LLM en cascade | `gpt-4o` | `env.ts:38` |
-| STT | Deepgram `nova-3` (fr/en), `nova-2` (nl) | `speech-plans.ts:34` |
-| TTS | ElevenLabs `eleven_flash_v2_5` | `speech-plans.ts:173` |
-| Fin de tour | `vapi` (fr/nl), `livekit` (en) | `speech-plans.ts:106-109` |
+| Niveau vendu | `base` (classique) ou `superagent` (parole-à-parole) | `voice-tiers.ts` |
+| Speech-to-speech | `gpt-realtime-2025-08-28`, **éteint par défaut** | `env.ts:472`, `env.ts:533` |
+| LLM en cascade | **`gpt-4.1-mini`** par l'env de Render (le défaut du code est encore `gpt-4o`) | `env.ts:38`, relevé au docteur |
+| Boucle de tour | **custom-LLM**: notre backend choisit le modèle à chaque tour | `env.ts:639`, `llm-stream.service.ts` |
+| STT | Deepgram `nova-3` (fr/en), `nova-2` (nl) | `speech-plans.ts:36` |
+| TTS | **Cartesia `sonic-3.5`** (ElevenLabs `eleven_turbo_v2_5` en repli) | `env.ts:430`, `env.ts:403` |
+| Fin de tour | **`livekit`** sur l'assistant qui décroche, attente 0,4 s, ponctuation 0,4 s | relevé au docteur |
 | RAG | hybride sémantique/lexical en mémoire, pas de pgvector | `knowledge-embeddings.service.ts:20-22` |
+
+### Ce que deux appels réels ont mesuré (16/09/2026)
+
+Premier relevé complet par étage, sur `voice:audit`. Il faut le lire avant toute
+décision d'architecture :
+
+| Étage | Mesuré | Cible | Lecture |
+|---|---|---|---|
+| PREP (notre serveur) | médiane **1 ms** | 150 ms | rien à gagner |
+| LLM (OpenAI seul) | médiane **1073 ms** | 900 ms | dépassement modeste |
+| Cache de préfixe | **76 %** | ≥ 40 % | la correction du 16/09 a marché |
+| TTFA (premier son) | médiane **318 ms** | 700 ms | large marge |
+| **TOTAL** | médiane **1620 ms** | 2000 ms | **dans la médiane de l'industrie** |
+| Délai ressenti (horloge Vapi) | médiane 2,2 s | 2 s | TOTAL + détection de fin de tour |
+| Durée des outils | 2,4 à **9,4 s** | 1,5 s | **le vrai goulot** |
+
+**Conclusion qui renverse l'hypothèse de départ** : la chaîne classique n'est
+pas mal réglée, elle est dans les clous de sa propre catégorie. Ce qui a rendu
+ces appels pénibles, ce sont les outils (neuf appels en boucle) et trois défauts
+fonctionnels, pas la latence de conversation. Voir CLAUDE.md, 6sexquadragesies.
 
 ---
 
@@ -124,6 +151,77 @@ ensuite.
 Même raisonnement, même facilité (`VAPI_MODEL`). À ne toucher qu'**après** avoir
 fait tourner les évals, qui existent précisément pour ça : c'est le premier
 changement de prompt-critique qu'elles doivent garder.
+
+---
+
+## 2 bis. Le SIP natif d'OpenAI, et pourquoi ce n'est pas la réponse aujourd'hui
+
+**Le fait nouveau** (recherche du 16/09/2026) : l'API Realtime d'OpenAI accepte
+désormais un **trunk SIP direct**. Un opérateur (Twilio) compose vers un point
+d'entrée hébergé par OpenAI, sans serveur de téléphonie au milieu, **250 à
+350 ms bout en bout**. L'appel se pilote sur un websocket
+(`wss://api.openai.com/v1/realtime?call_id=...`) avec des verbes de première
+classe : `reject`, `refer` (transfert vers un humain) et `hangup`.
+
+C'est la latence la plus basse qui existe, et ça supprime la marge de
+l'intermédiaire : le tableau de bord Vapi facture 0,645 $/min pour
+`gpt-realtime-2` là où la tarification OpenAI donne ~0,05 $/min. L'écart entre
+les deux chiffres, qui semblait une erreur de lecture, est la marge de Vapi sur
+le modèle temps réel.
+
+**Pourquoi ce n'est pas la réponse maintenant**, et c'est la mesure qui le dit :
+
+1. **Le SIP sert la latence, et la latence va déjà bien** (TOTAL 1620 ms, dans
+   la médiane de l'industrie). Ce qui a duré sur les appels réels, ce sont les
+   outils à 2,4-9,4 s, que le SIP ne touche pas.
+2. **Les trois défauts fonctionnels du 16/09 voyageraient tels quels** : la
+   phrase d'attente qui ment est NOTRE chaîne (et le mécanisme de filler
+   n'existe même pas en SIP, il serait à construire) ; la boucle d'outil est du
+   modèle plus notre texte de retour ; l'affirmation contre un retour d'outil
+   est de la discipline de modèle. Zéro sur trois, et le parole-à-parole est
+   justement le terrain où l'appel d'outils est le plus faible, ce qu'OpenAI dit
+   lui-même en positionnant son modèle complet pour « le meilleur usage
+   d'outils ».
+3. **La production 2026 reste majoritairement en cascade**, et pas par
+   conservatisme : pour la fiabilité de l'appel d'outils et pour
+   l'observabilité.
+4. **Coût caché, relevé en écrivant ceci** : le traqueur de latence par étage se
+   nourrit des webhooks `speech-update` de Vapi. Partir en SIP, c'est perdre la
+   mesure le jour où elle commence enfin à dire quelque chose.
+
+`VOICE-NEXT-GEN.md` avait écarté « le transport audio propre » à raison, mais
+contre une autre proposition (Twilio Media Streams, qu'il aurait fallu
+construire). Le SIP natif n'a pas de pipeline média à écrire : la décision est
+**déplacée**, pas renversée.
+
+**Deux conditions pour rouvrir** : les défauts fonctionnels corrigés et un appel
+propre qui tient ; et une cible réelle sous 600 ms dont on a mesuré que la
+cascade ne peut pas l'atteindre. Ce sera alors un prototype sur UNE ligne, en
+parallèle de la production, jamais une migration.
+
+---
+
+## 2 ter. Ce qui fait « humain », et où nous en sommes
+
+La recherche converge sur quatre choses, dans cet ordre : la **prosodie**, une
+réponse **sous 600 ms**, l'**interruption** qui marche, et le **backchannel**
+(les « mm-hmm » pendant que l'autre parle). Le point de référence humain est un
+écart de **200 ms** entre deux tours.
+
+| Pilier | Chez nous | Où |
+|---|---|---|
+| Prosodie | Cartesia `sonic-3.5`, TTS en `turbo` et non `flash` (+200-300 ms assumés pour le naturel) | `env.ts:376-402` |
+| Interruption | deux mots transcrits + 0,4 s d'énergie, montés après « elle s'arrête au moindre bruit » | `env.ts:157-217` |
+| Backchannel | `backchannelingEnabled: true`, accepté par Vapi. La cadence et les mots nous échappent : `backchannelPlan` est refusé par l'API, et `buildBackchannelPlan` est du **code mort** conservé pour le jour où elle l'acceptera | `speech-plans.ts:1011-1025` |
+| Réponse sous 600 ms | **non**, et c'est le seul manquant : 1620 ms de médiane | mesure du 16/09 |
+
+Trois piliers sur quatre sont donc en place. Le quatrième n'est pas une
+fonctionnalité à écrire, c'est du temps à gagner, et le parole-à-parole est
+aujourd'hui le seul chemin qui y mène (320-800 ms).
+
+**Piège à connaître** : `VOICE_BACKCHANNEL_START_DELAY_SECONDS` et
+`VOICE_BACKCHANNEL_FREQUENCY_SECONDS` ne sont lus que par le code mort. Les
+poser sur Render ne change rien à un appel.
 
 ---
 
@@ -298,6 +396,22 @@ les autres tests fiables), puis 6, puis les appels réels du protocole pour
 établir la référence de latence, **et seulement ensuite** 3, 4 et 5, qui doivent
 se mesurer contre cette référence.
 
+### Révision du 16/09/2026, après les deux premiers appels réels
+
+La référence de latence existe enfin, et elle réordonne ce tableau.
+
+| # | Action | Impact | État |
+|---|---|---|---|
+| ~~11~~ | ~~Régler la chaîne de 3,4 s vers 1,5 s~~ | — | **Sans objet** : TOTAL mesuré à 1620 ms, déjà dans la médiane de l'industrie |
+| 12 | Phrases d'attente qui n'annoncent plus le résultat | **Le plus élevé du document** | **Fait le 16/09** (`filler-says-nothing-done.test.ts`) |
+| 13 | Garde de boucle sur les outils (2 échecs identiques = stop) | Élevé | **Fait le 16/09** (`CallSession.toolFailures`) |
+| 14 | Règles de prompt : un outil qui dit NON, un rappel promis exige `captureLead` | Élevé | **Fait le 16/09**, plafond du prompt à 3500 |
+| 15 | Durée des outils : `findCallerBookings` charge 300 réservations et filtre en JS | Moyen, montera avec le volume | À mesurer avant d'indexer |
+| 16 | Premier tour : le seul sans cache de préfixe, et c'est lui qui dépasse `VOICE_FIRST_TOKEN_TIMEOUT_MS` | Moyen (première impression) | À instrumenter |
+| 17 | Étage `transcriptFinal → llmStart` non nommé dans le traqueur | Moyen | Les 800 ms de fin de tour n'apparaissent que par soustraction |
+| — | ~~Baisser `VOICE_START_WAIT_SECONDS`~~ | — | **Ne pas faire** : montés exprès le 12/09 après « il parle par-dessus moi », et la chaîne est dans les clous |
+| — | ~~SIP natif OpenAI~~ | — | **Pas maintenant** : voir §2 bis, zéro des trois défauts réels n'y serait corrigé |
+
 ---
 
 ## Sources
@@ -310,3 +424,4 @@ se mesurer contre cette référence.
 - [Belgique — liste « Ne m'appelez plus ! »](https://aide-sociale.be/liste-ne-mappelez-plus/) · [comparaison FR/BE (L'Avenir, 12/08/2026)](https://www.lavenir.net/actu/belgique/politique/2026/08/12/la-france-vient-dadopter-une-loi-pour-controler-davantage-le-demarchage-telephonique-quen-est-il-de-la-belgique-2FPKUFYNCRFELGVMTCN7ZEVUAI/)
 - [VoiceAgentRAG (Salesforce, arXiv 2603.02206)](https://arxiv.org/html/2603.02206v1) · [analyse MarkTechPost](https://www.marktechpost.com/2026/03/30/salesforce-ai-research-releases-voiceagentrag-a-dual-agent-memory-router-that-cuts-voice-rag-retrieval-latency-by-316x/)
 - [Coval vs Cekura](https://www.coval.ai/blog/coval-vs-cekura) · [Vapi — intégration MCP](https://docs.vapi.ai/tools/mcp)
+- **16/09/2026** : [OpenAI — Realtime API avec SIP](https://developers.openai.com/api/docs/guides/realtime-sip) · [CelloIP — SIP natif contre passerelle websocket](https://celloip.com/blog/openai-realtime-native-sip-vs-bridge/) · [Inworld — Vapi contre Pipecat contre LiveKit](https://inworld.ai/resources/vapi-vs-pipecat-vs-livekit) · [Forasoft — architecture LiveKit en production](https://www.forasoft.com/learn/livekit-for-ai-agents-guide) · [Regal.ai — ce qui fait une voix humaine](https://www.regal.ai/blog/what-makes-ai-sound-human)

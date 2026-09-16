@@ -5,6 +5,20 @@
  *   npm run voice:tier -- --email=a@b.com --tier=superagent         # simulation
  *   npm run voice:tier -- --email=a@b.com --tier=superagent --confirm
  *   npm run voice:tier -- --email=a@b.com --tier=auto --confirm     # retire le choix
+ *   npm run voice:tier -- --email=a@b.com --option=on --confirm     # vend l'option
+ *   npm run voice:tier -- --email=a@b.com --option=off --confirm    # la retire
+ *
+ * ## L'option, et pourquoi elle est ici
+ *
+ * Le Superagent est INCLUS à partir de Pro (`planAllows`). En dessous il
+ * s'achète, et ce droit-là vit sur la fiche client (`superagentOption`), pas
+ * dans `vapiConfig`: ce JSON est celui que le PUT du portail fusionne,
+ * c'est-à-dire ce que le client écrit lui-même. Un droit facturé qui vivrait
+ * là serait accordable depuis le navigateur de celui qui doit le payer.
+ *
+ * Poser le niveau sans le droit ne sert à rien: la résolution le ramène au
+ * classique (`entitledTier`). Les deux gestes sont donc au même endroit, et le
+ * script refuse la combinaison impossible plutôt que de l'écrire.
  *
  * ## Pourquoi un script et pas seulement un champ
  *
@@ -35,6 +49,7 @@ import { onboardingService } from '../services/onboarding.service';
 import { realtimeContextService } from '../services/voice/realtime-context.service';
 import { classifyVapiError } from '../services/voice/vapi-error';
 import { readTierId, requestedTier, VOICE_TIERS } from '../services/voice/voice-tiers';
+import { lowestPlanFor, planAllows, superagentAllowed } from '../config/plan-features';
 
 const arg = (name: string): string | null => {
   const hit = process.argv.find(a => a.startsWith(`--${name}=`));
@@ -45,14 +60,21 @@ const confirm = process.argv.includes('--confirm');
 async function main() {
   const email = arg('email')?.trim().toLowerCase();
   const raw = arg('tier')?.trim().toLowerCase() ?? null;
+  const optionArg = arg('option')?.trim().toLowerCase() ?? null;
+  if (optionArg && optionArg !== 'on' && optionArg !== 'off') {
+    console.log(`\n"${optionArg}" n'est pas une valeur d'option. Valeurs: on, off.\n`);
+    process.exitCode = 1;
+    return;
+  }
+  const option = optionArg === null ? null : optionArg === 'on';
 
   const clients = await prisma.client.findMany({
     where: {
       ...(email ? { contactEmail: email } : { subscriptionStatus: { in: ['active', 'trialing'] } }),
     },
     select: {
-      id: true, businessName: true, contactEmail: true,
-      vapiAssistantId: true, vapiConfig: true,
+      id: true, businessName: true, contactEmail: true, planType: true,
+      vapiAssistantId: true, vapiConfig: true, superagentOption: true,
     },
     take: 50,
   });
@@ -64,29 +86,58 @@ async function main() {
 
   /* Sans `--tier`, on ne fait que LIRE. Un script qui écrit par défaut est un
      script qu'on lance pour regarder et qui change la production. */
-  if (!raw) {
-    console.log('\nNIVEAU PAR CLIENT\n');
+  if (!raw && option === null) {
+    console.log('\nNIVEAU ET DROIT, PAR CLIENT\n');
     for (const c of clients) {
       const cfg = (c.vapiConfig as any) || {};
       const tier = requestedTier({ voiceTier: readTierId(cfg.voiceTier), voiceMode: cfg.voiceMode });
       const how = readTierId(cfg.voiceTier) ? 'choisi'
         : cfg.voiceMode === 'realtime' || cfg.voiceMode === 'classic' ? `hérité de voiceMode=${cfg.voiceMode}`
         : 'rien de choisi (réglage global)';
-      console.log(`  ${(tier ? VOICE_TIERS[tier].label : 'auto').padEnd(12)} ${c.businessName} (${c.contactEmail})  ${how}`);
+      /* Le droit se dit AVEC le niveau: un « Superagent » posé sans droit est
+         servi en classique, et c'est exactement l'écart qu'il faut voir ici
+         plutôt que sur une facture ou dans un appel. */
+      const droit = planAllows(c.planType, 'superagent') ? `inclus (${c.planType})`
+        : c.superagentOption ? 'option achetée'
+        : 'NON AUTORISÉ';
+      console.log(`  ${(tier ? VOICE_TIERS[tier].label : 'auto').padEnd(12)} ${droit.padEnd(18)} ` +
+        `${c.businessName} (${c.contactEmail})  ${how}`);
     }
-    console.log('\nPour changer: --tier=base | superagent | auto, puis --confirm.\n');
+    console.log(`\nPour changer: --tier=base | superagent | auto, --option=on | off, puis --confirm.`);
+    console.log(`Le Superagent est inclus à partir de ${lowestPlanFor('superagent')}.\n`);
     return;
   }
 
-  const tier = raw === 'auto' ? null : readTierId(raw);
-  if (raw !== 'auto' && !tier) {
+  const tier = !raw || raw === 'auto' ? null : readTierId(raw);
+  if (raw && raw !== 'auto' && !tier) {
     console.log(`\n"${raw}" n'est pas un niveau. Valeurs: base, superagent, auto.\n`);
     process.exitCode = 1;
     return;
   }
 
   const cible = tier ? VOICE_TIERS[tier] : null;
-  console.log(`\n${cible ? `${cible.label}: ${cible.summary}` : 'auto: le réglage global décide.'}`);
+  if (raw) {
+    console.log(`\n${cible ? `${cible.label}: ${cible.summary}` : 'auto: le réglage global décide.'}`);
+  }
+  if (option !== null) {
+    console.log(`\nOption Superagent: ${option ? 'ACCORDÉE' : 'RETIRÉE'} (droit facturé, sur la fiche client).`);
+  }
+
+  /* La combinaison impossible se refuse ICI plutôt que de s'écrire: poser
+     « superagent » sur un client qui n'y a pas droit produit un réglage que la
+     résolution ramène au classique, donc un écran qui dit une chose et un
+     appelant qui en entend une autre. */
+  if (tier === 'superagent' && option !== true) {
+    const sans = clients.filter(c => !superagentAllowed(c));
+    if (sans.length) {
+      console.log(`\nCes client(s) n'ont PAS droit au Superagent (inclus à partir de ${lowestPlanFor('superagent')}):`);
+      for (const c of sans) console.log(`  ${c.businessName} (${c.contactEmail}) — forfait ${c.planType}`);
+      console.log('\nAjouter --option=on pour leur vendre l\'option, ou changer leur forfait.\n');
+      process.exitCode = 1;
+      return;
+    }
+  }
+
   if (tier === 'superagent') {
     console.log(
       'Rappel: en parole-à-parole, Vapi appelle OpenAI directement. La mémoire de\n' +
@@ -96,7 +147,7 @@ async function main() {
   }
 
   if (!confirm) {
-    console.log(`\nSIMULATION. ${clients.length} client(s) passeraient à ce niveau:\n`);
+    console.log(`\nSIMULATION. ${clients.length} client(s) seraient modifiés:\n`);
     for (const c of clients) console.log(`  ${c.businessName} (${c.contactEmail})`);
     console.log('\nRelancer avec --confirm pour écrire.\n');
     return;
@@ -112,7 +163,12 @@ async function main() {
        en entier les effacerait en silence (6sexies). */
     await prisma.client.update({
       where: { id: c.id },
-      data: { vapiConfig: { ...cfg, voiceTier: tier } as any },
+      data: {
+        /* Le niveau ne bouge que s'il a été demandé: `--option=on` seul accorde
+           un droit sans toucher au réglage du client. */
+        ...(raw ? { vapiConfig: { ...cfg, voiceTier: tier } as any } : {}),
+        ...(option !== null ? { superagentOption: option } : {}),
+      },
     });
     /* Le profil est servi depuis un cache: sans ça, l'ancien moteur répond
        pendant tout le TTL, et c'est le mauvais qu'on jugerait à l'appel test. */

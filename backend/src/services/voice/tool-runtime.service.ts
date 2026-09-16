@@ -715,9 +715,7 @@ class ToolRuntimeService {
     const found = await this.findCallerBookings(profile, session?.callerNumber ?? null, args);
 
     if (!found.length) {
-      return profile.language === 'fr'
-        ? 'AUCUNE RESERVATION trouvee pour ce correspondant. Demande sous quel nom elle a ete prise.'
-        : 'NO BOOKING found for this caller. Ask which name it was booked under.';
+      return this.bookingNotFoundReply(profile, vapiCallId, 'lookupBooking');
     }
 
     /* TOUTES les réservations à venir de l'appelant, pas la première par
@@ -747,6 +745,54 @@ class ToolRuntimeService {
    * mémoire sur les 90 prochains jours: la base ne sait pas comparer deux
    * noms entendus, et un commerce n'a pas des milliers de rendez-vous à venir.
    */
+  /**
+   * « Aucune réservation trouvée », dit une fois comme une invitation à
+   * chercher, la seconde fois comme un arrêt.
+   *
+   * Le 16/09/2026, `rescheduleBooking` a été appelé NEUF fois avec les mêmes
+   * arguments. Deux causes qui se renforçaient: le résultat disait « puis
+   * rappelle rescheduleBooking avec ce nom », donc il INVITAIT le rappel; et
+   * rien ne comptait les essais. L'appelant a entendu « je déplace votre
+   * rendez-vous » sept fois, puis l'agent a inventé un repli qui n'existe pas
+   * (« je note votre demande et je transmets à l'équipe ») sans appeler le
+   * moindre outil: personne n'a jamais été rappelé.
+   *
+   * La règle vient de 6septies, payée sur les numéros dictés: au DEUXIÈME
+   * échec on change de canal. La cause (réservation inexistante, nom qui ne
+   * correspond à rien) ne bouge pas entre deux essais, donc un troisième essai
+   * refait ce qui vient de rater deux fois.
+   *
+   * Le second message dit AUSSI d'appeler `captureLead`: annoncer un rappel
+   * sans l'enregistrer est le plus coûteux des défauts de cette nuit, parce
+   * que l'appelant raccroche en croyant qu'on s'occupe de lui.
+   */
+  private bookingNotFoundReply(
+    profile: ClientVoiceProfile,
+    vapiCallId: string | null,
+    tool: 'lookupBooking' | 'rescheduleBooking',
+  ): string {
+    const attempts = callSessionStore.noteToolFailure(vapiCallId, `${tool}:not-found`);
+    const fr = profile.language === 'fr';
+
+    if (attempts >= 2) {
+      return fr
+        ? `AUCUNE RESERVATION trouvee, et c'est le ${attempts}e essai. N'appelle PLUS ${tool} sur cet appel: `
+          + 'la cause ne changera pas. Dis simplement que tu ne retrouves pas la reservation, '
+          + 'puis appelle captureLead pour enregistrer la demande et le rappel. '
+          + "N'annonce ni deplacement ni rappel tant que captureLead n'a pas repondu."
+        : `NO BOOKING found, and this is attempt ${attempts}. Do NOT call ${tool} again on this call: `
+          + 'the cause will not change. Say plainly that you cannot find the booking, '
+          + 'then call captureLead to record the request and the callback. '
+          + 'Do not promise a move or a callback until captureLead has answered.';
+    }
+
+    return fr
+      ? 'AUCUNE RESERVATION trouvee pour ce correspondant. Demande sous quel nom elle a ete prise, '
+        + `puis rappelle ${tool} avec ce nom. Une seule fois: si ca echoue encore, prends le message.`
+      : 'NO BOOKING found for this caller. Ask which name it was booked under, '
+        + `then call ${tool} again with that name. Once only: if it fails again, take a message.`;
+  }
+
   private async findCallerBookings(
     profile: ClientVoiceProfile,
     callerNumber: string | null,
@@ -826,9 +872,7 @@ class ToolRuntimeService {
         : `SEVERAL BOOKINGS: ${list}. Ask which one to move, then call rescheduleBooking again with that one's currentDate (YYYY-MM-DD).`;
     }
     if (!booking) {
-      return profile.language === 'fr'
-        ? 'AUCUNE RESERVATION trouvee pour ce correspondant. Demande sous quel nom elle a ete prise, puis rappelle rescheduleBooking avec ce nom.'
-        : 'NO BOOKING found for this caller. Ask which name it was booked under, then call rescheduleBooking again with that name.';
+      return this.bookingNotFoundReply(profile, vapiCallId, 'rescheduleBooking');
     }
 
     const time = String(args.time);
