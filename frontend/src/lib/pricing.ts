@@ -31,3 +31,30 @@ export function annualTotalEur(monthlyPriceEur: number): number {
 export function annualMonthlyEquivalentEur(monthlyPriceEur: number): number {
   return Math.round(annualTotalEur(monthlyPriceEur) / 12);
 }
+
+/**
+ * L'option Superagent, vendue au forfait mensuel sur les petits plans.
+ *
+ * Même maladie possible que ci-dessus, même remède: ces montants recopient
+ * `OPTION_MONTHLY_EUR` (`backend/src/config/superagent-option.ts`), qui est le
+ * seul à décider de ce que Stripe prélève. Le backend refuse d'ailleurs
+ * d'ouvrir la vente quand le prix qu'il porte ne correspond pas à l'objet Price
+ * Stripe, donc un écart bloque la vente au lieu de la facturer de travers.
+ *
+ * Absent d'un plan = l'option ne s'y vend pas, parce que ce plan l'INCLUT
+ * (Pro, Enterprise). Proposer l'option là ferait payer deux fois la même chose.
+ */
+export const SUPERAGENT_OPTION_MONTHLY_EUR: Record<string, number> = {
+  solo: 20,
+  starter: 40,
+};
+
+/** Le prix affiché pour l'option, dans la période choisie. `null` = non vendue. */
+export function superagentOptionPriceEur(
+  planKey: string,
+  period: 'monthly' | 'annual',
+): number | null {
+  const monthly = SUPERAGENT_OPTION_MONTHLY_EUR[planKey];
+  if (monthly === undefined) return null;
+  return period === 'annual' ? annualTotalEur(monthly) : monthly;
+}

@@ -2617,6 +2617,65 @@ export class ClientDashboardController {
     }
   }
 
+  /**
+   * POST /my-dashboard/superagent-option — acheter ou annuler l'option.
+   *
+   * Le « et même après » du besoin: le Superagent s'achète à l'inscription, et
+   * aussi depuis Facturation, sans repasser par une caisse. La ligne s'ajoute à
+   * l'abonnement en cours, donc Stripe calcule le prorata et rien ne change de
+   * date de renouvellement.
+   *
+   * L'AUTORITÉ reste `customer.subscription.updated`, qui relit le droit sur
+   * les lignes réellement facturées: une ligne retirée ailleurs (tableau de
+   * bord Stripe, impayé) doit couper le droit sans que personne ne repasse ici.
+   * Cette route écrit quand même le droit tout de suite, après que Stripe a
+   * accepté: agir puis réconcilier. Attendre le webhook ferait répondre à
+   * l'écran « rien n'a changé » juste après un clic qui a bien changé quelque
+   * chose, et laisserait surtout un droit ouvert le temps qu'il arrive.
+   */
+  async setSuperagentOption(req: any, res: Response) {
+    try {
+      const enabled = req.body?.enabled;
+      if (typeof enabled !== 'boolean') {
+        return res.status(400).json({ error: 'enabled must be a boolean' });
+      }
+
+      const client = await prisma.client.findUnique({ where: { id: req.clientId } });
+      if (!client) return res.status(404).json({ error: 'Client not found' });
+
+      const { stripeService } = await import('../services/stripe.service');
+
+      if (!enabled) {
+        const removed = await stripeService.removeSuperagentOption(client);
+        await this.writeSuperagentState(client, false);
+        return res.json({ success: true, active: false, changed: removed.wasOn });
+      }
+
+      const sold = await stripeService.addSuperagentOption(client);
+      if (!sold.ok) {
+        /* 409 et pas 400: la demande est bien formée, c'est l'état du compte
+           (ou la configuration de la flotte) qui l'empêche. Le message est
+           celui qui s'affiche, donc il dit quoi faire. */
+        return res.status(409).json({ error: sold.error, message: sold.message });
+      }
+      await this.writeSuperagentState(client, true);
+      res.json({ success: true, active: true, changed: !sold.alreadyOn });
+    } catch (error: any) {
+      logger.error('[dashboard] option Superagent:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  /** Le droit, puis les trois gestes qui le font arriver jusqu'à l'appel. */
+  private async writeSuperagentState(client: any, active: boolean): Promise<void> {
+    await prisma.client.update({
+      where: { id: client.id },
+      data: { superagentOption: active },
+    });
+    const { stripeService } = await import('../services/stripe.service');
+    await stripeService.applySuperagentTier(client, active);
+  }
+
   // ═══ Agent modules ═══
 
   // PUT /my-dashboard/agent-modules

@@ -425,6 +425,11 @@ export class AuthController {
       /* La langue du site à la caisse l'emporte sur celle de l'inscription:
          c'est la plus récente, et c'est la page que le client regarde. */
       const language = siteLanguage(req.body?.language) ?? user.language ?? null;
+      /* L'option Superagent cochée sur la page tarifs. Elle n'est accordée que
+         si la caisse la porte vraiment: le service la retire en silence quand
+         le forfait l'inclut déjà ou qu'elle n'est pas vendable, et c'est ce
+         qu'il a MIS dans la caisse qui décide du droit, pas cette case. */
+      const withSuperagent = req.body?.superagent === true;
       const checkoutUrl = await stripeService.createSelfOnboardingCheckout(
         { id: user.id, email: user.email },
         plan.id,
@@ -432,6 +437,7 @@ export class AuthController {
         industry,
         billingPeriod,
         language,
+        withSuperagent,
       );
       if (!checkoutUrl) return res.status(502).json({ error: 'checkout_unavailable' });
 

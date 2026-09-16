@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Check, AlertTriangle, Shield, Phone, FileText, Download, CreditCard } from '../../components/icons';
+import { Check, AlertTriangle, Shield, Phone, FileText, Download, CreditCard, Zap } from '../../components/icons';
 import api from '../../services/api';
 import { formatDate } from '../../utils/format';
 import { annualTotalEur, annualMonthlyEquivalentEur } from '../../lib/pricing';
@@ -26,6 +26,17 @@ interface BillingOverview {
   /** Vrai quand Stripe n'a pas répondu. À ne pas confondre avec « pas de
       carte »: l'un appelle une action du client, l'autre non. */
   paymentMethodUnavailable?: boolean;
+  /** L'option Superagent: incluse au forfait, achetée, achetable, ou bloquée.
+      Une seule lecture côté serveur (`superagentOffer`) décide des quatre, pour
+      que l'écran ne puisse pas proposer ce que la route refusera. */
+  superagent?: {
+    included: boolean;
+    active: boolean;
+    priceEur: number | null;
+    period: 'monthly' | 'annual';
+    sellable: boolean;
+    blockedReason: string | null;
+  };
 }
 
 /* « visa » devient « Visa », « amex » devient « American Express ». Stripe rend
@@ -159,6 +170,7 @@ export default function ClientBilling() {
      formule qu'il n'a pas prise. */
   const [billingChoice, setBillingChoice] = useState<'monthly' | 'annual'>('monthly');
   const [openingPortal, setOpeningPortal] = useState(false);
+  const [superagentBusy, setSuperagentBusy] = useState(false);
   const [invoiceOpening, setInvoiceOpening] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
 
@@ -223,6 +235,31 @@ export default function ClientBilling() {
       );
     } finally {
       setUpgrading(null);
+    }
+  };
+
+  /* L'option Superagent, prise ou rendue sans passer par une caisse: la ligne
+     s'ajoute à l'abonnement en cours, donc Stripe calcule le prorata et la date
+     de renouvellement ne bouge pas.
+     La page ne décide de rien: elle affiche ce que `overview.superagent` dit et
+     relit l'aperçu après coup. Deviner l'état ici, c'est le faire diverger de
+     ce qui est facturé. */
+  const toggleSuperagent = async (enabled: boolean) => {
+    setSuperagentBusy(true);
+    setLoadError(null);
+    try {
+      await api.post('/my-dashboard/superagent-option', { enabled });
+      const { data } = await api.get('/my-dashboard/billing');
+      setOverview(data);
+    } catch (e: any) {
+      /* Le serveur répond 409 avec une phrase déjà écrite pour l'écran (forfait
+         qui l'inclut, option indisponible): on l'affiche telle quelle. */
+      setLoadError(
+        e?.response?.data?.message
+          ?? "L'option n'a pas pu être modifiée. Réessayez dans un instant.",
+      );
+    } finally {
+      setSuperagentBusy(false);
     }
   };
 
@@ -426,6 +463,91 @@ export default function ClientBilling() {
           </div>
         )}
       </motion.div>
+
+      {/* ── L'option Superagent ──────────────────────────────────────────────
+          Délibérément PAS une quatrième carte de forfait: ce n'est pas un plan
+          qu'on compare, c'est un interrupteur sur le plan qu'on a déjà. D'où
+          une bande, un seul geste, et la phrase qui dit ce que ça change à
+          l'appel plutôt qu'une liste de fonctions cochées.
+          L'état vient entièrement du serveur (`overview.superagent`): l'écran
+          ne propose jamais ce que la route refuserait. */}
+      {overview?.superagent && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.08 }}
+          className="rounded-xl border p-5"
+          style={{
+            borderColor: overview.superagent.active || overview.superagent.included
+              ? 'rgba(122,95,255,0.35)'
+              : 'rgba(255,255,255,0.08)',
+            background: 'rgba(255,255,255,0.02)',
+          }}
+        >
+          <div className="flex flex-wrap items-start justify-between gap-4">
+            <div className="max-w-xl">
+              <div className="flex items-center gap-2 mb-1.5">
+                <Zap size={15} style={{ color: '#b9a8ff' }} aria-hidden="true" />
+                <p className="text-sm font-semibold text-[#F5F5F7]">Superagent</p>
+                {overview.superagent.included && (
+                  <span
+                    className="text-[10px] font-semibold uppercase tracking-[0.08em] px-1.5 py-0.5 rounded-full"
+                    style={{ background: 'rgba(122,95,255,0.18)', color: '#b9a8ff' }}
+                  >
+                    Inclus
+                  </span>
+                )}
+                {overview.superagent.active && !overview.superagent.included && (
+                  <span
+                    className="text-[10px] font-semibold uppercase tracking-[0.08em] px-1.5 py-0.5 rounded-full"
+                    style={{ background: 'rgba(122,95,255,0.18)', color: '#b9a8ff' }}
+                  >
+                    Active
+                  </span>
+                )}
+              </div>
+              <p className="text-[13px] leading-relaxed text-[#A1A1A8]">
+                La voix passe en temps réel: votre réceptionniste entend et répond
+                directement, sans passer par une transcription. Les silences sont plus
+                courts et l'intonation suit la conversation.
+              </p>
+              {overview.superagent.blockedReason && !overview.superagent.included && !overview.superagent.active && (
+                <p className="text-[12px] mt-2" style={{ color: '#fbbf24' }}>
+                  Indisponible pour le moment.
+                </p>
+              )}
+            </div>
+
+            <div className="flex items-center gap-4">
+              {overview.superagent.priceEur !== null && !overview.superagent.included && (
+                <div className="text-right">
+                  <span className="text-lg font-bold text-[#F5F5F7]">
+                    +{overview.superagent.priceEur}€
+                  </span>
+                  <span className="text-xs text-[#A1A1A8]">
+                    /{overview.superagent.period === 'annual' ? 'an' : 'mois'}
+                  </span>
+                </div>
+              )}
+              {!overview.superagent.included && (
+                <button
+                  type="button"
+                  onClick={() => toggleSuperagent(!overview.superagent!.active)}
+                  disabled={superagentBusy || (!overview.superagent.active && !overview.superagent.sellable)}
+                  className="rounded-lg px-4 py-2 text-[13px] font-medium text-white disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7349fe]/50 active:scale-[0.97] transition-colors"
+                  style={{
+                    background: overview.superagent.active ? 'rgba(255,255,255,0.06)' : '#7349fe',
+                  }}
+                >
+                  {superagentBusy
+                    ? '...'
+                    : overview.superagent.active ? 'Désactiver' : 'Activer'}
+                </button>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      )}
 
       {/* Plan grid */}
       <div>

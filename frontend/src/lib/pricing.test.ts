@@ -1,5 +1,8 @@
 import { describe, it, expect } from 'vitest';
-import { annualTotalEur, annualMonthlyEquivalentEur, ANNUAL_DISCOUNT } from './pricing';
+import {
+  annualTotalEur, annualMonthlyEquivalentEur, ANNUAL_DISCOUNT,
+  SUPERAGENT_OPTION_MONTHLY_EUR, superagentOptionPriceEur,
+} from './pricing';
 
 /**
  * Ces nombres sont ceux que STRIPE prélèvera, pas ceux qu'une page a envie
@@ -36,5 +39,29 @@ describe("le tarif annuel annoncé est celui qui sera prélevé", () => {
 
   it('remise de 20 %, la même valeur que côté backend', () => {
     expect(ANNUAL_DISCOUNT).toBe(0.2);
+  });
+});
+
+/**
+ * L'option Superagent. Même règle que les forfaits: ce qui s'affiche est ce qui
+ * sera prélevé, et le backend REFUSE d'ouvrir la vente sur un écart plutôt que
+ * de facturer de travers.
+ */
+describe("l'option Superagent", () => {
+  it("porte les montants de `OPTION_MONTHLY_EUR` côté backend", () => {
+    expect(SUPERAGENT_OPTION_MONTHLY_EUR.solo).toBe(20);
+    expect(SUPERAGENT_OPTION_MONTHLY_EUR.starter).toBe(40);
+  });
+
+  it("ne se vend PAS sur les forfaits qui l'incluent", () => {
+    /* Pro et Enterprise portent le Superagent dans l'abonnement: afficher une
+       option là ferait payer deux fois la même chose. */
+    expect(superagentOptionPriceEur('pro', 'monthly')).toBeNull();
+    expect(superagentOptionPriceEur('enterprise', 'monthly')).toBeNull();
+  });
+
+  it("suit la MÊME formule annuelle que les forfaits, pas une remise à part", () => {
+    expect(superagentOptionPriceEur('solo', 'annual')).toBe(annualTotalEur(20));
+    expect(superagentOptionPriceEur('starter', 'annual')).toBe(annualTotalEur(40));
   });
 });
