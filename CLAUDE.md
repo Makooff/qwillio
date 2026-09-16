@@ -1514,6 +1514,40 @@ nommer ce bouton. Deux pièges dans ce compte: le nom servi est **daté**
 zéro pour toujours; et un nom configuré peut préfixer l'autre (`gpt-4.1` et
 `gpt-4.1-mini`), donc l'attribution va au nom le plus LONG.
 
+### 6unquinquagesies. Un correctif se vérifie à l'endroit FAUTIF, pas à l'endroit corrigé (16/09/2026)
+« Enlève le contour mauve de la barre de recherche au clic » a été demandé
+DEUX fois, et la première correction avait bien été faite: `focus:border-[#7349fe]/50`
+retiré du champ de `ClientBookings`. Le mauve était toujours là. Il ne venait
+pas de la bordure mais de la feuille globale:
+
+    input:focus-visible { outline: 2px solid var(--q-accent-hi) }
+
+`globals.css`, spécificité (0,1,1) contre (0,1,0) pour l'utilitaire
+`outline-none`: elle gagne quoi qu'on écrive sur le champ. Et le commentaire
+posé au-dessus d'elle affirme que « mouse clicks don't show it
+(`:focus-visible`) » — vrai d'un BOUTON, **faux d'un champ de saisie**, auquel
+le navigateur fait toujours correspondre `:focus-visible` puisqu'il attend des
+touches. Un commentaire qui décrit une règle du navigateur peut être faux à
+moitié, et c'est la moitié qui n'a pas été essayée qui coûte.
+`focus-visible:outline-none` (spécificité (0,2,0)) reprend la main sur CE champ
+seulement: l'anneau clavier du reste de l'application reste en place, ce qui
+est une règle d'accessibilité et pas une décoration. Le focus reste vu par la
+bordure (28 % au lieu de 8 %) et le fond.
+**Le test avait le même angle mort que le correctif**: il vérifiait l'absence
+de `7349fe` dans la classe du champ, et il PASSAIT pendant que le mauve était à
+l'écran. Un test écrit depuis le correctif ne prouve que le correctif; c'est
+l'endroit FAUTIF qu'il faut savoir nommer. Piège au passage: la règle globale
+elle-même ne se lit pas depuis un test de composant, vitest rendant une chaîne
+vide pour un import CSS, `?raw` compris. Et `fs`/`__dirname` dans un test du
+front passent sous vitest et font tomber `tsc -b` du build, le tsconfig ne
+portant pas les types de Node: c'est le `npm run build` qui l'attrape, pas les
+tests.
+Même passage, la largeur: la barre d'outils tenait sur une ligne, donc la
+recherche prenait ce qui RESTAIT à droite des contrôles. Elle a sa propre
+rangée, pleine largeur du cadre de l'agenda, et le sélecteur de vue est poussé
+au bord droit par `ml-auto` — aligné sur le cadre, plus sur la fin d'un nom de
+mois dont la longueur change tous les mois.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).
