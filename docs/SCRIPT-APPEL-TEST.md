@@ -1,57 +1,56 @@
-# Script d'appel test : quoi dire, dans quel ordre, et quoi m'envoyer après
+# Script d'appel test : tout en deux appels
 
-Un appel de trois à quatre minutes qui fait passer l'agent par TOUT ce qui compte :
-accueil, reconnaissance, question métier, agenda, nom épelé, réservation, SMS,
-interruption, bruit, fin. Chaque étape dit ce qu'elle teste et ce que l'audit
-regardera. Un seul appel suffit si tu suis l'ordre.
+Deux appels, cinq minutes en tout, qui font passer l'agent par TOUT ce qui
+compte : accueil, horaires, hors-base, refus propres (jour fermé, hors
+horaires, date passée, nom manquant), agenda, nom épelé, réservation, SMS,
+interruption, bruit, reconnaissance, déplacement, transfert. Chaque ligne dit
+ce que l'agent doit faire ; `voice:audit` mesure le reste.
 
-Avant l'appel : Render déployé (le dernier commit dans l'en-tête des journaux),
-`npm run voice:resync -- --confirm` passé si un réglage d'assistant a bougé.
+Avant : Render déployé (le dernier commit dans l'en-tête des journaux), et
+`npm run voice:resync -- --confirm` si un réglage d'assistant a bougé.
 
-## Version A : appelant INCONNU (à faire en premier)
+## Appel 1 : appelant INCONNU, réservation (environ 3 min)
 
-Appelle depuis un numéro que la base ne connaît pas (ou efface ton numéro dans
-Rendez-vous puis Appels avant). C'est le cas d'un vrai prospect.
+Depuis un numéro que la base ne connaît pas (ou efface ton numéro dans
+Rendez-vous, Appels et Leads avant). C'est le cas d'un vrai prospect.
 
-| # | Tu dis | Ce que ça teste | L'agent doit |
-|---|---|---|---|
-| 1 | Rien. Écoute l'accueil en entier. | Annonce IA, notice d'enregistrement, première phrase qui part | Se présenter comme IA, nommer l'entreprise, demander comment aider |
-| 2 | « Vous êtes ouverts le samedi ? » | Horaires du portail dans le prompt | Répondre avec les horaires enregistrés, pas 9 h-17 h inventé |
-| 3 | « Vous prenez la mutuelle X ? » (une question que la base ne couvre PAS) | Règle anti-invention | Dire qu'il ne sait pas et proposer de prendre le message, jamais inventer |
-| 4 | « Je voudrais un rendez-vous jeudi matin. » | Date relative, spéculation agenda, jour ouvert | Proposer UN créneau à la fois, avec le jour de semaine |
-| 5 | « Le premier, c'est bien. » | Passage à la réservation | Demander prénom ET nom de famille AVANT de réserver |
-| 6 | « Jean-Luc de la Forge. » | Épellation demandée à un inconnu | Demander d'épeler le nom de famille |
-| 7 | Épelle : « D, E, L, A, F, O, R, G, E », en séparant les lettres | Lecture des lettres, relecture par l'agent | Relire les lettres, pas « Delaforde » |
-| 8 | « Oui, c'est ça. » | `bookAppointment` avec nom complet | Dire « c'est réservé » SEULEMENT après, nommer le jour, annoncer le SMS |
-| 9 | Pendant qu'il confirme, coupe-le : « Pardon, et c'est à quelle adresse ? » | Interruption volontaire (deux mots) | S'arrêter, répondre à l'adresse, reprendre |
-| 10 | Fais du bruit sans parler (tape sur la table, une porte) pendant qu'il parle | Bruit ≠ parole | NE PAS s'arrêter |
-| 11 | « Merci, au revoir. » | Fin propre | Saluer, raccrocher lui-même |
+| # | Tu dis | Il doit |
+|---|---|---|
+| 1 | Rien. Écoute l'accueil en entier. | Se présenter comme IA, nommer l'entreprise, dire la notice d'enregistrement |
+| 2 | « Vous êtes ouverts le samedi ? » | Les horaires du portail, pas 9 h-17 h inventé |
+| 3 | « Vous prenez la mutuelle Partenamut ? » (une question que la base ne couvre PAS) | « Je ne sais pas », proposer de prendre le message, ne rien inventer |
+| 4 | « Je voudrais un rendez-vous dimanche. » | Refuser en nommant le prochain jour ouvert |
+| 5 | « Alors jeudi à 7 h du matin. » | Refuser en nommant la fenêtre d'ouverture |
+| 6 | « Jeudi matin alors, ce que vous avez. » | UN créneau à la fois, avec le jour de semaine |
+| 7 | « Le premier, c'est bien. » | Demander prénom ET nom de famille AVANT de réserver |
+| 8 | « Oui. » (sans donner de nom) | Redemander le nom, ne pas réserver |
+| 9 | « Jean-Luc de la Forge. » | Demander d'épeler le nom de famille |
+| 10 | « D, E, L, A, F, O, R, G, E », lettre par lettre | Relire les lettres, pas « Delaforde » |
+| 11 | « C'est ça. » | Dire « c'est réservé » SEULEMENT après l'outil, nommer le jour, annoncer le SMS |
+| 12 | Coupe-le pendant qu'il confirme : « Pardon, c'est à quelle adresse ? » | S'arrêter, répondre, reprendre |
+| 13 | Tape sur la table pendant qu'il parle, sans parler | NE PAS s'arrêter |
+| 14 | « Merci, au revoir. » | Saluer, raccrocher lui-même |
 
-Vérifie sur ton téléphone : SMS reçu avec le lien agenda, et sur le portail :
-Rendez-vous (le jour, le nom épelé), Leads (la fiche), Appels (le résumé).
+Vérifie sur ton téléphone : SMS reçu avec le lien agenda. Sur le portail :
+Rendez-vous (jeudi, le nom épelé), Leads (la fiche), Appels (le résumé).
 
-## Version B : appelant CONNU (le même numéro, dix minutes après)
+## Appel 2 : appelant CONNU, déplacement, transfert (environ 2 min)
 
-| # | Tu dis | Ce que ça teste | L'agent doit |
-|---|---|---|---|
-| 1 | « Bonjour, c'est encore moi. » | Mémoire d'appelant par le numéro | Te nommer « probablement Jean-Luc de la Forge », sans redemander d'épeler |
-| 2 | « Je dois déplacer mon rendez-vous de jeudi. » | `lookupBooking` puis `rescheduleBooking` | Retrouver la réservation du premier coup, proposer un autre créneau, déplacer SANS créer un second rendez-vous |
-| 3 | « Vendredi même heure. » | Déplacement | Confirmer le nouveau jour, renvoyer un SMS |
-| 4 | « Je voudrais parler à quelqu'un. » | Transfert explicite | Transférer sans discuter (ton téléphone sonne si le numéro de transfert est posé), ou proposer un message si aucun transfert n'est configuré |
-| 5 | Raccroche. | | |
+Même numéro, dix minutes après.
 
-Version B, après : Rendez-vous ne montre QU'UN rendez-vous pour ce nom, sur
-vendredi. Deux lignes = défaut à me signaler.
+| # | Tu dis | Il doit |
+|---|---|---|
+| 1 | « Bonjour, c'est encore moi. » | Te nommer « probablement Jean-Luc de la Forge », sans faire épeler |
+| 2 | « Je dois déplacer mon rendez-vous de jeudi. » | Retrouver la réservation du premier coup, proposer un autre créneau |
+| 3 | « Vendredi, même heure. » | Déplacer SANS créer un second rendez-vous, renvoyer un SMS |
+| 4 | « Et remettez-le à samedi dernier. » | Refuser une date passée en disant la date du jour |
+| 5 | « Non, laissez vendredi. Je voudrais parler à quelqu'un. » | Transférer sans discuter (ton téléphone sonne si le numéro de transfert est posé), sinon proposer un message |
+| 6 | Raccroche. | |
 
-## Version C : ce qui doit rater proprement (une fois)
+Vérifie : Rendez-vous ne montre QU'UN rendez-vous pour ce nom, sur vendredi.
+Deux lignes = défaut à signaler.
 
-- Réponds « oui » à « votre nom ? » sans donner de nom : l'agent doit
-  redemander, jamais réserver.
-- Demande « dimanche » (fermé) : il doit refuser en nommant le prochain jour ouvert.
-- Demande « demain à 7 h » (hors horaires) : il doit nommer la fenêtre d'ouverture.
-- Dis « samedi dernier » : il doit refuser une date passée en disant la date du jour.
-
-## Ce que tu m'envoies après chaque appel
+## Ce que tu envoies après CHAQUE appel
 
 Sur le shell Render :
 
@@ -59,10 +58,10 @@ Sur le shell Render :
 npm run voice:audit
 ```
 
-Colle-moi le bloc entier (de « AUDIT D'APPEL » à « À FAIRE »). Il dit pour cet
-appel si ça a marché ligne par ligne, où part le temps, et quel curseur toucher.
-Pour un appel plus ancien : `npm run voice:audit -- --call=<vapiCallId>` (l'identifiant
-est dans `voice:doctor`, section « Derniers appels »).
+Colle le bloc entier (de « AUDIT D'APPEL » à « À FAIRE »). Il dit pour cet
+appel si ça a marché ligne par ligne, où part le temps, et quel curseur
+toucher. Pour un appel plus ancien : `npm run voice:audit -- --call=<vapiCallId>`
+(l'identifiant est dans `voice:doctor`, section « Derniers appels »).
 
-Ajoute deux phrases de ressenti : « il a parlé par-dessus moi à l'étape 9 »,
-« il a mis trois secondes à l'étape 4 ». L'audit mesure, toi tu entends.
+Ajoute deux phrases de ressenti : « il a parlé par-dessus moi à la ligne 12 »,
+« il a mis trois secondes à la ligne 6 ». L'audit mesure, toi tu entends.
