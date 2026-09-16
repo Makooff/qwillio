@@ -18,6 +18,9 @@ import { nameSimilarity, NAME_MATCH_THRESHOLD } from '../../utils/name-match';
 import { ymdOf } from '../../utils/zoned-time';
 import { dayWindow, nextOpenDay, minutesOf } from '../../utils/opening-hours';
 import { smsReadiness } from '../sms-ready';
+
+/** Durée de validité de « ce client a un expéditeur SMS », lu en base sinon. */
+const SMS_SENDER_MEMO_MS = 5 * 60 * 1000;
 import { env } from '../../config/env';
 
 /**
@@ -606,11 +609,26 @@ class ToolRuntimeService {
       + ' Ask if they need anything else.';
   }
 
-  /** Un SMS ne se promet que s'il peut partir: identifiants, et un expéditeur pour CE client. */
+  /**
+   * Un SMS ne se promet que s'il peut partir: identifiants, et un expéditeur
+   * pour CE client. La réponse est retenue quelques minutes par client: elle
+   * était relue en base sur le chemin critique de `bookAppointment`, entre
+   * l'écriture de la réservation et la phrase rendue au modèle, alors que
+   * l'expéditeur d'un client ne change qu'à l'attribution d'une ligne.
+   */
+  private readonly smsSenderMemo = new Map<string, { ok: boolean; at: number }>();
+  /** Le même relevé, lancé à l'ouverture de l'appel pour ne pas le payer à la réservation. */
+  async warmSmsSender(clientId: string): Promise<void> {
+    await this.canSendSms(clientId);
+  }
   private async canSendSms(clientId: string): Promise<boolean> {
     if (!smsReadiness().ok) return false;
+    const memo = this.smsSenderMemo.get(clientId);
+    if (memo && Date.now() - memo.at < SMS_SENDER_MEMO_MS) return memo.ok;
     const { smsService } = await import('../sms.service');
-    return !!(await smsService.senderFor(clientId));
+    const ok = !!(await smsService.senderFor(clientId));
+    this.smsSenderMemo.set(clientId, { ok, at: Date.now() });
+    return ok;
   }
 
   /** Le SMS de confirmation, avec le lien d'agenda public de la réservation. */

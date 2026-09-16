@@ -309,6 +309,11 @@ class RealtimeOrchestratorService {
         callerNumber: callerNumberOf(event),
         language: profile?.language ?? 'en',
       });
+      /* Pendant que l'accueil se dit, les lectures que le PREMIER tour et la
+         réservation paieraient sinon sur le chemin de la réponse: l'historique
+         de l'appelant (trois requêtes) et l'expéditeur SMS du client. Sans
+         await, et sans conséquence si ça rate: le tour les relira. */
+      warmCallerContext(clientId, callerNumberOf(event));
     }
 
     /* Un appel qui arrive PAR le renvoi est la seule preuve que le renvoi
@@ -482,6 +487,11 @@ class RealtimeOrchestratorService {
       .filter(c => c.name);
 
     if (!calls.length) return [];
+
+    /* Le tour de modèle qui vient de se fermer a répondu par un outil: son
+       premier son viendra du tour SUIVANT. Dit au tracker avant d'exécuter,
+       pour que TTFA ne mesure pas l'agenda (16/09/2026). */
+    callSessionStore.markLatency(vapiCallId, 'toolTurn');
 
     /* La session en mémoire ne survit ni à un redémarrage ni à une seconde
        instance. Sans elle, lookupBooking ne connaît plus le numéro de
@@ -735,3 +745,13 @@ function median(values: number[]): number | null {
 }
 
 export const realtimeOrchestratorService = new RealtimeOrchestratorService();
+
+/**
+ * Préchauffe les caches que le premier tour de modèle et `bookAppointment`
+ * liraient sinon sur le chemin critique (16/09/2026, « il est lent »).
+ * Exporté pour le test; jamais attendu par l'appelant.
+ */
+export function warmCallerContext(clientId: string, callerNumber: string | null): void {
+  void realtimeContextService.getCallerHistory(clientId, callerNumber).catch(() => {});
+  void toolRuntimeService.warmSmsSender(clientId).catch(() => {});
+}

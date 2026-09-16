@@ -320,7 +320,7 @@ class CallSessionStore {
   /** Stage marks. No-ops on an unknown call, so callers need no guard. */
   markLatency(
     vapiCallId: string | null,
-    mark: 'callerSpeechEnd' | 'transcriptFinal' | 'llmStart' | 'llmFirstDelta' | 'llmEnd' | 'assistantSpeechStart',
+    mark: 'callerSpeechEnd' | 'transcriptFinal' | 'llmStart' | 'llmRequestSent' | 'llmFirstDelta' | 'llmEnd' | 'toolTurn' | 'assistantSpeechStart',
   ): void {
     const session = this.get(vapiCallId);
     if (!session) return;
@@ -331,6 +331,10 @@ class CallSessionStore {
         return session.latency.markTranscriptFinal();
       case 'llmStart':
         return session.latency.markLlmStart();
+      case 'llmRequestSent':
+        return session.latency.markLlmRequestSent();
+      case 'toolTurn':
+        return session.latency.markToolTurn();
       case 'llmFirstDelta':
         return session.latency.markLlmFirstDelta();
       case 'llmEnd':

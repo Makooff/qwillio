@@ -6,7 +6,8 @@
  * splits one turn into the three stages that can actually be acted on:
  *
  *   STT   caller stops speaking      → final transcript emitted
- *   LLM   request enters our handler → first delta written back
+ *   PREP  request enters our handler → request sent to OpenAI (our server)
+ *   LLM   request sent to OpenAI    → first delta written back
  *   TTS   last delta written         → assistant audio starts
  *   TTFA  first delta written        → assistant audio starts
  *
@@ -32,7 +33,7 @@
  * reason to keep custom-LLM on.
  */
 
-export type LatencyStage = 'stt' | 'llm' | 'tts' | 'ttfa' | 'total';
+export type LatencyStage = 'stt' | 'prep' | 'llm' | 'tts' | 'ttfa' | 'total';
 
 export interface StageStats {
   count: number;
@@ -74,6 +75,8 @@ interface TurnMarks {
   callerSpeechEndedAt: number | null;
   transcriptFinalAt: number | null;
   llmStartedAt: number | null;
+  /** Le moment où la requête PART vers OpenAI: ce qui précède est à nous. */
+  llmRequestSentAt: number | null;
   llmFirstDeltaAt: number | null;
   lastDeltaAt: number | null;
 }
@@ -83,7 +86,7 @@ interface TurnMarks {
  * call session — nothing here touches I/O or shared state.
  */
 export class CallLatencyTracker {
-  private samples: Record<LatencyStage, number[]> = { stt: [], llm: [], tts: [], ttfa: [], total: [] };
+  private samples: Record<LatencyStage, number[]> = { stt: [], prep: [], llm: [], tts: [], ttfa: [], total: [] };
   /**
    * How each turn's audio started, counted only on turns where we saw the LLM.
    *
@@ -93,10 +96,20 @@ export class CallLatencyTracker {
    * a measurement.
    */
   private turnStarts = { streamed: 0, buffered: 0 };
+  /**
+   * Les tours dont le modèle a répondu par un OUTIL et non par une phrase.
+   * Sur ces tours, le premier son n'arrive qu'après l'outil ET le tour de
+   * modèle suivant: compter leur TTFA gonflait la médiane de la synthèse
+   * avec du temps d'agenda (« TTFA 3,5 s » le 16/09, alors que le son ne
+   * pouvait pas partir). Ils sont comptés à part, et le TOTAL les garde:
+   * c'est bien ce que l'appelant attend.
+   */
+  private toolTurns = 0;
   private marks: TurnMarks = {
     callerSpeechEndedAt: null,
     transcriptFinalAt: null,
     llmStartedAt: null,
+    llmRequestSentAt: null,
     llmFirstDeltaAt: null,
     lastDeltaAt: null,
   };
@@ -115,6 +128,7 @@ export class CallLatencyTracker {
       callerSpeechEndedAt: at,
       transcriptFinalAt: null,
       llmStartedAt: null,
+      llmRequestSentAt: null,
       llmFirstDeltaAt: null,
       lastDeltaAt: null,
     };
@@ -131,13 +145,44 @@ export class CallLatencyTracker {
   /** Request entered the custom-LLM handler. */
   markLlmStart(at = Date.now()): void {
     this.marks.llmStartedAt = at;
+    this.marks.llmRequestSentAt = null;
+  }
+
+  /**
+   * La requête part vers OpenAI. Ferme PREP: tout ce qui s'est passé depuis
+   * l'entrée du handler (historique de l'appelant, blocs de prompt, lecture
+   * du profil) est à nous, et se règle chez nous. Ce qui suit est le
+   * fournisseur. Sans cette borne, « LLM 1,8 s » ne disait pas à qui
+   * appartenait la seconde de trop.
+   */
+  markLlmRequestSent(at = Date.now()): void {
+    if (this.marks.llmStartedAt === null || this.marks.llmRequestSentAt !== null) return;
+    this.marks.llmRequestSentAt = at;
+    this.push('prep', this.marks.llmStartedAt, at);
   }
 
   /** First token written back to Vapi. Closes the LLM stage. */
   markLlmFirstDelta(at = Date.now()): void {
     if (this.marks.llmStartedAt === null || this.marks.llmFirstDeltaAt !== null) return;
     this.marks.llmFirstDeltaAt = at;
-    this.push('llm', this.marks.llmStartedAt, at);
+    /* Depuis l'envoi quand il a eu lieu; depuis l'entrée sinon (tour local
+       ou transfert, sans requête): le sous-milliseconde reste un tour. */
+    this.push('llm', this.marks.llmRequestSentAt ?? this.marks.llmStartedAt, at);
+  }
+
+  /**
+   * Le modèle a répondu par un appel d'outil: aucune phrase ne sortira de CE
+   * tour, le son viendra du tour suivant. Les bornes de synthèse sont donc
+   * effacées, pour que TTFA, TTS et « son parti avant la fin du texte » ne
+   * mesurent que des tours qui pouvaient parler. Le total reste ouvert.
+   */
+  markToolTurn(): void {
+    if (this.marks.llmStartedAt === null) return;
+    this.toolTurns++;
+    this.marks.llmStartedAt = null;
+    this.marks.llmRequestSentAt = null;
+    this.marks.llmFirstDeltaAt = null;
+    this.marks.lastDeltaAt = null;
   }
 
   /** Last token of the completion — the moment TTS has everything it needs. */
@@ -231,7 +276,7 @@ export class CallLatencyTracker {
 
   report(): LatencyReport {
     const out: LatencyReport = {};
-    for (const stage of ['stt', 'llm', 'tts', 'ttfa', 'total'] as LatencyStage[]) {
+    for (const stage of ['stt', 'prep', 'llm', 'tts', 'ttfa', 'total'] as LatencyStage[]) {
       const stats = summarise(this.samples[stage]);
       if (stats) out[stage] = stats;
     }
@@ -247,6 +292,7 @@ export class CallLatencyTracker {
        `0/0` reads as "streaming never worked", which is a different claim from
        "we never saw the LLM on this call". */
     if (streamed + buffered > 0) out.streaming = { streamed, buffered };
+    if (this.toolTurns > 0) out.toolTurns = this.toolTurns;
     if (this.vendorMetrics) out.vendor = this.vendorMetrics;
     return out;
   }
@@ -259,7 +305,7 @@ export class CallLatencyTracker {
     const r = this.report();
     const part = (name: string, s?: StageStats) => (s ? `${name} ${s.median}ms (p95 ${s.p95})` : `${name} n/a`);
     const { streamed, buffered } = this.turnStarts;
-    const parts = [part('STT', r.stt), part('LLM', r.llm), part('TTS', r.tts), part('TTFA', r.ttfa), part('total', r.total)];
+    const parts = [part('STT', r.stt), part('PREP', r.prep), part('LLM', r.llm), part('TTS', r.tts), part('TTFA', r.ttfa), part('total', r.total)];
     /* Reads as « on how many turns did the first sound beat the last token »,
        which is the one thing LAT-5 asks and the one thing a median hides. */
     if (streamed + buffered > 0) parts.push(`clause-stream ${streamed}/${streamed + buffered}`);
@@ -286,14 +332,25 @@ export function describeStoredLatency(raw: unknown): string[] {
       : `${label}: pas de mesure · ${what}`;
   const out = [
     line('STT', 'fin de parole de l\'appelant → transcription finale (Vapi, endpointing compris)', stage('stt')),
-    line('LLM', 'requête reçue → premier jeton rendu (notre serveur + OpenAI)', stage('llm')),
-    line('TTFA', 'premier jeton → premier son (découpe TTS + synthèse)', stage('ttfa')),
+    line('PREP', 'requête reçue → requête envoyée à OpenAI (notre serveur seul: profil, historique, blocs)', stage('prep')),
+    line('LLM', stage('prep') ? 'requête envoyée → premier jeton (OpenAI seul)' : 'requête reçue → premier jeton (notre serveur + OpenAI, non séparés sur cet appel)', stage('llm')),
+    line('TTFA', 'premier jeton → premier son (découpe TTS + synthèse), tours à outil exclus', stage('ttfa')),
     line('TOTAL', 'fin de parole → premier son, mesuré de bout en bout', stage('total')),
   ];
   const streaming = snap.streaming as { streamed?: number; buffered?: number } | undefined;
   if (streaming && (streaming.streamed ?? 0) + (streaming.buffered ?? 0) > 0) {
     const total = (streaming.streamed ?? 0) + (streaming.buffered ?? 0);
     out.push(`son parti avant la fin du texte: ${streaming.streamed ?? 0}/${total} tour(s)`);
+  }
+  const toolTurns = typeof snap.toolTurns === 'number' ? snap.toolTurns : 0;
+  if (toolTurns > 0) {
+    out.push(`tours répondus par un outil (agenda, fiche): ${toolTurns}, sans son propre, comptés dans TOTAL seulement`);
+  }
+  const tokens = snap.tokens as { input?: number; cached?: number; output?: number } | undefined;
+  if (tokens && (tokens.input ?? 0) > 0) {
+    const hit = Math.round(((tokens.cached ?? 0) / (tokens.input ?? 1)) * 100);
+    out.push(`cache de préfixe OpenAI: ${hit} % des ${tokens.input} jetons d'entrée servis depuis le cache (${tokens.output ?? 0} en sortie)`
+      + (hit === 0 ? ' · 0 % = le préfixe change entre les tours ou est trop court pour être mis en cache' : ''));
   }
   return out;
 }

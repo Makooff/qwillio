@@ -63,6 +63,7 @@ const NS = 'qwillio.voice';
 /** Ce que porte un span d'étage, par étage. */
 const STAGE_SPAN: Record<LatencyStage, string> = {
   stt: `${NS}.stt`,
+  prep: `${NS}.llm.prep`, // notre serveur, avant l'envoi de la requête
   llm: 'chat', // gen_ai: le nom du span est l'opération, pas un chemin maison
   tts: `${NS}.tts`,
   ttfa: `${NS}.ttfa`,

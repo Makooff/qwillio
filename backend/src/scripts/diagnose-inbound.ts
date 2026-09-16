@@ -433,7 +433,10 @@ async function main() {
            se règle sur l'étape qui l'est, pas sur une impression. */
         if (realtime.latency) {
           console.log('      LATENCE PAR ÉTAPE (notre horloge):');
-          for (const l of describeStoredLatency(realtime.latency)) console.log(`        ${l}`);
+          /* Les jetons voyagent à côté du relevé de latence dans les
+             métadonnées; le taux de cache se lit avec les étapes, c'est lui
+             qui dit si le préfixe est payé à chaque tour. */
+          for (const l of describeStoredLatency({ ...realtime.latency, tokens: realtime.tokens })) console.log(`        ${l}`);
         } else {
           console.log('      LATENCE PAR ÉTAPE: aucun relevé (appel antérieur, ou processus redémarré pendant l\'appel)');
         }

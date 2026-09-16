@@ -1136,6 +1136,30 @@ couperait un client. **Le message `end-call` sur `controlUrl` n'a pas encore
 été vu sur un appel réel** : à confirmer dans les journaux Render
 (`[Voice] BOUCLE entrante`) au premier cas.
 
+### 6duoquadragesies. « Il est lent » : où va la seconde, lue et non devinée (16/09/2026)
+Premier relevé du docteur sur un appel réel : LLM 1,8 s de médiane avant le
+premier jeton, TTFA 3,5 s, « son parti avant la fin du texte : 0/6 ». Trois de
+ces chiffres mentaient par construction, et c'est ce qui est corrigé avant de
+régler quoi que ce soit. (1) « LLM » additionnait NOTRE préparation (profil,
+historique, blocs) et le délai d'OpenAI : `PREP` (entrée → envoi) et `LLM`
+(envoi → premier jeton) sont deux étages, `markLlmRequestSent` posé juste
+avant le `fetch`. (2) Le TTFA comptait les tours où le modèle répond par un
+OUTIL : le son ne pouvait pas partir avant l'agenda et le tour suivant, donc
+la médiane de synthèse portait du temps d'agenda. `markToolTurn` (sur
+`tool-calls` et sur le transfert local) efface les bornes de synthèse de ce
+tour ; le TOTAL le garde, c'est ce que l'appelant attend. (3) Le taux de
+cache de préfixe OpenAI était consigné (`metadata.realtime.tokens`) et jamais
+montré : le docteur l'affiche, et 0 % se lit « préfixe payé à chaque tour ».
+Deux gains sans nouvel appel : `prompt_cache_key` se mesurait sur le seul
+message système (seuil 4 000 caractères) alors qu'OpenAI hache prompt ET
+définitions d'outils, qui pèsent plus que le prompt, donc la clé n'était
+jamais posée (`cacheablePrefixChars`) ; et l'historique de l'appelant plus
+l'expéditeur SMS se lisent à l'OUVERTURE de l'appel (`warmCallerContext`),
+pendant l'accueil, au lieu du premier tour et de `bookAppointment` (memo de
+cinq minutes par client). Les réglages Vapi (`VOICE_START_WAIT_SECONDS`,
+`VOICE_ENDPOINTING_PUNCTUATION_SECONDS`) se touchent APRÈS le prochain
+relevé, quand PREP et LLM diront à qui appartient la seconde.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

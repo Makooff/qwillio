@@ -216,15 +216,92 @@ describe('describeStoredLatency', () => {
       streaming: { streamed: 1, buffered: 3 },
     });
     expect(lines[0]).toMatch(/^STT: médiane 900 ms, p95 1200 ms, max 1300 ms sur 4 tour\(s\) · fin de parole/);
-    expect(lines[1]).toMatch(/^LLM: médiane 1400 ms/);
-    expect(lines[2]).toMatch(/^TTFA: médiane 600 ms/);
-    expect(lines[3]).toMatch(/^TOTAL: médiane 3400 ms/);
-    expect(lines[4]).toBe('son parti avant la fin du texte: 1/4 tour(s)');
+    expect(lines[1]).toMatch(/^PREP: pas de mesure/);
+    /* Sans PREP, le LLM porte encore les deux (appel antérieur au partage). */
+    expect(lines[2]).toMatch(/^LLM: médiane 1400 ms.*non séparés/);
+    expect(lines[3]).toMatch(/^TTFA: médiane 600 ms/);
+    expect(lines[4]).toMatch(/^TOTAL: médiane 3400 ms/);
+    expect(lines[5]).toBe('son parti avant la fin du texte: 1/4 tour(s)');
   });
 
   it('une étape absente est dite absente, jamais zéro', () => {
     const lines = describeStoredLatency({ total: { count: 2, median: 2000, p95: 2500, max: 2500 } });
-    expect(lines[1]).toMatch(/^LLM: pas de mesure/);
-    expect(lines).toHaveLength(4);
+    expect(lines[2]).toMatch(/^LLM: pas de mesure/);
+    expect(lines).toHaveLength(5);
+  });
+
+  it('avec PREP, le LLM est dit « OpenAI seul », et le cache de préfixe se lit en pourcentage', () => {
+    const lines = describeStoredLatency({
+      prep: { count: 3, median: 900, p95: 1000, max: 1000 },
+      llm: { count: 3, median: 600, p95: 700, max: 700 },
+      toolTurns: 2,
+      tokens: { input: 40_000, cached: 30_000, output: 800 },
+    });
+    expect(lines[1]).toMatch(/^PREP: médiane 900 ms.*notre serveur seul/);
+    expect(lines[2]).toMatch(/^LLM: médiane 600 ms.*OpenAI seul/);
+    expect(lines).toContain('tours répondus par un outil (agenda, fiche): 2, sans son propre, comptés dans TOTAL seulement');
+    expect(lines.find(l => l.startsWith('cache de préfixe'))).toMatch(/^cache de préfixe OpenAI: 75 % des 40000 jetons/);
+  });
+
+  it('un cache à 0 % dit ce que ça veut dire', () => {
+    const lines = describeStoredLatency({ tokens: { input: 10_000, cached: 0, output: 100 } });
+    expect(lines.find(l => l.startsWith('cache de préfixe'))).toMatch(/0 % = le préfixe change/);
+  });
+});
+
+describe('CallLatencyTracker — notre temps et celui d\'OpenAI', () => {
+  it('sépare la préparation (jusqu\'à l\'envoi) du premier jeton (depuis l\'envoi)', () => {
+    const t = new CallLatencyTracker();
+    t.markCallerSpeechEnd(1000);
+    t.markLlmStart(1100);
+    t.markLlmRequestSent(1900);
+    t.markLlmFirstDelta(2500);
+    const r = t.report();
+    expect(r.prep?.median).toBe(800);
+    expect(r.llm?.median).toBe(600);
+  });
+
+  it('sans envoi (tour local), le LLM se mesure depuis l\'entrée et PREP est absent', () => {
+    const t = new CallLatencyTracker();
+    t.markCallerSpeechEnd(1000);
+    t.markLlmStart(1100);
+    t.markLlmFirstDelta(1101);
+    const r = t.report();
+    expect(r.prep).toBeUndefined();
+    expect(r.llm?.median).toBe(1);
+  });
+
+  it('ne garde qu\'un envoi par tour', () => {
+    const t = new CallLatencyTracker();
+    t.markCallerSpeechEnd(1000);
+    t.markLlmStart(1100);
+    t.markLlmRequestSent(1200);
+    t.markLlmRequestSent(1900);
+    expect(t.report().prep?.median).toBe(100);
+  });
+
+  it('un tour répondu par un outil ne compte ni TTFA, ni TTS, ni streaming, mais compte dans le total', () => {
+    const t = new CallLatencyTracker();
+    t.markCallerSpeechEnd(1000);
+    t.markLlmStart(1100);
+    t.markLlmRequestSent(1200);
+    t.markLlmFirstDelta(1800);
+    t.markLlmEnd(1900);
+    t.markToolTurn();
+    /* L'outil tourne, puis le tour suivant parle: le son arrive à 4000. */
+    t.markAssistantSpeechStart(4000);
+    const r = t.report();
+    expect(r.ttfa).toBeUndefined();
+    expect(r.tts).toBeUndefined();
+    expect(t.streamingSplit()).toEqual({ streamed: 0, buffered: 0 });
+    expect(r.total?.median).toBe(3000);
+    expect(r.llm?.median).toBe(600);
+    expect(t.snapshot().toolTurns).toBe(1);
+  });
+
+  it('un appel d\'outil hors de tout tour de modèle ne compte rien', () => {
+    const t = new CallLatencyTracker();
+    t.markToolTurn();
+    expect(t.snapshot().toolTurns).toBeUndefined();
   });
 });

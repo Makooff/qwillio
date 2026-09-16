@@ -102,6 +102,27 @@ const OPENAI_URL = 'https://api.openai.com/v1/chat/completions';
  */
 const MIN_CACHEABLE_PREFIX_CHARS = 4_000;
 
+/**
+ * La taille du préfixe qu'OpenAI met en cache: le message système ET les
+ * définitions d'outils, qui précèdent la conversation dans ce qu'il hache.
+ * Ne mesurer que le message système (jusqu'au 16/09/2026) faisait passer
+ * sous le seuil un appel dont les dix outils pèsent à eux seuls plus que le
+ * prompt: la clé n'était jamais posée, et le préfixe entier repayé à chaque
+ * tour, en jetons ET en délai avant le premier mot.
+ */
+export function cacheablePrefixChars(request: Pick<ChatCompletionRequest, 'messages' | 'tools'>): number {
+  const system = typeof request.messages?.[0]?.content === 'string' ? request.messages[0].content : '';
+  let tools = 0;
+  if (Array.isArray(request.tools) && request.tools.length) {
+    try {
+      tools = JSON.stringify(request.tools).length;
+    } catch {
+      tools = 0;
+    }
+  }
+  return system.length + tools;
+}
+
 function sseChunk(id: string, model: string, delta: Record<string, unknown>, finish: string | null): string {
   return `data: ${JSON.stringify({
     id,
@@ -322,6 +343,8 @@ class LlmStreamService {
       logger.info(`[VoiceLLM] transfert demandé explicitement par l'appelant (${clientId}) — outil ${plan.tool}`);
       emitToolCall(stream, plan.tool, plan.model);
       callSessionStore.markLatency(vapiCallId, 'llmEnd');
+      /* Un outil, pas une phrase: ce tour n'aura pas de son propre. */
+      callSessionStore.markLatency(vapiCallId, 'toolTurn');
       return;
     }
 
@@ -390,8 +413,7 @@ class LlmStreamService {
    * today. That is why nothing downstream depends on it having worked.
    */
   private withCaching(request: ChatCompletionRequest, vapiCallId: string | null): ChatCompletionRequest {
-    const prefix = typeof request.messages?.[0]?.content === 'string' ? request.messages[0].content : '';
-    if (prefix.length < MIN_CACHEABLE_PREFIX_CHARS) return request;
+    if (cacheablePrefixChars(request) < MIN_CACHEABLE_PREFIX_CHARS) return request;
     return { ...request, prompt_cache_key: vapiCallId ?? undefined };
   }
 
@@ -555,6 +577,9 @@ class LlmStreamService {
     const firstTokenTimer = setTimeout(() => controller.abort(), env.VOICE_FIRST_TOKEN_TIMEOUT_MS);
 
     let response: Response;
+    /* La borne entre NOTRE temps et celui d'OpenAI: tout ce qui précède
+       (profil, historique, blocs) se règle ici, tout ce qui suit là-bas. */
+    callSessionStore.markLatency(vapiCallId, 'llmRequestSent');
     try {
       response = await fetch(OPENAI_URL, {
         method: 'POST',
