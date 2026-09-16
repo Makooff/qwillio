@@ -5,12 +5,19 @@ import { stripe } from '../config/stripe';
 import { logger } from '../config/logger';
 import { affiliateService } from './affiliate.service';
 import { env } from '../config/env';
-import { getPlan, annualPriceEur, type BillingPeriod, type Plan } from '../config/plans';
+import { getPlan, annualPriceEur, type BillingPeriod, type Plan, type PlanId } from '../config/plans';
 import { discordService } from './discord.service';
 import { emailService } from './email.service';
 import { onboardingService } from './onboarding.service';
 import { releaseClientNumbers } from './voice/phone-stock.service';
 import { planAllows } from '../config/plan-features';
+import {
+  OPTION_LOOKUP_PREFIX,
+  optionLookupKey,
+  optionPriceEur,
+  optionViability,
+  superagentOffer,
+} from '../config/superagent-option';
 
 export class StripeService {
   async handleCheckoutCompleted(session: any) {
@@ -143,7 +150,19 @@ export class StripeService {
         monthlyMinutesQuota: plan.includedMinutes,
         stripeCustomerId: session.customer || null,
         stripeSubscriptionId: session.subscription || null,
-        vapiConfig: { billingPeriod },
+        /* L'option achetée à l'inscription, posée DÈS la création.
+           `customer.subscription.updated` la relira sur les lignes de
+           l'abonnement, mais il peut arriver avant que cette ligne existe: il
+           cherche le client par `stripeSubscriptionId` et ne trouverait
+           personne. Le droit serait alors facturé sans être accordé. */
+        superagentOption: session.metadata?.superagent === 'on',
+        vapiConfig: {
+          billingPeriod,
+          /* Acheter l'option, c'est demander le Superagent: le forfait seul ne
+             le déclenche pas, c'est `voiceTier` qui décide du moteur. Le poser
+             ici évite qu'un client paie et n'entende aucune différence. */
+          ...(session.metadata?.superagent === 'on' ? { voiceTier: 'superagent' } : {}),
+        },
       },
     });
 
@@ -251,9 +270,17 @@ export class StripeService {
       try {
         const priceId = await this.resolveMonthlyPriceId(client.planType);
         if (priceId) {
+          /* L'option achetée PENDANT l'essai voyage vers l'abonnement payant.
+             Cet abonnement est créé de zéro: sans cette ligne, un client qui a
+             activé le Superagent pendant son essai le perdrait le jour où il
+             commence à payer, avec `superagentOption` resté à vrai en base —
+             donc un droit servi que plus aucune ligne ne facture. */
+          const carry = await this.optionLineItems(
+            client.planType, 'monthly', client.superagentOption === true,
+          );
           const subscription = await stripe.subscriptions.create({
             customer: session.customer,
-            items: [{ price: priceId }],
+            items: [{ price: priceId }, ...carry],
             metadata: {
               client_id: client.id,
               business_name: client.businessName,
@@ -430,13 +457,43 @@ export class StripeService {
       logger.info(`[Stripe] essai converti pour ${client.businessName}`);
     }
 
+    /* LE DROIT SE LIT LÀ OÙ IL EST FACTURÉ.
+     *
+     * `superagentOption` suit les lignes réellement portées par l'abonnement,
+     * jamais l'intention de celui qui a cliqué. C'est ce qui fait que trois
+     * chemins convergent sans être écrits trois fois: la vente depuis le
+     * portail, l'achat à la caisse d'inscription, et une ligne ajoutée ou
+     * retirée à la main dans le tableau de bord Stripe.
+     *
+     * C'est aussi ce qui referme la porte de sortie: une option retirée (par le
+     * client, par un changement de forfait, par un impayé qui résilie la ligne)
+     * coupe le droit au prochain appel, au lieu de laisser tourner un moteur
+     * que plus personne ne paie.
+     *
+     * La garde sur `items.data` n'est pas décorative: un objet d'abonnement
+     * sans ses lignes se lirait « aucune option », donc RETIRERAIT le droit à
+     * tous ceux qui l'ont payé. Un champ absent ne vaut pas un champ vide. */
+    const lines = subscription?.items?.data;
+    const optionPaid = Array.isArray(lines) ? this.optionItemOf(subscription) !== null : null;
+
     await prisma.client.update({
       where: { id: client.id },
       data: {
         subscriptionStatus: status,
         ...(converting ? { isTrial: false, trialConvertedAt: new Date() } : {}),
+        ...(optionPaid !== null && optionPaid !== client.superagentOption
+          ? { superagentOption: optionPaid }
+          : {}),
       },
     });
+
+    if (optionPaid !== null && optionPaid !== client.superagentOption) {
+      logger.info(
+        `[Stripe] ${client.businessName}: option Superagent ${optionPaid ? 'ACTIVE' : 'retirée'} ` +
+          `(lue sur les lignes de l'abonnement).`,
+      );
+      await this.applySuperagentTier(client, optionPaid);
+    }
 
     /* Meme geste que `handleTrialConversion`: sans lui, un client qui vient de
        payer continue de recevoir les relances de fin d'essai. */
@@ -496,12 +553,27 @@ export class StripeService {
     customerId: string | null;
     businessName: string;
     planType: string;
+    superagentOption: boolean;
     billedMonth: string;
     billedMonthStart: Date;
     monthStart: Date;
   }): Promise<void> {
     const rate = env.VOICE_REALTIME_SURCHARGE_EUR;
     if (rate <= 0 || !input.customerId) return;
+
+    /* L'option vendue au FORFAIT a déjà payé le mois. La facturer aussi à la
+       minute, c'est prélever deux fois la même chose sur la même carte, et
+       personne ne le verrait avant le relevé: la ligne « Voix temps réel » et
+       la ligne « Superagent » vivraient côte à côte sur la même facture.
+       C'est la moitié manquante du garde-fou juste en dessous: il couvrait le
+       forfait qui INCLUT le Superagent, pas l'option qui le VEND. */
+    if (input.superagentOption) {
+      logger.info(
+        `[Stripe] supplément temps réel non facturé à ${input.businessName}: ` +
+          `l'option Superagent est déjà payée au forfait.`,
+      );
+      return;
+    }
 
     /* Un forfait qui INCLUT le Superagent ne le paie pas une seconde fois.
        Sans cette ligne, poser le prix de l'option facturerait la minute temps
@@ -551,6 +623,304 @@ export class StripeService {
     }
   }
 
+  // ═══════════════════════════════════════════════════════════════
+  // OPTION SUPERAGENT — un forfait mensuel, seconde ligne de l'abonnement
+  // ═══════════════════════════════════════════════════════════════
+  /**
+   * Pourquoi une seconde LIGNE et pas un second abonnement.
+   *
+   * Un second abonnement produirait une seconde facture, une seconde date de
+   * renouvellement et une seconde résiliation à ne pas oublier — c'est
+   * exactement le montage qui a fait facturer deux fois un même client en
+   * 6undecies. Une ligne supplémentaire sur l'abonnement existant partage la
+   * période, la facture et la carte, et Stripe calcule le prorata seul quand
+   * elle arrive ou repart en milieu de mois.
+   */
+
+  /** Le prix Stripe de l'option pour ce forfait et cette période, créé depuis la config si absent. */
+  private async resolveOptionPriceId(planId: PlanId, period: BillingPeriod, priceEur: number): Promise<string> {
+    const lookupKey = optionLookupKey(planId, period);
+    const cached = this.priceIdCache.get(lookupKey);
+    if (cached) return cached;
+
+    const existing = await stripe.prices.list({ lookup_keys: [lookupKey], active: true, limit: 1 });
+    if (existing.data[0]?.id) {
+      this.priceIdCache.set(lookupKey, existing.data[0].id);
+      /* Retrouvé par clé, donc possiblement créé sous une tarification
+         précédente: c'est le chemin que le garde-fou des forfaits surveille, et
+         l'option n'a aucune raison d'y échapper. */
+      await this.assertOptionPriceMatches(existing.data[0].id, planId, period, priceEur);
+      return existing.data[0].id;
+    }
+
+    const price = await stripe.prices.create({
+      currency: 'eur',
+      unit_amount: Math.round(priceEur * 100),
+      recurring: { interval: period === 'annual' ? 'year' : 'month' },
+      lookup_key: lookupKey,
+      transfer_lookup_key: true,
+      product_data: { name: `Qwillio Superagent (${getPlan(planId).name})` },
+    });
+    this.priceIdCache.set(lookupKey, price.id);
+    // Créé à l'instant depuis la config: juste par construction (cf. les forfaits).
+    this.verifiedPrices.add(price.id);
+    logger.info(
+      `Auto-created Stripe Price ${price.id} for Superagent option ` +
+        `(${planId}, ${priceEur}€/${period === 'annual' ? 'an' : 'mois'})`,
+    );
+    return price.id;
+  }
+
+  /** Même refus que pour un forfait: on ne prélève pas un montant que la page n'a pas annoncé. */
+  private async assertOptionPriceMatches(
+    priceId: string, planId: PlanId, period: BillingPeriod, priceEur: number,
+  ): Promise<void> {
+    if (this.verifiedPrices.has(priceId)) return;
+
+    const attendu = Math.round(priceEur * 100);
+    const intervalleAttendu = period === 'annual' ? 'year' : 'month';
+    const price = await stripe.prices.retrieve(priceId);
+    const ecarts: string[] = [];
+    if (price.unit_amount !== attendu) {
+      ecarts.push(`montant ${(price.unit_amount ?? 0) / 100} € au lieu de ${priceEur} €`);
+    }
+    if (price.currency !== 'eur') ecarts.push(`devise ${price.currency} au lieu de eur`);
+    if (price.recurring?.interval !== intervalleAttendu) {
+      ecarts.push(`période ${price.recurring?.interval ?? 'aucune'} au lieu de ${intervalleAttendu}`);
+    }
+    if (!ecarts.length) {
+      this.verifiedPrices.add(priceId);
+      return;
+    }
+
+    const message =
+      `Le prix Stripe ${priceId} de l'option Superagent (${planId}, ${period}) ne correspond pas: ${ecarts.join(', ')}.`;
+    logger.error(`[Stripe] ${message}`);
+    await discordService.notify(
+      `🚨 TARIF INCOHÉRENT (option Superagent)\n\n${message}\n\n` +
+        `La vente est REFUSÉE tant que ce n'est pas corrigé. Le prix est créé depuis ` +
+        `config/superagent-option.ts et retrouvé par la clé \`${optionLookupKey(planId, period)}\`: ` +
+        `désactiver le prix divergent chez Stripe suffit à le faire recréer au bon montant.`,
+    );
+    throw new Error(message);
+  }
+
+  /**
+   * Faire ARRIVER le droit jusqu'à l'appel: le niveau, le cache, l'assistant.
+   *
+   * Un droit écrit en base ne change rien à l'appel suivant. Le moteur est
+   * décidé par `voiceTier`, le profil est servi depuis un cache, et l'assistant
+   * DISTANT garde la configuration figée à la dernière synchronisation. Sans ces
+   * gestes, un client qui vient d'acheter paie sans entendre la moindre
+   * différence, et un client qui annule continue d'être servi.
+   *
+   * Un seul endroit les fait, appelé par le webhook ET par la route du portail:
+   * deux copies d'une même règle divergent en moins d'un mois (6vicies).
+   */
+  async applySuperagentTier(
+    client: { id: string; businessName: string; vapiConfig?: unknown },
+    active: boolean,
+  ): Promise<void> {
+    /* En retirant, on ne remet à zéro que si le client avait DEMANDÉ le
+       Superagent: écraser un « base » choisi effacerait un réglage que l'option
+       n'a jamais touché. */
+    const chosen = (client.vapiConfig as any)?.voiceTier;
+    const next = active ? 'superagent' : (chosen === 'superagent' ? null : chosen ?? null);
+    const { applyVoiceTier } = await import('./voice/apply-voice-tier');
+    /* Ne lève jamais vers l'appelant: un webhook Stripe qui lève est rejoué,
+       donc un refus de Vapi ferait rejouer le changement d'abonnement en
+       boucle. `applyVoiceTier` rend son échec au lieu de le jeter, et il est
+       déjà journalisé avec le corps de la réponse de Vapi. */
+    await applyVoiceTier(client.id, next)
+      .catch(error => logger.error(`[Stripe] niveau non appliqué pour ${client.businessName}:`, error));
+  }
+
+  /** La ligne d'option sur cet abonnement, s'il en porte une. */
+  private optionItemOf(subscription: any): any | null {
+    return subscription?.items?.data?.find(
+      (item: any) => typeof item?.price?.lookup_key === 'string'
+        && item.price.lookup_key.startsWith(OPTION_LOOKUP_PREFIX),
+    ) ?? null;
+  }
+
+  /**
+   * La période RÉELLE de cet abonnement, lue sur sa ligne de forfait.
+   *
+   * Stripe refuse un abonnement dont les lignes n'ont pas le même intervalle,
+   * donc c'est lui qui commande, pas `vapiConfig.billingPeriod`. Les deux
+   * devraient dire la même chose; quand ils divergent, celui qui fait échouer
+   * l'appel d'API est celui de Stripe.
+   */
+  private subscriptionPeriod(subscription: any): BillingPeriod {
+    const plan = subscription?.items?.data?.find(
+      (item: any) => !String(item?.price?.lookup_key ?? '').startsWith(OPTION_LOOKUP_PREFIX),
+    );
+    return plan?.price?.recurring?.interval === 'year' ? 'annual' : 'monthly';
+  }
+
+  /**
+   * Vendre l'option à un client qui a déjà un abonnement.
+   *
+   * Ne touche PAS `superagentOption` en base: c'est `customer.subscription.updated`
+   * qui l'écrit, depuis les lignes réellement portées par l'abonnement. Un droit
+   * facturé se lit là où il est facturé, sinon une ligne retirée à la main dans
+   * le tableau de bord Stripe laisserait le droit ouvert pour toujours.
+   */
+  async addSuperagentOption(client: {
+    id: string; businessName: string; planType: string;
+    stripeSubscriptionId: string | null; superagentOption?: boolean | null;
+  }): Promise<{ ok: true; alreadyOn: boolean } | { ok: false; error: string; message: string }> {
+    const check = superagentOffer(client, env.VOICE_REALTIME_MODEL);
+    if (check.included) {
+      return { ok: false, error: 'already_included', message: 'Votre forfait inclut déjà le Superagent.' };
+    }
+    if (check.priceEur === null) {
+      return { ok: false, error: 'not_sold', message: "Le Superagent ne se vend pas en option sur ce forfait." };
+    }
+    if (!client.stripeSubscriptionId) {
+      return {
+        ok: false, error: 'no_subscription',
+        message: "Aucun abonnement actif: l'option s'ajoute à un abonnement, pas à côté.",
+      };
+    }
+    if (!check.sellable && !check.active) {
+      /* Le refus est une anomalie de CONFIGURATION, pas une erreur du client:
+         il porte sur le modèle temps réel de toute la flotte. Il s'alerte. */
+      logger.error(`[Stripe] option Superagent invendable: ${check.blockedReason}`);
+      await discordService.notify(
+        `🚫 OPTION SUPERAGENT INVENDABLE\n\n${client.businessName} a voulu l'acheter et ne peut pas.\n\n` +
+          `${check.blockedReason}`,
+      );
+      return {
+        ok: false, error: 'not_sellable',
+        message: "L'option n'est pas disponible pour le moment. Nous avons été prévenus.",
+      };
+    }
+
+    const plan = getPlan(client.planType);
+    const subscription = await stripe.subscriptions.retrieve(client.stripeSubscriptionId);
+    if (this.optionItemOf(subscription)) {
+      return { ok: true, alreadyOn: true };
+    }
+
+    /* La période vient de l'abonnement, pas de ce que nous en avons retenu:
+       Stripe refuse une ligne mensuelle sur un abonnement annuel, et c'est lui
+       qui tranche. */
+    const period = this.subscriptionPeriod(subscription);
+    const priceEur = optionPriceEur(plan.id, period);
+    if (priceEur === null) {
+      return { ok: false, error: 'not_sold', message: "Le Superagent ne se vend pas en option sur ce forfait." };
+    }
+
+    const priceId = await this.resolveOptionPriceId(plan.id, period, priceEur);
+    await stripe.subscriptions.update(client.stripeSubscriptionId, {
+      items: [...subscription.items.data.map((i: any) => ({ id: i.id })), { price: priceId, quantity: 1 }],
+      /* Le prorata est celui de Stripe: l'option prise le 20 du mois n'est pas
+         due en entier, et l'annuler le 8 rend la différence. Écrire notre
+         propre règle ici produirait un montant que la facture contredit. */
+      proration_behavior: 'create_prorations',
+    });
+
+    const unite = period === 'annual' ? 'an' : 'mois';
+    logger.info(`[Stripe] option Superagent vendue à ${client.businessName} (${plan.id}, ${priceEur}€/${unite})`);
+    await discordService.notify(
+      `⚡ OPTION SUPERAGENT\n\nClient: ${client.businessName}\nForfait: ${plan.name}\n` +
+        `Prix: ${priceEur} €/${unite}`,
+    );
+    return { ok: true, alreadyOn: false };
+  }
+
+  /** Retirer l'option. Idempotent: une ligne absente n'est pas une erreur. */
+  async removeSuperagentOption(client: {
+    id: string; businessName: string; stripeSubscriptionId: string | null;
+  }): Promise<{ ok: true; wasOn: boolean }> {
+    if (!client.stripeSubscriptionId) return { ok: true, wasOn: false };
+
+    const subscription = await stripe.subscriptions.retrieve(client.stripeSubscriptionId);
+    const item = this.optionItemOf(subscription);
+    if (!item) return { ok: true, wasOn: false };
+
+    await stripe.subscriptionItems.del(item.id, { proration_behavior: 'create_prorations' });
+    logger.info(`[Stripe] option Superagent retirée pour ${client.businessName}`);
+    return { ok: true, wasOn: true };
+  }
+
+  /**
+   * Remettre la ligne d'option d'accord avec le forfait, après un changement.
+   *
+   * Deux dérives, toutes deux silencieuses et toutes deux sur une vraie carte:
+   *
+   *  - monter vers Pro, qui INCLUT le Superagent, en gardant la ligne d'option:
+   *    le client paie 20 € par mois pour ce que son abonnement lui donne déjà ;
+   *  - passer de Solo à Starter en gardant le prix Solo: l'option est facturée
+   *    20 € pour 750 minutes incluses, c'est-à-dire sous son coût.
+   *
+   * Appelée après chaque changement de forfait, des deux chemins.
+   */
+  async reconcileSuperagentOptionForPlan(
+    client: { id: string; businessName: string; stripeSubscriptionId: string | null },
+    nextPlanType: string,
+  ): Promise<void> {
+    if (!client.stripeSubscriptionId) return;
+    try {
+      const subscription = await stripe.subscriptions.retrieve(client.stripeSubscriptionId);
+      const item = this.optionItemOf(subscription);
+      if (!item) return;
+
+      const plan = getPlan(nextPlanType);
+      if (planAllows(plan.id, 'superagent')) {
+        await stripe.subscriptionItems.del(item.id, { proration_behavior: 'create_prorations' });
+        logger.info(
+          `[Stripe] ${client.businessName}: option Superagent retirée, le forfait ${plan.id} l'inclut.`,
+        );
+        return;
+      }
+
+      const period = this.subscriptionPeriod(subscription);
+      const priceEur = optionPriceEur(plan.id, period);
+      if (priceEur === null) {
+        await stripe.subscriptionItems.del(item.id, { proration_behavior: 'create_prorations' });
+        logger.warn(`[Stripe] ${client.businessName}: option Superagent retirée, invendable sur ${plan.id}.`);
+        return;
+      }
+
+      const wanted = await this.resolveOptionPriceId(plan.id, period, priceEur);
+      if (item.price?.id === wanted) return;
+      await stripe.subscriptionItems.update(item.id, { price: wanted, proration_behavior: 'create_prorations' });
+      logger.info(`[Stripe] ${client.businessName}: option Superagent repricée sur ${plan.id} (${priceEur}€).`);
+    } catch (error) {
+      /* Jamais fatal: cette méthode est appelée depuis un webhook et depuis un
+         changement de forfait déjà enregistré. Lever ici ferait rejouer le
+         changement entier par Stripe pour une ligne d'option. */
+      logger.error(`[Stripe] réconciliation de l'option Superagent impossible pour ${client.businessName}:`, error);
+    }
+  }
+
+  /**
+   * La ligne d'option à poser dans une CAISSE, quand elle s'achète en même
+   * temps que le forfait.
+   *
+   * Rend un tableau (vide ou d'un élément) pour s'étaler dans `line_items` sans
+   * condition à l'appel. Refuse silencieusement quand l'option n'est pas
+   * vendable: une caisse qui s'ouvre sans la ligne vaut mieux qu'une caisse qui
+   * ne s'ouvre pas, et le droit ne sera pas accordé puisqu'il se lit sur les
+   * lignes de l'abonnement.
+   */
+  private async optionLineItems(
+    planType: string, period: BillingPeriod, wanted: boolean,
+  ): Promise<Array<{ price: string; quantity: number }>> {
+    if (!wanted) return [];
+    const plan = getPlan(planType);
+    const priceEur = optionPriceEur(plan.id, period);
+    if (priceEur === null) return [];
+    const viability = optionViability(env.VOICE_REALTIME_MODEL);
+    if (!viability.sellable) {
+      logger.error(`[Stripe] option Superagent demandée à la caisse mais invendable: ${viability.reason}`);
+      return [];
+    }
+    return [{ price: await this.resolveOptionPriceId(plan.id, period, priceEur), quantity: 1 }];
+  }
+
   async reportOverageUsage(clientId: string) {
     const client = await prisma.client.findUnique({ where: { id: clientId } });
     if (!client || !client.stripeSubscriptionId) return;
@@ -596,6 +966,7 @@ export class StripeService {
       customerId: client.stripeCustomerId,
       businessName: client.businessName,
       planType: client.planType,
+      superagentOption: client.superagentOption === true,
       billedMonth,
       billedMonthStart,
       monthStart,
@@ -697,6 +1068,14 @@ export class StripeService {
 
     const nextSubscriptionId = session.subscription || client.stripeSubscriptionId;
 
+    /* Le droit suit la caisse qui vient d'être payée, pas celle d'avant. Sans
+       cette ligne, un client qui monte vers Pro garderait `superagentOption` à
+       vrai — un droit ACHETÉ, donc facturable à la minute par
+       `reportRealtimeSurcharge`, alors qu'il ne paie plus aucune ligne
+       d'option. L'événement d'abonnement dirait la même chose, mais rien ne
+       garantit qu'il arrive avant celui-ci. */
+    const optionBought = session.metadata?.superagent === 'on';
+
     await prisma.client.update({
       where: { id: clientId },
       data: {
@@ -707,6 +1086,7 @@ export class StripeService {
         trialConvertedAt: new Date(),
         stripeCustomerId: session.customer || client.stripeCustomerId,
         stripeSubscriptionId: nextSubscriptionId,
+        superagentOption: optionBought,
       },
     });
 
@@ -759,17 +1139,23 @@ export class StripeService {
     /* La langue du site: portée par la session, relue par le webhook qui crée
        le client. Sans elle, l'agent naissait en anglais pour tout le monde. */
     language: string | null = null,
+    /* L'option Superagent, achetée EN MÊME TEMPS que le forfait. C'est le
+       « activable à l'achat »: elle entre dans la même caisse, donc dans le
+       même abonnement et la même facture, plutôt que dans un second passage
+       que personne ne fait. */
+    withSuperagent = false,
   ): Promise<string | null> {
     const plan = getPlan(planType);
     const priceId = await this.resolvePriceId(planType, period);
     if (!priceId) throw new Error(`No Stripe price configured for plan: ${planType}`);
     await this.assertPriceMatchesPlan(priceId, plan, period);
+    const optionItems = await this.optionLineItems(plan.id, period, withSuperagent);
 
     const frontendUrl = env.FRONTEND_URL.split(',')[0].trim();
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       customer_email: user.email,
-      line_items: [{ price: priceId, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }, ...optionItems],
       subscription_data: { trial_period_days: plan.trialDays, metadata: { billingPeriod: period } },
       payment_method_collection: 'always',
       /* Le champ code promo à la caisse.
@@ -796,6 +1182,12 @@ export class StripeService {
         businessName,
         industry: industry || 'other',
         ...(language ? { language } : {}),
+        /* Ce qui a RÉELLEMENT été mis dans la caisse, pas ce qui a été demandé:
+           `optionLineItems` rend une liste vide quand l'option n'est pas
+           vendable, et le webhook doit accorder le droit sur ce qui est facturé.
+           Une métadonnée qui dit « oui » sur une ligne absente, c'est un moteur
+           servi gratuitement, pour toujours. */
+        superagent: optionItems.length ? 'on' : 'off',
       },
     });
 
@@ -839,6 +1231,12 @@ export class StripeService {
         where: { id: client.id },
         data: { planType, monthlyMinutesQuota: getPlan(planType).includedMinutes },
       });
+      /* La ligne d'option ne suit pas le forfait toute seule: le bloc ci-dessus
+         ne remplace que la ligne de forfait. Sans cette réconciliation, monter
+         vers Pro laisse le client payer 20 €/mois pour ce que son abonnement
+         inclut désormais. `customer.subscription.updated` écrira ensuite le
+         droit depuis les lignes réelles. */
+      await this.reconcileSuperagentOptionForPlan(client, planType);
       await discordService.notify(
         `🔄 PLAN UPGRADED (inline)\n\nClient: ${client.businessName}\nNew plan: ${planType.toUpperCase()}\nPrev plan: ${client.planType.toUpperCase()}`
       );
@@ -847,11 +1245,19 @@ export class StripeService {
     }
 
     // Trial or no subscription → Stripe Checkout session
+    /* Cette caisse crée un NOUVEL abonnement et remplace l'ancien (6undecies).
+       L'option, elle, vivait sur l'ancien: sans la reporter ici, un client qui
+       l'a payée la perdrait au premier changement de forfait, en silence, avec
+       un droit qui resterait ouvert en base jusqu'au premier webhook. Elle ne
+       part évidemment pas vers un forfait qui l'inclut déjà. */
+    const carryOption = client.superagentOption === true && !planAllows(planType, 'superagent');
+    const upgradeOptionItems = await this.optionLineItems(planType, period, carryOption);
+
     const frontendUrl = env.FRONTEND_URL.split(',')[0].trim();
     const session = await stripe.checkout.sessions.create({
       mode: 'subscription',
       ...(client.stripeCustomerId ? { customer: client.stripeCustomerId } : {}),
-      line_items: [{ price: priceId, quantity: 1 }],
+      line_items: [{ price: priceId, quantity: 1 }, ...upgradeOptionItems],
       // Même raison qu'à l'inscription: c'est CE passage en caisse qui
       // déclenche la conversion d'un essai en client payant.
       allow_promotion_codes: true,
@@ -861,6 +1267,8 @@ export class StripeService {
         source: 'plan-upgrade',
         clientId: client.id,
         planType,
+        // Ce que la caisse porte vraiment, comme à l'inscription.
+        superagent: upgradeOptionItems.length ? 'on' : 'off',
       },
       client_reference_id: client.id,
     });

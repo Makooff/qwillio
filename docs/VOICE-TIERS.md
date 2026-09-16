@@ -94,17 +94,61 @@ relevé**, et le module refuse de calculer plutôt que d'inventer. Il se lit sur
 le tableau de bord Vapi, qui est ce qui nous facture. Tant qu'il ne l'est pas,
 le seul modèle dont l'économie est connue est le mini.
 
-L'option se facture à la minute réellement passée en temps réel
-(`VOICE_REALTIME_SURCHARGE_EUR`, ligne distincte sur la facture, idempotente).
-Poser ce prix est l'unique interrupteur : il met l'option en vente ET fait
-cesser `auto` de résoudre en temps réel, pour qu'aucun client ne découvre un
-supplément qu'il n'a pas demandé. Un forfait qui inclut le Superagent n'est
-jamais facturé de ce supplément.
+## Comment l'option se VEND : un forfait mensuel
 
-Le forfait mensuel équivalent, si tu préfères le vendre ainsi (×3 sur le pire
-mois) : **+20 €/mois sur Solo, +40 €/mois sur Starter**. Il n'est tenable que
-parce que le surcoût par minute est petit ; il ne le serait pas avec
-`gpt-realtime-2`.
+**Le forfait est ce qui est vendu** : **+20 €/mois sur Solo, +40 €/mois sur
+Starter** (`config/superagent-option.ts`), et l'équivalent annuel avec la même
+remise de 20 % que les forfaits. Les deux montants sont ceux que
+`flatOptionPriceEur` donne pour `gpt-realtime-mini-2025-12-15` (×3 sur le pire
+mois) ; un test le vérifie, donc le prix affiché ne peut pas dériver de
+l'arithmétique qui l'a produit.
+
+Le supplément à la minute (`VOICE_REALTIME_SURCHARGE_EUR`) existe toujours et
+reste à zéro. **Les deux ne se cumulent jamais** : un client qui paie l'option
+au forfait n'est plus facturé à la minute, et un forfait qui inclut le
+Superagent n'est facturé ni de l'un ni de l'autre. Sans ces deux garde-fous, la
+ligne « Voix temps réel » et la ligne « Superagent » se retrouveraient sur la
+même facture, sur une vraie carte, invisibles jusqu'au relevé.
+
+### Une SECONDE LIGNE, pas un second abonnement
+
+L'option s'ajoute à l'abonnement existant (`subscriptions.update`, prorata
+calculé par Stripe). Un second abonnement produirait une seconde facture, une
+seconde date de renouvellement et une seconde résiliation à ne pas oublier :
+c'est exactement le montage qui a fait facturer deux fois un même client
+(6undecies). Corollaire : Stripe refuse un abonnement dont les lignes n'ont pas
+le même intervalle, donc l'option porte un prix annuel pour les clients
+annuels, et la période est lue sur l'abonnement, jamais sur ce que nous en
+avons retenu.
+
+### Le droit se lit là où il est facturé
+
+`superagent_option` est écrit par `customer.subscription.updated`, depuis les
+lignes réellement portées par l'abonnement. Trois chemins convergent sans être
+écrits trois fois : la case cochée à l'inscription, le bouton de la page
+Facturation, et une ligne ajoutée ou retirée à la main dans le tableau de bord
+Stripe. C'est aussi ce qui referme la porte de sortie : une option annulée, ou
+emportée par un impayé, coupe le droit au prochain appel au lieu de laisser
+tourner un moteur que plus personne ne paie.
+
+Le changement de forfait réconcilie la ligne (`reconcileSuperagentOptionForPlan`) :
+elle est RETIRÉE en montant vers Pro, qui l'inclut, et REPRICÉE entre Solo et
+Starter, qui n'ont pas les mêmes minutes incluses.
+
+### Ce qui INTERDIT la vente
+
+`optionViability` refuse d'ouvrir la vente dans deux cas, et le refus nomme les
+deux sorties :
+
+- un modèle dont le tarif rendrait le forfait déficitaire (`gpt-realtime-2` :
+  un Solo coûterait 139 € pour une option vendue 20 €) ;
+- un modèle dont le tarif n'a **jamais été relevé**, ce qui est le cas du
+  défaut `gpt-realtime-2025-08-28`.
+
+Donc, en l'état, **la vente est fermée tant que `VOICE_REALTIME_MODEL` n'est pas
+posé sur `gpt-realtime-mini-2025-12-15`** (ou tant que le tarif du défaut n'est
+pas lu sur le tableau de bord Vapi et posé dans `REALTIME_RATES`).
+`npm run voice:pricing` affiche le verdict en toutes lettres.
 
 ## Poser un niveau
 
@@ -124,7 +168,17 @@ Le script fait les **trois** gestes, et il faut les trois : écrire le champ,
 vider le cache de profil, resynchroniser l'assistant distant. Écrire seulement
 le champ ne change rien à l'appel suivant : le profil est servi depuis un cache,
 et l'assistant enregistré garde la configuration figée à la dernière
-synchronisation.
+synchronisation. Ces trois gestes vivent dans `applyVoiceTier`
+(`services/voice/apply-voice-tier.ts`), partagé avec le portail : écrits deux
+fois, ils divergeraient, et l'oubli du troisième est le mode d'échec que ce
+dépôt a payé sept fois.
+
+`--option=on` ne pose plus le droit à la main quand le client a un abonnement :
+il **vend la ligne chez Stripe**, prorata compris. C'est obligé, puisque
+`customer.subscription.updated` réécrit `superagent_option` depuis les lignes
+facturées : un droit posé en base serait retiré au premier événement suivant,
+en silence. Un compte sans abonnement (créé à la main) ne reçoit jamais cet
+événement, et pour lui seul la colonne reste la seule vérité.
 
 `auto` laisse décider le réglage global `VOICE_SPEECH_TO_SPEECH`, qui est à
 `off` : c'est le défaut de la flotte, et il ne bouge pas tant qu'un appel réel
@@ -157,12 +211,16 @@ réglage s'enregistre, l'écran dit enregistré, et l'appelant entend autre chos
   trois langues × deux moteurs), mais un mécanisme qui n'a jamais atteint un
   appel n'est pas une optimisation, c'est un risque qui dort. Le premier appel
   se passe avec `docs/SCRIPT-APPEL-TEST.md` et se lit à `voice:audit`.
-- **Pas de bouton dans le portail client, ni d'achat en caisse.** Le niveau et
-  l'option se posent au script. La caisse Stripe qui vend l'option à
-  l'inscription reste à écrire, et elle demande d'avoir tranché entre le
-  supplément à la minute (déjà en place) et le forfait mensuel. Le portail sait
-  déjà dire le droit : `superagentAllowed` et `superagentIncludedFrom` sont
-  rendus par `/my-dashboard/settings`.
+- **L'option n'a jamais été achetée par un vrai client.** Le chemin existe des
+  deux côtés (case à l'inscription, bouton sur la page Facturation) et il est
+  testé, mais aucune ligne d'option n'a encore été créée chez Stripe. Le
+  premier achat est aussi le premier objet Price créé par
+  `resolveOptionPriceId` : vérifier alors qu'il porte bien 20 € (ou 40 €) dans
+  le tableau de bord, et surtout **ne pas créer ce produit à la main**, c'est
+  le geste qui a produit le 1297 € de 6duodecies.
+- **La vente est FERMÉE tant que `VOICE_REALTIME_MODEL` vaut le défaut.** Voir
+  « Ce qui interdit la vente » plus haut : c'est une variable d'environnement,
+  pas un déploiement.
 - **Les curseurs de latence ne sont pas préréglés par niveau.** Ils se touchent
   après un relevé, jamais avant : un seuil posé à l'aveugle dans une table a
   l'air d'une décision.

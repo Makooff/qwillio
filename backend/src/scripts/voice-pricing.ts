@@ -12,6 +12,7 @@ import {
   REALTIME_RATES, revenuePerIncludedMinuteEur, superagentCost,
   surchargeToKeepMarginEur, USD_PER_EUR,
 } from '../config/voice-economics';
+import { optionPriceEur, optionViability } from '../config/superagent-option';
 
 const arg = (name: string): string | null => {
   const hit = process.argv.find(a => a.startsWith(`--${name}=`));
@@ -51,6 +52,9 @@ function main() {
       console.log(`  IMPOSSIBLE À CALCULER: ${cost.unknownRate}.`);
       console.log('  Le tarif se lit sur le tableau de bord Vapi, qui est ce qui nous facture.');
       console.log('  Tant qu\'il n\'est pas relevé, aucun prix d\'option ne peut être posé.');
+      /* Et ce n'est pas qu'une gêne d'affichage: `optionViability` refuse la
+         VENTE sur ce même manque, donc le portail ne proposera rien. */
+      console.log('  Conséquence: la vente de l\'option est REFUSÉE tant que ce modèle est servi.');
       continue;
     }
 
@@ -90,6 +94,20 @@ function main() {
       if (typeof p !== 'number') continue;
       console.log(`    ${plan.name.padEnd(11)} ${`+${p} €/mois`.padStart(12)}`);
     }
+
+    /* Ce que le CODE vend réellement, et ce n'est pas la même question: la
+       ligne ci-dessus dit ce que l'option DEVRAIT valoir pour ce modèle, celle
+       ci-dessous dit ce qui est affiché, prélevé, et si la vente est ouverte. */
+    console.log('\n  CE QUI EST VENDU AUJOURD\'HUI (config/superagent-option.ts):');
+    for (const plan of ALL_PLANS) {
+      const affiche = optionPriceEur(plan.id);
+      console.log(`    ${plan.name.padEnd(11)} ` +
+        (affiche === null ? 'inclus au forfait, rien à vendre' : `+${affiche} €/mois`));
+    }
+    const verdict = optionViability(model);
+    console.log(verdict.sellable
+      ? '\n    VENTE OUVERTE avec ce modèle.'
+      : `\n    VENTE REFUSÉE avec ce modèle: ${verdict.reason}\n    ${verdict.remedy}`);
 
     if (perte) {
       console.log('\n  CONCLUSION: ce modèle coûte plus qu\'une minute ne rapporte.');
