@@ -1160,6 +1160,25 @@ cinq minutes par client). Les réglages Vapi (`VOICE_START_WAIT_SECONDS`,
 `VOICE_ENDPOINTING_PUNCTUATION_SECONDS`) se touchent APRÈS le prochain
 relevé, quand PREP et LLM diront à qui appartient la seconde.
 
+### 6terquadragesies. `voice:audit` tranche, `voice:doctor` décrit (16/09/2026)
+Après un appel test, la question est « tout marche ? tout est réglé ? », et
+le docteur y répond par deux écrans de faits qu'il faut relire. `npm run
+voice:audit` (`scripts/audit-call.ts`, dernier appel par défaut,
+`--call=<vapiCallId>` ou `--email=` sinon) collecte les faits (notre ligne
+d'appel et son `metadata.realtime`, l'appel chez Vapi avec son horloge, la
+réservation liée et ses SMS, l'assistant DISTANT, l'env du processus) et
+`services/voice/call-audit.ts` rend une ligne par vérification : verdict,
+valeur, cible, LEVIER (variable, commande ou code à toucher), en trois
+familles (fonctionnement, latence, réglages) et une liste « à faire, dans
+l'ordre ». Le module est pur et testé sur des faits écrits à la main ; le
+script ne fait que lire. Les cibles (`TARGETS`) sont des cibles de
+conversation naturelle : PREP 150 ms, LLM 900 ms, TTFA 700 ms, TOTAL 2 s,
+délai Vapi 2 s, outil 1,5 s, cache ≥ 40 % (jugé à partir de trois tours).
+Le script d'APPEL, ce que l'appelant dit pour exercer tout ce qui compte en
+un appel (accueil, hors-base, agenda, nom épelé, réservation, SMS,
+interruption, bruit, puis appelant connu, déplacement, transfert, et les
+refus propres), est dans `docs/SCRIPT-APPEL-TEST.md`.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).
