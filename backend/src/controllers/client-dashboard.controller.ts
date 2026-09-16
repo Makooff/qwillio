@@ -221,7 +221,9 @@ export class ClientDashboardController {
       const from = typeof req.query.from === 'string' ? new Date(`${req.query.from}T00:00:00.000Z`) : null;
       const to = typeof req.query.to === 'string' ? new Date(`${req.query.to}T23:59:59.999Z`) : null;
       const range = from && to && !Number.isNaN(from.getTime()) && !Number.isNaN(to.getTime()) ? { from, to } : undefined;
-      const result = await clientDashboardService.getClientBookings(req.clientId, page, limit, upcoming, range);
+      /* `q`: nom du client, sujet ou numéro, cherché sur TOUS les mois. */
+      const q = typeof req.query.q === 'string' ? req.query.q : undefined;
+      const result = await clientDashboardService.getClientBookings(req.clientId, page, limit, upcoming, range, q);
       res.json(result);
     } catch (error: any) {
       res.status(500).json({ error: error.message });

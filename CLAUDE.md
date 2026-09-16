@@ -1312,6 +1312,27 @@ en passant : **le traqueur de latence se nourrit des webhooks `speech-update` de
 Vapi**, donc partir en SIP, c'est perdre la mesure. À rouvrir seulement quand les
 défauts fonctionnels seront corrigés et qu'une cible sous 600 ms sera visée.
 
+### 6quinquadragesies. Le calendrier montre le CONTENU, et la recherche est SERVEUR (16/09/2026)
+Deux retours sur la page Rendez-vous, une même cause de forme. (1) La grille
+tenait dans 880 px avec des cases de 56 px portant une pastille de compte: il
+fallait cliquer un jour pour savoir qui venait. La page passe à
+`max-w-[1600px]` (celle de Réceptionniste, déjà dans le portail), les cases à
+`h-24 xl:h-28`, et chaque case porte DEUX rendez-vous lisibles (heure et nom)
+puis « +N autres ». Le compte grossissant au survol est retiré: il révélait
+un chiffre désormais écrit, et il aurait recouvert le contenu de la case.
+(2) La recherche (client, sujet, numéro) est une route SERVEUR
+(`GET /my-dashboard/bookings?q=`), pas un filtre sur l'état: la page ne
+charge qu'un mois, donc une recherche locale aurait répondu « aucun
+résultat » pour un rendez-vous de novembre. C'est le piège déjà payé par le
+filtre `?phone=` d'Appels et Leads. `bookingSearch()` cherche le nom et le
+sujet sans casse, et le numéro sur ses CHIFFRES (stocké tantôt
+« 32483620980 », tantôt « +32… », tapé « 0483 62 »: un zéro initial cherche
+aussi la forme sans zéro). Moins de deux caractères ne cherche rien, moins de
+trois chiffres ne cherche pas un numéro. Pendant une recherche, les flèches
+de mois et le sélecteur de vue disparaissent au lieu de rester inertes, et le
+compte est dit UNE fois (sous le titre), la carte vide expliquant seulement
+ce qui a été cherché.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

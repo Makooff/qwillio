@@ -88,7 +88,9 @@ describe('ClientBookings, le calendrier', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Annuler le rendez-vous' }));
     await waitFor(() => expect(post).toHaveBeenCalledWith('/my-dashboard/bookings/b1/cancel'));
     await waitFor(() => expect(screen.queryByText('Paul Matthieu')).toBeNull());
-    expect(screen.getByText('Jean-Luc de la Forge')).toBeInTheDocument();
+    /* Le nom paraît DEUX fois depuis que la grille montre le contenu des
+       jours (pastille de case, carte du panneau): l'assertion vise le panneau. */
+    expect(within(screen.getByRole('complementary', { name: 'Détail' })).getByText('Jean-Luc de la Forge')).toBeInTheDocument();
   });
 
   it('changer de mois recharge la bonne plage, et vide l\'écran AU CLIC, sans attendre le serveur', async () => {
@@ -100,7 +102,8 @@ describe('ClientBookings, le calendrier', () => {
       return Promise.resolve({ data: { data: rows } });
     });
     mount();
-    await screen.findByText('Jean-Luc de la Forge');
+    const panel = () => within(screen.getByRole('complementary', { name: 'Détail' }));
+    await waitFor(() => expect(panel().getByText('Jean-Luc de la Forge')).toBeInTheDocument());
     fireEvent.click(screen.getByRole('button', { name: 'Mois suivant' }));
     expect(screen.getByText('Octobre 2026')).toBeInTheDocument();
     expect(screen.queryByText('Jean-Luc de la Forge')).toBeNull();
@@ -111,8 +114,64 @@ describe('ClientBookings, le calendrier', () => {
     /* Retour en septembre: servi du cache, sans nouvelle requête. */
     const calls = get.mock.calls.length;
     fireEvent.click(screen.getByRole('button', { name: 'Mois précédent' }));
-    expect(screen.getByText('Jean-Luc de la Forge')).toBeInTheDocument();
+    expect(panel().getByText('Jean-Luc de la Forge')).toBeInTheDocument();
     await waitFor(() => expect(get.mock.calls.length).toBe(calls + 1));
+  });
+
+  it('une case du mois montre l\'heure et le nom, pas seulement un compte', async () => {
+    mount();
+    const cell = await screen.findByRole('gridcell', { name: /Mardi 15 septembre, 2 rendez-vous/ });
+    expect(within(cell).getByText('16:00')).toBeInTheDocument();
+    expect(within(cell).getByText('Jean-Luc de la Forge')).toBeInTheDocument();
+    expect(within(cell).getByText('17:00')).toBeInTheDocument();
+  });
+
+  it('au-delà de deux rendez-vous, la case dit combien il en reste', async () => {
+    get.mockImplementation(async () => ({ data: { data: [
+      ...rows,
+      { id: 'b4', customerName: 'Ana Costa', customerPhone: null, bookingDate: '2026-09-15T10:00:00.000Z', bookingTime: '18:00', serviceType: null, status: 'confirmed' },
+      { id: 'b5', customerName: 'Luc Berger', customerPhone: null, bookingDate: '2026-09-15T10:00:00.000Z', bookingTime: '19:00', serviceType: null, status: 'confirmed' },
+    ] } }));
+    mount();
+    const cell = await screen.findByRole('gridcell', { name: /Mardi 15 septembre, 4 rendez-vous/ });
+    expect(within(cell).getByText('+2 autres')).toBeInTheDocument();
+  });
+
+  it('la recherche interroge le SERVEUR et traverse les mois', async () => {
+    /* Une recherche locale ne verrait que le mois chargé: « aucun résultat »
+       voudrait dire « pas en septembre ». */
+    get.mockImplementation(async (url: string) => {
+      if (url.includes('q=')) {
+        return { data: { data: [{ id: 'b9', customerName: 'Sophie Dupont', customerPhone: '32470111222', bookingDate: '2026-11-03T10:00:00.000Z', bookingTime: '14:30', serviceType: 'Contrôle', status: 'confirmed' }] } };
+      }
+      return { data: { data: rows } };
+    });
+    mount();
+    await screen.findByText('Septembre 2026');
+    fireEvent.change(screen.getByRole('searchbox', { name: /Rechercher un rendez-vous/ }), { target: { value: 'Dupont' } });
+    await waitFor(() => expect(get).toHaveBeenCalledWith('/my-dashboard/bookings?q=Dupont&limit=50'));
+    expect(await screen.findByText('Sophie Dupont')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: /Mardi 3 novembre/ })).toBeInTheDocument();
+    /* Le mois et la vue n'ont plus de sens pendant une recherche. */
+    expect(screen.queryByRole('button', { name: 'Mois suivant' })).toBeNull();
+  });
+
+  it('une recherche sans résultat le dit, et ne parle pas du mois affiché', async () => {
+    get.mockImplementation(async (url: string) => ({ data: { data: url.includes('q=') ? [] : rows } }));
+    mount();
+    fireEvent.change(await screen.findByRole('searchbox', { name: /Rechercher un rendez-vous/ }), { target: { value: 'Zzz' } });
+    expect(await screen.findByText(/Aucun rendez-vous pour « Zzz »/)).toBeInTheDocument();
+  });
+
+  it('effacer la recherche rend le mois', async () => {
+    get.mockImplementation(async (url: string) => ({ data: { data: url.includes('q=') ? [] : rows } }));
+    mount();
+    const box = await screen.findByRole('searchbox', { name: /Rechercher un rendez-vous/ });
+    fireEvent.change(box, { target: { value: 'Zzz' } });
+    await screen.findByText(/Aucun rendez-vous pour « Zzz »/);
+    fireEvent.click(screen.getByRole('button', { name: 'Effacer la recherche' }));
+    expect(await screen.findByRole('button', { name: 'Mois suivant' })).toBeInTheDocument();
+    expect(screen.getByRole('gridcell', { name: /Mardi 15 septembre, 2 rendez-vous/ })).toBeInTheDocument();
   });
 
   it('la vue liste montre tout le mois, groupé par jour', async () => {
