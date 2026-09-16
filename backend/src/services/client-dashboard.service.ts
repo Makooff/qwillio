@@ -384,13 +384,24 @@ export class ClientDashboardService {
     limit = 20,
     upcoming = true,
     range?: { from: Date; to: Date },
+    /** Recherche libre: nom du client, sujet, ou numéro. */
+    q?: string,
   ) {
     const now = new Date();
     const where: any = { clientId };
-    /* Une PLAGE (le calendrier du portail, 15/09/2026): tous les rendez-vous
-       du mois, passés compris, sauf les annulés. « À venir » reste le défaut
-       des autres lecteurs. */
-    if (range) {
+    const search = bookingSearch(q);
+    /* Une RECHERCHE traverse les mois: chercher « Dupont » dans le seul mois
+       affiché rendrait « aucun résultat » alors que le rendez-vous existe en
+       novembre, et c'est exactement le piège que le filtre par numéro des
+       pages Appels et Leads a déjà coûté. La plage et « à venir » sont donc
+       ignorées tant qu'une recherche est posée; seuls les annulés sortent. */
+    if (search) {
+      where.OR = search;
+      where.status = { not: 'cancelled' };
+    } else if (range) {
+      /* Une PLAGE (le calendrier du portail, 15/09/2026): tous les rendez-vous
+         du mois, passés compris, sauf les annulés. « À venir » reste le défaut
+         des autres lecteurs. */
       where.bookingDate = { gte: range.from, lte: range.to };
       where.status = { not: 'cancelled' };
     } else if (upcoming) {
@@ -401,7 +412,11 @@ export class ClientDashboardService {
     const [bookings, total] = await Promise.all([
       prisma.clientBooking.findMany({
         where,
-        orderBy: range ? [{ bookingDate: 'asc' }, { bookingTime: 'asc' }] : { bookingDate: upcoming ? 'asc' : 'desc' },
+        /* Une recherche rend le plus RÉCENT d'abord (le rendez-vous à venir
+           avant celui de l'an dernier); une plage se lit dans l'ordre du mois. */
+        orderBy: search
+          ? [{ bookingDate: 'desc' }, { bookingTime: 'desc' }]
+          : range ? [{ bookingDate: 'asc' }, { bookingTime: 'asc' }] : { bookingDate: upcoming ? 'asc' : 'desc' },
         skip: (page - 1) * limit,
         take: limit,
       }),
@@ -627,6 +642,35 @@ export class ClientDashboardService {
  * les chiffres (clé d'attribution et de mémoire), les appels plus anciens ont
  * pu être écrits avec le « + ». Chercher les deux, jamais l'une.
  */
+/**
+ * Les conditions d'une recherche de rendez-vous: le nom du client, le sujet,
+ * et le numéro. `null` quand il n'y a rien à chercher, pour que l'appelant
+ * retombe sur son mois plutôt que sur la base entière.
+ *
+ * Le numéro se cherche sur ses CHIFFRES seuls: il est stocké tantôt
+ * « 32483620980 », tantôt « +32483620980 », et l'utilisateur tape ce qu'il a
+ * sous les yeux (« 0483 62 »). Comparer les chaînes telles quelles ne
+ * trouverait qu'une écriture sur trois. Deux chiffres ne suffisent pas: ils
+ * ramèneraient la moitié de la base.
+ */
+export function bookingSearch(q?: string | null): Array<Record<string, unknown>> | null {
+  const term = String(q ?? '').trim();
+  if (term.length < 2) return null;
+  const or: Array<Record<string, unknown>> = [
+    { customerName: { contains: term, mode: 'insensitive' } },
+    { serviceType: { contains: term, mode: 'insensitive' } },
+  ];
+  const digits = term.replace(/\D/g, '');
+  if (digits.length >= 3) {
+    or.push({ customerPhone: { contains: digits } });
+    /* Un numéro belge dicté « 0483… » est stocké « 32483… »: le zéro initial
+       remplace l'indicatif. Sans cette seconde forme, taper son propre numéro
+       tel qu'on l'écrit ne trouve rien. */
+    if (digits.startsWith('0') && digits.length >= 4) or.push({ customerPhone: { contains: digits.slice(1) } });
+  }
+  return or;
+}
+
 export function phoneForms(raw: string): string[] {
   const digits = String(raw).replace(/\D/g, '');
   if (!digits) return [raw];

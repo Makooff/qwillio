@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import { Calendar, ChevronLeft, ChevronRight, List, X, Phone, Users, ArrowUpRight, Clock } from '../../components/icons';
+import { Calendar, ChevronLeft, ChevronRight, List, X, Phone, Users, ArrowUpRight, Clock, Search } from '../../components/icons';
 import api from '../../services/api';
 import { invalidateLive } from '../../services/liveData';
 import ConfirmDialog from '../../components/client-dashboard/ConfirmDialog';
@@ -18,9 +18,14 @@ import { WEEKDAYS_FR, monthGrid, monthRange, monthLabel, isoDay, dayLabel, addMo
  * ouvre ses rendez-vous dans le panneau; un rendez-vous déplié va chercher
  * ce contexte et mène aux pages Appels et Leads filtrées sur ce numéro.
  *
- * Mouvement: le compte d'un jour grossit au centre de la case au survol
- * (même `layoutId`, Framer fait le trajet), les cartes du panneau entrent en
- * décalé. Rien d'autre ne bouge: un calendrier se lit, il ne danse pas.
+ * La grille montre le CONTENU des jours (heure et nom, deux par case, puis
+ * « +N »), pas seulement un compte: c'est ce qui fait qu'on lit sa semaine
+ * sans cliquer. La recherche, elle, est SERVEUR et traverse les mois: une
+ * recherche locale ne verrait que le mois chargé, et « aucun résultat »
+ * voudrait dire « pas en septembre », ce qui est le contraire d'une réponse.
+ *
+ * Mouvement: les cartes du panneau entrent en décalé, le pilulier de vue
+ * glisse. Rien d'autre ne bouge: un calendrier se lit, il ne danse pas.
  * `useReducedMotion` coupe les trajets.
  */
 
@@ -72,14 +77,19 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
   const [error, setError] = useState<string | null>(null);
   const [view, setView] = useState<'grid' | 'list'>('grid');
   const [selectedDay, setSelectedDay] = useState<string | null>(null);
-  const [hoveredDay, setHoveredDay] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [contexts, setContexts] = useState<Record<string, BookingContext | 'loading' | 'error'>>({});
   const [toCancel, setToCancel] = useState<Booking | null>(null);
   const [busy, setBusy] = useState<string | null>(null);
   const [problem, setProblem] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  /** `null` = pas de recherche en cours; un tableau = les résultats servis. */
+  const [results, setResults] = useState<Booking[] | null>(null);
+  const [searching, setSearching] = useState(false);
 
   const range = useMemo(() => monthRange(month), [month]);
+  const term = query.trim();
+  const searchMode = term.length >= 2;
 
   /* Un cache par mois: changer de mois vide l'écran AU CLIC (ou remet le
      mois déjà vu, sans attendre), et la réponse du serveur ne fait que
@@ -105,6 +115,33 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
 
   useEffect(() => { void load(); }, [load]);
 
+  /* La recherche part du SERVEUR, après une courte pause de frappe. Le jeton
+     écarte une réponse arrivée après une frappe plus récente: sans lui, taper
+     vite affiche le résultat de l'avant-dernière lettre. */
+  const searchToken = useRef(0);
+  useEffect(() => {
+    if (!searchMode) {
+      searchToken.current++;
+      setResults(null);
+      setSearching(false);
+      return;
+    }
+    const mine = ++searchToken.current;
+    setSearching(true);
+    const timer = setTimeout(async () => {
+      try {
+        const { data } = await api.get(`/my-dashboard/bookings?q=${encodeURIComponent(term)}&limit=50`);
+        if (searchToken.current !== mine) return;
+        setResults(Array.isArray(data?.data) ? data.data : []);
+      } catch {
+        if (searchToken.current === mine) setResults([]);
+      } finally {
+        if (searchToken.current === mine) setSearching(false);
+      }
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [term, searchMode]);
+
   const byDay = useMemo(() => {
     const map = new Map<string, Booking[]>();
     for (const b of bookings) {
@@ -118,6 +155,23 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
     for (const list of map.values()) list.sort((a, b) => (a.bookingTime ?? '').localeCompare(b.bookingTime ?? ''));
     return map;
   }, [bookings, range]);
+
+  /* Les résultats, groupés par jour comme le panneau, du plus récent au plus
+     ancien: on cherche d'abord le rendez-vous qui vient, pas celui de l'an
+     dernier. */
+  const resultDays = useMemo(() => {
+    if (!results) return [];
+    const map = new Map<string, Booking[]>();
+    for (const b of results) {
+      const key = bookingDay(b);
+      if (!key) continue;
+      const list = map.get(key) ?? [];
+      list.push(b);
+      map.set(key, list);
+    }
+    for (const list of map.values()) list.sort((a, b) => (a.bookingTime ?? '').localeCompare(b.bookingTime ?? ''));
+    return Array.from(map.entries()).sort((a, b) => b[0].localeCompare(a[0]));
+  }, [results]);
 
   const cells = useMemo(() => monthGrid(month), [month]);
   const todayIso = isoDay(new Date());
@@ -177,7 +231,11 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
   const goToday = () => { showMonth(firstOfMonth(new Date())); setSelectedDay(todayIso); };
 
   const monthCount = bookings.length;
-  const subtitle = loading ? 'Chargement…'
+  const subtitle = searchMode
+    ? searching || !results ? 'Recherche…'
+      : results.length === 0 ? `Aucun rendez-vous pour « ${term} », tous mois confondus.`
+      : `${results.length} rendez-vous pour « ${term} », tous mois confondus.`
+    : loading ? 'Chargement…'
     : monthCount === 0 ? `Aucun rendez-vous en ${monthLabel(month).toLowerCase()}.`
     : `${monthCount} rendez-vous en ${monthLabel(month).toLowerCase()}, pris par votre réceptionniste ou déplacés par vos appelants.`;
 
@@ -313,28 +371,55 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
     );
   };
 
-  const renderDayGroup = (iso: string, index: number) => (
+  /* La liste du jour vient du mois par défaut, et des résultats quand on
+     cherche: un résultat de novembre n'est dans aucun `byDay` de septembre. */
+  const renderDayGroup = (iso: string, index: number, list?: Booking[], withYear = false) => (
     <section key={iso} aria-label={dayLabel(iso)} className="space-y-2">
       <h3 className="flex items-baseline gap-2 text-[13px] font-medium text-[#F5F5F7]">
         {dayLabel(iso)}
+        {withYear && <span className="text-[12px] text-white/45 tabular-nums">{iso.slice(0, 4)}</span>}
         {iso === todayIso && <span className="text-[11px] text-[#7349fe]">Aujourd’hui</span>}
       </h3>
       <ul className="space-y-2">
         <AnimatePresence initial={false}>
-          {(byDay.get(iso) ?? []).map((b, i) => renderCard(b, index + i))}
+          {(list ?? byDay.get(iso) ?? []).map((b, i) => renderCard(b, index + i))}
         </AnimatePresence>
       </ul>
     </section>
   );
 
   return (
-    <main className="max-w-[1320px] space-y-6">
+    <main className="max-w-[1600px] space-y-6">
       <header className="flex flex-wrap items-start justify-between gap-4">
         <div>
           <h1 className="text-[22px] font-semibold tracking-tight text-white/90">Rendez-vous</h1>
-          <p className="mt-1 text-[12.5px] text-white/50">{subtitle}</p>
+          <p className="mt-1 text-[12.5px] text-white/50" aria-live="polite">{subtitle}</p>
         </div>
         <div className="flex flex-wrap items-center gap-2">
+          <div className="relative">
+            <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/40" aria-hidden="true" />
+            <input
+              type="search"
+              value={query}
+              onChange={e => setQuery(e.target.value)}
+              placeholder="Client, sujet ou numéro"
+              aria-label="Rechercher un rendez-vous par client, sujet ou numéro"
+              className="h-9 w-[230px] rounded-full border border-white/[0.08] bg-white/[0.03] pl-9 pr-8 text-[12.5px] text-white placeholder:text-white/35 outline-none focus:border-[#7349fe]/50 focus:bg-white/[0.05] transition-colors"
+            />
+            {query && (
+              <button
+                type="button"
+                onClick={() => setQuery('')}
+                aria-label="Effacer la recherche"
+                className="absolute right-2 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-full text-white/45 hover:bg-white/[0.08] hover:text-white active:scale-[0.97] transition-colors"
+              >
+                <X size={11} aria-hidden="true" />
+              </button>
+            )}
+          </div>
+          {/* Le mois et la vue n'ont plus de sens pendant une recherche, qui
+              traverse les mois: des boutons inertes valent moins que rien. */}
+          {!searchMode && <>
           <div className="flex items-center rounded-full border border-white/[0.08] bg-white/[0.03]">
             <button type="button" onClick={() => goMonth(-1)} aria-label="Mois précédent" className="flex h-9 w-9 items-center justify-center rounded-full text-white/70 hover:text-white active:scale-[0.97] transition-colors"><ChevronLeft size={15} /></button>
             <span className="min-w-[132px] text-center text-[13px] font-medium text-[#F5F5F7]" aria-live="polite">{monthLabel(month)}</span>
@@ -360,6 +445,7 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
               );
             })}
           </div>
+          </>}
         </div>
       </header>
 
@@ -371,7 +457,28 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
       )}
       {problem && <p className="text-[12.5px] text-red-400" role="alert">{problem}</p>}
 
-      <div className={view === 'grid' ? 'grid gap-6 lg:grid-cols-[minmax(0,1fr)_400px]' : ''}>
+      {searchMode ? (
+        <section aria-label={`Résultats pour ${term}`} className="space-y-6">
+          {searching && !results && <p className="text-[13px] text-white/50">Recherche…</p>}
+          {results && results.length === 0 && !searching && (
+            <section className="rounded-2xl border border-white/[0.07] bg-white/[0.02] px-6 py-10 text-center">
+              <span className="mx-auto mb-3 flex h-10 w-10 items-center justify-center rounded-full bg-white/[0.05]">
+                <Search size={16} className="text-white/60" aria-hidden="true" />
+              </span>
+              {/* Le compte est déjà dit sous le titre: cette carte explique
+                  seulement CE QUI a été cherché, elle ne le redit pas. */}
+              <p className="text-[13.5px] text-white/70">Rien trouvé.</p>
+              <p className="mt-1 text-[12.5px] text-white/45">La recherche lit tous les mois, sur le nom du client, le sujet et le numéro.</p>
+            </section>
+          )}
+          <div className="grid gap-x-6 gap-y-6 lg:grid-cols-2">
+            {resultDays.map(([iso, list], i) => (
+              <div key={iso}>{renderDayGroup(iso, i * 3, list, iso.slice(0, 4) !== String(new Date().getFullYear()))}</div>
+            ))}
+          </div>
+        </section>
+      ) : (
+      <div className={view === 'grid' ? 'grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px]' : ''}>
         {view === 'grid' ? (
           <section aria-label={`Calendrier, ${monthLabel(month)}`} className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-3 sm:p-4">
             <div className="mb-2 grid grid-cols-7 gap-1.5 sm:gap-2">
@@ -381,55 +488,42 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
             </div>
             <div className="grid grid-cols-7 gap-1.5 sm:gap-2" role="grid">
               {cells.map(cell => {
-                const count = byDay.get(cell.iso)?.length ?? 0;
+                const dayBookings = byDay.get(cell.iso) ?? [];
+                const count = dayBookings.length;
                 const selected = selectedDay === cell.iso;
-                const hovered = hoveredDay === cell.iso && count > 0;
                 return (
-                  <motion.button
+                  <button
                     key={cell.iso}
                     type="button"
                     role="gridcell"
                     aria-selected={selected}
                     aria-label={`${dayLabel(cell.iso)}${count ? `, ${count} rendez-vous` : ''}`}
                     onClick={() => { setSelectedDay(selected ? null : cell.iso); setExpanded(null); }}
-                    onMouseEnter={() => setHoveredDay(cell.iso)}
-                    onMouseLeave={() => setHoveredDay(null)}
-                    onFocus={() => setHoveredDay(cell.iso)}
-                    onBlur={() => setHoveredDay(null)}
-                    className={`relative flex h-14 items-start justify-start rounded-2xl p-2 text-left transition-colors sm:h-16
+                    className={`relative flex h-24 flex-col items-stretch overflow-hidden rounded-2xl p-2 text-left transition-colors xl:h-28
                       ${cell.inMonth ? 'bg-white/[0.04] hover:bg-white/[0.07]' : 'bg-white/[0.015] text-white/30'}
                       ${selected ? 'ring-1 ring-[#7349fe]/60 bg-[#7349fe]/[0.12]' : ''}
                       active:scale-[0.98]`}
                     style={{ borderRadius: 16 }}
                   >
-                    <span className={`text-[12.5px] tabular-nums ${cell.isToday ? 'font-semibold text-[#7349fe]' : cell.inMonth ? 'text-white/85' : 'text-white/30'}`}>
+                    <span className={`px-0.5 text-[12.5px] tabular-nums ${cell.isToday ? 'font-semibold text-[#7349fe]' : cell.inMonth ? 'text-white/85' : 'text-white/30'}`}>
                       {cell.day}
                     </span>
+                    {/* Le CONTENU du jour, pas son compte: deux rendez-vous
+                        lisibles valent mieux qu'une pastille à ouvrir. */}
                     {count > 0 && (
-                      <motion.span
-                        layoutId={reduced ? undefined : `count-${cell.iso}`}
-                        className="absolute bottom-1.5 right-1.5 flex size-5 items-center justify-center rounded-full bg-[#7349fe] text-[10px] font-bold text-white"
-                        style={{ borderRadius: 999 }}
-                        aria-hidden="true"
-                      >
-                        {count}
-                      </motion.span>
+                      <span className="mt-1 flex min-w-0 flex-col gap-1" aria-hidden="true">
+                        {dayBookings.slice(0, 2).map(b => (
+                          <span key={b.id} className="flex min-w-0 items-baseline gap-1 rounded-md bg-[#7349fe]/[0.16] px-1.5 py-[3px] text-[10.5px] leading-tight">
+                            <span className="shrink-0 font-semibold tabular-nums text-[#b9a6ff]">{b.bookingTime ?? '—'}</span>
+                            <span className="truncate text-white/85">{b.customerName}</span>
+                          </span>
+                        ))}
+                        {count > 2 && (
+                          <span className="pl-1 text-[10.5px] text-white/45">+{count - 2} autre{count - 2 > 1 ? 's' : ''}</span>
+                        )}
+                      </span>
                     )}
-                    <AnimatePresence>
-                      {hovered && (
-                        <span className="pointer-events-none absolute inset-0 flex items-center justify-center" aria-hidden="true">
-                          <motion.span
-                            layoutId={reduced ? undefined : `count-${cell.iso}`}
-                            className="flex size-9 items-center justify-center rounded-full bg-[#7349fe] text-[13px] font-bold text-white"
-                            style={{ borderRadius: 999 }}
-                            transition={{ duration: 0.22, ease: EASE }}
-                          >
-                            {count}
-                          </motion.span>
-                        </span>
-                      )}
-                    </AnimatePresence>
-                  </motion.button>
+                  </button>
                 );
               })}
             </div>
@@ -464,6 +558,7 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
           </aside>
         )}
       </div>
+      )}
 
       <ConfirmDialog
         open={toCancel !== null}
