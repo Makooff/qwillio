@@ -292,11 +292,14 @@ function notBookedYet(lang: string): string {
 function confirmNameBeforeBooking(lang: string, name: string): string {
   const spelled = spellOut(familyName(name));
   const base: Record<string, string> = {
-    fr: `NOM À CONFIRMER AVANT DE RÉSERVER: « ${name} ». Répète-le à l'appelant, puis ÉPELLE toi-même le nom de famille lettre par lettre: ${spelled}. `
+    fr: `NOM À CONFIRMER AVANT DE RÉSERVER: « ${name} ». Répète-le EXACTEMENT ainsi, sans recoller les mots, puis épelle le nom de famille en redisant ces lettres telles quelles: ${spelled}. `
+      + 'Recopie-les sans en changer aucune et sans les coller: un nom ne contient JAMAIS de chiffre, écris O et pas zéro. '
       + "S'il confirme, rappelle bookAppointment avec ce nom. S'il corrige, demande-lui d'épeler le nom, laisse-le finir sans l'interrompre ni dire « merci » entre les lettres, puis rappelle bookAppointment avec le nom exact, sans le refaire confirmer.",
-    en: `CONFIRM THE NAME BEFORE BOOKING: "${name}". Repeat it to the caller, then SPELL the family name yourself letter by letter: ${spelled}. `
+    en: `CONFIRM THE NAME BEFORE BOOKING: "${name}". Repeat it EXACTLY as written, without merging the words, then spell the family name back using these letters as they are: ${spelled}. `
+      + 'Copy them without changing or joining any: a name never contains a digit, write O and not zero. '
       + 'If they confirm, call bookAppointment again with this name. If they correct you, ask them to spell it, then call bookAppointment with the exact name.',
-    nl: `NAAM BEVESTIGEN VOOR HET BOEKEN: « ${name} ». Herhaal hem voor de beller en SPEL de familienaam zelf letter voor letter: ${spelled}. `
+    nl: `NAAM BEVESTIGEN VOOR HET BOEKEN: « ${name} ». Herhaal hem PRECIES zo, zonder de woorden aan elkaar te plakken, en spel de familienaam met deze letters zoals ze staan: ${spelled}. `
+      + 'Neem ze letterlijk over zonder er een te wijzigen of samen te voegen: een naam bevat NOOIT een cijfer, schrijf O en geen nul. '
       + 'Bevestigt de beller, roep bookAppointment opnieuw aan met deze naam. Verbetert hij je, vraag om te spellen en roep bookAppointment aan met de exacte naam.',
   };
   return base[lang] ?? base.en;

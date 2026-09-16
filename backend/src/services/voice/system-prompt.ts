@@ -338,7 +338,7 @@ export function buildSystemPrompt(
              nomme le prochain jour ouvert; c'est lui qui doit le dire. */
           '- checkAvailability AVANT toute heure proposée, même si le jour demandé est fermé (il nomme le prochain jour ouvert). « demain matin » suffit: jamais matin ou après-midi d\'abord, jamais de créneau inventé.',
           '- Propose un créneau à la fois.',
-          '- bookAppointment seulement après un accord explicite sur une heure précise, avec prénom et nom de famille (demande-les; un inconnu épelle le nom). « C\'est réservé » se dit après son retour RESERVE, jamais avant.',
+          '- bookAppointment seulement après accord sur une heure précise, avec prénom et nom de famille (demande-les; un inconnu épelle le nom). « C\'est réservé » comme « je vous réserve » se disent après son retour RESERVE, jamais avant.',
           '- Pour DÉPLACER un rendez-vous existant: lookupBooking, checkAvailability, puis rescheduleBooking. Jamais bookAppointment pour un déplacement.',
           /* Appel réel du 16/09/2026: l'outil a répondu « AUCUNE RESERVATION
              trouvee » neuf fois de suite, et l'agent a dit « j'ai bien votre

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { auditCall, readVapiMessages, renderAudit, TARGETS, type CallFacts } from '../call-audit';
+import { auditCall, chunkableReplies, readVapiMessages, renderAudit, TARGETS, type CallFacts } from '../call-audit';
 
 /**
  * L'audit tranche sur des faits: un appel qui a tout fait est vert, un
@@ -14,6 +14,18 @@ const good = (): CallFacts => ({
   endedReason: 'customer-ended-call',
   durationSeconds: 95,
   assistantLines: 8,
+  /* Cinq répliques portent une fin de phrase au-delà de 60 caractères, donc
+     cinq sont découpables: c'est le plafond contre lequel `streamed` se note. */
+  assistantTexts: [
+    'Cabinet Martin, bonjour. Je suis Lucas, votre assistant IA. Cet appel est enregistré. Que puis-je faire pour vous ?',
+    'Je regarde ça tout de suite.',
+    'Pour vendredi je peux vous proposer neuf heures ou dix heures, laquelle préférez-vous ? Je vous les redonne si besoin.',
+    'Un instant, je m\'en occupe.',
+    "C'est bien réservé pour le vendredi 18 septembre à 10 heures, Jean-Luc. Vous allez recevoir un SMS de confirmation.",
+    'Très bien, je note votre demande et je vous rappelle rapidement. Autre chose pour vous aujourd\'hui ?',
+    "Je vous confirme que tout est en ordre de notre côté, vous recevrez le message d'ici quelques instants.",
+    'Au revoir.',
+  ],
   callerLines: 7,
   vapiGapsSeconds: [1.4, 1.6, 1.2, 1.9],
   tools: [
@@ -45,6 +57,7 @@ const good = (): CallFacts => ({
     endpointing: { provider: 'livekit', waitSeconds: 0.4, punctuationSeconds: 0.4 },
     fullModel: 'gpt-4.1-mini',
     miniModel: 'gpt-4.1-nano',
+    minChunkChars: 60,
     greetingPinned: false,
     tierRequested: null,
     tierServed: 'base',
@@ -247,5 +260,106 @@ describe('readVapiMessages', () => {
     expect(read.tools[0]).toEqual({ name: 'checkAvailability', args: { date: '2026-09-18' }, result: 'CRENEAUX: 09:00', tookSeconds: 0.8 });
     /* Un outil sans réponse (appel coupé) compte, sans durée. */
     expect(read.tools[1]).toEqual({ name: 'bookAppointment', args: { customerName: 'X' }, result: null, tookSeconds: null });
+  });
+});
+
+/**
+ * Les deux FAUX POSITIFS relevés sur l'appel test du 16/09/2026 au soir.
+ *
+ * L'audit y a noté « son parti avant la fin du texte: 1/5 » et « créneaux
+ * consultés mais bookAppointment jamais appelé », et a placé le premier en
+ * tête des choses à faire. Les deux étaient faux, et le geste qu'ils
+ * appelaient (baisser le seuil de découpe) aurait rendu la voix hachée pour
+ * gagner cent millisecondes sur des réponses déjà rapides, juste après que le
+ * propriétaire ait dit « c'est mieux niveau naturel ».
+ */
+describe("auditCall — ce qui n'est PAS un défaut", () => {
+  /** Les cinq répliques réelles de l'appel du 16/09 au soir. */
+  const repliquesDuSoir = [
+    'Je regarde ça tout de suite.',
+    'Pour mardi prochain, je peux vous proposer 9 heures. Que cette heure vous conviendrait ?',
+    "Un instant, je m'en occupe.",
+    'Vous êtes bien Jean-Luc Delaforge, F-O-R-G-E.',
+    "C'est bien réservé pour mardi 22 septembre à 9 heures, Jean-Luc. Vous allez recevoir un SMS de confirmation avec le lien pour l'agenda. Je peux faire autre chose pour vous ?",
+  ];
+
+  it('compte comme découpable la seule réplique qui pouvait l\'être', () => {
+    /* Quatre répliques sur cinq n'ont aucune fin de phrase au-delà de 60
+       caractères: elles partent en un seul morceau, par construction. */
+    expect(chunkableReplies(repliquesDuSoir, 60)).toBe(1);
+  });
+
+  it('une fin de phrase sur le DERNIER caractère ne découpe rien', () => {
+    /* Sinon toute réplique de plus de 60 caractères passerait pour
+       découpable, et le plafond redeviendrait faux dans l'autre sens. */
+    expect(chunkableReplies(['a'.repeat(70) + '.'], 60)).toBe(0);
+    expect(chunkableReplies(['a'.repeat(70) + '. Et ensuite.'], 60)).toBe(1);
+  });
+
+  it('1 tour streamé sur 1 réplique découpable est VERT, pas 20 %', () => {
+    const f = good();
+    f.assistantTexts = repliquesDuSoir;
+    f.realtime!.latency.streaming = { streamed: 1, buffered: 4 };
+    const report = auditCall(f);
+    const streamed = report.checks.find(c => c.id === 'streamed');
+    expect(streamed?.status).toBe('ok');
+    expect(streamed?.value).toMatch(/1\/1/);
+    expect(streamed?.value).toMatch(/4 trop courte/);
+    expect(report.todo.find(c => c.id === 'streamed')).toBeUndefined();
+  });
+
+  it('aucune réplique découpable: la ligne dit « sans objet », elle ne juge pas', () => {
+    const f = good();
+    f.assistantTexts = ["Un instant, je m'en occupe.", 'Je regarde ça.'];
+    f.realtime!.latency.streaming = { streamed: 0, buffered: 2 };
+    const report = auditCall(f);
+    const streamed = report.checks.find(c => c.id === 'streamed');
+    expect(streamed?.status).toBe('ok');
+    expect(streamed?.value).toMatch(/sans objet/);
+    expect(report.todo.find(c => c.id === 'streamed')).toBeUndefined();
+  });
+
+  it('une VRAIE découpe manquée reste rouge', () => {
+    /* Le garde-fou ne doit pas avaler le défaut qu'il est censé voir: cinq
+       répliques longues dont aucune n'a streamé, c'est le chunkPlan. */
+    const f = good();
+    f.assistantTexts = Array.from({ length: 5 }, (_, i) =>
+      `Voici une réponse suffisamment longue pour porter une frontière de découpe, numéro ${i}. Et une seconde phrase ensuite.`);
+    f.realtime!.latency.streaming = { streamed: 0, buffered: 5 };
+    const report = auditCall(f);
+    const streamed = report.checks.find(c => c.id === 'streamed');
+    expect(streamed?.status).not.toBe('ok');
+    expect(streamed?.lever).toMatch(/chunkPlan/);
+  });
+
+  it("un appel de DÉPLACEMENT ne réclame pas bookAppointment", () => {
+    /* « Je dois déplacer mon rendez-vous »: créneaux consultés puis
+       `rescheduleBooking`. Réclamer `bookAppointment` là envoie relire un
+       transcript pour un défaut qui n'existe pas. */
+    const f = good();
+    f.tools = [
+      { name: 'lookupBooking', args: {}, result: 'RESERVATION: mardi 22 septembre a 09:00', tookSeconds: 1.2 },
+      { name: 'checkAvailability', args: { date: '2026-09-24' }, result: 'LIBRE le jeudi 24 septembre a: 09:00, 10:00', tookSeconds: 0.9 },
+      { name: 'rescheduleBooking', args: { date: '2026-09-24', time: '09:00' }, result: 'DEPLACE: Jean-Luc de la forge, du mardi 22 au jeudi 24 a 09:00.', tookSeconds: 1.1 },
+    ];
+    const report = auditCall(f);
+    expect(report.checks.find(c => c.id === 'booking')).toBeUndefined();
+    const moved = report.checks.find(c => c.id === 'reschedule');
+    expect(moved?.status).toBe('ok');
+    expect(report.todo.find(c => c.id === 'booking')).toBeUndefined();
+  });
+
+  it("des créneaux consultés SANS conclure restent un défaut", () => {
+    /* L'autre moitié: sans déplacement, « créneaux consultés et rien de
+       pris » est le vrai défaut du 15/09, il ne doit pas disparaître. */
+    const f = good();
+    f.tools = [
+      { name: 'checkAvailability', args: { date: '2026-09-18' }, result: 'LIBRE a 09:00', tookSeconds: 0.5 },
+    ];
+    f.booking = null;
+    const report = auditCall(f);
+    const booking = report.checks.find(c => c.id === 'booking');
+    expect(booking?.status).toBe('warn');
+    expect(booking?.value).toMatch(/jamais appelé/);
   });
 });

@@ -57,6 +57,8 @@ export interface CallFacts {
   durationSeconds: number | null;
   /** Répliques de l'assistant et de l'appelant, comptées chez Vapi. */
   assistantLines: number;
+  /** Ce que l'assistant a DIT: sans le texte, « le son n'a pas streamé » ne se juge pas. */
+  assistantTexts: string[];
   callerLines: number;
   /** Délai entre la fin de parole de l'appelant et la réponse, horloge Vapi. */
   vapiGapsSeconds: number[];
@@ -95,6 +97,8 @@ export interface CallFacts {
     endpointing: EndpointingFacts;
     fullModel: string;
     miniModel: string;
+    /** Le seuil de découpe de la synthèse (`VOICE_TTS_MIN_CHUNK_CHARS`). */
+    minChunkChars: number;
     greetingPinned: boolean;
     smsReady: boolean;
     /** Le niveau DEMANDÉ par le client. `null` = rien de choisi. */
@@ -142,6 +146,35 @@ function stage(realtime: Record<string, any> | null, name: string): StageStats |
   return s && typeof s.median === 'number' ? (s as StageStats) : null;
 }
 
+/**
+ * Combien de ces répliques POUVAIENT être découpées par la synthèse.
+ *
+ * `chunkPlan` émet son premier morceau à la première fin de phrase située au
+ * moins `minChars` caractères après le début (60 par défaut, et les frontières
+ * sont `.`, `!`, `?` seulement: la virgule a été retirée parce qu'elle faisait
+ * parler haché). Une réplique courte n'a donc AUCUNE frontière avant sa fin:
+ * elle part en un seul morceau, et « le son n'est pas parti avant la fin du
+ * texte » n'y décrit aucun défaut.
+ *
+ * Sans ce compte, l'audit notait 1/5 sur un appel où 4 réponses sur 5 étaient
+ * « Un instant, je m'en occupe » (27 caractères), et plaçait « relire le
+ * chunkPlan » en tête des choses à faire. Le seul geste que ça appelle est de
+ * baisser le seuil, c'est-à-dire de rendre la voix hachée pour gagner cent
+ * millisecondes sur des réponses déjà rapides. Un diagnostic FAUX coûte plus
+ * cher qu'aucun diagnostic (6sexvicies).
+ */
+export function chunkableReplies(texts: string[], minChars: number): number {
+  return texts.filter(text => {
+    const t = text.trim();
+    for (let i = minChars - 1; i < t.length - 1; i++) {
+      /* `i + 1 < t.length`: une frontière posée sur le DERNIER caractère ne
+         découpe rien, elle termine la réplique. */
+      if (t[i] === '.' || t[i] === '!' || t[i] === '?') return true;
+    }
+    return false;
+  }).length;
+}
+
 function resultSays(result: string | null, ...prefixes: string[]): boolean {
   if (!result) return false;
   const head = result.trim().toUpperCase();
@@ -156,11 +189,14 @@ function resultSays(result: string | null, ...prefixes: string[]): boolean {
  */
 export function readVapiMessages(messages: Array<Record<string, any>>): {
   assistantLines: number;
+  /** Ce que l'assistant a DIT, pour juger la découpe de la synthèse. */
+  assistantTexts: string[];
   callerLines: number;
   vapiGapsSeconds: number[];
   tools: ToolEvent[];
 } {
   let assistantLines = 0;
+  const assistantTexts: string[] = [];
   let callerLines = 0;
   const gaps: number[] = [];
   const tools: ToolEvent[] = [];
@@ -175,6 +211,8 @@ export function readVapiMessages(messages: Array<Record<string, any>>): {
         : at;
     } else if (m.role === 'bot' || m.role === 'assistant') {
       assistantLines++;
+      if (typeof m.message === 'string' && m.message.trim()) assistantTexts.push(m.message);
+      else if (typeof m.content === 'string' && m.content.trim()) assistantTexts.push(m.content);
       if (at !== null && lastUserEnd !== null) {
         gaps.push(Math.max(0, at - lastUserEnd));
         lastUserEnd = null;
@@ -206,7 +244,7 @@ export function readVapiMessages(messages: Array<Record<string, any>>): {
   }
   /* Un outil appelé sans réponse vue (appel coupé pendant l'agenda) compte. */
   for (const [name, open] of pending) tools.push({ name, args: open.args, result: null, tookSeconds: null });
-  return { assistantLines, callerLines, vapiGapsSeconds: gaps, tools };
+  return { assistantLines, assistantTexts, callerLines, vapiGapsSeconds: gaps, tools };
 }
 
 export function auditCall(facts: CallFacts): AuditReport {
@@ -300,7 +338,21 @@ export function auditCall(facts: CallFacts): AuditReport {
   const booked = facts.tools.find(t => t.name === 'bookAppointment' && resultSays(t.result, 'RESERVE', 'BOOKED', 'GEBOEKT'));
   const bookAttempts = facts.tools.filter(t => t.name === 'bookAppointment');
   const checks_ = facts.tools.filter(t => t.name === 'checkAvailability');
-  const wantedBooking = bookAttempts.length > 0 || checks_.length > 0;
+  /* UN DÉPLACEMENT N'EST PAS UNE RÉSERVATION MANQUÉE. « Je dois déplacer mon
+     rendez-vous » consulte les créneaux puis appelle `rescheduleBooking`, et
+     `bookAppointment` n'a aucune raison d'y apparaître. L'audit criait alors
+     « créneaux consultés mais bookAppointment jamais appelé » sur CHAQUE appel
+     de déplacement, et plaçait « relire le transcript » dans les choses à
+     faire, pour un défaut qui n'existait pas (6sexvicies). */
+  const moved = facts.tools.find(t => t.name === 'rescheduleBooking' && resultSays(t.result, 'DEPLACE', 'MOVED', 'VERPLAATST'));
+  if (moved) {
+    push({
+      id: 'reschedule', area: 'fonctionnement', status: 'ok',
+      label: 'déplacement du rendez-vous',
+      value: `déplacé: ${String(moved.result ?? '').slice(0, 110)}`,
+    });
+  }
+  const wantedBooking = bookAttempts.length > 0 || (checks_.length > 0 && !moved);
   if (wantedBooking) {
     const placeholderTry = bookAttempts.find(t => typeof t.args.customerName === 'string' && isPlaceholderName(String(t.args.customerName)));
     push({
@@ -447,15 +499,35 @@ export function auditCall(facts: CallFacts): AuditReport {
        EST la réponse. L'afficher à 0/n sur un superagent ferait relire un plan
        qui n'est pas envoyé. */
     if (n > 0 && facts.remote.speechToSpeech !== true) {
-      const pct = Math.round(((streaming!.streamed ?? 0) / n) * 100);
-      const status = grade(pct, TARGETS.streamedPct, true);
-      push({
-        id: 'streamed', area: 'latence', status,
-        label: 'son parti avant la fin du texte',
-        value: `${streaming!.streamed ?? 0}/${n} tour(s) (${pct} %)`,
-        target: `≥ ${TARGETS.streamedPct[0]} %`,
-        lever: status === 'ok' ? undefined : "le son attend la fin de la réponse: réponses trop courtes pour une découpe (normal sur « oui », « d'accord »), sinon `chunkPlan` distant à relire",
-      });
+      const streamed = streaming!.streamed ?? 0;
+      /* LE PLAFOND, et c'est lui qu'on note. Une réplique trop courte n'a
+         aucune frontière de découpe avant sa fin: elle ne PEUT pas partir
+         avant la fin de son texte, et la compter comme un échec envoie baisser
+         le seuil, c'est-à-dire rendre la voix hachée pour gagner cent
+         millisecondes sur des réponses déjà rapides. */
+      const chunkable = chunkableReplies(facts.assistantTexts, facts.expected.minChunkChars);
+      const ceiling = Math.min(chunkable, n);
+      if (ceiling === 0) {
+        push({
+          id: 'streamed', area: 'latence', status: 'ok',
+          label: 'son parti avant la fin du texte',
+          value: `sans objet: aucune des ${facts.assistantTexts.length} réplique(s) n'atteignait le seuil de découpe `
+            + `(${facts.expected.minChunkChars} caractères), elles partent donc en un seul morceau`,
+        });
+      } else {
+        const pct = Math.round((Math.min(streamed, ceiling) / ceiling) * 100);
+        const status = grade(pct, TARGETS.streamedPct, true);
+        push({
+          id: 'streamed', area: 'latence', status,
+          label: 'son parti avant la fin du texte',
+          value: `${Math.min(streamed, ceiling)}/${ceiling} réplique(s) découpable(s) (${pct} %)`
+            + (chunkable < facts.assistantTexts.length
+              ? `, ${facts.assistantTexts.length - chunkable} trop courte(s) pour une découpe`
+              : ''),
+          target: `≥ ${TARGETS.streamedPct[0]} %`,
+          lever: status === 'ok' ? undefined : '`chunkPlan` distant à relire: des réponses assez longues pour être découpées ne le sont pas',
+        });
+      }
     }
   }
 
