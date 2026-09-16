@@ -360,6 +360,43 @@ const PART_OF_DAY_WINDOWS: Record<string, [number, number]> = {
   any: [0, 24 * 60],
 };
 
+const PART_OF_DAY_LABELS: Record<string, { fr: string; en: string }> = {
+  morning: { fr: 'le MATIN', en: 'the MORNING' },
+  afternoon: { fr: "l'APRES-MIDI", en: 'the AFTERNOON' },
+  evening: { fr: 'la SOIREE', en: 'the EVENING' },
+};
+
+/**
+ * Ce que le résultat doit dire quand la liste a été FILTRÉE sur une plage.
+ *
+ * Appel réel du 16/09/2026, cabinet ouvert 9 h-18 h le vendredi. L'appelant
+ * veut « plus tôt », le modèle appelle l'outil avec `partOfDay: 'morning'`, et
+ * le résultat rend les créneaux du matin en disant « Ce sont TOUS les creneaux
+ * libres de la plage ». Le modèle a lu la fin de la liste comme la fin de la
+ * journée, a répondu « on est fermé l'après-midi », et l'a CONFIRMÉ quand
+ * l'appelant l'a répété. Une fermeture inventée est pire qu'un créneau manqué:
+ * c'est un fait sur l'entreprise, faux, dit à un client qui voulait venir.
+ *
+ * C'est 6untrigesies (« le plus tard, c'est 11 heures ») d'un cran plus haut:
+ * le correctif d'alors a ajouté la fenêtre d'ouverture au résultat, mais
+ * jamais le nom du FILTRE. Un résultat tronqué doit dire qu'il est tronqué,
+ * et par quoi.
+ */
+function windowNote(partOfDay: unknown, lang: string, open: string): string {
+  const key = String(partOfDay || 'any');
+  const label = PART_OF_DAY_LABELS[key];
+  if (lang === 'fr') {
+    const jamais = ` N'annonce JAMAIS une fermeture que les horaires ne disent pas: ce jour est ouvert ${open}.`;
+    if (!label) return ` Ce sont TOUS les creneaux libres de la journee.${jamais}`;
+    return ` Liste filtree sur ${label.fr} UNIQUEMENT: le reste de la journee n'a pas ete regarde.`
+      + ` Si l'appelant veut une autre plage, rappelle checkAvailability avec partOfDay=any.${jamais}`;
+  }
+  const never = ` NEVER announce a closing the opening hours do not state: this day is open ${open}.`;
+  if (!label) return ` These are ALL the free slots of the day.${never}`;
+  return ` List filtered to ${label.en} ONLY: the rest of the day was not checked.`
+    + ` If the caller wants another range, call checkAvailability again with partOfDay=any.${never}`;
+}
+
 class ToolRuntimeService {
   /**
    * Execute one tool call. `clientId` comes from the webhook path, never from
@@ -481,16 +518,20 @@ class ToolRuntimeService {
     const hours = window.open ? `${window.from}-${window.to}` : '';
     const day = spokenDate(date, profile.language, profile.timezone);
 
+    const note = windowNote(args.partOfDay, profile.language, hours || '?');
+
     if (free.length === 0) {
       const fallback = slots.filter(s => !held.includes(s));
       if (fallback.length === 0) {
+        /* « Tout est pris » n'est pas « c'est fermé », et le résultat le dit:
+           sans cette ligne le modèle transforme un agenda plein en fermeture. */
         return profile.language === 'fr'
-          ? `AUCUN CRENEAU le ${day} (${args.date}, ouvert ${hours}): tout est pris. Propose un autre jour.`
-          : `NO SLOTS on ${day} (${args.date}, open ${hours}): fully booked. Offer another day.`;
+          ? `AUCUN CRENEAU le ${day} (${args.date}, ouvert ${hours}): tout est pris, l'entreprise est OUVERTE ce jour-la. Propose un autre jour.`
+          : `NO SLOTS on ${day} (${args.date}, open ${hours}): fully booked, the business IS open that day. Offer another day.`;
       }
       return profile.language === 'fr'
-        ? `RIEN sur la plage demandee le ${day} (${args.date}, ouvert ${hours}), mais libre a: ${fallback.join(', ')}. Propose ces horaires, un par un.`
-        : `NOTHING in the requested window on ${day} (${args.date}, open ${hours}), but free at: ${fallback.join(', ')}. Offer these instead, one at a time.`;
+        ? `RIEN sur la plage demandee le ${day} (${args.date}, ouvert ${hours}), mais libre a: ${fallback.join(', ')}. Propose ces horaires, un par un.${note}`
+        : `NOTHING in the requested window on ${day} (${args.date}, open ${hours}), but free at: ${fallback.join(', ')}. Offer these instead, one at a time.${note}`;
     }
 
     /* Le jour de la semaine est DIT avec la date: « lundi 17 juin » annoncé
@@ -501,8 +542,8 @@ class ToolRuntimeService {
        droit à « je vous réserve ça » sans nom, donc sans réservation
        (appel réel, 15/09/2026). */
     return profile.language === 'fr'
-      ? `LIBRE le ${day} (${args.date}, ouvert ${hours}) a: ${free.join(', ')}. Ce sont TOUS les creneaux libres de la plage. Propose-les un par un, en nommant le jour. Quand l'appelant accepte une heure: prenom et nom de famille (s'il ne les a pas deja donnes, un inconnu epelle le nom), puis bookAppointment; c'est reserve seulement apres son retour RESERVE.`
-      : `FREE on ${day} (${args.date}, open ${hours}) at: ${free.join(', ')}. These are ALL the free slots in the window. Offer them one at a time, naming the day. Once the caller accepts a time: first name and family name (unless already given; an unknown caller spells it), then bookAppointment; it is booked only after its BOOKED result.`;
+      ? `LIBRE le ${day} (${args.date}, ouvert ${hours}) a: ${free.join(', ')}.${note} Propose-les un par un, en nommant le jour. Quand l'appelant accepte une heure: prenom et nom de famille (s'il ne les a pas deja donnes, un inconnu epelle le nom), puis bookAppointment; c'est reserve seulement apres son retour RESERVE.`
+      : `FREE on ${day} (${args.date}, open ${hours}) at: ${free.join(', ')}.${note} Offer them one at a time, naming the day. Once the caller accepts a time: first name and family name (unless already given; an unknown caller spells it), then bookAppointment; it is booked only after its BOOKED result.`;
   }
 
   // ── bookAppointment ─────────────────────────────────────────────────────

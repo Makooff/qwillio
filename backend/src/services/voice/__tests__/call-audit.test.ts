@@ -338,6 +338,43 @@ describe("auditCall — ce qui n'est PAS un défaut", () => {
     expect(chunkableReplies(repliquesDuSoir, 60)).toBe(1);
   });
 
+  it("le modèle qui finit avant la synthèse n'est pas un défaut de découpe", () => {
+    /* Relevé du 16/09/2026 au soir: 6 répliques découpables, 0 streamées, et
+       la ligne partait en tête des choses à faire avec « relire le chunkPlan ».
+       Or `tts` (dernier jeton → premier son) valait la moitié du TTFA: le
+       texte était écrit avant que la voix ne parle, donc découper plus tôt
+       n'avance rien. Baisser le seuil aurait haché la voix pour zéro gain. */
+    const f = good();
+    f.assistantTexts = [
+      'Le vendredi 18 septembre, on a un créneau à 9 heures. Je peux vous le poser si vous voulez.',
+      "Votre rendez-vous est bien avancé au vendredi 18 septembre à 9 heures. Un SMS de confirmation part tout de suite.",
+    ];
+    f.realtime!.latency.streaming = { streamed: 0, buffered: 6 };
+    f.realtime!.latency.ttfa = { count: 6, median: 394, p95: 600, max: 600 };
+    f.realtime!.latency.tts = { count: 6, median: 300, p95: 450, max: 450 };
+    const c = auditCall(f).checks.find(x => x.id === 'streamed')!;
+    expect(c.status).toBe('ok');
+    expect(c.value).toMatch(/sans objet/);
+    expect(c.value).toMatch(/avant que la synthèse ne parle/);
+    expect(c.lever).toBeUndefined();
+  });
+
+  it('une synthèse RAPIDE laisse la découpe responsable, et la ligne reste rouge', () => {
+    /* L'autre moitié: si la voix répond en 40 ms et que le TTFA reste à
+       394 ms, c'est bien le texte qu'on a attendu, donc la découpe. */
+    const f = good();
+    f.assistantTexts = [
+      'Le vendredi 18 septembre, on a un créneau à 9 heures. Je peux vous le poser si vous voulez.',
+      "Votre rendez-vous est bien avancé au vendredi 18 septembre à 9 heures. Un SMS de confirmation part tout de suite.",
+    ];
+    f.realtime!.latency.streaming = { streamed: 0, buffered: 6 };
+    f.realtime!.latency.ttfa = { count: 6, median: 394, p95: 600, max: 600 };
+    f.realtime!.latency.tts = { count: 6, median: 40, p95: 60, max: 60 };
+    const c = auditCall(f).checks.find(x => x.id === 'streamed')!;
+    expect(c.status).toBe('fail');
+    expect(c.lever).toMatch(/chunkPlan/);
+  });
+
   it('une fin de phrase sur le DERNIER caractère ne découpe rien', () => {
     /* Sinon toute réplique de plus de 60 caractères passerait pour
        découpable, et le plafond redeviendrait faux dans l'autre sens. */
