@@ -6,6 +6,7 @@ import { knowledgeFieldsBlock } from '../../config/knowledge-presets';
 import { namesMatch } from '../../utils/name-match';
 import { logger } from '../../config/logger';
 import { env } from '../../config/env';
+import { readTierId, type VoiceTierId } from './voice-tiers';
 import type { CustomVoice } from '../../config/voice-characters';
 
 /**
@@ -114,6 +115,13 @@ export interface ClientVoiceProfile {
    * entière, et plus tard d'attacher le mode au plan payé.
    */
   voiceMode: 'auto' | 'realtime' | 'classic';
+  /**
+   * Le NIVEAU vendu: `base` (la chaîne classique) ou `superagent`
+   * (parole-à-parole). Absent = rien de choisi, et `voiceMode` fait alors
+   * repli, puis le réglage global. La résolution vit dans `voice-tiers.ts`,
+   * qui est seul à la lire: voir `requestedTier`.
+   */
+  voiceTier?: VoiceTierId | null;
   /**
    * Quelle SYNTHÈSE sert ce client, en mode classique.
    *
@@ -343,6 +351,10 @@ class RealtimeContextService {
       // Toute valeur inconnue vaut `auto`: un réglage mal orthographié ne doit
       // pas décider en silence de la voix que l'appelant entend.
       voiceMode: ['realtime', 'classic'].includes(vapiConfig.voiceMode) ? vapiConfig.voiceMode : 'auto',
+      // Même règle que ci-dessus: une valeur inconnue vaut « rien de choisi »,
+      // pas un niveau. Un réglage mal orthographié ne doit pas décider en
+      // silence du moteur, ni d'un supplément.
+      voiceTier: readTierId(vapiConfig.voiceTier),
       // Liste fermée: une valeur inconnue retombe sur le réglage global plutôt
       // que de décider en silence de ce que l'appelant entend.
       ttsProvider: ['11labs', 'cartesia'].includes(vapiConfig.ttsProvider) ? vapiConfig.ttsProvider : undefined,

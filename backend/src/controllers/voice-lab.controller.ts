@@ -3,6 +3,7 @@ import { env } from '../config/env';
 import { logger } from '../config/logger';
 import { prisma } from '../config/database';
 import { listCharacters, resolveCharacter } from '../config/voice-characters';
+import { voiceModeFor } from '../services/voice/voice-tiers';
 
 /**
  * Le banc d'essai, côté serveur.
@@ -154,7 +155,8 @@ export class VoiceLabController {
         tools: buildVoiceTools(profile),
         character,
         hasCustomVoice: !!b.voiceId || !!profile.customVoice,
-        voiceMode: b.voiceMode || profile.voiceMode,
+        // Le moteur demandé pour CET essai, sinon le niveau du client.
+        voiceMode: b.voiceMode || voiceModeFor(profile),
         ttsProvider: b.ttsProvider || profile.ttsProvider,
         tuning: b.tuning,
         fallbacks: false,

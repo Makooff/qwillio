@@ -1175,9 +1175,52 @@ script ne fait que lire. Les cibles (`TARGETS`) sont des cibles de
 conversation naturelle : PREP 150 ms, LLM 900 ms, TTFA 700 ms, TOTAL 2 s,
 délai Vapi 2 s, outil 1,5 s, cache ≥ 40 % (jugé à partir de trois tours).
 Le script d'APPEL, ce que l'appelant dit pour exercer tout ce qui compte en
-un appel (accueil, hors-base, agenda, nom épelé, réservation, SMS,
+DEUX appels (accueil, hors-base, agenda, nom épelé, réservation, SMS,
 interruption, bruit, puis appelant connu, déplacement, transfert, et les
-refus propres), est dans `docs/SCRIPT-APPEL-TEST.md`.
+refus propres, placés là où ils tombent dans une vraie conversation), est
+dans `docs/SCRIPT-APPEL-TEST.md`.
+
+### 6quaterquadragesies. DEUX niveaux, et le septième trou de la même famille (16/09/2026)
+Demande : « deux modèles, les agents classiques et les superagents en temps
+réel ». Le mode parole-à-parole existait déjà, réglable par client
+(`voiceMode`), validé par `voice:validate` sur les six variantes. Ce qu'il
+n'avait pas, et que personne ne pouvait voir en lisant le réglage : les DEUX
+écritures de `onboarding.service.ts` posaient `buildRealtimePlans(lang, false,
+…)`, un `false` écrit en dur, et assemblaient le bloc `model` avec
+`assistantModelBlock`, c'est-à-dire toujours en classique. Or c'est l'assistant
+ENREGISTRÉ qui décroche sur une ligne DÉDIÉE (6quindecies / 6tervicies). Donc
+un client réglé en temps réel gardait la chaîne classique **dès qu'il payait**,
+le réglage s'enregistrait, l'écran disait enregistré, et seule la ligne
+partagée des essais entendait l'autre moteur. Septième trou de la famille.
+Pire que l'inverse : les plans classiques partaient AVEC le mode temps réel
+s'il avait pu s'activer, et ces plans comptent des MOTS que le transcripteur
+retiré ne fournit plus, donc la réceptionniste attend, ne répond pas, et le
+délai de silence raccroche.
+`services/voice/voice-tiers.ts` porte la table : `base` (la chaîne
+d'aujourd'hui, `tuning` VIDE pour que nommer ne change rien) et `superagent`
+(parole-à-parole). `voiceModeFor` est LA lecture, le niveau d'abord, l'ancien
+`voiceMode` en repli au même endroit (6duovicies) ; `useSpeechToSpeech` reste
+seul à trancher, donc une voix CLONÉE prime toujours sur le niveau demandé.
+`assistantSpeechForProfile` est l'assembleur partagé par les deux écritures, et
+les cinq chemins qui font parler l'agent lisent la même règle : un test de
+source interdit `voiceMode: profile.voiceMode` dans les quatre fichiers, et la
+forme fautive a été réintroduite une fois pour vérifier qu'il tombe.
+Ce que superagent PERD, et qu'il faut dire avant de le vendre : sur ce chemin
+Vapi appelle OpenAI directement, donc plus de custom-LLM, donc rien de ce que
+`llm-stream` ajoute par tour (mémoire de l'appelant, date, reprise après
+coupure, étages de modèle, cache de préfixe). Le prompt et les outils, si.
+L'audit a été rendu conscient du niveau pour la même raison qui l'a fait
+naître : il annonçait « l'assistant distant est en openai, resynchroniser » à
+tout client superagent, un diagnostic FAUX qui envoie chercher une panne
+inexistante (6sexvicies). Il porte désormais `niveau servi par l'assistant qui
+décroche`, lu sur l'assistant DISTANT et comparé au profil.
+`npm run voice:tier` fait les TROIS gestes sans lesquels le champ ne sert à
+rien : écrire, vider le cache, resynchroniser. `docs/VOICE-TIERS.md` dit le
+reste, dont le coût (facteur dix entre `gpt-realtime-2` et le mini, pour une
+recette de 0,26 à 0,40 € la minute incluse).
+**Superagent n'a jamais été entendu sur un appel réel**, et c'est la seule
+chose qui compte avant de le proposer par défaut : un mécanisme qui n'a pas
+atteint un appel n'est pas une optimisation (6octovicies, 6quinquetrigesies).
 
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,

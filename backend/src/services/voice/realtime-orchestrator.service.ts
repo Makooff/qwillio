@@ -22,6 +22,7 @@ import { resolveCharacter } from '../../config/voice-characters';
 import { callerIdentity, type LineAgent } from './inbound-routing.service';
 import { isSelfCall, hangUpSelfCall } from './self-call-guard';
 import { vapiClient } from '../../config/vapi';
+import { voiceModeFor } from './voice-tiers';
 
 /**
  * Real-time call orchestrator (Phases 1, 2, 3).
@@ -173,7 +174,11 @@ class RealtimeOrchestratorService {
       tools: buildVoiceTools(profile),
       character,
       hasCustomVoice: !!profile.customVoice,
-      voiceMode: profile.voiceMode,
+      /* Le NIVEAU du client, pas le réglage brut: `voiceModeFor` fait primer
+         `voiceTier` et garde l'ancien `voiceMode` en repli. Lire le champ nu
+         ici ferait marcher le niveau sur une ligne dédiée et pas sur la ligne
+         partagée des essais, c'est-à-dire précisément là où on l'essaie. */
+      voiceMode: voiceModeFor(profile),
       ttsProvider: profile.ttsProvider,
       customLlmUrl: profile.customLlm ? customLlmUrlFor(clientId) : undefined,
     });
@@ -613,7 +618,7 @@ class RealtimeOrchestratorService {
         ? (useSpeechToSpeech({
             hasCustomVoice: !!profile.customVoice,
             clonedVoice: profile.customVoice?.cloned,
-            voiceMode: profile.voiceMode,
+            voiceMode: voiceModeFor(profile),
           })
             ? 'realtime' : 'classic')
         : null;

@@ -19,6 +19,7 @@
 
 import type { StageStats } from './latency-tracker';
 import { isPlaceholderName } from '../../utils/spelled-name';
+import { VOICE_TIERS, type VoiceTierId } from './voice-tiers';
 
 export type AuditStatus = 'ok' | 'warn' | 'fail' | 'skip';
 export type AuditArea = 'fonctionnement' | 'latence' | 'reglages';
@@ -80,6 +81,15 @@ export interface CallFacts {
   remote: {
     customLlm: boolean | null;
     endpointing: EndpointingFacts | null;
+    /**
+     * Le moteur que l'assistant DISTANT porte vraiment. `null` = non lu.
+     *
+     * Lu et pas déduit du réglage: c'est tout l'écart entre « le client a
+     * choisi superagent » et « l'appelant a entendu superagent ». Les deux
+     * écritures de l'assistant enregistré ont envoyé du classique à tout le
+     * monde pendant des semaines, y compris aux clients réglés en temps réel.
+     */
+    speechToSpeech: boolean | null;
   };
   expected: {
     endpointing: EndpointingFacts;
@@ -87,6 +97,10 @@ export interface CallFacts {
     miniModel: string;
     greetingPinned: boolean;
     smsReady: boolean;
+    /** Le niveau DEMANDÉ par le client. `null` = rien de choisi. */
+    tierRequested: VoiceTierId | null;
+    /** Le niveau qui DOIT servir, voix clonée comprise. */
+    tierServed: VoiceTierId;
   };
 }
 
@@ -238,14 +252,29 @@ export function auditCall(facts: CallFacts): AuditReport {
   {
     const customLlm = facts.remote.customLlm;
     const served = Object.keys(rt?.models ?? {});
-    const status: AuditStatus = customLlm === false ? 'fail' : !facts.ours.found ? 'skip' : served.length ? 'ok' : rt ? 'fail' : 'warn';
+    /* En parole-à-parole il n'y a PAS de custom-LLM, et c'est la DÉFINITION du
+       mode, pas une panne: le modèle entend l'audio et répond en audio, donc
+       Vapi parle à OpenAI directement. Sans ce garde, l'audit annonçait
+       « l'assistant distant est en openai, resynchroniser » à tout client
+       superagent: un diagnostic faux qui envoie chercher une panne
+       inexistante, ce qui coûte plus cher que pas de diagnostic du tout
+       (6sexvicies). Ce qui reste VRAI et se dit quand même: sur ce chemin, ce
+       que le backend ajoute à chaque tour ne s'applique plus. */
+    const s2s = facts.remote.speechToSpeech === true;
+    const status: AuditStatus = s2s ? 'skip'
+      : customLlm === false ? 'fail'
+      : !facts.ours.found ? 'skip'
+      : served.length ? 'ok' : rt ? 'fail' : 'warn';
     push({
       id: 'custom-llm', area: 'fonctionnement', status,
-      label: 'le chemin custom-LLM a servi',
-      value: customLlm === false
+      label: s2s ? 'boucle de tour (parole-à-parole)' : 'le chemin custom-LLM a servi',
+      value: s2s
+        ? "OpenAI tient la boucle en audio: la mémoire de l'appelant, la date et la reprise après coupure ne sont plus ajoutées par tour. Le prompt et les outils, si."
+        : customLlm === false
         ? "l'assistant distant est en `openai`: Vapi appelle OpenAI lui-même, rien de ce que le backend ajoute n'atteint l'appel"
         : served.length ? `modèles servis: ${served.map(m => `${m} ×${rt!.models[m]}`).join(', ')}` : 'aucun modèle relevé sur cet appel',
-      lever: customLlm === false
+      lever: s2s ? undefined
+        : customLlm === false
         ? '`npm run voice:resync -- --confirm` pour reposer le bloc `model` en custom-LLM'
         : status === 'fail' ? "aucun tour n'a atteint le backend: 401 sur l'URL custom-LLM ? journaux Render `[VoiceLLM]`"
         : status === 'warn' ? 'appel antérieur au relevé, ou processus redémarré pendant l\'appel' : undefined,
@@ -413,7 +442,11 @@ export function auditCall(facts: CallFacts): AuditReport {
   {
     const streaming = rt?.latency?.streaming as { streamed?: number; buffered?: number } | undefined;
     const n = (streaming?.streamed ?? 0) + (streaming?.buffered ?? 0);
-    if (n > 0) {
+    /* Le compte ne vaut que sur la chaîne classique: il mesure la découpe de la
+       synthèse (`chunkPlan`), qui n'existe pas en parole-à-parole, où l'audio
+       EST la réponse. L'afficher à 0/n sur un superagent ferait relire un plan
+       qui n'est pas envoyé. */
+    if (n > 0 && facts.remote.speechToSpeech !== true) {
       const pct = Math.round(((streaming!.streamed ?? 0) / n) * 100);
       const status = grade(pct, TARGETS.streamedPct, true);
       push({
@@ -485,6 +518,31 @@ export function auditCall(facts: CallFacts): AuditReport {
       value: got ? `${got.provider}, attente ${got.waitSeconds ?? '?'} s, ponctuation ${got.punctuationSeconds ?? '?'} s` : 'assistant distant non lu',
       target: `${want.provider}, attente ${want.waitSeconds} s, ponctuation ${want.punctuationSeconds} s`,
       lever: got && !same ? "l'assistant enregistré est périmé par rapport à l'env: `npm run voice:resync -- --confirm`" : undefined,
+    });
+  }
+
+  {
+    /* Le niveau SERVI se lit sur l'assistant distant, jamais sur le réglage.
+       Deux écarts différents, et ils n'ont pas le même levier: un assistant
+       périmé se resynchronise, une voix clonée est un choix qui prime et
+       n'est pas un défaut. */
+    const got = facts.remote.speechToSpeech;
+    const want = facts.expected.tierServed === 'superagent';
+    const clonePrime = facts.expected.tierRequested === 'superagent' && facts.expected.tierServed === 'base';
+    const label = (id: VoiceTierId) => VOICE_TIERS[id].label;
+    push({
+      id: 'niveau', area: 'reglages',
+      status: got === null ? 'skip' : got === want ? 'ok' : 'fail',
+      label: 'niveau servi par l\'assistant qui décroche',
+      value: got === null
+        ? 'assistant distant non lu'
+        : `${label(got ? 'superagent' : 'base')}${got ? ' (parole-à-parole)' : ' (transcription, modèle, synthèse)'}`,
+      target: clonePrime
+        ? `${label('base')}: une voix clonée prime sur le niveau demandé`
+        : label(facts.expected.tierServed),
+      lever: got !== null && got !== want
+        ? "l'assistant enregistré ne porte pas le niveau du client: `npm run voice:tier -- --email=… --tier=… --confirm`"
+        : undefined,
     });
   }
 

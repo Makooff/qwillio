@@ -35,7 +35,8 @@
     "voice:cartesia": "tsx src/scripts/list-cartesia-voices.ts",
     "stripe:promo": "tsx src/scripts/create-promo-code.ts",
     "stripe:prices": "tsx src/scripts/audit-prices.ts",
-    "voice:resync": "tsx src/scripts/resync-assistant.ts"
+    "voice:resync": "tsx src/scripts/resync-assistant.ts",
+    "voice:tier": "tsx src/scripts/set-voice-tier.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.88.0",
