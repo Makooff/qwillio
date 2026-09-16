@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
-import { requestedTier, servedTier, tuningFor, voiceModeFor, VOICE_TIERS } from '../voice-tiers';
+import { entitledTier, requestedTier, servedTier, tuningFor, voiceModeFor, VOICE_TIERS } from '../voice-tiers';
+import { superagentAllowed } from '../../../config/plan-features';
 import { assistantSpeechForProfile, voiceForProfile } from '../profile-voice';
 import type { ClientVoiceProfile } from '../realtime-context.service';
 
@@ -129,5 +130,47 @@ describe('les deux écritures de l\'assistant enregistré', () => {
     // ce qui est exactement la forme du défaut qu'on corrige.
     const appels = CODE.match(/assistantSpeechForProfile\(/g) ?? [];
     expect(appels.length).toBeGreaterThanOrEqual(2);
+  });
+});
+
+describe('le Superagent est un droit, pas un réglage', () => {
+  it('est INCLUS à partir de Pro', () => {
+    expect(superagentAllowed({ planType: 'pro' })).toBe(true);
+    expect(superagentAllowed({ planType: 'enterprise' })).toBe(true);
+  });
+
+  it('se refuse en dessous, tant que l\'option n\'est pas achetée', () => {
+    expect(superagentAllowed({ planType: 'solo' })).toBe(false);
+    expect(superagentAllowed({ planType: 'starter' })).toBe(false);
+    // Un forfait vide n'accorde rien: le défaut sûr est le refus, parce que
+    // c'est une capacité qui coûte de l'argent à chaque minute.
+    expect(superagentAllowed({})).toBe(false);
+  });
+
+  it('s\'ouvre par l\'option achetée, sur ces mêmes paliers', () => {
+    expect(superagentAllowed({ planType: 'solo', superagentOption: true })).toBe(true);
+    expect(superagentAllowed({ planType: 'starter', superagentOption: true })).toBe(true);
+  });
+
+  it('ramène au classique un niveau demandé sans le droit', () => {
+    /* Le contrôle vit à la RÉSOLUTION, pas seulement à l'écriture: un compte
+       qui redescend de Pro à Starter perd le droit sans que rien ne réécrive
+       son réglage, et serait sinon servi par un moteur dix fois plus cher
+       jusqu'à ce qu'une facture le signale. */
+    const p = { voiceTier: 'superagent' as const, superagentAllowed: false };
+    expect(entitledTier(p)).toBe('base');
+    expect(voiceModeFor(p)).toBe('classic');
+    expect(tuningFor(p)).toEqual({});
+    // Et le DEMANDÉ reste lisible: c'est cet écart que l'audit doit montrer.
+    expect(requestedTier(p)).toBe('superagent');
+  });
+
+  it('ne contrôle rien quand le droit n\'est pas renseigné', () => {
+    /* Les deux appelants sans client derrière eux: `voice:validate`, qui doit
+       soumettre les six variantes à l'API vivante, et le banc d'essai admin.
+       Brider là ramènerait trois variantes sur six au classique, et elles ne
+       testeraient plus rien. */
+    expect(entitledTier({ voiceTier: 'superagent' })).toBe('superagent');
+    expect(voiceModeFor({ voiceTier: 'superagent' })).toBe('realtime');
   });
 });

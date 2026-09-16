@@ -99,6 +99,15 @@ interface TierSource {
   voiceTier?: VoiceTierId | null;
   /** Le réglage HISTORIQUE, qui décidait du moteur avant que le niveau existe. */
   voiceMode?: 'auto' | 'realtime' | 'classic';
+  /**
+   * Le DROIT au superagent: inclus par le forfait, ou acheté en option.
+   *
+   * Absent = pas de contrôle, et c'est voulu pour les deux appelants qui n'ont
+   * pas de client derrière eux: `voice:validate`, qui doit soumettre les six
+   * variantes à l'API vivante, et le banc d'essai admin. Le PROFIL le pose
+   * toujours, donc tout appel réel est contrôlé.
+   */
+  superagentAllowed?: boolean;
 }
 
 /**
@@ -118,17 +127,37 @@ export function requestedTier(profile: TierSource): VoiceTierId | null {
 }
 
 /**
+ * Le niveau AUTORISÉ: ce que le client a demandé, borné par ce qu'il a le
+ * droit d'avoir.
+ *
+ * Distinct de `requestedTier` à dessein. Le demandé est ce qu'il a coché, et
+ * l'audit doit pouvoir le montrer tel quel; l'autorisé est ce qui décide du
+ * moteur. Confondre les deux ferait disparaître l'écart, or c'est l'écart qui
+ * explique « j'ai choisi superagent et j'entends l'autre ».
+ *
+ * Le contrôle est posé ICI, à la RÉSOLUTION, et pas seulement à l'écriture:
+ * un compte qui redescend de Pro à Starter perdrait son droit sans que rien ne
+ * réécrive son réglage, et continuerait d'être servi par un moteur dix fois
+ * plus cher jusqu'à ce qu'une facture le signale.
+ */
+export function entitledTier(profile: TierSource): VoiceTierId | null {
+  const tier = requestedTier(profile);
+  if (tier === 'superagent' && profile.superagentAllowed === false) return 'base';
+  return tier;
+}
+
+/**
  * Le mode à passer à `useSpeechToSpeech`. `auto` quand rien n'est choisi:
  * le réglage global décide alors, comme avant ce fichier.
  */
 export function voiceModeFor(profile: TierSource): 'auto' | 'realtime' | 'classic' {
-  const tier = requestedTier(profile);
+  const tier = entitledTier(profile);
   return tier ? VOICE_TIERS[tier].voiceMode : 'auto';
 }
 
-/** Les curseurs du niveau demandé. Rien de choisi: ceux de l'environnement. */
+/** Les curseurs du niveau SERVI. Rien de choisi: ceux de l'environnement. */
 export function tuningFor(profile: TierSource): VoiceTuning {
-  const tier = requestedTier(profile);
+  const tier = entitledTier(profile);
   return tier ? VOICE_TIERS[tier].tuning : {};
 }
 

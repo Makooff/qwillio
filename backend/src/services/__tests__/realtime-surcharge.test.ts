@@ -154,3 +154,31 @@ describe('dès que le prix est posé', () => {
     expect(keys.some((k: string) => k.startsWith('overage-'))).toBe(true);
   });
 });
+
+describe('un forfait qui INCLUT le Superagent ne le paie pas deux fois', () => {
+  beforeEach(() => { envState.VOICE_REALTIME_SURCHARGE_EUR = 0.12; });
+
+  it.each(['pro', 'enterprise'])('%s: aucune ligne de supplément', async planType => {
+    /* Le Superagent est vendu DANS ces forfaits. Facturer en plus la minute
+       temps réel prélèverait deux fois la même chose sur une vraie carte, et
+       personne ne le verrait avant le relevé: c'est 6duodecies vu de l'autre
+       bout de la chaîne. */
+    clientFindUnique.mockResolvedValue({ ...CLIENT, planType, monthlyMinutesQuota: 100000 });
+    callAggregate.mockResolvedValue(minutes(400));
+
+    await stripeService.reportOverageUsage('cli_1');
+
+    const keys = invoiceItemsCreate.mock.calls.map(([, o]: any[]) => o.idempotencyKey);
+    expect(keys.some((k: string) => k.startsWith('realtime-'))).toBe(false);
+  });
+
+  it.each(['solo', 'starter'])('%s: le supplément reste dû, il achète l\'option', async planType => {
+    clientFindUnique.mockResolvedValue({ ...CLIENT, planType, monthlyMinutesQuota: 100000 });
+    callAggregate.mockResolvedValue(minutes(400));
+
+    await stripeService.reportOverageUsage('cli_1');
+
+    const keys = invoiceItemsCreate.mock.calls.map(([, o]: any[]) => o.idempotencyKey);
+    expect(keys.some((k: string) => k.startsWith('realtime-'))).toBe(true);
+  });
+});

@@ -1222,6 +1222,46 @@ recette de 0,26 à 0,40 € la minute incluse).
 chose qui compte avant de le proposer par défaut : un mécanisme qui n'a pas
 atteint un appel n'est pas une optimisation (6octovicies, 6quinquetrigesies).
 
+### 6quinquequadragesies. Le Superagent se VEND, et le modèle est la décision (16/09/2026)
+Demande : inclus à partir de Pro, en option sur les petits forfaits, activable
+à l'achat et après, sans perdre la marge. `config/voice-economics.ts` pose
+chaque tarif fournisseur avec sa SOURCE, et `npm run voice:pricing` rend la
+feuille. Ce que ça dit, et qui n'était devinable nulle part : la minute
+classique coûte 0,094 € (la grille était posée sur « ~0,15 », donc
+prudemment), le mini coûte 0,110 €, soit **1,6 centime de surcoût**, donc
+l'inclure haut de gamme coûte 4 à 6 % du prix du forfait et la grille n'a pas
+besoin de bouger. Avec `gpt-realtime-2`, la minute coûte 0,651 € quand la plus
+chère de la grille en rapporte 0,396 : **tous les paliers paient pour vendre**,
+et aucun prix d'option ne rattrape ça. Le choix du modèle n'est pas un réglage
+technique, c'est la décision tarifaire.
+**Le tarif du modèle par DÉFAUT (`gpt-realtime-2025-08-28`) n'a jamais été
+relevé**, et le module REFUSE de calculer plutôt que d'inventer : c'est
+6quinvicies appliqué à l'argent, une valeur supposée qui a l'air d'une lecture
+coûte plus cher que pas de valeur.
+Le droit : `superagent` entre dans `PLAN_CAPABILITIES` (pro, enterprise) et
+`superagentAllowed(client)` est la SEULE lecture, forfait puis option achetée.
+L'option vit sur une COLONNE (`superagent_option`), jamais dans `vapiConfig` :
+ce JSON est celui que le PUT du portail fusionne, donc un droit facturé qui
+vivrait là serait accordable depuis le navigateur de celui qui doit le payer.
+Le contrôle est posé à deux endroits et il faut les deux : le PUT répond 403 en
+nommant le forfait (sinon l'écran dit « enregistré » et l'appelant entend
+l'autre moteur), et `entitledTier` borne à la RÉSOLUTION, parce qu'un compte
+qui redescend de Pro à Starter perd le droit sans que rien ne réécrive son
+réglage. `ClientVoiceProfile.superagentAllowed` est obligatoire : ça a fait
+sortir les trois autres constructeurs au compilateur, et ils n'ont pas la même
+réponse (évals oui, `voice:validate` oui sinon trois variantes sur six ne
+testent rien, démo publique NON, c'est un coût sans recette en face).
+Facturation : `reportRealtimeSurcharge` ne facture PAS un forfait qui inclut le
+Superagent. Sans cette ligne, poser le prix de l'option prélèverait deux fois
+la même chose à un client Pro, sur une vraie carte, invisible jusqu'au relevé.
+`npm run voice:tier -- --option=on` vend l'option ; sans argument le script
+liste le niveau ET le droit, et il REFUSE de poser « superagent » sur un client
+qui n'y a pas droit plutôt que d'écrire un réglage sans effet.
+Reste à faire, et qui demande une décision : la caisse Stripe qui vend l'option
+à l'inscription. Le supplément à la minute existe déjà ; le forfait mensuel
+équivalent serait +20 €/mois sur Solo et +40 € sur Starter, et il n'est tenable
+que parce que le surcoût par minute est petit.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

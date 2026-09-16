@@ -1,0 +1,16 @@
+-- L'option Superagent, achetee, pour un palier qui ne l'inclut pas.
+--
+-- Le parole-a-parole est inclus dans Pro et Enterprise, et vendu en option sur
+-- Solo et Starter. Le droit accorde PAR LE FORFAIT se lit dans le code
+-- (`planAllows`, une table); celui qui est ACHETE a besoin d'une trace par
+-- client, et c'est cette colonne.
+--
+-- Pourquoi une colonne et pas une cle dans `vapi_config`: ce JSON est ce que
+-- le PUT du portail fusionne, c'est-a-dire ce que le CLIENT ecrit. Un droit
+-- facture qui vit la finit par etre accordable depuis le navigateur de celui
+-- qui doit le payer. La colonne n'est ecrite que par la caisse et par un
+-- script d'administration.
+--
+-- `false` par defaut, et c'est le seul defaut sur: personne ne gagne une
+-- option facturee par une migration.
+ALTER TABLE "clients" ADD COLUMN IF NOT EXISTS "superagent_option" BOOLEAN NOT NULL DEFAULT false;
