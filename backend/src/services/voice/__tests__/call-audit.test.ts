@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { auditCall, chunkableReplies, readVapiMessages, renderAudit, TARGETS, type CallFacts } from '../call-audit';
+import { auditCall, chunkableReplies, readVapiMessages, renderAudit, TARGETS, tierTurns, type CallFacts } from '../call-audit';
 
 /**
  * L'audit tranche sur des faits: un appel qui a tout fait est vert, un
@@ -237,6 +237,55 @@ describe('auditCall — réglages', () => {
     expect(c.lever).toMatch(/VOICE_SMALL_MODEL/);
   });
 
+  it('deux étages différents: la ligne DIT ce que le rapide a servi', () => {
+    /* Le compte vient de `models`, donc du flux d'OpenAI, et le nom y est
+       DATÉ: c'est ce qui fait qu'une égalité stricte compterait zéro. */
+    const f = good();
+    f.realtime!.models = { 'gpt-4.1-mini-2025-04-14': 4, 'gpt-4.1-nano-2025-04-14': 3 };
+    const c = auditCall(f).checks.find(x => x.id === 'tiers')!;
+    expect(c.status).toBe('ok');
+    expect(c.value).toMatch(/3 tour\(s\) sur 7/);
+    expect(c.lever).toBeUndefined();
+  });
+
+  it("zéro tour rapide n'est PAS un défaut, et la ligne dit pourquoi", () => {
+    /* `good()` est un appel parfait QUI A APPELÉ DES OUTILS: dès le premier,
+       tout l'historique en porte un et chaque tour suivant prend le modèle
+       complet. Noter ça en orange remettrait le faux positif que cette ligne
+       existe pour retirer (6novoquadragesies). */
+    const c = auditCall(good()).checks.find(x => x.id === 'tiers')!;
+    expect(c.status).toBe('ok');
+    expect(c.value).toMatch(/0 tour\(s\) sur 6/);
+    expect(c.value).toMatch(/normal dès qu'un outil a tourné/);
+    expect(c.lever).toBeUndefined();
+  });
+
+  it("sans outil, la ligne ne nomme PAS l'outil comme cause", () => {
+    /* Zéro tour rapide sur un appel sans outil vient d'ailleurs: donner la
+       raison de l'autre cas serait inventer une lecture (6quinvicies). */
+    const f = good();
+    f.tools = [];
+    const c = auditCall(f).checks.find(x => x.id === 'tiers')!;
+    expect(c.status).toBe('ok');
+    expect(c.value).toMatch(/0 tour\(s\) sur 6/);
+    expect(c.value).not.toMatch(/outil a tourné/);
+  });
+
+  it('la latence ne renvoie plus à `VOICE_SMALL_MODEL` quand il ne sert rien', () => {
+    /* Le geste ne changerait rien sur un appel où aucun tour ne descend au
+       rapide: le nommer envoie chercher le gain là où il n'est pas. */
+    const f = good();
+    f.realtime!.latency.llm = { count: 6, median: 1465, p95: 1800, max: 1800 };
+    const c = auditCall(f).checks.find(x => x.id === 'llm')!;
+    expect(c.status).not.toBe('ok');
+    expect(c.lever).toMatch(/pas `VOICE_SMALL_MODEL`/);
+
+    /* Et il le nomme de nouveau dès qu'un tour y est réellement passé. */
+    f.realtime!.models = { 'gpt-4.1-mini-2025-04-14': 4, 'gpt-4.1-nano-2025-04-14': 2 };
+    const c2 = auditCall(f).checks.find(x => x.id === 'llm')!;
+    expect(c2.lever).toMatch(/enfin `VOICE_SMALL_MODEL`/);
+  });
+
   it('l\'annonce IA absente est un défaut', () => {
     const f = good();
     f.realtime!.disclosureSpoken = false;
@@ -361,5 +410,37 @@ describe("auditCall — ce qui n'est PAS un défaut", () => {
     const booking = report.checks.find(c => c.id === 'booking');
     expect(booking?.status).toBe('warn');
     expect(booking?.value).toMatch(/jamais appelé/);
+  });
+});
+
+describe('tierTurns — attribuer un modèle SERVI à son étage', () => {
+  it('reconnaît un nom daté, que le réglage ne porte pas', () => {
+    /* 6duotrigesies: c'est le flux d'OpenAI qui nomme le modèle servi, et il
+       le date. `gpt-4.1-mini` ne sera JAMAIS égal à ce qui revient. */
+    const t = tierTurns({ 'gpt-4.1-mini-2025-04-14': 5 }, 'gpt-4.1-mini', 'gpt-4.1-nano');
+    expect(t).toEqual({ full: 5, mini: 0, other: 0, total: 5 });
+  });
+
+  it('donne le tour au nom configuré le plus LONG qui le préfixe', () => {
+    /* Avec `gpt-4.1` en complet, un tour `gpt-4.1-mini-...` commence aussi par
+       le nom du complet: le premier trouvé serait le mauvais. */
+    const t = tierTurns(
+      { 'gpt-4.1-2025-04-14': 2, 'gpt-4.1-mini-2025-04-14': 3 },
+      'gpt-4.1',
+      'gpt-4.1-mini',
+    );
+    expect(t.full).toBe(2);
+    expect(t.mini).toBe(3);
+  });
+
+  it('range à part un modèle qu\'aucun réglage ne décrit', () => {
+    /* Un modèle servi que personne n'a demandé est une information: il ne se
+       tait pas en étant compté avec les autres. */
+    const t = tierTurns({ 'gpt-4o-mini': 4 }, 'gpt-4.1-mini', 'gpt-4.1-nano');
+    expect(t).toEqual({ full: 0, mini: 0, other: 4, total: 4 });
+  });
+
+  it('ne tombe pas sur un appel sans relevé', () => {
+    expect(tierTurns(undefined, 'a', 'b')).toEqual({ full: 0, mini: 0, other: 0, total: 0 });
   });
 });

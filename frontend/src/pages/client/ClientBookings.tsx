@@ -395,44 +395,55 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
         <p className="mt-1 text-[12.5px] text-white/50" aria-live="polite">{subtitle}</p>
       </header>
 
-      {/* La barre d'outils vit AU-DESSUS du calendrier, pas à côté du titre:
-          la recherche porte la largeur de l'agenda (elle prend ce qui reste),
-          le mois et la vue se rangent à droite, au-dessus du panneau. */}
-      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-          <div className="relative min-w-[240px] flex-1">
-            <Search size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" aria-hidden="true" />
-            <input
-              type="search"
-              value={query}
-              onChange={e => setQuery(e.target.value)}
-              placeholder="Client, sujet ou numéro"
-              aria-label="Rechercher un rendez-vous par client, sujet ou numéro"
-              /* Pas d'anneau mauve au clic: la barre fait toute la largeur, un
-                 contour de couleur sur cette longueur tire l'œil hors du
-                 calendrier, qui est ce qu'on vient lire. */
-              className="h-10 w-full rounded-full border border-white/[0.08] bg-white/[0.03] pl-10 pr-9 text-[13px] text-white placeholder:text-white/35 outline-none focus:border-white/[0.16] focus:bg-white/[0.05] transition-colors"
-            />
-            {query && (
-              <button
-                type="button"
-                onClick={() => setQuery('')}
-                aria-label="Effacer la recherche"
-                className="absolute right-2.5 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full text-white/45 hover:bg-white/[0.08] hover:text-white active:scale-[0.97] transition-colors"
-              >
-                <X size={12} aria-hidden="true" />
-              </button>
-            )}
-          </div>
-          {/* Le mois et la vue n'ont plus de sens pendant une recherche, qui
-              traverse les mois: des boutons inertes valent moins que rien. */}
-          {!searchMode && <>
+      {/* La barre d'outils fait la largeur du CADRE de l'agenda, qui est celle
+          de `main`: la recherche occupe sa propre ligne d'un bord à l'autre,
+          et le sélecteur de vue s'aligne sur le bord DROIT du cadre (`ml-auto`),
+          pas sur la fin des boutons de mois. */}
+      <div className="space-y-3">
+        <div className="relative">
+          <Search size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" aria-hidden="true" />
+          <input
+            type="search"
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            placeholder="Client, sujet ou numéro"
+            aria-label="Rechercher un rendez-vous par client, sujet ou numéro"
+            /* Pas d'anneau mauve au clic, et `outline-none` seul NE SUFFIT
+               PAS: `globals.css` pose `input:focus-visible { outline: 2px
+               solid var(--q-accent-hi) }`, plus spécifique que l'utilitaire.
+               Son commentaire dit que la souris ne déclenche pas
+               `:focus-visible`; c'est faux pour un champ de saisie, que le
+               navigateur y fait toujours correspondre puisqu'il attend des
+               touches. D'où le mauve qui restait après avoir changé la
+               bordure. `focus-visible:outline-none` reprend la main ici
+               seulement: l'anneau clavier du reste de l'app est intact.
+               Le focus reste VU, sans couleur qui tire l'œil hors du
+               calendrier: bordure plus claire et fond qui monte. */
+            className="h-10 w-full rounded-full border border-white/[0.08] bg-white/[0.03] pl-10 pr-9 text-[13px] text-white placeholder:text-white/35 outline-none focus-visible:outline-none focus:border-white/[0.28] focus:bg-white/[0.06] transition-colors"
+          />
+          {query && (
+            <button
+              type="button"
+              onClick={() => setQuery('')}
+              aria-label="Effacer la recherche"
+              className="absolute right-2.5 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full text-white/45 hover:bg-white/[0.08] hover:text-white active:scale-[0.97] transition-colors"
+            >
+              <X size={12} aria-hidden="true" />
+            </button>
+          )}
+        </div>
+        {/* Le mois et la vue n'ont plus de sens pendant une recherche, qui
+            traverse les mois: des boutons inertes valent moins que rien. */}
+        {!searchMode && <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <div className="flex items-center rounded-full border border-white/[0.08] bg-white/[0.03]">
             <button type="button" onClick={() => goMonth(-1)} aria-label="Mois précédent" className="flex h-10 w-10 items-center justify-center rounded-full text-white/70 hover:text-white active:scale-[0.97] transition-colors"><ChevronLeft size={15} /></button>
             <span className="min-w-[132px] text-center text-[13px] font-medium text-[#F5F5F7]" aria-live="polite">{monthLabel(month)}</span>
             <button type="button" onClick={() => goMonth(1)} aria-label="Mois suivant" className="flex h-10 w-10 items-center justify-center rounded-full text-white/70 hover:text-white active:scale-[0.97] transition-colors"><ChevronRight size={15} /></button>
           </div>
           <button type="button" onClick={goToday} className="h-10 rounded-full bg-white/[0.06] px-4 text-[12.5px] text-white hover:bg-white/[0.1] active:scale-[0.97] transition-colors">Aujourd’hui</button>
-          <div role="group" aria-label="Affichage" className="relative flex h-10 items-center rounded-full border border-white/[0.08] bg-white/[0.03] p-1">
+          {/* `ml-auto`: le sélecteur touche le bord droit du cadre de l'agenda,
+              quelle que soit la longueur du nom de mois. */}
+          <div role="group" aria-label="Affichage" className="relative ml-auto flex h-10 items-center rounded-full border border-white/[0.08] bg-white/[0.03] p-1">
             {(['grid', 'list'] as const).map(v => {
               const Icon = v === 'grid' ? Calendar : List;
               const active = view === v;
@@ -451,7 +462,7 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
               );
             })}
           </div>
-          </>}
+        </div>}
       </div>
 
       {error && (

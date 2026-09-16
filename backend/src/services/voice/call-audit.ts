@@ -175,6 +175,46 @@ export function chunkableReplies(texts: string[], minChars: number): number {
   }).length;
 }
 
+/**
+ * Combien de tours chaque ÉTAGE de modèle a réellement servis.
+ *
+ * Deux pièges, et le compte est faux sans les deux.
+ *
+ * 1. Le nom SERVI est daté. OpenAI rend `gpt-4.1-mini-2025-04-14` là où la
+ *    variable dit `gpt-4.1-mini` (6duotrigesies: c'est le flux d'OpenAI qui
+ *    nomme le modèle, pas le réglage). Une égalité stricte compterait zéro
+ *    partout, pour toujours.
+ * 2. Un nom configuré peut être le PRÉFIXE de l'autre: avec `gpt-4.1` en
+ *    complet et `gpt-4.1-mini` en rapide, un tour rapide commence aussi par le
+ *    nom du complet. Chaque modèle servi va donc au nom configuré le plus
+ *    LONG qui le préfixe, jamais au premier trouvé.
+ *
+ * Les tours répondus sans modèle (acquiescements) ne sont pas ici: rien
+ * n'appelle OpenAI, donc rien n'est relevé. Ils se comptent à part
+ * (`deflectedTurns`).
+ */
+export function tierTurns(
+  models: Record<string, number> | undefined,
+  fullModel: string,
+  miniModel: string,
+): { full: number; mini: number; other: number; total: number } {
+  const out = { full: 0, mini: 0, other: 0, total: 0 };
+  for (const [served, count] of Object.entries(models ?? {})) {
+    const n = typeof count === 'number' ? count : 0;
+    out.total += n;
+    const hits: Array<['full' | 'mini', string]> = [];
+    if (fullModel && served.startsWith(fullModel)) hits.push(['full', fullModel]);
+    if (miniModel && served.startsWith(miniModel)) hits.push(['mini', miniModel]);
+    if (!hits.length) {
+      out.other += n;
+      continue;
+    }
+    hits.sort((a, b) => b[1].length - a[1].length);
+    out[hits[0][0]] += n;
+  }
+  return out;
+}
+
 function resultSays(result: string | null, ...prefixes: string[]): boolean {
   if (!result) return false;
   const head = result.trim().toUpperCase();
@@ -251,6 +291,12 @@ export function auditCall(facts: CallFacts): AuditReport {
   const checks: AuditCheck[] = [];
   const push = (c: AuditCheck) => checks.push(c);
   const rt = facts.realtime;
+  /* Ce que chaque étage de modèle a SERVI. Lu une fois: deux lignes s'en
+     servent, et l'une propose un levier que l'autre peut démentir. */
+  const tiers = tierTurns(rt?.models as Record<string, number> | undefined,
+    facts.expected.fullModel, facts.expected.miniModel);
+  const fastTierIdle = facts.expected.fullModel !== facts.expected.miniModel
+    && tiers.mini === 0 && tiers.total >= 3;
 
   // ── FONCTIONNEMENT ───────────────────────────────────────────────────────
 
@@ -456,7 +502,13 @@ export function auditCall(facts: CallFacts): AuditReport {
     value: llm ? `médiane ${llm.median} ms, p95 ${llm.p95} ms sur ${llm.count} tour(s)` : 'pas de mesure',
     target: `≤ ${TARGETS.llmMs[0]} ms`,
     lever: llm && llm.median > TARGETS.llmMs[0]
-      ? "d'abord le cache de préfixe (ligne suivante); ensuite la taille du prompt et des outils; enfin `VOICE_SMALL_MODEL` pour les tours courts"
+      ? "d'abord le cache de préfixe (ligne suivante); ensuite la taille du prompt et des outils"
+        + (fastTierIdle
+          /* Le nommer ici serait envoyer chercher le gain sur un bouton dont
+             la ligne « étages de modèle » vient de dire qu'il n'a servi aucun
+             tour de CET appel. */
+          ? "; pas `VOICE_SMALL_MODEL`, voir « étages de modèle »"
+          : "; enfin `VOICE_SMALL_MODEL` pour les tours courts")
       : undefined,
   });
 
@@ -619,13 +671,44 @@ export function auditCall(facts: CallFacts): AuditReport {
   }
 
   {
+    /* Un étage rapide se note sur ce qu'il a SERVI, pas sur le fait d'exister.
+       Deux noms différents dans l'environnement disent seulement que le
+       réglage est possible; c'est `models` qui dit s'il a atteint un tour.
+       Sans ce compte, l'audit recommandait `VOICE_SMALL_MODEL=gpt-4.1-nano`
+       à chaque passage, y compris sur un appel où AUCUN tour n'y serait allé:
+       le geste ne change alors rien, et il fait chercher le gain là où il
+       n'est pas (6novoquadragesies: noter contre ce qui était atteignable). */
     const sameTier = facts.expected.fullModel === facts.expected.miniModel;
+    /* Zéro tour rapide N'EST PAS un défaut, et le noter en orange fabriquerait
+       le faux positif que cette ligne existe pour retirer. Le modèle complet
+       est pris dès qu'un résultat d'outil figure dans l'historique, et Vapi
+       renvoie tout l'historique à chaque tour: à partir du premier outil,
+       aucun tour ne redescend. C'est voulu — c'est la même condition qui
+       empêche un « oui » d'être pris pour un acquiescement et répondu sans
+       modèle juste après une proposition de créneau. Sur un appel qui réserve,
+       zéro est donc le compte NORMAL. La ligne le DÉCRIT, elle ne le juge
+       pas, et c'est le levier de la latence qui cesse alors de nommer ce
+       bouton. */
+    const shape = `complet ${facts.expected.fullModel}, rapide ${facts.expected.miniModel}`;
     push({
       id: 'tiers', area: 'reglages',
       status: sameTier ? 'warn' : 'ok',
       label: 'étages de modèle',
-      value: `complet ${facts.expected.fullModel}, rapide ${facts.expected.miniModel}${sameTier ? ' (identiques: l\'étage rapide n\'existe pas)' : ''}`,
-      lever: sameTier ? 'poser `VOICE_SMALL_MODEL=gpt-4.1-nano` (tours de moins de six mots sans intention métier) et comparer LLM sur l\'appel suivant' : undefined,
+      value: sameTier
+        ? `${shape} (identiques: l'étage rapide n'existe pas)`
+        : !tiers.total
+        ? `${shape} — aucun tour relevé sur cet appel`
+        : `${shape} — ${tiers.mini} tour(s) sur ${tiers.total} servis par le rapide`
+          /* La CAUSE ne se dit que si elle a eu lieu. Zéro tour rapide sur un
+             appel SANS outil vient d'ailleurs (intention métier, tours de plus
+             de cinq mots), et nommer l'outil ici inventerait la raison qu'on
+             reproche à l'ancienne ligne. */
+          + (fastTierIdle && facts.tools.length
+            ? ', normal dès qu\'un outil a tourné: tout l\'appel prend le complet ensuite'
+            : ''),
+      lever: sameTier
+        ? 'poser `VOICE_SMALL_MODEL=gpt-4.1-nano` (tours de moins de six mots sans intention métier) et comparer LLM sur l\'appel suivant'
+        : undefined,
     });
   }
 
