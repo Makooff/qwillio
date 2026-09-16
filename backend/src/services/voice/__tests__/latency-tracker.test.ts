@@ -305,3 +305,43 @@ describe('CallLatencyTracker — notre temps et celui d\'OpenAI', () => {
     expect(t.snapshot().toolTurns).toBeUndefined();
   });
 });
+
+describe("le tour se ferme sur la prise de parole, pas sur un événement de Vapi", () => {
+  /**
+   * Appel réel du 16/09/2026, 23:12. Vapi n'a envoyé AUCUN
+   * `speech-update role=user status=stopped` de tout l'appel, donc
+   * `markCallerSpeechEnd` n'a jamais tourné. Les bornes du premier tour ont
+   * survécu à tous les suivants (`markLlmFirstDelta` refuse d'écraser une
+   * borne posée), et chaque prise de parole a mesuré son TTFA depuis le
+   * PREMIER jeton de l'appel: médiane 20 s, p95 59 s sur 137 s d'appel,
+   * quand l'horloge de Vapi disait 2,9 s.
+   */
+  it('mesure chaque TTFA depuis SON jeton, même sans fin de parole annoncée', () => {
+    const t = new CallLatencyTracker();
+    /* Trois tours, sans un seul `markCallerSpeechEnd`: exactement l'appel. */
+    t.markLlmStart(1000); t.markLlmFirstDelta(1100); t.markLlmEnd(1300); t.markAssistantSpeechStart(1400);
+    t.markLlmStart(9000); t.markLlmFirstDelta(9100); t.markLlmEnd(9300); t.markAssistantSpeechStart(9400);
+    t.markLlmStart(60000); t.markLlmFirstDelta(60100); t.markLlmEnd(60300); t.markAssistantSpeechStart(60400);
+
+    const r = t.report();
+    /* 300 ms partout, et non 8 300 puis 59 300. */
+    expect(r.ttfa?.median).toBe(300);
+    expect(r.ttfa?.max).toBe(300);
+    expect(r.ttfa?.count).toBe(3);
+  });
+
+  it("ne mesure PAS le total quand Vapi ne dit pas quand l'appelant s'est tu", () => {
+    /* Le repli serait d'inventer un début de tour. On préfère « pas de
+       mesure »: c'est ce que l'audit a affiché, et c'est ce qui a permis de
+       trouver la cause. */
+    const t = new CallLatencyTracker();
+    t.markLlmStart(1000); t.markLlmFirstDelta(1100); t.markAssistantSpeechStart(1400);
+    expect(t.report().total).toBeUndefined();
+  });
+
+  it('un tour annoncé normalement mesure toujours son total', () => {
+    const t = new CallLatencyTracker();
+    playTurn(t, { speechEnd: 1000, transcript: 1100, llmStart: 1150, firstDelta: 1250, lastDelta: 1400, audio: 1500 });
+    expect(t.report().total?.median).toBe(500);
+  });
+});

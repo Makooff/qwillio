@@ -338,6 +338,40 @@ describe("auditCall — ce qui n'est PAS un défaut", () => {
     expect(chunkableReplies(repliquesDuSoir, 60)).toBe(1);
   });
 
+  it("un TTFA que l'horloge de Vapi rend impossible n'est pas une latence", () => {
+    /* Relevé du 16/09/2026 à 23:12: TTFA médiane 20 175 ms, p95 59 419 ms,
+       quand Vapi disait 2,9 s de médiane et 3,8 s au pire. L'audit a classé
+       ça PREMIER avec « baisser VOICE_TTS_MIN_CHUNK_CHARS »: hacher la voix
+       pour un chiffre qui ne pouvait pas exister. Le TTFA est un morceau du
+       délai ressenti, il ne peut pas le dépasser. */
+    const f = good();
+    f.realtime!.latency.ttfa = { count: 9, median: 20175, p95: 59419, max: 59419 };
+    f.vapiGapsSeconds = [2.4, 2.9, 3.8];
+    const report = auditCall(f);
+    const c = report.checks.find(x => x.id === 'ttfa')!;
+    expect(c.status).toBe('warn');
+    expect(c.value).toMatch(/MESURE INUTILISABLE/);
+    expect(c.lever).toMatch(/bornes ont dérivé/);
+    expect(c.lever).toMatch(/AUCUN réglage de voix/);
+
+    /* Et la ligne de découpe, qui se compare au TTFA, ne juge plus rien. */
+    const s = report.checks.find(x => x.id === 'streamed')!;
+    expect(s.status).toBe('ok');
+    expect(s.value).toMatch(/inutilisable/);
+  });
+
+  it('un TTFA lent mais POSSIBLE reste un défaut avec son levier', () => {
+    /* L'autre moitié: 1,2 s de TTFA sous un délai ressenti de 3,8 s est
+       parfaitement cohérent, et c'est bien la synthèse qu'on regarde. */
+    const f = good();
+    f.realtime!.latency.ttfa = { count: 9, median: 1200, p95: 1500, max: 1500 };
+    f.vapiGapsSeconds = [2.4, 2.9, 3.8];
+    const c = auditCall(f).checks.find(x => x.id === 'ttfa')!;
+    expect(c.status).not.toBe('ok');
+    expect(c.value).not.toMatch(/INUTILISABLE/);
+    expect(c.lever).toMatch(/VOICE_TTS_MIN_CHUNK_CHARS/);
+  });
+
   it("le modèle qui finit avant la synthèse n'est pas un défaut de découpe", () => {
     /* Relevé du 16/09/2026 au soir: 6 répliques découpables, 0 streamées, et
        la ligne partait en tête des choses à faire avec « relire le chunkPlan ».

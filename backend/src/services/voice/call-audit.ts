@@ -532,13 +532,38 @@ export function auditCall(facts: CallFacts): AuditReport {
     }
   }
 
+  /* INVARIANT, et il fallait le poser parce qu'il a été violé.
+   *
+   * Le TTFA (premier jeton → premier son) est un MORCEAU du délai ressenti
+   * (fin de parole de l'appelant → réponse), que l'horloge de VAPI mesure
+   * indépendamment de nos bornes. Un TTFA plus grand que le pire délai de
+   * Vapi est donc arithmétiquement impossible: ce n'est pas une latence, ce
+   * sont nos marques qui ont dérivé.
+   *
+   * Appel réel du 16/09/2026 à 23:12: TTFA médiane 20 175 ms, p95 59 419 ms,
+   * quand Vapi disait 2,9 s de médiane et 3,8 s au pire. L'audit a classé ça
+   * PREMIER, avec « baisser `VOICE_TTS_MIN_CHUNK_CHARS` vers 40 »: hacher la
+   * voix pour un chiffre qui ne pouvait pas exister. Quatrième fois qu'une
+   * ligne de cet audit envoie au mauvais endroit; celle-ci se vérifie contre
+   * une horloge qui n'est pas la nôtre, ce qu'aucune des trois précédentes ne
+   * pouvait faire. */
+  const felt = facts.vapiGapsSeconds.length ? Math.max(...facts.vapiGapsSeconds) * 1000 : null;
+  const ttfaImpossible = ttfa !== null && felt !== null && ttfa.median > felt;
+
   push({
     id: 'ttfa', area: 'latence',
-    status: ttfa ? grade(ttfa.median, TARGETS.ttfaMs) : 'skip',
+    status: !ttfa ? 'skip' : ttfaImpossible ? 'warn' : grade(ttfa.median, TARGETS.ttfaMs),
     label: 'TTFA: premier jeton → premier son',
-    value: ttfa ? `médiane ${ttfa.median} ms, p95 ${ttfa.p95} ms sur ${ttfa.count} tour(s)` : 'pas de mesure',
-    target: `≤ ${TARGETS.ttfaMs[0]} ms`,
-    lever: ttfa && ttfa.median > TARGETS.ttfaMs[0]
+    value: !ttfa
+      ? 'pas de mesure'
+      : ttfaImpossible
+      ? `MESURE INUTILISABLE: médiane ${ttfa.median} ms alors que l'horloge de Vapi plafonne le délai ressenti à `
+        + `${Math.round(felt!)} ms. Le TTFA est un morceau de ce délai, il ne peut pas le dépasser.`
+      : `médiane ${ttfa.median} ms, p95 ${ttfa.p95} ms sur ${ttfa.count} tour(s)`,
+    target: ttfaImpossible ? undefined : `≤ ${TARGETS.ttfaMs[0]} ms`,
+    lever: ttfaImpossible
+      ? 'nos bornes ont dérivé, pas la synthèse: un tour non fermé (`markAssistantSpeechStart`) ou des événements Vapi manquants. Ne toucher à AUCUN réglage de voix sur ce relevé'
+      : ttfa && ttfa.median > TARGETS.ttfaMs[0]
       ? "la synthèse attend trop de texte: `VOICE_TTS_MIN_CHUNK_CHARS` (60) à baisser vers 40, puis `voice:resync --confirm`; vérifier que Cartesia sonic-3.5 est bien la voix distante"
       : undefined,
   });
@@ -578,13 +603,19 @@ export function auditCall(facts: CallFacts): AuditReport {
            milliseconde. Troisième fois que cette ligne envoie au mauvais
            endroit (6novoquadragesies, 6quinquagesies). */
         const tts = stage(rt, 'tts');
-        const synthOwnsIt = streamed === 0 && tts !== null && ttfa !== null && tts.median * 2 >= ttfa.median;
+        /* Et si le TTFA est inutilisable, cette ligne l'est aussi: elle se
+           compare à lui. La juger reviendrait à noter une découpe contre une
+           horloge cassée. */
+        const synthOwnsIt = ttfaImpossible
+          || (streamed === 0 && tts !== null && ttfa !== null && tts.median * 2 >= ttfa.median);
         const pct = Math.round((Math.min(streamed, ceiling) / ceiling) * 100);
         const status = synthOwnsIt ? 'ok' : grade(pct, TARGETS.streamedPct, true);
         push({
           id: 'streamed', area: 'latence', status,
           label: 'son parti avant la fin du texte',
-          value: synthOwnsIt
+          value: ttfaImpossible
+            ? 'sans objet: le TTFA de ce relevé est inutilisable (voir la ligne au-dessus), donc rien ne peut être noté contre lui'
+            : synthOwnsIt
             ? `sans objet: le modèle finit son texte avant que la synthèse ne parle `
               + `(synthèse ${tts!.median} ms sur ${ttfa!.median} ms de TTFA), découper plus tôt n'avance rien`
             : `${Math.min(streamed, ceiling)}/${ceiling} réplique(s) découpable(s) (${pct} %)`

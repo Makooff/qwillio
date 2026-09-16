@@ -1595,6 +1595,48 @@ l'outil). Le LLM à 1044 ms est second. Et l'agent a proposé de prendre les
 coordonnées pour un rappel, l'appelant a accepté, **aucun `captureLead` n'a été
 appelé** (6sexquadragesies, encore).
 
+### 6terquinquagesies. Le tour se ferme sur la prise de parole, pas sur un événement de Vapi (16/09/2026, 23:12)
+Appel de contrôle après 6duoquinquagesies: la fermeture inventée a disparu
+(« on est ouvert vendredi, de 9 h à 18 h, pas le soir ») et les mutuelles sont
+répondues depuis les champs nommés, donc ce champ n'était PAS enregistré au
+moment de l'appel précédent. Ce que le relevé a sorti à la place:
+**TTFA médiane 20 175 ms, p95 59 419 ms** sur un appel de 137 s, quand
+l'horloge de VAPI disait 2,9 s de médiane et 3,8 s au pire.
+Le même écran portait sa propre preuve, deux lignes plus bas: **« TOTAL: pas de
+mesure »**, zéro tour. `markCallerSpeechEnd` (le `speech-update role=user
+status=stopped` de Vapi) n'a jamais tourné de tout l'appel, et c'était le SEUL
+endroit qui remettait les bornes à zéro. Or `markLlmFirstDelta` refuse
+d'écraser une borne déjà posée: `llmFirstDeltaAt` a donc gardé la valeur du
+PREMIER tour, et chaque prise de parole suivante a mesuré son TTFA depuis ce
+jeton-là. Une cause, deux lignes.
+`markAssistantSpeechStart` efface désormais les bornes du tour qu'il ferme.
+**La règle: une mesure par tour ne dépend pas d'un événement FACULTATIF du
+fournisseur.** Le tour se ferme sur ce qu'on voit nous-mêmes. `total` reste non
+mesuré quand Vapi se tait, et c'est honnête: on ne sait pas quand l'appelant a
+fini de parler. La forme fautive a été réintroduite une fois (`expected 8300 to
+be 300`).
+**Et l'audit a classé ce 20 s PREMIER**, avec « baisser
+`VOICE_TTS_MIN_CHUNK_CHARS` vers 40 »: hacher la voix pour un chiffre qui ne
+pouvait pas exister. Quatrième fois qu'une ligne de cet audit envoie au mauvais
+endroit. Celle-ci se ferme autrement que les trois précédentes: par un
+INVARIANT vérifié contre une horloge qui n'est pas la nôtre. Le TTFA est un
+MORCEAU du délai ressenti que Vapi mesure de son côté; un TTFA plus grand que
+le pire délai de Vapi est arithmétiquement impossible, donc la ligne dit
+« MESURE INUTILISABLE », nomme la dérive de nos bornes et interdit de toucher
+un réglage de voix sur ce relevé. La ligne de découpe, qui se compare au TTFA,
+se tait pour la même raison.
+**La leçon des quatre**: un audit qui note un chiffre doit pouvoir le
+CONTREDIRE avec une source indépendante. Les trois premiers plafonds
+(découpable, synthèse, étage servi) venaient de nos propres données; celui-ci
+vient de l'horloge du fournisseur, et c'est le seul qui aurait attrapé une
+borne qui dérive.
+Reste ouvert, inchangé: `lookupBooking` 2,5 s, `rescheduleBooking` 2,2 s,
+`checkAvailability` 1,6 s, l'essentiel du délai ressenti. Et l'agent a dit
+« nos rendez-vous se prennent à l'heure pile, pas à la demi-heure », une règle
+de réservation que personne n'a écrite: c'est la granularité de NOS créneaux
+transformée en politique de l'entreprise, même famille que la fermeture
+inventée, pas encore corrigée.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).
