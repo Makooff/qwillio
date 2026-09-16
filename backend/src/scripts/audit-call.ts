@@ -19,6 +19,9 @@ import { smsReadiness } from '../services/sms-ready';
 import { buildStartSpeakingPlan } from '../services/voice/speech-plans';
 import { clientLocale } from '../utils/client-locale';
 import { auditCall, readVapiMessages, renderAudit, type CallFacts } from '../services/voice/call-audit';
+import { voiceForProfile } from '../services/voice/profile-voice';
+import { readTierId, requestedTier } from '../services/voice/voice-tiers';
+import { realtimeContextService } from '../services/voice/realtime-context.service';
 
 const arg = (name: string): string | null => {
   const hit = process.argv.find(a => a.startsWith(`--${name}=`));
@@ -46,7 +49,7 @@ async function main() {
       durationSeconds: true,
       metadata: true,
       createdAt: true,
-      client: { select: { businessName: true, contactEmail: true, vapiAssistantId: true, country: true, agentLanguage: true } },
+      client: { select: { businessName: true, contactEmail: true, vapiAssistantId: true, country: true, agentLanguage: true, vapiConfig: true } },
     },
   });
 
@@ -87,11 +90,20 @@ async function main() {
   /* L'assistant DISTANT: c'est lui qui décroche, pas le code. */
   let remoteCustomLlm: boolean | null = null;
   let remoteEndpointing: CallFacts['remote']['endpointing'] = null;
+  /* LU sur l'assistant distant, pas déduit du réglage du client: l'écart entre
+     les deux est exactement ce que cette ligne existe pour montrer. */
+  let remoteSpeechToSpeech: boolean | null = null;
   const assistantId = ours?.client?.vapiAssistantId ?? vapiCall?.assistantId ?? null;
   if (assistantId) {
     try {
       const assistant = (await vapiClient.getAssistant(assistantId)) as Record<string, any>;
       remoteCustomLlm = assistant?.model?.provider === 'custom-llm';
+      /* Le parole-à-parole se reconnaît à DEUX choses ensemble: OpenAI tient la
+         boucle (pas de custom-LLM) et il n'y a AUCUN transcripteur, parce que
+         le modèle entend l'audio lui-même. Le fournisseur seul ne suffit pas:
+         un client épinglé hors custom-LLM est aussi en `openai`, mais avec un
+         transcripteur, et il est classique. */
+      remoteSpeechToSpeech = assistant?.model?.provider === 'openai' && !assistant?.transcriber;
       const got = (assistant?.startSpeakingPlan ?? {}) as Record<string, any>;
       remoteEndpointing = {
         provider: got.smartEndpointingPlan?.provider ?? (got.smartEndpointingEnabled ? 'vapi' : 'aucun'),
@@ -102,6 +114,13 @@ async function main() {
       console.log(`Assistant distant illisible: ${(error as Error).message}`);
     }
   }
+
+  /* Le profil, pour savoir quel niveau DOIT servir. Illisible (client parti,
+     cache froid): le niveau attendu retombe sur `base`, et la ligne le dira
+     plutôt que d'accuser une resynchronisation qui n'a rien à voir. */
+  const auditProfile = ours?.clientId
+    ? await realtimeContextService.getClientProfile(ours.clientId).catch(() => null)
+    : null;
 
   const language: 'fr' | 'en' | 'nl' = ours?.client ? clientLocale(ours.client) : 'fr';
   const want = buildStartSpeakingPlan(language);
@@ -130,7 +149,7 @@ async function main() {
     },
     booking: bookingRow ? { id: bookingRow.id, smsSent: bookingRow.smsConfirmationSent, smsLogs } : null,
     recordingReadable,
-    remote: { customLlm: remoteCustomLlm, endpointing: remoteEndpointing },
+    remote: { customLlm: remoteCustomLlm, endpointing: remoteEndpointing, speechToSpeech: remoteSpeechToSpeech },
     expected: {
       endpointing: {
         provider: want.smartEndpointingPlan.provider,
@@ -141,6 +160,14 @@ async function main() {
       miniModel: env.VOICE_SMALL_MODEL,
       greetingPinned: env.VOICE_GREETING_PINNED,
       smsReady: smsReadiness().ok,
+      /* Le niveau DEMANDÉ vient de la fiche, celui qui DOIT servir du profil:
+         `voiceForProfile` applique la priorité de la voix clonée, qui est la
+         seule raison légitime d'un écart entre les deux. */
+      tierRequested: requestedTier({
+        voiceTier: readTierId(((ours?.client?.vapiConfig as any) || {}).voiceTier),
+        voiceMode: ((ours?.client?.vapiConfig as any) || {}).voiceMode,
+      }),
+      tierServed: auditProfile ? voiceForProfile(auditProfile).tier.id : 'base',
     },
   };
 

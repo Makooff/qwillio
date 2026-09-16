@@ -1,5 +1,15 @@
 import { resolveCharacter } from '../../config/voice-characters';
-import { buildVoice, cartesiaChoice } from './speech-plans';
+import {
+  assistantModelBlock,
+  buildVoice,
+  cartesiaChoice,
+  customLlmUrlFor,
+  realtimeSpeechBlocks,
+  resolveTuning,
+  useSpeechToSpeech,
+  type VoiceTuning,
+} from './speech-plans';
+import { servedTier, tuningFor, voiceModeFor, type VoiceTier } from './voice-tiers';
 import type { ClientVoiceProfile } from './realtime-context.service';
 
 /**
@@ -39,6 +49,24 @@ export interface ProfileVoice {
     /** Pourquoi ce fournisseur: voir `cartesiaChoice`. */
     why: string;
   };
+  /**
+   * Le moteur retenu pour ce profil, par la MÊME fonction que l'appel.
+   *
+   * Il vivait dans `buildSpeech`, donc seul l'assistant bâti à l'appel savait
+   * répondre à la question. Les deux écritures de `onboarding.service.ts`
+   * envoyaient un `false` écrit en dur, et l'assistant ENREGISTRÉ (le seul qui
+   * décroche sur une ligne dédiée) restait classique quoi que le client ait
+   * choisi. Il est résolu ici parce que c'est ici que le personnage est déjà
+   * résolu: la voix CLONÉE prime sur le niveau, et c'est le même objet qui le
+   * sait.
+   */
+  speechToSpeech: boolean;
+  /** Le niveau qui SERT, une fois le clone pris en compte. */
+  tier: VoiceTier;
+  /** Le genre du personnage: la voix du temps réel s'y accroche. */
+  gender: 'f' | 'm';
+  /** Les curseurs du niveau DEMANDÉ, à passer aux plans. */
+  tuning: VoiceTuning;
 }
 
 export function voiceForProfile(profile: ClientVoiceProfile): ProfileVoice {
@@ -65,13 +93,77 @@ export function voiceForProfile(profile: ClientVoiceProfile): ProfileVoice {
     lang: profile.language,
   });
 
+  /* La règle du moteur n'est pas réécrite ici: `useSpeechToSpeech` reste seul
+     à trancher, y compris la priorité de la voix clonée. Ce fichier ne fait
+     que lui donner les mêmes entrées que l'appel entrant. */
+  const speechToSpeech = useSpeechToSpeech({
+    hasCustomVoice: !!profile.customVoice,
+    clonedVoice: character.voiceCloned,
+    voiceMode: voiceModeFor(profile),
+  });
+
   return {
     block,
+    speechToSpeech,
+    gender: character.gender,
+    tier: servedTier(speechToSpeech),
+    tuning: tuningFor(profile),
     signature: {
       provider: block.provider === 'cartesia' ? 'cartesia' : '11labs',
       voiceId: block.voiceId,
       model: block.model,
       why: decision.why,
     },
+  };
+}
+
+/**
+ * Le couple modèle + voix de l'assistant ENREGISTRÉ, pour un profil donné.
+ *
+ * UNE fonction pour les DEUX écritures de `onboarding.service.ts`. Elles
+ * assemblaient chacune la leur, et toutes les deux en classique: `false` écrit
+ * en dur dans `buildRealtimePlans`, `assistantModelBlock` appelé directement.
+ * Conséquence exacte, vérifiable sur n'importe quel compte: un client réglé en
+ * parole-à-parole gardait la chaîne classique tant qu'il avait une ligne
+ * DÉDIÉE, puisque c'est l'assistant enregistré qui décroche alors
+ * (6quindecies / 6tervicies). Le mécanisme existait, le réglage s'enregistrait,
+ * l'écran disait enregistré, et l'appelant entendait l'autre moteur.
+ *
+ * Sur une ligne PARTAGÉE (les essais), l'assistant est bâti à l'appel par
+ * `buildSpeech`: c'est le seul chemin où le temps réel fonctionnait déjà.
+ * Les deux chemins passent maintenant par la même décision.
+ */
+export function assistantSpeechForProfile(
+  profile: ClientVoiceProfile,
+  opts: { clientId: string; systemPrompt: string; tools: any[]; temperature: number },
+): { model: any; voice: any; speechToSpeech: boolean; tier: VoiceTier } {
+  const resolved = voiceForProfile(profile);
+
+  if (resolved.speechToSpeech) {
+    return {
+      ...realtimeSpeechBlocks({
+        gender: resolved.gender,
+        systemPrompt: opts.systemPrompt,
+        tools: opts.tools,
+        temperature: opts.temperature,
+        realtimeModel: resolveTuning(resolved.tuning).realtimeModel,
+      }),
+      speechToSpeech: true,
+      tier: resolved.tier,
+    };
+  }
+
+  return {
+    /* `profile.customLlm` porte déjà le défaut d'environnement: le relire ici
+       ferait une seconde règle pour la même question. */
+    model: assistantModelBlock({
+      customLlmUrl: profile.customLlm ? customLlmUrlFor(opts.clientId) : undefined,
+      systemPrompt: opts.systemPrompt,
+      tools: opts.tools,
+      temperature: opts.temperature,
+    }),
+    voice: resolved.block,
+    speechToSpeech: false,
+    tier: resolved.tier,
   };
 }

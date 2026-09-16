@@ -6,12 +6,19 @@ import { env } from '../config/env';
 import { emailService } from './email.service';
 import { discordService } from './discord.service';
 import { resolveCharacter } from '../config/voice-characters';
-import { voiceForProfile, type ProfileVoice } from './voice/profile-voice';
+import { assistantSpeechForProfile, voiceForProfile, type ProfileVoice } from './voice/profile-voice';
 import { getPersonaPrompt, PERSONALITY_PROMPTS } from '../config/personalities';
-import { assistantModelBlock, buildRealtimePlans, buildVoice, customLlmUrlFor, type VoiceLanguage } from './voice/speech-plans';
+import {
+  assistantModelBlock,
+  buildRealtimePlans,
+  buildVoice,
+  customLlmUrlFor,
+  type VoiceLanguage,
+  type VoiceTuning,
+} from './voice/speech-plans';
 import { fitAssistantName } from './voice/vapi-limits';
 import { webhookServer } from './voice/webhook-identity';
-import { realtimeContextService, shouldRecord } from './voice/realtime-context.service';
+import { realtimeContextService, shouldRecord, type ClientVoiceProfile } from './voice/realtime-context.service';
 import { buildVoiceTools } from './voice/voice-tools';
 import { greetingAudioService, firstMessageToPin } from './voice/greeting-audio.service';
 import { toE164 } from '../utils/phone';
@@ -78,31 +85,60 @@ export class OnboardingService {
          client devrait sauver deux fois pour que sa réponse prenne effet. */
       const systemPrompt = await this.assistantPrompt(clientId, client);
 
+      /* Le modèle ET la voix sortent d'UNE fonction, celle que la
+         synchronisation appelle aussi: c'est elle qui sait que le client est
+         en `superagent` (parole-à-parole) et qui pose alors le bon couple.
+         Écrits à la main ici, ils naissaient toujours classiques. */
+      const speechBlocks = speech
+        ? assistantSpeechForProfile(speech.profile, {
+            clientId: client.id,
+            systemPrompt,
+            // Les outils sont posés juste après, dans `model`: voir le commentaire.
+            tools: [],
+            temperature: 0.7,
+          })
+        : {
+            /* Profil illisible: l'ancien chemin, mot pour mot. Un repli ne
+               choisit pas un moteur, il refait ce qui marchait. */
+            model: assistantModelBlock({
+              customLlmUrl: env.VOICE_CUSTOM_LLM_DEFAULT ? customLlmUrlFor(client.id) : undefined,
+              systemPrompt,
+              tools: [],
+              temperature: 0.7,
+            }),
+            voice: buildVoice({
+              voiceId: character.voiceId,
+              stability: character.stability,
+              similarityBoost: character.similarityBoost,
+              style: character.style,
+              lang,
+            }),
+            speechToSpeech: false,
+          };
+
       const assistantData: any = {
         name: fitAssistantName('Receptionist', client.businessName),
-        /* Le MÊME bloc que l'assistant bâti à l'appel: custom-LLM quand le
-           profil le dit (le défaut), sinon Vapi appelle OpenAI lui-même. */
-        model: assistantModelBlock({
-          customLlmUrl: (speech?.customLlm ?? env.VOICE_CUSTOM_LLM_DEFAULT) ? customLlmUrlFor(client.id) : undefined,
-          systemPrompt,
-          tools: [],
-          temperature: 0.7,
-        }),
+        model: speechBlocks.model,
         // Voice, transcriber and the start/stop speaking plans all come from
         // the real-time module so an onboarded assistant is born with the same
         // barge-in and endpointing tuning the orchestrator applies per call.
-        voice: buildVoice({
-          voiceId: character.voiceId,
-          stability: character.stability,
-          similarityBoost: character.similarityBoost,
-          style: character.style,
-          lang,
-        }),
+        voice: speechBlocks.voice,
         /* À la CRÉATION, le texte et rien d'autre: les accueils sont fabriqués
            juste après, donc aucune ligne n'existe encore. Le premier
            enregistrement de réglage épinglera l'audio. */
         firstMessage: await this.assistantFirstMessage(clientId, client),
-        ...buildRealtimePlans(lang, false, { vocabulary: speech?.vocabulary ?? [] }),
+        /* Le moteur RETENU, jamais un `false` écrit en dur: en parole-à-parole
+           les plans changent de forme (pas de transcripteur, et les plans qui
+           comptent des MOTS ne peuvent pas être satisfaits sans lui). Envoyer
+           les plans classiques sur ce chemin, c'est une réceptionniste qui
+           attend des mots qui n'arrivent jamais, puis raccroche sur le délai
+           de silence. */
+        ...buildRealtimePlans(
+          lang,
+          speechBlocks.speechToSpeech,
+          { vocabulary: speech?.vocabulary ?? [] },
+          speech?.tuning ?? {},
+        ),
         /* `server` et non plus `serverUrl` seul: il porte l'URL ET le secret
            que Vapi doit nous renvoyer. Sans lui, nos endpoints répondaient 401
            dès que le réglage jumeau du tableau de bord Vapi ne correspondait
@@ -938,10 +974,29 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
 
   private async speechProfile(
     clientId: string,
-  ): Promise<{ language: VoiceLanguage; vocabulary: string[]; recording: boolean; voice: ProfileVoice['block']; customLlm: boolean } | null> {
+  ): Promise<{
+    profile: ClientVoiceProfile;
+    language: VoiceLanguage;
+    vocabulary: string[];
+    recording: boolean;
+    voice: ProfileVoice['block'];
+    customLlm: boolean;
+    /** Le moteur RETENU pour ce client, clone compris. Voir `voiceForProfile`. */
+    speechToSpeech: boolean;
+    /** Les curseurs du niveau demandé, à passer aux plans de parole. */
+    tuning: VoiceTuning;
+  } | null> {
     const profile = await realtimeContextService.getClientProfile(clientId);
     if (!profile) return null;
+    const resolvedVoice = voiceForProfile(profile);
     return {
+      profile,
+      /* Le moteur voyage avec le reste de la parole, et par la MÊME fonction
+         que l'appel entrant. Les deux écritures posaient un `false` écrit en
+         dur: le niveau superagent n'atteignait donc jamais l'assistant qui
+         décroche sur une ligne dédiée. */
+      speechToSpeech: resolvedVoice.speechToSpeech,
+      tuning: resolvedVoice.tuning,
       language: profile.language,
       /* Le chemin custom-LLM, décidé par le PROFIL comme à l'appel. C'est lui
          qui porte la mémoire de l'appelant, la date, la reprise après coupure
@@ -955,7 +1010,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
          un clone choisi dans le portail atteignait l'accueil pré-enregistré et
          JAMAIS l'assistant qui décroche, qui repartait sur la voix ElevenLabs
          par défaut du personnage à chaque sauvegarde. Voir `profile-voice`. */
-      voice: voiceForProfile(profile).block,
+      voice: resolvedVoice.block,
       /* La MÊME décision que l'accueil, prise au même endroit (LEG-2/LEG-5).
          Elle se lisait ici sur `disableRecordingNotice` seul, le drapeau
          historique, alors que le portail écrit `recordCalls` et que le profil
@@ -1011,6 +1066,35 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
     await this.regenerateGreetings(client.id);
     const firstMessage = await this.assistantFirstMessage(client.id, client);
 
+    /* Le MÊME assembleur que la création: c'est lui qui sait que le client est
+       en `superagent`, et c'est cette écriture-ci qui court le plus de risque
+       de l'ignorer, puisqu'elle rejoue à CHAQUE enregistrement de réglage. Un
+       niveau choisi puis écrasé à la sauvegarde suivante est le mode d'échec
+       qu'on a déjà payé sur la langue et sur la voix (6vicies). */
+    const syncBlocks = syncSpeech
+      ? assistantSpeechForProfile(syncSpeech.profile, {
+          clientId: client.id,
+          systemPrompt,
+          tools: syncTools,
+          temperature: 0.7,
+        })
+      : {
+          model: assistantModelBlock({
+            customLlmUrl: env.VOICE_CUSTOM_LLM_DEFAULT ? customLlmUrlFor(client.id) : undefined,
+            systemPrompt,
+            tools: syncTools,
+            temperature: 0.7,
+          }),
+          voice: buildVoice({
+            voiceId: character.voiceId,
+            stability: character.stability,
+            similarityBoost: character.similarityBoost,
+            style: character.style,
+            lang: syncLang,
+          }),
+          speechToSpeech: false,
+        };
+
     const updatedConfig: any = {
       name: fitAssistantName(client.agentName || 'Receptionist', client.businessName),
       /* Le MÊME bloc que l'assistant bâti à l'appel (`assistantModelBlock`):
@@ -1023,24 +1107,19 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
          envoyé quand il n'y a rien à offrir, jamais rien: omettre le champ
          laisserait chez Vapi les outils d'une configuration qu'on vient
          d'annuler. */
-      model: assistantModelBlock({
-        customLlmUrl: (syncSpeech?.customLlm ?? env.VOICE_CUSTOM_LLM_DEFAULT) ? customLlmUrlFor(client.id) : undefined,
-        systemPrompt,
-        tools: syncTools,
-        temperature: 0.7,
-      }),
+      model: syncBlocks.model,
       /* La voix du PROFIL, résolue une seule fois pour l'appel, l'accueil et
          cette écriture. Le repli sur le personnage nu ne sert que si le profil
          est illisible: c'est l'ancienne règle, qui ignorait la voix choisie. */
-      voice: syncSpeech?.voice ?? buildVoice({
-        voiceId: character.voiceId,
-        stability: character.stability,
-        similarityBoost: character.similarityBoost,
-        style: character.style,
-        lang: syncLang,
-      }),
+      voice: syncBlocks.voice,
       firstMessage,
-      ...buildRealtimePlans(syncLang, false, { vocabulary: syncSpeech?.vocabulary ?? [] }),
+      // Le moteur RETENU: même raison qu'à la création.
+      ...buildRealtimePlans(
+        syncLang,
+        syncBlocks.speechToSpeech,
+        { vocabulary: syncSpeech?.vocabulary ?? [] },
+        syncSpeech?.tuning ?? {},
+      ),
       server: webhookServer(`${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`),
       /* Le drapeau d'enregistrement ne voyageait PAS du tout ici: il était posé
          à l'inscription et plus jamais relu. Un client qui coupait

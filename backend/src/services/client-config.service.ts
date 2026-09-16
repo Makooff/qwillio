@@ -7,6 +7,7 @@ import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { isValidCharacterId, CUSTOM_CHARACTER_ID } from '../config/voice-characters';
 import { PERSONALITY_PROMPTS } from '../config/personalities';
+import { readTierId, type VoiceTierId } from './voice/voice-tiers';
 
 export interface VapiConfigPatch {
   items?: Array<{ id?: string; category?: string; name?: string; price?: string }>;
@@ -49,6 +50,8 @@ export interface VapiConfigPatch {
    * comparer les deux à l'oreille sans engager tous les clients d'un coup.
    */
   voiceMode?: 'auto' | 'realtime' | 'classic';
+  /** Le niveau vendu: `base` ou `superagent`. `null` retire le choix. */
+  voiceTier?: VoiceTierId | null;
   /**
    * Par où partent les messages de la réceptionniste: SMS ou WhatsApp.
    *
@@ -193,6 +196,15 @@ export function buildVapiConfigPatch(
       }))
       .filter((e: FaqEntry) => e.q !== '');
     next.faq = renderFaq(next.faqEntries);
+  }
+  if (patch.voiceTier !== undefined) {
+    /* `null` RETIRE le choix, et c'est la seule façon de revenir à « rien de
+       choisi »: la fusion de `vapiConfig` est superficielle, une clé absente
+       garde l'ancienne valeur (6sexies). Une valeur inconnue vaut aussi
+       « rien de choisi » plutôt que d'être écrite telle quelle: un niveau mal
+       orthographié ne doit pas décider en silence du moteur, ni d'un
+       supplément à la minute. */
+    next.voiceTier = readTierId(patch.voiceTier);
   }
   if (patch.voiceMode !== undefined) {
     // Une valeur inconnue vaut `auto` plutôt que d'être écrite telle quelle:

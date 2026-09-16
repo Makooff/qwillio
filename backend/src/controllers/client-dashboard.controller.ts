@@ -19,6 +19,7 @@ import { wouldLoop, LOOP_MESSAGE } from '../services/voice/transfer-loop';
 import { vapiClient } from '../config/vapi';
 import { recordingCandidates } from '../services/voice/recording-urls';
 import { Readable } from 'stream';
+import { voiceModeFor } from '../services/voice/voice-tiers';
 
 /**
  * Rebâtir l'assistant DISTANT après un changement d'intégration.
@@ -731,6 +732,7 @@ export class ClientDashboardController {
         body.characterId !== undefined ||
         body.customVoice !== undefined ||
         body.voiceMode !== undefined ||
+        body.voiceTier !== undefined ||
         body.ttsProvider !== undefined ||
         body.notificationChannel !== undefined ||
         body.leadAlert !== undefined ||
@@ -756,6 +758,10 @@ export class ClientDashboardController {
              bout SAUF ici, donc changer de moteur était impossible, y compris
              en appelant l'API à la main. */
           voiceMode:         body.voiceMode,
+          /* Le NIVEAU, qui prime sur `voiceMode` et le remplacera. Passé ici
+             dès sa naissance: le commentaire juste au-dessus dit ce que coûte
+             l'oubli, et il a été écrit après l'avoir payé. */
+          voiceTier:         body.voiceTier,
           ttsProvider:       body.ttsProvider,
           notificationChannel: body.notificationChannel,
           /* Le piège que `voiceMode` a déjà tendu une fois: un réglage validé
@@ -780,7 +786,8 @@ export class ClientDashboardController {
          répondre pendant tout le TTL. Sur un réglage qu'on change précisément
          pour comparer deux moteurs, l'oubli ferait juger le mauvais. */
       if (body.characterId !== undefined || body.customVoice !== undefined
-          || body.voiceMode !== undefined || body.ttsProvider !== undefined) {
+          || body.voiceMode !== undefined || body.voiceTier !== undefined
+          || body.ttsProvider !== undefined) {
         const { realtimeContextService } = await import('../services/voice/realtime-context.service');
         await realtimeContextService.invalidateClient(req.clientId);
       }
@@ -1051,7 +1058,7 @@ export class ClientDashboardController {
         hasCustomVoice: !!profile.customVoice,
         // L'appel test suit le mode du client, sinon il teste autre chose que
         // ce que l'appelant entendra.
-        voiceMode: profile.voiceMode,
+        voiceMode: voiceModeFor(profile),
         // L'appel test doit sonner comme l'appel réel, synthèse comprise.
         ttsProvider: profile.ttsProvider,
         /* Pas de secours SUR CET APPEL-CI. Ils font préparer un second
@@ -1117,7 +1124,7 @@ export class ClientDashboardController {
       const effectiveMode = useSpeechToSpeech({
         hasCustomVoice: !!profile.customVoice,
         clonedVoice: profile.customVoice?.cloned,
-        voiceMode: profile.voiceMode,
+        voiceMode: voiceModeFor(profile),
       }) ? 'realtime' : 'classic';
 
       const { vapiClient } = await import('../config/vapi');

@@ -879,6 +879,44 @@ export function assistantModelBlock(opts: {
   };
 }
 
+/**
+ * Le couple modèle + voix du PAROLE-À-PAROLE, sorti pour être partagé.
+ *
+ * Il ne vivait que dans `buildSpeech`, donc seul l'assistant bâti à l'appel
+ * pouvait être en temps réel. Les deux écritures de `onboarding.service.ts`,
+ * qui posent l'assistant ENREGISTRÉ (le seul qui décroche sur une ligne
+ * dédiée), assemblaient le leur à la main, toujours classique. Un client réglé
+ * en temps réel gardait donc la chaîne classique pour toujours: septième trou
+ * de la famille 6quindecies. Une seule fonction, appelée par les trois.
+ *
+ * Deux absences volontaires, et ce sont les deux moitiés du mode. Pas de
+ * `customLlmUrl`: sur ce chemin Vapi parle à OpenAI lui-même, un fournisseur
+ * custom-LLM n'aurait rien à intercepter. Pas de `fallbackModels`: même raison
+ * qu'ailleurs, ils ne valent que quand Vapi tient la boucle... ce qui est le
+ * cas ici, mais le catalogue temps réel n'est pas celui des modèles texte et
+ * un identifiant déduit est un assistant refusé en entier (6quinvicies).
+ */
+export function realtimeSpeechBlocks(opts: {
+  gender: 'f' | 'm';
+  systemPrompt: string;
+  tools: any[];
+  temperature: number;
+  /** Jamais déduit: il vient de `resolveTuning`, donc du niveau ou de l'env. */
+  realtimeModel: string;
+}): { model: any; voice: any } {
+  return {
+    model: {
+      provider: 'openai',
+      model: opts.realtimeModel,
+      temperature: opts.temperature,
+      maxTokens: env.VOICE_MAX_COMPLETION_TOKENS,
+      messages: [{ role: 'system', content: opts.systemPrompt }],
+      tools: opts.tools,
+    },
+    voice: { provider: 'openai', voiceId: REALTIME_VOICE[opts.gender] },
+  };
+}
+
 export function buildSpeech(opts: {
   lang: VoiceLanguage;
   systemPrompt: string;
@@ -915,18 +953,13 @@ export function buildSpeech(opts: {
   });
 
   if (speechToSpeech) {
-    return {
-      speechToSpeech,
-      model: {
-        provider: 'openai',
-        model: tuning.realtimeModel,
-        temperature: opts.temperature ?? tuning.temperature,
-        maxTokens: env.VOICE_MAX_COMPLETION_TOKENS,
-        messages: [{ role: 'system', content: opts.systemPrompt }],
-        tools: opts.tools,
-      },
-      voice: { provider: 'openai', voiceId: REALTIME_VOICE[opts.character.gender] },
-    };
+    return { speechToSpeech, ...realtimeSpeechBlocks({
+      gender: opts.character.gender,
+      systemPrompt: opts.systemPrompt,
+      tools: opts.tools,
+      temperature: opts.temperature ?? tuning.temperature,
+      realtimeModel: tuning.realtimeModel,
+    }) };
   }
 
   return {
