@@ -125,6 +125,10 @@ export const TARGETS = {
   ttfaMs: [700, 1200],
   totalMs: [2000, 3000],
   vapiGapSeconds: [2.0, 3.0],
+  /* Ce qu'on peut viser SANS couper la parole: le détecteur intelligent tranche
+     en quelques dizaines de millisecondes quand la phrase est clairement
+     finie, et le reste est le plancher qu'on pose nous-mêmes. */
+  turnDetectMs: [700, 1100],
   toolSeconds: [1.5, 2.5],
   cacheHitPct: [40, 15],
   streamedPct: [50, 25],
@@ -679,11 +683,63 @@ export function auditCall(facts: CallFacts): AuditReport {
       value: gap !== null ? `médiane ${gap.toFixed(1)} s, max ${Math.max(...facts.vapiGapsSeconds).toFixed(1)} s sur ${facts.vapiGapsSeconds.length} tour(s)` : 'pas de mesure',
       target: `≤ ${TARGETS.vapiGapSeconds[0]} s`,
       lever: gap !== null && gap > TARGETS.vapiGapSeconds[0]
-        ? total && total.median < gap * 1000 - 600
-          ? "l'écart entre TOTAL (nous) et ce délai (Vapi) est la détection de fin de tour: `VOICE_START_WAIT_SECONDS` et `VOICE_ENDPOINTING_PUNCTUATION_SECONDS` à baisser par pas de 0,1, puis `voice:resync --confirm`"
-          : 'le temps est dans les étages ci-dessus: les régler dans l\'ordre PREP, LLM, TTFA'
+        ? 'la ligne suivante dit quelle PART est à nous et laquelle est la détection de fin de tour'
         : undefined,
     });
+
+    /* CE QUE L'APPELANT ATTEND, DÉCOUPÉ EN DEUX.
+     *
+     * Retour du 17/09/2026: « les outils longs ne me dérangent pas, ça fait
+     * réaliste. Ce qui me dérange, c'est qu'après ma phrase il attend une ou
+     * deux secondes avant de parler. » Ce délai-là n'est ni celui des outils
+     * ni celui du modèle: l'horloge de Vapi mesure l'intervalle ENTIER, nos
+     * étages n'en couvrent qu'une partie, et la DIFFÉRENCE est le temps passé
+     * à décider que l'appelant a fini de parler, avant même que la requête
+     * n'arrive chez nous.
+     *
+     * Elle n'était nulle part, et c'est pourtant le plus gros poste: 2,5 s de
+     * délai ressenti pour 1,28 s chez nous (941 ms d'OpenAI + 342 ms de
+     * synthèse) laisse ~1,2 s en amont. Sans cette ligne, on cherche les
+     * millisecondes dans les étages qu'on VOIT, c'est-à-dire là où elles ne
+     * sont pas.
+     *
+     * Le réglage attendu est la SOMME des seuils, et la comparer à la mesure
+     * dit si les seuils expliquent le délai ou si autre chose le porte
+     * (transcription, routage). Sans cette comparaison, on baisserait des
+     * seuils qui ne sont pas la cause. */
+    const ep = facts.remote.endpointing;
+    const stagesMs = (prep?.median ?? 0) + (llm?.median ?? 0) + (ttfa?.median ?? 0);
+    const beforeUs = gap !== null && stagesMs > 0 ? Math.round(gap * 1000 - stagesMs) : null;
+    if (beforeUs !== null && beforeUs > 0) {
+      const configuredMs = Math.round(((ep?.waitSeconds ?? 0) + (ep?.punctuationSeconds ?? 0)) * 1000);
+      /* La marge couvre ce que la somme des seuils ne dit pas: le
+         transcripteur (`VOICE_ENDPOINTING_MS`, 150 ms), le trajet jusqu'à
+         l'Oregon et le routage de Vapi. 600 ms plutôt que 400, et le choix est
+         ASYMÉTRIQUE à dessein: se tromper en disant « expliqué » fait baisser
+         un plancher et gagner moins que prévu, ce qui se voit au relevé
+         suivant et se défait par une variable; se tromper dans l'autre sens
+         envoie chercher la cause dans un seuil qui n'y est pour rien. Le
+         relevé réel du 17/09 donnait 1 216 ms pour 800 ms de seuils, à 16 ms
+         d'une marge de 400. */
+      const explained = configuredMs > 0 && beforeUs <= configuredMs + 600;
+      push({
+        id: 'turn-detect', area: 'latence',
+        status: beforeUs <= TARGETS.turnDetectMs[0] ? 'ok' : beforeUs <= TARGETS.turnDetectMs[1] ? 'warn' : 'fail',
+        label: "détection de fin de tour: avant que la requête n'arrive chez nous",
+        value: `${beforeUs} ms des ${Math.round(gap! * 1000)} ms de délai ressenti (nos étages: ${Math.round(stagesMs)} ms)`
+          + (configuredMs > 0
+            ? explained
+              ? `, cohérent avec les seuils posés (${configuredMs} ms + transcripteur)`
+              : `, soit ${beforeUs - configuredMs} ms de PLUS que les seuils posés (${configuredMs} ms): les baisser ne rendra pas tout ça`
+            : ''),
+        target: `≤ ${TARGETS.turnDetectMs[0]} ms`,
+        lever: beforeUs > TARGETS.turnDetectMs[0]
+          ? explained
+            ? "`VOICE_START_WAIT_SECONDS` (0,4) est un PLANCHER posé au-dessus du détecteur intelligent: c'est le premier à baisser. GARDER `VOICE_ENDPOINTING_PUNCTUATION_SECONDS` à 0,4, c'est lui qui empêche de couper sur une respiration. Variables d'environnement, puis `voice:resync --confirm`"
+            : "les seuils ne suffisent pas à l'expliquer: regarder `VOICE_ENDPOINTING_NO_PUNCTUATION_SECONDS` (1,2 s quand le transcripteur ne met pas de point) et `VOICE_ENDPOINTING_MS`, avant de toucher au reste"
+          : undefined,
+      });
+    }
   }
 
   {
