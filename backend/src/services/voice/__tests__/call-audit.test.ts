@@ -1,0 +1,249 @@
+import { describe, it, expect } from 'vitest';
+import { auditCall, readVapiMessages, renderAudit, TARGETS, type CallFacts } from '../call-audit';
+
+/**
+ * L'audit tranche sur des faits: un appel qui a tout fait est vert, un
+ * appel qui a annoncé une réservation sans la prendre est rouge sur la
+ * ligne « réservation » avec le levier qui nomme la cause, et la latence
+ * hors cible désigne l'étage et la variable à toucher.
+ */
+
+const good = (): CallFacts => ({
+  callId: 'call_1',
+  startedAt: '2026-09-16T08:00:00.000Z',
+  endedReason: 'customer-ended-call',
+  durationSeconds: 95,
+  assistantLines: 8,
+  callerLines: 7,
+  vapiGapsSeconds: [1.4, 1.6, 1.2, 1.9],
+  tools: [
+    { name: 'checkAvailability', args: { date: '2026-09-18' }, result: 'CRENEAUX: 09:00, 10:00', tookSeconds: 0.6 },
+    { name: 'bookAppointment', args: { customerName: 'Jean-Luc de la Forge', date: '2026-09-18', time: '10:00' }, result: 'RESERVE: Jean-Luc de la Forge, le vendredi 18 septembre a 10:00.', tookSeconds: 0.4 },
+    { name: 'captureLead', args: { name: 'Jean-Luc de la Forge' }, result: 'ok', tookSeconds: 0.2 },
+  ],
+  realtime: {
+    models: { 'gpt-4.1-mini-2025-04-14': 6 },
+    llmFailures: [],
+    tokens: { input: 30_000, cached: 21_000, output: 500 },
+    deflectedTurns: 1,
+    callerTurns: 7,
+    disclosureSpoken: true,
+    latency: {
+      prep: { count: 6, median: 40, p95: 90, max: 90 },
+      llm: { count: 6, median: 650, p95: 900, max: 900 },
+      ttfa: { count: 5, median: 450, p95: 600, max: 600 },
+      total: { count: 5, median: 1500, p95: 1900, max: 1900 },
+      streaming: { streamed: 4, buffered: 1 },
+      toolTurns: 2,
+    },
+  },
+  ours: { found: true, isLead: true, nameCollected: 'Jean-Luc de la Forge', callerName: 'Jean Lucas', summary: 'Prise de rendez-vous pour un détartrage.', language: 'fr' },
+  booking: { id: 'bk_0000001', smsSent: true, smsLogs: [{ status: 'sent', errorMsg: null }] },
+  recordingReadable: true,
+  remote: { customLlm: true, endpointing: { provider: 'livekit', waitSeconds: 0.4, punctuationSeconds: 0.4 } },
+  expected: {
+    endpointing: { provider: 'livekit', waitSeconds: 0.4, punctuationSeconds: 0.4 },
+    fullModel: 'gpt-4.1-mini',
+    miniModel: 'gpt-4.1-nano',
+    greetingPinned: false,
+    smsReady: true,
+  },
+});
+
+describe('auditCall — un appel qui a tout fait', () => {
+  it('est vert partout, sans rien à faire', () => {
+    const report = auditCall(good());
+    expect(report.works).toBe(true);
+    expect(report.todo).toEqual([]);
+    expect(report.checks.filter(c => c.status === 'fail')).toEqual([]);
+    const lines = renderAudit(report);
+    expect(lines).toContain("L'appel a fait son travail.");
+    expect(lines).toContain('Rien à régler sur cet appel.');
+  });
+});
+
+describe('auditCall — fonctionnement', () => {
+  it('une réservation annoncée sans ligne en base est un défaut nommé', () => {
+    const f = good();
+    f.booking = null;
+    const report = auditCall(f);
+    const booking = report.checks.find(c => c.id === 'booking')!;
+    expect(booking.status).toBe('warn');
+    expect(booking.value).toMatch(/AUCUNE ligne en base/);
+  });
+
+  it('bookAppointment appelé avec un nom bidon: rouge, et le levier nomme le nom', () => {
+    const f = good();
+    f.tools = [
+      { name: 'checkAvailability', args: {}, result: 'CRENEAUX: 09:00', tookSeconds: 0.5 },
+      { name: 'bookAppointment', args: { customerName: 'client', date: '2026-09-18', time: '09:00' }, result: "RIEN N'EST RESERVE: il manque le nom", tookSeconds: 0.1 },
+    ];
+    f.booking = null;
+    const report = auditCall(f);
+    const booking = report.checks.find(c => c.id === 'booking')!;
+    expect(booking.status).toBe('fail');
+    expect(booking.lever).toMatch(/nom bidon.*client/);
+    expect(report.works).toBe(false);
+    expect(report.todo[0].id).toBe('booking');
+  });
+
+  it('des créneaux consultés sans réservation: à surveiller, pas rouge', () => {
+    const f = good();
+    f.tools = [{ name: 'checkAvailability', args: {}, result: 'CRENEAUX: 09:00', tookSeconds: 0.5 }];
+    f.booking = null;
+    const booking = auditCall(f).checks.find(c => c.id === 'booking')!;
+    expect(booking.status).toBe('warn');
+    expect(booking.value).toMatch(/jamais appelé/);
+  });
+
+  it('un SMS refusé porte l\'erreur Twilio et son levier', () => {
+    const f = good();
+    f.booking = { id: 'bk_1', smsSent: false, smsLogs: [{ status: 'failed', errorMsg: "Invalid 'To' Phone Number [21211]" }] };
+    const sms = auditCall(f).checks.find(c => c.id === 'sms')!;
+    expect(sms.status).toBe('fail');
+    expect(sms.value).toMatch(/21211/);
+    expect(sms.lever).toMatch(/21211/);
+  });
+
+  it('sans SMS configuré, le SMS manquant n\'est qu\'une alerte', () => {
+    const f = good();
+    f.expected.smsReady = false;
+    f.booking = { id: 'bk_1', smsSent: false, smsLogs: [] };
+    expect(auditCall(f).checks.find(c => c.id === 'sms')!.status).toBe('warn');
+  });
+
+  it('un silence-timed-out sans réplique de l\'assistant désigne l\'accueil', () => {
+    const f = good();
+    f.endedReason = 'silence-timed-out';
+    f.assistantLines = 0;
+    const report = auditCall(f);
+    expect(report.works).toBe(false);
+    expect(report.checks.find(c => c.id === 'ended')!.lever).toMatch(/accueil/);
+    expect(report.checks.find(c => c.id === 'spoke')!.status).toBe('fail');
+  });
+
+  it('les tours en repli sont rouges avec leur raison', () => {
+    const f = good();
+    f.realtime!.llmFailures = ['OpenAI responded 400: Unrecognized request argument', 'OpenAI responded 400: Unrecognized request argument'];
+    const c = auditCall(f).checks.find(x => x.id === 'fallbacks')!;
+    expect(c.status).toBe('fail');
+    expect(c.value).toBe('OpenAI responded 400: Unrecognized request argument ×2');
+  });
+
+  it('un assistant distant en openai est un défaut de fonctionnement avec la commande de resync', () => {
+    const f = good();
+    f.remote.customLlm = false;
+    const c = auditCall(f).checks.find(x => x.id === 'custom-llm')!;
+    expect(c.status).toBe('fail');
+    expect(c.lever).toMatch(/voice:resync/);
+  });
+
+  it('un nom seulement entendu, jamais confirmé, est signalé', () => {
+    const f = good();
+    f.ours.nameCollected = null;
+    const c = auditCall(f).checks.find(x => x.id === 'name')!;
+    expect(c.status).toBe('warn');
+    expect(c.value).toMatch(/entendu seulement: Jean Lucas/);
+  });
+});
+
+describe('auditCall — latence', () => {
+  it('un LLM lent avec un cache à 0 % désigne le cache en premier', () => {
+    const f = good();
+    f.realtime!.latency.llm = { count: 6, median: 1800, p95: 2600, max: 2600 };
+    f.realtime!.tokens = { input: 30_000, cached: 0, output: 500 };
+    const report = auditCall(f);
+    expect(report.checks.find(c => c.id === 'llm')!.status).toBe('fail');
+    const cache = report.checks.find(c => c.id === 'cache')!;
+    expect(cache.status).toBe('fail');
+    expect(cache.lever).toMatch(/cacheablePrefixChars/);
+  });
+
+  it('un cache bas sur deux tours n\'est pas jugé', () => {
+    const f = good();
+    f.realtime!.models = { 'gpt-4.1-mini-2025-04-14': 2 };
+    f.realtime!.tokens = { input: 8_000, cached: 3_000, output: 100 };
+    expect(auditCall(f).checks.find(c => c.id === 'cache')!.status).toBe('skip');
+  });
+
+  it('un délai Vapi bien plus long que notre TOTAL désigne la détection de fin de tour', () => {
+    const f = good();
+    f.vapiGapsSeconds = [3.2, 3.5, 3.0];
+    const c = auditCall(f).checks.find(x => x.id === 'vapi-gap')!;
+    expect(c.status).toBe('fail');
+    expect(c.lever).toMatch(/VOICE_START_WAIT_SECONDS/);
+  });
+
+  it('un délai Vapi expliqué par nos étages renvoie aux étages', () => {
+    const f = good();
+    f.vapiGapsSeconds = [2.6, 2.4];
+    f.realtime!.latency.total = { count: 5, median: 2300, p95: 2600, max: 2600 };
+    const c = auditCall(f).checks.find(x => x.id === 'vapi-gap')!;
+    expect(c.status).toBe('warn');
+    expect(c.lever).toMatch(/PREP, LLM, TTFA/);
+  });
+
+  it('un agenda lent désigne la spéculation', () => {
+    const f = good();
+    f.tools[0].tookSeconds = 2.8;
+    const c = auditCall(f).checks.find(x => x.id === 'tools')!;
+    expect(c.status).toBe('fail');
+    expect(c.lever).toMatch(/spéculation/);
+  });
+
+  it('sans relevé, chaque étage est dit non mesuré, jamais rouge', () => {
+    const f = good();
+    f.realtime = null;
+    const report = auditCall(f);
+    for (const id of ['prep', 'llm', 'ttfa', 'total']) expect(report.checks.find(c => c.id === id)!.status).toBe('skip');
+    expect(report.checks.find(c => c.id === 'custom-llm')!.status).toBe('warn');
+  });
+
+  it('les cibles sont celles annoncées', () => {
+    expect(TARGETS.totalMs[0]).toBe(2000);
+    expect(TARGETS.llmMs[0]).toBe(900);
+  });
+});
+
+describe('auditCall — réglages', () => {
+  it('un assistant distant périmé sur la fin de tour renvoie au resync', () => {
+    const f = good();
+    f.remote.endpointing = { provider: 'vapi', waitSeconds: 0.12, punctuationSeconds: 0.1 };
+    const c = auditCall(f).checks.find(x => x.id === 'endpointing')!;
+    expect(c.status).toBe('fail');
+    expect(c.lever).toMatch(/voice:resync/);
+  });
+
+  it('deux étages de modèle identiques: alerte avec la variable à poser', () => {
+    const f = good();
+    f.expected.miniModel = 'gpt-4.1-mini';
+    const c = auditCall(f).checks.find(x => x.id === 'tiers')!;
+    expect(c.status).toBe('warn');
+    expect(c.lever).toMatch(/VOICE_SMALL_MODEL/);
+  });
+
+  it('l\'annonce IA absente est un défaut', () => {
+    const f = good();
+    f.realtime!.disclosureSpoken = false;
+    expect(auditCall(f).checks.find(x => x.id === 'disclosure')!.status).toBe('fail');
+  });
+});
+
+describe('readVapiMessages', () => {
+  it('compte les répliques, mesure le délai de réponse et apparie outil et résultat', () => {
+    const read = readVapiMessages([
+      { role: 'bot', message: 'Bonjour', secondsFromStart: 0.5 },
+      { role: 'user', message: 'un rendez-vous jeudi', secondsFromStart: 3, time: 3000, endTime: 4500 },
+      { role: 'tool_calls', secondsFromStart: 6, toolCalls: [{ function: { name: 'checkAvailability', arguments: '{"date":"2026-09-18"}' } }] },
+      { role: 'tool_call_result', name: 'checkAvailability', result: 'CRENEAUX: 09:00', secondsFromStart: 6.8 },
+      { role: 'bot', message: 'Jeudi à 9h ?', secondsFromStart: 7.5 },
+      { role: 'tool_calls', secondsFromStart: 12, toolCalls: [{ function: { name: 'bookAppointment', arguments: { customerName: 'X' } } }] },
+    ]);
+    expect(read.assistantLines).toBe(2);
+    expect(read.callerLines).toBe(1);
+    expect(read.vapiGapsSeconds).toEqual([3]);
+    expect(read.tools[0]).toEqual({ name: 'checkAvailability', args: { date: '2026-09-18' }, result: 'CRENEAUX: 09:00', tookSeconds: 0.8 });
+    /* Un outil sans réponse (appel coupé) compte, sans durée. */
+    expect(read.tools[1]).toEqual({ name: 'bookAppointment', args: { customerName: 'X' }, result: null, tookSeconds: null });
+  });
+});
