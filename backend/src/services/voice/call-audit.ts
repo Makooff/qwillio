@@ -42,6 +42,8 @@ export interface ToolEvent {
   args: Record<string, unknown>;
   result: string | null;
   tookSeconds: number | null;
+  /** Secondes depuis le début de l'appel, à l'horloge de Vapi. */
+  atSeconds: number | null;
 }
 
 export interface EndpointingFacts {
@@ -279,11 +281,12 @@ export function readVapiMessages(messages: Array<Record<string, any>>): {
         args: open?.args ?? {},
         result: typeof m.result === 'string' ? m.result : m.result == null ? null : JSON.stringify(m.result),
         tookSeconds: at !== null && open?.at != null ? Math.round(Math.max(0, at - open.at) * 100) / 100 : null,
+        atSeconds: open?.at ?? null,
       });
     }
   }
   /* Un outil appelé sans réponse vue (appel coupé pendant l'agenda) compte. */
-  for (const [name, open] of pending) tools.push({ name, args: open.args, result: null, tookSeconds: null });
+  for (const [name, open] of pending) tools.push({ name, args: open.args, result: null, tookSeconds: null, atSeconds: open.at });
   return { assistantLines, assistantTexts, callerLines, vapiGapsSeconds: gaps, tools };
 }
 
@@ -603,10 +606,24 @@ export function auditCall(facts: CallFacts): AuditReport {
            milliseconde. Troisième fois que cette ligne envoie au mauvais
            endroit (6novoquadragesies, 6quinquagesies). */
         const tts = stage(rt, 'tts');
-        /* Et si le TTFA est inutilisable, cette ligne l'est aussi: elle se
-           compare à lui. La juger reviendrait à noter une découpe contre une
-           horloge cassée. */
+        /* TROISIÈME plafond, et celui-ci retire la ligne du classement dans
+           presque tous les cas réels. Ce qu'on compare ici, c'est notre
+           horloge LOCALE (le dernier jeton, connu à la milliseconde) et
+           l'ARRIVÉE D'UN WEBHOOK de Vapi (« l'assistant parle »), qui traverse
+           le réseau et sa file. Pour une réplique écrite en deux ou trois
+           cents millisecondes, ce trajet suffit à lui seul à faire conclure
+           « bufferisé », quoi que fasse le `chunkPlan`. Le verdict n'est donc
+           pas faux, il est INDÉCIDABLE: aucune source ne dit quand la voix a
+           réellement commencé par rapport à nos jetons.
+           La ligne ne se note que sur des complétions assez longues pour que
+           le trajet du webhook ne puisse plus expliquer le résultat, et
+           `ttfa - tts` est cette durée d'écriture. Cinquième passage de la
+           même leçon (6novoquadragesies, 6duoquinquagesies, 6terquinquagesies)
+           et le premier qui conclut que la question ne se pose pas ainsi. */
+        const writeMs = tts !== null && ttfa !== null ? ttfa.median - tts.median : null;
+        const tooShortToJudge = writeMs !== null && writeMs < 1500;
         const synthOwnsIt = ttfaImpossible
+          || tooShortToJudge
           || (streamed === 0 && tts !== null && ttfa !== null && tts.median * 2 >= ttfa.median);
         const pct = Math.round((Math.min(streamed, ceiling) / ceiling) * 100);
         const status = synthOwnsIt ? 'ok' : grade(pct, TARGETS.streamedPct, true);
@@ -615,6 +632,10 @@ export function auditCall(facts: CallFacts): AuditReport {
           label: 'son parti avant la fin du texte',
           value: ttfaImpossible
             ? 'sans objet: le TTFA de ce relevé est inutilisable (voir la ligne au-dessus), donc rien ne peut être noté contre lui'
+            : tooShortToJudge
+            ? `sans objet: les répliques sont écrites en ${writeMs} ms, et ce verdict se joue sur l'arrivée d'un WEBHOOK `
+              + `dont le trajet dure du même ordre. En dessous de 1,5 s d'écriture, il ne mesure pas la découpe, il mesure le réseau `
+              + `(${streamed}/${ceiling} découpable(s) tout de même, pour information)`
             : synthOwnsIt
             ? `sans objet: le modèle finit son texte avant que la synthèse ne parle `
               + `(synthèse ${tts!.median} ms sur ${ttfa!.median} ms de TTFA), découper plus tôt n'avance rien`
@@ -629,12 +650,24 @@ export function auditCall(facts: CallFacts): AuditReport {
     }
   }
 
+  /* TOTAL et « délai ressenti » mesurent le MÊME intervalle: la fin de parole
+     de l'appelant jusqu'à la réponse. La différence est l'horloge. La nôtre
+     borne deux ARRIVÉES DE WEBHOOK, celle de Vapi lit son propre pipeline
+     audio. Relevé du 16/09 à 23:28: 3 867 ms chez nous, 2 500 ms chez Vapi,
+     pour le même appel. Les noter tous les deux en rouge, c'est compter deux
+     fois un seul fait et donner à la mesure la plus indirecte le même poids
+     qu'à celle qui touche le phénomène. Quand la ligne de Vapi existe, la
+     nôtre l'accompagne sans la juger. */
+  const hasVapiClock = facts.vapiGapsSeconds.length > 0;
   push({
     id: 'total', area: 'latence',
-    status: total ? grade(total.median, TARGETS.totalMs) : 'skip',
+    status: !total ? 'skip' : hasVapiClock ? 'ok' : grade(total.median, TARGETS.totalMs),
     label: 'TOTAL: fin de parole → premier son (notre horloge)',
-    value: total ? `médiane ${total.median} ms, p95 ${total.p95} ms sur ${total.count} tour(s)` : 'pas de mesure',
-    target: `≤ ${TARGETS.totalMs[0]} ms`,
+    value: !total
+      ? 'pas de mesure'
+      : `médiane ${total.median} ms, p95 ${total.p95} ms sur ${total.count} tour(s)`
+        + (hasVapiClock ? " — pour information: c'est l'horloge de Vapi, ligne suivante, qui fait foi sur ce délai" : ''),
+    target: hasVapiClock ? undefined : `≤ ${TARGETS.totalMs[0]} ms`,
   });
 
   {
@@ -662,7 +695,12 @@ export function auditCall(facts: CallFacts): AuditReport {
         id: 'tools', area: 'latence',
         status: grade(worst, TARGETS.toolSeconds),
         label: 'durée des outils (agenda, fiche)',
-        value: timed.map(t => `${t.name} ${t.tookSeconds!.toFixed(1)} s`).join(', '),
+        /* QUAND chaque outil a tourné, pas seulement combien de temps. Sur
+           trois appels d'affilée, le PREMIER outil a coûté 2,5 s et les
+           suivants moins: une moyenne par nom d'outil ne peut pas montrer ça,
+           et c'est pourtant la différence entre « cette requête est lente » et
+           « le premier accès du processus paie un réveil ». */
+        value: timed.map(t => `${t.name} ${t.tookSeconds!.toFixed(1)} s${t.atSeconds != null ? ` (à ${t.atSeconds.toFixed(0)} s)` : ''}`).join(', '),
         target: `≤ ${TARGETS.toolSeconds[0]} s chacun`,
         lever: slow.length
           ? slow.some(t => t.name === 'checkAvailability')
