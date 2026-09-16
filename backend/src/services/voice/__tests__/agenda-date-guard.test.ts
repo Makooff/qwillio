@@ -109,6 +109,43 @@ describe('checkAvailability — la date', () => {
     expect(out).toContain('TOUS les creneaux');
   });
 
+  it('une liste FILTREE dit sur quoi elle est filtree, et interdit d\'inventer une fermeture', async () => {
+    /* Appel réel du 16/09/2026, cabinet ouvert 9 h-18 h le vendredi.
+       L'appelant veut « plus tôt », le modèle appelle avec
+       `partOfDay: 'morning'`, et l'ancien résultat disait « TOUS les creneaux
+       libres de la plage » sans nommer la plage. L'agent a répondu « on est
+       fermé l'après-midi », puis l'a CONFIRMÉ quand l'appelant l'a répété.
+       Une fermeture inventée est un fait FAUX sur l'entreprise, dit à un
+       client qui voulait venir. */
+    freeSlots.mockResolvedValueOnce(['09:00', '09:30', '11:00', '14:00', '16:00']);
+    const out = String(await check({ date: '2099-09-18', partOfDay: 'morning' }));
+    expect(out).toContain('ouvert 09:00-18:00');
+    expect(out).toContain('le MATIN');
+    expect(out).toMatch(/filtree/i);
+    expect(out).toContain("le reste de la journee n'a pas ete regarde");
+    expect(out).toMatch(/N'annonce JAMAIS une fermeture/);
+    /* Et la formulation qui a produit le défaut ne revient pas sur une liste
+       filtrée: elle dirait que la journée entière tient dans ces créneaux. */
+    expect(out).not.toContain('TOUS les creneaux libres de la journee');
+    expect(out).not.toContain('14:00');
+  });
+
+  it('sans filtre, la liste est celle de la JOURNEE, et le dit', async () => {
+    freeSlots.mockResolvedValueOnce(['09:00', '14:00']);
+    const out = String(await check({ date: '2099-09-18' }));
+    expect(out).toContain('TOUS les creneaux libres de la journee');
+    expect(out).toMatch(/N'annonce JAMAIS une fermeture/);
+  });
+
+  it('un agenda PLEIN n\'est pas une fermeture, et le resultat le dit', async () => {
+    /* « Tout est pris » se transforme en « on est fermé » dans la bouche du
+       modèle si le résultat ne tranche pas. */
+    freeSlots.mockResolvedValueOnce([]);
+    const out = String(await check({ date: '2099-09-18' }));
+    expect(out).toMatch(/^AUCUN CRENEAU/);
+    expect(out).toContain('OUVERTE ce jour-la');
+  });
+
   /* Un rendez-vous pris un DIMANCHE chez un commerce fermé le dimanche (appel
      réel, 12/09/2026): l'agenda ne lisait pas les horaires du portail. */
   it('refuse un jour fermé et nomme le prochain jour ouvert, sans lire l\'agenda', async () => {

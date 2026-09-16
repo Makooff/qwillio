@@ -567,16 +567,31 @@ export function auditCall(facts: CallFacts): AuditReport {
             + `(${facts.expected.minChunkChars} caractères), elles partent donc en un seul morceau`,
         });
       } else {
+        /* SECOND plafond, et il fallait les deux. Une réplique peut être assez
+           longue pour être découpée et rester « bufferisée » sans que le plan
+           y soit pour rien: `tts` mesure le temps entre le DERNIER jeton et le
+           premier son, donc le délai de la SYNTHÈSE seule. Quand ce délai vaut
+           la moitié du TTFA ou plus, le modèle a fini d'écrire avant que la
+           synthèse ne parle, et découper plus tôt n'avance rien — le son
+           attend la voix, pas le texte. Le lever alors, c'est-à-dire baisser
+           `VOICE_TTS_MIN_CHUNK_CHARS`, hacherait la voix pour zéro
+           milliseconde. Troisième fois que cette ligne envoie au mauvais
+           endroit (6novoquadragesies, 6quinquagesies). */
+        const tts = stage(rt, 'tts');
+        const synthOwnsIt = streamed === 0 && tts !== null && ttfa !== null && tts.median * 2 >= ttfa.median;
         const pct = Math.round((Math.min(streamed, ceiling) / ceiling) * 100);
-        const status = grade(pct, TARGETS.streamedPct, true);
+        const status = synthOwnsIt ? 'ok' : grade(pct, TARGETS.streamedPct, true);
         push({
           id: 'streamed', area: 'latence', status,
           label: 'son parti avant la fin du texte',
-          value: `${Math.min(streamed, ceiling)}/${ceiling} réplique(s) découpable(s) (${pct} %)`
-            + (chunkable < facts.assistantTexts.length
-              ? `, ${facts.assistantTexts.length - chunkable} trop courte(s) pour une découpe`
-              : ''),
-          target: `≥ ${TARGETS.streamedPct[0]} %`,
+          value: synthOwnsIt
+            ? `sans objet: le modèle finit son texte avant que la synthèse ne parle `
+              + `(synthèse ${tts!.median} ms sur ${ttfa!.median} ms de TTFA), découper plus tôt n'avance rien`
+            : `${Math.min(streamed, ceiling)}/${ceiling} réplique(s) découpable(s) (${pct} %)`
+              + (chunkable < facts.assistantTexts.length
+                ? `, ${facts.assistantTexts.length - chunkable} trop courte(s) pour une découpe`
+                : ''),
+          target: synthOwnsIt ? undefined : `≥ ${TARGETS.streamedPct[0]} %`,
           lever: status === 'ok' ? undefined : '`chunkPlan` distant à relire: des réponses assez longues pour être découpées ne le sont pas',
         });
       }

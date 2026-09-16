@@ -1554,6 +1554,47 @@ sa suite) et son conteneur porte la **même constante de grille** que le contenu
 change. Elle reprend la page entière en vue liste et en recherche, où l'agenda
 ne partage plus la largeur (`railed`).
 
+### 6duoquinquagesies. Une liste FILTRÉE se dit filtrée, sinon le modèle invente une fermeture (16/09/2026, 22:40)
+Appel réel, cabinet ouvert 9 h-18 h le vendredi, horaires enregistrés au
+portail. L'appelant veut son rendez-vous « plus tôt », le modèle appelle
+`checkAvailability` avec `partOfDay: 'morning'`, et le résultat rend les
+créneaux du matin en disant « Ce sont TOUS les creneaux libres de **la plage** »
+sans nommer la plage. L'agent a répondu « **on est fermé l'après-midi** », puis
+l'a CONFIRMÉ quand l'appelant l'a répété (« Reçoit uniquement en matinée ce
+jour-là »). Une fermeture inventée est pire qu'un créneau manqué: c'est un fait
+FAUX sur l'entreprise, dit à un client qui voulait venir, et que l'appelant
+repart en croyant.
+C'est 6untrigesies (« le plus tard, c'est 11 heures ») d'un cran plus haut: le
+correctif d'alors a ajouté la fenêtre d'ouverture au résultat, et le résultat
+disait donc « ouvert 09:00-18:00 » **pendant que le modèle annonçait une
+fermeture**. Ajouter un fait ne suffit pas si la liste qui le contredit n'est
+pas dite tronquée. `windowNote()` nomme désormais le filtre (« le MATIN
+UNIQUEMENT »), dit que le reste de la journée n'a pas été regardé, donne le
+rappel à faire (`partOfDay=any`) et interdit d'annoncer une fermeture que les
+horaires ne disent pas. Un agenda PLEIN le dit aussi (« tout est pris,
+l'entreprise est OUVERTE ce jour-là »): sans ça, « complet » devient « fermé »
+dans la bouche du modèle. Tout vit dans le RÉSULTAT D'OUTIL, donc zéro
+caractère au prompt rejoué à chaque tour.
+**Second plafond de l'audit, et il fallait les deux.** La ligne « son parti
+avant la fin du texte » a noté 0/6 découpables en rouge, en tête des choses à
+faire, avec « relire le chunkPlan ». Le plafond de 6novoquadragesies (compter ce
+qui POUVAIT être découpé) ne suffisait pas: une réplique assez longue peut
+rester bufferisée sans que le plan y soit pour rien. `tts` mesure le dernier
+jeton → premier son, c'est-à-dire la SYNTHÈSE seule, et il valait 300 ms sur
+394 ms de TTFA. Le modèle avait fini d'écrire avant que la voix ne parle:
+découper plus tôt n'avance rien, et le geste appelé (baisser
+`VOICE_TTS_MIN_CHUNK_CHARS`) hacherait la voix pour zéro milliseconde. L'audit
+dit « sans objet » quand la synthèse porte la moitié du TTFA ou plus, et reste
+ROUGE quand la voix répond vite, un test pour chacun. Troisième passage de la
+même leçon: **un ratio se note contre ce qui était atteignable, et l'atteignable
+a plusieurs plafonds.**
+Ce que le même appel laisse, non traité: `lookupBooking` 2,6 s,
+`checkAvailability` 1,7 s, `rescheduleBooking` 2,4 s, soit l'essentiel des
+4,9 s de TOTAL médian (le tour d'outil coûte DEUX passages de modèle plus
+l'outil). Le LLM à 1044 ms est second. Et l'agent a proposé de prendre les
+coordonnées pour un rappel, l'appelant a accepté, **aucun `captureLead` n'a été
+appelé** (6sexquadragesies, encore).
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).
