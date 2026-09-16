@@ -1431,6 +1431,56 @@ voit, l'autre étant un appelant qui se présente un jour où on ne l'attend pas
 Un test de source interdit `new Date(analysis.bookingDate)`, et la forme fautive
 a été réintroduite une fois pour vérifier qu'il tombe.
 
+### 6novoquadragesies. L'audit criait au loup, et il a failli faire hacher la voix (16/09/2026, soir)
+Premier appel test APRÈS les correctifs, et ils tiennent tous : « Un instant,
+je m'en occupe » au lieu de « Parfait, je vous réserve ça », rendez-vous pris au
+bon mardi et à la bonne ANNÉE, retrouvé du premier coup au second appel,
+déplacé sans doublon, zéro boucle. Reste ce que l'audit en a dit, et deux de ses
+lignes étaient FAUSSES.
+**« son parti avant la fin du texte : 1/5 (20 %) », placé en tête des choses à
+faire.** Le levier proposé revient à baisser `VOICE_TTS_MIN_CHUNK_CHARS`,
+c'est-à-dire à rendre la voix hachée, quelques minutes après que le
+propriétaire ait dit « c'est mieux niveau naturel ». Or le calcul refait sur les
+cinq répliques réelles donne exactement 1 : `chunkPlan` émet son premier morceau
+à la première fin de phrase située au-delà de 60 caractères, et quatre répliques
+sur cinq (« Un instant, je m'en occupe », 27 caractères) n'ont AUCUNE frontière
+avant leur fin. Elles partent en un seul morceau par construction, et la
+cinquième, la seule découpable, a bien streamé. **Le plan faisait tout ce qu'il
+pouvait, et la note disait l'inverse.**
+`chunkableReplies()` compte désormais ce qui POUVAIT être découpé, et c'est ce
+plafond qui est noté : 1/1 au lieu de 1/5, et « sans objet » quand aucune
+réplique n'atteint le seuil. Un vrai défaut de découpe (des réponses longues qui
+ne streament pas) reste rouge, un test le vérifie.
+**Second faux positif : « créneaux consultés mais bookAppointment jamais
+appelé » sur un appel de DÉPLACEMENT.** Un déplacement consulte les créneaux
+puis appelle `rescheduleBooking` ; `bookAppointment` n'a aucune raison d'y
+apparaître. L'audit réclamait donc une relecture de transcript sur CHAQUE
+déplacement. Il reconnaît maintenant le déplacement et ne pousse la ligne
+« réservation » que quand rien n'a conclu.
+**La règle, qui est 6sexvicies vécue de l'intérieur** : un audit qui note un
+ratio doit noter contre ce qui était ATTEIGNABLE, pas contre le total. Sinon il
+invente un défaut, le classe premier, et le geste qu'il appelle dégrade le
+produit. J'allais le faire.
+Deux autres défauts du même transcript, corrigés sans toucher au plafond du
+prompt (la latence du LLM est justement ce qu'on essaie de baisser) :
+« Vous êtes bien Jean-Luc **Delaforge, F0RGE** » — l'outil avait donné
+`F-O-R-G-E` avec un vrai O, c'est le modèle qui a recollé les lettres et écrit
+un zéro (déjà vu le 13/09 : « MAR0N », « MACRZRN »). La consigne d'épellation
+exige désormais les lettres telles quelles, sans les coller, et dit qu'un nom ne
+contient jamais de chiffre. Elle vit dans un RÉSULTAT D'OUTIL, donc elle ne
+coûte rien au prompt rejoué à chaque tour.
+Et « **Je vous réserve** mardi à 9 heures alors », dit avant l'appel à l'outil :
+la règle nommait une seule formulation, « c'est réservé », et le modèle en a
+employé une autre. Elle couvre les deux, et la ligne a été RESSERRÉE ailleurs
+pour ne coûter que 16 caractères : une règle qui interdit une formulation
+n'interdit pas un geste.
+**Ce que le même appel laisse ouvert, et qui est le vrai sujet** : le délai
+ressenti est de 3,4 s de médiane, et 1 465 ms sont le premier jeton d'OpenAI.
+PREP est à 0 ms, notre code n'y est pour rien. L'audit le dit lui-même :
+`VOICE_SMALL_MODEL` vaut `gpt-4.1-mini`, le même que `VAPI_MODEL`, **donc
+l'étage rapide n'existe pas** et « oui », « non merci » paient le prix fort.
+C'est une variable d'environnement, pas un déploiement.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

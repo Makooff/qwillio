@@ -42,6 +42,19 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toContain('restaurant');
   });
 
+  /**
+   * Appel réel du 16/09/2026 au soir: « Parfait. Je vous réserve mardi à
+   * 9 heures alors », dit AVANT l'appel à l'outil. La règle existait et
+   * nommait une seule phrase, « c'est réservé »; le modèle en a employé une
+   * autre. Une règle qui interdit une formulation n'interdit pas un geste.
+   */
+  it("interdit d'annoncer la réservation sous SES DEUX formes, pas seulement une", () => {
+    const prompt = buildSystemPrompt(profile, newCaller);
+    expect(prompt).toContain("C'est réservé");
+    expect(prompt).toContain('je vous réserve');
+    expect(prompt).toMatch(/après son retour RESERVE, jamais avant/);
+  });
+
   it('carries the client instructions and marks them as taking priority', () => {
     const prompt = buildSystemPrompt(profile, newCaller);
     expect(prompt).toContain('Ne jamais donner les prix');

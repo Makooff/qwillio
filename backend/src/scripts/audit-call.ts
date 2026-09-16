@@ -158,6 +158,7 @@ async function main() {
       },
       fullModel: env.VAPI_MODEL,
       miniModel: env.VOICE_SMALL_MODEL,
+      minChunkChars: env.VOICE_TTS_MIN_CHUNK_CHARS,
       greetingPinned: env.VOICE_GREETING_PINNED,
       smsReady: smsReadiness().ok,
       /* Le niveau DEMANDÉ vient de la fiche, celui qui DOIT servir du profil:
