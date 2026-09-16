@@ -30,6 +30,11 @@ const context = {
 const mount = () => render(<MemoryRouter><ClientBookings initialMonth={new Date(2026, 8, 1)} /></MemoryRouter>);
 
 beforeEach(() => {
+  /* Le composant lit « aujourd'hui » (jours à venir, marque du jour): le test
+     l'a écrit le 15/09 et tombait le 16. La date est figée, les minuteries
+     restent réelles pour que findBy / waitFor gardent leur horloge. */
+  vi.useFakeTimers({ toFake: ['Date'] });
+  vi.setSystemTime(new Date(2026, 8, 15, 12, 0, 0));
   get.mockReset(); post.mockReset();
   get.mockImplementation(async (url: string) => {
     if (url.includes('/context')) return { data: context };
@@ -37,7 +42,10 @@ beforeEach(() => {
   });
   post.mockResolvedValue({ data: { ok: true } });
 });
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 describe('ClientBookings, le calendrier', () => {
   it('charge le mois affiché et porte le compte sur chaque jour', async () => {
