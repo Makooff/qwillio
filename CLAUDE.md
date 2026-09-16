@@ -1481,6 +1481,39 @@ PREP est à 0 ms, notre code n'y est pour rien. L'audit le dit lui-même :
 l'étage rapide n'existe pas** et « oui », « non merci » paient le prix fort.
 C'est une variable d'environnement, pas un déploiement.
 
+### 6quinquagesies. L'étage rapide ne sert qu'AVANT le premier outil (16/09/2026)
+`VOICE_SMALL_MODEL` posé sur `gpt-4.1-nano` alors que `VAPI_MODEL` vaut
+`gpt-4.1-mini`: l'étage rapide existe enfin. Ce qu'aucune lecture du réglage ne
+montre, et qu'il faut savoir avant d'en attendre quelque chose:
+`needsFull = awaitingToolResult || businessIntent || wordCount > 5`, et
+`awaitingToolResult` teste la présence d'un message `role: 'tool'` **n'importe
+où dans l'historique**, pas seulement en dernier. Or Vapi renvoie tout
+l'historique à chaque tour. Donc **dès le premier outil, plus aucun tour ne
+redescend au rapide**, pour le reste de l'appel. Sur un appel qui réserve,
+l'étage rapide sert les deux ou trois tours d'avant `checkAvailability`, et
+c'est tout.
+**Ne PAS resserrer cette condition sur « le dernier message est un résultat
+d'outil »**, ce que son commentaire (« in flight ») laisse pourtant croire.
+Elle porte un SECOND rôle, et c'est celui qui coûte cher: c'est elle qui
+empêche `handledLocally` de détourner un « oui » nu. « oui » est un
+acquiescement dans la table de `intent-router`, réponse locale VIDE, sans
+modèle. Après « je peux vous proposer neuf heures ou dix heures », un « oui »
+détourné ne serait donc pas une réservation ratée, ce serait le **silence**.
+La condition large est ce qui dit « cet appel fait des affaires, prends le bon
+modèle », et c'est le bon arbitrage.
+Conséquence pour la latence, qui est la question qui y menait: sur un appel
+avec outils, `VOICE_SMALL_MODEL` ne peut rien pour la médiane. L'audit le disait
+quand même à chaque passage (« poser `VOICE_SMALL_MODEL=gpt-4.1-nano` »), sans
+jamais regarder si un seul tour y serait allé: c'est 6novoquadragesies une
+seconde fois, un levier noté contre le total au lieu de l'atteignable.
+`tierTurns()` compte désormais les tours par étage depuis `metadata.realtime.models`,
+et **zéro tour rapide n'est pas noté en orange**: sur un appel qui réserve, zéro
+est le compte NORMAL, la ligne le décrit et la ligne « LLM » cesse alors de
+nommer ce bouton. Deux pièges dans ce compte: le nom servi est **daté**
+(`gpt-4.1-mini-2025-04-14`, 6duotrigesies), donc une égalité stricte compterait
+zéro pour toujours; et un nom configuré peut préfixer l'autre (`gpt-4.1` et
+`gpt-4.1-mini`), donc l'attribution va au nom le plus LONG.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).
