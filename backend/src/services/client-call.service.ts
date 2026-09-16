@@ -14,6 +14,9 @@ import { googleCalendarService } from './google-calendar.service';
 import { spamDetectionService } from './spam-detection.service';
 import { knowledgeGapService } from './voice/knowledge-gap.service';
 import { readEndedReason, transferFunnel } from './voice/call-outcome';
+import { todayIso } from './voice/clock';
+import { businessTimezone } from '../utils/zoned-time';
+import { analysisDateRule, parseAnalysisDate } from '../utils/analysis-date';
 
 export class ClientCallService {
 
@@ -94,6 +97,17 @@ export class ClientCallService {
       : await this.analyzeClientCallTranscript(transcript, client, known);
     if (known) analysis.callerName = known;
 
+    /* LA DATE QUE LE MODÈLE A ÉCRITE, RELUE UNE FOIS, ici, pour les deux
+       écritures qui suivent (la fiche d'appel et la réservation de
+       rattrapage). Elles faisaient chacune `new Date(analysis.bookingDate)`,
+       sans format, sans borne, sans rien: une année inventée passait telle
+       quelle, et une réservation datée du passé est invisible partout
+       (calendrier du portail, `lookupBooking`, `rescheduleBooking`, qui ne
+       lisent que les rendez-vous à venir). Voir `utils/analysis-date.ts`. */
+    const bookingDay = analysis.bookingRequested
+      ? parseAnalysisDate(analysis.bookingDate, todayIso(businessTimezone(client)))
+      : null;
+
     // Create client call record
     const clientCall = await prisma.clientCall.create({
       data: {
@@ -116,7 +130,7 @@ export class ClientCallService {
         nameCollected: analysis.callerName || null,
         phoneCollected: callerNumber || null,
         bookingRequested: analysis.bookingRequested,
-        bookingDate: analysis.bookingDate ? new Date(analysis.bookingDate) : null,
+        bookingDate: bookingDay?.ok ? bookingDay.date : null,
         bookingDetails: analysis.bookingDetails || null,
         isLead: analysis.isLead,
         leadScore: analysis.leadScore,
@@ -231,7 +245,24 @@ export class ClientCallService {
         data: { clientCallId: clientCall.id },
       }).catch(err => logger.warn(`[Booking] liaison à l'appel impossible: ${err.message}`));
       bookingConfirmed = true;
-    } else if (analysis.bookingRequested && analysis.bookingDate) {
+    } else if (analysis.bookingRequested && bookingDay && !bookingDay.ok) {
+      /* Le refus est BRUYANT, et c'est le point. Une date illisible ou passée
+         produisait jusqu'ici une ligne de rendez-vous que personne ne voyait:
+         pas dans le calendrier du portail, pas dans `lookupBooking`, donc un
+         appelant qui se présente un jour où on ne l'attend pas. Ne rien écrire
+         est plus honnête, à condition de le DIRE: c'est un rendez-vous demandé
+         dont il ne reste aucune trace exploitable. */
+      logger.error(
+        `[Booking] rendez-vous NON enregistré pour ${client.businessName}: ${bookingDay.reason} `
+          + `(appel ${clientCall.id}, brut « ${String(analysis.bookingDate).slice(0, 40)} »)`,
+      );
+      await discordService.notify(
+        `📅 RENDEZ-VOUS NON ENREGISTRÉ\n\nClient: ${client.businessName}\n` +
+          `Appelant: ${analysis.callerName || callerNumber || 'inconnu'}\n` +
+          `Raison: ${bookingDay.reason}\n\n` +
+          `L'appelant a demandé un rendez-vous et AUCUNE ligne n'a été créée. À rappeler.`,
+      ).catch(() => {});
+    } else if (analysis.bookingRequested && bookingDay?.ok) {
       try {
         const booking = await prisma.clientBooking.create({
           data: {
@@ -240,7 +271,7 @@ export class ClientCallService {
             customerName: analysis.callerName || 'Unknown',
             customerPhone: callerNumber || null,
             customerEmail: analysis.emailCollected || null,
-            bookingDate: new Date(analysis.bookingDate),
+            bookingDate: bookingDay.date,
             bookingTime: analysis.bookingTime || null,
             serviceType: analysis.serviceType || null,
             partySize: analysis.partySize || null,
@@ -248,7 +279,7 @@ export class ClientCallService {
             status: 'confirmed',
           },
         });
-        logger.info(`Booking created for ${client.businessName}: ${analysis.callerName} on ${analysis.bookingDate}`);
+        logger.info(`Booking created for ${client.businessName}: ${analysis.callerName} on ${bookingDay.ymd}`);
 
         // Send booking confirmation SMS (fire-and-forget)
         if (callerNumber) {
@@ -256,7 +287,7 @@ export class ClientCallService {
             customerPhone: callerNumber,
             customerName: analysis.callerName || 'there',
             businessName: client.businessName,
-            bookingDate: analysis.bookingDate,
+            bookingDate: bookingDay.ymd,
             bookingTime: analysis.bookingTime || null,
             serviceType: analysis.serviceType || null,
           }).then(sent => {
@@ -369,6 +400,12 @@ export class ClientCallService {
   // ANALYZE CLIENT CALL TRANSCRIPT - GPT-4 analysis
   // ═══════════════════════════════════════════════════════════
   private async analyzeClientCallTranscript(transcript: string, client: any, knownName: string | null = null): Promise<ClientCallAnalysis> {
+    /* AUJOURD'HUI, dans le fuseau de l'entreprise. Sans cette ligne le modèle
+       lit « vendredi 18 septembre » dans le transcript et pose l'année qu'il
+       veut: un compte réel portait une réservation datée 2023 pour une
+       conversation de 2026 (relevé au docteur, 16/09). C'est 6novovicies
+       appliqué à l'agent et oublié sur le modèle d'ANALYSE. */
+    const todayYmd = todayIso(businessTimezone(client));
     /* Le nom confirmé (réservation relue et épelée, ou mémoire d'appelant)
        est donné au modèle d'analyse: le transcripteur écrit « Jean Lucas »
        pour « Jean-Luc », et sans cette ligne le résumé le répète. */
@@ -398,7 +435,7 @@ Return a JSON object with:
 - outcome: "booking_made", "info_provided", "message_taken", "transferred", "complaint", "missed", or "other"
 - summary: 2-sentence summary of the call (string)
 - bookingRequested: did the caller want to book/make an appointment? (boolean)
-- bookingDate: if booking was made, the date (ISO string or null)
+- bookingDate: if booking was made, the date (YYYY-MM-DD or null). ${analysisDateRule(todayYmd)}
 - bookingTime: if booking was made, the time (string like "14:00" or null)
 - serviceType: type of service requested (string or null)
 - partySize: number of people if mentioned (number or null)

@@ -1390,6 +1390,47 @@ script et par le portail. Ils étaient écrits à la main dans `set-voice-tier.t
 seul chemin qui savait les faire ; la vente en a ouvert un second, et deux
 copies d'une même règle divergent en moins d'un mois (6vicies).
 
+### 6octoquadragesies. Une date écrite par un MODÈLE ne se pose pas en base (16/09/2026)
+Relevé au docteur sur un compte réel, et ça renverse le diagnostic de
+6sexquadragesies. La réservation la plus récemment CRÉÉE portait `2023-09-18`
+alors que la conversation parlait du vendredi 18 septembre 2026. Trois ans dans
+le passé, et personne ne l'avait vu, parce qu'une réservation passée ne fait
+rien de visible : le calendrier du portail charge un MOIS, `lookupBooking` et
+`rescheduleBooking` ne lisent que les rendez-vous À VENIR
+(`bookingDate: { gte: now }`), et le gérant ne la voit donc jamais.
+**C'est la vraie cause de la boucle des neuf appels.** L'appelant demandait à
+déplacer un rendez-vous qu'il AVAIT, sous le bon nom et le bon numéro, et
+l'agent répondait « AUCUNE RESERVATION trouvee » à chaque fois. Le correctif de
+6sexquadragesies borne la boucle au deuxième échec ; il ne rend pas la ligne
+lisible. Un symptôme corrigé n'est pas une cause corrigée.
+**D'où vient l'année** : de nulle part. `analyzeClientCallTranscript` ne disait
+pas au modèle quel jour on était, et lui demandait `bookingDate` en « ISO
+string ». Le transcript dit « vendredi 18 septembre », jamais l'année. C'est
+6novovicies (« L'agent ne connaissait pas la date ») posé sur les trois prompts
+de l'agent et **oublié sur le modèle d'ANALYSE** : la même règle appliquée à un
+chemin et pas à l'autre, encore.
+**Ce que le code en faisait** : `new Date(analysis.bookingDate)` à DEUX endroits
+(`ClientCall.bookingDate` et la réservation de rattrapage), sans `parseDate`,
+sans borne de date passée, sans vérification de forme. `new Date` accepte des
+écritures dont le résultat dépend du moteur, et glisse au 3 mars sur un
+`2026-02-31` sans rien dire.
+`utils/analysis-date.ts` est la seule lecture : format `YYYY-MM-DD` exigé, jour
+inexistant écarté en relisant la date, date passée REFUSÉE, stockage à midi UTC
+(un jour posé à minuit se relit la veille depuis l'Oregon). La consigne
+d'analyse porte désormais la date du jour dans le fuseau de l'ENTREPRISE
+(`todayIso(businessTimezone(client))`) et interdit de deviner une année.
+**La règle : refuser, jamais corriger.** Remplacer 2023 par 2026 fabriquerait un
+rendez-vous que personne n'a dit, c'est-à-dire 6quinvicies appliqué aux dates.
+Le refus est donc BRUYANT (journal + alerte Discord) : un appelant qui voulait
+un rendez-vous et n'a aucune ligne en base est quelque chose que le gérant doit
+apprendre, pas une ligne de journal. Écrire une date fausse était pire que ne
+rien écrire, parce que ça fabriquait un rendez-vous fantôme.
+`voice:doctor` signale désormais « DATE ABERRANTE » quand un rendez-vous est
+daté AVANT sa propre création : c'est le seul endroit où une telle ligne se
+voit, l'autre étant un appelant qui se présente un jour où on ne l'attend pas.
+Un test de source interdit `new Date(analysis.bookingDate)`, et la forme fautive
+a été réintroduite une fois pour vérifier qu'il tombe.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).
