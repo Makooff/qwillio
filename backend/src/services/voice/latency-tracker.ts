@@ -227,6 +227,31 @@ export class CallLatencyTracker {
       this.marks.callerSpeechEndedAt = null;
     }
 
+    /* LE TOUR EST FINI ICI, et ses bornes meurent avec lui.
+     *
+     * Elles ne mouraient qu'à `markCallerSpeechEnd`, c'est-à-dire sur un
+     * événement de VAPI (`speech-update` role=user status=stopped) qu'on ne
+     * contrôle pas. Appel réel du 16/09/2026 à 23:12: Vapi n'en a envoyé
+     * AUCUN de tout l'appel. `llmFirstDeltaAt` a donc gardé la valeur du
+     * PREMIER tour, `markLlmFirstDelta` refusant d'écraser une borne déjà
+     * posée, et chaque prise de parole suivante a mesuré son TTFA depuis ce
+     * jeton-là: médiane 20 s, p95 59 s sur un appel de 137 s, quand l'horloge
+     * de Vapi disait 2,9 s.
+     *
+     * Le même relevé portait sa propre preuve: « TOTAL: pas de mesure », zéro
+     * tour mesuré, parce que `callerSpeechEndedAt` n'a jamais été posé. Deux
+     * lignes, une cause.
+     *
+     * La règle: une mesure par tour ne dépend pas d'un événement facultatif
+     * du fournisseur. Le tour se ferme sur ce qu'on voit nous-mêmes, la prise
+     * de parole de l'assistant. `total` reste non mesuré quand Vapi se tait,
+     * et c'est honnête: on ne sait pas quand l'appelant a fini. */
+    this.marks.llmStartedAt = null;
+    this.marks.llmRequestSentAt = null;
+    this.marks.llmFirstDeltaAt = null;
+    this.marks.lastDeltaAt = null;
+    this.marks.transcriptFinalAt = null;
+
     /* A turn with no measured stage produced nothing worth tracing: the events
        arrived out of order, or the assistant spoke without anyone having
        spoken first — the greeting. Returning null keeps that off the trace
