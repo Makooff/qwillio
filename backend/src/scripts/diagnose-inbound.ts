@@ -363,6 +363,20 @@ async function main() {
     if (lastBooking) {
       const when = `${lastBooking.bookingDate.toISOString().slice(0, 10)} ${lastBooking.bookingTime ?? ''}`.trim();
       console.log(`       dernière réservation: ${lastBooking.customerName} · ${when} · numéro ${lastBooking.customerPhone ?? 'INCONNU'} · SMS ${lastBooking.smsConfirmationSent ? 'envoyé' : 'NON envoyé'}`);
+      /* UNE RÉSERVATION NE SE PREND JAMAIS POUR LA VEILLE DE SA CRÉATION.
+         Un rendez-vous daté AVANT la ligne qui le porte est une année écrite
+         par le modèle d'analyse, pas par l'appelant (16/09/2026: `2023-09-18`
+         pour une conversation de 2026). Une telle ligne est invisible partout
+         — le calendrier du portail charge un mois, `lookupBooking` et
+         `rescheduleBooking` ne lisent que les rendez-vous à venir — donc elle
+         ne se voit qu'ici, ou dans un appelant qui se présente un jour où on
+         ne l'attend pas. Le jour de tolérance couvre un rendez-vous pris pour
+         le jour même à cheval sur un fuseau. */
+      const ecartJours = (lastBooking.createdAt.getTime() - lastBooking.bookingDate.getTime()) / 86_400_000;
+      if (ecartJours > 1) {
+        console.log(`       DATE ABERRANTE: ce rendez-vous est daté ${Math.round(ecartJours)} jour(s) AVANT sa propre création`);
+        console.log(`       (créée le ${lastBooking.createdAt.toISOString().slice(0, 10)}). Invisible du calendrier et de lookupBooking.`);
+      }
       const logs = await prisma.smsLog.findMany({
         where: { clientId: client.id, messageType: 'booking_confirmation' },
         orderBy: { createdAt: 'desc' },

@@ -45,9 +45,7 @@
  * deux moteurs à l'oreille.
  */
 import { prisma } from '../config/database';
-import { onboardingService } from '../services/onboarding.service';
-import { realtimeContextService } from '../services/voice/realtime-context.service';
-import { classifyVapiError } from '../services/voice/vapi-error';
+import { applyVoiceTier } from '../services/voice/apply-voice-tier';
 import { readTierId, requestedTier, VOICE_TIERS } from '../services/voice/voice-tiers';
 import { lowestPlanFor, planAllows, superagentAllowed } from '../config/plan-features';
 
@@ -75,6 +73,7 @@ async function main() {
     select: {
       id: true, businessName: true, contactEmail: true, planType: true,
       vapiAssistantId: true, vapiConfig: true, superagentOption: true,
+      stripeSubscriptionId: true,
     },
     take: 50,
   });
@@ -120,7 +119,11 @@ async function main() {
     console.log(`\n${cible ? `${cible.label}: ${cible.summary}` : 'auto: le réglage global décide.'}`);
   }
   if (option !== null) {
-    console.log(`\nOption Superagent: ${option ? 'ACCORDÉE' : 'RETIRÉE'} (droit facturé, sur la fiche client).`);
+    console.log(
+      `\nOption Superagent: ${option ? 'VENDUE' : 'RÉSILIÉE'}. Sur un client abonné, la ligne est ` +
+      `ajoutée ou retirée CHEZ STRIPE (prorata compris); sur un compte sans abonnement, seul le ` +
+      `droit est posé en base.`,
+    );
   }
 
   /* La combinaison impossible se refuse ICI plutôt que de s'écrire: poser
@@ -157,42 +160,56 @@ async function main() {
   const echecs: string[] = [];
 
   for (const c of clients) {
-    const cfg = ((c.vapiConfig as any) || {}) as Record<string, unknown>;
-    /* Fusion SUPERFICIELLE, comme le PUT du portail: `vapiConfig` porte la base
-       de connaissances, la voix et le mode sans enregistrement, et le remplacer
-       en entier les effacerait en silence (6sexies). */
-    await prisma.client.update({
-      where: { id: c.id },
-      data: {
-        /* Le niveau ne bouge que s'il a été demandé: `--option=on` seul accorde
-           un droit sans toucher au réglage du client. */
-        ...(raw ? { vapiConfig: { ...cfg, voiceTier: tier } as any } : {}),
-        ...(option !== null ? { superagentOption: option } : {}),
-      },
-    });
-    /* Le profil est servi depuis un cache: sans ça, l'ancien moteur répond
-       pendant tout le TTL, et c'est le mauvais qu'on jugerait à l'appel test. */
-    await realtimeContextService.invalidateClient(c.id);
+    /* Le droit d'abord, le niveau ensuite: la résolution borne le niveau au
+       droit (`entitledTier`), donc écrire « superagent » avant d'accorder
+       l'option ferait synchroniser un assistant en classique.
+       Et il passe par STRIPE quand le client a un abonnement, pas par la
+       colonne: `customer.subscription.updated` réécrit `superagentOption`
+       depuis les lignes réellement facturées, donc un droit posé à la main ici
+       serait retiré au premier événement suivant, en silence. Un compte sans
+       abonnement (créé à la main) ne reçoit jamais cet événement: pour lui, et
+       pour lui seul, la colonne est la seule vérité. */
+    if (option !== null) {
+      if (c.stripeSubscriptionId) {
+        const { stripeService } = await import('../services/stripe.service');
+        const r = option
+          ? await stripeService.addSuperagentOption(c)
+          : await stripeService.removeSuperagentOption(c);
+        if ('ok' in r && !r.ok) {
+          console.log(`  ÉCHEC   ${c.businessName} — option refusée: ${r.message}`);
+          echecs.push(c.businessName);
+          continue;
+        }
+        /* La colonne suivra par le webhook. On la pose quand même tout de
+           suite: le niveau est appliqué dans la foulée, et il serait borné au
+           classique tant que l'événement n'est pas arrivé. */
+      }
+      await prisma.client.update({ where: { id: c.id }, data: { superagentOption: option } });
+    }
 
-    if (!c.vapiAssistantId) {
+    /* Les trois gestes (écrire, vider le cache, resynchroniser) vivent dans
+       `applyVoiceTier`, partagé avec le portail. Écrits deux fois, ils
+       divergeraient, et l'oubli du troisième est le mode d'échec que ce dépôt a
+       payé sept fois.
+       Sans `--tier`, on repasse le niveau COURANT: accorder l'option seule
+       change quand même ce que l'assistant distant doit porter, puisque le
+       droit borne le niveau. */
+    const cfg = ((c.vapiConfig as any) || {}) as Record<string, unknown>;
+    const next = raw ? tier : readTierId(cfg.voiceTier);
+    const result = await applyVoiceTier(c.id, next);
+
+    if (result.builtAtCallTime) {
       /* Pas d'assistant distant: sur une ligne partagée l'assistant est bâti à
          l'appel, donc le niveau prend effet tout seul. Le dire plutôt que de
          laisser croire à un oubli. */
       console.log(`  ÉCRIT   ${c.businessName} (pas d'assistant distant: bâti à l'appel)`);
       ok++;
-      continue;
-    }
-
-    try {
-      await onboardingService.syncVapiAssistant(c.id);
+    } else if (result.synced) {
       console.log(`  OK      ${c.businessName}`);
       ok++;
-    } catch (error) {
-      const failure = classifyVapiError(error);
+    } else {
       console.log(`  ÉCHEC   ${c.businessName}`);
-      console.log(`          ${failure.kind === 'rejected' ? 'REFUSÉ' : 'incident passager'}` +
-        `${failure.status ? ` (HTTP ${failure.status})` : ''}`);
-      console.log(`          ${failure.detail}`);
+      console.log(`          ${result.syncError}`);
       echecs.push(c.businessName);
     }
   }

@@ -7,7 +7,7 @@ import { useAuthStore } from '../../../stores/authStore';
 import api from '../../../services/api';
 import { captureBillingPeriod, clearBillingPeriod, readBillingPeriod } from '../../../lib/billingPeriod';
 import type { BillingPeriod } from '../../../lib/billingPeriod';
-import { annualTotalEur, annualMonthlyEquivalentEur } from '../../../lib/pricing';
+import { annualTotalEur, annualMonthlyEquivalentEur, superagentOptionPriceEur } from '../../../lib/pricing';
 import AuthShell, { AUTH_ALERT, AUTH_FIELD, AUTH_LABEL, AUTH_SUBMIT } from './AuthShell';
 
 /**
@@ -49,8 +49,16 @@ export default function Subscribe() {
      facturer douze mois d'un coup — le même écart entre l'annoncé et le
      prélevé que la caisse a produit le 09/09. */
   const [billing, setBilling] = useState<BillingPeriod>('monthly');
+  /* L'option Superagent, cochée à l'achat. Le « activable à l'achat » du
+     besoin: elle entre dans la MÊME caisse, donc le même abonnement et la même
+     facture, plutôt que dans un second passage que personne ne fait. */
+  const [wantSuperagent, setWantSuperagent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  /* `null` sur un forfait qui l'inclut déjà: la case disparaît alors, elle ne
+     se grise pas. Une case cochable sans effet est pire qu'une case absente. */
+  const optionPrice = superagentOptionPriceEur(selectedPlan, billing);
 
   /* On peut aussi atterrir directement ici depuis un lien tarifaire. La
      capture d'abord, la lecture ensuite: l'ordre décide si `?billing=annual`
@@ -85,6 +93,10 @@ export default function Subscribe() {
         /* La langue du site à la caisse: c'est elle que l'agent parlera au
            premier appel. Le client peut la changer ensuite dans Paramètres. */
         language: lang,
+        /* Jamais sur un forfait qui l'inclut: `optionPrice` est alors `null` et
+           la case n'existe pas, mais un changement de forfait après avoir coché
+           laisserait l'état à vrai sans que l'écran ne le montre. */
+        superagent: optionPrice !== null && wantSuperagent,
       });
       if (data?.checkoutUrl) {
         /* Le choix a servi: le laisser traîner ferait basculer en annuel une
@@ -254,6 +266,47 @@ export default function Subscribe() {
           </button>
         ))}
       </div>
+
+      {/* ── L'option Superagent, à l'achat ───────────────────────────────────
+          Elle n'apparaît que là où elle se VEND: Pro et Enterprise l'incluent,
+          et la proposer là ferait payer deux fois la même chose. Le backend
+          refait le contrôle et retire la ligne de la caisse si le forfait
+          l'inclut, donc cocher ici ne peut jamais produire un double
+          prélèvement, seulement un écran qui aurait menti. */}
+      {optionPrice !== null && (
+        <button
+          type="button"
+          onClick={() => setWantSuperagent(v => !v)}
+          aria-pressed={wantSuperagent}
+          className={`w-full mt-3 flex items-start gap-3 sm:gap-4 p-4 sm:p-5 rounded-[20px] border text-left transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 ${
+            wantSuperagent ? 'border-q2-indigo bg-q2-band' : 'border-q2-plate bg-q2-canvas hover:border-q2-faint'
+          }`}
+        >
+          <span className={`mt-1 w-5 h-5 rounded-[6px] border flex items-center justify-center flex-shrink-0 ${
+            wantSuperagent ? 'border-q2-indigo bg-q2-indigo' : 'border-q2-plate'
+          }`}>
+            {wantSuperagent && <Check size={12} className="text-white" />}
+          </span>
+
+          <span className="flex-1 min-w-0">
+            <span className="block text-base font-medium text-q2-ink">
+              {isFr ? 'Ajouter le Superagent' : 'Add Superagent'}
+            </span>
+            <span className="block text-sm text-q2-body mt-0.5 leading-relaxed">
+              {isFr
+                ? "La voix passe en temps réel: votre réceptionniste entend et répond sans passer par une transcription. Les silences sont plus courts."
+                : 'Real-time voice: your receptionist hears and answers without a transcription step. Shorter silences.'}
+            </span>
+          </span>
+
+          <span className="flex-shrink-0 text-right leading-tight whitespace-nowrap">
+            <span className="text-lg font-light text-q2-ink tabular-nums">+{optionPrice}&nbsp;€</span>
+            <span className="text-sm text-q2-body">
+              {billing === 'annual' ? (isFr ? '/an' : '/yr') : (isFr ? '/mois' : '/mo')}
+            </span>
+          </span>
+        </button>
+      )}
 
       <button
         type="button"

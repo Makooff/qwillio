@@ -1260,7 +1260,8 @@ qui n'y a pas droit plutôt que d'écrire un réglage sans effet.
 Reste à faire, et qui demande une décision : la caisse Stripe qui vend l'option
 à l'inscription. Le supplément à la minute existe déjà ; le forfait mensuel
 équivalent serait +20 €/mois sur Solo et +40 € sur Starter, et il n'est tenable
-que parce que le surcoût par minute est petit.
+que parce que le surcoût par minute est petit. **Tranché le 16/09 : c'est le
+forfait mensuel, voir 6septquadragesies.**
 
 ### 6sexquadragesies. La phrase d'attente disait que c'était fait (16/09/2026)
 Deux appels réels, et le relevé renverse l'hypothèse de départ. **La latence va
@@ -1332,6 +1333,103 @@ trois chiffres ne cherche pas un numéro. Pendant une recherche, les flèches
 de mois et le sélecteur de vue disparaissent au lieu de rester inertes, et le
 compte est dit UNE fois (sous le titre), la carte vide expliquant seulement
 ce qui a été cherché.
+
+### 6septquadragesies. L'option se vend au FORFAIT, et le droit se lit là où il est facturé (16/09/2026)
+Décision prise : le supplément à la minute reste à zéro, l'option Superagent se
+vend **+20 €/mois sur Solo et +40 € sur Starter** (`config/superagent-option.ts`,
+avec l'équivalent annuel à la même remise de 20 % que les forfaits). Les deux
+montants sont ceux que `flatOptionPriceEur` donne pour
+`gpt-realtime-mini-2025-12-15` ; ils restent des LITTÉRAUX, parce qu'un prix
+public calculé à la volée change tout seul le jour où un tarif fournisseur
+bouge, donc reprécise un abonnement en cours sans que personne l'ait décidé. Un
+test vérifie que le littéral vaut le calcul : il ne peut pas dériver de
+l'arithmétique qui l'a produit.
+**Le mode d'échec qui coûtait le plus cher, et qui est fermé aux DEUX bouts** :
+le forfait de l'option et le supplément à la minute se seraient retrouvés côte à
+côte sur la même facture. `reportRealtimeSurcharge` sautait déjà un forfait qui
+INCLUT le Superagent ; il saute désormais aussi un client qui paie l'option. Ce
+n'est pas un défaut d'affichage, c'est deux fois le même montant sur une vraie
+carte, invisible jusqu'au relevé (6duodecies, depuis l'autre bout).
+**Une SECONDE LIGNE, jamais un second abonnement** : la ligne s'ajoute à
+l'abonnement en cours, Stripe calcule le prorata, la date de renouvellement ne
+bouge pas. Un second abonnement produirait une seconde facture et une seconde
+résiliation à ne pas oublier, c'est-à-dire le montage exact de 6undecies.
+Corollaire non devinable : **Stripe refuse un abonnement dont les lignes n'ont
+pas le même intervalle**, donc l'option porte un prix ANNUEL pour les clients
+annuels, et la période se lit sur l'abonnement (`subscriptionPeriod`), jamais
+sur `vapiConfig.billingPeriod` — c'est Stripe qui fait échouer l'appel, donc
+c'est Stripe qui tranche.
+**La règle qui sort du lot** : un droit facturé se lit là où il est FACTURÉ.
+`superagentOption` est écrit par `customer.subscription.updated` depuis les
+lignes réellement portées par l'abonnement, donc trois chemins convergent sans
+être écrits trois fois (case à l'inscription, bouton de Facturation, ligne
+ajoutée à la main dans le tableau de bord Stripe). C'est aussi ce qui referme la
+porte de sortie : une option annulée ou emportée par un impayé coupe le droit au
+prochain appel, au lieu de laisser tourner un moteur que plus personne ne paie.
+La métadonnée de caisse dit ce que la caisse PORTE (`optionItems.length`), pas
+ce qui a été demandé : une option demandée mais refusée à la construction
+accorderait sinon un moteur servi gratuitement, pour toujours.
+Quatre autres endroits perdaient l'option en silence, tous corrigés : le
+changement de forfait en ligne (`reconcileSuperagentOptionForPlan` la RETIRE en
+montant vers Pro, qui l'inclut, et la REPRICE entre Solo et Starter, qui n'ont
+pas les mêmes minutes incluses), la caisse de changement de forfait (nouvel
+abonnement, donc l'option se reporte), la conversion d'essai (abonnement créé de
+zéro), et le niveau : acheter l'option pose `voiceTier: 'superagent'`, sans quoi
+le client paie et n'entend aucune différence.
+**Ce qui INTERDIT la vente, et qui est vrai aujourd'hui** : `optionViability`
+refuse d'ouvrir la vente quand le modèle rendrait le forfait déficitaire
+(`gpt-realtime-2` : 139 € de coût pour une option vendue 20 € sur Solo) **ou
+quand son tarif n'a jamais été relevé**, ce qui est le cas du défaut
+`gpt-realtime-2025-08-28`. La vente est donc FERMÉE tant que
+`VOICE_REALTIME_MODEL` n'est pas posé sur `gpt-realtime-mini-2025-12-15`. C'est
+6quinvicies appliqué à l'argent : une valeur supposée qui a l'air d'une lecture
+coûte plus cher que pas de valeur. `npm run voice:pricing` affiche le verdict.
+Dernier point, de méthode : `applyVoiceTier` (`services/voice/apply-voice-tier.ts`)
+porte les trois gestes (écrire, vider le cache, resynchroniser), partagés par le
+script et par le portail. Ils étaient écrits à la main dans `set-voice-tier.ts`,
+seul chemin qui savait les faire ; la vente en a ouvert un second, et deux
+copies d'une même règle divergent en moins d'un mois (6vicies).
+
+### 6octoquadragesies. Une date écrite par un MODÈLE ne se pose pas en base (16/09/2026)
+Relevé au docteur sur un compte réel, et ça renverse le diagnostic de
+6sexquadragesies. La réservation la plus récemment CRÉÉE portait `2023-09-18`
+alors que la conversation parlait du vendredi 18 septembre 2026. Trois ans dans
+le passé, et personne ne l'avait vu, parce qu'une réservation passée ne fait
+rien de visible : le calendrier du portail charge un MOIS, `lookupBooking` et
+`rescheduleBooking` ne lisent que les rendez-vous À VENIR
+(`bookingDate: { gte: now }`), et le gérant ne la voit donc jamais.
+**C'est la vraie cause de la boucle des neuf appels.** L'appelant demandait à
+déplacer un rendez-vous qu'il AVAIT, sous le bon nom et le bon numéro, et
+l'agent répondait « AUCUNE RESERVATION trouvee » à chaque fois. Le correctif de
+6sexquadragesies borne la boucle au deuxième échec ; il ne rend pas la ligne
+lisible. Un symptôme corrigé n'est pas une cause corrigée.
+**D'où vient l'année** : de nulle part. `analyzeClientCallTranscript` ne disait
+pas au modèle quel jour on était, et lui demandait `bookingDate` en « ISO
+string ». Le transcript dit « vendredi 18 septembre », jamais l'année. C'est
+6novovicies (« L'agent ne connaissait pas la date ») posé sur les trois prompts
+de l'agent et **oublié sur le modèle d'ANALYSE** : la même règle appliquée à un
+chemin et pas à l'autre, encore.
+**Ce que le code en faisait** : `new Date(analysis.bookingDate)` à DEUX endroits
+(`ClientCall.bookingDate` et la réservation de rattrapage), sans `parseDate`,
+sans borne de date passée, sans vérification de forme. `new Date` accepte des
+écritures dont le résultat dépend du moteur, et glisse au 3 mars sur un
+`2026-02-31` sans rien dire.
+`utils/analysis-date.ts` est la seule lecture : format `YYYY-MM-DD` exigé, jour
+inexistant écarté en relisant la date, date passée REFUSÉE, stockage à midi UTC
+(un jour posé à minuit se relit la veille depuis l'Oregon). La consigne
+d'analyse porte désormais la date du jour dans le fuseau de l'ENTREPRISE
+(`todayIso(businessTimezone(client))`) et interdit de deviner une année.
+**La règle : refuser, jamais corriger.** Remplacer 2023 par 2026 fabriquerait un
+rendez-vous que personne n'a dit, c'est-à-dire 6quinvicies appliqué aux dates.
+Le refus est donc BRUYANT (journal + alerte Discord) : un appelant qui voulait
+un rendez-vous et n'a aucune ligne en base est quelque chose que le gérant doit
+apprendre, pas une ligne de journal. Écrire une date fausse était pire que ne
+rien écrire, parce que ça fabriquait un rendez-vous fantôme.
+`voice:doctor` signale désormais « DATE ABERRANTE » quand un rendez-vous est
+daté AVANT sa propre création : c'est le seul endroit où une telle ligne se
+voit, l'autre étant un appelant qui se présente un jour où on ne l'attend pas.
+Un test de source interdit `new Date(analysis.bookingDate)`, et la forme fautive
+a été réintroduite une fois pour vérifier qu'il tombe.
 
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
