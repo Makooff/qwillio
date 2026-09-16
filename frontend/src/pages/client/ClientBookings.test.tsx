@@ -185,6 +185,41 @@ describe('ClientBookings, le calendrier', () => {
     expect(box.className).not.toMatch(/7349fe/);
   });
 
+  it("le mauve venait de la feuille GLOBALE: la classe qui le neutralise reste là", async () => {
+    /* Ce test existe parce que le précédent PASSAIT pendant que le champ
+       s'entourait de mauve au clic. La bordure avait bien été dépouillée de
+       `7349fe`; la couleur venait d'ailleurs, de `globals.css`:
+
+         input:focus-visible { outline: 2px solid var(--q-accent-hi) }
+
+       plus spécifique que l'utilitaire `outline-none`, donc gagnante. Le
+       commentaire posé au-dessus de cette règle dit que la souris ne déclenche
+       pas `:focus-visible`: vrai d'un bouton, FAUX d'un champ de saisie, auquel
+       le navigateur le fait toujours correspondre puisqu'il attend des touches.
+       `focus-visible:outline-none` reprend la main sur ce champ SEULEMENT:
+       l'anneau clavier du reste de l'application reste en place, et le focus
+       reste vu ici par la bordure et le fond.
+
+       La règle globale elle-même ne se lit pas depuis un test: vitest rend une
+       chaîne vide pour un import CSS, même en `?raw`. C'est donc la classe du
+       champ qu'on gèle, et c'est elle qui doit survivre. */
+    mount();
+    const box = await screen.findByRole('searchbox', { name: /Rechercher un rendez-vous/ });
+    expect(box.className).toContain('focus-visible:outline-none');
+  });
+
+  it('le champ fait la largeur du cadre, et le sélecteur de vue en touche le bord droit', async () => {
+    /* jsdom ne mesure aucune largeur: ce sont les classes qui portent la
+       règle, et ce sont elles qu'on gèle. Le champ ne partage plus sa ligne
+       (`w-full` sur sa propre rangée, plus de `flex-1` qui lui laissait ce
+       qui restait), et le sélecteur est poussé au bord par `ml-auto`. */
+    mount();
+    const box = await screen.findByRole('searchbox', { name: /Rechercher un rendez-vous/ });
+    expect(box.className).toContain('w-full');
+    expect(box.parentElement!.className).not.toMatch(/flex-1/);
+    expect(screen.getByRole('group', { name: 'Affichage' }).className).toContain('ml-auto');
+  });
+
   it('la vue liste montre tout le mois, groupé par jour', async () => {
     mount();
     await screen.findByText('Septembre 2026');
