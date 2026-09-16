@@ -29,9 +29,9 @@ const good = (): CallFacts => ({
   callerLines: 7,
   vapiGapsSeconds: [1.4, 1.6, 1.2, 1.9],
   tools: [
-    { name: 'checkAvailability', args: { date: '2026-09-18' }, result: 'CRENEAUX: 09:00, 10:00', tookSeconds: 0.6 },
-    { name: 'bookAppointment', args: { customerName: 'Jean-Luc de la Forge', date: '2026-09-18', time: '10:00' }, result: 'RESERVE: Jean-Luc de la Forge, le vendredi 18 septembre a 10:00.', tookSeconds: 0.4 },
-    { name: 'captureLead', args: { name: 'Jean-Luc de la Forge' }, result: 'ok', tookSeconds: 0.2 },
+    { name: 'checkAvailability', args: { date: '2026-09-18' }, result: 'CRENEAUX: 09:00, 10:00', tookSeconds: 0.6, atSeconds: 12 },
+    { name: 'bookAppointment', args: { customerName: 'Jean-Luc de la Forge', date: '2026-09-18', time: '10:00' }, result: 'RESERVE: Jean-Luc de la Forge, le vendredi 18 septembre a 10:00.', tookSeconds: 0.4, atSeconds: 40 },
+    { name: 'captureLead', args: { name: 'Jean-Luc de la Forge' }, result: 'ok', tookSeconds: 0.2, atSeconds: 60 },
   ],
   realtime: {
     models: { 'gpt-4.1-mini-2025-04-14': 6 },
@@ -306,9 +306,12 @@ describe('readVapiMessages', () => {
     expect(read.assistantLines).toBe(2);
     expect(read.callerLines).toBe(1);
     expect(read.vapiGapsSeconds).toEqual([3]);
-    expect(read.tools[0]).toEqual({ name: 'checkAvailability', args: { date: '2026-09-18' }, result: 'CRENEAUX: 09:00', tookSeconds: 0.8 });
+    /* `atSeconds`: quand l'outil a tourné, pas seulement combien de temps. Le
+       premier outil d'un appel est lent sur trois relevés d'affilée, et une
+       moyenne par nom ne peut pas montrer ça. */
+    expect(read.tools[0]).toEqual({ name: 'checkAvailability', args: { date: '2026-09-18' }, result: 'CRENEAUX: 09:00', tookSeconds: 0.8, atSeconds: 6 });
     /* Un outil sans réponse (appel coupé) compte, sans durée. */
-    expect(read.tools[1]).toEqual({ name: 'bookAppointment', args: { customerName: 'X' }, result: null, tookSeconds: null });
+    expect(read.tools[1]).toEqual({ name: 'bookAppointment', args: { customerName: 'X' }, result: null, tookSeconds: null, atSeconds: 12 });
   });
 });
 
@@ -336,6 +339,48 @@ describe("auditCall — ce qui n'est PAS un défaut", () => {
     /* Quatre répliques sur cinq n'ont aucune fin de phrase au-delà de 60
        caractères: elles partent en un seul morceau, par construction. */
     expect(chunkableReplies(repliquesDuSoir, 60)).toBe(1);
+  });
+
+  it("une réplique écrite en 300 ms ne peut pas juger la découpe", () => {
+    /* Cinquième passage de la même ligne, et le premier qui conclut que la
+       question ne se pose pas ainsi: le verdict compare notre horloge locale
+       (dernier jeton) à l'ARRIVÉE d'un webhook de Vapi. Pour une réplique
+       écrite en trois cents millisecondes, le trajet du webhook suffit seul à
+       faire conclure « bufferisé », quoi que fasse le chunkPlan. */
+    const f = good();
+    f.realtime!.latency.streaming = { streamed: 0, buffered: 4 };
+    f.realtime!.latency.ttfa = { count: 8, median: 342, p95: 3732, max: 3732 };
+    f.realtime!.latency.tts = { count: 4, median: 40, p95: 60, max: 60 };
+    const c = auditCall(f).checks.find(x => x.id === 'streamed')!;
+    expect(c.status).toBe('ok');
+    expect(c.value).toMatch(/sans objet/);
+    expect(c.value).toMatch(/WEBHOOK/);
+    expect(c.lever).toBeUndefined();
+  });
+
+  it("le TOTAL ne double PAS le délai que l'horloge de Vapi mesure déjà", () => {
+    /* Relevé du 16/09 à 23:28: 3 867 ms chez nous, 2 500 ms chez Vapi, pour le
+       MÊME intervalle. Deux rouges pour un seul fait, et le poids donné à la
+       mesure la plus indirecte. */
+    const f = good();
+    f.realtime!.latency.total = { count: 3, median: 3867, p95: 5809, max: 5809 };
+    f.vapiGapsSeconds = [2.4, 2.5, 2.7];
+    const report = auditCall(f);
+    const t = report.checks.find(x => x.id === 'total')!;
+    expect(t.status).toBe('ok');
+    expect(t.value).toMatch(/horloge de Vapi.*fait foi/);
+    expect(t.target).toBeUndefined();
+    /* Et c'est bien la ligne de Vapi qui porte le verdict. */
+    expect(report.checks.find(x => x.id === 'vapi-gap')!.status).not.toBe('ok');
+  });
+
+  it("sans horloge de Vapi, notre TOTAL redevient le juge", () => {
+    const f = good();
+    f.realtime!.latency.total = { count: 3, median: 3867, p95: 5809, max: 5809 };
+    f.vapiGapsSeconds = [];
+    const t = auditCall(f).checks.find(x => x.id === 'total')!;
+    expect(t.status).toBe('fail');
+    expect(t.target).toMatch(/2000 ms/);
   });
 
   it("un TTFA que l'horloge de Vapi rend impossible n'est pas une latence", () => {
@@ -384,8 +429,14 @@ describe("auditCall — ce qui n'est PAS un défaut", () => {
       "Votre rendez-vous est bien avancé au vendredi 18 septembre à 9 heures. Un SMS de confirmation part tout de suite.",
     ];
     f.realtime!.latency.streaming = { streamed: 0, buffered: 6 };
-    f.realtime!.latency.ttfa = { count: 6, median: 394, p95: 600, max: 600 };
-    f.realtime!.latency.tts = { count: 6, median: 300, p95: 450, max: 450 };
+    /* Écriture longue (4 000 - 2 500 = 1 500 ms), donc le verdict est
+       DÉCIDABLE: ce n'est pas le trajet du webhook qui décide. Et la synthèse
+       porte plus de la moitié du TTFA, donc découper plus tôt n'avance rien. */
+    f.realtime!.latency.ttfa = { count: 6, median: 4000, p95: 4200, max: 4200 };
+    f.realtime!.latency.tts = { count: 6, median: 2500, p95: 2700, max: 2700 };
+    /* Le délai ressenti doit pouvoir CONTENIR ce TTFA, sinon l'invariant le
+       déclare inutilisable avant d'en arriver là. */
+    f.vapiGapsSeconds = [4.4, 4.8, 5.2];
     const c = auditCall(f).checks.find(x => x.id === 'streamed')!;
     expect(c.status).toBe('ok');
     expect(c.value).toMatch(/sans objet/);
@@ -402,8 +453,11 @@ describe("auditCall — ce qui n'est PAS un défaut", () => {
       "Votre rendez-vous est bien avancé au vendredi 18 septembre à 9 heures. Un SMS de confirmation part tout de suite.",
     ];
     f.realtime!.latency.streaming = { streamed: 0, buffered: 6 };
-    f.realtime!.latency.ttfa = { count: 6, median: 394, p95: 600, max: 600 };
-    f.realtime!.latency.tts = { count: 6, median: 40, p95: 60, max: 60 };
+    /* 3 000 - 200 = 2 800 ms d'écriture: largement au-dessus du trajet d'un
+       webhook, donc le « bufferisé » ne s'explique plus par le réseau. */
+    f.realtime!.latency.ttfa = { count: 6, median: 3000, p95: 3200, max: 3200 };
+    f.realtime!.latency.tts = { count: 6, median: 200, p95: 260, max: 260 };
+    f.vapiGapsSeconds = [3.4, 3.8, 4.1];
     const c = auditCall(f).checks.find(x => x.id === 'streamed')!;
     expect(c.status).toBe('fail');
     expect(c.lever).toMatch(/chunkPlan/);

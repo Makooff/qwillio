@@ -1637,6 +1637,46 @@ de réservation que personne n'a écrite: c'est la granularité de NOS créneaux
 transformée en politique de l'entreprise, même famille que la fermeture
 inventée, pas encore corrigée.
 
+### 6quaterquinquagesies. Une mesure qu'aucune source ne peut trancher ne se note pas (16/09/2026, 23:28)
+Appel de contrôle après 6terquinquagesies, et le correctif tient: **TTFA 342 ms**
+au lieu de 20 175 ms, TOTAL revenu, déplacement propre, aucune règle inventée.
+Restaient deux lignes rouges, et les deux étaient des défauts de l'audit.
+**« Son parti avant la fin du texte », cinquième passage.** Trois plafonds lui
+avaient déjà été posés et elle revenait rouge, avec un dénominateur différent
+à chaque fois (1/5, 0/6, 0/4). La raison est plus profonde qu'un plafond: ce
+verdict compare notre horloge LOCALE (le dernier jeton, connu à la
+milliseconde) à l'**arrivée d'un webhook** de Vapi (« l'assistant parle »), qui
+traverse le réseau et sa file. Pour une réplique écrite en trois cents
+millisecondes, ce trajet suffit à lui seul à faire conclure « bufferisé », quoi
+que fasse le `chunkPlan`. **Le verdict n'est pas faux, il est INDÉCIDABLE**, et
+aucune source ne le tranchera: personne ne dit quand la voix a commencé par
+rapport à nos jetons. La ligne ne se note donc plus que sur des complétions
+d'au moins 1,5 s (`ttfa - tts`, la durée d'écriture), où le trajet du webhook
+ne peut plus expliquer le résultat. Un vrai défaut de découpe sur une réponse
+longue reste ROUGE, un test pour chacun.
+**La règle qui manquait aux quatre précédentes**: avant de chercher le plafond
+contre lequel noter un ratio, demander si la mesure PEUT répondre à la question
+qu'on lui pose. Ici elle ne peut pas, et quatre correctifs successifs l'ont
+raffinée sans jamais poser cette question-là.
+**Second défaut, un double compte.** `TOTAL` et « délai ressenti » mesurent le
+MÊME intervalle, la fin de parole de l'appelant jusqu'à la réponse; seule
+l'horloge diffère. La nôtre borne deux ARRIVÉES de webhook, celle de Vapi lit
+son propre pipeline audio. Le relevé: 3 867 ms chez nous, 2 500 ms chez Vapi,
+pour le même appel. Les noter tous les deux en rouge, c'est compter deux fois
+un seul fait et donner à la mesure la plus indirecte le même poids qu'à celle
+qui touche le phénomène. Quand la ligne de Vapi existe, la nôtre l'accompagne
+sans la juger; sans elle, la nôtre redevient le juge.
+**Ce qui reste, et qui est le seul coût réel**: le PREMIER outil de l'appel
+coûte 2,5 s sur TROIS relevés d'affilée (`lookupBooking`), les suivants moins
+(`checkAvailability` 1,6 s, `rescheduleBooking` 2,2 s), alors que c'est lui qui
+fait le moins de choses — un `findMany` indexé sur 300 lignes au plus. Une
+moyenne par nom d'outil ne peut pas montrer « le premier paie un réveil », donc
+chaque outil porte désormais **quand** il a tourné (`atSeconds`). Hypothèse à
+vérifier au prochain relevé, PAS à corriger en devinant: instance Render
+réveillée entre deux appels de test, ou premier accès Prisma/Neon du processus.
+Si le premier outil est lent et les suivants rapides DANS le même appel, c'est
+un réveil; s'ils sont tous lents, c'est la requête.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).
