@@ -390,30 +390,36 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
 
   return (
     <main className="max-w-[1600px] space-y-6">
-      <header className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-[22px] font-semibold tracking-tight text-white/90">Rendez-vous</h1>
-          <p className="mt-1 text-[12.5px] text-white/50" aria-live="polite">{subtitle}</p>
-        </div>
-        <div className="flex flex-wrap items-center gap-2">
-          <div className="relative">
-            <Search size={14} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-white/40" aria-hidden="true" />
+      <header>
+        <h1 className="text-[22px] font-semibold tracking-tight text-white/90">Rendez-vous</h1>
+        <p className="mt-1 text-[12.5px] text-white/50" aria-live="polite">{subtitle}</p>
+      </header>
+
+      {/* La barre d'outils vit AU-DESSUS du calendrier, pas à côté du titre:
+          la recherche porte la largeur de l'agenda (elle prend ce qui reste),
+          le mois et la vue se rangent à droite, au-dessus du panneau. */}
+      <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+          <div className="relative min-w-[240px] flex-1">
+            <Search size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" aria-hidden="true" />
             <input
               type="search"
               value={query}
               onChange={e => setQuery(e.target.value)}
               placeholder="Client, sujet ou numéro"
               aria-label="Rechercher un rendez-vous par client, sujet ou numéro"
-              className="h-9 w-[230px] rounded-full border border-white/[0.08] bg-white/[0.03] pl-9 pr-8 text-[12.5px] text-white placeholder:text-white/35 outline-none focus:border-[#7349fe]/50 focus:bg-white/[0.05] transition-colors"
+              /* Pas d'anneau mauve au clic: la barre fait toute la largeur, un
+                 contour de couleur sur cette longueur tire l'œil hors du
+                 calendrier, qui est ce qu'on vient lire. */
+              className="h-10 w-full rounded-full border border-white/[0.08] bg-white/[0.03] pl-10 pr-9 text-[13px] text-white placeholder:text-white/35 outline-none focus:border-white/[0.16] focus:bg-white/[0.05] transition-colors"
             />
             {query && (
               <button
                 type="button"
                 onClick={() => setQuery('')}
                 aria-label="Effacer la recherche"
-                className="absolute right-2 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-full text-white/45 hover:bg-white/[0.08] hover:text-white active:scale-[0.97] transition-colors"
+                className="absolute right-2.5 top-1/2 flex size-6 -translate-y-1/2 items-center justify-center rounded-full text-white/45 hover:bg-white/[0.08] hover:text-white active:scale-[0.97] transition-colors"
               >
-                <X size={11} aria-hidden="true" />
+                <X size={12} aria-hidden="true" />
               </button>
             )}
           </div>
@@ -421,12 +427,12 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
               traverse les mois: des boutons inertes valent moins que rien. */}
           {!searchMode && <>
           <div className="flex items-center rounded-full border border-white/[0.08] bg-white/[0.03]">
-            <button type="button" onClick={() => goMonth(-1)} aria-label="Mois précédent" className="flex h-9 w-9 items-center justify-center rounded-full text-white/70 hover:text-white active:scale-[0.97] transition-colors"><ChevronLeft size={15} /></button>
+            <button type="button" onClick={() => goMonth(-1)} aria-label="Mois précédent" className="flex h-10 w-10 items-center justify-center rounded-full text-white/70 hover:text-white active:scale-[0.97] transition-colors"><ChevronLeft size={15} /></button>
             <span className="min-w-[132px] text-center text-[13px] font-medium text-[#F5F5F7]" aria-live="polite">{monthLabel(month)}</span>
-            <button type="button" onClick={() => goMonth(1)} aria-label="Mois suivant" className="flex h-9 w-9 items-center justify-center rounded-full text-white/70 hover:text-white active:scale-[0.97] transition-colors"><ChevronRight size={15} /></button>
+            <button type="button" onClick={() => goMonth(1)} aria-label="Mois suivant" className="flex h-10 w-10 items-center justify-center rounded-full text-white/70 hover:text-white active:scale-[0.97] transition-colors"><ChevronRight size={15} /></button>
           </div>
-          <button type="button" onClick={goToday} className="h-9 rounded-full bg-white/[0.06] px-3.5 text-[12.5px] text-white hover:bg-white/[0.1] active:scale-[0.97] transition-colors">Aujourd’hui</button>
-          <div role="group" aria-label="Affichage" className="relative flex h-9 items-center rounded-full border border-white/[0.08] bg-white/[0.03] p-1">
+          <button type="button" onClick={goToday} className="h-10 rounded-full bg-white/[0.06] px-4 text-[12.5px] text-white hover:bg-white/[0.1] active:scale-[0.97] transition-colors">Aujourd’hui</button>
+          <div role="group" aria-label="Affichage" className="relative flex h-10 items-center rounded-full border border-white/[0.08] bg-white/[0.03] p-1">
             {(['grid', 'list'] as const).map(v => {
               const Icon = v === 'grid' ? Calendar : List;
               const active = view === v;
@@ -437,7 +443,7 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
                   onClick={() => setView(v)}
                   aria-pressed={active}
                   aria-label={v === 'grid' ? 'Vue calendrier' : 'Vue liste'}
-                  className={`relative z-[1] flex h-7 w-8 items-center justify-center rounded-full transition-colors ${active ? 'text-[#0E0F11]' : 'text-white/60 hover:text-white'}`}
+                  className={`relative z-[1] flex h-8 w-9 items-center justify-center rounded-full transition-colors ${active ? 'text-[#0E0F11]' : 'text-white/60 hover:text-white'}`}
                 >
                   {active && <motion.span layoutId={reduced ? undefined : 'view-pill'} className="absolute inset-0 rounded-full bg-white" transition={{ duration: 0.22, ease: EASE }} aria-hidden="true" />}
                   <Icon size={14} className="relative" aria-hidden="true" />
@@ -446,8 +452,7 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
             })}
           </div>
           </>}
-        </div>
-      </header>
+      </div>
 
       {error && (
         <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] px-5 py-4">
