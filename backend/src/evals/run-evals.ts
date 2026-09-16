@@ -85,21 +85,54 @@ function openAiTools(profile: ReturnType<typeof profileFor>) {
   return functions;
 }
 
+/** Combien de fois un refus de DÉBIT (429) est réessayé avant d'être rendu. */
+const EVAL_RATE_LIMIT_RETRIES = 2;
+
+/**
+ * Le délai qu'OpenAI DONNE dans son refus, en millisecondes.
+ *
+ * Le corps d'un 429 de débit porte « Please try again in 1.454s » (ou
+ * « in 792ms »): c'est le fournisseur qui dit quand la fenêtre se rouvre, et
+ * c'est plus juste qu'une attente choisie ici. Rien de lisible: une seconde,
+ * assez pour traverser une fenêtre de jetons par minute déjà presque vide.
+ */
+export function retryDelayMs(body: string): number {
+  const seconds = body.match(/try again in ([\d.]+)s/i);
+  if (seconds) return Math.min(Math.ceil(parseFloat(seconds[1]) * 1000) + 250, 10_000);
+  const millis = body.match(/try again in (\d+)ms/i);
+  if (millis) return Math.min(parseInt(millis[1], 10) + 250, 10_000);
+  return 1_000;
+}
+
+const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
 async function askModel(messages: ChatMessage[], tools: unknown[]): Promise<ModelAnswer> {
-  const response = await fetch('https://api.openai.com/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${env.OPENAI_API_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: process.env.EVAL_MODEL || env.VAPI_MODEL,
-      temperature: 0.3,
-      max_tokens: 200,
-      messages,
-      ...(tools.length ? { tools } : {}),
-    }),
-  });
+  /* Le DÉBIT n'est pas un verdict d'éval: les scénarios tournent déjà en
+     série, mais la limite est par ORGANISATION et par minute, donc une autre
+     CI qui joue les évals au même moment (la fusion de master et une PR, vu
+     le 16/09) fait tomber huit scénarios sur vingt sans qu'une seule
+     assertion ait parlé. On attend ce qu'OpenAI dit d'attendre, une fois. */
+  let response!: Response;
+  for (let attempt = 0; ; attempt++) {
+    response = await fetch('https://api.openai.com/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${env.OPENAI_API_KEY}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: process.env.EVAL_MODEL || env.VAPI_MODEL,
+        temperature: 0.3,
+        max_tokens: 200,
+        messages,
+        ...(tools.length ? { tools } : {}),
+      }),
+    });
+    if (response.status !== 429 || attempt >= EVAL_RATE_LIMIT_RETRIES) break;
+    /* Le corps est lu ICI, donc consommé: il faut refaire la requête, ce que
+       la boucle fait, et ne jamais le relire plus bas. */
+    await sleep(retryDelayMs(await response.text().catch(() => '')));
+  }
   if (!response.ok) {
     throw new Error(`OpenAI responded ${response.status}: ${(await response.text()).slice(0, 300)}`);
   }

@@ -174,6 +174,17 @@ describe('ClientBookings, le calendrier', () => {
     expect(screen.getByRole('gridcell', { name: /Mardi 15 septembre, 2 rendez-vous/ })).toBeInTheDocument();
   });
 
+  it('la barre d\'outils est AU-DESSUS du calendrier, et le champ ne porte aucun anneau mauve', async () => {
+    mount();
+    const box = await screen.findByRole('searchbox', { name: /Rechercher un rendez-vous/ });
+    const grid = screen.getByRole('grid');
+    /* DOCUMENT_POSITION_FOLLOWING: la grille vient APRÈS le champ. */
+    expect(box.compareDocumentPosition(grid) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    /* Assertion de classe, à dessein: la couleur au focus ne se lit pas
+       autrement en jsdom, et c'est précisément ce qui a été demandé retiré. */
+    expect(box.className).not.toMatch(/7349fe/);
+  });
+
   it('la vue liste montre tout le mois, groupé par jour', async () => {
     mount();
     await screen.findByText('Septembre 2026');
