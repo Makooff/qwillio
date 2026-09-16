@@ -181,21 +181,51 @@ describe('auditCall — latence', () => {
     expect(auditCall(f).checks.find(c => c.id === 'cache')!.status).toBe('skip');
   });
 
-  it('un délai Vapi bien plus long que notre TOTAL désigne la détection de fin de tour', () => {
+  it('le délai ressenti se DÉCOUPE: ce qui est à nous, et la détection de fin de tour', () => {
+    /* Retour du 17/09/2026: « les outils longs ne me dérangent pas, ça fait
+       réaliste; ce qui me dérange, c'est qu'après ma phrase il attend une ou
+       deux secondes ». Ce délai n'est ni les outils ni le modèle: il est en
+       AMONT de notre serveur, et il n'apparaissait sur aucune ligne. */
     const f = good();
-    f.vapiGapsSeconds = [3.2, 3.5, 3.0];
-    const c = auditCall(f).checks.find(x => x.id === 'vapi-gap')!;
+    f.vapiGapsSeconds = [2.4, 2.5, 2.6];
+    f.realtime!.latency.prep = { count: 9, median: 1, p95: 300, max: 300 };
+    f.realtime!.latency.llm = { count: 9, median: 941, p95: 1500, max: 1500 };
+    f.realtime!.latency.ttfa = { count: 9, median: 342, p95: 800, max: 800 };
+    const c = auditCall(f).checks.find(x => x.id === 'turn-detect')!;
+    /* 2 500 - (1 + 941 + 342) = 1 216 ms passés à décider qu'on a fini. */
+    expect(c.value).toMatch(/1216 ms des 2500 ms/);
     expect(c.status).toBe('fail');
+    /* Les seuils posés (0,4 + 0,4 = 800 ms) plus la marge du transcripteur
+       expliquent ces 1 216 ms: le levier nomme donc le PLANCHER à baisser, et
+       dit lequel garder. */
+    expect(c.value).toMatch(/cohérent avec les seuils posés/);
     expect(c.lever).toMatch(/VOICE_START_WAIT_SECONDS/);
+    expect(c.lever).toMatch(/GARDER `VOICE_ENDPOINTING_PUNCTUATION_SECONDS`/);
   });
 
-  it('un délai Vapi expliqué par nos étages renvoie aux étages', () => {
+  it("un délai que les seuils n'expliquent pas ne renvoie PAS aux seuils", () => {
+    /* Sinon on baisse un plancher qui n'est pas la cause, et on coupe la
+       parole pour rien. */
     const f = good();
-    f.vapiGapsSeconds = [2.6, 2.4];
-    f.realtime!.latency.total = { count: 5, median: 2300, p95: 2600, max: 2600 };
-    const c = auditCall(f).checks.find(x => x.id === 'vapi-gap')!;
-    expect(c.status).toBe('warn');
-    expect(c.lever).toMatch(/PREP, LLM, TTFA/);
+    f.vapiGapsSeconds = [4.0, 4.2];
+    f.realtime!.latency.prep = { count: 9, median: 1, p95: 300, max: 300 };
+    f.realtime!.latency.llm = { count: 9, median: 900, p95: 1500, max: 1500 };
+    f.realtime!.latency.ttfa = { count: 9, median: 300, p95: 800, max: 800 };
+    const c = auditCall(f).checks.find(x => x.id === 'turn-detect')!;
+    expect(c.value).toMatch(/de PLUS que les seuils posés/);
+    expect(c.lever).toMatch(/NO_PUNCTUATION/);
+    expect(c.lever).not.toMatch(/VOICE_START_WAIT_SECONDS/);
+  });
+
+  it('une détection de fin de tour rapide ne propose aucun levier', () => {
+    const f = good();
+    f.vapiGapsSeconds = [1.2, 1.3];
+    f.realtime!.latency.prep = { count: 9, median: 1, p95: 50, max: 50 };
+    f.realtime!.latency.llm = { count: 9, median: 600, p95: 900, max: 900 };
+    f.realtime!.latency.ttfa = { count: 9, median: 300, p95: 400, max: 400 };
+    const c = auditCall(f).checks.find(x => x.id === 'turn-detect')!;
+    expect(c.status).toBe('ok');
+    expect(c.lever).toBeUndefined();
   });
 
   it('un agenda lent désigne la spéculation', () => {

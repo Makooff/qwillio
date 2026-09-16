@@ -1677,6 +1677,46 @@ réveillée entre deux appels de test, ou premier accès Prisma/Neon du processu
 Si le premier outil est lent et les suivants rapides DANS le même appel, c'est
 un réveil; s'ils sont tous lents, c'est la requête.
 
+### 6quinquinquagesies. Le délai qui dérange n'est ni les outils ni le modèle (17/09/2026)
+Retour du propriétaire, et il déplace la priorité: « les outils un peu longs ne
+me dérangent pas, ça rajoute du réalisme, comme s'il cherchait dans ses
+papiers. Ce qui me dérange, c'est qu'après ma phrase il attend une ou deux
+secondes avant de parler. » **Les outils sortent donc de la liste**, et le
+chantier devient le tour de parole.
+Ce que les chiffres disent, une fois les mesures réparées (6terquinquagesies,
+6quaterquinquagesies): l'horloge de Vapi mesure 2,5 s entre la fin de parole de
+l'appelant et la réponse; nos étages en couvrent 1,28 s (941 ms d'OpenAI,
+342 ms de synthèse, 1 ms chez nous). **Il reste ~1,2 s dépensée AVANT que la
+requête n'arrive chez nous**, et cette part n'apparaissait sur aucune ligne.
+C'est pourtant le plus gros poste: chercher les millisecondes dans PREP, LLM et
+TTFA, c'est les chercher là où elles ne sont pas.
+La ligne « détection de fin de tour » la nomme, et elle COMPARE la mesure à la
+somme des seuils réellement posés sur l'assistant distant. Si les seuils
+l'expliquent, le levier nomme le plancher à baisser; sinon il renvoie ailleurs,
+parce que baisser un seuil qui n'est pas la cause coupe la parole pour rien. La
+marge (600 ms, pour le transcripteur et le trajet vers l'Oregon) est
+ASYMÉTRIQUE à dessein: se tromper en disant « expliqué » fait gagner moins que
+prévu et se défait par une variable; se tromper dans l'autre sens envoie
+chercher la cause dans le mauvais réglage.
+**Ce qui compose ce 1,2 s, et ce qu'il ne faut PAS confondre.** Quatre seuils
+s'empilent: `VOICE_ENDPOINTING_MS` (150 ms, Deepgram), puis le
+`transcriptionEndpointingPlan` (0,4 s si le transcripteur a mis un point,
+**1,2 s sinon**, 1,0 s après un chiffre), puis `waitSeconds` (0,4 s), et enfin
+le modèle de fin de tour. Le seul qui ait été posé contre « il me coupe la
+parole » est `onPunctuationSeconds`, monté de 0,1 à 0,4 le 12/09 parce que le
+transcripteur met un point sur une RESPIRATION. `waitSeconds` a été monté le
+même jour pour une autre raison (« le défaut documenté de Vapi »), et c'est un
+PLANCHER posé au-dessus d'un détecteur intelligent qui, lui, sait déjà dire
+qu'une phrase est finie. C'est donc le premier à baisser, et le seul: garder
+`onPunctuationSeconds` à 0,4.
+Deux choses que la demande contient déjà et qui sont VRAIES aujourd'hui: le
+transcripteur écoute en continu pendant que l'appelant parle, et l'agent
+commence à parler avant d'avoir fini d'écrire sa phrase (`chunkPlan` émet dès
+la première fin de phrase, la synthèse démarre 342 ms après le premier jeton,
+bien avant la fin de la complétion). Le « vrai streaming » demandé existe des
+deux côtés; ce qui manque est en amont, dans la décision « il a fini de
+parler ».
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).
