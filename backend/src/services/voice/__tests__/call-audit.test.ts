@@ -664,3 +664,52 @@ describe('auditCall — un assistant basculé dont le PATCH a gardé le classiqu
     expect(niveau.lever).toBeUndefined();
   });
 });
+
+/**
+ * Le plan d'attente en parole-à-parole (17/09/2026).
+ *
+ * Premier appel sur un assistant Superagent PROPRE: la ligne « détecteur de fin
+ * de tour » a noté « aucun » en ROUGE contre « livekit, attente 0.15 s », et
+ * conseillé un resync. Or l'absence de plan est exactement ce que le mode
+ * demande. C'est le faux positif que le docteur venait de fermer, réouvert dans
+ * l'audit: quand une leçon déplace un champ, il y a souvent DEUX lecteurs.
+ */
+describe('auditCall — le plan d\'attente attendu dépend du niveau', () => {
+  const s2s = () => {
+    const f = good();
+    f.expected.tierRequested = 'superagent';
+    f.expected.tierServed = 'superagent';
+    f.remote.customLlm = false;
+    f.remote.speechToSpeech = true;
+    f.remote.transcriber = false;
+    f.remote.endpointing = null;
+    return f;
+  };
+
+  it('aucun plan est le bon état, pas un défaut', () => {
+    const ep = auditCall(s2s()).checks.find(c => c.id === 'endpointing')!;
+    expect(ep.status).toBe('ok');
+    expect(ep.value).toMatch(/appartient au modèle/);
+    expect(ep.lever).toBeUndefined();
+    // Et il ne propose pas un resync qui ne changerait rien.
+    expect(ep.target).toBeUndefined();
+  });
+
+  it('ne juge pas DEUX fois un plan resté en place: la ligne « niveau » le porte', () => {
+    const f = s2s();
+    f.remote.speechToSpeech = false;
+    f.remote.transcriber = true;
+    f.remote.endpointing = { provider: 'livekit', waitSeconds: 0.15, punctuationSeconds: 0.4 };
+    const checks = auditCall(f).checks;
+    expect(checks.find(c => c.id === 'endpointing')!.status).toBe('skip');
+    expect(checks.find(c => c.id === 'niveau')!.value).toMatch(/HYBRIDE/);
+  });
+
+  it('garde le jugement ORDINAIRE sur un client classique', () => {
+    const f = good();
+    f.remote.endpointing = { provider: 'vapi', waitSeconds: 0.4, punctuationSeconds: 0.1 };
+    const ep = auditCall(f).checks.find(c => c.id === 'endpointing')!;
+    expect(ep.status).toBe('fail');
+    expect(ep.lever).toMatch(/voice:resync/);
+  });
+});

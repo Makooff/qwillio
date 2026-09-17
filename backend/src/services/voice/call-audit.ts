@@ -786,15 +786,39 @@ export function auditCall(facts: CallFacts): AuditReport {
   {
     const got = facts.remote.endpointing;
     const want = facts.expected.endpointing;
-    const same = !!got && got.provider === want.provider && got.waitSeconds === want.waitSeconds && got.punctuationSeconds === want.punctuationSeconds;
-    push({
-      id: 'endpointing', area: 'reglages',
-      status: !got ? 'skip' : same ? 'ok' : 'fail',
-      label: "détecteur de fin de tour de l'assistant qui décroche",
-      value: got ? `${got.provider}, attente ${got.waitSeconds ?? '?'} s, ponctuation ${got.punctuationSeconds ?? '?'} s` : 'assistant distant non lu',
-      target: `${want.provider}, attente ${want.waitSeconds} s, ponctuation ${want.punctuationSeconds} s`,
-      lever: got && !same ? "l'assistant enregistré est périmé par rapport à l'env: `npm run voice:resync -- --confirm`" : undefined,
-    });
+    /* EN PAROLE-À-PAROLE, LE PLAN ATTENDU EST L'ABSENCE DE PLAN (17/09/2026).
+       Cette ligne comparait sans condition au plan classique, donc sur un
+       client Superagent correctement configuré elle notait « aucun » en ROUGE
+       contre « livekit, attente 0.15 s » et conseillait un resync qui ne change
+       rien. C'est le faux positif que le docteur venait de fermer, réouvert ici:
+       quand une leçon déplace un champ, le code qui le LIT compte autant que
+       celui qui l'écrit, et il y en avait DEUX à corriger (6sexvicies).
+       Un plan distant sur un assistant temps réel n'est pas jugé ici non plus:
+       la ligne « niveau » le nomme déjà HYBRIDE, et compter deux fois un seul
+       fait donne à la mesure la plus indirecte le poids de celle qui touche le
+       phénomène (6quaterquinquagesies). */
+    const s2sWanted = facts.expected.tierServed === 'superagent';
+    if (s2sWanted) {
+      push({
+        id: 'endpointing', area: 'reglages',
+        status: got ? 'skip' : 'ok',
+        label: "détecteur de fin de tour de l'assistant qui décroche",
+        value: got
+          ? `${got.provider}, attente ${got.waitSeconds ?? '?'} s, ponctuation ${got.punctuationSeconds ?? '?'} s: `
+            + 'reste d\'une synchronisation classique, voir la ligne « niveau »'
+          : 'aucun plan: en parole-à-parole, le moment de répondre appartient au modèle',
+      });
+    } else {
+      const same = !!got && got.provider === want.provider && got.waitSeconds === want.waitSeconds && got.punctuationSeconds === want.punctuationSeconds;
+      push({
+        id: 'endpointing', area: 'reglages',
+        status: !got ? 'skip' : same ? 'ok' : 'fail',
+        label: "détecteur de fin de tour de l'assistant qui décroche",
+        value: got ? `${got.provider}, attente ${got.waitSeconds ?? '?'} s, ponctuation ${got.punctuationSeconds ?? '?'} s` : 'assistant distant non lu',
+        target: `${want.provider}, attente ${want.waitSeconds} s, ponctuation ${want.punctuationSeconds} s`,
+        lever: got && !same ? "l'assistant enregistré est périmé par rapport à l'env: `npm run voice:resync -- --confirm`" : undefined,
+      });
+    }
   }
 
   {
