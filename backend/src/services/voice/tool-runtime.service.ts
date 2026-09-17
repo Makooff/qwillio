@@ -79,6 +79,50 @@ function pastDateReply(profile: ClientVoiceProfile, raw: unknown): string | null
     : `DATE IN THE PAST: ${raw.trim()} is already gone. Today is ${now}. Recompute the date the caller wants from today, then call the tool again.`;
 }
 
+/**
+ * UN DEPLACEMENT DE PLUSIEURS MOIS SE CONFIRME, AVEC L'ANNEE (17/09/2026).
+ *
+ * Appel reel. L'appelant dit « le 22 MARDI ». Le modele entend « le 22 MARS »,
+ * constate que mars 2026 est passe, et projette donc sur 2027. Il annonce meme
+ * « lundi 22 mars », ce qui est exact pour 2027 — l'appelant disait mardi, et
+ * personne n'a releve. Un rendez-vous du 24 septembre est parti six mois plus
+ * loin, et il a DISPARU de la vue du gerant: le calendrier charge un mois, donc
+ * rien ne montre un rendez-vous expedie en 2027.
+ *
+ * Le garde-fou « date passee » ne pouvait rien: 2027 est dans le futur.
+ *
+ * LE SIGNAL EST L'ANNEE, pas la distance. Un premier essai bornait l'ECART a
+ * deux mois, et c'etait faux: un controle dentaire a six mois est la norme du
+ * metier, et douze tests existants sont tombes en le disant. Ce que personne ne
+ * fait, en revanche, c'est demander en septembre un rendez-vous l'annee
+ * SUIVANTE sans jamais prononcer l'annee. C'est exactement ce que le modele a
+ * insere en silence, et c'est donc cela qu'on fait confirmer.
+ *
+ * On ne REFUSE pas, on fait confirmer: c'est une conversation, l'appelant peut
+ * trancher lui-meme, et un refus sec lui ferait perdre son rendez-vous pour une
+ * homophonie. L'annonce vaut une fois par date (`noteFarDateAnnounced`): sans
+ * ca, le modele repasserait par la meme question a l'infini.
+ */
+function farDateReply(
+  profile: ClientVoiceProfile,
+  vapiCallId: string | null,
+  raw: unknown,
+): string | null {
+  if (typeof raw !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(raw.trim())) return null;
+  const ymd = raw.trim();
+  const year = ymd.slice(0, 4);
+  /* Meme annee que le jour de l'appel: rien a confirmer, quelle que soit la
+     distance. Decembre depuis septembre reste une date que l'appelant a
+     nommee en clair. */
+  if (year === todayIso(profile.timezone).slice(0, 4)) return null;
+  /* Deja annonce pour CETTE date: l'appelant a eu l'occasion de dire non. */
+  if (callSessionStore.noteFarDateAnnounced(vapiCallId, ymd) > 1) return null;
+  const spoken = spokenDate(parseDate(ymd)!, profile.language, profile.timezone);
+  return profile.language === 'fr'
+    ? `RIEN N'EST ENCORE ENREGISTRE. La date que tu t'apprêtes a poser tombe en ${year}, pas cette annee: le ${spoken} ${year}. Dis-la a voix haute AVEC L'ANNEE et demande a l'appelant si c'est bien ce qu'il veut. S'il confirme, rappelle l'outil avec la meme date. Sinon, demande-lui la date exacte: il a peut-etre dit un JOUR DE LA SEMAINE que tu as pris pour un mois.`
+    : `NOTHING IS SAVED YET. The date you are about to set falls in ${year}, not this year: ${spoken} ${year}. Say it out loud WITH THE YEAR and ask the caller to confirm. If they confirm, call the tool again with the same date. If not, ask for the exact date: they may have said a WEEKDAY you took for a month.`;
+}
+
 function parseDate(raw: unknown): Date | null {
   if (typeof raw !== 'string' || !raw.trim()) return null;
   const date = new Date(/^\d{4}-\d{2}-\d{2}$/.test(raw.trim()) ? `${raw.trim()}T12:00:00Z` : raw);
@@ -486,6 +530,9 @@ class ToolRuntimeService {
     }
     const past = pastDateReply(profile, args.date);
     if (past) return past;
+    /* Pas de garde « date lointaine » ici: `checkAvailability` ne fait que
+       LIRE, et regarder un jour dans six mois ne coûte rien. La confirmation
+       est due au moment d'ÉCRIRE, sur les deux outils qui posent la ligne. */
     const closed = closedDayReply(profile, args.date);
     if (closed) return closed;
 
@@ -569,6 +616,8 @@ class ToolRuntimeService {
     }
     const past = pastDateReply(profile, args.date);
     if (past) return past;
+    const far = farDateReply(profile, vapiCallId, args.date);
+    if (far) return far;
     const closed = closedDayReply(profile, args.date);
     if (closed) return closed;
     const outside = outsideHoursReply(profile, String(args.date).trim(), minutes);
@@ -898,6 +947,8 @@ class ToolRuntimeService {
     }
     const past = pastDateReply(profile, args.date);
     if (past) return past;
+    const far = farDateReply(profile, vapiCallId, args.date);
+    if (far) return far;
     const closed = closedDayReply(profile, args.date);
     if (closed) return closed;
     const outside = outsideHoursReply(profile, String(args.date).trim(), minutes);

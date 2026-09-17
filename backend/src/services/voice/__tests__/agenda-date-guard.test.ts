@@ -48,6 +48,12 @@ vi.mock('../call-session.store', () => ({
        levait et l'outil rendait « AGENDA INDISPONIBLE »: un repli sûr, mais
        qui masquait le vrai message. */
     noteToolFailure: vi.fn(() => 1),
+    /* Le compteur d'annonce d'une année AUTRE (17/09/2026). Le défaut du
+       bouchon est 2 = « déjà annoncée, l'appelant a confirmé », parce que les
+       fixtures de ce fichier datent en 2099 pour être toujours dans le futur:
+       sans ça le garde-fou répondrait à leur place. Le test qui le vise le
+       remet à 1. */
+    noteFarDateAnnounced: vi.fn(() => 2),
   },
 }));
 vi.mock('../caller-memory.service', () => ({ callerMemoryService: { remember: vi.fn() } }));
@@ -58,6 +64,7 @@ vi.mock('../availability-speculator', () => ({
 vi.mock('../../google-calendar.service', () => ({ googleCalendarService: {} }));
 
 const { toolRuntimeService } = await import('../tool-runtime.service');
+const { callSessionStore } = await import('../call-session.store');
 
 const profile = {
   clientId: 'c1', businessName: 'Demtalix', language: 'fr', country: 'BE',
@@ -371,5 +378,64 @@ describe('rescheduleBooking — deux rendez-vous, on demande lequel', () => {
     const out = await toolRuntimeService.execute('c1', 'call_1', { name: 'rescheduleBooking', args: { date: '2099-10-08', time: '10:00', currentDate: '2099-10-07' }, toolCallId: 't6' } as never);
     expect(String(out.result)).toMatch(/^DEPLACE: B/);
     expect(updateBooking.mock.calls[0][0].where).toEqual({ id: 'b1' });
+  });
+});
+
+/**
+ * UN DÉPLACEMENT DE PLUSIEURS MOIS SE CONFIRME, AVEC L'ANNÉE (17/09/2026).
+ *
+ * Appel réel. L'appelant dit « le 22 MARDI ». Le modèle entend « le 22 MARS »,
+ * constate que mars 2026 est passé, et projette sur 2027. Il annonce même
+ * « lundi 22 mars », exact pour 2027 — l'appelant disait mardi, et personne n'a
+ * relevé. Le rendez-vous du 24 septembre est parti six mois plus loin et a
+ * DISPARU de la vue du gérant, puisque le calendrier ne charge qu'un mois.
+ *
+ * Le garde-fou « date passée » ne pouvait rien: 2027 est dans le futur. Ce qui
+ * manquait est une borne sur l'ÉCART.
+ */
+describe('date lointaine — confirmer avant d\'écrire', () => {
+  const FAR = '2027-03-22';
+
+  async function move(args: Record<string, unknown>) {
+    const out = await toolRuntimeService.execute('c1', 'call_1', { name: 'rescheduleBooking', args, toolCallId: 'tf' } as never);
+    return String(out.result);
+  }
+  async function book(args: Record<string, unknown>) {
+    const out = await toolRuntimeService.execute('c1', 'call_1', { name: 'bookAppointment', args, toolCallId: 'tf' } as never);
+    return String(out.result);
+  }
+
+  beforeEach(() => {
+    getProfile.mockResolvedValue(profile);
+    /* 1 = première annonce, le cas que ce bloc mesure. */
+    (callSessionStore.noteFarDateAnnounced as ReturnType<typeof vi.fn>).mockReturnValue(1);
+  });
+
+  it('ne déplace RIEN et fait dire l\'année à voix haute', async () => {
+    const out = await move({ date: FAR, time: '17:00', customerName: 'Jean-Luc de la Forge' });
+    expect(out).toMatch(/RIEN N'EST ENCORE ENREGISTRE/);
+    expect(out).toMatch(/2027/);
+    expect(out).toMatch(/AVEC L'ANNEE/);
+    expect(updateBooking).not.toHaveBeenCalled();
+  });
+
+  it('nomme la cause probable: un JOUR DE LA SEMAINE pris pour un mois', async () => {
+    const out = await move({ date: FAR, time: '17:00', customerName: 'Jean-Luc de la Forge' });
+    expect(out).toMatch(/JOUR DE LA SEMAINE/);
+  });
+
+  it('protège aussi la PRISE de rendez-vous, pas seulement le déplacement', async () => {
+    const out = await book({ date: FAR, time: '17:00', customerName: 'Jean-Luc de la Forge' });
+    expect(out).toMatch(/RIEN N'EST ENCORE ENREGISTRE/);
+    expect(createBooking).not.toHaveBeenCalled();
+  });
+
+  it('laisse passer une date de la même année, même LOINTAINE', async () => {
+    /* Un premier essai bornait l'ÉCART à deux mois, et c'était faux: un
+       contrôle dentaire à six mois est la norme du métier. Le signal est
+       l'ANNÉE, pas la distance. */
+    const thisYear = new Date().getFullYear();
+    const out = await move({ date: `${thisYear}-12-28`, time: '10:00', customerName: 'Jean-Luc de la Forge' });
+    expect(out).not.toMatch(/RIEN N'EST ENCORE ENREGISTRE/);
   });
 });
