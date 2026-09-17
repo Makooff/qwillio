@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { buildRealtimePlans, buildStartSpeakingPlan, resolveTuning } from '../speech-plans';
 import { VOICE_TIERS } from '../voice-tiers';
 
@@ -75,6 +77,25 @@ describe('les seuils de fin de tour suivent le NIVEAU', () => {
        l'assistant ENTIER (6octies). La borne est donc ici, pas à l'écran. */
     expect(resolveTuning({ endpointingPunctuationSeconds: 99 }).endpointingPunctuationSeconds).toBe(3);
     expect(resolveTuning({ startWaitSeconds: -5 }).startWaitSeconds).toBe(0);
+  });
+
+  /**
+   * ET L'AUDIT DOIT RELIRE LA CIBLE AVEC LE MÊME TUNING (17/09/2026, soir).
+   *
+   * Le plan est devenu propre au NIVEAU le matin; l'audit a continué de bâtir
+   * sa cible depuis l'environnement GLOBAL. Il comparait donc un assistant
+   * Superagent parfaitement à jour (0,6 s / 0,8 s) à la cible de la chaîne
+   * classique (0,4 s / 0,4 s), le notait ROUGE, et conseillait un resync qui
+   * venait justement d'écrire ces valeurs-là.
+   *
+   * C'est 6sexvicies pour la cinquième fois: quand une leçon déplace un champ,
+   * le code qui le LIT compte autant que celui qui l'écrit.
+   */
+  it("l'audit lit la cible avec le tuning du niveau, sinon il crie au loup", () => {
+    const src = readFileSync(join(__dirname, '../../../scripts/audit-call.ts'), 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '');
+    expect(src).toMatch(/buildStartSpeakingPlan\(language,\s*resolveTuning\(/);
+    expect(src).not.toMatch(/buildStartSpeakingPlan\(language\)/);
   });
 
   it('sans transcripteur il n\'y a aucun plan, donc aucun seuil à régler', () => {

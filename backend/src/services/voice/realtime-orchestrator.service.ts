@@ -568,6 +568,10 @@ class RealtimeOrchestratorService {
           /* Les tours partis en repli, avec la raison: « Pardon, je vous ai mal
              entendu » trois fois de suite (13/09) n'a de sens qu'avec elle. */
           llmFailures: session.llmFailures,
+          /* Le brief d'ouverture: parti, refusé, ou jamais tenté. Sans cette
+             ligne, « il ne me reconnaît pas » ne distingue pas un brief qui
+             n'est pas parti d'un modèle qui l'ignore. */
+          callBrief: session.callBrief,
           toolCalls: session.toolCalls,
           bookingId: session.bookingId,
           lead: session.lead,
@@ -788,16 +792,20 @@ export async function postCallBrief(
 ): Promise<void> {
   const controlUrl = controlUrlOf(event);
   if (!controlUrl) {
+    callSessionStore.noteCallBrief(callIdOf(event), "SANS ADRESSE DE CONTROLE");
     logger.warn(`[Voice] brief non pose pour ${clientId}: l'evenement ne porte pas d'adresse de controle`);
     return;
   }
   const caller = await realtimeContextService
     .getCallerHistory(clientId, callerNumberOf(event))
     .catch(() => null);
+  const bookings = caller?.upcomingBookings?.length ?? 0;
   try {
     await vapiClient.addMessage(controlUrl, { role: 'system', content: callBrief(profile, caller) });
-    logger.info(`[Voice] brief pose pour ${clientId} (appelant ${caller?.previousCalls ?? 0} appels)`);
+    callSessionStore.noteCallBrief(callIdOf(event), `pose (${caller?.previousCalls ?? 0} appels, ${bookings} rdv)`);
+    logger.info(`[Voice] brief pose pour ${clientId} (${caller?.previousCalls ?? 0} appels, ${bookings} rdv)`);
   } catch (error) {
+    callSessionStore.noteCallBrief(callIdOf(event), `REFUSE: ${(error as Error).message}`);
     logger.warn(`[Voice] brief refuse pour ${clientId}: ${(error as Error).message}`);
   }
 }

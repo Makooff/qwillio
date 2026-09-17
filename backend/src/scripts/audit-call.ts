@@ -16,11 +16,11 @@ import { prisma } from '../config/database';
 import { env } from '../config/env';
 import { vapiClient } from '../config/vapi';
 import { smsReadiness } from '../services/sms-ready';
-import { buildStartSpeakingPlan } from '../services/voice/speech-plans';
+import { buildStartSpeakingPlan, resolveTuning } from '../services/voice/speech-plans';
 import { clientLocale } from '../utils/client-locale';
 import { auditCall, readVapiMessages, renderAudit, type CallFacts } from '../services/voice/call-audit';
 import { voiceForProfile } from '../services/voice/profile-voice';
-import { readTierId, requestedTier } from '../services/voice/voice-tiers';
+import { readTierId, requestedTier, tuningFor } from '../services/voice/voice-tiers';
 import { realtimeContextService } from '../services/voice/realtime-context.service';
 
 const arg = (name: string): string | null => {
@@ -155,7 +155,23 @@ async function main() {
     : null;
 
   const language: 'fr' | 'en' | 'nl' = ours?.client ? clientLocale(ours.client) : 'fr';
-  const want = buildStartSpeakingPlan(language);
+  /* LE PLAN ATTENDU SE LIT AVEC LE TUNING DU NIVEAU, pas avec l'environnement
+   * global (17/09/2026, soir).
+   *
+   * Sans le tuning, `buildStartSpeakingPlan` retombe sur `VOICE_START_WAIT_SECONDS`
+   * et compare donc un assistant Superagent, qui porte 0,6 s et 0,8 s, à la
+   * cible de la chaîne CLASSIQUE, 0,4 s et 0,4 s. Relevé sur un appel réel:
+   * l'assistant était PARFAITEMENT à jour, la ligne l'a noté en ROUGE, et le
+   * levier disait « l'assistant distant n'a pas le plan d'attente: resync » —
+   * un geste qui ne pouvait rien changer puisque le resync venait justement
+   * d'écrire ces valeurs-là.
+   *
+   * C'est 6sexvicies pour la cinquième fois, et cette fois la lecture fautive
+   * datait du matin même: le plan est devenu propre au NIVEAU, et l'audit a
+   * continué de le relire au niveau global. **Quand une leçon déplace un
+   * champ, le code qui le LIT compte autant que celui qui l'écrit**, et c'est
+   * la phrase que cette entrée répète depuis six semaines. */
+  const want = buildStartSpeakingPlan(language, resolveTuning(auditProfile ? tuningFor(auditProfile) : {}));
 
   let recordingReadable: boolean | null = null;
   try {

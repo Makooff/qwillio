@@ -427,6 +427,35 @@ const PART_OF_DAY_LABELS: Record<string, { fr: string; en: string }> = {
  * jamais le nom du FILTRE. Un résultat tronqué doit dire qu'il est tronqué,
  * et par quoi.
  */
+/**
+ * LE JOUR DE LA SEMAINE FAIT FOI, ET IL FAUT LE DIRE (17/09/2026).
+ *
+ * « J'avais demandé lundi prochain, et il a dit lundi 22 septembre. Sauf que
+ * le 22 septembre, c'est un mardi, il n'a pas vérifié. »
+ *
+ * Le résultat de l'outil disait pourtant « LIBRE le mardi 22 septembre »: le
+ * jour y est depuis 6novovicies. Ce qui manquait n'est pas le FAIT, c'est la
+ * consigne de s'y tenir. Le modèle a gardé sa propre résolution (« lundi
+ * prochain ») et l'a collée devant la date du résultat, exactement comme il
+ * annonçait une fermeture par-dessus une fenêtre d'ouverture qui la
+ * contredisait (6duoquinquagesies). Ajouter un fait ne suffit pas quand le
+ * modèle a déjà une phrase à lui; il faut lui dire laquelle des deux gagne.
+ *
+ * Vit dans le RÉSULTAT D'OUTIL, donc zéro caractère au prompt rejoué.
+ */
+function weekdayNote(day: string, lang: string): string {
+  /* « mardi 22 septembre 2026 » → « mardi ». `spokenDate` met toujours le jour
+     de semaine en tête, dans les trois langues. */
+  const weekday = day.split(' ')[0];
+  if (lang === 'fr') {
+    return ` Ce jour est un ${weekday.toUpperCase()}, et c'est cette date qui fait foi: si l'appelant a nomme un AUTRE jour de la semaine, dis-lui que c'est un ${weekday} et demande lequel il veut. N'annonce jamais un jour de semaine different de celui-ci.`;
+  }
+  if (lang === 'nl') {
+    return ` Die dag is een ${weekday.toUpperCase()}: noemde de beller een ANDERE weekdag, zeg het hem en vraag welke hij wil. Noem nooit een andere weekdag dan deze.`;
+  }
+  return ` That day is a ${weekday.toUpperCase()}, and this date is authoritative: if the caller named a DIFFERENT weekday, tell them and ask which one they want. Never announce a weekday other than this one.`;
+}
+
 function windowNote(partOfDay: unknown, lang: string, open: string): string {
   const key = String(partOfDay || 'any');
   const label = PART_OF_DAY_LABELS[key];
@@ -566,7 +595,7 @@ class ToolRuntimeService {
     const hours = window.open ? `${window.from}-${window.to}` : '';
     const day = spokenDate(date, profile.language, profile.timezone);
 
-    const note = windowNote(args.partOfDay, profile.language, hours || '?');
+    const note = windowNote(args.partOfDay, profile.language, hours || '?') + weekdayNote(day, profile.language);
 
     if (free.length === 0) {
       const fallback = slots.filter(s => !held.includes(s));
@@ -574,8 +603,8 @@ class ToolRuntimeService {
         /* « Tout est pris » n'est pas « c'est fermé », et le résultat le dit:
            sans cette ligne le modèle transforme un agenda plein en fermeture. */
         return profile.language === 'fr'
-          ? `AUCUN CRENEAU le ${day} (${args.date}, ouvert ${hours}): tout est pris, l'entreprise est OUVERTE ce jour-la. Propose un autre jour.`
-          : `NO SLOTS on ${day} (${args.date}, open ${hours}): fully booked, the business IS open that day. Offer another day.`;
+          ? `AUCUN CRENEAU le ${day} (${args.date}, ouvert ${hours}): tout est pris, l'entreprise est OUVERTE ce jour-la. Propose un autre jour.${weekdayNote(day, profile.language)}`
+          : `NO SLOTS on ${day} (${args.date}, open ${hours}): fully booked, the business IS open that day. Offer another day.${weekdayNote(day, profile.language)}`;
       }
       return profile.language === 'fr'
         ? `RIEN sur la plage demandee le ${day} (${args.date}, ouvert ${hours}), mais libre a: ${fallback.join(', ')}. Propose ces horaires, un par un.${note}`
@@ -1013,10 +1042,40 @@ class ToolRuntimeService {
     }
 
     const time = String(args.time);
+
+    /* DÉJÀ LÀ: on ne redéplace pas un rendez-vous vers l'endroit où il est.
+     *
+     * Appel réel du 17/09/2026: `rescheduleBooking` appelé DEUX fois à quatre
+     * secondes d'intervalle, avec les mêmes arguments, et l'agenda Google du
+     * gérant s'est retrouvé avec DEUX événements sur le même créneau, pour une
+     * seule ligne en base. La capture d'écran le montre: « Appointment - la
+     * forge » et « Appointment - Jean-Luc de la », mardi 22, 14 h.
+     *
+     * La course: la mise à jour posait `googleEventId: null` AVANT un
+     * `moveCalendarEvent` qui n'est pas attendu. Le second appel relisait donc
+     * `null`, n'avait plus rien à supprimer, et créait un second événement.
+     * Le correctif d'en dessous ferme la course; celui-ci ferme la CAUSE, car
+     * un modèle qui rappelle un outil avec les mêmes arguments est le
+     * comportement connu de ce chemin (6sexquadragesies, neuf appels).
+     *
+     * Et c'est aussi la bonne réponse métier: l'appelant n'a rien demandé de
+     * neuf, donc il n'y a rien à faire ni à annoncer autrement. */
+    if (ymdOf(booking.bookingDate) === ymdOf(date) && booking.bookingTime === time) {
+      const already = spokenDate(date, profile.language, profile.timezone);
+      return profile.language === 'fr'
+        ? `DEJA FAIT: le rendez-vous de ${booking.customerName} est deja au ${already} a ${time}. N'appelle PLUS rescheduleBooking. Confirme simplement a voix haute, en nommant le jour, et demande s'il faut autre chose.`
+        : `ALREADY DONE: ${booking.customerName}'s appointment is already on ${already} at ${time}. Do NOT call rescheduleBooking again. Just confirm out loud, naming the day, and ask if they need anything else.`;
+    }
+
     try {
       await prisma.clientBooking.update({
         where: { id: booking.id },
-        data: { bookingDate: date, bookingTime: time, googleEventId: null, calendarSyncedAt: null },
+        /* `googleEventId` N'EST PAS EFFACÉ ICI. L'effacer avant un déplacement
+           d'agenda qu'on n'attend pas perd la seule référence de l'ancien
+           événement, et c'est ce qui a produit le doublon. `moveCalendarEvent`
+           écrit le nouvel identifiant quand il a fini; d'ici là, l'ancien
+           reste la bonne réponse à « quel événement porte ce rendez-vous ». */
+        data: { bookingDate: date, bookingTime: time, calendarSyncedAt: null },
       });
     } catch (error) {
       if ((error as { code?: string }).code === 'P2002') {

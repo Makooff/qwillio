@@ -1006,10 +1006,32 @@ export function assistantModelBlock(opts: {
  * plafond, et où la langue est déjà dite deux fois. Payer ces caractères là-bas
  * serait payer pour un problème qui n'y existe pas.
  */
+/**
+ * LA LANGUE, ET LE MOMENT OÙ ELLE LÂCHE (17/09/2026).
+ *
+ * « À la fin, quand il me dit au revoir, d'un coup il passe en anglais et il
+ * me demande How can I help you. » Relevé aussi AU MILIEU du même appel:
+ * « Bien sûr, je suis là pour vous aider, en quoi puis-je vous assister
+ * aujourd'hui », c'est-à-dire une phrase d'ACCUEIL posée en plein milieu.
+ *
+ * Les deux disent la même chose: quand le modèle perd le fil, il retombe sur
+ * son ouverture par défaut, et son ouverture par défaut est anglaise. Une
+ * consigne de langue posée UNE fois en tête d'un long prompt ne tient pas ce
+ * moment-là, parce que c'est précisément le moment où le début du prompt pèse
+ * le moins. Elle nomme donc les deux instants où ça lâche: la FIN d'appel et
+ * le trou.
+ */
 const REALTIME_LANGUAGE_LINE: Record<VoiceLanguage, string> = {
-  fr: 'LANGUE: tu parles FRANÇAIS, et seulement français. Si tu entends mal, tu fais répéter en français; tu ne changes jamais de langue.',
-  en: 'LANGUAGE: you speak ENGLISH, and only English. If you mishear, ask again in English; never switch language.',
-  nl: 'TAAL: je spreekt NEDERLANDS, en alleen Nederlands. Versta je iets niet, laat het dan in het Nederlands herhalen; wissel nooit van taal.',
+  fr: "LANGUE: tu parles FRANÇAIS, et seulement français, du premier au dernier mot. "
+    + "Si tu entends mal, tu fais répéter en français. Tu ne changes JAMAIS de langue, "
+    + "y compris pour saluer, pour remercier et pour dire au revoir. "
+    + "Si tu perds le fil, tu redemandes en français; tu ne recommences pas l'appel et tu ne dis jamais « How can I help you ».",
+  en: 'LANGUAGE: you speak ENGLISH, and only English, from first word to last. If you mishear, ask again in English. '
+    + 'NEVER switch language, including to greet, to thank and to say goodbye. '
+    + 'If you lose track, ask again in English; do not restart the call.',
+  nl: 'TAAL: je spreekt NEDERLANDS, en alleen Nederlands, van het eerste tot het laatste woord. Versta je iets niet, laat het in het Nederlands herhalen. '
+    + 'Wissel NOOIT van taal, ook niet om te groeten, te bedanken of afscheid te nemen. '
+    + 'Verlies je de draad, vraag dan opnieuw in het Nederlands; begin het gesprek niet opnieuw.',
 };
 
 /**
@@ -1041,6 +1063,14 @@ const REALTIME_LANGUAGE_LINE: Record<VoiceLanguage, string> = {
  */
 const REALTIME_DISCIPLINE: Record<VoiceLanguage, string[]> = {
   fr: [
+    /* LE VOUVOIEMENT SE DIT ICI, et pas seulement dans `buildSystemPrompt`
+       (17/09/2026). « Des fois il me tutoie, il dit Attends, c'est pas
+       normal. » La cause est de forme et elle est sous nos yeux: tout ce bloc
+       s'adresse au MODÈLE en « tu », comme une consigne s'écrit, et il est
+       posé AVANT le prompt métier qui porte la règle de vouvoiement. Le modèle
+       rend donc le registre qu'il lit en premier. C'est 6quater, une seconde
+       fois, sur le chemin qui n'était pas couvert. */
+    "REGISTRE: tu dis VOUS à l'appelant, toujours. Ces consignes te tutoient parce qu'elles s'adressent à toi, jamais à lui. Ni « attends », ni « donne-moi », ni « tu » : « un instant », « pouvez-vous », « vous ».",
     'TOUR DE PAROLE, règles absolues:',
     "- Tu poses UNE question, puis tu te TAIS et tu attends la réponse. Jamais deux questions d'affilée.",
     "- Tu ne remercies JAMAIS pour une confirmation que l'appelant n'a pas encore donnée. S'il n'a pas répondu, tu attends: son silence n'est pas un oui.",
@@ -1073,6 +1103,7 @@ const REALTIME_DISCIPLINE: Record<VoiceLanguage, string[]> = {
     '- Never announce a closing day the opening hours do not state.',
   ],
   nl: [
+    'REGISTER: je spreekt de beller aan met U, altijd. Deze instructies tutoyeren JOU, nooit hem.',
     'BEURTWISSELING, absolute regels:',
     '- Stel ÉÉN vraag, zwijg dan en wacht op het antwoord. Nooit twee vragen na elkaar.',
     '- Bedank NOOIT voor een bevestiging die de beller nog niet gegeven heeft. Zwijgen is geen ja.',

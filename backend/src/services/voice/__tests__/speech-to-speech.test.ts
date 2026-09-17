@@ -315,7 +315,45 @@ describe('parole-à-parole — la langue est dite au modèle', () => {
   });
 
   it("interdit de changer de langue, ce que le modèle faisait en mésentendant", async () => {
-    expect((await blocks('fr')).model.messages[0].content).toMatch(/jamais de langue/);
+    /* Sur la RÈGLE, pas sur une casse: la version d'avant exigeait « jamais de
+       langue » en minuscules et serait tombée sur un simple renforcement. */
+    expect((await blocks('fr')).model.messages[0].content).toMatch(/jamais de langue/i);
+  });
+
+  /**
+   * ET ELLE NOMME LES DEUX MOMENTS OÙ ELLE LÂCHE (17/09/2026).
+   *
+   * « À la fin, quand il me dit au revoir, d'un coup il passe en anglais et il
+   * me demande How can I help you. » Relevé aussi au MILIEU du même appel:
+   * une phrase d'accueil posée en plein échange. Les deux disent la même
+   * chose: quand le modèle perd le fil, il retombe sur son ouverture par
+   * défaut, qui est anglaise. Une consigne posée une fois en tête d'un long
+   * prompt ne tient pas ce moment-là, parce que c'est là que le début du
+   * prompt pèse le moins.
+   */
+  it('couvre la fin d\'appel et le trou, les deux endroits où elle lâchait', async () => {
+    const line = (await blocks('fr')).model.messages[0].content as string;
+    expect(line).toMatch(/au revoir/);
+    expect(line).toMatch(/perds le fil/);
+    expect(line).toMatch(/How can I help you/);
+  });
+
+  /**
+   * LE VOUVOIEMENT SE DIT SUR CE CHEMIN AUSSI (17/09/2026).
+   *
+   * « Des fois il me tutoie, il dit Attends, c'est pas normal. » La cause est
+   * de forme: le bloc de discipline s'adresse au MODÈLE en « tu », comme une
+   * consigne s'écrit, et il est posé AVANT le prompt métier qui porte la règle
+   * de vouvoiement. Le modèle rend le registre qu'il lit en premier. C'est
+   * 6quater, sur le chemin qui n'était pas couvert.
+   */
+  it('dit le vouvoiement, et dit POURQUOI les consignes le tutoient', async () => {
+    const prompt = (await blocks('fr')).model.messages[0].content as string;
+    expect(prompt).toMatch(/VOUS à l'appelant/);
+    expect(prompt).toMatch(/attends/);
+    /* Et il vient AVANT le prompt métier, sinon il ne corrige pas le registre
+       que le modèle a déjà lu. */
+    expect(prompt.indexOf('VOUS à l\'appelant')).toBeLessThan(prompt.indexOf('TOUR DE PAROLE'));
   });
 
   it('ne coûte RIEN au prompt de la chaîne classique', async () => {

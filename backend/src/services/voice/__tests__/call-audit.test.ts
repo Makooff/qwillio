@@ -335,6 +335,51 @@ describe('auditCall — réglages', () => {
  * C'est la leçon des quatre plafonds de cet audit (6terquinquagesies): un
  * chiffre qu'aucune autre source ne peut contredire ne prouve rien.
  */
+/**
+ * LE BRIEF D'OUVERTURE, VU OU PAS VU (17/09/2026).
+ *
+ * « Il me redemande mon nom à chaque fois alors que c'est relié à mon
+ * numéro. » Sans cette ligne, ce retour ne distingue pas deux pannes opposées:
+ * le brief n'est PAS parti (pas d'adresse de contrôle, Vapi qui refuse
+ * `add-message`), ou il est parti et le modèle l'ignore. Le premier se répare
+ * dans le webhook, le second dans le prompt, et se tromper coûte un cycle.
+ */
+describe('auditCall — le brief d\'ouverture', () => {
+  const s2s = (callBrief: unknown) => {
+    const f = good();
+    f.remote.speechToSpeech = true;
+    f.realtime = { ...(f.realtime ?? {}), callBrief };
+    return auditCall(f).checks.find(c => c.id === 'brief')!;
+  };
+
+  it('posé avec des rendez-vous: vert', () => {
+    expect(s2s('pose (3 appels, 1 rdv)').status).toBe('ok');
+  });
+
+  it('jamais tenté: DÉFAUT, et le levier renvoie aux journaux, pas au prompt', () => {
+    const c = s2s(undefined);
+    expect(c.status).toBe('fail');
+    expect(c.value).toMatch(/JAMAIS TENTÉ/);
+    expect(c.lever).toMatch(/journaux Render/);
+    /* Et surtout: il dit que ça ne se répare PAS dans le prompt. Un levier
+       qui envoie au mauvais endroit coûte plus cher qu'aucun levier. */
+    expect(c.lever).toMatch(/ne se réparent? dans le prompt|aucun des trois ne se répare dans le prompt/);
+  });
+
+  it('refusé par Vapi: défaut, et la raison est dite telle quelle', () => {
+    const c = s2s('REFUSE: VAPI control error (404)');
+    expect(c.status).toBe('fail');
+    expect(c.value).toMatch(/404/);
+  });
+
+  it("sans objet sur le chemin custom-LLM: `llm-stream` repose la mémoire à chaque tour", () => {
+    const f = good();
+    f.remote.speechToSpeech = false;
+    f.remote.customLlm = true;
+    expect(auditCall(f).checks.find(c => c.id === 'brief')!.status).toBe('skip');
+  });
+});
+
 describe('readVapiMessages — répliques doublées', () => {
   it('compte une réplique qui suit une réplique, sans que l\'appelant ait parlé', () => {
     const read = readVapiMessages([
