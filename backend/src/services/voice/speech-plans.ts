@@ -233,6 +233,16 @@ export interface VoiceTuning {
 const clamp = (v: number | undefined, lo: number, hi: number, fallback: number): number =>
   typeof v === 'number' && Number.isFinite(v) ? Math.min(hi, Math.max(lo, v)) : fallback;
 
+/**
+ * Le plafond de `stopSpeakingPlan.voiceSeconds`, tel que l'API VIVANTE le dit.
+ *
+ * Pas une valeur de confort: au-delà, Vapi répond 400 et refuse l'assistant en
+ * entier, donc tous les appels du client tombent (6octies). Relevé le 17/09/2026
+ * par `npm run voice:validate`, sur les trois variantes temps réel à la fois:
+ * « stopSpeakingPlan.voiceSeconds must not be greater than 0.5 ».
+ */
+const VOICE_SECONDS_MAX = 0.5;
+
 export function resolveTuning(t: VoiceTuning = {}) {
   return {
     ttsModel: t.ttsModel || env.VOICE_TTS_MODEL,
@@ -241,14 +251,37 @@ export function resolveTuning(t: VoiceTuning = {}) {
     styleCap: clamp(t.styleCap, 0, 1, env.VOICE_TTS_STYLE_CAP),
     minChunkChars: Math.round(clamp(t.minChunkChars, 10, 200, env.VOICE_TTS_MIN_CHUNK_CHARS)),
     bargeInWords: Math.round(clamp(t.bargeInWords, 0, 5, env.VOICE_BARGE_IN_WORDS)),
-    bargeInVoiceSeconds: clamp(t.bargeInVoiceSeconds, 0.1, 1.5, env.VOICE_BARGE_IN_VOICE_SECONDS),
-    /* Mêmes bornes: c'est le même champ Vapi, sur l'autre chemin. Ce qui
-       diffère est la charge qu'il porte, pas ce que l'API accepte. */
-    realtimeBargeInVoiceSeconds: clamp(
+    /* LE PLAFOND EST CELUI DE L'API, ET IL VAUT 0,5 (17/09/2026).
+     *
+     *   {"message":["stopSpeakingPlan.voiceSeconds must not be greater than 0.5"],
+     *    "statusCode":400}
+     *
+     * Il valait 1,5 ici, choisi en lisant le code et pas l'API. Poser 1,5 était
+     * donc légal chez nous et faisait refuser l'assistant ENTIER chez Vapi,
+     * c'est-à-dire tomber tous les appels du client — le mode d'échec de
+     * 6octies, atteint par un réglage que ce fichier présentait comme valide.
+     * `npm run voice:validate` l'a attrapé avant le moindre appel, ce pour quoi
+     * il existe; le plafond est maintenant au bon endroit pour que le script
+     * n'ait plus à rattraper celui-là.
+     *
+     * Les DEUX chemins prennent la même borne, et le commentaire d'avant avait
+     * raison sur le principe: c'est le même champ Vapi, et ce qui diffère est
+     * la charge qu'il porte, pas ce que l'API accepte. Il avait juste le mauvais
+     * nombre.
+     *
+     * Le plafond s'applique AUSSI à la valeur d'environnement, et il le faut:
+     * `clamp` rend son `fallback` tel quel, donc une variable posée à 1,5 le
+     * traversait sans être bornée. C'est le même piège que le délai de silence,
+     * relevé le même jour: une borne qui ne couvre pas le chemin par lequel la
+     * valeur arrive vraiment ne borne rien. */
+    bargeInVoiceSeconds: Math.min(VOICE_SECONDS_MAX, clamp(
+      t.bargeInVoiceSeconds, 0.1, VOICE_SECONDS_MAX, env.VOICE_BARGE_IN_VOICE_SECONDS,
+    )),
+    realtimeBargeInVoiceSeconds: Math.min(VOICE_SECONDS_MAX, clamp(
       t.realtimeBargeInVoiceSeconds ?? t.bargeInVoiceSeconds,
-      0.1, 1.5,
+      0.1, VOICE_SECONDS_MAX,
       env.VOICE_REALTIME_BARGE_IN_VOICE_SECONDS,
-    ),
+    )),
     backoffSeconds: clamp(t.backoffSeconds, 0.3, 3, env.VOICE_BARGE_IN_BACKOFF_SECONDS),
     /* Le raccroché tombe APRÈS les relances, jamais avant ni en même temps.
      *

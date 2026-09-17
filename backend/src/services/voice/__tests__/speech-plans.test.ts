@@ -613,26 +613,32 @@ describe('le seuil de voix du chemin parole-à-parole (TUR-6)', () => {
     // En classique, le bruit est trié deux fois: l'énergie PUIS les mots
     // transcrits. Ici il n'y a pas de transcripteur, donc `numWords` vaut 0 et
     // `voiceSeconds` porte toute la charge.
-    const realtime = buildRealtimeStopSpeakingPlan(resolveTuning({ realtimeBargeInVoiceSeconds: 0.8 }));
+    /* 0,45 et non 0,8: l'API plafonne ce champ à 0,5, et ces trois tests
+       gelaient des valeurs qu'elle REFUSE (0,8, 0,6, et une borne à 1,5). Ils
+       passaient au vert pendant que le réglage correspondant aurait fait
+       refuser l'assistant entier. Voir « seuil d'interruption contre le plafond
+       de Vapi » plus bas. */
+    const realtime = buildRealtimeStopSpeakingPlan(resolveTuning({ realtimeBargeInVoiceSeconds: 0.45 }));
     expect(realtime.numWords).toBe(0);
-    expect(realtime.voiceSeconds).toBe(0.8);
+    expect(realtime.voiceSeconds).toBe(0.45);
   });
 
   it('ne bouge pas le chemin classique quand on protège l\'autre', () => {
-    const tuning = resolveTuning({ realtimeBargeInVoiceSeconds: 0.8 });
-    expect(tuning.bargeInVoiceSeconds).not.toBe(0.8);
+    const tuning = resolveTuning({ realtimeBargeInVoiceSeconds: 0.45 });
+    expect(tuning.bargeInVoiceSeconds).not.toBe(0.45);
   });
 
   it('retombe sur le seuil commun quand rien n\'est réglé pour lui', () => {
-    const tuning = resolveTuning({ bargeInVoiceSeconds: 0.6 });
-    expect(tuning.realtimeBargeInVoiceSeconds).toBe(0.6);
+    const tuning = resolveTuning({ bargeInVoiceSeconds: 0.45 });
+    expect(tuning.realtimeBargeInVoiceSeconds).toBe(0.45);
   });
 
   it('reste dans les bornes du champ Vapi', () => {
     // Mêmes bornes que le chemin classique: c'est le même champ, sur l'autre
     // chemin. Un hors-bornes ne dégrade pas un appel, il fait refuser
-    // l'assistant entier, donc toute la flotte.
-    expect(resolveTuning({ realtimeBargeInVoiceSeconds: 99 }).realtimeBargeInVoiceSeconds).toBe(1.5);
+    // l'assistant entier, donc toute la flotte. Le plafond est 0,5, dit par
+    // l'API elle-même le 17/09/2026, pas par une lecture du code.
+    expect(resolveTuning({ realtimeBargeInVoiceSeconds: 99 }).realtimeBargeInVoiceSeconds).toBe(0.5);
     expect(resolveTuning({ realtimeBargeInVoiceSeconds: 0 }).realtimeBargeInVoiceSeconds).toBe(0.1);
   });
 });
@@ -701,5 +707,63 @@ describe('délai de silence contre calendrier des relances', () => {
       VAPI_SILENCE_TIMEOUT: '600', VOICE_IDLE_NUDGE_SECONDS: '60', VOICE_IDLE_NUDGE_COUNT: '5',
     });
     expect(resolveTuning().silenceTimeout).toBe(120);
+  });
+});
+
+/**
+ * LE PLAFOND D'INTERRUPTION EST CELUI DE L'API (17/09/2026).
+ *
+ *   {"message":["stopSpeakingPlan.voiceSeconds must not be greater than 0.5"],
+ *    "statusCode":400}
+ *
+ * Le clamp autorisait 1,5, choisi en lisant le code et pas l'API. Poser 1,5
+ * était donc légal ici et faisait refuser l'assistant ENTIER chez Vapi, c'est-à-
+ * dire tomber tous les appels du client. `voice:validate` l'a attrapé avant le
+ * moindre appel; ce test met la borne là où l'API la met.
+ */
+describe('seuil d\'interruption contre le plafond de Vapi', () => {
+  const load = async (patch: Record<string, string>) => {
+    vi.resetModules();
+    const prev: Record<string, string | undefined> = {};
+    for (const [k, v] of Object.entries(patch)) { prev[k] = process.env[k]; process.env[k] = v; }
+    try {
+      return await import('../speech-plans');
+    } finally {
+      for (const [k, v] of Object.entries(prev)) {
+        if (v === undefined) delete process.env[k]; else process.env[k] = v;
+      }
+    }
+  };
+
+  it('borne le réglage CLIENT à 0,5 sur les deux chemins', async () => {
+    const { resolveTuning } = await load({});
+    const t = resolveTuning({ bargeInVoiceSeconds: 1.5, realtimeBargeInVoiceSeconds: 1.5 });
+    expect(t.bargeInVoiceSeconds).toBe(0.5);
+    expect(t.realtimeBargeInVoiceSeconds).toBe(0.5);
+  });
+
+  it('borne AUSSI la variable d\'environnement, par laquelle la valeur arrive vraiment', async () => {
+    /* `clamp` rend son `fallback` tel quel: une borne qui ne couvre pas ce
+       chemin-là ne borne rien. Même piège que le délai de silence, même jour. */
+    const { resolveTuning } = await load({
+      VOICE_BARGE_IN_VOICE_SECONDS: '1.5',
+      VOICE_REALTIME_BARGE_IN_VOICE_SECONDS: '1.5',
+    });
+    expect(resolveTuning().bargeInVoiceSeconds).toBe(0.5);
+    expect(resolveTuning().realtimeBargeInVoiceSeconds).toBe(0.5);
+  });
+
+  it('laisse passer ce que l\'API accepte', async () => {
+    const { resolveTuning } = await load({ VOICE_REALTIME_BARGE_IN_VOICE_SECONDS: '0.5' });
+    expect(resolveTuning().realtimeBargeInVoiceSeconds).toBe(0.5);
+    expect(resolveTuning({ realtimeBargeInVoiceSeconds: 0.3 }).realtimeBargeInVoiceSeconds).toBe(0.3);
+  });
+
+  it('le plan temps réel ne peut donc plus porter une valeur refusée', async () => {
+    const { buildRealtimeStopSpeakingPlan, resolveTuning } = await load({
+      VOICE_REALTIME_BARGE_IN_VOICE_SECONDS: '3',
+    });
+    const plan = buildRealtimeStopSpeakingPlan(resolveTuning()) as Record<string, number>;
+    expect(plan.voiceSeconds).toBeLessThanOrEqual(0.5);
   });
 });
