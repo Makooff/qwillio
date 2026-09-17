@@ -67,6 +67,31 @@ class VapiClient {
   }
 
   /**
+   * Pose un message dans l'historique d'un appel EN COURS, par la même adresse
+   * de contrôle que `endCall`.
+   *
+   * `triggerResponseEnabled: false` le pose en SILENCE. Le défaut de Vapi est
+   * `true`, et il ferait répondre le modèle: injecté pendant l'accueil, ça
+   * couperait la phrase d'accueil pour dire bonjour une seconde fois.
+   *
+   * Sert au brief d'ouverture des sessions dont le prompt est figé
+   * (`call-brief.ts`). Jamais sur le chemin critique: l'appelant est en ligne.
+   */
+  async addMessage(
+    controlUrl: string,
+    message: { role: 'system' | 'user' | 'assistant'; content: string },
+  ): Promise<void> {
+    const response = await fetch(controlUrl, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${this.privateKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ type: 'add-message', message, triggerResponseEnabled: false }),
+    });
+    if (!response.ok) {
+      throw new Error(`VAPI control error (${response.status}): ${await response.text()}`);
+    }
+  }
+
+  /**
    * L'adresse SIGNÉE d'un enregistrement, obtenue comme Vapi le documente.
    *
    * Les adresses que porte l'appel (`artifact.recordingUrl` et les autres)

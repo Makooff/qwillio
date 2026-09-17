@@ -1263,24 +1263,37 @@ export function buildRealtimePlans(
        qui s'entend, et rien de ce qui se compte. */
     ...(speechToSpeech
       ? {
-          /* `startSpeakingPlan` n'a pas d'équivalent en parole-à-parole: il est
-             fait de règles de ponctuation et de fin de phrase, et le moment de
-             répondre appartient au modèle. Il part donc à `null` et non en
-             étant tu, pour la raison du transcripteur juste au-dessus: tu, il
-             SURVIT au PATCH. Relevé au docteur le 17/09, sur le premier client
-             basculé en Superagent — l'assistant distant portait
-             `gpt-realtime-mini` ET, quelques secondes après la bascule,
-             « détecteur livekit, attente 0.15 s, ponctuation 0.4 s »,
-             c'est-à-dire un plan d'attente calibré sur un transcripteur qui
-             n'existait plus.
-             Ce que ça coûtait: exactement ce qu'on venait chercher. Le
-             Superagent est choisi pour supprimer l'attente de fin de tour, et
-             il la gardait; le premier relevé aurait montré la même seconde
-             qu'en classique et aurait fait conclure « le temps réel n'apporte
-             rien », sur un assistant qui n'était pas en temps réel de bout en
-             bout. Un faux diagnostic coûte plus cher qu'aucun diagnostic
-             (6sexvicies). */
-          startSpeakingPlan: null,
+          /* LE PLAN SUIT LE TRANSCRIPTEUR, exactement comme celui d'en bas.
+             Ce commentaire disait que « le moment de répondre appartient au
+             modèle » en parole-à-parole, donc `startSpeakingPlan: null`. C'est
+             FAUX sur Vapi, et la documentation le dit elle-même: « Endpointing
+             and interruption management are handled by Vapi's orchestration
+             layer » (page OpenAI Realtime, limitations). `null` ne DÉSACTIVE
+             donc rien: il rend la main au DÉFAUT de Vapi, 0,4 s de silence, et
+             c'est tout ce qu'il faut pour couper quelqu'un qui réfléchit.
+
+             L'appelant a décrit le mécanisme mieux qu'aucun relevé (17/09,
+             appel de 108 s): « il me pose une question, je réponds, mais s'il y
+             a un léger blanc dans ma réponse il va commencer à parler, alors
+             que j'ai pas fini; donc je dois parler pendant qu'il parle; et
+             quand j'ai enfin fini, il me donne une DEUXIÈME réponse ». D'où les
+             13 répliques d'assistant pour 10 tours d'appelant, chaque tour
+             produisant une réponse au blanc puis une à la vraie fin.
+
+             Le plan CLASSIQUE est précisément ce qui trie ces deux cas, et il
+             a coûté une semaine à régler (6untrigesies, 6quinquinquagesies):
+             `transcriptionEndpointingPlan` attend 0,4 s quand le transcripteur
+             a posé un point, mais 1,2 s quand il n'y en a pas — et un « léger
+             blanc » au milieu d'une phrase n'en porte pas. Il suppose un
+             transcripteur, qui est justement là (`VOICE_REALTIME_TRANSCRIBER`).
+             Même prémisse, même conclusion, pour les deux plans: ne pas
+             l'appliquer aux deux était l'erreur.
+
+             Reste vrai, et c'est pour ça que `null` et pas une clé tue: tu, le
+             plan SURVIT au PATCH (6sexquinquagesies). */
+          startSpeakingPlan: env.VOICE_REALTIME_TRANSCRIBER
+            ? buildStartSpeakingPlan(lang)
+            : null,
           /* Ce qui reste envoyable sans transcripteur: le seuil de bruit. Le
              moment de SE TAIRE se mesure sur l'audio, et le laisser au défaut
              de Vapi (0,2 s) est précisément ce qui la fait taire au moindre

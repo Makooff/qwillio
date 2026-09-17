@@ -22,6 +22,7 @@ import { smsReadiness } from '../sms-ready';
 /** Durée de validité de « ce client a un expéditeur SMS », lu en base sinon. */
 const SMS_SENDER_MEMO_MS = 5 * 60 * 1000;
 import { env } from '../../config/env';
+import { phoneForms } from '../../utils/phone-forms';
 
 /**
  * Tool runtime (Phase 4).
@@ -899,18 +900,59 @@ class ToolRuntimeService {
     if (!callerNumber && !name) return [];
 
     const now = new Date();
-    const horizon = new Date(now.getTime() + 90 * 24 * 3600 * 1000);
-    const rows = await prisma.clientBooking.findMany({
-      where: { clientId: profile.clientId, status: 'confirmed', bookingDate: { gte: now, lte: horizon } },
-      orderBy: { bookingDate: 'asc' },
-      take: 300,
-      select: { id: true, customerName: true, customerPhone: true, bookingDate: true, bookingTime: true, serviceType: true, googleEventId: true },
-    });
+    const select = { id: true, customerName: true, customerPhone: true, bookingDate: true, bookingTime: true, serviceType: true, googleEventId: true };
+
+    /* LE NUMÉRO DE L'APPELANT N'A PAS D'HORIZON, et c'est le correctif du
+       17/09/2026. La lecture unique bornait à 90 jours, avec un `take: 300`
+       pris sur les plus PROCHES. Un rendez-vous plus loin était donc
+       invisible, et `lookupBooking` répondait « AUCUNE RESERVATION trouvee »
+       sur une réservation qui existait, sous le bon nom et le bon numéro:
+       relevé sur un appel réel, trois échecs de suite, l'appelant raccrochant
+       avec un rappel promis. Le rendez-vous était au 22 mars 2027, poussé là
+       par la dérive d'année de 6octoquadragesies — mais 90 jours coupent aussi
+       un simple contrôle dentaire à six mois, qui est la NORME du métier
+       (douze tests l'ont dit quand on a essayé de borner `farDateReply` à deux
+       mois). La borne était une commodité de lecture, jamais une règle.
+
+       Le numéro se compare par ses ÉCRITURES (`phoneForms`): stocké tantôt
+       « 32483620980 » par `normalizeNumber`, tantôt « +32… » selon la source.
+       Une égalité exacte ratait donc le même numéro sans rien dire. */
+    const numberForms = callerNumber ? phoneForms(callerNumber) : [];
+    const byNumber = numberForms.length
+      ? await prisma.clientBooking.findMany({
+          where: { clientId: profile.clientId, status: 'confirmed', bookingDate: { gte: now }, customerPhone: { in: numberForms } },
+          orderBy: { bookingDate: 'asc' },
+          take: 20,
+          select,
+        })
+      : [];
+
+    /* La recherche par NOM garde une fenêtre: elle est relue en mémoire sur
+       toutes les réservations à venir du commerce, pas sur celles d'un
+       appelant, parce que la base ne sait pas comparer deux noms ENTENDUS
+       (« de la Ford », « Delaforde » et « de la foireux » sont tous « de la
+       forge »). Un an couvre ce que prend un client qui réserve à l'avance,
+       et `take` garde la lecture petite. */
+    const byName = name
+      ? await prisma.clientBooking.findMany({
+          where: {
+            clientId: profile.clientId,
+            status: 'confirmed',
+            bookingDate: { gte: now, lte: new Date(now.getTime() + 366 * 24 * 3600 * 1000) },
+            ...(numberForms.length ? { customerPhone: { notIn: numberForms } } : {}),
+          },
+          orderBy: { bookingDate: 'asc' },
+          take: 300,
+          select,
+        })
+      : [];
+
+    const rows = [...byNumber, ...byName];
 
     return rows
       .map(row => {
         let score = 0;
-        if (callerNumber && row.customerPhone === callerNumber) score += 2;
+        if (row.customerPhone && numberForms.includes(row.customerPhone)) score += 2;
         const sim = name ? nameSimilarity(name, row.customerName) : 0;
         if (name && sim >= NAME_MATCH_THRESHOLD) score += 2 * sim;
         if (score === 0) return null;

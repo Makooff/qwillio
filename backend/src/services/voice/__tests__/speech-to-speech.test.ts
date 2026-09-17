@@ -271,7 +271,10 @@ describe('temps réel hors service — les gardes', () => {
        CLASSIQUE de la synchronisation précédente, c'est-à-dire ni le nôtre ni
        celui de Vapi, et le drapeau ne faisait donc rien sur un client basculé. */
     expect(plans.stopSpeakingPlan).toBeNull();
-    expect(plans.startSpeakingPlan).toBeNull();
+    /* Le plan d'ATTENTE ne dépend pas de ce drapeau-là: il suit le
+       TRANSCRIPTEUR, qui est ici sur son défaut. Les deux se coupent
+       séparément, sinon un essai ne dit pas lequel des deux a agi. */
+    expect(plans.startSpeakingPlan).not.toBeNull();
     // Ce qui ne dépend pas du transcripteur reste servi dans les deux cas.
     expect(plans.silenceTimeoutSeconds).toBeDefined();
   });
@@ -418,11 +421,31 @@ describe('parole-à-parole — le transcripteur, sous interrupteur', () => {
     expect((on.buildRealtimePlans('fr', false) as any).transcriber).toBeTruthy();
   });
 
-  it('laisse le plan d\'attente retiré', async () => {
-    /* L'interrupteur ne teste QUE le transcripteur. Remettre aussi le plan
-       d'attente referait l'assistant hybride, et on ne saurait pas lequel des
-       deux a agi. */
-    const { buildRealtimePlans } = await load({ VOICE_REALTIME_TRANSCRIBER: 'on' });
-    expect((buildRealtimePlans('fr', true) as any).startSpeakingPlan).toBeNull();
+  /**
+   * LE PLAN D'ATTENTE LE SUIT, et ce test disait l'inverse (17/09/2026).
+   *
+   * Il exigeait que le plan reste retiré même avec un transcripteur, au motif
+   * qu'un seul essai devait bouger à la fois. Le raisonnement de méthode était
+   * bon, la conclusion a survécu à sa raison: le transcripteur est resté, donc
+   * les mots qu'il fournit sont là, donc le plan qui les compte doit être là
+   * aussi. Sans lui, Vapi applique son défaut de 0,4 s de silence et répond à
+   * un blanc de réflexion, puis répond une seconde fois à la vraie fin de
+   * phrase — treize répliques pour dix tours sur un appel réel de 108 s.
+   *
+   * L'interrupteur garde son rôle: `off` retire les DEUX d'un coup, ce qui
+   * rejoue exactement l'ancien comportement, et c'est ce que vérifie le test
+   * suivant.
+   */
+  it('emmène le plan d\'attente avec lui, dans les deux sens', async () => {
+    const on = await load({ VOICE_REALTIME_TRANSCRIBER: 'on' });
+    expect((on.buildRealtimePlans('fr', true) as any).startSpeakingPlan).not.toBeNull();
+
+    const off = await load({ VOICE_REALTIME_TRANSCRIBER: 'off' });
+    const plans = off.buildRealtimePlans('fr', true) as any;
+    /* Sans transcripteur il n'y a aucun mot à compter, donc le plan n'a plus
+       de sens — et `null`, jamais une clé tue: sur un PATCH, se taire CONSERVE
+       (6sexquinquagesies). */
+    expect(plans.transcriber).toBeNull();
+    expect(plans.startSpeakingPlan).toBeNull();
   });
 });

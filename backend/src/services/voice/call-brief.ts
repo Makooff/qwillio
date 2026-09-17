@@ -1,0 +1,74 @@
+import { clockLine } from './clock';
+import { callerHistoryBlock } from './system-prompt';
+import type { CallerHistory, ClientVoiceProfile } from './realtime-context.service';
+
+/**
+ * LE BRIEF: ce que l'assistant ENREGISTRÉ ne peut pas savoir, posé dans la
+ * conversation au moment où l'appel s'ouvre.
+ *
+ * Son prompt est figé à la SYNCHRONISATION (6quindecies). Deux choses n'y
+ * tiennent donc pas, et ce sont exactement les deux qui ont coûté des appels
+ * réels:
+ *
+ *  - L'HISTORIQUE de l'appelant. Il naît vide, forcément: au moment où on
+ *    écrit l'assistant, personne n'appelle. Sur le chemin custom-LLM,
+ *    `llm-stream` repose `callerHistoryBlock` à chaque tour et le trou est
+ *    bouché (6untrigesies). En parole-à-parole, Vapi parle à OpenAI
+ *    directement: `llm-stream` ne tourne pas, donc RIEN de ce qu'il ajoute
+ *    n'atteint l'appel (6quaterquadragesies). « On dirait qu'il ne me
+ *    reconnaît pas » est le retour du premier appel en Superagent, et il
+ *    décrivait le code.
+ *
+ *  - LA DATE. Le prompt figé porte le gabarit `{{"now" | date: …}}` que Vapi
+ *    remplit à chaque appel (`vapiClockLine`), et ce mécanisme n'a jamais été
+ *    vu tenir dans une session temps réel. Une date RÉELLE, calculée à
+ *    l'instant, ne peut pas être fausse pour CET appel: elle ne dépend de
+ *    personne. Et le mode d'échec est documenté et cher (6novovicies « lundi
+ *    17 juin » un vendredi 12 septembre, 6octoquadragesies le rendez-vous
+ *    parti en 2027).
+ *
+ * Elle est donc dite FAISANT FOI: si le gabarit n'a pas été rempli, le prompt
+ * porte du charabia à cet endroit, et il faut que le modèle sache laquelle des
+ * deux lignes croire.
+ *
+ * Le brief n'est jamais vide: la date vaut pour tout le monde. C'est
+ * volontaire, parce qu'un mécanisme qui ne s'exercerait que sur un appelant
+ * connu resterait endormi jusqu'au jour où on compte dessus, et un mécanisme
+ * qui n'a jamais atteint un appel réel n'est pas une optimisation
+ * (6octovicies, 6quinquetrigesies).
+ */
+export function callBrief(
+  profile: Pick<ClientVoiceProfile, 'language' | 'timezone'>,
+  caller: CallerHistory | null,
+  now: Date = new Date(),
+): string {
+  const lang = profile.language;
+  const lines: string[] = [];
+
+  lines.push(
+    lang === 'fr'
+      ? "CONTEXTE DE CET APPEL. Ce n'est pas l'appelant qui parle: ne réponds pas à ce message, continue la conversation normalement."
+      : lang === 'nl'
+        ? 'CONTEXT VAN DIT GESPREK. Dit is niet de beller: antwoord niet op dit bericht, zet het gesprek gewoon voort.'
+        : 'CONTEXT FOR THIS CALL. This is not the caller speaking: do not answer this message, just carry on with the conversation.',
+  );
+
+  lines.push(clockLine(lang, profile.timezone, now));
+  lines.push(
+    lang === 'fr'
+      ? "C'est cette date qui fait foi, avant toute autre date écrite plus haut."
+      : lang === 'nl'
+        ? 'Deze datum is de juiste, boven elke andere datum hierboven.'
+        : 'This is the authoritative date, above any other date written earlier.',
+  );
+
+  /* `callerHistoryBlock` et pas une seconde rédaction: c'est le texte que le
+     chemin custom-LLM pose à chaque tour, et deux règles écrites à la main
+     pour la même question divergent en moins d'un mois (6vicies). Il rend
+     `null` quand le numéro n'a jamais appelé, et il porte déjà la
+     sanitisation de ce qui vient de la parole d'un appelant précédent. */
+  const history = caller ? callerHistoryBlock(lang, caller) : null;
+  if (history) lines.push(history);
+
+  return lines.join('\n');
+}

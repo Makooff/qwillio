@@ -95,6 +95,7 @@ async function main() {
   let remoteSpeechToSpeech: boolean | null = null;
   let remoteTranscriber: boolean | null = null;
   let remoteSilenceTimeout: number | null = null;
+  let remoteStopSpeaking: CallFacts['remote']['stopSpeaking'] = null;
   const assistantId = ours?.client?.vapiAssistantId ?? vapiCall?.assistantId ?? null;
   if (assistantId) {
     try {
@@ -127,6 +128,14 @@ async function main() {
          annonçait « reste d'une synchronisation classique » sur un assistant
          temps réel qui n'en porte aucun — précisément l'état qu'on VEUT. Le
          `?? {}` transformait une absence en présence vide (17/09/2026). */
+      /* Le plan d'INTERRUPTION distant: « quand je le coupe, il ne s'arrête
+         pas » ne se lisait sur aucun écran. Même nuance que ci-dessous: une
+         absence reste `null`, jamais un objet vide. */
+      const stop = (assistant?.stopSpeakingPlan ?? null) as Record<string, any> | null;
+      remoteStopSpeaking = stop === null ? null : {
+        numWords: typeof stop.numWords === 'number' ? stop.numWords : null,
+        voiceSeconds: typeof stop.voiceSeconds === 'number' ? stop.voiceSeconds : null,
+      };
       const got = (assistant?.startSpeakingPlan ?? null) as Record<string, any> | null;
       remoteEndpointing = got === null ? null : {
         provider: got.smartEndpointingPlan?.provider ?? (got.smartEndpointingEnabled ? 'vapi' : 'aucun'),
@@ -172,7 +181,7 @@ async function main() {
     },
     booking: bookingRow ? { id: bookingRow.id, smsSent: bookingRow.smsConfirmationSent, smsLogs } : null,
     recordingReadable,
-    remote: { customLlm: remoteCustomLlm, endpointing: remoteEndpointing, speechToSpeech: remoteSpeechToSpeech, transcriber: remoteTranscriber, silenceTimeoutSeconds: remoteSilenceTimeout },
+    remote: { customLlm: remoteCustomLlm, endpointing: remoteEndpointing, speechToSpeech: remoteSpeechToSpeech, transcriber: remoteTranscriber, silenceTimeoutSeconds: remoteSilenceTimeout, stopSpeaking: remoteStopSpeaking },
     expected: {
       endpointing: {
         provider: want.smartEndpointingPlan.provider,

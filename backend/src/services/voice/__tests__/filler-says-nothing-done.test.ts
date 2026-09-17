@@ -98,3 +98,57 @@ describe('les phrases d\'attente décrivent le geste, jamais son issue', () => {
     }
   });
 });
+
+/**
+ * ET EN PAROLE-À-PAROLE, ELLE NE SE DIT PAS DU TOUT (17/09/2026).
+ *
+ * Sur ce chemin le modèle produit son audio lui-même et annonce SPONTANÉMENT
+ * ce qu'il va faire avant d'appeler l'outil. Notre phrase s'ajoute alors
+ * par-dessus, dans une autre voix, en disant la même chose. Relevé deux fois
+ * dans un seul appel réel:
+ *
+ *   « Je vais maintenant vérifier vos rendez-vous. Un instant s'il vous
+ *     plaît. »   (le modèle)
+ *   « Je cherche votre réservation, un instant. »   (cette table, mot pour mot)
+ *
+ * C'est « il répète en boucle ce qu'il fait », le retour exact du
+ * propriétaire. En classique la phrase reste indispensable: la chaîne ne peut
+ * RIEN dire pendant que l'outil tourne.
+ *
+ * La phrase RETARDÉE reste des deux côtés: elle ne part qu'après
+ * `VOICE_FILLER_DELAY_MS`, quand le modèle a fini d'annoncer et qu'il ne reste
+ * que du silence. Un `lookupBooking` à 7,9 s est exactement ce cas-là.
+ */
+describe('la phrase de démarrage se tait en parole-à-parole', () => {
+  const profile = (over: Record<string, unknown> = {}) => ({
+    clientId: 'c1', language: 'fr' as const, timezone: 'Europe/Brussels',
+    bookingEnabled: true, calendarConnected: true, customLlm: true,
+    voiceTier: null, voiceMode: 'classic', customVoice: null, superagentAllowed: true,
+    knowledgeFields: [], weekHours: {}, ...over,
+  }) as any;
+
+  const startMessages = (tools: any[]) => tools.flatMap(
+    (t: any) => (t.messages ?? []).filter((m: any) => m.type === 'request-start'));
+  const delayedMessages = (tools: any[]) => tools.flatMap(
+    (t: any) => (t.messages ?? []).filter((m: any) => m.type === 'request-response-delayed'));
+
+  it('aucune phrase de démarrage quand le modèle parle lui-même', async () => {
+    const { buildVoiceTools } = await import('../voice-tools');
+    const tools = buildVoiceTools(profile({ voiceTier: 'superagent' }));
+    expect(tools.length).toBeGreaterThan(0);
+    expect(startMessages(tools)).toHaveLength(0);
+  });
+
+  it('la phrase RETARDÉE reste: après sept secondes, l\'appelant croit la ligne coupée', async () => {
+    const { buildVoiceTools } = await import('../voice-tools');
+    const tools = buildVoiceTools(profile({ voiceTier: 'superagent' }));
+    expect(delayedMessages(tools).length).toBeGreaterThan(0);
+  });
+
+  it('la chaîne classique les garde toutes les deux: elle ne peut rien dire pendant l\'outil', async () => {
+    const { buildVoiceTools } = await import('../voice-tools');
+    const tools = buildVoiceTools(profile());
+    expect(startMessages(tools).length).toBeGreaterThan(0);
+    expect(delayedMessages(tools).length).toBeGreaterThan(0);
+  });
+});
