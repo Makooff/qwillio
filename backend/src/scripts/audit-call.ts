@@ -93,6 +93,7 @@ async function main() {
   /* LU sur l'assistant distant, pas déduit du réglage du client: l'écart entre
      les deux est exactement ce que cette ligne existe pour montrer. */
   let remoteSpeechToSpeech: boolean | null = null;
+  let remoteTranscriber: boolean | null = null;
   const assistantId = ours?.client?.vapiAssistantId ?? vapiCall?.assistantId ?? null;
   if (assistantId) {
     try {
@@ -104,6 +105,10 @@ async function main() {
          un client épinglé hors custom-LLM est aussi en `openai`, mais avec un
          transcripteur, et il est classique. */
       remoteSpeechToSpeech = assistant?.model?.provider === 'openai' && !assistant?.transcriber;
+      /* Le transcripteur DISTANT, à part: c'est lui qui distingue « le niveau
+         n'a pas été écrit » de « un reste l'annule ». Voir `remote.transcriber`
+         dans `call-audit.ts`. */
+      remoteTranscriber = !!assistant?.transcriber;
       const got = (assistant?.startSpeakingPlan ?? {}) as Record<string, any>;
       remoteEndpointing = {
         provider: got.smartEndpointingPlan?.provider ?? (got.smartEndpointingEnabled ? 'vapi' : 'aucun'),
@@ -149,7 +154,7 @@ async function main() {
     },
     booking: bookingRow ? { id: bookingRow.id, smsSent: bookingRow.smsConfirmationSent, smsLogs } : null,
     recordingReadable,
-    remote: { customLlm: remoteCustomLlm, endpointing: remoteEndpointing, speechToSpeech: remoteSpeechToSpeech },
+    remote: { customLlm: remoteCustomLlm, endpointing: remoteEndpointing, speechToSpeech: remoteSpeechToSpeech, transcriber: remoteTranscriber },
     expected: {
       endpointing: {
         provider: want.smartEndpointingPlan.provider,

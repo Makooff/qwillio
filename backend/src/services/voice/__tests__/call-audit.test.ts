@@ -599,3 +599,68 @@ describe('tierTurns — attribuer un modèle SERVI à son étage', () => {
     expect(tierTurns(undefined, 'a', 'b')).toEqual({ full: 0, mini: 0, other: 0, total: 0 });
   });
 });
+
+/**
+ * L'ASSISTANT HYBRIDE (17/09/2026).
+ *
+ * Premier appel réel d'un client basculé en Superagent: `silence-timed-out` au
+ * bout de 137 s, répliques qui se chevauchent, agent qui répond à sa propre
+ * question, `lookupBooking` jamais appelé. La cause n'était pas le réglage —
+ * il était bon — mais un RESTE: `vapiClient.updateAssistant` est un PATCH, et
+ * le chemin parole-à-parole se contentait de TAIRE le transcripteur et le plan
+ * d'attente, donc Vapi les gardait. Deux preneurs de tour de parole sur le même
+ * assistant.
+ *
+ * Ce que l'audit doit dire, et qui fait toute la différence: relancer
+ * `voice:tier` ne répare rien ici. La ligne doit nommer le reste, pas accuser
+ * un réglage correct — un levier qui envoie au mauvais geste coûte plus cher
+ * que pas de levier (6sexvicies).
+ */
+describe('auditCall — un assistant basculé dont le PATCH a gardé le classique', () => {
+  const hybride = () => {
+    const f = good();
+    f.expected.tierRequested = 'superagent';
+    f.expected.tierServed = 'superagent';
+    // Ce que l'assistant distant porte vraiment: modèle temps réel (donc pas de
+    // custom-LLM) ET le transcripteur de la synchronisation précédente.
+    f.remote.customLlm = false;
+    f.remote.speechToSpeech = false;
+    f.remote.transcriber = true;
+    return f;
+  };
+
+  it('nomme le RESTE au lieu d\'accuser le niveau', () => {
+    const niveau = auditCall(hybride()).checks.find(c => c.id === 'niveau')!;
+    expect(niveau.status).toBe('fail');
+    expect(niveau.value).toMatch(/HYBRIDE/);
+    expect(niveau.lever).toMatch(/PATCH/);
+    expect(niveau.lever).toMatch(/voice:resync/);
+  });
+
+  it('interdit explicitement le geste qui ne répare rien', () => {
+    const niveau = auditCall(hybride()).checks.find(c => c.id === 'niveau')!;
+    expect(niveau.lever).toMatch(/ne pas relancer/i);
+  });
+
+  it('garde le levier ORDINAIRE quand le niveau n\'a vraiment pas été écrit', () => {
+    /* Sans transcripteur distant, un assistant qui sert le classique alors que
+       le client veut le Superagent est bien un niveau jamais écrit: c'est là,
+       et là seulement, que `voice:tier` est le bon geste. */
+    const f = hybride();
+    f.remote.transcriber = false;
+    f.remote.customLlm = true;
+    const niveau = auditCall(f).checks.find(c => c.id === 'niveau')!;
+    expect(niveau.status).toBe('fail');
+    expect(niveau.value).not.toMatch(/HYBRIDE/);
+    expect(niveau.lever).toMatch(/voice:tier/);
+  });
+
+  it('reste muet quand l\'assistant distant sert bien le parole-à-parole', () => {
+    const f = hybride();
+    f.remote.speechToSpeech = true;
+    f.remote.transcriber = false;
+    const niveau = auditCall(f).checks.find(c => c.id === 'niveau')!;
+    expect(niveau.status).toBe('ok');
+    expect(niveau.lever).toBeUndefined();
+  });
+});

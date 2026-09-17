@@ -282,8 +282,28 @@ describe('buildRealtimePlans', () => {
    */
   it("N'ENVOIE AUCUNE CONDITION EN MOTS en parole-à-parole", () => {
     const plans = buildRealtimePlans('fr', true) as Record<string, unknown>;
-    expect(plans.transcriber).toBeUndefined();
-    expect(plans.startSpeakingPlan).toBeUndefined();
+    expect(plans.transcriber).toBeNull();
+    expect(plans.startSpeakingPlan).toBeNull();
+  });
+
+  /**
+   * `null`, et surtout PAS une clé absente (17/09/2026).
+   *
+   * Ce test-ci disait `toBeUndefined()`, et il passait pendant qu'un assistant
+   * distant portait encore son transcripteur Deepgram et son plan d'attente
+   * après être passé en Superagent. La raison n'est pas dans ce fichier:
+   * `vapiClient.updateAssistant` est un PATCH, donc une clé TUE est CONSERVÉE
+   * chez Vapi. « Ne pas envoyer » ne veut dire « retirer » que sur une
+   * création; sur tout client qui BASCULE, ça veut dire « garder l'ancien ».
+   *
+   * D'où la forme assertée ici: la clé doit EXISTER et valoir `null`. Un
+   * `toBeUndefined()` ne distingue pas les deux, et c'est exactement l'écart
+   * qui a laissé passer le défaut.
+   */
+  it('envoie la clé à null pour la RETIRER, puisque la mise à jour est un PATCH', () => {
+    const plans = buildRealtimePlans('fr', true) as Record<string, unknown>;
+    expect(Object.prototype.hasOwnProperty.call(plans, 'transcriber')).toBe(true);
+    expect(Object.prototype.hasOwnProperty.call(plans, 'startSpeakingPlan')).toBe(true);
   });
 
   /**

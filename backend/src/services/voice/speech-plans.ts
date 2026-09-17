@@ -1040,8 +1040,15 @@ export function buildRealtimePlans(
     /* Le modèle parole-à-parole entend l'audio lui-même: lui adjoindre un
        transcripteur, c'est payer une étape dont plus personne ne lit la
        sortie, et fixer la latence sur elle. Vapi le documente comme inutile
-       dans ce mode. */
-    ...(speechToSpeech ? {} : { transcriber: buildTranscriber(lang, opts) }),
+       dans ce mode.
+
+       `null`, PAS une clé absente, et c'est tout le sujet de 6sexquinquagesies.
+       `vapiClient.updateAssistant` est un PATCH: une clé qu'on n'envoie pas
+       n'est pas retirée, elle est CONSERVÉE telle quelle chez Vapi. Omettre le
+       transcripteur ne le supprimait donc que sur un assistant créé de zéro; sur
+       un assistant qui a déjà été synchronisé en classique — c'est-à-dire tout
+       client qui BASCULE vers le Superagent — Deepgram restait en place. */
+    transcriber: speechToSpeech ? null : buildTranscriber(lang, opts),
     /* LES DEUX PLANS DE PAROLE SUPPOSENT UN TRANSCRIPTEUR. Sans lui, ils ne
        peuvent pas être satisfaits, et c'est une panne, pas une dégradation.
        Regardez de quoi ils sont faits: `numWords`, `acknowledgementPhrases`,
@@ -1063,14 +1070,34 @@ export function buildRealtimePlans(
        je ne parle pas ». On envoie donc, en parole-à-parole, la partie du plan
        qui s'entend, et rien de ce qui se compte. */
     ...(speechToSpeech
-      ? !env.VOICE_REALTIME_STOP_PLAN ? {} : {
-          /* Ce qui reste envoyable sans transcripteur: le seuil de bruit.
-             `startSpeakingPlan` n'a pas d'équivalent, il est fait de règles de
-             ponctuation et de fin de phrase; en parole-à-parole, le moment de
-             répondre appartient au modèle. Le moment de SE TAIRE, lui, se
-             mesure sur l'audio, et le laisser au défaut de Vapi (0,2 s) est
-             précisément ce qui la fait taire au moindre bruit. */
-          stopSpeakingPlan: buildRealtimeStopSpeakingPlan(tuning),
+      ? {
+          /* `startSpeakingPlan` n'a pas d'équivalent en parole-à-parole: il est
+             fait de règles de ponctuation et de fin de phrase, et le moment de
+             répondre appartient au modèle. Il part donc à `null` et non en
+             étant tu, pour la raison du transcripteur juste au-dessus: tu, il
+             SURVIT au PATCH. Relevé au docteur le 17/09, sur le premier client
+             basculé en Superagent — l'assistant distant portait
+             `gpt-realtime-mini` ET, quelques secondes après la bascule,
+             « détecteur livekit, attente 0.15 s, ponctuation 0.4 s »,
+             c'est-à-dire un plan d'attente calibré sur un transcripteur qui
+             n'existait plus.
+             Ce que ça coûtait: exactement ce qu'on venait chercher. Le
+             Superagent est choisi pour supprimer l'attente de fin de tour, et
+             il la gardait; le premier relevé aurait montré la même seconde
+             qu'en classique et aurait fait conclure « le temps réel n'apporte
+             rien », sur un assistant qui n'était pas en temps réel de bout en
+             bout. Un faux diagnostic coûte plus cher qu'aucun diagnostic
+             (6sexvicies). */
+          startSpeakingPlan: null,
+          /* Ce qui reste envoyable sans transcripteur: le seuil de bruit. Le
+             moment de SE TAIRE se mesure sur l'audio, et le laisser au défaut
+             de Vapi (0,2 s) est précisément ce qui la fait taire au moindre
+             bruit.
+             `VOICE_REALTIME_STOP_PLAN=off` veut dire « rends la main au défaut
+             de Vapi »: c'est donc `null`, pas une absence, qui le dit. Absente,
+             la clé laissait en place le plan CLASSIQUE de la synchronisation
+             précédente, soit ni notre plan ni celui de Vapi. */
+          stopSpeakingPlan: env.VOICE_REALTIME_STOP_PLAN ? buildRealtimeStopSpeakingPlan(tuning) : null,
         }
       : {
           startSpeakingPlan: buildStartSpeakingPlan(lang),

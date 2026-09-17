@@ -163,8 +163,12 @@ describe('parole-à-parole', () => {
      à ce qu'elle était. */
   it('retire le transcripteur, et le garde dans la chaîne classique', async () => {
     const { buildRealtimePlans } = await load({ VOICE_SPEECH_TO_SPEECH: 'on' });
-    expect(buildRealtimePlans('fr', true)).not.toHaveProperty('transcriber');
-    expect(buildRealtimePlans('fr', false)).toHaveProperty('transcriber');
+    /* `null` et non une clé absente: la mise à jour d'un assistant est un
+       PATCH, donc taire la clé la CONSERVE chez Vapi. Ce test disait
+       `not.toHaveProperty` et passait pendant qu'un assistant basculé en
+       Superagent gardait Deepgram. Voir speech-plans.test.ts. */
+    expect((buildRealtimePlans('fr', true) as any).transcriber).toBeNull();
+    expect((buildRealtimePlans('fr', false) as any).transcriber).toBeTruthy();
   });
 
   /**
@@ -252,8 +256,12 @@ describe('temps réel hors service — les gardes', () => {
 
     const off = await load({ VOICE_REALTIME_STOP_PLAN: 'off' });
     const plans = off.buildRealtimePlans('fr', true) as any;
-    expect(plans.stopSpeakingPlan).toBeUndefined();
-    expect(plans.startSpeakingPlan).toBeUndefined();
+    /* « off » veut dire « rends la main au défaut de Vapi ». Sur un PATCH,
+       seule une valeur `null` le dit: une clé absente laissait en place le plan
+       CLASSIQUE de la synchronisation précédente, c'est-à-dire ni le nôtre ni
+       celui de Vapi, et le drapeau ne faisait donc rien sur un client basculé. */
+    expect(plans.stopSpeakingPlan).toBeNull();
+    expect(plans.startSpeakingPlan).toBeNull();
     // Ce qui ne dépend pas du transcripteur reste servi dans les deux cas.
     expect(plans.silenceTimeoutSeconds).toBeDefined();
   });

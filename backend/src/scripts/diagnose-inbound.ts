@@ -204,22 +204,64 @@ async function main() {
        * faux — ce sont deux gestes différents. */
       const { realtimeContextService } = await import('../services/voice/realtime-context.service');
       const { voiceSignatureFor } = await import('../services/voice/greeting-audio.service');
+      const { assistantSpeechForProfile } = await import('../services/voice/profile-voice');
       const profile = await realtimeContextService.getClientProfile(client.id).catch(() => null);
       const remote = assistant.voice ?? {};
       const remoteVoice = `${remote.provider ?? '(aucun)'} / ${remote.voiceId ?? '(aucune)'} / ${remote.model ?? '(aucun)'}`;
       if (!profile) {
         verdict(false, 'voix de l\'assistant qui décroche', `distant: ${remoteVoice}. Profil illisible, rien à comparer.`);
       } else {
-        const want = voiceSignatureFor(profile);
-        const same = remote.provider === want.provider && remote.voiceId === want.voiceId;
+        /* LE NIVEAU D'ABORD, sinon le docteur ment (17/09/2026).
+           Ce bloc comparait la voix distante à `voiceSignatureFor`, qui répond
+           TOUJOURS par une signature de SYNTHÈSE (Cartesia ou ElevenLabs). En
+           parole-à-parole il n'y a pas de synthèse: la voix est celle du
+           modèle, `openai / cedar`. Le docteur annonçait donc « périmé,
+           resynchroniser » à tout client Superagent — sur un assistant
+           parfaitement configuré, et en conseillant un geste qui ne change
+           rien. C'est mot pour mot 6sexvicies, qui a déjà coûté une nuit.
+           La comparaison passe donc par `assistantSpeechForProfile`, la MÊME
+           fonction que les deux écritures de `onboarding.service.ts`: elle sait
+           quel niveau le client a, donc elle ne peut pas diverger de ce qui est
+           réellement envoyé. Le prompt et les outils vides ne changent ni la
+           voix ni le niveau, seuls objets lus ici. */
+        const expected = assistantSpeechForProfile(profile, {
+          clientId: client.id, systemPrompt: '', tools: [], temperature: 0,
+        });
+        const s2s = expected.speechToSpeech;
+        const wantVoice = (expected.voice ?? {}) as Record<string, any>;
+        const same = remote.provider === wantVoice.provider && remote.voiceId === wantVoice.voiceId;
         verdict(
           same,
           `voix de l'assistant qui décroche (${remote.provider ?? 'aucune'})`,
           same
-            ? remoteVoice
-            : `distant: ${remoteVoice}\n       attendu: ${want.provider} / ${want.voiceId} / ${want.model}`
+            ? remoteVoice + (s2s ? '\n       parole-à-parole: la voix est celle du modèle, il n\'y a pas de synthèse séparée.' : '')
+            : `distant: ${remoteVoice}\n       attendu: ${wantVoice.provider ?? '(aucun)'} / ${wantVoice.voiceId ?? '(aucune)'} / ${wantVoice.model ?? '(aucun)'}`
               + `\n       L'assistant enregistré est périmé: \`npm run voice:resync -- --email=${client.contactEmail} --confirm\`.`,
         );
+        /* CE QUI A SURVÉCU À LA BASCULE, et que rien ne montrait (17/09/2026).
+           `vapiClient.updateAssistant` est un PATCH: une clé que la
+           synchronisation n'envoie pas est CONSERVÉE chez Vapi. Le chemin
+           parole-à-parole se contentait de taire le transcripteur et le plan
+           d'attente, ce qui les retire à la création et les GARDE sur tout
+           client qui bascule. `buildRealtimePlans` les envoie désormais à
+           `null`; ces deux lignes-ci sont ce qui le prouve sur l'assistant
+           DISTANT, seule chose qui décroche. */
+        {
+          const gotTr = (assistant.transcriber ?? null) as Record<string, any> | null;
+          const trLabel = gotTr ? `${gotTr.provider ?? '?'} / ${gotTr.model ?? '?'}` : 'aucun';
+          verdict(
+            s2s ? !gotTr : !!gotTr,
+            `transcripteur de l'assistant qui décroche (${gotTr ? gotTr.provider ?? '?' : 'aucun'})`,
+            s2s
+              ? gotTr
+                ? `distant: ${trLabel}, alors qu'en parole-à-parole le modèle entend l'audio lui-même.`
+                  + `\n       RESTE d'une synchronisation classique, conservé par le PATCH: une étape payée dont`
+                  + `\n       plus personne ne lit la sortie, et la latence fixée sur elle.`
+                  + `\n       \`npm run voice:resync -- --email=${client.contactEmail} --confirm\` (après déploiement).`
+                : 'aucun: le modèle entend l\'audio lui-même, c\'est ce qu\'on veut.'
+              : gotTr ? trLabel : 'ABSENT en chaîne classique: sans transcripteur, plus rien ne remonte au modèle.',
+          );
+        }
         /* Le DÉTECTEUR DE FIN DE TOUR et les attentes avant de répondre, tels
            que l'assistant distant les porte (15/09/2026). « LiveKit est-il
            branché ? » se lit ici: la variable Render dit ce que la prochaine
@@ -227,26 +269,47 @@ async function main() {
            Comparé au plan calculé par la MÊME fonction que la synchronisation. */
         {
           const { buildStartSpeakingPlan } = await import('../services/voice/speech-plans');
-          const want = buildStartSpeakingPlan(profile.language as 'fr' | 'en' | 'nl');
-          const got = (assistant.startSpeakingPlan ?? {}) as Record<string, any>;
-          const gotProvider = got.smartEndpointingPlan?.provider ?? (got.smartEndpointingEnabled ? 'vapi' : 'aucun');
-          const wantProvider = want.smartEndpointingPlan.provider;
-          const gotWait = got.waitSeconds;
-          const gotPunct = got.transcriptionEndpointingPlan?.onPunctuationSeconds;
-          const same = gotProvider === wantProvider && gotWait === want.waitSeconds
-            && gotPunct === want.transcriptionEndpointingPlan.onPunctuationSeconds;
-          verdict(
-            same,
-            `fin de tour de l'assistant qui décroche (${gotProvider})`,
-            `distant: détecteur ${gotProvider}, attente ${gotWait ?? '?'} s, ponctuation ${gotPunct ?? '?'} s`
-              + (same ? '' : `\n       attendu: détecteur ${wantProvider}, attente ${want.waitSeconds} s, ponctuation ${want.transcriptionEndpointingPlan.onPunctuationSeconds} s`
-                + `\n       L'assistant enregistré est périmé: \`npm run voice:resync -- --email=${client.contactEmail} --confirm\`.`),
-          );
+          const got = (assistant.startSpeakingPlan ?? null) as Record<string, any> | null;
+          const gotProvider = got?.smartEndpointingPlan?.provider ?? (got?.smartEndpointingEnabled ? 'vapi' : 'aucun');
+          const gotWait = got?.waitSeconds;
+          const gotPunct = got?.transcriptionEndpointingPlan?.onPunctuationSeconds;
+          const gotLabel = `distant: détecteur ${gotProvider}, attente ${gotWait ?? '?'} s, ponctuation ${gotPunct ?? '?'} s`;
+          if (s2s) {
+            /* En parole-à-parole, le moment de répondre appartient au modèle:
+               le plan attendu est l'ABSENCE de plan. Un plan distant n'est donc
+               pas un écart de réglage, c'est un reste — et c'est le reste qui
+               coûte le plus cher, puisque le Superagent est précisément choisi
+               pour supprimer cette attente-là. */
+            verdict(
+              !got,
+              `fin de tour de l'assistant qui décroche (${got ? gotProvider : 'le modèle'})`,
+              got
+                ? `${gotLabel}\n       RESTE d'une synchronisation classique: un plan d'attente calibré sur un`
+                  + `\n       transcripteur qui n'existe plus. C'est l'attente que le Superagent devait supprimer.`
+                  + `\n       \`npm run voice:resync -- --email=${client.contactEmail} --confirm\` (après déploiement).`
+                : 'aucun plan: le moment de répondre appartient au modèle, c\'est ce qu\'on veut.',
+            );
+          } else {
+            const want = buildStartSpeakingPlan(profile.language as 'fr' | 'en' | 'nl');
+            const wantProvider = want.smartEndpointingPlan.provider;
+            const sameTurn = gotProvider === wantProvider && gotWait === want.waitSeconds
+              && gotPunct === want.transcriptionEndpointingPlan.onPunctuationSeconds;
+            verdict(
+              sameTurn,
+              `fin de tour de l'assistant qui décroche (${gotProvider})`,
+              gotLabel
+                + (sameTurn ? '' : `\n       attendu: détecteur ${wantProvider}, attente ${want.waitSeconds} s, ponctuation ${want.transcriptionEndpointingPlan.onPunctuationSeconds} s`
+                  + `\n       L'assistant enregistré est périmé: \`npm run voice:resync -- --email=${client.contactEmail} --confirm\`.`),
+            );
+          }
         }
         /* Le réglage lui-même, dit en clair: « attendu 11labs » alors que le
            client croit être chez Cartesia n'est pas une panne de
-           synchronisation, c'est le réglage qui n'a jamais basculé. */
-        if (want.provider !== 'cartesia' && env.CARTESIA_API_KEY) {
+           synchronisation, c'est le réglage qui n'a jamais basculé.
+           Sans objet en parole-à-parole, où aucune synthèse ne tourne: poser la
+           question reviendrait à rouvrir le faux positif qu'on vient de fermer. */
+        const want = voiceSignatureFor(profile);
+        if (!s2s && want.provider !== 'cartesia' && env.CARTESIA_API_KEY) {
           /* LE MOTIF, pas seulement l'écart. Relevé du 12/09:
              `VOICE_TTS_PROVIDER=cartesia` était bien posé, et la ligne parlait
              quand même chez ElevenLabs. Le docteur disait « le choix vient de
