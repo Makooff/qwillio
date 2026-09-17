@@ -811,13 +811,20 @@ export function auditCall(facts: CallFacts): AuditReport {
        fait donne à la mesure la plus indirecte le poids de celle qui touche le
        phénomène (6quaterquinquagesies). */
     const s2sWanted = facts.expected.tierServed === 'superagent';
+    /* Un plan « vide » n'est pas un plan. Le collecteur rendait un objet
+       `{provider: 'aucun', waitSeconds: null, punctuationSeconds: null}` quand
+       l'assistant distant n'en portait AUCUN, et la ligne annonçait alors
+       « reste d'une synchronisation classique » sur exactement l'état qu'on
+       veut. Corrigé à la source, et ici aussi: ce module est pur et testé, son
+       verdict ne doit pas dépendre du soin de son appelant. */
+    const hasPlan = !!got && (got.provider !== 'aucun' || got.waitSeconds !== null || got.punctuationSeconds !== null);
     if (s2sWanted) {
       push({
         id: 'endpointing', area: 'reglages',
-        status: got ? 'skip' : 'ok',
+        status: hasPlan ? 'skip' : 'ok',
         label: "détecteur de fin de tour de l'assistant qui décroche",
-        value: got
-          ? `${got.provider}, attente ${got.waitSeconds ?? '?'} s, ponctuation ${got.punctuationSeconds ?? '?'} s: `
+        value: hasPlan
+          ? `${got!.provider}, attente ${got!.waitSeconds ?? '?'} s, ponctuation ${got!.punctuationSeconds ?? '?'} s: `
             + 'reste d\'une synchronisation classique, voir la ligne « niveau »'
           : 'aucun plan: en parole-à-parole, le moment de répondre appartient au modèle',
       });

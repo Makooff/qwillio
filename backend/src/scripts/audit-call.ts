@@ -114,8 +114,13 @@ async function main() {
          aucun écran, et c'est lui qui a tué six appels de test d'affilée. */
       remoteSilenceTimeout = typeof assistant?.silenceTimeoutSeconds === 'number'
         ? assistant.silenceTimeoutSeconds : null;
-      const got = (assistant?.startSpeakingPlan ?? {}) as Record<string, any>;
-      remoteEndpointing = {
+      /* PAS de plan distant reste `null`, et la nuance porte tout: un objet
+         rempli de « aucun » et de `null` se lit comme un plan, donc l'audit
+         annonçait « reste d'une synchronisation classique » sur un assistant
+         temps réel qui n'en porte aucun — précisément l'état qu'on VEUT. Le
+         `?? {}` transformait une absence en présence vide (17/09/2026). */
+      const got = (assistant?.startSpeakingPlan ?? null) as Record<string, any> | null;
+      remoteEndpointing = got === null ? null : {
         provider: got.smartEndpointingPlan?.provider ?? (got.smartEndpointingEnabled ? 'vapi' : 'aucun'),
         waitSeconds: typeof got.waitSeconds === 'number' ? got.waitSeconds : null,
         punctuationSeconds: typeof got.transcriptionEndpointingPlan?.onPunctuationSeconds === 'number' ? got.transcriptionEndpointingPlan.onPunctuationSeconds : null,
