@@ -899,3 +899,52 @@ describe('auditCall — absence de plan contre plan vide', () => {
     expect(c.value).toMatch(/reste/);
   });
 });
+
+/**
+ * L'INTERRUPTION, LUE SUR L'ASSISTANT DISTANT (17/09/2026).
+ *
+ * « Quand je le coupe, il ne s'arrête pas », trois appels de suite, et aucun
+ * des deux diagnostics ne montrait le réglage mis en cause. On ne pouvait donc
+ * pas distinguer « le correctif n'est pas déployé » de « le correctif ne
+ * marche pas », qui appellent des gestes opposés.
+ */
+describe('auditCall — le plan d\'interruption distant', () => {
+  const s2s = (stop: CallFacts['remote']['stopSpeaking']) => {
+    const f = good();
+    f.expected.tierRequested = 'superagent';
+    f.expected.tierServed = 'superagent';
+    f.expected.realtimeTranscriber = true;
+    f.remote.customLlm = false;
+    f.remote.speechToSpeech = true;
+    f.remote.transcriber = true;
+    f.remote.stopSpeaking = stop;
+    return auditCall(f).checks.find(c => c.id === 'barge-in')!;
+  };
+
+  it('« énergie seule » est un DÉFAUT quand un transcripteur fournit des mots', () => {
+    const c = s2s({ numWords: 0, voiceSeconds: 0.2 });
+    expect(c.status).toBe('fail');
+    expect(c.value).toMatch(/énergie seule/);
+    expect(c.lever).toMatch(/voice:resync/);
+  });
+
+  it('un plan qui compte des mots passe au vert', () => {
+    expect(s2s({ numWords: 2, voiceSeconds: 0.2 }).status).toBe('ok');
+  });
+
+  it("sans transcripteur, « énergie seule » redevient correct: il n'y a aucun mot", () => {
+    const f = good();
+    f.expected.tierServed = 'superagent';
+    f.expected.realtimeTranscriber = false;
+    f.remote.speechToSpeech = true;
+    f.remote.transcriber = false;
+    f.remote.stopSpeaking = { numWords: 0, voiceSeconds: 0.2 };
+    const c = auditCall(f).checks.find(x => x.id === 'barge-in')!;
+    expect(c.status).toBe('ok');
+    expect(c.value).toMatch(/correct sans transcripteur/);
+  });
+
+  it('non lu se dit `skip`, jamais un vert inventé', () => {
+    expect(s2s(null).status).toBe('skip');
+  });
+});

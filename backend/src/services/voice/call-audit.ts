@@ -117,6 +117,16 @@ export interface CallFacts {
      * cet appel n'a rien donné » ne le montraient ni l'un ni l'autre.
      */
     silenceTimeoutSeconds?: number | null;
+    /**
+     * Le plan d'INTERRUPTION que l'assistant distant porte. `null` = non lu.
+     *
+     * « Quand je le coupe, il ne s'arrête pas » est un retour qui revient
+     * depuis trois appels réels, et AUCUN écran ne montrait le réglage mis en
+     * cause. `numWords: 0` trie sur la seule énergie: écrit pour un chemin
+     * sans transcripteur, il ne coupe pas l'agent quand l'appelant parle.
+     * Avec un transcripteur, le plan classique compte les mots.
+     */
+    stopSpeaking?: { numWords: number | null; voiceSeconds: number | null } | null;
   };
   expected: {
     endpointing: EndpointingFacts;
@@ -924,6 +934,37 @@ export function auditCall(facts: CallFacts): AuditReport {
         lever: got && !same ? "l'assistant enregistré est périmé par rapport à l'env: `npm run voice:resync -- --confirm`" : undefined,
       });
     }
+  }
+
+  {
+    /* LE PLAN D'INTERRUPTION, LU SUR L'ASSISTANT DISTANT (17/09/2026).
+     *
+     * « Quand je le coupe, il ne s'arrête pas », trois appels de suite, et
+     * aucun des deux diagnostics ne montrait ce réglage: on ne pouvait donc
+     * pas distinguer « le correctif n'est pas déployé » de « le correctif ne
+     * marche pas ». C'est exactement ce que cet audit existe pour trancher.
+     *
+     * `numWords: 0` trie sur la seule ÉNERGIE. C'était le bon plan tant que le
+     * parole-à-parole n'avait pas de transcripteur — il n'y avait aucun mot à
+     * compter — et il est devenu le mauvais le jour où Vapi en a exigé un. */
+    const got = facts.remote.stopSpeaking ?? null;
+    const wantWords = facts.expected.realtimeTranscriber !== false;
+    const energyOnly = got !== null && got.numWords === 0;
+    push({
+      id: 'barge-in', area: 'reglages',
+      status: got === null ? 'skip' : energyOnly && wantWords ? 'fail' : 'ok',
+      label: "interruption: l'agent se tait quand l'appelant parle",
+      value: got === null
+        ? 'assistant distant non lu'
+        : energyOnly
+          ? `énergie seule (numWords 0, voix ${got.voiceSeconds ?? '?'} s)`
+            + (wantWords ? " — il ne coupe pas l'agent quand l'appelant parle" : ", correct sans transcripteur")
+          : `${got.numWords} mot(s) transcrit(s), voix ${got.voiceSeconds ?? '?'} s`,
+      target: wantWords ? 'au moins un mot transcrit' : undefined,
+      lever: energyOnly && wantWords
+        ? "l'assistant distant porte encore le plan « énergie seule »: `npm run voice:resync -- --confirm`"
+        : undefined,
+    });
   }
 
   {
