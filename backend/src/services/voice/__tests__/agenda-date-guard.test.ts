@@ -439,3 +439,85 @@ describe('date lointaine — confirmer avant d\'écrire', () => {
     expect(out).not.toMatch(/RIEN N'EST ENCORE ENREGISTRE/);
   });
 });
+
+/**
+ * LE DOUBLON DANS L'AGENDA GOOGLE (17/09/2026).
+ *
+ * Capture d'écran du gérant: DEUX événements « Appointment - Jean-Luc de la
+ * forge » sur le même créneau, mardi 22 à 14 h, pour UNE seule ligne en base.
+ * L'audit du même appel montre `rescheduleBooking` appelé deux fois, à 141 s
+ * et à 145 s, avec les mêmes arguments.
+ *
+ * La course: la mise à jour posait `googleEventId: null` AVANT un
+ * `moveCalendarEvent` qui n'est pas attendu. Le second appel relisait donc
+ * `null`, n'avait plus rien à supprimer, et créait un second événement.
+ *
+ * Deux gardes, et il faut les deux: l'idempotence ferme la CAUSE (un modèle
+ * qui rappelle un outil avec les mêmes arguments est le comportement connu de
+ * ce chemin, 6sexquadragesies), et garder `googleEventId` ferme la course.
+ */
+describe('rescheduleBooking — déplacer deux fois au même endroit', () => {
+  beforeEach(() => {
+    /* Les fixtures datent en 2099 pour rester dans le futur, donc le garde-fou
+       d'ANNÉE répondrait à leur place. 2 = « déjà annoncée, l'appelant a
+       confirmé », le défaut du bouchon en tête de fichier, qu'un describe
+       précédent a pu ramener à 1. */
+    (callSessionStore.noteFarDateAnnounced as unknown as { mockReturnValue: (v: number) => void }).mockReturnValue(2);
+  });
+
+  const upcoming = {
+    id: 'b-move', customerName: 'Jean-Luc de la Forge', customerPhone: '32483620980',
+    bookingDate: new Date('2099-01-13T12:00:00.000Z'), bookingTime: '14:00',
+    serviceType: null, googleEventId: 'evt-old',
+  };
+
+  it("ne retouche RIEN quand le rendez-vous y est déjà, et dit de ne plus rappeler", async () => {
+    findBookings.mockResolvedValue([upcoming]);
+    const out = String((await toolRuntimeService.execute('c1', 'call_1', {
+      name: 'rescheduleBooking', args: { date: '2099-01-13', time: '14:00' }, toolCallId: 't9',
+    } as never)).result);
+    expect(out).toMatch(/^DEJA FAIT/);
+    expect(out).toMatch(/N'appelle PLUS rescheduleBooking/);
+    /* Rien n'est écrit: pas de seconde écriture, donc pas de second
+       événement Google. C'est la ligne qui ferme le doublon. */
+    expect(updateBooking).not.toHaveBeenCalled();
+  });
+
+  it('un VRAI déplacement écrit toujours', async () => {
+    findBookings.mockResolvedValue([upcoming]);
+    const out = String((await toolRuntimeService.execute('c1', 'call_1', {
+      name: 'rescheduleBooking', args: { date: '2099-01-13', time: '15:00' }, toolCallId: 't10',
+    } as never)).result);
+    expect(out).toMatch(/^DEPLACE/);
+    expect(updateBooking).toHaveBeenCalled();
+  });
+
+  it("n'efface PAS `googleEventId` en écrivant: c'est la seule référence de l'ancien événement", async () => {
+    findBookings.mockResolvedValue([upcoming]);
+    await toolRuntimeService.execute('c1', 'call_1', {
+      name: 'rescheduleBooking', args: { date: '2099-01-13', time: '16:00' }, toolCallId: 't11',
+    } as never);
+    const data = updateBooking.mock.calls[0][0].data;
+    expect(data.bookingTime).toBe('16:00');
+    /* La forme fautive: `googleEventId: null` ici perdait l'ancien événement
+       pour tout appel concurrent, qui n'avait alors plus rien à supprimer. */
+    expect(data).not.toHaveProperty('googleEventId');
+  });
+});
+
+/**
+ * LE JOUR DE LA SEMAINE FAIT FOI (17/09/2026).
+ *
+ * « J'avais demandé lundi prochain, et il a dit lundi 22 septembre. Sauf que
+ * le 22 septembre, c'est un mardi. » Le résultat disait pourtant « mardi »:
+ * le jour y est depuis 6novovicies. Ce qui manquait n'est pas le FAIT, c'est
+ * la consigne de s'y tenir, le modèle ayant déjà une phrase à lui.
+ */
+describe('checkAvailability — le jour de la semaine', () => {
+  it('nomme le jour en capitales et interdit d\'en annoncer un autre', async () => {
+    const out = String(await check({ date: '2099-01-13' }));
+    expect(out).toMatch(/Ce jour est un [A-ZÉÛ]+/);
+    expect(out).toMatch(/fait foi/);
+    expect(out).toMatch(/N'annonce jamais un jour de semaine different/);
+  });
+});

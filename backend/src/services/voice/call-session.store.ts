@@ -129,6 +129,20 @@ export interface CallSession {
   /** Chaque tour parti en phrase de repli, avec la raison: « OpenAI responded 429 », délai au premier jeton… */
   llmFailures: string[];
   /**
+   * LE BRIEF D'OUVERTURE A-T-IL ATTEINT L'APPEL ? `null` = pas encore tenté.
+   *
+   * Le mécanisme pose la mémoire de l'appelant et ses rendez-vous dans la
+   * session temps réel, par `add-message`. Il n'avait aucune trace lisible
+   * après coup, et le retour du 17/09 — « il me redemande mon nom à chaque
+   * fois alors que c'est relié à mon numéro » — ne permettait pas de trancher
+   * entre « le brief n'est pas parti » et « le modèle l'ignore ». Ce sont deux
+   * pannes différentes et deux correctifs opposés.
+   *
+   * La règle du dépôt: un mécanisme qui n'a jamais été VU atteindre un appel
+   * réel n'est pas prouvé (6octovicies, 6quinquetrigesies).
+   */
+  callBrief: string | null;
+  /**
    * Combien de fois le numéro dicté n'a rien donné, sur CET appel (BEL-4).
    *
    * Par appel et non par tour: c'est la répétition de l'échec qui décide de
@@ -278,6 +292,7 @@ class CallSessionStore {
       tokens: { input: 0, cached: 0, output: 0 },
       models: {},
       llmFailures: [],
+      callBrief: null,
       phoneCaptureFailures: 0,
       phoneReadBack: null,
       nameReadBack: null,
@@ -379,6 +394,12 @@ class CallSessionStore {
     const session = this.get(vapiCallId);
     if (!session) return;
     session.llmFailures.push(reason.slice(0, 200));
+  }
+
+  /** Voir `callBrief`: « pose (3 rendez-vous) », « refuse: 404 », « sans adresse ». */
+  noteCallBrief(vapiCallId: string | null, outcome: string): void {
+    const session = this.get(vapiCallId);
+    if (session) session.callBrief = outcome.slice(0, 120);
   }
 
   /** Un tour servi par `model`, tel qu'OpenAI l'a nommé dans son flux. */

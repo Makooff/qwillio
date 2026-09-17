@@ -1899,6 +1899,69 @@ la frappe reussisse ou non, sinon un refus bloque toute lecture d'agenda de ce
 client pour la vie du processus. Ca vaut pour TOUTES les operations d'agenda,
 pas seulement les creneaux: reserver, deplacer, annuler.
 
+### 6novoquinquagesies. Le premier appel qui DEPLACE vraiment, et les cinq restes (17/09/2026, 17:13)
+`VOICE_START_WAIT_SECONDS` passe a 0,4 et le resync est fait: l'agent retrouve
+le rendez-vous du **22 mars 2027** (impossible le matin), le deplace au
+22 septembre 14 h, et l'audit le confirme (`DEPLACE: ... du lundi 22 mars 2027
+17:00 au mardi 22 septembre 2026 a 14:00`). Repliques doublees de 4/13 a 1/20,
+delai ressenti 2,0 s. Ce qui suit est ce qui reste.
+**(1) L'audit a crie au loup une CINQUIEME fois, et cette fois la lecture
+fautive datait du matin meme.** Ligne rouge: « detecteur de fin de tour:
+livekit, attente 0.6 s, ponctuation 0.8 s (cible 0.4 / 0.4) », avec pour levier
+« resync ». Or 0,6 et 0,8 sont EXACTEMENT les valeurs du niveau superagent que
+le resync venait d'ecrire: l'assistant etait parfaitement a jour. Le plan est
+devenu propre au NIVEAU le matin, et `audit-call.ts` a continue de batir sa
+cible avec `buildStartSpeakingPlan(language)` **sans tuning**, donc depuis
+l'environnement global. **Quand une lecon deplace un champ, le code qui le LIT
+compte autant que celui qui l'ecrit** (6sexvicies), et un test de source gele
+desormais la forme fautive.
+**(2) Le doublon dans l'agenda Google, et c'est une COURSE.** Capture d'ecran du
+gerant: deux evenements sur le meme creneau pour UNE ligne en base. L'audit:
+`rescheduleBooking` appele deux fois, a 141 s et 145 s, memes arguments. La mise
+a jour posait `googleEventId: null` AVANT un `moveCalendarEvent` qui n'est pas
+attendu; le second appel relisait donc `null`, n'avait plus rien a supprimer, et
+creait un second evenement. Deux gardes, et il faut les deux: l'idempotence
+(« DEJA FAIT », aucune ecriture) ferme la CAUSE, un modele qui rappelle un outil
+avec les memes arguments etant le comportement connu de ce chemin
+(6sexquadragesies); et garder `googleEventId` jusqu'a ce que le deplacement
+ecrive le nouveau ferme la course.
+**(3) « Lundi prochain » resolu au 22 septembre, qui est un MARDI.** Le resultat
+de l'outil disait pourtant « LIBRE le mardi 22 septembre »: le jour y est depuis
+6novovicies. Ce qui manquait n'est pas le FAIT, c'est la consigne de s'y tenir.
+Le modele avait deja sa phrase (« lundi prochain ») et l'a collee devant la date
+du resultat, exactement comme il annoncait une fermeture par-dessus une fenetre
+d'ouverture qui la contredisait (6duoquinquagesies). **Ajouter un fait ne suffit
+pas quand le modele a deja une phrase a lui; il faut dire laquelle des deux
+gagne.** `weekdayNote()` nomme le jour en capitales, dit qu'il fait foi et
+interdit d'en annoncer un autre. Dans le RESULTAT D'OUTIL, donc zero caractere
+au prompt.
+**(4) Le tutoiement, et la cause est de forme.** « Des fois il me tutoie, il dit
+Attends. » Tout `REALTIME_DISCIPLINE` s'adresse au MODELE en « tu », comme une
+consigne s'ecrit, et il est pose AVANT le prompt metier qui porte la regle de
+vouvoiement: le modele rend le registre qu'il lit en PREMIER. La regle est donc
+dite dans ce bloc-la, en tete, avec la raison (« ces consignes te tutoient parce
+qu'elles s'adressent a toi »). C'est 6quater sur le chemin qui n'etait pas
+couvert.
+**(5) L'anglais a la fin, et le meme defaut au MILIEU.** « Quand il me dit au
+revoir, d'un coup il passe en anglais: How can I help you. » Releve aussi en
+plein echange: « Bien sur, je suis la pour vous aider, en quoi puis-je vous
+assister ». Les deux disent la meme chose: **quand le modele perd le fil, il
+retombe sur son ouverture par defaut, qui est anglaise**. Une consigne de langue
+posee UNE fois en tete d'un long prompt ne tient pas ce moment-la, puisque c'est
+la que le debut du prompt pese le moins. Elle nomme donc les deux instants ou ca
+lache: la fin d'appel et le trou.
+**(6) Le brief d'ouverture n'avait aucune trace lisible.** « Il me redemande mon
+nom a chaque fois alors que c'est relie a mon numero »: sans relever, ce retour
+ne distingue pas deux pannes OPPOSEES, le brief qui n'est pas parti (pas
+d'adresse de controle, refus de Vapi sur `add-message`) et le brief parti que le
+modele ignore. Le premier se repare dans le webhook, le second dans le prompt.
+`CallSession.callBrief` porte l'issue, elle voyage avec les metriques, et
+l'audit l'affiche en nommant les journaux Render plutot que le prompt. Regle du
+depot: un mecanisme qui n'a jamais ete VU atteindre un appel reel n'est pas
+prouve (6octovicies, 6quinquetrigesies).
+**Reste ouvert:** `endCall` a 11,8 s, `rescheduleBooking` a 8,2 s,
+`checkAvailability` a 6,5 s malgre le cache de jeton Google.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

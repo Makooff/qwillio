@@ -396,6 +396,36 @@ export function auditCall(facts: CallFacts): AuditReport {
   }
 
   {
+    /* LE BRIEF D'OUVERTURE, VU OU PAS VU (17/09/2026).
+     *
+     * « Il me redemande mon nom à chaque fois alors que c'est relié à mon
+     * numéro. » Sans cette ligne, ce retour ne distingue pas deux pannes
+     * opposées: le brief n'est PAS parti (adresse de contrôle absente, Vapi
+     * qui refuse `add-message`), ou il est parti et le modèle l'ignore. Le
+     * premier se répare dans le webhook, le second dans le prompt.
+     *
+     * `skip` quand il n'y a rien à poser: sur le chemin custom-LLM,
+     * `llm-stream` repose la mémoire à chaque tour et le brief n'existe pas.
+     */
+    const brief = typeof facts.realtime?.callBrief === 'string' ? facts.realtime.callBrief : null;
+    const wanted = facts.remote.speechToSpeech === true || facts.remote.customLlm === false;
+    push({
+      id: 'brief', area: 'fonctionnement',
+      status: !wanted ? 'skip' : brief === null ? 'fail' : brief.startsWith('pose') ? 'ok' : 'fail',
+      label: "brief d'ouverture: ce que l'agent SAIT avant le premier mot",
+      value: !wanted
+        ? "sans objet: `llm-stream` repose la mémoire à chaque tour sur ce chemin"
+        : brief === null
+          ? "JAMAIS TENTÉ sur cet appel: l'agent a décroché sans mémoire de l'appelant ni rendez-vous"
+          : brief,
+      target: wanted ? 'posé, avec les rendez-vous du numéro' : undefined,
+      lever: wanted && (brief === null || !brief.startsWith('pose'))
+        ? "journaux Render autour de l'heure de l'appel: `[Voice] brief`. Un `status-update` non reçu, une adresse de contrôle absente ou un refus de Vapi sur `add-message` se lisent là, et aucun des trois ne se répare dans le prompt"
+        : undefined,
+    });
+  }
+
+  {
     const doubled = facts.doubledReplies ?? 0;
     push({
       id: 'doubled', area: 'fonctionnement',
