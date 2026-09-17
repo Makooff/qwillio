@@ -20,7 +20,9 @@ import { callerMemoryService } from './caller-memory.service';
 import { toolRuntimeService, type ToolCallInput, type ToolCallResult } from './tool-runtime.service';
 import { resolveCharacter } from '../../config/voice-characters';
 import { callerIdentity, type LineAgent } from './inbound-routing.service';
-import { isSelfCall, hangUpSelfCall } from './self-call-guard';
+import { isSelfCall, hangUpSelfCall, controlUrlOf } from './self-call-guard';
+import { needsCallBrief } from './profile-voice';
+import { callBrief } from './call-brief';
 import { vapiClient } from '../../config/vapi';
 import { voiceModeFor } from './voice-tiers';
 
@@ -319,6 +321,11 @@ class RealtimeOrchestratorService {
          de l'appelant (trois requêtes) et l'expéditeur SMS du client. Sans
          await, et sans conséquence si ça rate: le tour les relira. */
       warmCallerContext(clientId, callerNumberOf(event));
+      /* Ce que le prompt FIGÉ de l'assistant enregistré ne peut pas porter, et
+         que `llm-stream` ne reposera pas sur ce chemin: la date réelle et la
+         mémoire de l'appelant. Voir `call-brief.ts` et `needsCallBrief`. Sans
+         await, et sans conséquence si ça rate: l'appelant écoute l'accueil. */
+      if (profile && needsCallBrief(profile)) void postCallBrief(clientId, event, profile);
     }
 
     /* Un appel qui arrive PAR le renvoi est la seule preuve que le renvoi
@@ -759,4 +766,38 @@ export const realtimeOrchestratorService = new RealtimeOrchestratorService();
 export function warmCallerContext(clientId: string, callerNumber: string | null): void {
   void realtimeContextService.getCallerHistory(clientId, callerNumber).catch(() => {});
   void toolRuntimeService.warmSmsSender(clientId).catch(() => {});
+}
+
+/**
+ * Pose le brief d'ouverture dans la conversation, pour les appels dont le
+ * prompt est figé et que `llm-stream` ne rattrape pas (`needsCallBrief`).
+ *
+ * Un historique illisible ne fait pas sauter le brief: la DATE reste posée, et
+ * c'est elle qui a coûté le plus cher (6novovicies, 6octoquadragesies). Elle
+ * est calculée ici, donc elle ne dépend ni du gabarit de Vapi ni d'un cache.
+ *
+ * Jamais attendu par l'appelant. Un refus est journalisé en warn avec le corps
+ * de la réponse: c'est la seule chose que le code ne peut pas deviner, et
+ * `add-message` n'a pas encore été vu tenir sur un appel réel — un mécanisme
+ * qui n'a jamais atteint un appel n'est pas prouvé (6quinquetrigesies).
+ */
+export async function postCallBrief(
+  clientId: string,
+  event: VapiEvent,
+  profile: ClientVoiceProfile,
+): Promise<void> {
+  const controlUrl = controlUrlOf(event);
+  if (!controlUrl) {
+    logger.warn(`[Voice] brief non pose pour ${clientId}: l'evenement ne porte pas d'adresse de controle`);
+    return;
+  }
+  const caller = await realtimeContextService
+    .getCallerHistory(clientId, callerNumberOf(event))
+    .catch(() => null);
+  try {
+    await vapiClient.addMessage(controlUrl, { role: 'system', content: callBrief(profile, caller) });
+    logger.info(`[Voice] brief pose pour ${clientId} (appelant ${caller?.previousCalls ?? 0} appels)`);
+  } catch (error) {
+    logger.warn(`[Voice] brief refuse pour ${clientId}: ${(error as Error).message}`);
+  }
 }

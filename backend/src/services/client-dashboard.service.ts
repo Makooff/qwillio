@@ -6,6 +6,7 @@ import { env } from '../config/env';
 import { superagentOffer } from '../config/superagent-option';
 import { setupCompleteness } from './setup-completeness';
 import { knowledgeGapService } from './voice/knowledge-gap.service';
+import { phoneForms } from '../utils/phone-forms';
 
 export class ClientDashboardService {
 
@@ -671,10 +672,6 @@ export function bookingSearch(q?: string | null): Array<Record<string, unknown>>
   return or;
 }
 
-export function phoneForms(raw: string): string[] {
-  const digits = String(raw).replace(/\D/g, '');
-  if (!digits) return [raw];
-  return Array.from(new Set([digits, `+${digits}`, raw.trim()]));
-}
+export { phoneForms } from '../utils/phone-forms';
 
 export const clientDashboardService = new ClientDashboardService();

@@ -5,6 +5,7 @@ import { logger } from '../../config/logger';
 import { toE164 } from '../../utils/phone';
 import { wouldLoop } from './transfer-loop';
 import { webhookServer } from './webhook-identity';
+import { voiceForProfile } from './profile-voice';
 
 /**
  * Tool schemas + contextual filler (Phase 4).
@@ -167,9 +168,24 @@ export function fillerFor(tool: string, lang: VoiceLanguage, phase: 'start' | 'd
  * Build the Vapi `messages` block for a tool: the filler contract.
  * Returned as an array because Vapi accepts several message roles per tool.
  */
-function toolMessages(tool: string, lang: VoiceLanguage) {
+function toolMessages(tool: string, lang: VoiceLanguage, speechToSpeech = false) {
   const messages: Array<Record<string, unknown>> = [];
-  const start = fillerFor(tool, lang, 'start');
+  /* PAS DE PHRASE DE DÉMARRAGE EN PAROLE-À-PAROLE. Le modèle y produit son
+     audio lui-même et annonce SPONTANÉMENT ce qu'il fait avant d'appeler
+     l'outil; la nôtre s'ajoute par-dessus, dans une autre voix, en disant la
+     même chose. Relevé deux fois dans le même appel du 17/09/2026:
+       « Je vais maintenant vérifier vos rendez-vous. Un instant s'il vous
+         plaît. » (le modèle) puis « Je cherche votre réservation, un
+         instant. » (cette table, mot pour mot)
+     C'est « il répète en boucle ce qu'il fait », le retour exact du
+     propriétaire. En classique la phrase est indispensable — la chaîne ne peut
+     RIEN dire pendant que l'outil tourne — et elle reste.
+
+     La phrase RETARDÉE reste des deux côtés: elle ne part qu'après
+     `VOICE_FILLER_DELAY_MS`, quand le modèle a fini d'annoncer et qu'il n'y a
+     plus que du silence. Un `lookupBooking` à 7,9 s (même appel) est
+     exactement le cas où l'appelant croit la ligne coupée. */
+  const start = speechToSpeech ? [] : fillerFor(tool, lang, 'start');
   const delayed = fillerFor(tool, lang, 'delayed');
 
   if (start.length) {
@@ -200,6 +216,10 @@ function toolMessages(tool: string, lang: VoiceLanguage) {
  */
 export function buildVoiceTools(profile: ClientVoiceProfile) {
   const lang = profile.language;
+  /* Le moteur se lit sur le PROFIL, par la seule règle qui tranche
+     (`useSpeechToSpeech`, via `voiceForProfile`): une seconde règle écrite ici
+     divergerait de celle de l'assistant en moins d'un mois (6vicies). */
+  const s2s = voiceForProfile(profile).speechToSpeech;
   const serverUrl = `${env.API_BASE_URL}/api/webhooks/vapi/tools/${profile.clientId}`;
   const tools: Array<Record<string, unknown>> = [];
 
@@ -210,7 +230,7 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
       type: 'function',
       async: false,
       server: { ...webhookServer(serverUrl), timeoutSeconds: env.VOICE_TOOL_TIMEOUT_SECONDS },
-      messages: toolMessages('checkAvailability', lang),
+      messages: toolMessages('checkAvailability', lang, s2s),
       function: {
         name: 'checkAvailability',
         description:
@@ -241,7 +261,7 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
       type: 'function',
       async: false,
       server: { ...webhookServer(serverUrl), timeoutSeconds: env.VOICE_TOOL_TIMEOUT_SECONDS },
-      messages: toolMessages('bookAppointment', lang),
+      messages: toolMessages('bookAppointment', lang, s2s),
       function: {
         name: 'bookAppointment',
         description:
@@ -290,7 +310,7 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
       type: 'function',
       async: false,
       server: { ...webhookServer(serverUrl), timeoutSeconds: env.VOICE_TOOL_TIMEOUT_SECONDS },
-      messages: toolMessages('lookupBooking', lang),
+      messages: toolMessages('lookupBooking', lang, s2s),
       function: {
         name: 'lookupBooking',
         description: 'Find the caller\'s existing upcoming bookings, to confirm, move or cancel one. Returns every upcoming booking of this caller; pass what the caller said so the right one comes first.',
@@ -312,7 +332,7 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
       type: 'function',
       async: false,
       server: { ...webhookServer(serverUrl), timeoutSeconds: env.VOICE_TOOL_TIMEOUT_SECONDS },
-      messages: toolMessages('rescheduleBooking', lang),
+      messages: toolMessages('rescheduleBooking', lang, s2s),
       function: {
         name: 'rescheduleBooking',
         description:
@@ -348,7 +368,7 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
        n'est dit à voix haute pendant ce temps. */
     async: false,
     server: { ...webhookServer(serverUrl), timeoutSeconds: env.VOICE_TOOL_TIMEOUT_SECONDS },
-    messages: toolMessages('captureLead', lang),
+    messages: toolMessages('captureLead', lang, s2s),
     function: {
       name: 'captureLead',
       description:
@@ -396,7 +416,7 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
       type: 'function',
       async: false,
       server: { ...webhookServer(serverUrl), timeoutSeconds: env.VOICE_TOOL_TIMEOUT_SECONDS },
-      messages: toolMessages('lookupKnowledge', lang),
+      messages: toolMessages('lookupKnowledge', lang, s2s),
       function: {
         name: 'lookupKnowledge',
         description:

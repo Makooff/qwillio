@@ -59,6 +59,8 @@ export interface CallFacts {
   durationSeconds: number | null;
   /** Répliques de l'assistant et de l'appelant, comptées chez Vapi. */
   assistantLines: number;
+  /** Voir `readVapiMessages`: deux réponses pour un seul tour d'appelant. */
+  doubledReplies?: number;
   /** Ce que l'assistant a DIT: sans le texte, « le son n'a pas streamé » ne se juge pas. */
   assistantTexts: string[];
   callerLines: number;
@@ -269,6 +271,27 @@ function resultSays(result: string | null, ...prefixes: string[]): boolean {
  */
 export function readVapiMessages(messages: Array<Record<string, any>>): {
   assistantLines: number;
+  /**
+   * Combien de répliques suivent une AUTRE réplique de l'assistant sans que
+   * l'appelant ni un outil se soient glissés entre les deux.
+   *
+   * La mesure INDÉPENDANTE du plan d'attente (17/09/2026). Deux réponses pour
+   * un seul tour, c'est la signature exacte de « il coupe trop »: l'agent
+   * répond à un blanc au milieu de la phrase, puis répond une seconde fois
+   * quand l'appelant a vraiment fini. Un appel de 108 s en portait quatre.
+   *
+   * Elle se lit sur le TRANSCRIPT, donc sur la conversation réelle, et pas sur
+   * le réglage: c'est elle qui dira si le plan d'attente a servi à quelque
+   * chose, sans avoir à croire la ligne de réglage sur parole. Les quatre
+   * plafonds de cet audit ont appris la même chose (6terquinquagesies): un
+   * chiffre qui ne peut pas être contredit par une autre source ne prouve
+   * rien.
+   *
+   * Un OUTIL entre deux répliques ne compte pas: annoncer puis dire le
+   * résultat est le déroulé normal, et c'est aussi là que la phrase d'attente
+   * se glisse, qui est un autre défaut et se lit ailleurs.
+   */
+  doubledReplies: number;
   /** Ce que l'assistant a DIT, pour juger la découpe de la synthèse. */
   assistantTexts: string[];
   callerLines: number;
@@ -278,6 +301,8 @@ export function readVapiMessages(messages: Array<Record<string, any>>): {
   let assistantLines = 0;
   const assistantTexts: string[] = [];
   let callerLines = 0;
+  let doubledReplies = 0;
+  let lastWasAssistant = false;
   const gaps: number[] = [];
   const tools: ToolEvent[] = [];
   const pending = new Map<string, { at: number | null; args: Record<string, unknown> }>();
@@ -286,11 +311,14 @@ export function readVapiMessages(messages: Array<Record<string, any>>): {
     const at = typeof m.secondsFromStart === 'number' ? m.secondsFromStart : null;
     if (m.role === 'user') {
       callerLines++;
+      lastWasAssistant = false;
       lastUserEnd = typeof m.endTime === 'number' && typeof m.time === 'number' && at !== null
         ? at + (m.endTime - m.time) / 1000
         : at;
     } else if (m.role === 'bot' || m.role === 'assistant') {
       assistantLines++;
+      if (lastWasAssistant) doubledReplies++;
+      lastWasAssistant = true;
       if (typeof m.message === 'string' && m.message.trim()) assistantTexts.push(m.message);
       else if (typeof m.content === 'string' && m.content.trim()) assistantTexts.push(m.content);
       if (at !== null && lastUserEnd !== null) {
@@ -298,6 +326,7 @@ export function readVapiMessages(messages: Array<Record<string, any>>): {
         lastUserEnd = null;
       }
     }
+    if (m.role === 'tool_calls' || m.role === 'tool_call_result') lastWasAssistant = false;
     if (m.role === 'tool_calls' && Array.isArray(m.toolCalls)) {
       for (const c of m.toolCalls) {
         const name: string = c.function?.name ?? c.name ?? '?';
@@ -325,7 +354,7 @@ export function readVapiMessages(messages: Array<Record<string, any>>): {
   }
   /* Un outil appelé sans réponse vue (appel coupé pendant l'agenda) compte. */
   for (const [name, open] of pending) tools.push({ name, args: open.args, result: null, tookSeconds: null, atSeconds: open.at });
-  return { assistantLines, assistantTexts, callerLines, vapiGapsSeconds: gaps, tools };
+  return { assistantLines, assistantTexts, callerLines, doubledReplies, vapiGapsSeconds: gaps, tools };
 }
 
 export function auditCall(facts: CallFacts): AuditReport {
@@ -352,6 +381,24 @@ export function auditCall(facts: CallFacts): AuditReport {
         ? reason.startsWith('silence-timed-out') && facts.assistantLines === 0
           ? "l'accueil n'est pas parti: `voice:doctor` lit la première phrase distante; si une URL y est épinglée, `VOICE_GREETING_PINNED` doit être absent"
           : 'lire `endedReason` et les journaux Render `[Voice]` autour de cette heure'
+        : undefined,
+    });
+  }
+
+  {
+    const doubled = facts.doubledReplies ?? 0;
+    push({
+      id: 'doubled', area: 'fonctionnement',
+      status: facts.doubledReplies == null ? 'skip' : doubled === 0 ? 'ok' : 'fail',
+      label: 'répliques doublées: deux réponses pour un seul tour',
+      value: facts.doubledReplies == null
+        ? 'non lu'
+        : doubled === 0
+          ? `aucune sur ${facts.assistantLines} réplique(s)`
+          : `${doubled} sur ${facts.assistantLines} réplique(s) — il répond à un blanc, puis une seconde fois quand l'appelant a fini`,
+      target: 'aucune',
+      lever: doubled > 0
+        ? "c'est le détecteur de fin de tour, pas le modèle: lire la ligne « détecteur de fin de tour » plus bas. Un plan absent rend la main au défaut de Vapi (0,4 s), qui coupe quelqu'un qui réfléchit"
         : undefined,
     });
   }
@@ -828,14 +875,43 @@ export function auditCall(facts: CallFacts): AuditReport {
        verdict ne doit pas dépendre du soin de son appelant. */
     const hasPlan = !!got && (got.provider !== 'aucun' || got.waitSeconds !== null || got.punctuationSeconds !== null);
     if (s2sWanted) {
+      /* CETTE LIGNE A DIT L'INVERSE DE LA VÉRITÉ, EN VERT (17/09/2026).
+       *
+       * Elle affichait « aucun plan: en parole-à-parole, le moment de répondre
+       * appartient au modèle » et comptait ça pour un succès. C'est faux, et
+       * Vapi le dit lui-même: « Endpointing and interruption management are
+       * handled by Vapi's orchestration layer » (page OpenAI Realtime). Un
+       * plan absent ne DÉSACTIVE rien, il rend la main au défaut de Vapi,
+       * 0,4 s de silence — de quoi couper quelqu'un qui réfléchit au milieu de
+       * sa phrase, puis lui répondre une seconde fois quand il a vraiment
+       * fini. C'est exactement ce qu'un appel de 108 s a produit: 13 répliques
+       * d'assistant pour 10 tours d'appelant, et « il coupe trop ».
+       *
+       * Ce diagnostic-là a coûté une heure de recherche dans la mauvaise
+       * direction pendant que l'écran affirmait que tout allait bien. Un audit
+       * qui note un réglage doit noter contre ce que le fournisseur FAIT, pas
+       * contre ce qu'on croit qu'il fait (6sexvicies).
+       *
+       * Avec un transcripteur — et Vapi en exige un ici pour entendre
+       * l'appelant — le plan CLASSIQUE est le bon, et son absence est le
+       * défaut. Sans transcripteur, il n'y a aucun mot à compter et l'absence
+       * redevient correcte. */
+      const wantPlan = facts.expected.realtimeTranscriber === true;
+      const same = hasPlan && got!.provider === want.provider && got!.waitSeconds === want.waitSeconds && got!.punctuationSeconds === want.punctuationSeconds;
       push({
         id: 'endpointing', area: 'reglages',
-        status: hasPlan ? 'skip' : 'ok',
+        status: !wantPlan ? (hasPlan ? 'skip' : 'ok') : !hasPlan ? 'fail' : same ? 'ok' : 'fail',
         label: "détecteur de fin de tour de l'assistant qui décroche",
         value: hasPlan
-          ? `${got!.provider}, attente ${got!.waitSeconds ?? '?'} s, ponctuation ${got!.punctuationSeconds ?? '?'} s: `
-            + 'reste d\'une synchronisation classique, voir la ligne « niveau »'
-          : 'aucun plan: en parole-à-parole, le moment de répondre appartient au modèle',
+          ? `${got!.provider}, attente ${got!.waitSeconds ?? '?'} s, ponctuation ${got!.punctuationSeconds ?? '?'} s`
+            + (wantPlan ? '' : ': reste d\'une synchronisation classique, voir la ligne « niveau »')
+          : wantPlan
+            ? 'AUCUN PLAN, donc le défaut de Vapi (0,4 s de silence): il coupe l\'appelant qui réfléchit, puis lui répond une seconde fois quand il a fini'
+            : 'aucun plan, et c\'est correct sans transcripteur: il n\'y a aucun mot à compter',
+        target: wantPlan ? `${want.provider}, attente ${want.waitSeconds} s, ponctuation ${want.punctuationSeconds} s` : undefined,
+        lever: wantPlan && !same
+          ? "l'assistant distant n'a pas le plan d'attente que le transcripteur permet: `npm run voice:resync -- --confirm`"
+          : undefined,
       });
     } else {
       const same = !!got && got.provider === want.provider && got.waitSeconds === want.waitSeconds && got.punctuationSeconds === want.punctuationSeconds;

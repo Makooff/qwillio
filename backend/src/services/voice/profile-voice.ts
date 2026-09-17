@@ -118,6 +118,26 @@ export function voiceForProfile(profile: ClientVoiceProfile): ProfileVoice {
 }
 
 /**
+ * Cet appel a-t-il besoin d'un BRIEF d'ouverture ?
+ *
+ * La question derrière: `llm-stream` tourne-t-il ? C'est lui qui repose à
+ * chaque tour ce que le prompt FIGÉ de l'assistant enregistré ne peut pas
+ * porter (la mémoire de l'appelant, la date, la reprise après coupure). Deux
+ * chemins lui échappent, et pour la même raison de fond, Vapi appelant alors
+ * OpenAI lui-même:
+ *
+ *  - le parole-à-parole, par construction (6quaterquadragesies);
+ *  - un client dont `customLlm` est explicitement éteint.
+ *
+ * Écrite ICI parce que c'est le fichier qui tranche déjà le moteur, et qu'une
+ * seconde règle posée près de l'appelant aurait divergé de celle-ci en moins
+ * d'un mois (6vicies). Voir `call-brief.ts` pour ce que le brief contient.
+ */
+export function needsCallBrief(profile: ClientVoiceProfile): boolean {
+  return voiceForProfile(profile).speechToSpeech || !profile.customLlm;
+}
+
+/**
  * Le couple modèle + voix de l'assistant ENREGISTRÉ, pour un profil donné.
  *
  * UNE fonction pour les DEUX écritures de `onboarding.service.ts`. Elles

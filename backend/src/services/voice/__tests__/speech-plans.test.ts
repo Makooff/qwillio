@@ -268,27 +268,32 @@ describe('buildRealtimePlans', () => {
   });
 
   /**
-   * LE DÉFAUT LE PLUS COÛTEUX DE CE FICHIER, et il ne se voyait pas.
+   * LE PLAN D'ATTENTE SUIT LE TRANSCRIPTEUR, comme celui d'interruption.
    *
-   * En parole-à-parole le transcripteur est retiré, à raison. Mais les deux
-   * plans de parole étaient TOUJOURS envoyés, alors qu'ils comptent des mots:
-   * `numWords`, `acknowledgementPhrases`, `interruptionPhrases`, et un plan
-   * nommé `transcriptionEndpointingPlan`. Sans transcripteur, aucune de ces
-   * conditions ne peut être remplie: la réceptionniste n'entend rien, ne
-   * répond pas, et le délai de silence raccroche.
+   * CE TEST FIGEAIT L'INVERSE, et il était vert pendant que le défaut tournait.
+   * Il exigeait `startSpeakingPlan: null` en parole-à-parole, sur l'idée que
+   * « le moment de répondre appartient au modèle ». Vapi dit le contraire:
+   * « Endpointing and interruption management are handled by Vapi's
+   * orchestration layer » (page OpenAI Realtime). `null` ne désactive donc
+   * rien, il rend la main au défaut de Vapi: 0,4 s de silence.
    *
-   * Symptôme rapporté en mode Direct: « il ne m'entend pas quand je parle, et
-   * ça raccroche vite ».
+   * Ce que ça donnait, décrit par l'appelant lui-même (appel réel de 108 s,
+   * 17/09/2026): « il me pose une question, je réponds, mais s'il y a un léger
+   * blanc dans ma réponse il commence à parler alors que j'ai pas fini; donc
+   * je dois parler pendant qu'il parle; et quand j'ai enfin fini, il me donne
+   * une DEUXIÈME réponse ». Treize répliques d'assistant pour dix tours.
+   *
+   * `transcriptionEndpointingPlan` est exactement ce qui trie ces deux cas:
+   * 0,4 s quand le transcripteur a posé un point, 1,2 s quand il n'y en a pas
+   * — et un blanc au milieu d'une phrase n'en porte pas.
    */
-  it("N'ENVOIE AUCUN PLAN D'ATTENTE en parole-à-parole", () => {
-    /* Le plan d'attente est fait de règles de ponctuation et de fin de phrase:
-       en parole-à-parole, le moment de répondre appartient au modèle.
-       Le TRANSCRIPTEUR, lui, est revenu le 17/09: un appel réel a montré que
-       Vapi en a besoin pour faire remonter la parole de l'appelant sur ce
-       chemin. Son retrait vit sous `VOICE_REALTIME_TRANSCRIBER=off`, testé à
-       part. */
-    const plans = buildRealtimePlans('fr', true) as Record<string, unknown>;
-    expect(plans.startSpeakingPlan).toBeNull();
+  it("envoie le plan d'attente CLASSIQUE en parole-à-parole, puisque le transcripteur est là", () => {
+    const plans = buildRealtimePlans('fr', true) as Record<string, any>;
+    expect(plans.startSpeakingPlan).not.toBeNull();
+    expect(plans.startSpeakingPlan.transcriptionEndpointingPlan.onNoPunctuationSeconds).toBe(1.2);
+    /* Le même objet que la chaîne classique, pas une copie écrite pour le
+       parole-à-parole: une copie ne vieillirait pas avec l'original. */
+    expect(plans.startSpeakingPlan).toEqual((buildRealtimePlans('fr', false) as any).startSpeakingPlan);
   });
 
   /**

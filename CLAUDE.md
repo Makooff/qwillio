@@ -1755,6 +1755,82 @@ geste-la.
 ligne qui marche tout de suite, le chemin classique envoyant les trois cles
 explicitement, donc le PATCH les ecrase.
 
+### 6septquinquagesies. Le temps reel avait perdu, une par une, toutes les regles de tour de parole (17/09/2026)
+Retour du proprietaire, et il tranche le sujet: « le real-time est beaucoup
+mieux pour parler avec, plus fluide, plus reactif et plus naturel. Mais il coupe
+trop et continue son monologue meme si je lui parle. » Puis: « avec le plan
+classique on avait une bonne base de conversation et d'intelligence pour un
+receptionniste, et la il est completement bete. » C'est LITTERALEMENT vrai, et
+c'est du code: le chemin parole-a-parole jetait, piece par piece, ce que la
+chaine classique avait accumule, chaque retrait fait pour une raison qui
+sonnait juste et qu'aucun appel reel n'avait verifiee.
+**La cause principale, decrite par l'appelant mieux qu'aucun releve:** « il me
+pose une question, je reponds, mais s'il y a un leger blanc dans ma reponse il
+commence a parler alors que j'ai pas fini; donc je dois parler pendant qu'il
+parle; et quand j'ai enfin fini, il me donne une DEUXIEME reponse. »
+`buildRealtimePlans` posait `startSpeakingPlan: null` au motif que « le moment
+de repondre appartient au modele ». Vapi dit le contraire sur sa propre page
+OpenAI Realtime: « Endpointing and interruption management are handled by
+Vapi's orchestration layer ». **`null` ne DESACTIVE rien: il rend la main au
+defaut de Vapi, 0,4 s de silence**, ce qui suffit a couper quelqu'un qui
+reflechit. D'ou 13 repliques d'assistant pour 10 tours d'appelant sur un appel
+de 108 s. Le plan CLASSIQUE est precisement ce qui trie les deux cas, et il a
+coute une semaine a regler: `transcriptionEndpointingPlan` attend 0,4 s quand
+le transcripteur a pose un point, **1,2 s quand il n'y en a pas**, et un blanc
+au milieu d'une phrase n'en porte pas. Le plan suit donc le TRANSCRIPTEUR,
+exactement comme `stopSpeakingPlan`: meme premisse, et ne l'appliquer qu'a un
+des deux plans etait l'erreur.
+**L'audit affichait « tout va bien » EN VERT pendant ce temps** (« aucun plan:
+en parole-a-parole, le moment de repondre appartient au modele »), et ce
+diagnostic faux a coute une heure de recherche dans la mauvaise direction.
+C'est 6sexvicies une fois de plus, et cette fois la ligne etait de nous. Deux
+choses la ferment: avec transcripteur, l'absence de plan est desormais un
+DEFAUT rouge qui nomme le resync; et **`readVapiMessages` compte les repliques
+DOUBLEES** — une replique qui en suit une autre sans que l'appelant ni un outil
+se soient glisses entre les deux. Elle se lit sur le TRANSCRIPT, donc sur une
+source que le reglage ne peut pas contredire (6terquinquagesies).
+**Second defaut, la phrase d'attente.** En parole-a-parole le modele annonce
+SPONTANEMENT ce qu'il fait avant d'appeler l'outil, donc la notre s'ajoute
+par-dessus, dans une autre voix, en disant la meme chose: « Je vais maintenant
+verifier vos rendez-vous, un instant » (le modele) puis « Je cherche votre
+reservation, un instant » (table `FILLER`, mot pour mot), deux fois dans le
+meme appel. C'est « il repete en boucle ce qu'il fait ». La phrase de DEMARRAGE
+se tait donc sur ce chemin; la RETARDEE reste des deux cotes, elle ne part
+qu'apres `VOICE_FILLER_DELAY_MS`, quand il ne reste que du silence.
+**Troisieme, et il n'a rien a voir avec le moteur vocal.** « J'avais pris un
+rendez-vous », le nom donne puis epele, le bon numero, et `lookupBooking` rend
+trois fois « AUCUNE RESERVATION trouvee » sur une reservation qui existe.
+`findCallerBookings` bornait a **90 jours**, avec un `take: 300` pris sur les
+plus PROCHES. Le rendez-vous etait au 22 mars 2027 (la derive d'annee de
+6octoquadragesies), mais 90 jours coupent aussi un controle dentaire a six
+mois, qui est la NORME du metier — douze tests l'ont dit le jour ou on a
+essaye de borner `farDateReply` a deux mois. La borne etait une commodite de
+lecture, jamais une regle. Le numero de l'appelant est indexe et exact: il se
+lit **sans fenetre**, et par ses ECRITURES (`utils/phone-forms.ts`, partage
+avec le filtre `?phone=` du portail, sinon les deux divergent). La recherche
+par NOM garde une fenetre, a un an: elle relit tout le commerce en memoire,
+la base ne sachant pas comparer deux noms entendus.
+**Quatrieme: « il ne se souvient pas de moi grace a mon numero. »** Le prompt
+de l'assistant ENREGISTRE est fige a la synchronisation, donc il nait avec un
+historique VIDE; `llm-stream` le rattrape a chaque tour sur le chemin
+custom-LLM, et `llm-stream` ne tourne pas ici (6quaterquadragesies).
+`call-brief.ts` pose a l'ouverture de l'appel, par `add-message` sur l'adresse
+de controle avec **`triggerResponseEnabled: false`** (sans ce drapeau le modele
+repond et coupe son propre accueil), la memoire de l'appelant ET la date
+REELLE. La date y est dite **faisant foi**: le prompt fige porte le gabarit
+`{{"now" | date: …}}` que Vapi remplit, mecanisme jamais vu tenir dans une
+session temps reel, alors qu'une date calculee a l'instant ne depend de
+personne. Le brief n'est **jamais vide** — la date vaut pour tout le monde —
+parce qu'un mecanisme qui ne s'exercerait que sur un appelant connu resterait
+endormi jusqu'au jour ou on compte dessus (6octovicies). `needsCallBrief` est
+la seule lecture: parole-a-parole, ou `customLlm` eteint, meme cause.
+**Ce qu'il ne faut PAS faire, et qui a failli etre fait:** retirer le
+transcripteur. Vapi ecrit « you should remove existing transcriber
+configurations » sur la meme page, et ce serait rejouer « il ne m'entend pas »
+— trois appels reels sans transcripteur comptent 0 ou 1 replique d'appelant.
+Le commentaire de `VOICE_REALTIME_TRANSCRIBER` porte ce releve, et c'est lui
+qui a arrete la main. Un commentaire qui date une observation vaut une regle.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

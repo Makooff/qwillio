@@ -323,6 +323,69 @@ describe('auditCall — réglages', () => {
   });
 });
 
+/**
+ * LA MESURE INDÉPENDANTE DU RÉGLAGE (17/09/2026).
+ *
+ * « Il coupe trop » se lit dans le TRANSCRIPT, pas dans la configuration:
+ * l'agent répond à un blanc au milieu de la phrase, puis répond une seconde
+ * fois quand l'appelant a vraiment fini. Deux réponses pour un tour. Un appel
+ * réel de 108 s en portait quatre, pour 13 répliques et 10 tours d'appelant,
+ * pendant que la ligne de réglage affichait « tout va bien » en vert.
+ *
+ * C'est la leçon des quatre plafonds de cet audit (6terquinquagesies): un
+ * chiffre qu'aucune autre source ne peut contredire ne prouve rien.
+ */
+describe('readVapiMessages — répliques doublées', () => {
+  it('compte une réplique qui suit une réplique, sans que l\'appelant ait parlé', () => {
+    const read = readVapiMessages([
+      { role: 'user', message: 'je voudrais déplacer mon rendez-vous' },
+      { role: 'bot', message: 'Quel serait le prénom et le nom de famille' },
+      { role: 'bot', message: "D'accord, je vous écoute. Vous pouvez me donner le nom" },
+      { role: 'user', message: 'de la Forge' },
+      { role: 'bot', message: 'Merci.' },
+    ]);
+    expect(read.doubledReplies).toBe(1);
+    expect(read.assistantLines).toBe(3);
+  });
+
+  it("un OUTIL entre deux répliques ne compte pas: annoncer puis dire le résultat est normal", () => {
+    const read = readVapiMessages([
+      { role: 'user', message: 'lundi matin' },
+      { role: 'bot', message: 'Je regarde ça tout de suite.' },
+      { role: 'tool_calls', toolCalls: [{ function: { name: 'checkAvailability', arguments: '{}' } }] },
+      { role: 'tool_call_result', name: 'checkAvailability', result: 'CRENEAUX' },
+      { role: 'bot', message: 'Il me reste neuf heures.' },
+    ]);
+    expect(read.doubledReplies).toBe(0);
+  });
+
+  it('une conversation propre en compte zéro', () => {
+    const read = readVapiMessages([
+      { role: 'bot', message: 'Demtalix, bonjour.' },
+      { role: 'user', message: 'bonjour' },
+      { role: 'bot', message: 'Que puis-je faire pour vous ?' },
+      { role: 'user', message: 'un rendez-vous' },
+    ]);
+    expect(read.doubledReplies).toBe(0);
+  });
+
+  it("l'audit le note en défaut et renvoie au détecteur de fin de tour, pas au modèle", () => {
+    const f = good();
+    f.doubledReplies = 4;
+    f.assistantLines = 13;
+    const c = auditCall(f).checks.find(x => x.id === 'doubled')!;
+    expect(c.status).toBe('fail');
+    expect(c.value).toMatch(/4 sur 13/);
+    expect(c.lever).toMatch(/détecteur de fin de tour/);
+  });
+
+  it('et se tait quand il ne peut pas lire: `skip`, jamais un vert inventé', () => {
+    const f = good();
+    delete (f as { doubledReplies?: number }).doubledReplies;
+    expect(auditCall(f).checks.find(x => x.id === 'doubled')!.status).toBe('skip');
+  });
+});
+
 describe('readVapiMessages', () => {
   it('compte les répliques, mesure le délai de réponse et apparie outil et résultat', () => {
     const read = readVapiMessages([
@@ -686,13 +749,42 @@ describe('auditCall — le plan d\'attente attendu dépend du niveau', () => {
     return f;
   };
 
-  it('aucun plan est le bon état, pas un défaut', () => {
+  it('aucun plan est le bon état SANS transcripteur: il n\'y a aucun mot à compter', () => {
     const ep = auditCall(s2s()).checks.find(c => c.id === 'endpointing')!;
     expect(ep.status).toBe('ok');
-    expect(ep.value).toMatch(/appartient au modèle/);
+    expect(ep.value).toMatch(/aucun mot à compter/);
     expect(ep.lever).toBeUndefined();
     // Et il ne propose pas un resync qui ne changerait rien.
     expect(ep.target).toBeUndefined();
+  });
+
+  /**
+   * ET AVEC UN TRANSCRIPTEUR, L'ABSENCE EST LE DÉFAUT (17/09/2026).
+   *
+   * Cette ligne s'affichait en VERT avec « le moment de répondre appartient au
+   * modèle » pendant que l'appelant vivait le contraire: « s'il y a un léger
+   * blanc dans ma réponse il commence à parler ». Vapi documente que
+   * l'endpointing est fait par SON orchestration sur ce chemin, donc un plan
+   * absent n'est pas « le modèle décide », c'est le défaut de Vapi à 0,4 s.
+   * Un audit qui note un réglage doit le noter contre ce que le fournisseur
+   * FAIT (6sexvicies).
+   */
+  it("avec transcripteur, l'absence de plan est un DÉFAUT et le levier est un resync", () => {
+    const f = s2s();
+    f.remote.transcriber = true;
+    f.expected.realtimeTranscriber = true;
+    const ep = auditCall(f).checks.find(c => c.id === 'endpointing')!;
+    expect(ep.status).toBe('fail');
+    expect(ep.value).toMatch(/AUCUN PLAN/);
+    expect(ep.lever).toMatch(/voice:resync/);
+  });
+
+  it('avec transcripteur, le plan CLASSIQUE attendu passe au vert', () => {
+    const f = s2s();
+    f.remote.transcriber = true;
+    f.expected.realtimeTranscriber = true;
+    f.remote.endpointing = { ...f.expected.endpointing };
+    expect(auditCall(f).checks.find(c => c.id === 'endpointing')!.status).toBe('ok');
   });
 
   it('ne juge pas DEUX fois un plan resté en place: la ligne « niveau » le porte', () => {
@@ -791,7 +883,7 @@ describe('auditCall — absence de plan contre plan vide', () => {
   it('lit un objet tout vide comme une absence, pas comme un reste', () => {
     const c = s2sWith({ provider: 'aucun', waitSeconds: null, punctuationSeconds: null });
     expect(c.status).toBe('ok');
-    expect(c.value).toMatch(/appartient au modèle/);
+    expect(c.value).toMatch(/aucun mot à compter/);
     expect(c.value).not.toMatch(/reste/);
   });
 
