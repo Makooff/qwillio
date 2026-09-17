@@ -323,3 +323,50 @@ describe('parole-à-parole — la langue est dite au modèle', () => {
     expect(JSON.stringify(model)).not.toMatch(/LANGUE:/);
   });
 });
+
+/**
+ * LE PLAFOND DE JETONS NE SE PARTAGE PAS ENTRE LES DEUX CHEMINS (17/09/2026).
+ *
+ * `VOICE_MAX_COMPLETION_TOKENS` vaut 120, et c'est juste en classique: la sortie
+ * y est du TEXTE, 120 jetons font une à deux phrases. En parole-à-parole la
+ * sortie est de l'AUDIO, et le même 120 ne laisse passer qu'une poignée de mots.
+ *
+ * Trois appels réels d'affilée: l'assistant ne finissait jamais sa phrase
+ * d'accueil. Un texte FIXE, donc tronqué au même endroit à chaque appel, sans
+ * rapport avec le bruit, l'appelant ou la langue — c'est ce qui a fini par le
+ * désigner. Posé à 4096, l'accueil passe entier du premier coup.
+ */
+describe('parole-à-parole — son propre plafond de jetons', () => {
+  it('ne prend PAS le plafond du texte', async () => {
+    const { realtimeSpeechBlocks } = await load({});
+    const { env } = await import('../../../config/env');
+    const { model } = realtimeSpeechBlocks({
+      lang: 'fr', gender: 'm', systemPrompt: 'P', tools: [], temperature: 0.7,
+      realtimeModel: 'gpt-realtime-mini-2025-12-15',
+    }) as any;
+    expect(model.maxTokens).toBe(env.VOICE_REALTIME_MAX_TOKENS);
+    expect(model.maxTokens).not.toBe(env.VOICE_MAX_COMPLETION_TOKENS);
+    // Et il est large: la longueur d'un tour se tient par le prompt, pas en
+    // coupant au milieu d'un mot.
+    expect(model.maxTokens).toBeGreaterThanOrEqual(4096);
+  });
+
+  it('la chaîne classique garde ses 120, qui y sont le bon réglage', async () => {
+    const { buildSpeech } = await load({ VOICE_SPEECH_TO_SPEECH: 'off' });
+    const { env } = await import('../../../config/env');
+    const { model } = buildSpeech({
+      lang: 'fr', systemPrompt: 'P', tools: [],
+      character: { voiceId: 'v1', gender: 'm' }, voiceMode: 'classic',
+    }) as any;
+    expect(env.VOICE_MAX_COMPLETION_TOKENS).toBe(120);
+    expect(model.maxTokens).toBe(120);
+  });
+
+  it('refuse un plafond trop bas, pour que la régression ne se repose pas', async () => {
+    /* 120 est exactement la valeur qui a cassé le mode pendant trois appels, et
+       elle se lisait comme un réglage raisonnable. Le plancher la rattrape. */
+    await load({ VOICE_REALTIME_MAX_TOKENS: '120' });
+    const { env } = await import('../../../config/env');
+    expect(env.VOICE_REALTIME_MAX_TOKENS).toBeGreaterThanOrEqual(256);
+  });
+});

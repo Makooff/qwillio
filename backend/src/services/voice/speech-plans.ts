@@ -940,7 +940,12 @@ export function realtimeSpeechBlocks(opts: {
       provider: 'openai',
       model: opts.realtimeModel,
       temperature: opts.temperature,
-      maxTokens: env.VOICE_MAX_COMPLETION_TOKENS,
+      /* PAS `VOICE_MAX_COMPLETION_TOKENS`: ici la sortie du modèle est de
+         l'AUDIO, et 120 jetons de texte n'y valent qu'une poignée de mots.
+         Trois appels réels ont fini en `silence-timed-out` sur une phrase
+         d'accueil tronquée avant d'avoir trouvé ça. Voir l'en-tête de
+         `VOICE_REALTIME_MAX_TOKENS`. */
+      maxTokens: env.VOICE_REALTIME_MAX_TOKENS,
       messages: [{ role: 'system', content: systemPrompt }],
       tools: opts.tools,
     },
