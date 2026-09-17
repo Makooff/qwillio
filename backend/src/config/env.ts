@@ -550,6 +550,34 @@ export const env = {
   VOICE_REALTIME_STOP_PLAN: (process.env.VOICE_REALTIME_STOP_PLAN || 'on').toLowerCase() !== 'off',
   /** Cap on a single assistant turn; long completions are long silences. */
   VOICE_MAX_COMPLETION_TOKENS: parseInt(process.env.VOICE_MAX_COMPLETION_TOKENS || '120', 10),
+  /**
+   * Le MÊME plafond, mais pour le parole-à-parole, et il ne se partage pas.
+   *
+   * `VOICE_MAX_COMPLETION_TOKENS` vaut 120 et c'est juste: sur le chemin
+   * classique la sortie du modèle est du TEXTE, et 120 jetons y font une à deux
+   * phrases, exactement la longueur qu'on veut au téléphone. En parole-à-parole
+   * la sortie est de l'AUDIO, et un jeton audio ne vaut pas un mot: le même 120
+   * ne laisse passer qu'une poignée de mots.
+   *
+   * Ce que ça donnait, sur trois appels réels d'affilée (17/09/2026):
+   * l'assistant ne finissait JAMAIS sa phrase d'accueil — un texte fixe, donc
+   * tronqué au même endroit à chaque appel, sans rapport avec le bruit, avec
+   * l'appelant ni avec la langue. Transcript: « Dentalics, » puis
+   * « receptionist to Sid and Alex, Come up with ». Puis `silence-timed-out`.
+   * Posé à 4096, l'accueil passe entier du premier coup. C'est la valeur par
+   * défaut ici parce que c'est celle qui a été VÉRIFIÉE sur un appel, pas une
+   * valeur ronde choisie parce qu'elle a l'air raisonnable (6quinvicies).
+   *
+   * Le plancher est là pour que la régression ne puisse pas se reposer: en
+   * dessous, la première phrase se fait couper et le mode entier a l'air cassé
+   * pour une raison qui ne se lit nulle part. La longueur des tours, en
+   * parole-à-parole, se tient par le prompt (« une à deux phrases par tour »),
+   * pas par un plafond de jetons qui coupe au milieu d'un mot.
+   */
+  VOICE_REALTIME_MAX_TOKENS: Math.max(
+    256,
+    parseInt(process.env.VOICE_REALTIME_MAX_TOKENS || '4096', 10) || 4096,
+  ),
   /** How long a running tool waits before the second filler line fires. */
   VOICE_FILLER_DELAY_MS: parseInt(process.env.VOICE_FILLER_DELAY_MS || '1200', 10),
   /** Vapi-side tool timeout; the runtime's own ceiling is lower. */

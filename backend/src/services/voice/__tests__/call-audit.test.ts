@@ -664,3 +664,104 @@ describe('auditCall — un assistant basculé dont le PATCH a gardé le classiqu
     expect(niveau.lever).toBeUndefined();
   });
 });
+
+/**
+ * Le plan d'attente en parole-à-parole (17/09/2026).
+ *
+ * Premier appel sur un assistant Superagent PROPRE: la ligne « détecteur de fin
+ * de tour » a noté « aucun » en ROUGE contre « livekit, attente 0.15 s », et
+ * conseillé un resync. Or l'absence de plan est exactement ce que le mode
+ * demande. C'est le faux positif que le docteur venait de fermer, réouvert dans
+ * l'audit: quand une leçon déplace un champ, il y a souvent DEUX lecteurs.
+ */
+describe('auditCall — le plan d\'attente attendu dépend du niveau', () => {
+  const s2s = () => {
+    const f = good();
+    f.expected.tierRequested = 'superagent';
+    f.expected.tierServed = 'superagent';
+    f.remote.customLlm = false;
+    f.remote.speechToSpeech = true;
+    f.remote.transcriber = false;
+    f.remote.endpointing = null;
+    return f;
+  };
+
+  it('aucun plan est le bon état, pas un défaut', () => {
+    const ep = auditCall(s2s()).checks.find(c => c.id === 'endpointing')!;
+    expect(ep.status).toBe('ok');
+    expect(ep.value).toMatch(/appartient au modèle/);
+    expect(ep.lever).toBeUndefined();
+    // Et il ne propose pas un resync qui ne changerait rien.
+    expect(ep.target).toBeUndefined();
+  });
+
+  it('ne juge pas DEUX fois un plan resté en place: la ligne « niveau » le porte', () => {
+    const f = s2s();
+    f.remote.speechToSpeech = false;
+    f.remote.transcriber = true;
+    f.remote.endpointing = { provider: 'livekit', waitSeconds: 0.15, punctuationSeconds: 0.4 };
+    const checks = auditCall(f).checks;
+    expect(checks.find(c => c.id === 'endpointing')!.status).toBe('skip');
+    expect(checks.find(c => c.id === 'niveau')!.value).toMatch(/HYBRIDE/);
+  });
+
+  it('garde le jugement ORDINAIRE sur un client classique', () => {
+    const f = good();
+    f.remote.endpointing = { provider: 'vapi', waitSeconds: 0.4, punctuationSeconds: 0.1 };
+    const ep = auditCall(f).checks.find(c => c.id === 'endpointing')!;
+    expect(ep.status).toBe('fail');
+    expect(ep.lever).toMatch(/voice:resync/);
+  });
+});
+
+/**
+ * LE DÉLAI DE RACCROCHÉ, QUI NE FIGURAIT SUR AUCUN ÉCRAN (17/09/2026).
+ *
+ * `VAPI_SILENCE_TIMEOUT` valait 10 s en production. L'appel raccrochait PENDANT
+ * la phrase d'accueil, en parole-à-parole comme en classique, et le mécanisme de
+ * relance (« Vous m'entendez ? » à 10 s puis 20 s) n'a jamais pu tourner. Six
+ * appels de test morts d'affilée, lus comme une panne du moteur vocal, pendant
+ * que deux écrans de diagnostic ne montraient ni ce chiffre ni les relances.
+ *
+ * Le verdict COMPARE les deux: 10 s est un réglage raisonnable en soi, il ne
+ * devient faux qu'en face de relances posées à 10 s et 20 s.
+ */
+describe('auditCall — le raccroché doit laisser passer les relances', () => {
+  const withSilence = (silence: number | null) => {
+    const f = good();
+    f.remote.silenceTimeoutSeconds = silence;
+    f.expected.idleNudgeSeconds = 10;
+    f.expected.idleNudgeCount = 2;
+    return f;
+  };
+  const line = (silence: number | null) =>
+    auditCall(withSilence(silence)).checks.find(c => c.id === 'silence')!;
+
+  it('nomme le cas vécu: raccroché pendant la phrase d\'accueil', () => {
+    const c = line(10);
+    expect(c.status).toBe('fail');
+    expect(c.value).toMatch(/PENDANT la phrase d'accueil/);
+    expect(c.lever).toMatch(/VAPI_SILENCE_TIMEOUT/);
+    expect(c.target).toBe('au moins 30 s');
+  });
+
+  it('tombe aussi quand seule la DERNIÈRE relance est étouffée', () => {
+    /* 25 s laisse parler les deux relances (10 s, 20 s) mais ne laisse aucune
+       fenêtre après la seconde: elle est dite puis l'appel meurt aussitôt. */
+    const c = line(25);
+    expect(c.status).toBe('fail');
+    expect(c.value).not.toMatch(/PENDANT la phrase/);
+    expect(c.value).toMatch(/dernière relance/);
+  });
+
+  it('accepte un réglage qui laisse la place', () => {
+    const c = line(30);
+    expect(c.status).toBe('ok');
+    expect(c.lever).toBeUndefined();
+    expect(c.value).toMatch(/relances à 10 s et 20 s/);
+  });
+
+  it('se tait quand l\'assistant distant n\'a pas été lu', () => {
+    expect(line(null).status).toBe('skip');
+  });
+});

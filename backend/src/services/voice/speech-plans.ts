@@ -250,9 +250,36 @@ export function resolveTuning(t: VoiceTuning = {}) {
       env.VOICE_REALTIME_BARGE_IN_VOICE_SECONDS,
     ),
     backoffSeconds: clamp(t.backoffSeconds, 0.3, 3, env.VOICE_BARGE_IN_BACKOFF_SECONDS),
-    // Le plancher de 10 s vient de `env.ts`: en dessous, la réceptionniste
-    // raccroche au nez de quelqu'un qui réfléchit.
-    silenceTimeout: Math.round(clamp(t.silenceTimeout, 10, 120, env.VAPI_SILENCE_TIMEOUT)),
+    /* Le raccroché tombe APRÈS les relances, jamais avant ni en même temps.
+     *
+     * Deux réglages décrivent le même silence et ne se parlaient pas:
+     * `VOICE_IDLE_NUDGE_SECONDS` (10 s) déclenche « Vous m'entendez ? », deux
+     * fois, et `VAPI_SILENCE_TIMEOUT` décide du raccroché. Le commentaire de
+     * `env.ts` l'affirme déjà — « il en reste largement avant le raccroché » —
+     * mais rien ne le VÉRIFIAIT.
+     *
+     * Relevé le 17/09/2026: `VAPI_SILENCE_TIMEOUT` valait 10 en production.
+     * Donc l'échéance du raccroché tombait à la seconde même de la première
+     * relance, et le mécanisme de relance n'a JAMAIS tourné sur un seul appel.
+     * Pire, et c'est ce qui se voyait: dix secondes après le décroché, un
+     * accueil qui en dure sept ou huit laisse une seconde à l'appelant pour
+     * parler. Tous les appels de test mouraient en `silence-timed-out` autour
+     * de dix secondes, en parole-à-parole comme en classique, et ça se lisait
+     * comme une panne du moteur vocal.
+     *
+     * Le plancher est donc le CALENDRIER des relances, pas une constante:
+     * chaque relance a besoin de sa fenêtre, plus une dernière avant de
+     * raccrocher. Un réglage qui désactive silencieusement une autre
+     * fonctionnalité n'est pas un réglage, c'est un piège.
+     *
+     * Le plancher s'applique APRÈS `clamp`, et il faut y faire attention:
+     * `clamp` rend son `fallback` TEL QUEL quand le client n'a rien réglé, donc
+     * lui passer un plancher plus haut n'aurait rien changé au cas réel, celui
+     * où la valeur vient justement de l'environnement. */
+    silenceTimeout: Math.round(Math.min(120, Math.max(
+      env.VOICE_IDLE_NUDGE_SECONDS * (env.VOICE_IDLE_NUDGE_COUNT + 1),
+      clamp(t.silenceTimeout, 10, 120, env.VAPI_SILENCE_TIMEOUT),
+    ))),
     /* Par client, puis par environnement, puis le code. Jamais une liste vide:
        sans mot d'arrêt plus rien ne coupe une réceptionniste lancée, et sans
        acquiescement elle se tait au premier « mm-hmm ». Un réglage qui peut
@@ -896,7 +923,35 @@ export function assistantModelBlock(opts: {
  * cas ici, mais le catalogue temps réel n'est pas celui des modèles texte et
  * un identifiant déduit est un assistant refusé en entier (6quinvicies).
  */
+/**
+ * LA LANGUE, DITE AU MODÈLE, et seulement en parole-à-parole (17/09/2026).
+ *
+ * En chaîne classique, la langue est posée DEUX fois sans qu'on y pense: le
+ * transcripteur la reçoit (`buildTranscriber`, `language: fr`) et la voix aussi.
+ * Le parole-à-parole n'a ni l'un ni l'autre — c'est la définition du mode — donc
+ * plus RIEN ne dit au modèle en quelle langue écouter ni répondre. Le prompt est
+ * bien en français, mais un prompt français n'est pas une consigne de langue: il
+ * décrit le métier, pas le canal audio.
+ *
+ * Ce que ça a donné sur le premier appel: l'appelant dit « allô », le transcript
+ * écrit « Hello? », et l'assistant rend « Dentalics » puis « receptionist to Sid
+ * and Alex » — du français passé à la moulinette d'un modèle qui écoute en
+ * anglais, ou de l'anglais tout court. Les deux se corrigent ici.
+ *
+ * La ligne vit dans le bloc TEMPS RÉEL, pas dans `buildSystemPrompt`: le prompt
+ * partagé est rejoué à chaque tour sur le chemin classique, où il est déjà à son
+ * plafond, et où la langue est déjà dite deux fois. Payer ces caractères là-bas
+ * serait payer pour un problème qui n'y existe pas.
+ */
+const REALTIME_LANGUAGE_LINE: Record<VoiceLanguage, string> = {
+  fr: 'LANGUE: tu parles FRANÇAIS, et seulement français. Si tu entends mal, tu fais répéter en français; tu ne changes jamais de langue.',
+  en: 'LANGUAGE: you speak ENGLISH, and only English. If you mishear, ask again in English; never switch language.',
+  nl: 'TAAL: je spreekt NEDERLANDS, en alleen Nederlands. Versta je iets niet, laat het dan in het Nederlands herhalen; wissel nooit van taal.',
+};
+
 export function realtimeSpeechBlocks(opts: {
+  /** La langue de l'appel: voir `REALTIME_LANGUAGE_LINE`. */
+  lang: VoiceLanguage;
   gender: 'f' | 'm';
   systemPrompt: string;
   tools: any[];
@@ -904,13 +959,21 @@ export function realtimeSpeechBlocks(opts: {
   /** Jamais déduit: il vient de `resolveTuning`, donc du niveau ou de l'env. */
   realtimeModel: string;
 }): { model: any; voice: any } {
+  /* En TÊTE, avant l'identité: c'est une contrainte de canal, pas une règle de
+     métier, et les premières lignes d'un prompt long sont celles qui tiennent. */
+  const systemPrompt = `${REALTIME_LANGUAGE_LINE[opts.lang]}\n${opts.systemPrompt}`;
   return {
     model: {
       provider: 'openai',
       model: opts.realtimeModel,
       temperature: opts.temperature,
-      maxTokens: env.VOICE_MAX_COMPLETION_TOKENS,
-      messages: [{ role: 'system', content: opts.systemPrompt }],
+      /* PAS `VOICE_MAX_COMPLETION_TOKENS`: ici la sortie du modèle est de
+         l'AUDIO, et 120 jetons de texte n'y valent qu'une poignée de mots.
+         Trois appels réels ont fini en `silence-timed-out` sur une phrase
+         d'accueil tronquée avant d'avoir trouvé ça. Voir l'en-tête de
+         `VOICE_REALTIME_MAX_TOKENS`. */
+      maxTokens: env.VOICE_REALTIME_MAX_TOKENS,
+      messages: [{ role: 'system', content: systemPrompt }],
       tools: opts.tools,
     },
     voice: { provider: 'openai', voiceId: REALTIME_VOICE[opts.gender] },
@@ -954,6 +1017,7 @@ export function buildSpeech(opts: {
 
   if (speechToSpeech) {
     return { speechToSpeech, ...realtimeSpeechBlocks({
+      lang: opts.lang,
       gender: opts.character.gender,
       systemPrompt: opts.systemPrompt,
       tools: opts.tools,

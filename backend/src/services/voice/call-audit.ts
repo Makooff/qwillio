@@ -106,6 +106,15 @@ export interface CallFacts {
      * `voice:tier` en boucle sur un réglage déjà correct.
      */
     transcriber?: boolean | null;
+    /**
+     * Le délai de RACCROCHÉ que l'assistant distant porte. `null` = non lu.
+     *
+     * Il ne figurait sur aucun écran, et c'est lui qui a tué six appels de test
+     * d'affilée le 17/09/2026: posé à 10 s en production, il raccrochait pendant
+     * la phrase d'accueil. Les deux diagnostics faits pour répondre à « pourquoi
+     * cet appel n'a rien donné » ne le montraient ni l'un ni l'autre.
+     */
+    silenceTimeoutSeconds?: number | null;
   };
   expected: {
     endpointing: EndpointingFacts;
@@ -119,6 +128,10 @@ export interface CallFacts {
     tierRequested: VoiceTierId | null;
     /** Le niveau qui DOIT servir, voix clonée comprise. */
     tierServed: VoiceTierId;
+    /** Secondes de silence avant « Vous m'entendez ? ». */
+    idleNudgeSeconds?: number;
+    /** Combien de relances avant de laisser le raccroché faire son office. */
+    idleNudgeCount?: number;
   };
 }
 
@@ -786,14 +799,79 @@ export function auditCall(facts: CallFacts): AuditReport {
   {
     const got = facts.remote.endpointing;
     const want = facts.expected.endpointing;
-    const same = !!got && got.provider === want.provider && got.waitSeconds === want.waitSeconds && got.punctuationSeconds === want.punctuationSeconds;
+    /* EN PAROLE-À-PAROLE, LE PLAN ATTENDU EST L'ABSENCE DE PLAN (17/09/2026).
+       Cette ligne comparait sans condition au plan classique, donc sur un
+       client Superagent correctement configuré elle notait « aucun » en ROUGE
+       contre « livekit, attente 0.15 s » et conseillait un resync qui ne change
+       rien. C'est le faux positif que le docteur venait de fermer, réouvert ici:
+       quand une leçon déplace un champ, le code qui le LIT compte autant que
+       celui qui l'écrit, et il y en avait DEUX à corriger (6sexvicies).
+       Un plan distant sur un assistant temps réel n'est pas jugé ici non plus:
+       la ligne « niveau » le nomme déjà HYBRIDE, et compter deux fois un seul
+       fait donne à la mesure la plus indirecte le poids de celle qui touche le
+       phénomène (6quaterquinquagesies). */
+    const s2sWanted = facts.expected.tierServed === 'superagent';
+    if (s2sWanted) {
+      push({
+        id: 'endpointing', area: 'reglages',
+        status: got ? 'skip' : 'ok',
+        label: "détecteur de fin de tour de l'assistant qui décroche",
+        value: got
+          ? `${got.provider}, attente ${got.waitSeconds ?? '?'} s, ponctuation ${got.punctuationSeconds ?? '?'} s: `
+            + 'reste d\'une synchronisation classique, voir la ligne « niveau »'
+          : 'aucun plan: en parole-à-parole, le moment de répondre appartient au modèle',
+      });
+    } else {
+      const same = !!got && got.provider === want.provider && got.waitSeconds === want.waitSeconds && got.punctuationSeconds === want.punctuationSeconds;
+      push({
+        id: 'endpointing', area: 'reglages',
+        status: !got ? 'skip' : same ? 'ok' : 'fail',
+        label: "détecteur de fin de tour de l'assistant qui décroche",
+        value: got ? `${got.provider}, attente ${got.waitSeconds ?? '?'} s, ponctuation ${got.punctuationSeconds ?? '?'} s` : 'assistant distant non lu',
+        target: `${want.provider}, attente ${want.waitSeconds} s, ponctuation ${want.punctuationSeconds} s`,
+        lever: got && !same ? "l'assistant enregistré est périmé par rapport à l'env: `npm run voice:resync -- --confirm`" : undefined,
+      });
+    }
+  }
+
+  {
+    /* LE DÉLAI DE RACCROCHÉ, ET LES RELANCES QU'IL DOIT LAISSER PASSER.
+     *
+     * Ajouté le 17/09/2026 après six appels de test morts d'affilée. Le compte
+     * était posé à 10 s en production: l'appel raccrochait PENDANT la phrase
+     * d'accueil, en parole-à-parole comme en classique. Ça se lisait comme une
+     * panne du moteur vocal, et deux écrans entiers faits pour répondre à
+     * « pourquoi cet appel n'a rien donné » ne montraient NI ce chiffre ni le
+     * calendrier des relances qu'il annule.
+     *
+     * Le verdict compare les deux, parce que séparés ils ne disent rien: 10 s
+     * est un réglage raisonnable en soi, il ne devient faux qu'en face de
+     * relances posées à 10 s et 20 s. C'est la leçon des quatre plafonds de cet
+     * audit, appliquée à un réglage au lieu d'un ratio: un nombre se note
+     * contre ce à quoi il est censé laisser la place. */
+    const got = facts.remote.silenceTimeoutSeconds ?? null;
+    const nudge = facts.expected.idleNudgeSeconds ?? null;
+    const count = facts.expected.idleNudgeCount ?? null;
+    /* La dernière relance parle à `nudge * count`; il faut au moins une fenêtre
+       de plus avant de raccrocher, sinon elle n'a pas le temps d'exister. */
+    const floor = nudge !== null && count !== null ? nudge * (count + 1) : null;
+    const tooShort = got !== null && floor !== null && got < floor;
+    /* Un raccroché qui tombe avant la PREMIÈRE relance coupe l'appelant au lieu
+       de le relancer: c'est le cas vécu, et il se dit plus fort. */
+    const cutsGreeting = got !== null && nudge !== null && got <= nudge;
     push({
-      id: 'endpointing', area: 'reglages',
-      status: !got ? 'skip' : same ? 'ok' : 'fail',
-      label: "détecteur de fin de tour de l'assistant qui décroche",
-      value: got ? `${got.provider}, attente ${got.waitSeconds ?? '?'} s, ponctuation ${got.punctuationSeconds ?? '?'} s` : 'assistant distant non lu',
-      target: `${want.provider}, attente ${want.waitSeconds} s, ponctuation ${want.punctuationSeconds} s`,
-      lever: got && !same ? "l'assistant enregistré est périmé par rapport à l'env: `npm run voice:resync -- --confirm`" : undefined,
+      id: 'silence', area: 'reglages',
+      status: got === null ? 'skip' : tooShort ? 'fail' : 'ok',
+      label: 'délai avant raccroché, contre les relances',
+      value: got === null
+        ? 'assistant distant non lu'
+        : `raccroché à ${got} s`
+          + (nudge !== null && count !== null ? `, relances à ${Array.from({ length: count }, (_, i) => (i + 1) * nudge).join(' s et ')} s` : '')
+          + (cutsGreeting ? ' — il raccroche PENDANT la phrase d\'accueil, avant la moindre relance' : tooShort ? " — la dernière relance n'a pas le temps d'exister" : ''),
+      target: floor !== null ? `au moins ${floor} s` : undefined,
+      lever: tooShort
+        ? `\`VAPI_SILENCE_TIMEOUT\` à ${floor} s au moins, puis \`npm run voice:resync -- --confirm\`. Un raccroché posé sous le calendrier des relances les supprime en silence, et sous la durée de l'accueil il coupe l'appelant avant qu'il ait parlé`
+        : undefined,
     });
   }
 

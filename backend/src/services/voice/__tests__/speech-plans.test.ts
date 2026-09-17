@@ -636,3 +636,70 @@ describe('le seuil de voix du chemin parole-à-parole (TUR-6)', () => {
     expect(resolveTuning({ realtimeBargeInVoiceSeconds: 0 }).realtimeBargeInVoiceSeconds).toBe(0.1);
   });
 });
+
+/**
+ * LE RACCROCHÉ TOMBE APRÈS LES RELANCES (17/09/2026).
+ *
+ * Deux réglages décrivent le même silence et ne se parlaient pas:
+ * `VOICE_IDLE_NUDGE_SECONDS` (10 s) déclenche « Vous m'entendez ? », deux fois,
+ * et `VAPI_SILENCE_TIMEOUT` décide du raccroché. Le commentaire d'`env.ts`
+ * affirmait déjà qu'« il en reste largement avant le raccroché ». Rien ne le
+ * vérifiait.
+ *
+ * En production, `VAPI_SILENCE_TIMEOUT` valait 10. L'échéance du raccroché
+ * tombait donc à la seconde même de la première relance: le mécanisme entier
+ * n'a jamais tourné sur un seul appel. Et surtout, dix secondes après le
+ * décroché, un accueil qui en dure sept laisse une seconde à l'appelant. Tous
+ * les appels de test mouraient en `silence-timed-out` vers dix secondes, dans
+ * les deux moteurs, et ça se lisait comme une panne du moteur vocal.
+ */
+describe('délai de silence contre calendrier des relances', () => {
+  const load = async (patch: Record<string, string>) => {
+    vi.resetModules();
+    const prev: Record<string, string | undefined> = {};
+    for (const [k, v] of Object.entries(patch)) { prev[k] = process.env[k]; process.env[k] = v; }
+    try {
+      const mod = await import('../speech-plans');
+      const { env } = await import('../../../config/env');
+      return { ...mod, env };
+    } finally {
+      for (const [k, v] of Object.entries(prev)) {
+        if (v === undefined) delete process.env[k]; else process.env[k] = v;
+      }
+    }
+  };
+
+  it('relève un raccroché posé AVANT la dernière relance', async () => {
+    const { resolveTuning } = await load({
+      VAPI_SILENCE_TIMEOUT: '10', VOICE_IDLE_NUDGE_SECONDS: '10', VOICE_IDLE_NUDGE_COUNT: '2',
+    });
+    /* Deux relances à 10 s et 20 s, donc le raccroché ne peut pas tomber avant
+       30 s sans les rendre inatteignables. */
+    expect(resolveTuning().silenceTimeout).toBe(30);
+  });
+
+  it('applique le plancher à la valeur d\'ENVIRONNEMENT, pas seulement au réglage client', async () => {
+    /* Le piège: `clamp` rend son `fallback` tel quel quand le client n'a rien
+       réglé. Un plancher passé à `clamp` n'aurait donc jamais touché le cas
+       réel, qui est exactement celui-là. */
+    const { resolveTuning } = await load({
+      VAPI_SILENCE_TIMEOUT: '12', VOICE_IDLE_NUDGE_SECONDS: '10', VOICE_IDLE_NUDGE_COUNT: '2',
+    });
+    expect(resolveTuning().silenceTimeout).toBe(30);
+    expect(resolveTuning({}).silenceTimeout).toBe(30);
+  });
+
+  it('ne touche pas un réglage déjà confortable', async () => {
+    const { resolveTuning } = await load({
+      VAPI_SILENCE_TIMEOUT: '45', VOICE_IDLE_NUDGE_SECONDS: '10', VOICE_IDLE_NUDGE_COUNT: '2',
+    });
+    expect(resolveTuning().silenceTimeout).toBe(45);
+  });
+
+  it('garde le plafond de 120 s', async () => {
+    const { resolveTuning } = await load({
+      VAPI_SILENCE_TIMEOUT: '600', VOICE_IDLE_NUDGE_SECONDS: '60', VOICE_IDLE_NUDGE_COUNT: '5',
+    });
+    expect(resolveTuning().silenceTimeout).toBe(120);
+  });
+});
