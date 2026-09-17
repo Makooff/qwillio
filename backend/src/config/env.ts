@@ -565,12 +565,21 @@ export const env = {
    * du portail montre en plus la parole de l'AGENT rendue en charabia anglais
    * (« Was that 2 goshola? »), donc rien ne lit correctement l'audio de l'appel.
    *
-   * Corrélation n'est pas cause, d'où un INTERRUPTEUR plutôt qu'un revirement:
-   * il permet d'essayer l'hypothèse sur un appel, une variable à la fois, sans
-   * redéployer entre deux essais. Défaut `off`: on ne change pas le
-   * comportement de la flotte sur une corrélation.
+   * L'ESSAI A TRANCHÉ, et le défaut est passé à `on` (17/09/2026, 08:15).
+   * Même client, même assistant, transcripteur remis: 7 répliques de
+   * l'assistant et 3 de l'appelant, conversation entière en français, nom
+   * épelé, `captureLead` appelé, délai ressenti de 0,0 s en médiane. Premier
+   * appel en parole-à-parole qui fait son travail depuis que ce mode existe.
+   *
+   * Donc le raisonnement d'origine est FAUX sur Vapi: le modèle entend bien
+   * l'audio, mais c'est le transcripteur qui fait remonter la parole de
+   * l'appelant sur ce chemin. Sans lui l'agent parle dans le vide, et les
+   * trois appels muets qui ont précédé s'expliquent d'un coup.
+   *
+   * `off` reste possible pour rejouer l'ancien comportement, et c'est tout ce
+   * à quoi il sert désormais.
    */
-  VOICE_REALTIME_TRANSCRIBER: (process.env.VOICE_REALTIME_TRANSCRIBER || 'off').toLowerCase() === 'on',
+  VOICE_REALTIME_TRANSCRIBER: (process.env.VOICE_REALTIME_TRANSCRIBER || 'on').toLowerCase() === 'on',
   /** Cap on a single assistant turn; long completions are long silences. */
   VOICE_MAX_COMPLETION_TOKENS: parseInt(process.env.VOICE_MAX_COMPLETION_TOKENS || '120', 10),
   /**

@@ -100,12 +100,20 @@ async function main() {
     try {
       const assistant = (await vapiClient.getAssistant(assistantId)) as Record<string, any>;
       remoteCustomLlm = assistant?.model?.provider === 'custom-llm';
-      /* Le parole-à-parole se reconnaît à DEUX choses ensemble: OpenAI tient la
-         boucle (pas de custom-LLM) et il n'y a AUCUN transcripteur, parce que
-         le modèle entend l'audio lui-même. Le fournisseur seul ne suffit pas:
-         un client épinglé hors custom-LLM est aussi en `openai`, mais avec un
-         transcripteur, et il est classique. */
-      remoteSpeechToSpeech = assistant?.model?.provider === 'openai' && !assistant?.transcriber;
+      /* Le parole-à-parole se reconnaît au MODÈLE, pas à l'absence de
+         transcripteur (17/09/2026).
+         La lecture d'avant était « openai ET pas de transcripteur », et elle
+         tenait tant que le temps réel en était dépourvu. Un appel réel a montré
+         que Vapi en a besoin sur ce chemin pour entendre l'appelant, donc un
+         assistant temps réel PARFAITEMENT configuré en porte un désormais, et
+         cette lecture le classait « classique » puis « HYBRIDE » — un diagnostic
+         faux sur l'état qu'on veut, soit exactement ce que cet audit a déjà
+         payé trois fois aujourd'hui.
+         L'identifiant du modèle, lui, ne ment pas: seul le temps réel porte un
+         `gpt-realtime-*`, et le fournisseur seul ne suffit pas puisqu'un client
+         épinglé hors custom-LLM est aussi en `openai`. */
+      const remoteModelName = typeof assistant?.model?.model === 'string' ? assistant.model.model : '';
+      remoteSpeechToSpeech = assistant?.model?.provider === 'openai' && /realtime/i.test(remoteModelName);
       /* Le transcripteur DISTANT, à part: c'est lui qui distingue « le niveau
          n'a pas été écrit » de « un reste l'annule ». Voir `remote.transcriber`
          dans `call-audit.ts`. */
@@ -176,6 +184,8 @@ async function main() {
       minChunkChars: env.VOICE_TTS_MIN_CHUNK_CHARS,
       greetingPinned: env.VOICE_GREETING_PINNED,
       smsReady: smsReadiness().ok,
+      /* Un transcripteur VOULU en parole-à-parole n'est pas un reste. */
+      realtimeTranscriber: env.VOICE_REALTIME_TRANSCRIBER,
       /* Le calendrier des relances, pour le comparer au raccroché. */
       idleNudgeSeconds: env.VOICE_IDLE_NUDGE_SECONDS,
       idleNudgeCount: env.VOICE_IDLE_NUDGE_COUNT,

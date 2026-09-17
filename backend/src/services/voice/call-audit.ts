@@ -128,6 +128,15 @@ export interface CallFacts {
     tierRequested: VoiceTierId | null;
     /** Le niveau qui DOIT servir, voix clonée comprise. */
     tierServed: VoiceTierId;
+    /**
+     * Le transcripteur est-il VOULU en parole-à-parole ?
+     *
+     * Sans ça, un assistant temps réel correctement configuré est lu comme
+     * hybride dès que Vapi a besoin d'un transcripteur pour entendre l'appelant
+     * (vérifié sur un appel réel le 17/09/2026). La même ligne qui nomme un
+     * reste doit savoir quand ce n'en est pas un.
+     */
+    realtimeTranscriber?: boolean;
     /** Secondes de silence avant « Vous m'entendez ? ». */
     idleNudgeSeconds?: number;
     /** Combien de relances avant de laisser le raccroché faire son office. */
@@ -902,8 +911,10 @@ export function auditCall(facts: CallFacts): AuditReport {
        et `silence-timed-out` au bout de 137 s.
        Relancer `voice:tier` ne répare RIEN ici: le réglage est déjà bon, c'est
        l'assistant distant qui porte un reste. */
+    /* Un transcripteur VOULU n'est pas un reste: quand l'interrupteur est
+       allumé, un assistant temps réel en porte un par construction. */
     const hybride = got === false && want && facts.remote.customLlm === false
-      && facts.remote.transcriber === true;
+      && facts.remote.transcriber === true && !facts.expected.realtimeTranscriber;
     push({
       id: 'niveau', area: 'reglages',
       status: got === null ? 'skip' : got === want ? 'ok' : 'fail',

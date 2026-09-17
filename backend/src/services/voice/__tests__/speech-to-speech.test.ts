@@ -161,12 +161,16 @@ describe('parole-à-parole', () => {
   /* Le modèle entend l'audio lui-même. Lui adjoindre un transcripteur, c'est
      payer une étape dont plus personne ne lit la sortie et rendre la latence
      à ce qu'elle était. */
-  it('retire le transcripteur, et le garde dans la chaîne classique', async () => {
-    const { buildRealtimePlans } = await load({ VOICE_SPEECH_TO_SPEECH: 'on' });
+  it('retire le transcripteur sous `off`, et le garde dans la chaîne classique', async () => {
     /* `null` et non une clé absente: la mise à jour d'un assistant est un
        PATCH, donc taire la clé la CONSERVE chez Vapi. Ce test disait
        `not.toHaveProperty` et passait pendant qu'un assistant basculé en
-       Superagent gardait Deepgram. Voir speech-plans.test.ts. */
+       Superagent gardait Deepgram. Voir speech-plans.test.ts.
+       Le retrait est passé sous `off` le 17/09: un appel réel a montré que Vapi
+       a besoin du transcripteur pour entendre l'appelant en parole-à-parole. */
+    const { buildRealtimePlans } = await load({
+      VOICE_SPEECH_TO_SPEECH: 'on', VOICE_REALTIME_TRANSCRIBER: 'off',
+    });
     expect((buildRealtimePlans('fr', true) as any).transcriber).toBeNull();
     expect((buildRealtimePlans('fr', false) as any).transcriber).toBeTruthy();
   });
@@ -385,12 +389,20 @@ describe('parole-à-parole — son propre plafond de jetons', () => {
  * Corrélation n'est pas cause, d'où un interrupteur plutôt qu'un revirement.
  */
 describe('parole-à-parole — le transcripteur, sous interrupteur', () => {
-  it('reste retiré par défaut: on ne renverse pas la flotte sur une corrélation', async () => {
+  it('est là par DÉFAUT: un appel réel a tranché', async () => {
+    /* 17/09/2026, 08:15: transcripteur remis, 7 répliques de l'assistant et 3
+       de l'appelant, conversation entière en français, `captureLead` appelé.
+       Premier appel en parole-à-parole qui fait son travail. */
     const { buildRealtimePlans } = await load({});
+    expect((buildRealtimePlans('fr', true) as any).transcriber).toBeTruthy();
+  });
+
+  it('se retire encore sous `off`, pour rejouer l\'ancien comportement', async () => {
+    const { buildRealtimePlans } = await load({ VOICE_REALTIME_TRANSCRIBER: 'off' });
     expect((buildRealtimePlans('fr', true) as any).transcriber).toBeNull();
   });
 
-  it('revient quand on l\'allume, et seulement alors', async () => {
+  it('porte la langue quand il est là', async () => {
     const { buildRealtimePlans } = await load({ VOICE_REALTIME_TRANSCRIBER: 'on' });
     const tr = (buildRealtimePlans('fr', true) as any).transcriber;
     expect(tr).toBeTruthy();
@@ -406,7 +418,7 @@ describe('parole-à-parole — le transcripteur, sous interrupteur', () => {
     expect((on.buildRealtimePlans('fr', false) as any).transcriber).toBeTruthy();
   });
 
-  it('laisse le plan d\'attente retiré: un seul essai à la fois', async () => {
+  it('laisse le plan d\'attente retiré', async () => {
     /* L'interrupteur ne teste QUE le transcripteur. Remettre aussi le plan
        d'attente referait l'assistant hybride, et on ne saurait pas lequel des
        deux a agi. */
