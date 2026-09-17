@@ -1717,6 +1717,44 @@ bien avant la fin de la complétion). Le « vrai streaming » demandé existe de
 deux côtés; ce qui manque est en amont, dans la décision « il a fini de
 parler ».
 
+### 6sexquinquagesies. Taire une cle ne la RETIRE pas: la mise a jour est un PATCH (17/09/2026)
+Premier client bascule en Superagent, premier appel reel: `silence-timed-out`
+au bout de 137 s, repliques qui se chevauchent (« Le jeudi 17 septembre, nous
+avons Je regarde ca tout de suite »), l'agent qui repond a sa PROPRE question,
+`lookupBooking` jamais appele alors que l'appelant disait avoir un rendez-vous.
+Retour du proprietaire: « il se coupe tout seul et n'est pas branche aux
+outils, on dirait qu'il ne me reconnait pas ».
+**La cause n'est pas le reglage, il etait bon.** `buildRealtimePlans` se
+contentait de TAIRE le transcripteur et `startSpeakingPlan` en parole-a-parole
+(`...(speechToSpeech ? {} : { transcriber })`), et `vapiClient.updateAssistant`
+est un **PATCH**: une cle absente du corps est CONSERVEE chez Vapi. Omettre ne
+retire donc que sur une CREATION; sur tout client qui BASCULE, Deepgram et le
+plan d'attente restaient en place. L'assistant distant portait
+`gpt-realtime-mini` ET « detecteur livekit, attente 0.15 s, ponctuation 0.4 s ».
+Deux preneurs de tour de parole sur le meme assistant: le modele qui entend
+l'audio, et un plan qui compte des mots.
+La regle: **ce qui doit disparaitre s'ecrit `null`, jamais en se taisant.** Le
+test qui gelait l'invariant disait `not.toHaveProperty('transcriber')` et
+passait pendant que le defaut tournait: `toBeUndefined` ne distingue pas
+« retire » de « conserve ». Il assere desormais la cle PRESENTE a `null`, et la
+forme fautive a ete reintroduite une fois pour verifier qu'il tombe (quatre
+tests). Meme traitement pour `VOICE_REALTIME_STOP_PLAN=off`, qui veut dire
+« rends la main au defaut de Vapi » et laissait en fait le plan classique.
+**Ce que les diagnostics en disaient, et c'est la moitie du cout.** Le docteur
+comparait la voix distante a `voiceSignatureFor`, qui repond toujours par une
+signature de SYNTHESE: il annoncait donc « perime, resynchroniser » a tout
+client Superagent, sur un assistant correct (6sexvicies, encore). Il passe par
+`assistantSpeechForProfile`, la meme fonction que les deux ecritures, et il lit
+desormais le transcripteur et le plan d'attente DISTANTS pour nommer un reste.
+L'audit, lui, avait RAISON: `remoteSpeechToSpeech = provider openai && pas de
+transcripteur` rendait faux, donc « niveau servi: Standard » etait exact. Mais
+son levier envoyait relancer `voice:tier`, qui ne repare rien puisque le
+reglage est deja bon. Il nomme maintenant l'assistant HYBRIDE et interdit ce
+geste-la.
+**Mitigation sans deploiement**, verifiee: `--tier=base --confirm` rend une
+ligne qui marche tout de suite, le chemin classique envoyant les trois cles
+explicitement, donc le PATCH les ecrase.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

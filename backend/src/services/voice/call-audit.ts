@@ -94,6 +94,18 @@ export interface CallFacts {
      * monde pendant des semaines, y compris aux clients réglés en temps réel.
      */
     speechToSpeech: boolean | null;
+    /**
+     * Un transcripteur est-il posé sur l'assistant DISTANT ? `null` = non lu.
+     *
+     * Lu pour une raison précise (17/09/2026): il permet de distinguer « le
+     * niveau n'a pas été écrit » de « le niveau a été écrit et un RESTE l'a
+     * annulé ». La mise à jour d'un assistant est un PATCH, donc les clés que
+     * le chemin parole-à-parole se contentait de taire — transcripteur et plan
+     * d'attente — SURVIVAIENT chez Vapi sur tout client qui basculait. Les deux
+     * écarts se réparent différemment, et confondre les deux fait relancer
+     * `voice:tier` en boucle sur un réglage déjà correct.
+     */
+    transcriber?: boolean | null;
   };
   expected: {
     endpointing: EndpointingFacts;
@@ -794,17 +806,34 @@ export function auditCall(facts: CallFacts): AuditReport {
     const want = facts.expected.tierServed === 'superagent';
     const clonePrime = facts.expected.tierRequested === 'superagent' && facts.expected.tierServed === 'base';
     const label = (id: VoiceTierId) => VOICE_TIERS[id].label;
+    /* L'ASSISTANT HYBRIDE, et il faut le nommer pour ne pas envoyer au mauvais
+       geste (17/09/2026). Vapi tient le modèle temps réel (`customLlm` faux)
+       ET un transcripteur: ce n'est ni du classique ni du parole-à-parole,
+       c'est un assistant basculé dont le PATCH a conservé les clés que le
+       chemin temps réel se contentait de taire. Deux preneurs de tour de parole
+       cohabitent alors, le modèle qui entend l'audio et le plan d'attente qui
+       compte des mots; relevé sur le premier appel réel en Superagent:
+       répliques qui se chevauchent, l'agent qui répond à sa propre question,
+       et `silence-timed-out` au bout de 137 s.
+       Relancer `voice:tier` ne répare RIEN ici: le réglage est déjà bon, c'est
+       l'assistant distant qui porte un reste. */
+    const hybride = got === false && want && facts.remote.customLlm === false
+      && facts.remote.transcriber === true;
     push({
       id: 'niveau', area: 'reglages',
       status: got === null ? 'skip' : got === want ? 'ok' : 'fail',
       label: 'niveau servi par l\'assistant qui décroche',
       value: got === null
         ? 'assistant distant non lu'
+        : hybride
+        ? 'HYBRIDE: modèle temps réel ET transcripteur classique sur le même assistant'
         : `${label(got ? 'superagent' : 'base')}${got ? ' (parole-à-parole)' : ' (transcription, modèle, synthèse)'}`,
       target: clonePrime
         ? `${label('base')}: une voix clonée prime sur le niveau demandé`
         : label(facts.expected.tierServed),
-      lever: got !== null && got !== want
+      lever: hybride
+        ? 'RESTE d\'une synchronisation classique, conservé par le PATCH de Vapi. Le réglage est bon, ne pas relancer `voice:tier`: déployer le correctif qui envoie `transcriber` et `startSpeakingPlan` à `null`, puis `npm run voice:resync -- --confirm`. En attendant, `--tier=base --confirm` rend une ligne qui marche'
+        : got !== null && got !== want
         ? "l'assistant enregistré ne porte pas le niveau du client: `npm run voice:tier -- --email=… --tier=… --confirm`"
         : undefined,
     });
