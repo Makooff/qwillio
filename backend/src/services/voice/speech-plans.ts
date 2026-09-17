@@ -982,6 +982,84 @@ const REALTIME_LANGUAGE_LINE: Record<VoiceLanguage, string> = {
   nl: 'TAAL: je spreekt NEDERLANDS, en alleen Nederlands. Versta je iets niet, laat het dan in het Nederlands herhalen; wissel nooit van taal.',
 };
 
+/**
+ * LA DISCIPLINE DE CONVERSATION DU MODÈLE TEMPS RÉEL (17/09/2026).
+ *
+ * Premier appel long en parole-à-parole, 287 secondes, 34 répliques de
+ * l'assistant pour 20 de l'appelant, et un échec complet du métier: le
+ * rendez-vous n'a pas bougé, `rescheduleBooking` n'a jamais été appelé, et
+ * l'agent a fini par promettre un rappel qu'il ne pouvait pas tenir.
+ *
+ * Le transcript nomme la cause, et elle est unique. Le modèle produit sa
+ * question ET l'accusé de réception de la réponse dans le même souffle:
+ *
+ *   « Est-ce bien celle dont vous parliez Parfait. Merci pour votre
+ *     confirmation. Souhaitez-vous la modifier »
+ *
+ * L'appelant l'a relevé lui-même: « vous dites merci d'avoir confirmé alors
+ * que j'avais rien dit ». Cinq fois dans l'appel. Tout le reste en découle: le
+ * nom redemandé quatre fois parce que la confirmation imaginée ne valide rien,
+ * la date qui glisse de septembre à mars, une fermeture inventée, et l'agent
+ * qui conclut au problème technique.
+ *
+ * Ce sont des règles de TOUR DE PAROLE, pas de métier, donc elles vivent ici et
+ * pas dans `buildSystemPrompt`. Et surtout elles sont GRATUITES sur ce chemin:
+ * en parole-à-parole le prompt part une fois, à l'ouverture de la session, au
+ * lieu d'être rejoué à chaque tour. Le plafond de caractères qui contraint la
+ * chaîne classique n'existe pas ici — c'est l'asymétrie qui permet enfin
+ * d'écrire la discipline en entier plutôt qu'en télégramme.
+ */
+const REALTIME_DISCIPLINE: Record<VoiceLanguage, string[]> = {
+  fr: [
+    'TOUR DE PAROLE, règles absolues:',
+    "- Tu poses UNE question, puis tu te TAIS et tu attends la réponse. Jamais deux questions d'affilée.",
+    "- Tu ne remercies JAMAIS pour une confirmation que l'appelant n'a pas encore donnée. S'il n'a pas répondu, tu attends: son silence n'est pas un oui.",
+    "- Tu n'inventes pas sa réponse. Tant qu'il n'a pas parlé, tu n'as rien entendu.",
+    "- S'il parle pendant que tu parles, tu t'arrêtes immédiatement et tu écoutes.",
+    'CE QUE TU SAIS DÉJÀ:',
+    "- Une information donnée est ACQUISE. Le nom se demande UNE fois par appel; une fois que tu l'as, tu ne le redemandes plus, même si un outil échoue.",
+    "- Un outil qui échoue ne veut pas dire que l'appelant s'est trompé: ne lui refais pas répéter ce qu'il vient de dire.",
+    '- Tu ne redis pas ce que tu viens de dire.',
+    "- Quand l'appelant donne une date, tu gardes SON mois et SON jour. « le 22 » en septembre est le 22 septembre, jamais le 22 mars.",
+    'FAIRE, PAS PROMETTRE:',
+    "- Tu fais le travail avec tes outils. Déplacer un rendez-vous: lookupBooking, puis checkAvailability, puis rescheduleBooking. Tu vas jusqu'au bout.",
+    "- Tu ne proposes un rappel par l'équipe que si aucun outil ne peut faire ce qu'on te demande.",
+    "- Tu n'annonces jamais un jour de fermeture que les horaires ne disent pas.",
+  ],
+  en: [
+    'TURN-TAKING, absolute rules:',
+    '- Ask ONE question, then STOP and wait for the answer. Never two questions in a row.',
+    "- NEVER thank the caller for a confirmation they have not given yet. If they have not answered, wait: silence is not a yes.",
+    '- Do not invent their answer. Until they speak, you have heard nothing.',
+    '- If they speak while you are speaking, stop immediately and listen.',
+    'WHAT YOU ALREADY KNOW:',
+    '- Information given is SETTLED. Ask for the name ONCE per call; once you have it, never ask again, even if a tool fails.',
+    '- A failing tool does not mean the caller was wrong: do not make them repeat what they just said.',
+    '- Do not repeat what you just said.',
+    "- When the caller gives a date, keep THEIR month and THEIR day.",
+    'DO, DO NOT PROMISE:',
+    '- Do the work with your tools. Moving an appointment: lookupBooking, then checkAvailability, then rescheduleBooking. See it through.',
+    '- Only offer a callback from the team when no tool can do what is asked.',
+    '- Never announce a closing day the opening hours do not state.',
+  ],
+  nl: [
+    'BEURTWISSELING, absolute regels:',
+    '- Stel ÉÉN vraag, zwijg dan en wacht op het antwoord. Nooit twee vragen na elkaar.',
+    '- Bedank NOOIT voor een bevestiging die de beller nog niet gegeven heeft. Zwijgen is geen ja.',
+    '- Verzin zijn antwoord niet. Zolang hij niet gesproken heeft, heb je niets gehoord.',
+    '- Spreekt hij terwijl jij spreekt, stop dan meteen en luister.',
+    'WAT JE AL WEET:',
+    '- Gegeven informatie ligt VAST. Vraag de naam ÉÉN keer per gesprek; daarna nooit meer, ook niet als een tool faalt.',
+    '- Een mislukte tool betekent niet dat de beller zich vergiste: laat hem niet herhalen wat hij net zei.',
+    '- Herhaal niet wat je net zei.',
+    '- Geeft de beller een datum, houd dan ZIJN maand en ZIJN dag aan.',
+    'DOEN, NIET BELOVEN:',
+    '- Doe het werk met je tools. Een afspraak verzetten: lookupBooking, dan checkAvailability, dan rescheduleBooking. Maak het af.',
+    '- Bied alleen een terugbelverzoek aan als geen enkele tool kan doen wat gevraagd wordt.',
+    '- Kondig nooit een sluitingsdag aan die de openingsuren niet vermelden.',
+  ],
+};
+
 export function realtimeSpeechBlocks(opts: {
   /** La langue de l'appel: voir `REALTIME_LANGUAGE_LINE`. */
   lang: VoiceLanguage;
@@ -992,9 +1070,14 @@ export function realtimeSpeechBlocks(opts: {
   /** Jamais déduit: il vient de `resolveTuning`, donc du niveau ou de l'env. */
   realtimeModel: string;
 }): { model: any; voice: any } {
-  /* En TÊTE, avant l'identité: c'est une contrainte de canal, pas une règle de
-     métier, et les premières lignes d'un prompt long sont celles qui tiennent. */
-  const systemPrompt = `${REALTIME_LANGUAGE_LINE[opts.lang]}\n${opts.systemPrompt}`;
+  /* En TÊTE, avant l'identité: ce sont des contraintes de CANAL, pas des règles
+     de métier, et les premières lignes d'un prompt long sont celles qui
+     tiennent. Voir `REALTIME_DISCIPLINE` pour ce que cet ordre a coûté. */
+  const systemPrompt = [
+    REALTIME_LANGUAGE_LINE[opts.lang],
+    ...REALTIME_DISCIPLINE[opts.lang],
+    opts.systemPrompt,
+  ].join('\n');
   return {
     model: {
       provider: 'openai',
@@ -1206,7 +1289,21 @@ export function buildRealtimePlans(
              de Vapi »: c'est donc `null`, pas une absence, qui le dit. Absente,
              la clé laissait en place le plan CLASSIQUE de la synchronisation
              précédente, soit ni notre plan ni celui de Vapi. */
-          stopSpeakingPlan: env.VOICE_REALTIME_STOP_PLAN ? buildRealtimeStopSpeakingPlan(tuning) : null,
+          /* LE PLAN SUIT LE TRANSCRIPTEUR, parce qu'il est fait de mots.
+             `buildRealtimeStopSpeakingPlan` pose `numWords: 0` et ne trie que
+             sur l'énergie: il a été écrit pour un chemin SANS transcripteur, où
+             il n'y avait aucun mot à compter. Depuis que Vapi en exige un ici
+             (voir `VOICE_REALTIME_TRANSCRIBER`), ce choix n'a plus de raison
+             d'être, et l'énergie seule ne coupait pas l'agent — relevé sur deux
+             appels réels: « quand je le coupe, il ne s'arrête pas ».
+             Avec un transcripteur, le plan CLASSIQUE redevient le bon: il
+             compte les mots, laisse passer les acquiescements (« mm-hmm » ne
+             coupe pas) et coupe net sur les mots d'arrêt (« attendez »). */
+          stopSpeakingPlan: !env.VOICE_REALTIME_STOP_PLAN
+            ? null
+            : env.VOICE_REALTIME_TRANSCRIBER
+              ? buildStopSpeakingPlan(tuning)
+              : buildRealtimeStopSpeakingPlan(tuning),
         }
       : {
           startSpeakingPlan: buildStartSpeakingPlan(lang),
