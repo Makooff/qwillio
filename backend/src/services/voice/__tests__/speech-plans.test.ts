@@ -280,9 +280,14 @@ describe('buildRealtimePlans', () => {
    * Symptôme rapporté en mode Direct: « il ne m'entend pas quand je parle, et
    * ça raccroche vite ».
    */
-  it("N'ENVOIE AUCUNE CONDITION EN MOTS en parole-à-parole", () => {
+  it("N'ENVOIE AUCUN PLAN D'ATTENTE en parole-à-parole", () => {
+    /* Le plan d'attente est fait de règles de ponctuation et de fin de phrase:
+       en parole-à-parole, le moment de répondre appartient au modèle.
+       Le TRANSCRIPTEUR, lui, est revenu le 17/09: un appel réel a montré que
+       Vapi en a besoin pour faire remonter la parole de l'appelant sur ce
+       chemin. Son retrait vit sous `VOICE_REALTIME_TRANSCRIBER=off`, testé à
+       part. */
     const plans = buildRealtimePlans('fr', true) as Record<string, unknown>;
-    expect(plans.transcriber).toBeNull();
     expect(plans.startSpeakingPlan).toBeNull();
   });
 

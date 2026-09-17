@@ -1134,10 +1134,15 @@ export function buildRealtimePlans(
 ) {
   const tuning = resolveTuning(rawTuning);
   return {
-    /* Le modèle parole-à-parole entend l'audio lui-même: lui adjoindre un
-       transcripteur, c'est payer une étape dont plus personne ne lit la
-       sortie, et fixer la latence sur elle. Vapi le documente comme inutile
-       dans ce mode.
+    /* CE QUE CE COMMENTAIRE DISAIT ÉTAIT FAUX, et un appel l'a montré.
+       Il affirmait que le modèle parole-à-parole entend l'audio lui-même, donc
+       qu'un transcripteur serait une étape payée dont plus personne ne lit la
+       sortie. Le raisonnement est juste et la conclusion ne l'est pas: sur
+       Vapi, c'est le transcripteur qui fait remonter la parole de l'APPELANT
+       sur ce chemin. Sans lui, l'agent parle dans le vide (trois appels réels
+       à 0 ou 1 réplique de l'appelant, 17/09/2026); avec lui, la conversation
+       entière tient. Voir `VOICE_REALTIME_TRANSCRIBER`, qui garde l'ancien
+       comportement sous `off` pour pouvoir le rejouer.
 
        `null`, PAS une clé absente, et c'est tout le sujet de 6sexquinquagesies.
        `vapiClient.updateAssistant` est un PATCH: une clé qu'on n'envoie pas
