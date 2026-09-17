@@ -765,3 +765,45 @@ describe('auditCall — le raccroché doit laisser passer les relances', () => {
     expect(line(null).status).toBe('skip');
   });
 });
+
+/**
+ * UN PLAN « VIDE » N'EST PAS UN PLAN (17/09/2026).
+ *
+ * Le collecteur faisait `assistant.startSpeakingPlan ?? {}`, donc une ABSENCE de
+ * plan rendait un objet `{provider: 'aucun', waitSeconds: null, ...}`. La ligne
+ * le lisait comme un plan présent et annonçait « reste d'une synchronisation
+ * classique » sur un assistant temps réel qui n'en porte aucun — précisément
+ * l'état qu'on veut. Relevé sur un vrai écran, deux heures après avoir corrigé
+ * le faux positif d'à côté.
+ */
+describe('auditCall — absence de plan contre plan vide', () => {
+  const s2sWith = (endpointing: CallFacts['remote']['endpointing']) => {
+    const f = good();
+    f.expected.tierRequested = 'superagent';
+    f.expected.tierServed = 'superagent';
+    f.remote.customLlm = false;
+    f.remote.speechToSpeech = true;
+    f.remote.transcriber = false;
+    f.remote.endpointing = endpointing;
+    return auditCall(f).checks.find(c => c.id === 'endpointing')!;
+  };
+
+  it('lit un objet tout vide comme une absence, pas comme un reste', () => {
+    const c = s2sWith({ provider: 'aucun', waitSeconds: null, punctuationSeconds: null });
+    expect(c.status).toBe('ok');
+    expect(c.value).toMatch(/appartient au modèle/);
+    expect(c.value).not.toMatch(/reste/);
+  });
+
+  it('reconnaît toujours un VRAI reste', () => {
+    const c = s2sWith({ provider: 'livekit', waitSeconds: 0.15, punctuationSeconds: 0.4 });
+    expect(c.status).toBe('skip');
+    expect(c.value).toMatch(/reste d'une synchronisation classique/);
+  });
+
+  it("suffit d'un seul champ renseigné pour que ce soit un reste", () => {
+    const c = s2sWith({ provider: 'aucun', waitSeconds: 0.4, punctuationSeconds: null });
+    expect(c.status).toBe('skip');
+    expect(c.value).toMatch(/reste/);
+  });
+});
