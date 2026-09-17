@@ -548,6 +548,29 @@ export const env = {
    * déploiement-ci.
    */
   VOICE_REALTIME_STOP_PLAN: (process.env.VOICE_REALTIME_STOP_PLAN || 'on').toLowerCase() !== 'off',
+  /**
+   * Envoyer quand même un TRANSCRIPTEUR en parole-à-parole.
+   *
+   * Le chemin temps réel le retire, et le raisonnement se tient: le modèle
+   * entend l'audio lui-même, donc payer une transcription dont plus personne ne
+   * lit la sortie fixerait la latence sur elle. Ce raisonnement n'a JAMAIS été
+   * vérifié sur un appel réel, et c'est la règle que ce dépôt s'est écrite trois
+   * fois (6octovicies, 6quinquetrigesies, 6sexvicies).
+   *
+   * Ce que quatre appels réels du 17/09/2026 disent, eux: le SEUL où l'appelant
+   * a été correctement entendu est celui où le transcripteur était encore là,
+   * conservé par accident (l'assistant hybride de 03:51, deux répliques de
+   * l'appelant). Les trois suivants, transcripteur retiré, en comptent 1, 1
+   * puis 0, et le propriétaire rapporte « il ne m'entend pas ». Le transcript
+   * du portail montre en plus la parole de l'AGENT rendue en charabia anglais
+   * (« Was that 2 goshola? »), donc rien ne lit correctement l'audio de l'appel.
+   *
+   * Corrélation n'est pas cause, d'où un INTERRUPTEUR plutôt qu'un revirement:
+   * il permet d'essayer l'hypothèse sur un appel, une variable à la fois, sans
+   * redéployer entre deux essais. Défaut `off`: on ne change pas le
+   * comportement de la flotte sur une corrélation.
+   */
+  VOICE_REALTIME_TRANSCRIBER: (process.env.VOICE_REALTIME_TRANSCRIBER || 'off').toLowerCase() === 'on',
   /** Cap on a single assistant turn; long completions are long silences. */
   VOICE_MAX_COMPLETION_TOKENS: parseInt(process.env.VOICE_MAX_COMPLETION_TOKENS || '120', 10),
   /**
