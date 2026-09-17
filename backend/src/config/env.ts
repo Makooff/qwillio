@@ -139,6 +139,38 @@ export const env = {
    * déploiement.
    */
   VOICE_START_WAIT_SECONDS: parseFloat(process.env.VOICE_START_WAIT_SECONDS || '0.4'),
+
+  /**
+   * LES MÊMES TROIS SEUILS, POUR LE PAROLE-À-PAROLE, et il en faut trois de
+   * plus (17/09/2026).
+   *
+   * Les seuils ci-dessus ont été posés le 12/09 contre la chaîne CLASSIQUE, et
+   * ils portent sa latence dans leur calibrage: une fois la décision prise,
+   * cette chaîne met encore 941 ms de modèle et 342 ms de synthèse avant qu'un
+   * son ne parte (mesuré, 6quinquinquagesies). Ce délai fait partie de la
+   * patience que l'appelant RESSENT, sans figurer dans le seuil.
+   *
+   * Le parole-à-parole supprime ces deux étapes. À seuil égal, l'agent pose
+   * donc sa voix sur celle de l'appelant environ une seconde plus tôt, et le
+   * retour est sans ambiguïté: « je dis bonjour et juste après il pose une
+   * question alors que j'ai pas fini ma phrase ».
+   *
+   * C'est le seuil de PONCTUATION qui tient ce cas précis: « Bonjour » est une
+   * phrase complète, le transcripteur y met un point, donc 0,4 s s'appliquent
+   * et jamais les 1,2 s du seuil sans ponctuation.
+   *
+   * Les valeurs ci-dessous ne restaurent PAS le ressenti classique — ce serait
+   * jeter la réactivité qu'on vient chercher — elles rendent au premier tour
+   * de quoi respirer. Ce sont des points de départ, pas des constantes: elles
+   * se déplacent depuis Render, sans déploiement, au vu du prochain
+   * `voice:audit` (ligne « répliques doublées », qui se lit sur le transcript
+   * et non sur le réglage).
+   */
+  VOICE_REALTIME_START_WAIT_SECONDS: parseFloat(process.env.VOICE_REALTIME_START_WAIT_SECONDS || '0.6') || 0.6,
+  VOICE_REALTIME_ENDPOINTING_PUNCTUATION_SECONDS:
+    parseFloat(process.env.VOICE_REALTIME_ENDPOINTING_PUNCTUATION_SECONDS || '0.8') || 0.8,
+  VOICE_REALTIME_ENDPOINTING_NO_PUNCTUATION_SECONDS:
+    parseFloat(process.env.VOICE_REALTIME_ENDPOINTING_NO_PUNCTUATION_SECONDS || '1.5') || 1.5,
   /**
    * Silence après une PONCTUATION avant de répondre. Le transcripteur pose un
    * point sur une respiration, donc 0,1 s faisait répondre au milieu d'une

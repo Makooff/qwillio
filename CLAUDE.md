@@ -1831,6 +1831,74 @@ configurations » sur la meme page, et ce serait rejouer « il ne m'entend pas �
 Le commentaire de `VOICE_REALTIME_TRANSCRIBER` porte ce releve, et c'est lui
 qui a arrete la main. Un commentaire qui date une observation vaut une regle.
 
+### 6octoquinquagesies. Un seuil calibre contre une chaine ne vaut pas pour l'autre (17/09/2026, soir)
+Les plans de parole etaient enfin sur l'assistant, et l'appelant coupe quand
+meme: « je dis bonjour et juste apres il pose direct une question alors que
+j'ai pas fini ma phrase ». Ce ne sont pas les plans qui manquaient, ce sont
+leurs VALEURS, et l'audit l'a dit en une ligne qu'il fallait savoir lire:
+`detecteur de fin de tour: livekit, attente 0.15 s`.
+**`VOICE_START_WAIT_SECONDS=0.15` sur Render**, pose pendant la chasse a la
+latence. Le defaut documente de Vapi est 0,4. L'agent attendait donc 150 ms
+apres le dernier son de l'appelant. La ligne etait VERTE parce que l'assistant
+distant correspondait bien a l'environnement: l'audit comparait le distant a
+l'env, et les deux disaient la meme chose fausse. **Un audit qui compare deux
+copies d'une meme valeur ne verifie rien**; il faut une reference qui ne vienne
+pas de nous, et ici c'est la documentation du fournisseur.
+**La regle qui sort de la:** ces trois seuils ont ete calibres le 12/09 contre
+la chaine CLASSIQUE, qui ajoute sa propre latence APRES la decision (941 ms de
+modele plus 342 ms de synthese, mesures). Ce delai fait partie de la patience
+que l'appelant RESSENT sans figurer dans le seuil. Le parole-a-parole supprime
+les deux etapes et repond en ~300 ms: **a seuil egal, il pose sa voix une
+seconde plus tot**. Ils sont donc par NIVEAU
+(`VOICE_REALTIME_START_WAIT_SECONDS` et ses deux voisines, portees par le
+`tuning` de `superagent`), `base` restant VIDE pour que nommer ne change rien.
+Et c'est le seuil de PONCTUATION qui tient le cas decrit: « Bonjour » est une
+phrase complete, le transcripteur y met un point, donc ce sont 0,4 s qui
+s'appliquent et jamais les 1,2 s du seuil sans ponctuation.
+**Ce que le meme releve confirme, et qu'il faut garder:** les repliques
+doublees sont a ZERO (19 repliques, aucune doublee) et l'interruption compte
+bien 2 mots transcrits. Les correctifs de #277 et #278 tiennent; ce qui restait
+etait un nombre dans l'environnement.
+**Second defaut du meme appel, et il n'a rien a voir avec les seuils.**
+`lookupBooking` n'a JAMAIS ete appele sur 161 s, alors que le numero de
+l'appelant designe sa reservation. Le modele a demande le nom, l'a fait epeler,
+consulte QUATRE fois les creneaux (4,0 s / 12,6 s / 13,3 s / 15,5 s) et cherche
+en septembre 2026 une reservation de mars 2027. L'appelant, excede: « tu as mon
+numero de telephone, tu as simplement a aller chercher dans ta base de
+donnees ». Il a raison. En parole-a-parole le modele est notablement plus
+faible sur l'appel d'outils (6sexquadragesies le disait deja), donc **lui
+demander d'appeler un outil pour savoir QUI appelle est une marche de trop**:
+ce que la base sait se DIT. `CallerHistory.upcomingBookings` porte les
+rendez-vous a venir du numero, et `callBrief` les ecrit en clair a l'ouverture,
+avec leur ANNEE et la suite exacte (checkAvailability puis rescheduleBooking
+avec `currentDate`). L'outil reste pour ce que le brief ne couvre pas: un autre
+nom, un appelant non reconnu.
+Au passage, `getCallerHistory` portait les DEUX defauts de `findCallerBookings`
+corriges le matin meme: egalite exacte sur le numero au lieu de ses ecritures
+(`phoneForms`). Une lecon appliquee a une lecture et pas a l'autre, encore
+(6sexvicies). Rendre `upcomingBookings` obligatoire a fait sortir les quatre
+autres constructeurs au compilateur, ce pour quoi on rend un champ obligatoire.
+**`checkAvailability` a 15,5 s, et la cause etait a un endroit que l'audit ne
+pointait pas.** Son levier disait « l'agenda Google est lu pendant le tour, la
+speculation n'a pas pris », ce qui est vrai et incomplet: chaque lecture payait
+DEUX allers-retours vers Google, pas un. `getOAuthClient()` rend un client
+OAuth **neuf** a chaque appel, donc `getAccessToken()` n'avait rien a reutiliser
+et refrappait le jeton d'acces avant chaque lecture — un jeton qui vaut une
+HEURE. Le releve: 4,0 s puis 12,6 s, 13,3 s et 15,5 s sur quatre jours
+differents, chacun paye plein tarif.
+Ce que ca coute ne se limite pas a l'attente: « il met du temps a repondre donc
+repond en meme temps que moi ». L'agent pose une question, l'outil tourne
+quinze secondes, l'appelant parle pendant ce temps. **La lenteur FABRIQUE le
+chevauchement**, elle ne fait pas que le precede.
+Le jeton est desormais retenu par condense du jeton de rafraichissement (jamais
+par le secret lui-meme: une Map se retrouve dans un vidage memoire), avec une
+MARGE d'une minute — un jeton qui expire entre notre lecture et l'arrivee de la
+requete chez Google rendrait un 401 au milieu d'un appel — et les demandes
+concurrentes partagent la meme frappe. Le retrait de la cle en vol a lieu que
+la frappe reussisse ou non, sinon un refus bloque toute lecture d'agenda de ce
+client pour la vie du processus. Ca vaut pour TOUTES les operations d'agenda,
+pas seulement les creneaux: reserver, deplacer, annuler.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

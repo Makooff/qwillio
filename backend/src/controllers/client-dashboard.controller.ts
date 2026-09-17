@@ -1044,7 +1044,7 @@ export class ClientDashboardController {
       const profile = await realtimeContextService.getClientProfile(req.clientId);
       if (!profile) return res.status(404).json({ error: 'Client not found' });
 
-      const caller = { previousCalls: 0, lastCallAt: null, lastSummary: null, knownName: null, hasUpcomingBooking: false };
+      const caller = { previousCalls: 0, lastCallAt: null, lastSummary: null, knownName: null, hasUpcomingBooking: false , upcomingBookings: []};
       const knowledgeBlock = profile.hasKnowledgeBase
         ? businessMemoryService.promptBlock(await businessMemoryService.all(req.clientId), profile.language)
         : '';

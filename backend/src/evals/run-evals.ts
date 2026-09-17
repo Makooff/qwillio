@@ -171,7 +171,7 @@ async function playScenario(scenario: EvalScenario): Promise<ModelAnswer> {
   const profile = profileFor(scenario);
   const messages: ChatMessage[] = [
     { role: 'system', content: buildSystemPrompt(profile, {
-      previousCalls: 0, lastCallAt: null, lastSummary: null, knownName: null, hasUpcomingBooking: false,
+      previousCalls: 0, lastCallAt: null, lastSummary: null, knownName: null, hasUpcomingBooking: false, upcomingBookings: [],
     }) },
   ];
 

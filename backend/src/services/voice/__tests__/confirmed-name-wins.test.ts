@@ -36,7 +36,7 @@ describe('getCallerHistory — la réservation confirmée nomme l\'appelant', ()
 
   it('le nom de la réservation prime sur la mémoire d\'appelant', async () => {
     findMemory.mockResolvedValue({ knownName: 'Jean Lucas', profileSummary: null, lastSummary: null, lastCallAt: new Date(), totalCalls: 3 });
-    findBookings.mockResolvedValue([{ customerName: 'Jean-Luc de la Forge' }]);
+    findBookings.mockResolvedValue([{ customerName: 'Jean-Luc de la Forge', bookingDate: new Date('2027-03-22T12:00:00.000Z'), bookingTime: '17:00', serviceType: null }]);
     const h = await realtimeContextService.getCallerHistory('c-name-1', '32483620980');
     expect(h.knownName).toBe('Jean-Luc de la Forge');
     expect(h.hasUpcomingBooking).toBe(true);
@@ -64,13 +64,13 @@ describe('getCallerHistory — la réservation confirmée nomme l\'appelant', ()
 
   it('un numéro qui réserve pour plusieurs personnes ne nomme personne', async () => {
     findMemory.mockResolvedValue(null);
-    findBookings.mockResolvedValue([{ customerName: 'Jean-Luc de la Forge' }, { customerName: 'Paul Matthieu' }]);
+    findBookings.mockResolvedValue([{ customerName: 'Jean-Luc de la Forge', bookingDate: new Date('2027-03-22T12:00:00.000Z'), bookingTime: '17:00', serviceType: null }, { customerName: 'Paul Matthieu', bookingDate: new Date('2027-03-22T12:00:00.000Z'), bookingTime: '17:00', serviceType: null }]);
     const h = await realtimeContextService.getCallerHistory('c-name-5', '32483620984');
     expect(h.knownName).toBeNull();
     expect(h.hasUpcomingBooking).toBe(true);
 
     /* Deux réservations sous le MÊME nom, entendu différemment : un seul nom. */
-    findBookings.mockResolvedValue([{ customerName: 'Jean-Luc de la Forge' }, { customerName: 'Jean-Luc Delaforge' }]);
+    findBookings.mockResolvedValue([{ customerName: 'Jean-Luc de la Forge', bookingDate: new Date('2027-03-22T12:00:00.000Z'), bookingTime: '17:00', serviceType: null }, { customerName: 'Jean-Luc Delaforge', bookingDate: new Date('2027-03-22T12:00:00.000Z'), bookingTime: '17:00', serviceType: null }]);
     expect((await realtimeContextService.getCallerHistory('c-name-6', '32483620985')).knownName).toBe('Jean-Luc de la Forge');
   });
 });
