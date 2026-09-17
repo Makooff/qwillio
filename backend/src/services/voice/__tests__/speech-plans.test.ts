@@ -321,16 +321,37 @@ describe('buildRealtimePlans', () => {
    * parler alors que je ne parle pas ».
    */
   it('règle quand même le seuil de BRUIT, qui lui ne compte pas de mots', () => {
-    const plans = buildRealtimePlans('fr', true) as Record<string, unknown>;
-    const stop = plans.stopSpeakingPlan as Record<string, unknown>;
-    expect(stop).toBeDefined();
-    expect(stop.voiceSeconds).toBeGreaterThan(0.2);
-    expect(stop.backoffSeconds).toBeGreaterThanOrEqual(1);
-    // Rien qui attende un transcript: c'est ce qui rendait la réceptionniste
-    // sourde. Le zéro est donc délibéré, et il doit le rester.
-    expect(stop.numWords).toBe(0);
-    expect(stop.acknowledgementPhrases).toBeUndefined();
-    expect(stop.interruptionPhrases).toBeUndefined();
+    /* Le `numWords: 0` n'était pas une préférence, c'était la conséquence d'un
+       chemin SANS transcripteur: aucun mot à compter. Il vit donc désormais
+       sous `VOICE_REALTIME_TRANSCRIBER=off`, qui rejoue ce chemin-là. */
+    const prev = env.VOICE_REALTIME_TRANSCRIBER;
+    (env as { VOICE_REALTIME_TRANSCRIBER: boolean }).VOICE_REALTIME_TRANSCRIBER = false;
+    try {
+      const stop = (buildRealtimePlans('fr', true) as Record<string, any>).stopSpeakingPlan;
+      expect(stop).toBeDefined();
+      expect(stop.voiceSeconds).toBeGreaterThan(0.2);
+      expect(stop.backoffSeconds).toBeGreaterThanOrEqual(1);
+      expect(stop.numWords).toBe(0);
+      expect(stop.acknowledgementPhrases).toBeUndefined();
+      expect(stop.interruptionPhrases).toBeUndefined();
+    } finally {
+      (env as { VOICE_REALTIME_TRANSCRIBER: boolean }).VOICE_REALTIME_TRANSCRIBER = prev;
+    }
+  });
+
+  /**
+   * AVEC un transcripteur, le plan qui compte des MOTS redevient le bon.
+   *
+   * Relevé sur deux appels réels du 17/09: « quand je le coupe, il ne s'arrête
+   * pas ». L'énergie seule ne coupait pas l'agent, et elle n'avait de raison
+   * d'être que tant qu'aucun mot ne remontait. Le plan classique laisse passer
+   * les acquiescements et coupe net sur les mots d'arrêt.
+   */
+  it('avec transcripteur, compte les MOTS et connaît les mots d\'arrêt', () => {
+    const stop = (buildRealtimePlans('fr', true) as Record<string, any>).stopSpeakingPlan;
+    expect(stop.numWords).toBeGreaterThan(0);
+    expect(stop.interruptionPhrases).toBeDefined();
+    expect(stop.acknowledgementPhrases).toBeDefined();
   });
 
   it('garde tout ce qui ne dépend PAS du transcripteur', () => {
@@ -665,53 +686,44 @@ describe('le seuil de voix du chemin parole-à-parole (TUR-6)', () => {
  * les deux moteurs, et ça se lisait comme une panne du moteur vocal.
  */
 describe('délai de silence contre calendrier des relances', () => {
-  const load = async (patch: Record<string, string>) => {
-    vi.resetModules();
-    const prev: Record<string, string | undefined> = {};
-    for (const [k, v] of Object.entries(patch)) { prev[k] = process.env[k]; process.env[k] = v; }
-    try {
-      const mod = await import('../speech-plans');
-      const { env } = await import('../../../config/env');
-      return { ...mod, env };
-    } finally {
-      for (const [k, v] of Object.entries(prev)) {
-        if (v === undefined) delete process.env[k]; else process.env[k] = v;
-      }
-    }
+  /* L'idiome du fichier: on mute `env` EN PLACE. `vi.resetModules()` donnerait
+     un second objet `env`, que les fonctions importées en tête ne liraient pas,
+     et il casserait au passage les tests suivants qui mutent le premier. */
+  const withEnv = (patch: Record<string, number>, run: () => void) => {
+    const prev: Record<string, number> = {};
+    const e = env as unknown as Record<string, number>;
+    for (const [k, v] of Object.entries(patch)) { prev[k] = e[k]; e[k] = v; }
+    try { run(); } finally { for (const [k, v] of Object.entries(prev)) e[k] = v; }
   };
 
-  it('relève un raccroché posé AVANT la dernière relance', async () => {
-    const { resolveTuning } = await load({
-      VAPI_SILENCE_TIMEOUT: '10', VOICE_IDLE_NUDGE_SECONDS: '10', VOICE_IDLE_NUDGE_COUNT: '2',
-    });
+  it('relève un raccroché posé AVANT la dernière relance', () => {
     /* Deux relances à 10 s et 20 s, donc le raccroché ne peut pas tomber avant
        30 s sans les rendre inatteignables. */
-    expect(resolveTuning().silenceTimeout).toBe(30);
+    withEnv({ VAPI_SILENCE_TIMEOUT: 10, VOICE_IDLE_NUDGE_SECONDS: 10, VOICE_IDLE_NUDGE_COUNT: 2 }, () => {
+      expect(resolveTuning().silenceTimeout).toBe(30);
+    });
   });
 
-  it('applique le plancher à la valeur d\'ENVIRONNEMENT, pas seulement au réglage client', async () => {
+  it('applique le plancher à la valeur d\'ENVIRONNEMENT, pas seulement au réglage client', () => {
     /* Le piège: `clamp` rend son `fallback` tel quel quand le client n'a rien
        réglé. Un plancher passé à `clamp` n'aurait donc jamais touché le cas
        réel, qui est exactement celui-là. */
-    const { resolveTuning } = await load({
-      VAPI_SILENCE_TIMEOUT: '12', VOICE_IDLE_NUDGE_SECONDS: '10', VOICE_IDLE_NUDGE_COUNT: '2',
+    withEnv({ VAPI_SILENCE_TIMEOUT: 12, VOICE_IDLE_NUDGE_SECONDS: 10, VOICE_IDLE_NUDGE_COUNT: 2 }, () => {
+      expect(resolveTuning().silenceTimeout).toBe(30);
+      expect(resolveTuning({}).silenceTimeout).toBe(30);
     });
-    expect(resolveTuning().silenceTimeout).toBe(30);
-    expect(resolveTuning({}).silenceTimeout).toBe(30);
   });
 
-  it('ne touche pas un réglage déjà confortable', async () => {
-    const { resolveTuning } = await load({
-      VAPI_SILENCE_TIMEOUT: '45', VOICE_IDLE_NUDGE_SECONDS: '10', VOICE_IDLE_NUDGE_COUNT: '2',
+  it('ne touche pas un réglage déjà confortable', () => {
+    withEnv({ VAPI_SILENCE_TIMEOUT: 45, VOICE_IDLE_NUDGE_SECONDS: 10, VOICE_IDLE_NUDGE_COUNT: 2 }, () => {
+      expect(resolveTuning().silenceTimeout).toBe(45);
     });
-    expect(resolveTuning().silenceTimeout).toBe(45);
   });
 
-  it('garde le plafond de 120 s', async () => {
-    const { resolveTuning } = await load({
-      VAPI_SILENCE_TIMEOUT: '600', VOICE_IDLE_NUDGE_SECONDS: '60', VOICE_IDLE_NUDGE_COUNT: '5',
+  it('garde le plafond de 120 s', () => {
+    withEnv({ VAPI_SILENCE_TIMEOUT: 600, VOICE_IDLE_NUDGE_SECONDS: 60, VOICE_IDLE_NUDGE_COUNT: 5 }, () => {
+      expect(resolveTuning().silenceTimeout).toBe(120);
     });
-    expect(resolveTuning().silenceTimeout).toBe(120);
   });
 });
 
@@ -727,48 +739,41 @@ describe('délai de silence contre calendrier des relances', () => {
  * moindre appel; ce test met la borne là où l'API la met.
  */
 describe('seuil d\'interruption contre le plafond de Vapi', () => {
-  const load = async (patch: Record<string, string>) => {
-    vi.resetModules();
-    const prev: Record<string, string | undefined> = {};
-    for (const [k, v] of Object.entries(patch)) { prev[k] = process.env[k]; process.env[k] = v; }
-    try {
-      return await import('../speech-plans');
-    } finally {
-      for (const [k, v] of Object.entries(prev)) {
-        if (v === undefined) delete process.env[k]; else process.env[k] = v;
-      }
-    }
+  /* `env` muté EN PLACE, l'idiome du fichier: `vi.resetModules()` donnerait un
+     second objet `env` que les fonctions importées en tête ne liraient pas. */
+  const withEnv = (patch: Record<string, number>, run: () => void) => {
+    const prev: Record<string, number> = {};
+    const e = env as unknown as Record<string, number>;
+    for (const [k, v] of Object.entries(patch)) { prev[k] = e[k]; e[k] = v; }
+    try { run(); } finally { for (const [k, v] of Object.entries(prev)) e[k] = v; }
   };
 
-  it('borne le réglage CLIENT à 0,5 sur les deux chemins', async () => {
-    const { resolveTuning } = await load({});
+  it('borne le réglage CLIENT à 0,5 sur les deux chemins', () => {
     const t = resolveTuning({ bargeInVoiceSeconds: 1.5, realtimeBargeInVoiceSeconds: 1.5 });
     expect(t.bargeInVoiceSeconds).toBe(0.5);
     expect(t.realtimeBargeInVoiceSeconds).toBe(0.5);
   });
 
-  it('borne AUSSI la variable d\'environnement, par laquelle la valeur arrive vraiment', async () => {
+  it('borne AUSSI la variable d\'environnement, par laquelle la valeur arrive vraiment', () => {
     /* `clamp` rend son `fallback` tel quel: une borne qui ne couvre pas ce
        chemin-là ne borne rien. Même piège que le délai de silence, même jour. */
-    const { resolveTuning } = await load({
-      VOICE_BARGE_IN_VOICE_SECONDS: '1.5',
-      VOICE_REALTIME_BARGE_IN_VOICE_SECONDS: '1.5',
+    withEnv({ VOICE_BARGE_IN_VOICE_SECONDS: 1.5, VOICE_REALTIME_BARGE_IN_VOICE_SECONDS: 1.5 }, () => {
+      expect(resolveTuning().bargeInVoiceSeconds).toBe(0.5);
+      expect(resolveTuning().realtimeBargeInVoiceSeconds).toBe(0.5);
     });
-    expect(resolveTuning().bargeInVoiceSeconds).toBe(0.5);
-    expect(resolveTuning().realtimeBargeInVoiceSeconds).toBe(0.5);
   });
 
-  it('laisse passer ce que l\'API accepte', async () => {
-    const { resolveTuning } = await load({ VOICE_REALTIME_BARGE_IN_VOICE_SECONDS: '0.5' });
-    expect(resolveTuning().realtimeBargeInVoiceSeconds).toBe(0.5);
-    expect(resolveTuning({ realtimeBargeInVoiceSeconds: 0.3 }).realtimeBargeInVoiceSeconds).toBe(0.3);
+  it('laisse passer ce que l\'API accepte', () => {
+    withEnv({ VOICE_REALTIME_BARGE_IN_VOICE_SECONDS: 0.5 }, () => {
+      expect(resolveTuning().realtimeBargeInVoiceSeconds).toBe(0.5);
+      expect(resolveTuning({ realtimeBargeInVoiceSeconds: 0.3 }).realtimeBargeInVoiceSeconds).toBe(0.3);
+    });
   });
 
-  it('le plan temps réel ne peut donc plus porter une valeur refusée', async () => {
-    const { buildRealtimeStopSpeakingPlan, resolveTuning } = await load({
-      VOICE_REALTIME_BARGE_IN_VOICE_SECONDS: '3',
+  it('le plan temps réel ne peut donc plus porter une valeur refusée', () => {
+    withEnv({ VOICE_REALTIME_BARGE_IN_VOICE_SECONDS: 3 }, () => {
+      const plan = buildRealtimeStopSpeakingPlan(resolveTuning()) as Record<string, number>;
+      expect(plan.voiceSeconds).toBeLessThanOrEqual(0.5);
     });
-    const plan = buildRealtimeStopSpeakingPlan(resolveTuning()) as Record<string, number>;
-    expect(plan.voiceSeconds).toBeLessThanOrEqual(0.5);
   });
 });

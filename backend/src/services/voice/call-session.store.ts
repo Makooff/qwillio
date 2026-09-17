@@ -581,6 +581,26 @@ class CallSessionStore {
     return next;
   }
 
+  /**
+   * Une date LOINTAINE s'annonce une fois, puis elle est acquise.
+   *
+   * Rend le nombre d'annonces pour cette date, celle-ci comprise: 1 la première
+   * fois (il faut la dire à voix haute avec l'année et faire confirmer), 2 et
+   * au-delà quand l'appelant a confirmé et que l'outil peut écrire.
+   *
+   * Sans session, on rend 2: le doute penche vers « laisse-le faire », parce
+   * qu'un blocage qu'on ne saurait pas lever ferait raccrocher l'appelant sans
+   * son rendez-vous. Voir `farDateReply`.
+   */
+  noteFarDateAnnounced(vapiCallId: string | null, ymd: string): number {
+    const session = this.get(vapiCallId);
+    if (!session) return 2;
+    const key = `farDate:${ymd}`;
+    const next = (session.toolFailures[key] ?? 0) + 1;
+    session.toolFailures[key] = next;
+    return next;
+  }
+
   recordLead(vapiCallId: string | null, lead: LeadCapture): void {
     const session = this.get(vapiCallId);
     if (session) session.lead = lead;
