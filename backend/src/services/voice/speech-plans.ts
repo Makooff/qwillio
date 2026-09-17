@@ -250,9 +250,36 @@ export function resolveTuning(t: VoiceTuning = {}) {
       env.VOICE_REALTIME_BARGE_IN_VOICE_SECONDS,
     ),
     backoffSeconds: clamp(t.backoffSeconds, 0.3, 3, env.VOICE_BARGE_IN_BACKOFF_SECONDS),
-    // Le plancher de 10 s vient de `env.ts`: en dessous, la réceptionniste
-    // raccroche au nez de quelqu'un qui réfléchit.
-    silenceTimeout: Math.round(clamp(t.silenceTimeout, 10, 120, env.VAPI_SILENCE_TIMEOUT)),
+    /* Le raccroché tombe APRÈS les relances, jamais avant ni en même temps.
+     *
+     * Deux réglages décrivent le même silence et ne se parlaient pas:
+     * `VOICE_IDLE_NUDGE_SECONDS` (10 s) déclenche « Vous m'entendez ? », deux
+     * fois, et `VAPI_SILENCE_TIMEOUT` décide du raccroché. Le commentaire de
+     * `env.ts` l'affirme déjà — « il en reste largement avant le raccroché » —
+     * mais rien ne le VÉRIFIAIT.
+     *
+     * Relevé le 17/09/2026: `VAPI_SILENCE_TIMEOUT` valait 10 en production.
+     * Donc l'échéance du raccroché tombait à la seconde même de la première
+     * relance, et le mécanisme de relance n'a JAMAIS tourné sur un seul appel.
+     * Pire, et c'est ce qui se voyait: dix secondes après le décroché, un
+     * accueil qui en dure sept ou huit laisse une seconde à l'appelant pour
+     * parler. Tous les appels de test mouraient en `silence-timed-out` autour
+     * de dix secondes, en parole-à-parole comme en classique, et ça se lisait
+     * comme une panne du moteur vocal.
+     *
+     * Le plancher est donc le CALENDRIER des relances, pas une constante:
+     * chaque relance a besoin de sa fenêtre, plus une dernière avant de
+     * raccrocher. Un réglage qui désactive silencieusement une autre
+     * fonctionnalité n'est pas un réglage, c'est un piège.
+     *
+     * Le plancher s'applique APRÈS `clamp`, et il faut y faire attention:
+     * `clamp` rend son `fallback` TEL QUEL quand le client n'a rien réglé, donc
+     * lui passer un plancher plus haut n'aurait rien changé au cas réel, celui
+     * où la valeur vient justement de l'environnement. */
+    silenceTimeout: Math.round(Math.min(120, Math.max(
+      env.VOICE_IDLE_NUDGE_SECONDS * (env.VOICE_IDLE_NUDGE_COUNT + 1),
+      clamp(t.silenceTimeout, 10, 120, env.VAPI_SILENCE_TIMEOUT),
+    ))),
     /* Par client, puis par environnement, puis le code. Jamais une liste vide:
        sans mot d'arrêt plus rien ne coupe une réceptionniste lancée, et sans
        acquiescement elle se tait au premier « mm-hmm ». Un réglage qui peut
