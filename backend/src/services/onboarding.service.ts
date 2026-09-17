@@ -914,7 +914,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
       const { vapiClockLine } = await import('./voice/clock');
       return buildSystemPrompt(
         profile,
-        { previousCalls: 0, lastCallAt: null, lastSummary: null, knownName: null, hasUpcomingBooking: false },
+        { previousCalls: 0, lastCallAt: null, lastSummary: null, knownName: null, hasUpcomingBooking: false , upcomingBookings: []},
         knowledgeBlock,
         /* Le prompt de l'assistant enregistré est FIGÉ à la synchronisation:
            une date réelle y serait fausse dès le lendemain. Vapi remplit ce

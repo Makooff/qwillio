@@ -24,6 +24,9 @@ const history = (over: Partial<CallerHistory> = {}): CallerHistory => ({
   lastSummary: 'Voulait déplacer un détartrage.',
   knownName: 'Jean-Luc de la Forge',
   hasUpcomingBooking: true,
+  upcomingBookings: [
+    { name: 'Jean-Luc de la Forge', date: '2027-03-22', time: '17:00', service: 'detartrage' },
+  ],
   ...over,
 });
 
@@ -68,6 +71,46 @@ describe('callBrief', () => {
 
 const prof = (over: Partial<ClientVoiceProfile>): ClientVoiceProfile =>
   ({ language: 'fr', customLlm: true, voiceTier: null, voiceMode: 'classic', customVoice: null, ...over }) as ClientVoiceProfile;
+
+/**
+ * LES RENDEZ-VOUS SE DISENT, ILS NE SE FONT PAS CHERCHER (17/09/2026).
+ *
+ * Appel réel de 161 s: l'appelant veut déplacer un rendez-vous, son numéro le
+ * désigne, `lookupBooking` n'est JAMAIS appelé, le modèle consulte QUATRE fois
+ * les créneaux et cherche en septembre 2026 une réservation de mars 2027.
+ * L'appelant: « tu as mon numéro de téléphone, tu as simplement à aller
+ * chercher dans ta base de données ». Il a raison, et en parole-à-parole le
+ * modèle est trop faible sur l'appel d'outils pour qu'on lui demande d'en
+ * appeler un pour savoir qui appelle.
+ */
+describe('le brief porte les rendez-vous, en clair', () => {
+  it('les nomme avec leur date ET leur année', () => {
+    const brief = callBrief(profile, history(), at);
+    /* L'année est le point: « 22 mars 2027 » entendu, puis cherché au
+       22 septembre 2026, deux fois dans le même appel. */
+    expect(brief).toMatch(/22 mars 2027/);
+    expect(brief).toMatch(/17:00/);
+  });
+
+  it("dit au modèle de ne PAS les faire chercher, et donne la suite exacte", () => {
+    const brief = callBrief(profile, history(), at);
+    expect(brief).toMatch(/ne les fais pas chercher/);
+    expect(brief).toMatch(/checkAvailability/);
+    expect(brief).toMatch(/rescheduleBooking/);
+    expect(brief).toMatch(/currentDate/);
+  });
+
+  it("se tait quand il n'y a rien: pas de section vide à interpréter", () => {
+    const brief = callBrief(profile, history({ upcomingBookings: [], hasUpcomingBooking: false }), at);
+    expect(brief).not.toMatch(/RENDEZ-VOUS DEJA PRIS/);
+  });
+
+  it('une date illisible ne casse pas le brief', () => {
+    const brief = callBrief(profile, history({ upcomingBookings: [{ name: 'X', date: 'n/a', time: null, service: null }] }), at);
+    expect(brief).toMatch(/RENDEZ-VOUS DEJA PRIS/);
+    expect(brief).toMatch(/n\/a/);
+  });
+});
 
 describe('needsCallBrief', () => {
   it('le parole-à-parole en a besoin: Vapi parle à OpenAI, `llm-stream` ne tourne pas', () => {

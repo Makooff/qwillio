@@ -83,8 +83,23 @@ export const VOICE_TIERS: Record<VoiceTierId, VoiceTier> = {
        pour que l'audit puisse dire quel modèle ce niveau signifie. Sa valeur
        reste celle de l'environnement: la choisir ici en dur ferait d'un
        arbitrage de coût une constante de code. */
+    /* ET LES TROIS SEUILS DE FIN DE TOUR, qui ne peuvent PAS être ceux du
+       classique (17/09/2026). Ils ont été calibrés contre une chaîne qui
+       ajoute 941 ms de modèle et 342 ms de synthèse APRÈS la décision; ce
+       chemin-ci répond en ~300 ms, donc à seuil égal il coupe la parole une
+       seconde plus tôt. C'est le retour exact de l'appelant: « je dis bonjour
+       et juste après il pose une question ».
+       Ce n'est donc pas un curseur posé à l'aveugle, ce que l'en-tête
+       interdit: c'est un écart MESURÉ entre deux chaînes, appliqué au seul
+       niveau concerné. Les valeurs restent celles de l'environnement, pour
+       qu'un relevé puisse les déplacer sans déploiement. */
     get tuning(): VoiceTuning {
-      return { realtimeModel: env.VOICE_REALTIME_MODEL };
+      return {
+        realtimeModel: env.VOICE_REALTIME_MODEL,
+        startWaitSeconds: env.VOICE_REALTIME_START_WAIT_SECONDS,
+        endpointingPunctuationSeconds: env.VOICE_REALTIME_ENDPOINTING_PUNCTUATION_SECONDS,
+        endpointingNoPunctuationSeconds: env.VOICE_REALTIME_ENDPOINTING_NO_PUNCTUATION_SECONDS,
+      };
     },
   },
 };

@@ -9,6 +9,7 @@ import { env } from '../../config/env';
 import { readTierId, type VoiceTierId } from './voice-tiers';
 import { superagentAllowed } from '../../config/plan-features';
 import type { CustomVoice } from '../../config/voice-characters';
+import { phoneForms } from '../../utils/phone-forms';
 
 /**
  * The client's own voice as stored in `vapiConfig.customVoice` — cloned from
@@ -61,6 +62,23 @@ export interface CallerHistory {
   /** Name we captured on a previous call, so the agent does not re-ask. */
   knownName: string | null;
   hasUpcomingBooking: boolean;
+  /**
+   * LES RENDEZ-VOUS À VENIR DE CE NUMÉRO, en clair (17/09/2026).
+   *
+   * « Tu as mon numéro de téléphone, tu as simplement à aller chercher dans ta
+   * base de données », dit par l'appelant au milieu d'un appel de 161 s où
+   * `lookupBooking` n'a JAMAIS été appelé. Il a raison: la ligne existe, sous
+   * son numéro, et rien n'obligeait le modèle à aller la chercher.
+   *
+   * En parole-à-parole le modèle est plus faible sur l'appel d'outils, et lui
+   * demander d'en appeler un pour savoir QUI appelle est une marche de trop:
+   * on le lui dit à l'ouverture, par le brief. L'outil reste, pour chercher
+   * sous un autre nom ou pour un appelant non reconnu.
+   *
+   * Dates en `YYYY-MM-DD`: cet objet passe par le cache, donc il se
+   * sérialise; une `Date` en reviendrait en chaîne sans que rien ne le dise.
+   */
+  upcomingBookings: Array<{ name: string; date: string; time: string | null; service: string | null }>;
 }
 
 export interface ClientVoiceProfile {
@@ -394,6 +412,7 @@ class RealtimeContextService {
       lastSummary: null,
       knownName: null,
       hasUpcomingBooking: false,
+      upcomingBookings: [],
     };
     if (!callerNumber) return empty;
 
@@ -415,8 +434,17 @@ class RealtimeContextService {
       prisma.clientBooking.findMany({
         where: {
           clientId,
-          customerPhone: callerNumber,
+          /* Par ses ÉCRITURES, jamais par égalité (17/09/2026). Le numéro est
+             stocké tantôt « 32483620980 » (clé posée par `normalizeNumber`),
+             tantôt « +32… » selon la source, et une égalité ratait donc le
+             même numéro en silence. Même correctif que `findCallerBookings`,
+             et il faut les deux: cette lecture-ci décide de ce que l'agent
+             SAIT, l'autre de ce qu'il TROUVE. */
+          customerPhone: { in: phoneForms(callerNumber) },
           status: 'confirmed',
+          /* Sans borne haute, pour la raison de `findCallerBookings`: un
+             contrôle à six mois est la norme du métier, et le rendez-vous que
+             l'appelant veut déplacer était à dix-huit. */
           bookingDate: { gte: new Date() },
         },
         /* La plus récemment TOUCHÉE d'abord, et non la première rendue par la
@@ -425,7 +453,7 @@ class RealtimeContextService {
            pendant tout l'appel (13/09/2026, 16:52). */
         orderBy: { updatedAt: 'desc' },
         take: 5,
-        select: { customerName: true },
+        select: { customerName: true, bookingDate: true, bookingTime: true, serviceType: true },
       }),
     ]);
 
@@ -456,6 +484,18 @@ class RealtimeContextService {
         || calls.find(c => c.callerName)?.callerName
         || null,
       hasUpcomingBooking: bookings.length > 0,
+      /* Une ligne sans date est écartée, jamais levée: cette lecture est sur le
+         chemin de l'appel, et une exception ici coûterait TOUTE la
+         reconnaissance de l'appelant pour une colonne bancale. */
+      upcomingBookings: bookings.slice(0, 3).flatMap(b => {
+        const at = b.bookingDate instanceof Date ? b.bookingDate : null;
+        return at ? [{
+          name: b.customerName?.trim() || '',
+          date: at.toISOString().slice(0, 10),
+          time: b.bookingTime ?? null,
+          service: b.serviceType ?? null,
+        }] : [];
+      }),
     };
 
     await this.set(key, history, HISTORY_TTL_MS);

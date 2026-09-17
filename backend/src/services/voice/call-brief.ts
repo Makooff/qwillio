@@ -1,4 +1,4 @@
-import { clockLine } from './clock';
+import { clockLine, spokenDate } from './clock';
 import { callerHistoryBlock } from './system-prompt';
 import type { CallerHistory, ClientVoiceProfile } from './realtime-context.service';
 
@@ -37,6 +37,16 @@ import type { CallerHistory, ClientVoiceProfile } from './realtime-context.servi
  * qui n'a jamais atteint un appel réel n'est pas une optimisation
  * (6octovicies, 6quinquetrigesies).
  */
+/**
+ * `YYYY-MM-DD` → midi UTC, la convention de tout le reste du dépôt: un jour
+ * posé à minuit se relit la veille depuis l'Oregon (6octoquadragesies).
+ */
+function dayAtNoon(ymd: string): Date | null {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(ymd)) return null;
+  const d = new Date(`${ymd}T12:00:00.000Z`);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
 export function callBrief(
   profile: Pick<ClientVoiceProfile, 'language' | 'timezone'>,
   caller: CallerHistory | null,
@@ -69,6 +79,48 @@ export function callBrief(
      sanitisation de ce qui vient de la parole d'un appelant précédent. */
   const history = caller ? callerHistoryBlock(lang, caller) : null;
   if (history) lines.push(history);
+
+  /* LES RENDEZ-VOUS, EN CLAIR, et pas seulement « il en a un ».
+   *
+   * Appel réel de 161 s (17/09/2026): l'appelant veut déplacer un rendez-vous,
+   * son numéro le désigne, et `lookupBooking` n'est JAMAIS appelé. Le modèle
+   * demande le nom, le fait épeler, consulte QUATRE fois les créneaux, invente
+   * une date de septembre pour une réservation de mars, et l'appelant finit
+   * par dire « tu as mon numéro, tu as simplement à aller chercher dans ta
+   * base de données ». Il a raison.
+   *
+   * En parole-à-parole, le modèle est notablement plus faible sur l'appel
+   * d'outils: lui demander d'en appeler un pour savoir QUI appelle est une
+   * marche de trop. Ce que la base sait déjà se DIT, ça ne se fait pas
+   * chercher. L'outil reste pour ce que le brief ne peut pas couvrir: un autre
+   * nom, un appelant non reconnu, une réservation prise depuis une autre
+   * ligne.
+   *
+   * La DATE est écrite en toutes lettres avec son année, parce que c'est
+   * exactement ce que le modèle a raté deux fois: « 22 mars 2027 » entendu
+   * puis cherché au 22 septembre 2026. */
+  const bookings = caller?.upcomingBookings ?? [];
+  if (bookings.length) {
+    lines.push(
+      lang === 'fr'
+        ? 'RENDEZ-VOUS DEJA PRIS PAR CE NUMERO (tu les connais, ne les fais pas chercher):'
+        : lang === 'nl'
+          ? 'REEDS GEBOEKTE AFSPRAKEN OP DIT NUMMER (je kent ze al, laat ze niet opzoeken):'
+          : 'APPOINTMENTS ALREADY BOOKED BY THIS NUMBER (you know them, do not go looking):',
+    );
+    for (const b of bookings) {
+      const when = dayAtNoon(b.date);
+      const day = when ? spokenDate(when, lang, profile.timezone) : b.date;
+      lines.push(`- ${b.name}, ${day}${b.time ? ` ${lang === 'fr' ? 'a' : 'at'} ${b.time}` : ''}${b.service ? ` (${b.service})` : ''}`);
+    }
+    lines.push(
+      lang === 'fr'
+        ? "S'il veut en deplacer un, c'est celui-la: passe directement a checkAvailability pour la NOUVELLE date, puis rescheduleBooking avec currentDate (AAAA-MM-JJ) de la ligne ci-dessus. Ne redemande ni le nom ni la date actuelle."
+        : lang === 'nl'
+          ? 'Wil hij er een verzetten, dan is het deze: ga meteen naar checkAvailability voor de NIEUWE datum, dan rescheduleBooking met currentDate (JJJJ-MM-DD) van de regel hierboven. Vraag naam noch huidige datum opnieuw.'
+          : 'If they want to move one, that is the one: go straight to checkAvailability for the NEW date, then rescheduleBooking with the currentDate (YYYY-MM-DD) of the line above. Do not ask again for the name or the current date.',
+    );
+  }
 
   return lines.join('\n');
 }

@@ -220,6 +220,30 @@ export interface VoiceTuning {
   realtimeModel?: string;
   llmModel?: string;
   temperature?: number;
+  /**
+   * LE MOMENT OÙ L'ON DÉCIDE QUE L'APPELANT A FINI, propre au niveau.
+   *
+   * Ces trois seuils étaient lus directement dans l'environnement par
+   * `buildStartSpeakingPlan`, donc IDENTIQUES sur les deux moteurs. Or ils ont
+   * été calibrés le 12/09/2026 contre la chaîne CLASSIQUE, qui ajoute sa
+   * propre latence APRÈS que le seuil ait parlé: 941 ms de modèle plus 342 ms
+   * de synthèse, mesurés (6quinquinquagesies). Le parole-à-parole supprime ces
+   * deux étapes: le son part environ 300 ms après la décision.
+   *
+   * Conséquence, et c'est ce que l'appelant vit: à seuil ÉGAL, l'agent temps
+   * réel pose sa voix sur la sienne à peu près une seconde plus tôt. « Je dis
+   * bonjour et juste après il pose une question alors que j'ai pas fini ma
+   * phrase » (17/09/2026) est exactement ce cas, et il tape sur le seuil de
+   * PONCTUATION: « Bonjour » est une phrase complète, le transcripteur y met
+   * un point, donc ce sont 0,4 s qui s'appliquent et jamais les 1,2 s du
+   * seuil sans ponctuation.
+   *
+   * Un seuil calibré contre une chaîne ne vaut pas pour une autre chaîne. Ils
+   * sont donc par NIVEAU, avec `base` vide pour que nommer ne change rien.
+   */
+  startWaitSeconds?: number;
+  endpointingPunctuationSeconds?: number;
+  endpointingNoPunctuationSeconds?: number;
 }
 
 /**
@@ -319,6 +343,12 @@ export function resolveTuning(t: VoiceTuning = {}) {
        casser la conversation ne doit pas pouvoir la casser par omission. */
     interruptionPhrases: phraseList(t.interruptionPhrases, env.VOICE_INTERRUPTION_PHRASES, DEFAULT_INTERRUPTION_PHRASES),
     acknowledgementPhrases: phraseList(t.acknowledgementPhrases, env.VOICE_ACKNOWLEDGEMENT_PHRASES, DEFAULT_ACKNOWLEDGEMENT_PHRASES),
+    /* Bornes larges: ce sont des secondes de patience, et se tromper vers le
+       haut coûte de la vivacité quand se tromper vers le bas coupe la parole.
+       L'asymétrie est volontaire, comme celle de la marge de `call-audit`. */
+    startWaitSeconds: clamp(t.startWaitSeconds, 0, 3, env.VOICE_START_WAIT_SECONDS),
+    endpointingPunctuationSeconds: clamp(t.endpointingPunctuationSeconds, 0.1, 3, env.VOICE_ENDPOINTING_PUNCTUATION_SECONDS),
+    endpointingNoPunctuationSeconds: clamp(t.endpointingNoPunctuationSeconds, 0.1, 4, env.VOICE_ENDPOINTING_NO_PUNCTUATION_SECONDS),
     realtimeModel: t.realtimeModel || env.VOICE_REALTIME_MODEL,
     llmModel: t.llmModel || env.VAPI_MODEL,
     temperature: clamp(t.temperature, 0, 1.2, 0.6),
@@ -435,9 +465,9 @@ export function buildCustomEndpointingRules(lang: VoiceLanguage) {
   }));
 }
 
-export function buildStartSpeakingPlan(lang: VoiceLanguage) {
+export function buildStartSpeakingPlan(lang: VoiceLanguage, tuning: ResolvedTuning = resolveTuning()) {
   return {
-    waitSeconds: env.VOICE_START_WAIT_SECONDS,
+    waitSeconds: tuning.startWaitSeconds,
     smartEndpointingEnabled: true,
     /* Le détecteur de fin de tour, choisi par LANGUE.
      *
@@ -466,8 +496,8 @@ export function buildStartSpeakingPlan(lang: VoiceLanguage) {
       /* Une respiration au milieu d'une phrase reçoit un point du
          transcripteur: à 0,1 s l'agent parlait par-dessus (12/09/2026).
          Les deux seuils sont des variables, voir `config/env.ts`. */
-      onPunctuationSeconds: env.VOICE_ENDPOINTING_PUNCTUATION_SECONDS,
-      onNoPunctuationSeconds: env.VOICE_ENDPOINTING_NO_PUNCTUATION_SECONDS,
+      onPunctuationSeconds: tuning.endpointingPunctuationSeconds,
+      onNoPunctuationSeconds: tuning.endpointingNoPunctuationSeconds,
       /* UNE SECONDE après un chiffre, et non une demi (TUR-3).
          Un appelant qui dicte « zéro deux… cinq cent douze… trente-quatre… »
          laisse 400 à 900 ms entre ses groupes: à 500 ms on le coupe après le
@@ -1292,7 +1322,7 @@ export function buildRealtimePlans(
              Reste vrai, et c'est pour ça que `null` et pas une clé tue: tu, le
              plan SURVIT au PATCH (6sexquinquagesies). */
           startSpeakingPlan: env.VOICE_REALTIME_TRANSCRIBER
-            ? buildStartSpeakingPlan(lang)
+            ? buildStartSpeakingPlan(lang, tuning)
             : null,
           /* Ce qui reste envoyable sans transcripteur: le seuil de bruit. Le
              moment de SE TAIRE se mesure sur l'audio, et le laisser au défaut
@@ -1319,7 +1349,7 @@ export function buildRealtimePlans(
               : buildRealtimeStopSpeakingPlan(tuning),
         }
       : {
-          startSpeakingPlan: buildStartSpeakingPlan(lang),
+          startSpeakingPlan: buildStartSpeakingPlan(lang, tuning),
           stopSpeakingPlan: buildStopSpeakingPlan(tuning),
         }),
     /* Le clavier, seul canal à 0 % d'erreur (BEL-4 / REL-8).
