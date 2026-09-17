@@ -896,7 +896,35 @@ export function assistantModelBlock(opts: {
  * cas ici, mais le catalogue temps réel n'est pas celui des modèles texte et
  * un identifiant déduit est un assistant refusé en entier (6quinvicies).
  */
+/**
+ * LA LANGUE, DITE AU MODÈLE, et seulement en parole-à-parole (17/09/2026).
+ *
+ * En chaîne classique, la langue est posée DEUX fois sans qu'on y pense: le
+ * transcripteur la reçoit (`buildTranscriber`, `language: fr`) et la voix aussi.
+ * Le parole-à-parole n'a ni l'un ni l'autre — c'est la définition du mode — donc
+ * plus RIEN ne dit au modèle en quelle langue écouter ni répondre. Le prompt est
+ * bien en français, mais un prompt français n'est pas une consigne de langue: il
+ * décrit le métier, pas le canal audio.
+ *
+ * Ce que ça a donné sur le premier appel: l'appelant dit « allô », le transcript
+ * écrit « Hello? », et l'assistant rend « Dentalics » puis « receptionist to Sid
+ * and Alex » — du français passé à la moulinette d'un modèle qui écoute en
+ * anglais, ou de l'anglais tout court. Les deux se corrigent ici.
+ *
+ * La ligne vit dans le bloc TEMPS RÉEL, pas dans `buildSystemPrompt`: le prompt
+ * partagé est rejoué à chaque tour sur le chemin classique, où il est déjà à son
+ * plafond, et où la langue est déjà dite deux fois. Payer ces caractères là-bas
+ * serait payer pour un problème qui n'y existe pas.
+ */
+const REALTIME_LANGUAGE_LINE: Record<VoiceLanguage, string> = {
+  fr: 'LANGUE: tu parles FRANÇAIS, et seulement français. Si tu entends mal, tu fais répéter en français; tu ne changes jamais de langue.',
+  en: 'LANGUAGE: you speak ENGLISH, and only English. If you mishear, ask again in English; never switch language.',
+  nl: 'TAAL: je spreekt NEDERLANDS, en alleen Nederlands. Versta je iets niet, laat het dan in het Nederlands herhalen; wissel nooit van taal.',
+};
+
 export function realtimeSpeechBlocks(opts: {
+  /** La langue de l'appel: voir `REALTIME_LANGUAGE_LINE`. */
+  lang: VoiceLanguage;
   gender: 'f' | 'm';
   systemPrompt: string;
   tools: any[];
@@ -904,13 +932,16 @@ export function realtimeSpeechBlocks(opts: {
   /** Jamais déduit: il vient de `resolveTuning`, donc du niveau ou de l'env. */
   realtimeModel: string;
 }): { model: any; voice: any } {
+  /* En TÊTE, avant l'identité: c'est une contrainte de canal, pas une règle de
+     métier, et les premières lignes d'un prompt long sont celles qui tiennent. */
+  const systemPrompt = `${REALTIME_LANGUAGE_LINE[opts.lang]}\n${opts.systemPrompt}`;
   return {
     model: {
       provider: 'openai',
       model: opts.realtimeModel,
       temperature: opts.temperature,
       maxTokens: env.VOICE_MAX_COMPLETION_TOKENS,
-      messages: [{ role: 'system', content: opts.systemPrompt }],
+      messages: [{ role: 'system', content: systemPrompt }],
       tools: opts.tools,
     },
     voice: { provider: 'openai', voiceId: REALTIME_VOICE[opts.gender] },
@@ -954,6 +985,7 @@ export function buildSpeech(opts: {
 
   if (speechToSpeech) {
     return { speechToSpeech, ...realtimeSpeechBlocks({
+      lang: opts.lang,
       gender: opts.character.gender,
       systemPrompt: opts.systemPrompt,
       tools: opts.tools,

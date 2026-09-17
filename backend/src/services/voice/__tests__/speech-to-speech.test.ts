@@ -197,7 +197,13 @@ describe('parole-à-parole', () => {
       lang: 'fr', systemPrompt: 'CONSIGNE', tools, character: CHARACTER_F,
     });
     expect(model.tools).toEqual(tools);
-    expect(model.messages[0]).toEqual({ role: 'system', content: 'CONSIGNE' });
+    /* La consigne du métier est PRÉSERVÉE, précédée de la ligne de langue que
+       ce mode est seul à porter (voir « la langue est dite au modèle » plus
+       bas): en parole-à-parole, plus aucun transcripteur ni aucune voix ne dit
+       au modèle en quelle langue écouter ni répondre. */
+    expect(model.messages[0].role).toBe('system');
+    expect(model.messages[0].content).toContain('CONSIGNE');
+    expect(model.messages[0].content).toMatch(/^LANGUE: tu parles FRANÇAIS/);
   });
 
   /* Le LLM personnalisé n'a de sens que dans la chaîne classique: en
@@ -264,5 +270,56 @@ describe('temps réel hors service — les gardes', () => {
     expect(plans.startSpeakingPlan).toBeNull();
     // Ce qui ne dépend pas du transcripteur reste servi dans les deux cas.
     expect(plans.silenceTimeoutSeconds).toBeDefined();
+  });
+});
+
+/**
+ * LA LANGUE EN PAROLE-À-PAROLE (17/09/2026).
+ *
+ * En classique elle est dite deux fois sans qu'on y pense: au transcripteur
+ * (`language: fr`) et à la voix. Le temps réel n'a ni l'un ni l'autre, donc plus
+ * rien ne disait au modèle en quelle langue écouter ni répondre. Premier appel
+ * réel: l'appelant dit « allô », le transcript écrit « Hello? », et l'assistant
+ * rend « Dentalics » puis « receptionist to Sid and Alex ».
+ *
+ * Un prompt écrit en français n'est PAS une consigne de langue: il décrit le
+ * métier, pas le canal audio. D'où une ligne explicite, et seulement ici.
+ */
+describe('parole-à-parole — la langue est dite au modèle', () => {
+  const blocks = async (lang: 'fr' | 'en' | 'nl') => {
+    const { realtimeSpeechBlocks } = await load({});
+    return realtimeSpeechBlocks({
+      lang, gender: 'm', systemPrompt: 'Tu es Lucas.', tools: [], temperature: 0.7,
+      realtimeModel: 'gpt-realtime-mini-2025-12-15',
+    }) as any;
+  };
+
+  it('nomme la langue, dans la langue, pour les trois', async () => {
+    expect((await blocks('fr')).model.messages[0].content).toMatch(/LANGUE: tu parles FRANÇAIS/);
+    expect((await blocks('en')).model.messages[0].content).toMatch(/LANGUAGE: you speak ENGLISH/);
+    expect((await blocks('nl')).model.messages[0].content).toMatch(/TAAL: je spreekt NEDERLANDS/);
+  });
+
+  it('la pose en TÊTE, là où un prompt long se lit vraiment', async () => {
+    const content = (await blocks('fr')).model.messages[0].content as string;
+    expect(content.indexOf('LANGUE:')).toBe(0);
+    // Et le prompt du métier suit, il n'est pas remplacé.
+    expect(content).toContain('Tu es Lucas.');
+  });
+
+  it("interdit de changer de langue, ce que le modèle faisait en mésentendant", async () => {
+    expect((await blocks('fr')).model.messages[0].content).toMatch(/jamais de langue/);
+  });
+
+  it('ne coûte RIEN au prompt de la chaîne classique', async () => {
+    /* Le prompt partagé est rejoué à chaque tour sur le chemin custom-LLM, où
+       il est déjà à son plafond, et où la langue est déjà dite deux fois. */
+    const { buildSpeech } = await load({ VOICE_SPEECH_TO_SPEECH: 'off' });
+    const { model, speechToSpeech } = buildSpeech({
+      lang: 'fr', systemPrompt: 'Tu es Lucas.', tools: [],
+      character: { voiceId: 'v1', gender: 'm' }, voiceMode: 'classic',
+    }) as any;
+    expect(speechToSpeech).toBe(false);
+    expect(JSON.stringify(model)).not.toMatch(/LANGUE:/);
   });
 });

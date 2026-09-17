@@ -142,6 +142,9 @@ export function assistantSpeechForProfile(
   if (resolved.speechToSpeech) {
     return {
       ...realtimeSpeechBlocks({
+        /* La langue du PROFIL, la même source que l'appel (6vicies): une
+           seconde règle écrite ici aurait divergé en moins d'un mois. */
+        lang: profile.language,
         gender: resolved.gender,
         systemPrompt: opts.systemPrompt,
         tools: opts.tools,
