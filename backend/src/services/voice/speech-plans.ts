@@ -1145,7 +1145,14 @@ export function buildRealtimePlans(
        transcripteur ne le supprimait donc que sur un assistant créé de zéro; sur
        un assistant qui a déjà été synchronisé en classique — c'est-à-dire tout
        client qui BASCULE vers le Superagent — Deepgram restait en place. */
-    transcriber: speechToSpeech ? null : buildTranscriber(lang, opts),
+    /* `VOICE_REALTIME_TRANSCRIBER=on` le remet en parole-à-parole: voir
+       l'en-tête de la variable. Quatre appels réels suggèrent que Vapi en a
+       besoin pour entendre l'appelant sur ce chemin, et un interrupteur permet
+       de le vérifier sur UN appel au lieu de renverser la flotte sur une
+       corrélation. */
+    transcriber: speechToSpeech && !env.VOICE_REALTIME_TRANSCRIBER
+      ? null
+      : buildTranscriber(lang, opts),
     /* LES DEUX PLANS DE PAROLE SUPPOSENT UN TRANSCRIPTEUR. Sans lui, ils ne
        peuvent pas être satisfaits, et c'est une panne, pas une dégradation.
        Regardez de quoi ils sont faits: `numWords`, `acknowledgementPhrases`,

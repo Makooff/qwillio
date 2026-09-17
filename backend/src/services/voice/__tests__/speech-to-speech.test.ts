@@ -370,3 +370,47 @@ describe('parole-à-parole — son propre plafond de jetons', () => {
     expect(env.VOICE_REALTIME_MAX_TOKENS).toBeGreaterThanOrEqual(256);
   });
 });
+
+/**
+ * L'INTERRUPTEUR DE TRANSCRIPTEUR EN PAROLE-À-PAROLE (17/09/2026).
+ *
+ * Le chemin temps réel retire le transcripteur, et le raisonnement se tient: le
+ * modèle entend l'audio lui-même. Il n'a JAMAIS été vérifié sur un appel réel.
+ *
+ * Quatre appels réels disent autre chose: le seul où l'appelant a été
+ * correctement entendu est celui où le transcripteur était encore là, conservé
+ * par accident. Les trois suivants comptent 1, 1 puis 0 réplique de l'appelant,
+ * et le propriétaire rapporte « il ne m'entend pas ».
+ *
+ * Corrélation n'est pas cause, d'où un interrupteur plutôt qu'un revirement.
+ */
+describe('parole-à-parole — le transcripteur, sous interrupteur', () => {
+  it('reste retiré par défaut: on ne renverse pas la flotte sur une corrélation', async () => {
+    const { buildRealtimePlans } = await load({});
+    expect((buildRealtimePlans('fr', true) as any).transcriber).toBeNull();
+  });
+
+  it('revient quand on l\'allume, et seulement alors', async () => {
+    const { buildRealtimePlans } = await load({ VOICE_REALTIME_TRANSCRIBER: 'on' });
+    const tr = (buildRealtimePlans('fr', true) as any).transcriber;
+    expect(tr).toBeTruthy();
+    /* Et il porte la LANGUE, qui est la moitié de ce qu'on va vérifier: le
+       transcript du portail rendait « Was that 2 goshola? » sur du français. */
+    expect(tr.language ?? tr.languages).toBeDefined();
+  });
+
+  it('ne touche pas la chaîne classique, qui en a toujours un', async () => {
+    const off = await load({});
+    expect((off.buildRealtimePlans('fr', false) as any).transcriber).toBeTruthy();
+    const on = await load({ VOICE_REALTIME_TRANSCRIBER: 'on' });
+    expect((on.buildRealtimePlans('fr', false) as any).transcriber).toBeTruthy();
+  });
+
+  it('laisse le plan d\'attente retiré: un seul essai à la fois', async () => {
+    /* L'interrupteur ne teste QUE le transcripteur. Remettre aussi le plan
+       d'attente referait l'assistant hybride, et on ne saurait pas lequel des
+       deux a agi. */
+    const { buildRealtimePlans } = await load({ VOICE_REALTIME_TRANSCRIBER: 'on' });
+    expect((buildRealtimePlans('fr', true) as any).startSpeakingPlan).toBeNull();
+  });
+});
