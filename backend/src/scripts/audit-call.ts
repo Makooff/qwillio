@@ -94,6 +94,7 @@ async function main() {
      les deux est exactement ce que cette ligne existe pour montrer. */
   let remoteSpeechToSpeech: boolean | null = null;
   let remoteTranscriber: boolean | null = null;
+  let remoteSilenceTimeout: number | null = null;
   const assistantId = ours?.client?.vapiAssistantId ?? vapiCall?.assistantId ?? null;
   if (assistantId) {
     try {
@@ -109,6 +110,10 @@ async function main() {
          n'a pas été écrit » de « un reste l'annule ». Voir `remote.transcriber`
          dans `call-audit.ts`. */
       remoteTranscriber = !!assistant?.transcriber;
+      /* Le délai de RACCROCHÉ, lu sur l'assistant distant. Il ne figurait sur
+         aucun écran, et c'est lui qui a tué six appels de test d'affilée. */
+      remoteSilenceTimeout = typeof assistant?.silenceTimeoutSeconds === 'number'
+        ? assistant.silenceTimeoutSeconds : null;
       const got = (assistant?.startSpeakingPlan ?? {}) as Record<string, any>;
       remoteEndpointing = {
         provider: got.smartEndpointingPlan?.provider ?? (got.smartEndpointingEnabled ? 'vapi' : 'aucun'),
@@ -154,7 +159,7 @@ async function main() {
     },
     booking: bookingRow ? { id: bookingRow.id, smsSent: bookingRow.smsConfirmationSent, smsLogs } : null,
     recordingReadable,
-    remote: { customLlm: remoteCustomLlm, endpointing: remoteEndpointing, speechToSpeech: remoteSpeechToSpeech, transcriber: remoteTranscriber },
+    remote: { customLlm: remoteCustomLlm, endpointing: remoteEndpointing, speechToSpeech: remoteSpeechToSpeech, transcriber: remoteTranscriber, silenceTimeoutSeconds: remoteSilenceTimeout },
     expected: {
       endpointing: {
         provider: want.smartEndpointingPlan.provider,
@@ -166,6 +171,9 @@ async function main() {
       minChunkChars: env.VOICE_TTS_MIN_CHUNK_CHARS,
       greetingPinned: env.VOICE_GREETING_PINNED,
       smsReady: smsReadiness().ok,
+      /* Le calendrier des relances, pour le comparer au raccroché. */
+      idleNudgeSeconds: env.VOICE_IDLE_NUDGE_SECONDS,
+      idleNudgeCount: env.VOICE_IDLE_NUDGE_COUNT,
       /* Le niveau DEMANDÉ vient de la fiche, celui qui DOIT servir du profil:
          `voiceForProfile` applique la priorité de la voix clonée, qui est la
          seule raison légitime d'un écart entre les deux. */

@@ -713,3 +713,55 @@ describe('auditCall — le plan d\'attente attendu dépend du niveau', () => {
     expect(ep.lever).toMatch(/voice:resync/);
   });
 });
+
+/**
+ * LE DÉLAI DE RACCROCHÉ, QUI NE FIGURAIT SUR AUCUN ÉCRAN (17/09/2026).
+ *
+ * `VAPI_SILENCE_TIMEOUT` valait 10 s en production. L'appel raccrochait PENDANT
+ * la phrase d'accueil, en parole-à-parole comme en classique, et le mécanisme de
+ * relance (« Vous m'entendez ? » à 10 s puis 20 s) n'a jamais pu tourner. Six
+ * appels de test morts d'affilée, lus comme une panne du moteur vocal, pendant
+ * que deux écrans de diagnostic ne montraient ni ce chiffre ni les relances.
+ *
+ * Le verdict COMPARE les deux: 10 s est un réglage raisonnable en soi, il ne
+ * devient faux qu'en face de relances posées à 10 s et 20 s.
+ */
+describe('auditCall — le raccroché doit laisser passer les relances', () => {
+  const withSilence = (silence: number | null) => {
+    const f = good();
+    f.remote.silenceTimeoutSeconds = silence;
+    f.expected.idleNudgeSeconds = 10;
+    f.expected.idleNudgeCount = 2;
+    return f;
+  };
+  const line = (silence: number | null) =>
+    auditCall(withSilence(silence)).checks.find(c => c.id === 'silence')!;
+
+  it('nomme le cas vécu: raccroché pendant la phrase d\'accueil', () => {
+    const c = line(10);
+    expect(c.status).toBe('fail');
+    expect(c.value).toMatch(/PENDANT la phrase d'accueil/);
+    expect(c.lever).toMatch(/VAPI_SILENCE_TIMEOUT/);
+    expect(c.target).toBe('au moins 30 s');
+  });
+
+  it('tombe aussi quand seule la DERNIÈRE relance est étouffée', () => {
+    /* 25 s laisse parler les deux relances (10 s, 20 s) mais ne laisse aucune
+       fenêtre après la seconde: elle est dite puis l'appel meurt aussitôt. */
+    const c = line(25);
+    expect(c.status).toBe('fail');
+    expect(c.value).not.toMatch(/PENDANT la phrase/);
+    expect(c.value).toMatch(/dernière relance/);
+  });
+
+  it('accepte un réglage qui laisse la place', () => {
+    const c = line(30);
+    expect(c.status).toBe('ok');
+    expect(c.lever).toBeUndefined();
+    expect(c.value).toMatch(/relances à 10 s et 20 s/);
+  });
+
+  it('se tait quand l\'assistant distant n\'a pas été lu', () => {
+    expect(line(null).status).toBe('skip');
+  });
+});
