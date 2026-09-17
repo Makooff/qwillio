@@ -1878,11 +1878,26 @@ corriges le matin meme: egalite exacte sur le numero au lieu de ses ecritures
 (`phoneForms`). Une lecon appliquee a une lecture et pas a l'autre, encore
 (6sexvicies). Rendre `upcomingBookings` obligatoire a fait sortir les quatre
 autres constructeurs au compilateur, ce pour quoi on rend un champ obligatoire.
-**Reste ouvert, non traite:** `checkAvailability` a 15,5 s. C'est ce qui produit
-« il met du temps a repondre donc repond en meme temps que moi »: l'agent pose
-une question, l'outil tourne quinze secondes, et l'appelant parle pendant ce
-temps. Le levier de l'audit dit l'agenda Google lu pendant le tour, la
-speculation n'ayant pas pris.
+**`checkAvailability` a 15,5 s, et la cause etait a un endroit que l'audit ne
+pointait pas.** Son levier disait « l'agenda Google est lu pendant le tour, la
+speculation n'a pas pris », ce qui est vrai et incomplet: chaque lecture payait
+DEUX allers-retours vers Google, pas un. `getOAuthClient()` rend un client
+OAuth **neuf** a chaque appel, donc `getAccessToken()` n'avait rien a reutiliser
+et refrappait le jeton d'acces avant chaque lecture — un jeton qui vaut une
+HEURE. Le releve: 4,0 s puis 12,6 s, 13,3 s et 15,5 s sur quatre jours
+differents, chacun paye plein tarif.
+Ce que ca coute ne se limite pas a l'attente: « il met du temps a repondre donc
+repond en meme temps que moi ». L'agent pose une question, l'outil tourne
+quinze secondes, l'appelant parle pendant ce temps. **La lenteur FABRIQUE le
+chevauchement**, elle ne fait pas que le precede.
+Le jeton est desormais retenu par condense du jeton de rafraichissement (jamais
+par le secret lui-meme: une Map se retrouve dans un vidage memoire), avec une
+MARGE d'une minute — un jeton qui expire entre notre lecture et l'arrivee de la
+requete chez Google rendrait un 401 au milieu d'un appel — et les demandes
+concurrentes partagent la meme frappe. Le retrait de la cle en vol a lieu que
+la frappe reussisse ou non, sinon un refus bloque toute lecture d'agenda de ce
+client pour la vie du processus. Ca vaut pour TOUTES les operations d'agenda,
+pas seulement les creneaux: reserver, deplacer, annuler.
 
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,

@@ -1,4 +1,5 @@
 import { minutesOf } from '../utils/opening-hours';
+import { createHash } from 'crypto';
 import { OAuth2Client } from 'google-auth-library';
 import { prisma } from '../config/database';
 import { env } from '../config/env';
@@ -262,12 +263,69 @@ export class GoogleCalendarService {
   }
 
   /** Short-lived access token from a stored refresh token. */
+  /**
+   * LE JETON D'ACCÈS, FRAPPÉ UNE FOIS PAR HEURE ET NON PAR LECTURE.
+   *
+   * Relevé le 17/09/2026 sur un appel réel: `checkAvailability` à 4,0 s, puis
+   * 12,6 s, 13,3 s et 15,5 s. Ce que l'appelant en dit: « il met du temps à
+   * répondre donc répond en même temps que moi, c'est horrible ». L'agent pose
+   * une question, l'outil tourne quinze secondes, et l'appelant parle pendant
+   * ce temps: la lenteur ne se contente pas de faire attendre, elle fabrique
+   * le chevauchement.
+   *
+   * La cause était ici. `getOAuthClient()` rend un client NEUF à chaque appel,
+   * donc `getAccessToken()` ne pouvait rien réutiliser et refaisait l'échange
+   * complet avec Google. Chaque lecture d'agenda payait donc DEUX allers-retours
+   * séquentiels vers Google depuis l'Oregon — frapper le jeton, puis lire —
+   * alors que le premier vaut une heure.
+   *
+   * Le cache est en mémoire du processus, comme celui du spéculateur: ce jeton
+   * ne doit pas s'écrire ailleurs. Il porte une MARGE, parce qu'un jeton qui
+   * expire entre notre vérification et l'arrivée de la requête chez Google
+   * rendrait un 401 qu'aucun appelant ne doit attendre. Et les demandes
+   * concurrentes partagent la même frappe: sans ça, trois outils lancés
+   * ensemble en déclenchent trois.
+   */
+  private tokenCache = new Map<string, { token: string; expiresAt: number }>();
+  private tokenPending = new Map<string, Promise<string>>();
+
   async getAccessTokenFromRefresh(refreshToken: string): Promise<string> {
-    const client = this.getOAuthClient();
-    client.setCredentials({ refresh_token: refreshToken });
-    const { token } = await client.getAccessToken();
-    if (!token) throw new Error('Failed to mint Google access token');
-    return token;
+    /* La clé est un condensé, jamais le secret: une Map se retrouve dans un
+       vidage mémoire ou une inspection, et ce jeton ouvre l'agenda du client. */
+    const key = createHash('sha256').update(refreshToken).digest('hex');
+    const hit = this.tokenCache.get(key);
+    if (hit && hit.expiresAt > Date.now()) return hit.token;
+
+    const inFlight = this.tokenPending.get(key);
+    if (inFlight) return inFlight;
+
+    const mint = (async () => {
+      const client = this.getOAuthClient();
+      client.setCredentials({ refresh_token: refreshToken });
+      const { token } = await client.getAccessToken();
+      if (!token) throw new Error('Failed to mint Google access token');
+      /* L'échéance vient de Google quand il la donne; une heure sinon, ce que
+         la documentation annonce. La marge de soixante secondes est retirée
+         des deux côtés: mieux vaut refrapper une fois pour rien qu'obtenir un
+         401 au milieu d'un appel. */
+      const expiry = client.credentials.expiry_date;
+      const expiresAt = (typeof expiry === 'number' && expiry > Date.now() ? expiry : Date.now() + 3600_000) - 60_000;
+      this.tokenCache.set(key, { token, expiresAt });
+      return token;
+    })();
+
+    this.tokenPending.set(key, mint);
+    /* Retiré que la frappe réussisse ou non: une clé restée en vol bloquerait
+       toute lecture d'agenda de ce client pour la vie du processus. */
+    void mint.catch(() => {}).finally(() => this.tokenPending.delete(key));
+    return mint;
+  }
+
+  /** Oublie le jeton d'un client. Sert au test, et à une révocation. */
+  forgetAccessToken(refreshToken: string): void {
+    const key = createHash('sha256').update(refreshToken).digest('hex');
+    this.tokenCache.delete(key);
+    this.tokenPending.delete(key);
   }
 
   /** Next upcoming events — proves read access and feeds the UI preview. */
