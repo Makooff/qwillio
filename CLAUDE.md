@@ -2019,6 +2019,47 @@ l'hypothese de tete ; elle se tranche au relevé (`checkAvailability:error`), pa
 au raisonnement. Allonger le cache ferait proposer un creneau pris entre-temps,
 donc deux clients a la meme heure : ne pas y toucher avant de savoir.
 
+### 6unsexagesies. L'audit taisait le seul fait qui expliquait l'appel (18/09/2026)
+Relevé du meme appel que 6sexagesies. L'agent dit « Je suis desole, il y a eu un
+probleme technique », puis demande un numero de rappel et appelle `captureLead`
+— c'est-a-dire, mot pour mot, ce que `degradedMessage` lui ordonne de faire
+quand un outil a LEVE. L'audit, lui, affichait cinq outils avec leurs durees et
+**aucun signe d'echec**: la ligne « duree des outils » lit le transcript de
+Vapi, ou un repli est un resultat comme un autre, et personne ne lisait
+`ToolEvent.result`.
+Le fait etait donc **deja dans les donnees, jamais lu**. Sans lui, « il a dit
+probleme technique » n'est rattachable a rien, et j'ai passe le debut de la
+seance a defendre une hypothese de delai d'attente que l'audit ne pouvait ni
+confirmer ni infirmer. C'est 6sexvicies: le code qui LIT un champ compte autant
+que celui qui l'ecrit. La ligne `outils tombes en repli` nomme desormais l'outil,
+la seconde, et le repli exact.
+**Deux autres leviers du meme relevé envoyaient au mauvais endroit**, ce qui
+porte a SEPT le compte des faux diagnostics de cet audit.
+1. « repliques doublees » conseillait en TETE de liste: « un plan absent rend la
+   main au defaut de Vapi (0,4 s) » — pendant que sa propre ligne « detecteur de
+   fin de tour », deux ecrans plus bas, etait **VERTE a 0,6 / 0,8**. L'audit se
+   contredisait lui-meme et envoyait reposer un plan deja pose. Le levier lit
+   maintenant le plan reel, avec **le meme test** que la ligne d'en bas (une
+   seconde lecture du meme champ finirait par diverger, 6vicies).
+2. « duree des outils » nommait l'agenda Google des qu'un `checkAvailability`
+   depassait la cible, alors que les deux pires de la liste etaient
+   `captureLead` (7,7 s) et `lookupBooking` (6,1 s) — **deux outils qui ne
+   touchent jamais Google**, ce sont des requetes Prisma. Le levier suit
+   desormais l'outil le PLUS LENT et renvoie a Neon quand celui-la ne lit pas
+   l'agenda.
+**Ce que le relevé dit de bon, et qu'il ne faut pas re-chasser:** le delai
+ressenti est a **0,8 s de mediane, 2,5 s au pire** sur 12 tours. La guerre du
+tour de parole est gagnee; ce qui reste de lenteur, ce sont les OUTILS, et
+d'abord la base, pas le modele. `VOICE_START_WAIT_SECONDS` et
+`VOICE_ENDPOINTING_PUNCTUATION_SECONDS` ne se touchent plus sur ce motif.
+Le brief d'ouverture est **pose** (« 22 appels, 1 rdv »): l'agent connaissait le
+rendez-vous avant le premier mot, et a quand meme demande le nom puis appele
+`lookupBooking` deux fois. Ce n'est donc plus un defaut de plomberie mais de
+discipline, et c'est la prochaine chose a traiter, pas la memoire.
+PREP, LLM et TTFA sont « sans mesure » sur ce chemin, et c'est STRUCTUREL: en
+parole-a-parole `llm-stream` ne tourne pas. La raison affichee (« appel
+anterieur au partage PREP/LLM ») est trompeuse et reste a corriger.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

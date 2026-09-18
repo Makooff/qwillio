@@ -993,3 +993,87 @@ describe('auditCall — le plan d\'interruption distant', () => {
     expect(s2s(null).status).toBe('skip');
   });
 });
+
+/**
+ * TROIS LIGNES DE L'AUDIT LUES SUR UN APPEL RÉEL (18/09/2026), et les trois
+ * envoyaient au mauvais endroit ou se taisaient.
+ *
+ * Relevé: 22 répliques, 1 doublée, outils à 2,2 / 6,1 / 2,9 / 4,5 / 7,7 s,
+ * plan d'endpointing VERT à 0,6 / 0,8, et l'agent qui dit « il y a eu un
+ * problème technique » sans qu'aucune ligne ne l'explique.
+ */
+describe("l'audit ne s'envoie pas au mauvais endroit", () => {
+  const find = (facts: CallFacts, id: string) => auditCall(facts).checks.find(c => c.id === id);
+
+  it("ne dit pas « un plan absent » quand le plan est POSÉ", () => {
+    /* Le défaut exact: l'audit plaçait ça en tête des choses à faire pendant
+       que sa propre ligne « détecteur de fin de tour » était verte. */
+    const facts = good();
+    facts.doubledReplies = 1;
+    facts.remote.endpointing = { provider: 'livekit', waitSeconds: 0.6, punctuationSeconds: 0.8 };
+    const lever = String(find(facts, 'doubled')!.lever);
+    expect(lever).toContain('le plan est POSÉ');
+    expect(lever).toContain('attente 0.6 s, ponctuation 0.8 s');
+    expect(lever).not.toContain('plan absent');
+    expect(lever).toMatch(/ne changera rien/);
+  });
+
+  it("nomme bien l'absence de plan quand il est vraiment absent", () => {
+    const facts = good();
+    facts.doubledReplies = 1;
+    facts.remote.endpointing = { provider: 'aucun', waitSeconds: null, punctuationSeconds: null };
+    const lever = String(find(facts, 'doubled')!.lever);
+    expect(lever).toContain('aucun plan');
+    expect(lever).toContain('voice:resync');
+  });
+
+  it("ne blâme pas Google pour un outil qui ne lit pas Google", () => {
+    /* `captureLead` 7,7 s et `lookupBooking` 6,1 s sont des requêtes Prisma.
+       L'audit envoyait renouveler un jeton Google, parce qu'un
+       `checkAvailability` figurait aussi dans les lents. */
+    const facts = good();
+    facts.tools = [
+      { name: 'lookupBooking', args: {}, result: 'RESERVATION: ...', tookSeconds: 6.1, atSeconds: 47 },
+      { name: 'checkAvailability', args: {}, result: 'LIBRE ...', tookSeconds: 2.9, atSeconds: 71 },
+      { name: 'captureLead', args: {}, result: 'ok', tookSeconds: 7.7, atSeconds: 117 },
+    ];
+    const lever = String(find(facts, 'tools')!.lever);
+    expect(lever).toContain('captureLead');
+    expect(lever).toContain('Prisma');
+    /* La phrase qui distingue le mauvais levier: le texte peut dire « pas le
+       jeton Google », il ne doit pas envoyer le RENOUVELER. */
+    expect(lever).not.toMatch(/jeton Google à renouveler/);
+    expect(lever).toContain('Neon');
+  });
+
+  it("blâme l'agenda quand c'est bien l'agenda le plus lent", () => {
+    const facts = good();
+    facts.tools = [
+      { name: 'captureLead', args: {}, result: 'ok', tookSeconds: 1.9, atSeconds: 20 },
+      { name: 'checkAvailability', args: {}, result: 'LIBRE ...', tookSeconds: 6.5, atSeconds: 71 },
+    ];
+    expect(String(find(facts, 'tools')!.lever)).toMatch(/agenda Google/);
+  });
+
+  it("dit QUEL outil est tombé en repli, ce que rien ne montrait", () => {
+    /* « Je suis désolé, il y a eu un problème technique » n'était rattachable
+       à aucune ligne: le transcript de Vapi rend un repli comme un résultat
+       ordinaire, et la ligne « durée des outils » ne lit pas le résultat. */
+    const facts = good();
+    facts.tools = [
+      { name: 'checkAvailability', args: {}, result: 'LIBRE ...', tookSeconds: 2.9, atSeconds: 71 },
+      { name: 'checkAvailability', args: {}, result: "AGENDA INDISPONIBLE: dis au correspondant que tu ne peux pas confirmer le creneau maintenant, propose de noter ses coordonnees.", tookSeconds: 4.5, atSeconds: 110 },
+    ];
+    const check = find(facts, 'tool-degraded')!;
+    expect(check.status).toBe('fail');
+    expect(check.value).toContain('checkAvailability');
+    expect(check.value).toContain('à 110 s');
+    expect(check.value).toContain('AGENDA INDISPONIBLE');
+    expect(String(check.lever)).toContain('EXTERNAL_TIMEOUT_MS');
+    expect(String(check.lever)).toContain('LEVÉ');
+  });
+
+  it('se tait quand aucun outil n\'est tombé', () => {
+    expect(find(good(), 'tool-degraded')).toBeUndefined();
+  });
+});
