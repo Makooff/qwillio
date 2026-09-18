@@ -2060,6 +2060,48 @@ PREP, LLM et TTFA sont « sans mesure » sur ce chemin, et c'est STRUCTUREL: en
 parole-a-parole `llm-stream` ne tourne pas. La raison affichee (« appel
 anterieur au partage PREP/LLM ») est trompeuse et reste a corriger.
 
+### 6duosexagesies. Une instruction de SESSION gagne contre un message (18/09/2026)
+« Il ne me reconnait pas alors que je suis deja un client dans la base et qu'il
+a mon numero, et meme une fois que je l'ai dit dans l'appel je ne devrais pas
+avoir a le dire deux fois. » Or l'audit du meme appel disait « brief
+d'ouverture: **pose** (22 appels, 1 rdv) ». La plomberie marchait, et le modele
+demandait quand meme.
+**La cause n'est ni le brief ni la memoire: c'est un conflit de consignes.** Le
+brief arrive comme un MESSAGE de la conversation (`add-message` sur l'adresse de
+controle), `buildSystemPrompt` est l'instruction de SESSION, et une instruction
+de session gagne contre un message. Tant que le prompt figé ordonnait
+`« demande-les »` — sans condition, pour le prenom et le nom — le modele
+obeissait a lui, pas au brief. Le brief disait pourtant deja « Ne redemande ni
+le nom ni la date actuelle »: ca n'a jamais suffi, et ca ne pouvait pas.
+**La regle, et elle est generale:** la ligne qui dit LAQUELLE des deux versions
+gagne doit vivre dans celle qui gagne. L'ecrire du cote qui perd, c'est
+l'ecrire deux fois pour rien. C'est exactement le traitement deja donne a la
+DATE — dite « faisant foi » dans le brief — et le NOM ne l'avait pas; c'etait
+la seule difference entre les deux.
+La nuance porte tout: **ne pas REDEMANDER n'est pas refuser une correction.** Un
+appelant qui dement garde le dernier mot (6octotrigesies: une consigne absolue
+sur un nom a tenu contre quatre dementis, ce qui est le defaut oppose et aussi
+couteux).
+**Le plafond du prompt passe a 3700**, et il faut noter pourquoi c'est tombe
+maintenant: la marge etait d'UN caractere (3499 sur 3500). N'importe quelle
+ligne ajoutee l'aurait fait tomber.
+**Ce que l'audit ne disait pas, et qui a failli me faire chercher au mauvais
+endroit:** la note du brief ne portait que des COMPTES. Elle ne distinguait donc
+pas les deux pannes OPPOSEES — le nom est la et le modele redemande (prompt), ou
+le nom manque malgre 22 appels (`getCallerHistory`) — qui ne se reparent pas
+dans le meme fichier. Elle dit desormais `nom: X` ou `SANS NOM CONNU`, et
+l'audit envoie lire `getCallerHistory` dans le second cas. C'est la raison meme
+pour laquelle cette note existe (6novoquinquagesies), et elle ne la remplissait
+qu'a moitie.
+**Le tutoiement, et pourquoi la troisieme ecriture est ailleurs.** La regle
+existait a DEUX endroits (discipline temps reel depuis le 17, regles de parole
+depuis le 09) et le modele tutoyait encore (« Attends une seconde »). La
+reecrire une troisieme fois au meme rang n'aurait rien change. Ce qui est
+OBSERVABLE, en revanche: la ligne de LANGUE tient — tout l'appel s'est dit en
+francais, du premier mot au dernier — et elle est en position 0. Le vouvoiement
+y est donc accroche. **Quand une regle echoue deux fois au meme rang, on la
+rattache a une regle qui tient, on ne la repete pas.**
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

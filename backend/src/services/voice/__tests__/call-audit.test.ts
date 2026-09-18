@@ -1076,4 +1076,35 @@ describe("l'audit ne s'envoie pas au mauvais endroit", () => {
   it('se tait quand aucun outil n\'est tombé', () => {
     expect(find(good(), 'tool-degraded')).toBeUndefined();
   });
+
+  /**
+   * LE BRIEF POSÉ SANS NOM (18/09/2026). « Il ne me reconnaît pas alors que je
+   * suis déjà client. » La note ne portait que des COMPTES, donc elle ne
+   * distinguait pas les deux pannes OPPOSÉES: le nom est là et le modèle
+   * redemande (prompt), ou le nom manque (getCallerHistory). Elles ne se
+   * réparent pas dans le même fichier.
+   */
+  it("envoie lire getCallerHistory quand le brief ne nomme personne", () => {
+    const facts = good();
+    facts.remote.speechToSpeech = true;
+    facts.realtime!.callBrief = 'pose (SANS NOM CONNU, 22 appels, 1 rdv)';
+    const lever = String(find(facts, 'brief')!.lever);
+    expect(lever).toContain('getCallerHistory');
+    expect(lever).toMatch(/pas le prompt/);
+  });
+
+  it('se tait quand le brief NOMME bien l\'appelant', () => {
+    const facts = good();
+    facts.remote.speechToSpeech = true;
+    facts.realtime!.callBrief = 'pose (nom: Jean-Luc de la Forge, 22 appels, 1 rdv)';
+    expect(find(facts, 'brief')!.lever).toBeUndefined();
+  });
+
+  it("ne réclame pas un nom à un numéro qui n'a jamais appelé", () => {
+    /* Un premier appel SANS nom est normal, pas un défaut de lecture. */
+    const facts = good();
+    facts.remote.speechToSpeech = true;
+    facts.realtime!.callBrief = 'pose (SANS NOM CONNU, 0 appels, 0 rdv)';
+    expect(find(facts, 'brief')!.lever).toBeUndefined();
+  });
 });

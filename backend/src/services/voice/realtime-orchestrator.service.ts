@@ -800,10 +800,26 @@ export async function postCallBrief(
     .getCallerHistory(clientId, callerNumberOf(event))
     .catch(() => null);
   const bookings = caller?.upcomingBookings?.length ?? 0;
+  /* LE NOM EST DIT DANS LE RELEVÉ, et il ne l'était pas (18/09/2026).
+     « Il ne me reconnaît pas alors que je suis déjà client et qu'il a mon
+     numéro. » La note ne portait que des COMPTES, donc elle ne distinguait pas
+     les deux pannes OPPOSÉES, qui ne se réparent pas au même endroit:
+       - le nom est là et le modèle redemande quand même → conflit de consignes,
+         ça se règle dans le prompt FIGÉ (qui ordonnait « demande-les »);
+       - le nom est absent malgré 22 appels et un rendez-vous → c'est
+         `getCallerHistory` qu'il faut aller lire, et rien dans le prompt n'y
+         changera quoi que ce soit.
+     C'est la raison même pour laquelle cette note existe (6novoquinquagesies):
+     un retour du propriétaire ne tranche pas entre deux causes opposées, un
+     relevé si. Elle ne le faisait qu'à moitié.
+     Le nom vient d'un appelant, donc il ne part pas brut dans un relevé: c'est
+     `callerHistoryBlock` qui le sanitise pour le prompt, et ici on n'en garde
+     que la présence et la forme courte. */
+  const named = caller?.knownName ? `nom: ${caller.knownName.slice(0, 40)}` : 'SANS NOM CONNU';
   try {
     await vapiClient.addMessage(controlUrl, { role: 'system', content: callBrief(profile, caller) });
-    callSessionStore.noteCallBrief(callIdOf(event), `pose (${caller?.previousCalls ?? 0} appels, ${bookings} rdv)`);
-    logger.info(`[Voice] brief pose pour ${clientId} (${caller?.previousCalls ?? 0} appels, ${bookings} rdv)`);
+    callSessionStore.noteCallBrief(callIdOf(event), `pose (${named}, ${caller?.previousCalls ?? 0} appels, ${bookings} rdv)`);
+    logger.info(`[Voice] brief pose pour ${clientId} (${named}, ${caller?.previousCalls ?? 0} appels, ${bookings} rdv)`);
   } catch (error) {
     callSessionStore.noteCallBrief(callIdOf(event), `REFUSE: ${(error as Error).message}`);
     logger.warn(`[Voice] brief refuse pour ${clientId}: ${(error as Error).message}`);

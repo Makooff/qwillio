@@ -403,6 +403,31 @@ describe('parole-à-parole — la langue est dite au modèle', () => {
     expect((await blocks('nl')).model.messages[0].content).toMatch(/is dat het uur/);
   });
 
+  /**
+   * LE VOUVOIEMENT EST ACCROCHÉ À LA LIGNE QUI TIENT (18/09/2026).
+   *
+   * « Et toujours tutoiement, il ne devrait pas », au lendemain du correctif
+   * qui l'avait écrit dans `REALTIME_DISCIPLINE`. La règle existait déjà à DEUX
+   * endroits (discipline temps réel depuis le 17, règles de parole de
+   * `buildSystemPrompt` depuis le 09) et le modèle tutoyait quand même: la
+   * réécrire une troisième fois au même rang n'aurait rien changé.
+   *
+   * Ce qui est OBSERVABLE: la ligne de LANGUE, elle, tient — tout l'appel du 18
+   * s'est dit en français. Elle est en position 0 et c'est la seule contrainte
+   * de canal que le modèle n'enfreint pas. On accroche donc celle qui échoue à
+   * celle qui tient.
+   */
+  it('dit le vouvoiement DANS la ligne de langue, celle qui est en position 0', async () => {
+    const prompt = (await blocks('fr')).model.messages[0].content as string;
+    const langue = prompt.split('\n')[0];
+    expect(prompt.indexOf('LANGUE:')).toBe(0);
+    expect(langue).toMatch(/VOUVOIES l'appelant/);
+    expect(langue).toMatch(/jamais « attends »/);
+    /* Le néerlandais porte la même chose: une règle écrite dans une seule
+       langue est une règle qu'un client flamand n'a pas. */
+    expect(((await blocks('nl')).model.messages[0].content as string).split('\n')[0]).toMatch(/aan met U/);
+  });
+
   it('ne coûte RIEN au prompt de la chaîne classique', async () => {
     /* Le prompt partagé est rejoué à chaque tour sur le chemin custom-LLM, où
        il est déjà à son plafond, et où la langue est déjà dite deux fois. */

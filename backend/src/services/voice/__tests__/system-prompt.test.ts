@@ -162,7 +162,17 @@ describe('buildSystemPrompt', () => {
        outils cette fois). 170 caractères rejoués à chaque tour contre un agent
        qui annonce ce qu'il n'a pas fait: c'est le défaut qui perd un client,
        pas celui qui l'agace. */
-    expect(buildSystemPrompt(profile, newCaller).length).toBeLessThan(3500);
+    /* 3700: le prompt FIGÉ doit céder au brief d'ouverture (18/09/2026).
+       « Il ne me reconnaît pas alors que je suis déjà client et qu'il a mon
+       numéro », sur un appel où le brief était POSÉ et portait son nom. La
+       cause est un conflit de consignes: le brief arrive comme un MESSAGE,
+       ce prompt-ci est l'instruction de SESSION, et tant qu'il ordonnait
+       « demande-les » sans condition, le modèle demandait. La ligne qui dit
+       laquelle des deux gagne ne peut vivre QUE là, dans l'instruction qui
+       gagne — la mettre dans le brief, c'est la remettre du côté qui perd.
+       À noter pour la prochaine fois: la marge était d'UN caractère (3499),
+       donc n'importe quelle ligne l'aurait fait tomber. */
+    expect(buildSystemPrompt(profile, newCaller).length).toBeLessThan(3700);
   });
 
   it('injects the pre-rendered knowledge block when one is supplied', () => {
@@ -263,7 +273,7 @@ describe('les règles de transfert, réglées par le client', () => {
   it('ne fait pas grossir le prompt, qui est rejoué à chaque tour', () => {
     // Les trois variantes tiennent la même longueur à quelques caractères près.
     const tailles = (['always', 'hours', 'never'] as const).map(m => withMode(m).length);
-    expect(Math.max(...tailles)).toBeLessThan(3500);
+    expect(Math.max(...tailles)).toBeLessThan(3700);
     expect(Math.max(...tailles) - Math.min(...tailles)).toBeLessThan(30);
   });
 });

@@ -1022,14 +1022,29 @@ export function assistantModelBlock(opts: {
  * le trou.
  */
 const REALTIME_LANGUAGE_LINE: Record<VoiceLanguage, string> = {
-  fr: "LANGUE: tu parles FRANÇAIS, et seulement français, du premier au dernier mot. "
+  /* LE VOUVOIEMENT EST ATTACHÉ ICI, à la ligne qui TIENT (18/09/2026).
+     « Et toujours le tutoiement, il ne devrait pas. » La règle existe pourtant
+     à DEUX endroits: dans `REALTIME_DISCIPLINE` depuis le 17, et dans les
+     règles de parole de `buildSystemPrompt` depuis le 09. Deux formulations,
+     deux emplacements, et le modèle tutoie quand même — donc la répéter une
+     troisième fois au même rang ne changerait rien.
+     Ce qui est observable, en revanche: la ligne de LANGUE, elle, tient. Sur
+     l'appel du 18, tout s'est dit en français, du premier mot au dernier. Elle
+     est en position 0 et c'est la seule contrainte de canal que le modèle
+     n'enfreint pas. On y accroche donc celle qui échoue, plutôt que de
+     l'écrire une fois de plus là où elle a déjà échoué deux fois. */
+  fr: "LANGUE: tu parles FRANÇAIS, et seulement français, du premier au dernier mot, "
+    + "et tu VOUVOIES l'appelant du premier au dernier mot aussi: « vous », jamais « tu », "
+    + "« un instant » et jamais « attends », « pouvez-vous » et jamais « donne-moi ». "
     + "Si tu entends mal, tu fais répéter en français. Tu ne changes JAMAIS de langue, "
     + "y compris pour saluer, pour remercier et pour dire au revoir. "
-    + "Si tu perds le fil, tu redemandes en français; tu ne recommences pas l'appel et tu ne dis jamais « How can I help you ».",
+    + "Si tu perds le fil, tu redemandes en français et en vouvoyant; tu ne recommences pas l'appel et tu ne dis jamais « How can I help you ».",
   en: 'LANGUAGE: you speak ENGLISH, and only English, from first word to last. If you mishear, ask again in English. '
     + 'NEVER switch language, including to greet, to thank and to say goodbye. '
     + 'If you lose track, ask again in English; do not restart the call.',
-  nl: 'TAAL: je spreekt NEDERLANDS, en alleen Nederlands, van het eerste tot het laatste woord. Versta je iets niet, laat het in het Nederlands herhalen. '
+  nl: 'TAAL: je spreekt NEDERLANDS, en alleen Nederlands, van het eerste tot het laatste woord, '
+    + 'en je spreekt de beller aan met U, van het eerste tot het laatste woord: « u », nooit « jij », « een ogenblikje », nooit « wacht ». '
+    + 'Versta je iets niet, laat het in het Nederlands herhalen. '
     + 'Wissel NOOIT van taal, ook niet om te groeten, te bedanken of afscheid te nemen. '
     + 'Verlies je de draad, vraag dan opnieuw in het Nederlands; begin het gesprek niet opnieuw.',
 };

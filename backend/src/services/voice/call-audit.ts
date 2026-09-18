@@ -427,9 +427,16 @@ export function auditCall(facts: CallFacts): AuditReport {
           ? "JAMAIS TENTÉ sur cet appel: l'agent a décroché sans mémoire de l'appelant ni rendez-vous"
           : brief,
       target: wanted ? 'posé, avec les rendez-vous du numéro' : undefined,
+      /* ET LE CAS OÙ IL EST POSÉ SANS NOM (18/09/2026). Un brief posé compte
+         22 appels et un rendez-vous, et ne nomme personne: ce n'est alors ni un
+         défaut de plomberie ni un défaut de prompt, c'est `getCallerHistory`
+         qui n'a pas résolu le nom — et le prompt n'y peut RIEN. Les deux
+         réparations sont dans des fichiers différents, d'où deux leviers. */
       lever: wanted && (brief === null || !brief.startsWith('pose'))
         ? "journaux Render autour de l'heure de l'appel: `[Voice] brief`. Un `status-update` non reçu, une adresse de contrôle absente ou un refus de Vapi sur `add-message` se lisent là, et aucun des trois ne se répare dans le prompt"
-        : undefined,
+        : wanted && brief?.includes('SANS NOM CONNU') && !brief.includes('0 appels')
+          ? "le brief est posé mais ne NOMME personne, alors que ce numéro a déjà appelé: c'est `getCallerHistory` qu'il faut lire (mémoire d'appelant, nom de la dernière réservation confirmée, `nameCollected` des appels passés), pas le prompt. Tant que le nom manque là, l'agent a raison de le demander"
+          : undefined,
     });
   }
 
