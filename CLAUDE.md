@@ -1962,6 +1962,63 @@ prouve (6octovicies, 6quinquetrigesies).
 **Reste ouvert:** `endCall` a 11,8 s, `rescheduleBooking` a 8,2 s,
 `checkAvailability` a 6,5 s malgre le cache de jeton Google.
 
+### 6sexagesies. L'heure que l'appelant DIT, contre celle que le modele a en tete (18/09/2026)
+Appel reel, deplacement d'un rendez-vous existant de 14:00. `checkAvailability`
+rend neuf creneaux, le modele les lit TOUS a voix haute, l'appelant repond
+« 13 heures », et l'agent propose « **14 heures** » — son ancienne heure —
+**trois fois**, malgre deux corrections explicites (« Non, 13 heures. Lundi
+13 heures », puis « Je n'ai pas dit 14 heures, j'ai dit 13 heures »). Il a fini
+par y arriver, et l'outil suivant est tombe.
+**Deux causes, et la seconde explique la premiere.** La liste entiere est sous
+les yeux du modele, elle contient 13:00 ET 14:00, et son ancre (le rendez-vous
+en cours, dit par le brief et par `lookupBooking`) vaut 14:00. « Propose-les un
+par un » etait deja ecrit dans le resultat depuis le 13/09 et n'a **pas** ete
+suivi : **une consigne noyee dans un resultat ne gagne pas contre une liste que
+le modele a sous les yeux.** Ce qu'il faut lui donner, c'est la PHRASE a dire,
+pas la regle a appliquer — c'est `weekdayNote` et 6novoquadragesies, une fois de
+plus.
+Le correctif porte donc sur les deux bouts. `checkAvailability` prend un
+argument `preferredTime`, et quand l'appelant a nomme une heure le resultat ne
+rend QUE celle-la (« 13:00 EST LIBRE […] ne propose AUCUNE autre heure »), ou la
+declare prise en nommant **une** voisine. La liste n'est plus enumerable : sans
+`preferredTime` le resultat nomme le creneau a proposer et interdit de lire la
+liste. **La connaissance reste entiere** (6untrigesies : une liste coupee faisait
+dire « le plus tard, c'est 11 heures »), c'est la parole qui se limite.
+**La regle generale, et c'est la troisieme fois qu'elle se paie** : ce que le
+modele doit DIRE, il le lit dans un resultat d'outil ; il ne le retient pas. Un
+chiffre garde en bouche derive vers l'ancre la plus proche.
+`slotForm` est **tolerante a dessein** (« 13h », « 13h00 », « 13 ») : le modele
+ecrit ce qu'il entend, et une heure illisible retomberait en silence sur la
+liste entiere, c'est-a-dire sur le defaut lui-meme. Piege de methode au passage :
+le commentaire que j'avais ecrit affirmait que `parseTimeToMinutes` lisait deja
+« 13h » et « 1 PM ». Elle exige `HH:MM` strict. C'est le CODE qui a ete corrige,
+pas le commentaire (6unquinquagesies).
+**Un refus est un refus.** « Non, ce n'est pas ça, mais c'est pas grave, je
+rappellerai », puis « Non », puis « Laissez tomber, au revoir » : QUATRE
+relances apres, l'agent redemandait toujours l'orthographe du nom. C'est
+6septies (le repli clavier au deuxieme numero illisible) vu depuis l'appelant :
+insister sur ce qui vient d'echouer ne change pas la cause. La discipline temps
+reel porte le refus et le au revoir (`endCall`), plus l'heure de l'appelant et
+sa correction, dans les TROIS langues.
+**Ce qui a TENU et ne doit pas etre rediagnostique** : `weekdayNote` (« lundi
+prochain » resolu au 21 septembre, qui est un vrai lundi), `lookupBooking` (le
+rendez-vous du 22 retrouve du premier coup, sans faire epeler), et la
+suppression des phrases de demarrage en parole-a-parole — **aucune** des
+phrases d'attente du transcript ne figure dans la table `FILLER`, elles sont
+toutes du modele. Le bavardage (« Ça ne prendra qu'une seconde. Je vais verifier
+ça tout de suite. Juste une seconde. ») est ce que le modele produit pour
+meubler un outil lent : **la lenteur des outils FABRIQUE le bavardage**, elle ne
+fait pas que le preceder.
+**Ce qui reste OUVERT, et qu'il ne faut pas corriger en devinant** : la seconde
+lecture d'agenda a leve, donc `degradedMessage` (« AGENDA INDISPONIBLE »), que le
+modele a dit « il y a eu un probleme technique ». Deux constantes se regardent :
+`EXTERNAL_TIMEOUT_MS` vaut **2,5 s** et `CACHE_TTL_MS` du speculateur vaut
+**30 s**, quand la conversation sur le choix du creneau a dure une minute et
+demie — donc la seconde lecture du MEME jour repaie plein tarif. C'est
+l'hypothese de tete ; elle se tranche au relevé (`checkAvailability:error`), pas
+au raisonnement. Allonger le cache ferait proposer un creneau pris entre-temps,
+donc deux clients a la meme heure : ne pas y toucher avant de savoir.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

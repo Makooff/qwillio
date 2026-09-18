@@ -356,6 +356,53 @@ describe('parole-à-parole — la langue est dite au modèle', () => {
     expect(prompt.indexOf('VOUS à l\'appelant')).toBeLessThan(prompt.indexOf('TOUR DE PAROLE'));
   });
 
+  /**
+   * L'HEURE DE L'APPELANT GAGNE CONTRE CELLE QUE LE MODÈLE A EN TÊTE
+   * (18/09/2026).
+   *
+   * « 13 heures » dit deux fois par l'appelant, « 14 heures » dit trois fois
+   * par l'agent — l'heure de son rendez-vous EXISTANT. La règle de DATE
+   * (« tu gardes SON mois et SON jour ») était là depuis le 17; celle de
+   * l'HEURE manquait, et c'est sur l'heure que le modèle a dérivé.
+   *
+   * Le fait vient de l'outil (`preferredTime`); ce bloc dit laquelle des deux
+   * versions gagne, ce qu'un fait seul ne dit jamais (6novoquadragesies).
+   */
+  it("dit que l'heure de l'appelant gagne, et que sa correction gagne tout de suite", async () => {
+    const prompt = (await blocks('fr')).model.messages[0].content as string;
+    expect(prompt).toMatch(/nomme une HEURE, c'est CETTE heure/);
+    expect(prompt).toMatch(/preferredTime/);
+    /* Le cas exact, nommé, parce que c'est l'ancre qui a produit la dérive. */
+    expect(prompt).toMatch(/treize heures.*jamais quatorze heures/);
+    expect(prompt).toMatch(/correction GAGNE/);
+  });
+
+  /**
+   * UN REFUS EST UN REFUS (18/09/2026).
+   *
+   * « Non, ce n'est pas ça, mais c'est pas grave, je rappellerai plus tard »,
+   * puis « Non », puis « Laissez tomber, au revoir »: QUATRE relances après,
+   * l'agent redemandait toujours l'orthographe du nom. C'est 6septies (le
+   * repli clavier au deuxième numéro illisible) vu depuis l'appelant: insister
+   * sur ce qui vient d'échouer ne change pas la cause.
+   */
+  it("arrête de demander quand l'appelant refuse, et raccroche sur au revoir", async () => {
+    const prompt = (await blocks('fr')).model.messages[0].content as string;
+    expect(prompt).toMatch(/QUAND IL DIT NON/);
+    expect(prompt).toMatch(/laissez tomber/);
+    expect(prompt).toMatch(/ARRETES de demander/);
+    expect(prompt).toMatch(/endCall/);
+  });
+
+  it('les trois langues portent les mêmes règles', async () => {
+    /* Une règle écrite dans une seule langue est une règle qu'un client
+       flamand n'a pas: le même défaut y produirait le même appel. */
+    expect((await blocks('en')).model.messages[0].content).toMatch(/WHEN THEY SAY NO/);
+    expect((await blocks('en')).model.messages[0].content).toMatch(/names a TIME, that IS the time/);
+    expect((await blocks('nl')).model.messages[0].content).toMatch(/ALS HIJ NEE ZEGT/);
+    expect((await blocks('nl')).model.messages[0].content).toMatch(/is dat het uur/);
+  });
+
   it('ne coûte RIEN au prompt de la chaîne classique', async () => {
     /* Le prompt partagé est rejoué à chaque tour sur le chemin custom-LLM, où
        il est déjà à son plafond, et où la langue est déjà dite deux fois. */

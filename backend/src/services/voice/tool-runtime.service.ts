@@ -456,6 +456,42 @@ function weekdayNote(day: string, lang: string): string {
   return ` That day is a ${weekday.toUpperCase()}, and this date is authoritative: if the caller named a DIFFERENT weekday, tell them and ask which one they want. Never announce a weekday other than this one.`;
 }
 
+/**
+ * L'heure demandée, ramenée à la forme des créneaux (« 13:00 »).
+ *
+ * TOLÉRANTE À DESSEIN, et ce n'est pas du confort. `parseTimeToMinutes` exige
+ * `HH:MM` strict, ce qui est juste pour l'heure qu'on ÉCRIT en base; ici on lit
+ * ce qu'un modèle a tapé d'après une phrase parlée, et il écrit « 13h »,
+ * « 13 » ou « 13h00 » aussi souvent que « 13:00 ». Une heure qu'on ne sait pas
+ * lire retombe en silence sur la liste entière, c'est-à-dire exactement le
+ * défaut que cet argument existe pour fermer.
+ */
+function slotForm(raw: unknown): string | null {
+  if (typeof raw !== 'string') return null;
+  const m = raw.trim().toLowerCase().replace(/\s+/g, '').match(/^(\d{1,2})(?:[:h](\d{2}))?h?$/);
+  if (!m) return null;
+  const hours = Number(m[1]);
+  const minutes = m[2] === undefined ? 0 : Number(m[2]);
+  if (hours > 23 || minutes > 59) return null;
+  return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+}
+
+/**
+ * Les deux créneaux libres les plus proches de l'heure demandée, rendus dans
+ * l'ordre de la journée: « le plus proche » se calcule sur l'écart, mais se DIT
+ * dans l'ordre, sinon « 14:00 et 12:00 » sort de la bouche de l'agent.
+ */
+function nearestSlots(free: string[], wantedMinutes: number, howMany = 2): string[] {
+  return [...free]
+    .sort((a, b) => {
+      const da = Math.abs((parseTimeToMinutes(a) ?? 0) - wantedMinutes);
+      const db = Math.abs((parseTimeToMinutes(b) ?? 0) - wantedMinutes);
+      return da - db;
+    })
+    .slice(0, howMany)
+    .sort((a, b) => (parseTimeToMinutes(a) ?? 0) - (parseTimeToMinutes(b) ?? 0));
+}
+
 function windowNote(partOfDay: unknown, lang: string, open: string): string {
   const key = String(partOfDay || 'any');
   const label = PART_OF_DAY_LABELS[key];
@@ -611,6 +647,29 @@ class ToolRuntimeService {
         : `NOTHING in the requested window on ${day} (${args.date}, open ${hours}), but free at: ${fallback.join(', ')}. Offer these instead, one at a time.${note}`;
     }
 
+    /* L'HEURE DEMANDÉE EST RENDUE AVANT LA LISTE, et elle est la seule chose à
+       dire quand elle est libre. Appel réel du 18/09/2026: neuf créneaux lus à
+       voix haute (« 09, 10 heures, 11 heures... 17 heures »), l'appelant répond
+       « 13 heures », et l'agent propose « 14 heures » — l'heure de son
+       rendez-vous existant — trois fois, malgré deux corrections.
+       « Propose-les un par un » était déjà écrit ici et n'a pas été suivi: une
+       consigne noyée dans un résultat ne gagne pas contre une liste que le
+       modèle a sous les yeux. Ce qu'il faut lui donner, c'est la PHRASE à dire,
+       pas la règle à appliquer (6novoquadragesies, weekdayNote). */
+    const wanted = slotForm(args.preferredTime);
+    const wantedMinutes = wanted === null ? null : parseTimeToMinutes(wanted);
+    if (wanted && wantedMinutes !== null) {
+      if (free.includes(wanted)) {
+        return profile.language === 'fr'
+          ? `${wanted} EST LIBRE le ${day} (${args.date}, ouvert ${hours}). C'est l'heure que l'appelant vient de demander: confirme ${wanted}, exactement ce chiffre, et ne propose AUCUNE autre heure.${note} Il te faut son prenom et son nom de famille (s'il ne les a pas deja donnes, un inconnu epelle le nom), puis bookAppointment, ou rescheduleBooking s'il deplace un rendez-vous existant; c'est fait seulement apres le retour de l'outil.`
+          : `${wanted} IS FREE on ${day} (${args.date}, open ${hours}). That is the time the caller just asked for: confirm ${wanted}, that exact figure, and offer NO other time.${note} You need their first name and family name (unless already given; an unknown caller spells it), then bookAppointment, or rescheduleBooking if they are moving an existing appointment; it is done only after the tool returns.`;
+      }
+      const near = nearestSlots(free, wantedMinutes);
+      return profile.language === 'fr'
+        ? `${wanted} N'EST PAS LIBRE le ${day} (${args.date}, ouvert ${hours}). Dis-lui que ${wanted} est deja pris, puis propose ${near[0]} — une seule heure, pas la liste.${near[1] ? ` S'il refuse: ${near[1]}.` : ''}${note}`
+        : `${wanted} IS NOT FREE on ${day} (${args.date}, open ${hours}). Tell them ${wanted} is taken, then offer ${near[0]} — one time only, not the list.${near[1] ? ` If they decline: ${near[1]}.` : ''}${note}`;
+    }
+
     /* Le jour de la semaine est DIT avec la date: « lundi 17 juin » annoncé
        pour un jour qui n'était pas un lundi (appel réel, 12/09/2026). Le
        modèle ne calcule pas les jours, il les lit. */
@@ -619,8 +678,8 @@ class ToolRuntimeService {
        droit à « je vous réserve ça » sans nom, donc sans réservation
        (appel réel, 15/09/2026). */
     return profile.language === 'fr'
-      ? `LIBRE le ${day} (${args.date}, ouvert ${hours}) a: ${free.join(', ')}.${note} Propose-les un par un, en nommant le jour. Quand l'appelant accepte une heure: prenom et nom de famille (s'il ne les a pas deja donnes, un inconnu epelle le nom), puis bookAppointment; c'est reserve seulement apres son retour RESERVE.`
-      : `FREE on ${day} (${args.date}, open ${hours}) at: ${free.join(', ')}.${note} Offer them one at a time, naming the day. Once the caller accepts a time: first name and family name (unless already given; an unknown caller spells it), then bookAppointment; it is booked only after its BOOKED result.`;
+      ? `LIBRE le ${day} (${args.date}, ouvert ${hours}) a: ${free.join(', ')}.${note} NE LIS PAS CETTE LISTE A VOIX HAUTE: propose ${free[0]} d'abord, et une autre heure seulement s'il refuse. Quand l'appelant accepte ou nomme une heure: prenom et nom de famille (s'il ne les a pas deja donnes, un inconnu epelle le nom), puis bookAppointment; c'est reserve seulement apres son retour RESERVE.`
+      : `FREE on ${day} (${args.date}, open ${hours}) at: ${free.join(', ')}.${note} DO NOT READ THIS LIST OUT LOUD: offer ${free[0]} first, and another time only if they decline. Once the caller accepts or names a time: first name and family name (unless already given; an unknown caller spells it), then bookAppointment; it is booked only after its BOOKED result.`;
   }
 
   // ── bookAppointment ─────────────────────────────────────────────────────

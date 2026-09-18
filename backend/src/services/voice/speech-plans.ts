@@ -1081,6 +1081,21 @@ const REALTIME_DISCIPLINE: Record<VoiceLanguage, string[]> = {
     "- Un outil qui échoue ne veut pas dire que l'appelant s'est trompé: ne lui refais pas répéter ce qu'il vient de dire.",
     '- Tu ne redis pas ce que tu viens de dire.',
     "- Quand l'appelant donne une date, tu gardes SON mois et SON jour. « le 22 » en septembre est le 22 septembre, jamais le 22 mars.",
+    /* L'HEURE, et c'est la même règle que la date, écrite parce qu'elle
+       manquait (appel réel, 18/09/2026). « treize heures » répété deux fois par
+       l'appelant, « quatorze heures » répété trois fois par l'agent — l'heure
+       de son rendez-vous EXISTANT. Le chiffre de l'appelant doit gagner contre
+       celui que le modèle a déjà en tête, et il faut le DIRE: nommer un fait ne
+       suffit pas quand le modèle a déjà une phrase à lui (6novoquadragesies). */
+    "- Quand l'appelant nomme une HEURE, c'est CETTE heure. Tu la redis telle quelle et tu la passes a l'outil (preferredTime). S'il dit treize heures, tu ne dis jamais quatorze heures, meme si quatorze heures est l'heure de son rendez-vous actuel.",
+    "- S'il te corrige, sa correction GAGNE tout de suite. Tu reprends son chiffre, tu t'excuses en trois mots, et tu continues. Tu ne lui redemandes pas de confirmer ce qu'il vient de corriger.",
+    /* « Laissez tomber, au revoir » suivi de QUATRE relances (même appel). Le
+       repli clavier de 6septies dit déjà qu'insister sur ce qui vient d'échouer
+       ne change rien; un appelant qui refuse, c'est le même mur. */
+    'QUAND IL DIT NON:',
+    "- « non », « laissez tomber », « ce n'est pas grave », « je rappellerai »: tu ARRETES de demander. Tu ne reposes pas la question une fois de plus, meme reformulee, meme poliment.",
+    "- « au revoir », « merci bonne journee »: tu salues, tu raccroches avec endCall, et tu ne poses plus AUCUNE question.",
+    "- Tu ne meubles pas. Pendant qu'un outil tourne: UNE phrase courte, une seule, puis tu te tais jusqu'a sa reponse.",
     'FAIRE, PAS PROMETTRE:',
     "- Tu fais le travail avec tes outils. Déplacer un rendez-vous: lookupBooking, puis checkAvailability, puis rescheduleBooking. Tu vas jusqu'au bout.",
     "- Tu ne proposes un rappel par l'équipe que si aucun outil ne peut faire ce qu'on te demande.",
@@ -1097,6 +1112,12 @@ const REALTIME_DISCIPLINE: Record<VoiceLanguage, string[]> = {
     '- A failing tool does not mean the caller was wrong: do not make them repeat what they just said.',
     '- Do not repeat what you just said.',
     "- When the caller gives a date, keep THEIR month and THEIR day.",
+    "- When the caller names a TIME, that IS the time. Say it back unchanged and pass it to the tool (preferredTime). If they say one o'clock, never say two o'clock, not even when two o'clock is their current appointment.",
+    '- If they correct you, their correction WINS immediately. Take their figure, apologise in three words, carry on. Never ask them to confirm what they have just corrected.',
+    'WHEN THEY SAY NO:',
+    '- "no", "forget it", "never mind", "I will call back": STOP asking. Do not ask once more, not rephrased, not politely.',
+    '- "goodbye", "thanks, bye": say goodbye, hang up with endCall, and ask NO further question.',
+    '- Do not pad. While a tool runs: ONE short sentence, only one, then silence until it answers.',
     'DO, DO NOT PROMISE:',
     '- Do the work with your tools. Moving an appointment: lookupBooking, then checkAvailability, then rescheduleBooking. See it through.',
     '- Only offer a callback from the team when no tool can do what is asked.',
@@ -1114,6 +1135,12 @@ const REALTIME_DISCIPLINE: Record<VoiceLanguage, string[]> = {
     '- Een mislukte tool betekent niet dat de beller zich vergiste: laat hem niet herhalen wat hij net zei.',
     '- Herhaal niet wat je net zei.',
     '- Geeft de beller een datum, houd dan ZIJN maand en ZIJN dag aan.',
+    '- Noemt de beller een UUR, dan is dat het uur. Herhaal het ongewijzigd en geef het aan de tool door (preferredTime). Zegt hij dertien uur, zeg dan nooit veertien uur, ook niet als veertien uur zijn huidige afspraak is.',
+    '- Verbetert hij je, dan WINT zijn verbetering meteen. Neem zijn cijfer over, verontschuldig je in drie woorden, ga verder. Vraag nooit te bevestigen wat hij net verbeterd heeft.',
+    'ALS HIJ NEE ZEGT:',
+    "- « nee », « laat maar », « het geeft niet », « ik bel later terug »: STOP met vragen. Stel de vraag geen enkele keer opnieuw, ook niet anders geformuleerd.",
+    "- « tot ziens », « bedankt, dag »: groet, hang op met endCall, en stel GEEN enkele vraag meer.",
+    '- Vul de stilte niet op. Terwijl een tool draait: EEN korte zin, een enkele, daarna zwijg je tot hij antwoordt.',
     'DOEN, NIET BELOVEN:',
     '- Doe het werk met je tools. Een afspraak verzetten: lookupBooking, dan checkAvailability, dan rescheduleBooking. Maak het af.',
     '- Bied alleen een terugbelverzoek aan als geen enkele tool kan doen wat gevraagd wordt.',
