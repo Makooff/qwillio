@@ -139,11 +139,41 @@ describe('la phrase de démarrage se tait en parole-à-parole', () => {
   const delayedMessages = (tools: any[]) => tools.flatMap(
     (t: any) => (t.messages ?? []).filter((m: any) => m.type === 'request-response-delayed'));
 
-  it('aucune phrase de démarrage quand le modèle parle lui-même', async () => {
+  /*
+   * TAIRE LA PHRASE NE LA RETIRE PAS (19/09/2026).
+   *
+   * Ce test exigeait `toHaveLength(0)`, sur la prémisse que `messages: []`
+   * fait silence. Un appel réel l'a démentie: les DEUX appels d'outil sont
+   * suivis, 10 ms après `Tool execution started`, d'un `sayQueuePush` de
+   * Vapi, et l'appelant a entendu « Donne-moi un moment. » — une phrase
+   * absente de toutes nos tables, et TUTOYANTE, sur un agent dont le prompt
+   * impose le vouvoiement depuis dix jours. L'audio du modèle ne passe pas
+   * par cette file (le tour précédent n'a aucun `sayQueuePush`).
+   *
+   * Le silence n'était donc pas une option offerte: le choix réel est entre
+   * NOTRE phrase et CELLE DE VAPI. Le test passait pendant que le défaut du
+   * fournisseur tutoyait l'appelant — exactement ce que `toBeUndefined` avait
+   * laissé passer sur `transcriber` (6sexquinquagesies).
+   */
+  it('reprend la main sur la phrase de démarrage: UNE, minimale, et vouvoyante', async () => {
     const { buildVoiceTools } = await import('../voice-tools');
     const tools = buildVoiceTools(profile({ voiceTier: 'superagent' }));
     expect(tools.length).toBeGreaterThan(0);
-    expect(startMessages(tools)).toHaveLength(0);
+    const starts = startMessages(tools);
+    expect(starts.length).toBeGreaterThan(0);
+    for (const m of starts) {
+      /* UNE seule formulation, et la même pour tous les outils: c'est ce qui
+         l'empêche de narrer, donc de faire doublon avec la narration que le
+         modèle produit déjà (le défaut du 17/09). */
+      expect(m.contents).toHaveLength(1);
+      const text: string = m.contents[0].text;
+      expect(text.length).toBeLessThan(20);
+      /* Et surtout: elle VOUVOIE. C'est la raison d'être du correctif. */
+      expect(text).not.toMatch(/\b(tu|toi|ton|ta|tes)\b/i);
+      expect(text).not.toMatch(/Donne-moi|Attends/i);
+    }
+    /* La même pour tous les outils, littéralement. */
+    expect(new Set(starts.map((m: any) => m.contents[0].text)).size).toBe(1);
   });
 
   it('la phrase RETARDÉE se tait aussi: 1 200 ms est sous TOUTES les durées mesurées', async () => {
@@ -155,13 +185,19 @@ describe('la phrase de démarrage se tait en parole-à-parole', () => {
     expect(delayedMessages(tools)).toHaveLength(0);
   });
 
-  it('aucun message de meublage du tout en parole-à-parole', async () => {
-    /* Les deux ensemble, parce que c'est la propriété qui compte pour
-       l'appelant: sur ce chemin le modèle est le SEUL à parler. */
+  it('une seule phrase par outil, jamais deux: la retardée reste tue', async () => {
+    /* Ce test exigeait AUCUN message, même prémisse démentie que ci-dessus.
+       Ce qui compte pour l'appelant n'est pas le silence — impossible à
+       obtenir — mais qu'il n'entende pas DEUX phrases par outil: c'est la
+       retardée qui relançait le bavardage à chaque appel, et elle, aucun
+       défaut de Vapi ne la remplace. */
     const { buildVoiceTools } = await import('../voice-tools');
     const tools = buildVoiceTools(profile({ voiceTier: 'superagent' }));
-    const meublage = tools.flatMap((t: any) => (t.messages ?? []));
-    expect(meublage).toHaveLength(0);
+    for (const t of tools as any[]) {
+      const messages = t.messages ?? [];
+      expect(messages.filter((m: any) => m.type === 'request-response-delayed')).toHaveLength(0);
+      expect(messages.length).toBeLessThanOrEqual(1);
+    }
   });
 
   it('la chaîne classique les garde toutes les deux: elle ne peut rien dire pendant l\'outil', async () => {

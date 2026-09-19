@@ -913,11 +913,46 @@ class ToolRuntimeService {
       const day = spokenDate(b.bookingDate, profile.language, profile.timezone);
       return `${i + 1}) ${b.customerName}, ${profile.language === 'fr' ? 'le ' : ''}${day}${b.bookingTime ? ` ${profile.language === 'fr' ? 'a' : 'at'} ${b.bookingTime}` : ''}${b.serviceType ? ` (${b.serviceType})` : ''}`;
     });
+    /* LA PHRASE A DIRE EN PREMIER, ET LA PROCEDURE APRES (19/09/2026).
+       Appel reel, et c'est le defaut le plus cher de la journee. L'outil a
+       rendu la bonne reservation en 1207 ms, puis une seconde fois en 784 ms,
+       et le modele a passe SOIXANTE-HUIT SECONDES a dire « un instant, je
+       verifie », « la verification est toujours en cours », en tenant la
+       reponse. L'appelant a raccroche en disant « vous etes trop lent ».
+       La cause est la FORME de ce resultat. Il portait un fait suivi de CINQ
+       phrases de procedure, 550 caracteres. Le petit modele a lu la procedure
+       au lieu du fait, et le mot qu'il a repete — « je verifie » — est celui
+       de « verifie avec checkAvailability ». Il est entre en mode verification
+       sans rien a verifier.
+       C'est 6sexagesies par l'autre bout: ce que le modele doit DIRE, il le
+       lit dans un resultat d'outil, il ne le retient pas. Donc la premiere
+       ligne est la phrase a prononcer, a l'imperatif, et tout le reste vient
+       apres. La procedure de DEPLACEMENT ne s'affiche plus que si l'appelant
+       peut en avoir besoin: la poser d'office, c'est souffler « verifie » a un
+       modele qui n'a qu'une date a lire. */
+    /* UNE seule reservation: on donne la phrase toute faite. PLUSIEURS: on ne
+       peut pas choisir a sa place, et en nommer une d'office ferait affirmer
+       la mauvaise (meme raison qu'en 6octotrigesies, ou un numero qui reserve
+       pour deux personnes ne doit nommer PERSONNE). L'ordre de parler tout de
+       suite, lui, vaut dans les deux cas: c'est lui qui manquait. */
+    const lead = found.length === 1
+      ? (profile.language === 'fr'
+          ? `DIS CECI MAINTENANT, a voix haute, avant toute autre chose: « Vous avez rendez-vous ${lines[0].replace(/^\d\)\s*/, '').replace(/^[^,]+,\s*/, '')}. »`
+          : `SAY THIS NOW, out loud, before anything else: "You have an appointment ${lines[0].replace(/^\d\)\s*/, '').replace(/^[^,]+,\s*/, '')}."`)
+      : (profile.language === 'fr'
+          ? `DIS MAINTENANT, a voix haute, celle qui correspond a ce qu'il decrit, avec sa date et son heure.`
+          : `SAY NOW, out loud, the one matching what they describe, with its date and time.`);
     return profile.language === 'fr'
-      ? `RESERVATION(S) DE CE CORRESPONDANT: ${lines.join(' ; ')}. Dis-lui celle qui correspond a ce qu'il decrit, sans lui faire repeter son nom. Le nom ecrit ici est le sien: appelle-le ainsi, pas comme tu l'as entendu. S'il dit que ce n'est PAS lui, crois-le: demande son nom et rappelle lookupBooking avec ce nom.`
-        + ' Pour la deplacer: demande la nouvelle date, verifie avec checkAvailability, puis appelle rescheduleBooking avec le nom EXACTEMENT tel qu\'ecrit ici et currentDate. Jamais bookAppointment pour un deplacement.'
-      : `BOOKING(S) FOR THIS CALLER: ${lines.join(' ; ')}. Tell the caller the one matching what they describe, without asking their name again. The name written here is theirs: use it, not what you heard. If they say it is NOT them, believe them: ask their name and call lookupBooking again with it.`
-        + ' To move it: ask for the new date, check with checkAvailability, then call rescheduleBooking with the name EXACTLY as written here and currentDate. Never bookAppointment for a move.';
+      ? `${lead}`
+        + ` N'appelle AUCUN outil pour cette phrase, tu as deja la reponse: ne dis pas que tu verifies, ne dis pas d'attendre.`
+        + ` RESERVATION(S) DE CE CORRESPONDANT: ${lines.join(' ; ')}.`
+        + ` Le nom ecrit ici est le sien: appelle-le ainsi, pas comme tu l'as entendu. S'il dit que ce n'est PAS lui, crois-le: demande son nom et rappelle lookupBooking avec ce nom.`
+        + ` S'IL VEUT LA DEPLACER, et seulement alors: demande la nouvelle date, checkAvailability, puis rescheduleBooking avec le nom EXACTEMENT tel qu'ecrit ici et currentDate. Jamais bookAppointment pour un deplacement.`
+      : `${lead}`
+        + ` Call NO tool for this sentence, you already have the answer: do not say you are checking, do not ask them to wait.`
+        + ` BOOKING(S) FOR THIS CALLER: ${lines.join(' ; ')}.`
+        + ` The name written here is theirs: use it, not what you heard. If they say it is NOT them, believe them: ask their name and call lookupBooking again with it.`
+        + ` IF THEY WANT TO MOVE IT, and only then: ask for the new date, checkAvailability, then rescheduleBooking with the name EXACTLY as written here and currentDate. Never bookAppointment for a move.`;
   }
 
   /**

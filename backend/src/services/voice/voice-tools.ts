@@ -160,6 +160,20 @@ const FILLER: Record<string, Record<VoiceLanguage, { start: string[]; delayed: s
   },
 };
 
+/**
+ * La phrase de demarrage en PAROLE-A-PAROLE: une seule, vouvoyante, qui ne
+ * decrit RIEN.
+ *
+ * Elle ne remplace pas les tables ci-dessus, qui restent le bon choix en
+ * classique: la chaine ne peut rien dire pendant que l'outil tourne, et
+ * nommer l'action rassure. Ici le modele nomme deja l'action lui-meme.
+ */
+const MINIMAL_START: Record<VoiceLanguage, string[]> = {
+  fr: ['Un instant.'],
+  en: ['One moment.'],
+  nl: ['Een momentje.'],
+};
+
 export function fillerFor(tool: string, lang: VoiceLanguage, phase: 'start' | 'delayed'): string[] {
   return FILLER[tool]?.[lang]?.[phase] ?? [];
 }
@@ -201,7 +215,25 @@ function toolMessages(tool: string, lang: VoiceLanguage, speechToSpeech = false)
      En CLASSIQUE les deux restent: la chaîne ne peut rien dire pendant que
      l'outil tourne, et un `lookupBooking` à 7,9 s y est exactement le cas où
      l'appelant croit la ligne coupée. */
-  const start = speechToSpeech ? [] : fillerFor(tool, lang, 'start');
+  /* TAIRE LA PHRASE NE LA RETIRE PAS (19/09/2026), et c'est la troisieme fois
+     que ce depot paie cette forme (6sexquinquagesies, sur `transcriber`).
+     `messages: []` a ete lu comme « pas de phrase ». Relevé sur un appel
+     réel: les DEUX appels d'outil sont suivis, 10 ms apres
+     `Tool execution started`, d'un `sayQueuePush` de Vapi, et l'appelant a
+     entendu « Donne-moi un moment. » Cette phrase n'est dans aucune table
+     d'ici, et l'audio du modele en parole-a-parole ne passe pas par cette
+     file (le tour d'avant n'a aucun `sayQueuePush`). C'est donc le DEFAUT de
+     Vapi qui a pris la place — et il TUTOIE, sur un agent dont tout le prompt
+     impose le vouvoiement depuis dix jours.
+     Le silence n'etait donc pas une option offerte: le choix reel est entre
+     NOTRE phrase et la SIENNE. On reprend la main, avec une phrase MINIMALE
+     et identique pour tous les outils: le defaut du 17/09 etait que la notre
+     narrait ce que le modele narrait deja (« Je cherche votre reservation »
+     par-dessus « Je vais verifier vos rendez-vous »). « Un instant » ne
+     narre rien, donc il ne peut pas faire doublon avec une narration.
+     La RETARDEE reste tue: elle, elle n'a pas de defaut Vapi derriere, et
+     c'est elle qui relancait le bavardage a chaque outil. */
+  const start = speechToSpeech ? MINIMAL_START[lang] : fillerFor(tool, lang, 'start');
   const delayed = speechToSpeech ? [] : fillerFor(tool, lang, 'delayed');
 
   if (start.length) {

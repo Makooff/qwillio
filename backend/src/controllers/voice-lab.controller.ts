@@ -89,7 +89,22 @@ export class VoiceLabController {
              existe pour éviter. */
           tts: ['eleven_turbo_v2_5', 'eleven_flash_v2_5', 'eleven_multilingual_v2'],
           cartesia: ['sonic-3.5', 'sonic-3', 'sonic-2'],
-          realtime: ['gpt-realtime-2.1', 'gpt-realtime-2.1-mini', 'gpt-realtime-2025-08-28'],
+          /* LE TEMPS RÉEL FAIT EXCEPTION À LA LISTE OUVERTE CI-DESSUS (19/09/2026).
+             Cette ligne proposait `gpt-realtime-2.1` et `gpt-realtime-2.1-mini`.
+             Le premier est nommément REFUSÉ par Vapi (`REFUSED_BY_VAPI` dans
+             `realtime-model-accepted.test.ts`, message d'erreur à l'appui), le
+             second n'a jamais figuré au catalogue que l'API a énuméré. Deux
+             valeurs sur trois étaient donc des identifiants qui font refuser
+             l'assistant ENTIER (6octies), proposés en un clic.
+             « L'écran propose, le champ reste libre » vaut pour un fournisseur
+             qui sort un modèle: proposer une valeur qu'on SAIT refusée n'est
+             pas de l'ouverture. Le catalogue est celui que Vapi a dicté, le
+             champ reste libre pour le reste. */
+          realtime: [
+            'gpt-realtime-mini-2025-12-15',
+            'gpt-realtime-2025-08-28',
+            'gpt-realtime-2',
+          ],
           llm: ['gpt-4o', 'gpt-4o-mini', 'gpt-4.1', 'gpt-4.1-mini'],
         },
       });

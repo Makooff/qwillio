@@ -2152,6 +2152,136 @@ journaux Render diront maintenant si des replis Prisma sont payes pendant ces
 appels. Tant qu'ils ne l'ont pas dit, l'index et le plafond sont des correctifs
 JUSTES, pas la cause demontree.
 
+### 6quatersexagesies. Le modele avait la reponse et ne l'a pas dite (19/09/2026, 17:48)
+Appel reel, horloge de Vapi. `lookupBooking` rend la bonne reservation en
+**1207 ms**, puis une seconde fois en **784 ms**. Entre les deux et apres,
+**soixante-huit secondes** de « un instant, je verifie », « la verification est
+toujours en cours ». L'appelant raccroche sur « vous etes trop lent ».
+Ni la base, ni l'agenda, ni la latence: les outils ont repondu en deux secondes.
+**La cause est la FORME du resultat.** Il portait un fait suivi de CINQ phrases
+de procedure, 550 caracteres. Le petit modele a lu la procedure au lieu du fait,
+et le mot qu'il a repete — « je verifie » — est celui de « verifie avec
+checkAvailability ». Il est entre en mode verification sans rien a verifier.
+C'est 6sexagesies par l'autre bout: ce que le modele doit DIRE, il le lit dans
+un resultat d'outil, il ne le retient pas. La phrase a prononcer est donc la
+PREMIERE ligne, l'ordre de la dire tout de suite est explicite, et la procedure
+de deplacement ne s'affiche que SOUS CONDITION — la poser d'office, c'est
+souffler « verifie » a un modele qui n'a qu'une date a lire. Avec PLUSIEURS
+reservations aucune n'est nommee d'office (6octotrigesies), seul l'ordre de
+parler tout de suite vaut dans les deux cas.
+**Second defaut: « Donne-moi un moment » n'est ni de nous ni du modele.** Les
+deux occurrences suivent un `sayQueuePush` pose 10 ms apres
+`Tool execution started`, et l'audio du modele en parole-a-parole ne passe pas
+par cette file (le tour precedent n'en a aucun). C'est le DEFAUT de Vapi, qui
+TUTOIE, venu prendre la place que `messages: []` laissait. **Taire une cle ne
+la retire pas** (6sexquinquagesies, troisieme champ): le silence n'etait pas une
+option offerte, le choix reel etait entre NOTRE phrase et la SIENNE. On reprend
+la main avec une phrase MINIMALE et identique pour tous les outils — le defaut
+du 17/09 etait que la notre NARRAIT ce que le modele narrait deja, et « Un
+instant » ne narre rien. Les deux tests qui gelaient `toHaveLength(0)` passaient
+pendant que le fournisseur tutoyait l'appelant, meme angle mort que
+`toBeUndefined` sur `transcriber`.
+**Troisieme: le dernier mot appartenait au modele, et il le disait en anglais.**
+`endCall` demarre a 17:50:55, l'appel se termine a 17:51:02, et entre les deux
+un **tour 16 de 2,3 s sans aucun transcript** apres un au revoir francais deja
+dit au tour 15. Vapi attend que la file de parole se vide avant de raccrocher,
+et le modele, toujours connecte, remplit le silence par son ouverture par
+defaut, anglaise. Le moment ou la langue lache est exactement celui ou il n'a
+plus rien a dire. La regle etait posee DEUX fois dans le prompt depuis le 17/09;
+6duosexagesies dit de ne pas la reecrire une troisieme fois au meme rang. On ne
+la reecrit pas du tout: `endCallMessage` (`endCallFarewell`) donne a Vapi une
+derniere phrase a lui, dans la langue du client, et **le tour n'existe plus**.
+Le champ n'est pas devine, `inbound-routing.service.ts` l'envoie deja en
+production; il manquait simplement aux DEUX ecritures de l'assistant enregistre,
+et `endCallFunctionEnabled` manquait a la synchronisation.
+**Le piege de methode, et il a failli passer: `validate-assistant.ts` ECRIT SA
+PROPRE CHARGE**, champ par champ. `endCallMessage` n'y figurait pas, donc
+`npm run voice:validate` aurait rendu un vert qui ne veut rien dire sur le seul
+champ jamais soumis a Vapi. C'est 6sexdecies, dont l'en-tete de ce fichier porte
+deja la lecon: elle est revenue au PREMIER champ ajoute ensuite. **Tout champ
+ajoute aux ecritures de production s'ajoute AUSSI a la sonde**, par la fonction
+partagee et jamais par une copie; un test lit le source et l'exige.
+
+### 6quinquesexagesies. L'argent ne part pas ou la table le disait (19/09/2026)
+Deux lectures de cout se sont contredites dans la meme journee, et c'est la
+mesure qui a gagne.
+**Ce qui tournait:** l'assistant `Marc - Demtalix` portait `gpt-realtime-2`
+(0,645 $/min) et un transcripteur ElevenLabs Scribe v2, quand Render disait
+`gpt-realtime-mini-2025-12-15` (0,060 $/min). `buildTranscriber` ecrit
+`provider: 'deepgram'` SANS CONDITION: cette configuration ne venait pas du
+depot, elle avait ete posee a la main dans le tableau de bord Vapi (ou par un
+bouton « Model Presets », qui reecrit transcripteur, modele et voix d'un coup).
+C'est 6duodecies vu de l'autre bout — un reglage fait a la main chez un
+fournisseur, que le code ignore, et qui decide de ce que quelqu'un paie. Un Pro
+a pleines minutes y coutait **1 303 €/mois pour un forfait vendu 599 €**
+(`voice:pricing`). **Et cet etat est INSTABLE**: le prochain enregistrement du
+portail l'ecrase, donc deux appels de test encadrant une sauvegarde ne tournent
+pas sur la meme configuration.
+**Ce que l'audit en disait, et c'etait le HUITIEME diagnostic faux de cet
+audit, le premier dont le geste DEGRADE ce qui marche.** Sa ligne « modele
+temps reel » comparait l'assistant DISTANT a `env.VOICE_REALTIME_MODEL` lu par
+le SCRIPT, c'est-a-dire l'environnement de la machine qui lance l'audit, jamais
+celui de Render. Les deux n'ont aucune raison de coincider (6duotrigesies), et
+la ligne tranchait quand meme en conseillant `voice:resync` — un geste qui
+ecrit le modele du POSTE sur l'assistant, donc le defaut `gpt-realtime-2025-08-28`
+(tarif jamais releve) quand le poste n'a pas de `.env`. Le juge est desormais
+`REALTIME_RATES`, qui ne vient ni de l'env ni de l'assistant, et la question
+qu'il tranche est celle qui engage de l'argent: cette minute coute-t-elle plus
+qu'elle ne rapporte.
+**Et le chiffre qui renverse la decision SIP etait en base depuis le debut.**
+`finalizeCall` assemble `costBreakdown`, `persistMetrics` l'ecrit dans
+`metadata.billing`, et TOUS ses lecteurs ne prenaient que `costUsd`. Le detail
+par poste — la seule reponse chiffree a « ou part l'argent » — n'avait jamais
+ete ouvert. Releve sur un appel reel:
+```
+vapi 0.136 $   stt 0.027 $   llm 0.015 $     total 0.178 $ / 2,7 min
+```
+**La plateforme, c'est 76 % de la facture; le modele, 8 %.** La table
+d'estimation disait l'inverse, et c'est sur elle que le SIP direct avait ete
+ecarte le matin meme (« il ne toucherait qu'un petit poste »). Le VERDICT de
+cette ligne ne s'appuie que sur le total et la duree, deux nombres sans
+ambiguite; le detail est AFFICHE sans etre juge, parce que sa forme n'a pas ete
+lue sur la documentation vivante de Vapi (6quinvicies applique a une structure).
+**A rouvrir**: le SIP natif d'OpenAI, avec ce chiffre-la et non avec la table.
+Pas avant que les defauts fonctionnels soient fermes — ils voyageraient tels
+quels — et en sachant ce qu'on perd: `latency-tracker.ts` se nourrit des
+webhooks `speech-update` de Vapi, donc partir en SIP c'est perdre la mesure
+qu'on vient de rendre digne de confiance.
+**Deux autres endroits nommaient un identifiant que Vapi REFUSE**, trouves en
+ouvrant `.env.example` pour une tout autre raison: son commentaire recommandait
+`gpt-realtime-2.1` comme « la generation courante », et la liste deroulante de
+`voice-lab.controller.ts` proposait `gpt-realtime-2.1` ET `gpt-realtime-2.1-mini`,
+deux valeurs sur trois, a un clic. `realtime-model-accepted.test.ts` ne regardait
+que `env.VOICE_REALTIME_MODEL`: la lecon etait gelee pour UNE lecture pendant
+que deux autres endroits l'ecrivaient sans surveillance. **Quand une lecon nomme
+une valeur interdite, tous les endroits qui l'ecrivent comptent.**
+
+### 6sexsexagesies. L'humeur etait mesuree a chaque tour et jamais lue (19/09/2026)
+`assessMood` tourne sur chaque tour de l'appelant, escalade, et journalise
+`[Voice] caller mood → upset`. `moodPromptBlock` — phrases courtes, aucun
+enthousiasme, ne pas redemander ce qui a deja ete dit, proposer un humain tot —
+n'avait qu'UN consommateur: `llm-stream`, qui ne tourne ni en parole-a-parole ni
+chez un client dont `customLlm` est eteint (6quaterquadragesies). Sur ces
+chemins un appelant enerve recevait exactement le meme accueil qu'un appelant
+calme, et tout ce module partait dans le vide.
+Meme famille que le brief d'ouverture, meme canal pour la reparer: `add-message`
+sur l'adresse de controle, le seul qui ait ete VU atteindre un appel reel ici.
+`needsCallBrief` est LA lecture de « `llm-stream` tourne-t-il ? » et c'est
+volontairement la meme que celle du brief (6vicies); sur le chemin custom-LLM,
+poser le bloc ici le compterait DEUX fois. Borne par construction: l'humeur ne
+fait que monter et compte trois niveaux, donc au plus deux envois par appel.
+L'adresse de controle est desormais RETENUE sur la session — un evenement de
+transcript ne porte pas forcement `call.monitor` — et ne s'ecrase jamais par une
+absence. L'issue voyage avec les metriques (`moodNudge`), meme raison que la
+note du brief: sans elle, « il m'a parle comme un robot alors que j'etais
+enerve » ne distingue pas le bloc qui n'est pas parti du bloc parti que le
+modele ignore.
+Second defaut du meme fichier: `moodPromptBlock` s'ecrivait `fr ? … : …`, qui
+n'a que deux issues, alors que `nl` est une langue servie. Un client flamand
+recevait un bloc ANGLAIS pose au milieu d'une conversation neerlandaise — ce qui
+est precisement ce qui fait deriver le modele vers l'anglais quand il perd le
+fil.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

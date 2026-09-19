@@ -1,4 +1,6 @@
 import { describe, it, expect } from 'vitest';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { env } from '../../../config/env';
 
 /**
@@ -60,6 +62,56 @@ describe('VOICE_REALTIME_MODEL', () => {
       expect(REALTIME_ACCEPTED_2026_09_10).not.toContain(bare);
     }
   });
+});
+
+/**
+ * LE TEST NE REGARDAIT QUE `VOICE_REALTIME_MODEL` (19/09/2026).
+ *
+ * La leçon était figée pour UNE lecture, et deux autres endroits du dépôt
+ * nommaient des identifiants temps réel sans que rien ne les surveille:
+ *
+ *  - `voice-lab.controller.ts` proposait `gpt-realtime-2.1` et
+ *    `gpt-realtime-2.1-mini` dans une liste déroulante. Le premier est
+ *    nommément refusé par Vapi, le second n'a jamais figuré au catalogue.
+ *    Deux valeurs sur trois, à un clic, et un modèle refusé fait tomber
+ *    l'assistant ENTIER (6octies).
+ *  - `.env.example` recommandait `gpt-realtime-2.1` comme « la génération
+ *    courante », c'est-à-dire le fichier dont on part pour configurer.
+ *
+ * C'est 6sexvicies dans sa forme la plus simple: quand une leçon nomme une
+ * valeur interdite, TOUS les endroits qui l'écrivent comptent, pas seulement
+ * celui où elle a été payée.
+ */
+const stripComments = (src: string) =>
+  src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*(\/\/|#).*$/gm, '');
+
+describe('aucun autre fichier ne nomme un identifiant refusé', () => {
+  const files: Array<[string, string]> = [
+    ['voice-lab.controller.ts', join(__dirname, '../../../controllers/voice-lab.controller.ts')],
+    ['.env.example', join(__dirname, '../../../../.env.example')],
+  ];
+
+  for (const [label, path] of files) {
+    it(`${label} ne propose aucune valeur que Vapi a refusée`, () => {
+      /* Les commentaires sont retirés d'abord: celui qui explique un correctif
+         nomme forcément la forme fautive, donc le test tomberait sur sa propre
+         explication (piège déjà payé en 6vicies). */
+      const body = stripComments(readFileSync(path, 'utf8'));
+      for (const refused of REFUSED_BY_VAPI) {
+        /* Borné à droite: `gpt-realtime` est un préfixe de tous les autres, et
+           sans cette borne le test refuserait le catalogue entier. */
+        expect(body).not.toMatch(new RegExp(`${refused}(?![\\w.-])`));
+      }
+    });
+
+    it(`${label} ne nomme que des identifiants du catalogue`, () => {
+      const body = stripComments(readFileSync(path, 'utf8'));
+      const named = body.match(/gpt-(?:4o-)?(?:mini-)?realtime[\w.-]*/g) ?? [];
+      for (const id of named) {
+        expect(REALTIME_ACCEPTED_2026_09_10).toContain(id);
+      }
+    });
+  }
 });
 
 describe('voice:validate — le corps de la réponse', () => {
