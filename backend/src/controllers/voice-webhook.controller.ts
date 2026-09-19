@@ -268,7 +268,13 @@ export class VoiceWebhookController {
       /* La réservation prise EN DIRECT par l'outil, pour que le post-appel ne
          la recrée pas depuis la transcription (deuxième rendez-vous, deuxième
          événement d'agenda, à une heure lue par un modèle). */
-      { liveBookingId: (finalized.metrics as { bookingId?: string | null } | null)?.bookingId ?? null },
+      {
+        liveBookingId: (finalized.metrics as { bookingId?: string | null } | null)?.bookingId ?? null,
+        /* Et l'annulation prise en direct, pour que le post-appel ne recrée
+           pas ce que l'appelant vient d'annuler. */
+        liveCancelledBookingId:
+          (finalized.metrics as { cancelledBookingId?: string | null } | null)?.cancelledBookingId ?? null,
+      },
     );
 
     await realtimeOrchestratorService.persistMetrics(

@@ -96,6 +96,17 @@ export interface CallSession {
   /** AgentCrmActivity row created for the lead, linked to the call at the end. */
   leadActivityId: string | null;
   bookingId: string | null;
+  /**
+   * La réservation ANNULÉE en direct par l'outil.
+   *
+   * Elle existe pour une raison précise: le post-appel relit la transcription
+   * et crée une ligne dès qu'il y voit un rendez-vous demandé. Un appelant qui
+   * ANNULE parle forcément de son rendez-vous, donc sans ce drapeau il
+   * repartait avec une réservation toute neuve, à la date qu'il venait de
+   * libérer, et un SMS de confirmation pour aller avec. C'est le doublon du
+   * 12/09/2026 (6trigesies) retourné, et il se ferme au même endroit.
+   */
+  cancelledBookingId: string | null;
   /** ms between the caller's last word and the assistant's first audio. */
   turnLatencies: number[];
   lastCallerSpeechEndedAt: number | null;
@@ -299,6 +310,7 @@ class CallSessionStore {
       lead: null,
       leadActivityId: null,
       bookingId: null,
+      cancelledBookingId: null,
       turnLatencies: [],
       lastCallerSpeechEndedAt: null,
       latency: new CallLatencyTracker(),
@@ -674,6 +686,18 @@ class CallSessionStore {
   markBooked(vapiCallId: string | null, bookingId: string): void {
     const session = this.get(vapiCallId);
     if (session) session.bookingId = bookingId;
+  }
+
+  markCancelled(vapiCallId: string | null, bookingId: string): void {
+    const session = this.get(vapiCallId);
+    if (!session) return;
+    session.cancelledBookingId = bookingId;
+    /* La réservation prise EN DIRECT puis annulée dans le même appel ne doit
+       plus être présentée comme le rendez-vous de l'appelant: c'est elle que
+       le post-appel relie à la fiche, et le nom qu'elle porte est celui que le
+       prochain appel redira. Poser l'un sans retirer l'autre laisserait les
+       deux drapeaux se contredire (6duovicies). */
+    if (session.bookingId === bookingId) session.bookingId = null;
   }
 
   attachClientCall(vapiCallId: string | null, clientCallId: string): void {

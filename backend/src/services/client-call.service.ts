@@ -66,7 +66,7 @@ export class ClientCallService {
        `undefined` reste `null` en base: un mode inventé serait un mode
        facturé. */
     voiceMode?: string | null,
-    extra: { liveBookingId?: string | null } = {},
+    extra: { liveBookingId?: string | null; liveCancelledBookingId?: string | null } = {},
   ) {
     const client = await prisma.client.findUnique({ where: { id: clientId } });
     if (!client) {
@@ -272,6 +272,22 @@ export class ClientCallService {
         data: { clientCallId: clientCall.id },
       }).catch(err => logger.warn(`[Booking] liaison à l'appel impossible: ${err.message}`));
       bookingConfirmed = true;
+    } else if (extra.liveCancelledBookingId) {
+      /* L'APPELANT A ANNULE PENDANT L'APPEL: on ne recrée rien.
+         Une annulation parle forcément du rendez-vous qu'elle vise, donc
+         `bookingRequested` sort vrai de l'analyse avec la date que l'appelant
+         venait de LIBERER. Sans cette branche, il raccrochait, sa ligne était
+         annulée par l'outil, et le post-appel lui en écrivait une neuve au
+         même créneau, SMS de confirmation compris. C'est le doublon du
+         12/09/2026 (6trigesies) retourné: là un rendez-vous pris en direct
+         était recréé, ici c'est un rendez-vous annulé qui ressuscite.
+         `bookingConfirmed` reste FAUX: l'appelant repart sans rendez-vous, et
+         la notification du gérant doit dire cela, pas l'inverse. */
+      await prisma.clientBooking.updateMany({
+        where: { id: extra.liveCancelledBookingId, clientId },
+        data: { clientCallId: clientCall.id },
+      }).catch(err => logger.warn(`[Booking] liaison de l'annulation à l'appel impossible: ${err.message}`));
+      logger.info(`[Booking] annulation en direct pour ${client.businessName} — aucune ligne recréée depuis la transcription`);
     } else if (analysis.bookingRequested && bookingDay && !bookingDay.ok) {
       /* Le refus est BRUYANT, et c'est le point. Une date illisible ou passée
          produisait jusqu'ici une ligne de rendez-vous que personne ne voyait:

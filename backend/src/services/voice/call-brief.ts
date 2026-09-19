@@ -115,10 +115,10 @@ export function callBrief(
     }
     lines.push(
       lang === 'fr'
-        ? "S'il veut en deplacer un, c'est celui-la: passe directement a checkAvailability pour la NOUVELLE date, puis rescheduleBooking avec currentDate (AAAA-MM-JJ) de la ligne ci-dessus. Ne redemande ni le nom ni la date actuelle."
+        ? "S'il veut en deplacer un, c'est celui-la: passe directement a checkAvailability pour la NOUVELLE date, puis rescheduleBooking avec currentDate (AAAA-MM-JJ) de la ligne ci-dessus. S'il veut l'ANNULER: cancelBooking avec ce meme currentDate. Ne redemande ni le nom ni la date actuelle."
         : lang === 'nl'
-          ? 'Wil hij er een verzetten, dan is het deze: ga meteen naar checkAvailability voor de NIEUWE datum, dan rescheduleBooking met currentDate (JJJJ-MM-DD) van de regel hierboven. Vraag naam noch huidige datum opnieuw.'
-          : 'If they want to move one, that is the one: go straight to checkAvailability for the NEW date, then rescheduleBooking with the currentDate (YYYY-MM-DD) of the line above. Do not ask again for the name or the current date.',
+          ? 'Wil hij er een verzetten, dan is het deze: ga meteen naar checkAvailability voor de NIEUWE datum, dan rescheduleBooking met currentDate (JJJJ-MM-DD) van de regel hierboven. Wil hij ze ANNULEREN: cancelBooking met datzelfde currentDate. Vraag naam noch huidige datum opnieuw.'
+          : 'If they want to move one, that is the one: go straight to checkAvailability for the NEW date, then rescheduleBooking with the currentDate (YYYY-MM-DD) of the line above. If they want to CANCEL it: cancelBooking with that same currentDate. Do not ask again for the name or the current date.',
     );
   }
 

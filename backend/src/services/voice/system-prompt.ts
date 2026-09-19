@@ -388,7 +388,7 @@ export function buildSystemPrompt(
           '- checkAvailability AVANT toute heure proposée, même si le jour demandé est fermé (il nomme le prochain jour ouvert). « demain matin » suffit: jamais matin ou après-midi d\'abord, jamais de créneau inventé.',
           '- Propose un créneau à la fois.',
           '- bookAppointment seulement après accord sur une heure précise, avec prénom et nom de famille (demande-les s\'ils manquent encore; un inconnu épelle le nom). « C\'est réservé » comme « je vous réserve » se disent après son retour RESERVE, jamais avant.',
-          '- Pour DÉPLACER un rendez-vous existant: lookupBooking, checkAvailability, puis rescheduleBooking. Jamais bookAppointment pour un déplacement.',
+          '- DÉPLACER: lookupBooking, checkAvailability, rescheduleBooking. ANNULER: cancelBooking, jamais un déplacement. Jamais bookAppointment pour un déplacement.',
           /* Appel réel du 16/09/2026: l'outil a répondu « AUCUNE RESERVATION
              trouvee » neuf fois de suite, et l'agent a dit « j'ai bien votre
              rendez-vous jeudi à 9 heures ». La règle anti-invention couvrait la
@@ -410,7 +410,7 @@ export function buildSystemPrompt(
           '- Do not ask for more detail before checking: call checkAvailability with what you have, then offer.',
           '- Offer one slot at a time.',
           '- Only call bookAppointment after the caller explicitly agrees to a specific time, with first and family name (ask for them; an unknown caller spells it). Say it is booked after its BOOKED result, never before.',
-          '- To MOVE an existing appointment: lookupBooking, checkAvailability, then rescheduleBooking. Never bookAppointment for a move.',
+          '- To MOVE: lookupBooking, checkAvailability, rescheduleBooking. To CANCEL: cancelBooking, never a move. Never bookAppointment for a move.',
           '- A tool that says NO means no: never report it as a yes. "NO BOOKING found" does not become "I have your appointment".',
           '- Promising a callback or a handover REQUIRES captureLead. Without its result nothing was recorded and nobody will call back: do not say it.',
           '- A tool that failed twice is not called a third time: take a message.',
@@ -422,7 +422,7 @@ export function buildSystemPrompt(
           '- Vraag niet om meer details voor je controleert: roep checkAvailability aan met wat je hebt, en stel dan voor.',
           '- Stel één tijdstip per keer voor.',
           '- Roep bookAppointment pas aan nadat de beller expliciet akkoord gaat met een precies tijdstip, met voornaam en familienaam (vraag ernaar; een onbekende beller spelt die). Zeg pas dat het geboekt is na het GEBOEKT-resultaat, nooit ervoor.',
-          '- Om een bestaande afspraak te VERPLAATSEN: lookupBooking, checkAvailability, dan rescheduleBooking. Nooit bookAppointment voor een verplaatsing.',
+          '- VERPLAATSEN: lookupBooking, checkAvailability, rescheduleBooking. ANNULEREN: cancelBooking, nooit een verplaatsing. Nooit bookAppointment voor een verplaatsing.',
           '- Een tool die NEE zegt bedoelt nee: kondig dat nooit aan als een ja. "GEEN RESERVATIE gevonden" wordt niet "ik heb uw afspraak".',
           '- Een terugbelbelofte of doorgeven VEREIST captureLead. Zonder dat resultaat is er niets genoteerd en belt niemand terug: zeg het dan niet.',
           '- Een tool die twee keer faalt, roep je geen derde keer aan: neem de boodschap op.',

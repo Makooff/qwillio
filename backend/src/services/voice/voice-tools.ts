@@ -144,6 +144,26 @@ const FILLER: Record<string, Record<VoiceLanguage, { start: string[]; delayed: s
       delayed: ['Een momentje, ik raadpleeg de agenda.'],
     },
   },
+  /* ANNULER: la phrase de démarrage dit qu'on REGARDE, jamais qu'on annule.
+     « J'annule votre rendez-vous » est la même faute que « je déplace votre
+     rendez-vous », dite sept fois le 16/09/2026 pendant que l'outil répondait
+     sept fois « AUCUNE RESERVATION trouvee ». Elle est pire ici: l'appelant
+     qui l'entend raccroche en croyant son créneau libéré, et le commerce le
+     garde. La table interdit désormais les deux formes. */
+  cancelBooking: {
+    fr: {
+      start: ['Un instant, je regarde votre rendez-vous.'],
+      delayed: ['Encore un instant, je consulte l\'agenda.'],
+    },
+    en: {
+      start: ['One moment, let me look at your appointment.'],
+      delayed: ['One moment, I\'m checking the calendar.'],
+    },
+    nl: {
+      start: ['Een momentje, ik bekijk uw afspraak.'],
+      delayed: ['Een momentje, ik raadpleeg de agenda.'],
+    },
+  },
   lookupKnowledge: {
     fr: {
       start: ['Je vérifie ça.', 'Alors, je regarde.'],
@@ -414,6 +434,46 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
         },
       },
     });
+
+    /* ANNULER un rendez-vous existant, et c'est l'outil qui MANQUAIT.
+       Appel réel du 19/09/2026, mot pour mot:
+         Appelant: « Je voudrais ANNULER celui du 22. »
+         Agent:    « Votre rendez-vous du 22 septembre est DEPLACE au vendredi
+                     25 septembre à 14 heures. »
+       Le modèle n'a pas désobéi: privé de l'outil, il a fait la chose la plus
+       proche qu'il avait sous la main et l'a annoncée comme faite. C'est
+       6quindecies mot pour mot, où l'agent sans outil de transfert proposait
+       de prendre un message, « ce qui ressemble à un choix ».
+       Et la surface d'outils PROMETTAIT déjà l'annulation: la description de
+       `lookupBooking` dit « to confirm, move or cancel one ». */
+    tools.push({
+      type: 'function',
+      async: false,
+      server: { ...webhookServer(serverUrl), timeoutSeconds: env.VOICE_TOOL_TIMEOUT_SECONDS },
+      messages: toolMessages('cancelBooking', lang, s2s),
+      function: {
+        name: 'cancelBooking',
+        description:
+          'Cancel the caller\'s existing upcoming booking and release the slot. '
+          /* « Seulement après un accord explicite »: c'est la même forme que
+             bookAppointment, et pour une raison plus forte. Une réservation de
+             trop se déplace; une annulation ne se défait pas, l'agent n'ayant
+             aucun outil pour rebooker le créneau qu'il vient de libérer. */
+          + 'Only call it after the caller has explicitly confirmed they want that appointment cancelled. '
+          + 'Never call it to move an appointment: that is rescheduleBooking.',
+        parameters: {
+          type: 'object',
+          properties: {
+            currentDate: {
+              type: 'string',
+              description: 'Date of the booking being cancelled, YYYY-MM-DD, as lookupBooking listed it. Required when the caller has several bookings.',
+            },
+            currentTime: { type: 'string', description: 'Time of that booking, HH:MM 24h, when the caller gave one.' },
+            customerName: { type: 'string', description: 'Name the booking was made under, when the caller gave one.' },
+          },
+        },
+      },
+    });
   }
 
   // Always available: capturing who called and why is the minimum viable
@@ -566,6 +626,7 @@ export const KNOWN_TOOLS = [
   'bookAppointment',
   'lookupBooking',
   'rescheduleBooking',
+  'cancelBooking',
   'captureLead',
   'lookupKnowledge',
 ] as const;

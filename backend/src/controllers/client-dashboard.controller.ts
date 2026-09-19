@@ -6,6 +6,7 @@ import jwt from 'jsonwebtoken';
 import { clientDashboardService, phoneForms } from '../services/client-dashboard.service';
 import { googleCalendarService } from '../services/google-calendar.service';
 import { prisma } from '../config/database';
+import { cancelBooking } from '../services/booking-cancel';
 import { env } from '../config/env';
 import { logger } from '../config/logger';
 import { listCharacters, resolveCharacter, CHARACTERS, isValidCharacterId, DEFAULT_CHARACTER_FR, DEFAULT_CHARACTER_EN, CUSTOM_CHARACTER_ID } from '../config/voice-characters';
@@ -310,36 +311,15 @@ export class ClientDashboardController {
    */
   async cancelMyBooking(req: any, res: Response) {
     try {
-      const booking = await prisma.clientBooking.findFirst({
-        where: { id: String(req.params.id), clientId: req.clientId },
-        select: { id: true, clientId: true, status: true, googleEventId: true, customerPhone: true },
-      });
-      if (!booking) return res.status(404).json({ error: 'Réservation introuvable' });
-      if (booking.status === 'cancelled') return res.json({ ok: true, alreadyCancelled: true });
-
-      if (booking.googleEventId) {
-        try {
-          const client = await prisma.client.findUnique({
-            where: { id: req.clientId },
-            select: { googleCalendarRefreshToken: true, googleCalendarId: true },
-          });
-          if (client?.googleCalendarRefreshToken) {
-            const accessToken = await googleCalendarService.getAccessTokenFromRefresh(client.googleCalendarRefreshToken);
-            await googleCalendarService.deleteEvent(booking.googleEventId, accessToken, client.googleCalendarId || 'primary');
-          }
-        } catch (error) {
-          logger.warn(`[Bookings] événement Google non retiré (${booking.id}): ${(error as Error).message}`);
-        }
-      }
-
-      await prisma.clientBooking.updateMany({
-        where: { id: booking.id, clientId: req.clientId },
-        data: { status: 'cancelled', googleEventId: null, calendarSyncedAt: null },
-      });
-      if (booking.customerPhone) {
-        await realtimeContextService.invalidateCaller(req.clientId, booking.customerPhone).catch(() => undefined);
-      }
-      res.json({ ok: true });
+      /* LA MÊME FONCTION QUE L'AGENT (19/09/2026). Les quatre écritures de
+         l'annulation vivaient ici, et l'agent n'en avait aucune: il n'avait
+         pas d'outil du tout, et déplaçait un rendez-vous qu'on lui demandait
+         d'annuler. Les recopier là-bas aurait fait deux règles pour une
+         question, ce que ce dépôt paie déjà sur la langue, la voix, le niveau
+         et les outils (6vicies). Voir `services/booking-cancel.ts`. */
+      const outcome = await cancelBooking(req.clientId, String(req.params.id));
+      if (!outcome.ok) return res.status(404).json({ error: 'Réservation introuvable' });
+      res.json(outcome.alreadyCancelled ? { ok: true, alreadyCancelled: true } : { ok: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }

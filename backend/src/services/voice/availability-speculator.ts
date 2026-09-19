@@ -213,6 +213,24 @@ class AvailabilitySpeculator {
       .catch(err => logger.debug(`[Speculation] failed for ${key}: ${err.message}`));
   }
 
+  /**
+   * Oublier ce qu'on sait d'un jour: son agenda vient de changer sous nos pieds.
+   *
+   * Le cache tient 30 s, ce qui est exactement la durée d'une fin de
+   * conversation. Sans ce retrait, un appelant qui annule son rendez-vous de
+   * mardi 14 h puis demande « finalement, mardi 14 h, c'est possible ? »
+   * s'entend répondre que ce n'est pas libre — par une lecture d'agenda faite
+   * avant sa propre annulation. Un créneau libre annoncé pris est la même
+   * famille de faute qu'une fermeture inventée (6duoquinquagesies): c'est un
+   * fait FAUX sur l'entreprise, dit à un client qui voulait venir.
+   *
+   * Le retrait porte sur le JOUR, pas sur le client: les autres jours n'ont
+   * pas bougé, et les relire coûterait deux allers-retours vers Google chacun.
+   */
+  invalidate(clientId: string, date: Date): void {
+    this.cache.delete(this.key(clientId, date));
+  }
+
   /** Called at end of call so a long-running process does not leak budgets. */
   release(vapiCallId: string | null): void {
     if (vapiCallId) this.counts.delete(vapiCallId);
