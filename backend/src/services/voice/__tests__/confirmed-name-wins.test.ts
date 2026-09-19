@@ -13,7 +13,10 @@ const { findMemory, findCalls, findBookings } = vi.hoisted(() => ({
 }));
 vi.mock('../../../config/database', () => ({
   prisma: {
-    callerMemory: { findUnique: findMemory },
+    /* `findFirst` depuis le 19/09: la mémoire se lit par les DEUX écritures du
+       numéro, parce que les lignes écrites avant la normalisation portent un
+       « + » et qu'une clé unique ne se cherche que par égalité. */
+    callerMemory: { findFirst: findMemory },
     clientCall: { findMany: findCalls },
     clientBooking: { findMany: findBookings },
     client: { findUnique: vi.fn() },

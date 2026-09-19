@@ -85,16 +85,31 @@ const prisma = basePrisma.$extends({
           const isRetryable = RETRYABLE_ERRORS.some(e => msg.includes(e));
           if (isRetryable && attempt < MAX_RETRIES) {
             const isColdStart = COLDSTART_PATTERNS.some(e => msg.includes(e));
-            // Cold-start: 1s, 2s, 4s, 8s, 10s… (up to ~90s total — Neon free plan).
-            // Transient: 250, 500, 1000, 2000, 4000 ms.
+            /* LES DEUX BRANCHES SONT PLAFONNÉES (19/09/2026).
+             *
+             * Le repli transitoire ne l'était pas: `250 * 2^attempt` sur douze
+             * essais monte à 512 SECONDES au dernier, et la somme de la série
+             * dépasse dix-sept minutes pour UNE requête. La branche démarrage à
+             * froid, elle, plafonnait bien à 10 s — l'asymétrie n'était pas un
+             * choix, les deux commentaires décrivent la même intention.
+             *
+             * Ce que ça change là où ça compte: ces requêtes tournent AUSSI sur
+             * le chemin d'un appel en cours, où un appelant attend et où la
+             * cible d'un outil est 1,5 s. 4 s est la dernière valeur que la
+             * séquence documentée ci-dessus nomme, donc le plafond ne raccourcit
+             * aucun repli prévu: il ne coupe que la queue qui s'emballe. */
             const backoff = isColdStart
               ? Math.min(10000, 1000 * Math.pow(2, attempt))
-              : 250 * Math.pow(2, attempt);
-            if (attempt >= 1) {
-              logger.warn(`[prisma] ${isColdStart ? 'cold-start' : 'transient'} DB error (attempt ${attempt + 1}/${MAX_RETRIES}), retrying in ${backoff}ms…`);
-            } else {
-              logger.debug(`[prisma] ${isColdStart ? 'cold-start' : 'transient'} DB error (attempt ${attempt + 1}/${MAX_RETRIES}), retrying in ${backoff}ms…`);
-            }
+              : Math.min(4000, 250 * Math.pow(2, attempt));
+            /* VISIBLE DÈS LE PREMIER ESSAI. Le premier repli était en `debug`,
+             * donc muet en production: une requête pouvait payer 250 ms plus un
+             * aller-retour sans laisser la moindre trace, et « pourquoi cet
+             * outil a mis six secondes » restait sans réponse. C'est le défaut
+             * de forme qui revient tout le temps ici: le fait existe, personne
+             * ne le lit. */
+            logger[attempt >= 1 ? 'warn' : 'info'](
+              `[prisma] ${isColdStart ? 'cold-start' : 'transient'} DB error (attempt ${attempt + 1}/${MAX_RETRIES}), retrying in ${backoff}ms: ${msg.slice(0, 120)}`,
+            );
             await new Promise(r => setTimeout(r, backoff));
             continue;
           }

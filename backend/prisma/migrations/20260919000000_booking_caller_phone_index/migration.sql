@@ -1,0 +1,23 @@
+-- Le numero de l'appelant, INDEXE sur les reservations.
+--
+-- `findCallerBookings` et `getCallerHistory` cherchent tous deux les
+-- rendez-vous d'un numero:
+--
+--   WHERE client_id = $1 AND customer_phone IN ($2, $3) AND status = 'confirmed'
+--     AND booking_date >= now()
+--
+-- `client_booking` portait quatre index (client_id, booking_date, status,
+-- client_id+created_at) et AUCUN sur `customer_phone`. Postgres filtrait donc
+-- le telephone en balayant toutes les reservations du client.
+--
+-- Ce qui rend ca urgent plutot que theorique: la fenetre de 90 jours a ete
+-- RETIREE le 17/09 (6septquinquagesies), sur la premisse ecrite que « le
+-- numero de l'appelant est indexe et exact ». Elle ne l'etait pas. Le retrait
+-- de la borne a donc transforme un balayage borne en un balayage de tout
+-- l'historique du client, sur le chemin d'un appel en cours.
+--
+-- L'ordre des colonnes suit celui du WHERE: `client_id` d'abord, parce que
+-- toute requete de ce depot est bornee au locataire et que l'index sert alors
+-- aussi de filtre d'isolation.
+CREATE INDEX IF NOT EXISTS "client_bookings_client_id_customer_phone_idx"
+  ON "client_bookings" ("client_id", "customer_phone");

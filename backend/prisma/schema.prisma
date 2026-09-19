@@ -745,6 +745,11 @@ model ClientBooking {
   @@index([bookingDate])
   @@index([status])
   @@index([clientId, createdAt])
+  /* Le numéro de l'appelant: `findCallerBookings` et `getCallerHistory` le
+     cherchent par ses DEUX écritures, sur le chemin d'un appel en cours, et
+     sans borne de date depuis le 17/09. Sans cet index, Postgres balaie tout
+     l'historique du client. */
+  @@index([clientId, customerPhone])
   @@map("client_bookings")
 }
 
