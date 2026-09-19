@@ -143,6 +143,7 @@ async function main() {
   /** Le modele que l'assistant DISTANT porte: la seule source de « lequel sert ». */
   let remoteModel: string | null = null;
   let remoteTranscriber: boolean | null = null;
+  let remoteSttProvider: string | null | undefined = undefined;
   let remoteSilenceTimeout: number | null = null;
   let remoteStopSpeaking: CallFacts['remote']['stopSpeaking'] = null;
   const assistantId = ours?.client?.vapiAssistantId ?? vapiCall?.assistantId ?? null;
@@ -169,6 +170,13 @@ async function main() {
          n'a pas été écrit » de « un reste l'annule ». Voir `remote.transcriber`
          dans `call-audit.ts`. */
       remoteTranscriber = !!assistant?.transcriber;
+      /* Et son FOURNISSEUR, qui est une autre question: `buildTranscriber`
+         n'écrit que `deepgram`, donc tout autre nom vient d'une édition faite
+         hors du dépôt. Relevé sur un compte réel le 19/09 (Scribe v2), et
+         invisible jusque-là: le booléen ci-dessus disait « oui il y en a un ». */
+      remoteSttProvider = typeof assistant?.transcriber?.provider === 'string'
+        ? assistant.transcriber.provider
+        : assistant?.transcriber ? 'inconnu' : null;
       /* Le délai de RACCROCHÉ, lu sur l'assistant distant. Il ne figurait sur
          aucun écran, et c'est lui qui a tué six appels de test d'affilée. */
       remoteSilenceTimeout = typeof assistant?.silenceTimeoutSeconds === 'number'
@@ -247,7 +255,7 @@ async function main() {
     },
     booking: bookingRow ? { id: bookingRow.id, smsSent: bookingRow.smsConfirmationSent, smsLogs } : null,
     recordingReadable,
-    remote: { customLlm: remoteCustomLlm, endpointing: remoteEndpointing, speechToSpeech: remoteSpeechToSpeech, modelName: remoteModel, transcriber: remoteTranscriber, silenceTimeoutSeconds: remoteSilenceTimeout, stopSpeaking: remoteStopSpeaking },
+    remote: { customLlm: remoteCustomLlm, endpointing: remoteEndpointing, speechToSpeech: remoteSpeechToSpeech, modelName: remoteModel, transcriber: remoteTranscriber, transcriberProvider: remoteSttProvider, silenceTimeoutSeconds: remoteSilenceTimeout, stopSpeaking: remoteStopSpeaking },
     expected: {
       endpointing: {
         provider: want.smartEndpointingPlan.provider,

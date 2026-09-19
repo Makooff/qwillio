@@ -122,6 +122,17 @@ export interface CallFacts {
      */
     transcriber?: boolean | null;
     /**
+     * Le FOURNISSEUR du transcripteur distant. `null` = aucun transcripteur,
+     * absent = pas lu.
+     *
+     * Le booléen au-dessus répond à « y en a-t-il un », pas à « lequel », et
+     * c'est la seconde question qui débusque une configuration qui ne vient
+     * pas du dépôt: `buildTranscriber` écrit `provider: 'deepgram'` SANS
+     * CONDITION, et c'est le seul constructeur de transcripteur du code. Un
+     * assistant distant qui en porte un autre a donc été écrit ailleurs.
+     */
+    transcriberProvider?: string | null;
+    /**
      * Le délai de RACCROCHÉ que l'assistant distant porte. `null` = non lu.
      *
      * Il ne figurait sur aucun écran, et c'est lui qui a tué six appels de test
@@ -1147,6 +1158,44 @@ export function auditCall(facts: CallFacts): AuditReport {
        allumé, un assistant temps réel en porte un par construction. */
     const hybride = got === false && want && facts.remote.customLlm === false
       && facts.remote.transcriber === true && !facts.expected.realtimeTranscriber;
+    /* CE QUI NE VIENT PAS DU DÉPÔT (19/09/2026).
+       Relevé sur un compte réel: l'assistant portait `gpt-realtime-2` ET un
+       transcripteur ElevenLabs Scribe v2. Le modèle, la nouvelle ligne
+       ci-dessous le voit; le transcripteur, personne: il n'était lu qu'en
+       BOOLÉEN, « y en a-t-il un », jamais « lequel ».
+       Or `buildTranscriber` écrit `provider: 'deepgram'` sans condition, et
+       c'est le SEUL constructeur de transcripteur du code (le repli de
+       `VOICE_STT_FALLBACK_PROVIDER` vit dans `fallbackPlan`, pas en tête). Un
+       autre fournisseur ne peut donc pas venir d'ici: il a été posé à la main
+       dans le tableau de bord Vapi, ou par un bouton « Model Presets », qui
+       réécrit transcripteur, modèle et voix d'un coup.
+       C'est un DÉFAUT et pas une remarque, pour une raison qui dépasse le
+       réglage lui-même: cet état est INSTABLE. Le prochain enregistrement du
+       portail renvoie `transcriber` explicitement et l'écrase. Deux appels de
+       test encadrant une sauvegarde n'ont donc pas tourné sur la même
+       configuration, et aucune lecture du code ne prédit ce qu'on a entendu.
+       C'est 6duodecies vu de l'autre bout: un réglage fait à la main dans le
+       tableau de bord d'un fournisseur, que le code ignore, et qui décide de
+       ce que quelqu'un paie. */
+    const remoteStt = facts.remote.transcriberProvider;
+    if (remoteStt !== undefined) {
+      const foreign = !!remoteStt && remoteStt.toLowerCase() !== 'deepgram';
+      push({
+        id: 'transcripteur-source', area: 'reglages',
+        status: foreign ? 'fail' : 'ok',
+        label: 'transcripteur de l\'assistant qui décroche',
+        value: remoteStt === null
+          ? 'aucun (parole-à-parole sans transcripteur)'
+          : foreign
+            ? `${remoteStt}: le code n'écrit QUE deepgram, donc ce réglage a été posé hors du dépôt`
+            : remoteStt,
+        target: 'deepgram',
+        lever: foreign
+          ? "l'assistant a été édité dans le tableau de bord Vapi (à la main, ou par un bouton « Model Presets »). Ne pas publier ce brouillon: `npm run voice:resync -- --confirm` remet la configuration du dépôt, et les deux se battraient à chaque enregistrement du portail"
+          : undefined,
+      });
+    }
+
     push({
       id: 'niveau', area: 'reglages',
       status: got === null ? 'skip' : got === want ? 'ok' : 'fail',

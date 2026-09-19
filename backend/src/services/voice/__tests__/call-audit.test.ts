@@ -1126,6 +1126,56 @@ describe("l'audit ne s'envoie pas au mauvais endroit", () => {
  * même écart que « niveau servi », et `audit-call.ts` le lisait déjà pour en
  * tirer un booléen avant de le jeter.
  */
+/*
+ * CE QUI NE VIENT PAS DU DÉPÔT (19/09/2026).
+ *
+ * Relevé sur un compte réel: l'assistant qui décroche portait un transcripteur
+ * ElevenLabs Scribe v2. `buildTranscriber` écrit `provider: 'deepgram'` SANS
+ * CONDITION, et c'est le seul constructeur de transcripteur du code: ce réglage
+ * a donc été posé dans le tableau de bord Vapi.
+ *
+ * L'audit ne pouvait pas le voir: il lisait `!!assistant.transcriber`, un
+ * BOOLÉEN. « Y en a-t-il un » répondait oui, et « lequel » n'était posé nulle
+ * part. Encore une fois le fait était dans les données et personne ne le lisait.
+ */
+describe('le transcripteur distant vient-il du dépôt', () => {
+  const find = (facts: CallFacts, id: string) => auditCall(facts).checks.find(c => c.id === id);
+  const withStt = (provider: string | null | undefined): CallFacts => {
+    const f = good();
+    f.remote.transcriberProvider = provider;
+    return f;
+  };
+
+  it('accepte deepgram, le seul que le code écrive', () => {
+    const check = find(withStt('deepgram'), 'transcripteur-source')!;
+    expect(check.status).toBe('ok');
+    expect(check.lever).toBeUndefined();
+  });
+
+  it("REFUSE un fournisseur que le code ne peut pas avoir écrit", () => {
+    const check = find(withStt('11labs'), 'transcripteur-source')!;
+    expect(check.status).toBe('fail');
+    expect(check.value).toContain('11labs');
+    expect(check.value).toMatch(/hors du dépôt/);
+    /* Le levier dit de NE PAS publier le brouillon: publier le ferait gagner
+       jusqu'au prochain enregistrement du portail, et les deux se battraient. */
+    expect(String(check.lever)).toMatch(/Ne pas publier/);
+  });
+
+  it("ne dit rien d'un assistant sans transcripteur, qui est l'état voulu en parole-à-parole", () => {
+    const check = find(withStt(null), 'transcripteur-source')!;
+    expect(check.status).toBe('ok');
+    expect(check.value).toMatch(/aucun/);
+  });
+
+  it('se tait quand le fournisseur n\'a pas été lu', () => {
+    /* `undefined` et `null` ne disent pas la même chose: l'un est « pas lu »,
+       l'autre « aucun transcripteur ». Les confondre ferait annoncer un état
+       voulu sur un assistant qu'on n'a pas pu ouvrir. */
+    expect(find(withStt(undefined), 'transcripteur-source')).toBeUndefined();
+  });
+});
+
 describe('le modèle temps réel est nommé', () => {
   const s2s = (over: Record<string, unknown> = {}): CallFacts => {
     const f = good();
