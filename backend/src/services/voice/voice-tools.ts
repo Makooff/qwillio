@@ -181,12 +181,28 @@ function toolMessages(tool: string, lang: VoiceLanguage, speechToSpeech = false)
      propriétaire. En classique la phrase est indispensable — la chaîne ne peut
      RIEN dire pendant que l'outil tourne — et elle reste.
 
-     La phrase RETARDÉE reste des deux côtés: elle ne part qu'après
-     `VOICE_FILLER_DELAY_MS`, quand le modèle a fini d'annoncer et qu'il n'y a
-     plus que du silence. Un `lookupBooking` à 7,9 s (même appel) est
-     exactement le cas où l'appelant croit la ligne coupée. */
+     LA PHRASE RETARDÉE SE TAIT AUSSI, et la raison invalide ce que cette
+     note disait le 17/09 (19/09/2026). Elle a été gardée en parole-à-parole
+     au motif qu'elle « ne part qu'après `VOICE_FILLER_DELAY_MS`, quand le
+     modèle a fini d'annoncer et qu'il n'y a plus que du silence ». Ce seuil
+     vaut 1 200 ms, et le relevé du LENDEMAIN donne les durées d'outil
+     réelles: 2,2 / 6,1 / 2,9 / 4,5 / 7,7 s. **Les cinq le dépassent.**
+     Elle ne partait donc pas sur l'outil rare et lent, elle partait sur
+     TOUS, par-dessus une narration que le modèle produit déjà lui-même.
+
+     C'est le même défaut que la phrase de démarrage, et c'est le même retour
+     du propriétaire, mot pour mot: « il ne fait que se répéter, on dirait un
+     robot ». Le correctif du 17 n'en avait fermé que la moitié.
+
+     La règle: une justification qui repose sur un seuil doit être relue
+     quand on MESURE ce que ce seuil filtre. Ici la mesure existait un jour
+     plus tard et personne n'est revenu comparer.
+
+     En CLASSIQUE les deux restent: la chaîne ne peut rien dire pendant que
+     l'outil tourne, et un `lookupBooking` à 7,9 s y est exactement le cas où
+     l'appelant croit la ligne coupée. */
   const start = speechToSpeech ? [] : fillerFor(tool, lang, 'start');
-  const delayed = fillerFor(tool, lang, 'delayed');
+  const delayed = speechToSpeech ? [] : fillerFor(tool, lang, 'delayed');
 
   if (start.length) {
     messages.push({
