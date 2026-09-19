@@ -18,6 +18,9 @@
  */
 
 import type { StageStats } from './latency-tracker';
+import { PLANS } from '../../config/plans';
+import { superagentCost, inclusionCostEur } from '../../config/voice-economics';
+import { PRICED_FOR_MODEL } from '../../config/superagent-option';
 import { isPlaceholderName } from '../../utils/spelled-name';
 import { VOICE_TIERS, type VoiceTierId } from './voice-tiers';
 
@@ -1197,19 +1200,55 @@ export function auditCall(facts: CallFacts): AuditReport {
     if (facts.remote.speechToSpeech) {
       const got = facts.remote.modelName;
       const want = facts.expected.realtimeModel;
+      /* LE VERDICT PORTE SUR CE QUE L'ASSISTANT PORTE, PAS SUR L'ÉCART AVEC
+         L'ENVIRONNEMENT (19/09/2026), et le levier d'avant était DESTRUCTEUR.
+         `facts.expected.realtimeModel` est `env.VOICE_REALTIME_MODEL` lu par le
+         script, donc celui de la MACHINE QUI LANCE L'AUDIT, jamais celui de
+         Render. Les deux n'ont aucune raison de coïncider: l'assistant est
+         écrit par le code qui tourne sur Render, à chaque enregistrement du
+         portail. Un écart ne dit donc pas « l'assistant est périmé », il dit
+         « ces deux lectures ne viennent pas du même endroit » (6duotrigesies).
+         La ligne d'avant tranchait quand même, et conseillait le resync: ce
+         geste aurait écrit le modèle du POSTE sur l'assistant, c'est-à-dire,
+         `.env` absent, le défaut `gpt-realtime-2025-08-28`, dont le tarif n'a
+         jamais été relevé. Huitième diagnostic faux de cet audit, et le
+         premier dont le geste dégrade ce qui marchait.
+         Le juge est donc une source qui ne vient ni de l'env ni de l'assistant:
+         `REALTIME_RATES`, relevé sur le tableau de bord Vapi. Elle répond à la
+         seule question qui engage de l'argent, et le facteur dix entre les six
+         modèles la rend décisive: cette minute coûte-t-elle plus qu'elle ne
+         rapporte ? Relevé sur un compte réel le 19/09: l'assistant portait
+         `gpt-realtime-2` (0,645 $/min) quand Render disait le mini
+         (0,060 $/min), et rien ne le montrait nulle part. */
+      const cost = got ? superagentCost(got) : null;
+      const priced = cost && 'eurPerMinute' in cost ? cost : null;
+      const proCost = got ? inclusionCostEur(PLANS.pro, got) : null;
+      const ruinous = typeof proCost === 'number' && proCost > PLANS.pro.monthlyPriceEur;
+      const diverges = !!got && got !== want;
+      /* Le chiffre dans la valeur, la phrase dans le levier: une valeur qui
+         porte toute l'explication ne se lit plus d'un coup d'œil. */
+      const money = priced ? `${priced.eurPerMinute.toFixed(3)} €/min` : 'tarif jamais relevé';
       push({
         id: 'tiers', area: 'reglages',
-        status: !got ? 'skip' : got === want ? 'ok' : 'warn',
+        status: !got ? 'skip' : ruinous ? 'fail' : !priced || diverges ? 'warn' : 'ok',
         label: 'modèle temps réel servi par l\'assistant qui décroche',
         value: !got
           ? 'assistant distant non lu'
-          : got === want
-            ? got
-            : `${got} sur l'assistant, ${want} dans l'environnement: le resync n'a pas été rejoué`,
-        target: want,
-        lever: got && got !== want
-          ? '`npm run voice:resync -- --confirm`'
-          : "c'est CE modèle qui décide de l'intelligence de l'appel, pas `VAPI_MODEL`: `VOICE_REALTIME_MODEL`, puis `voice:validate` et `voice:resync --confirm`. Les identifiants acceptés sont figés dans `env.ts`, ils ne se devinent pas",
+          : [
+              `${got} (${money})`,
+              ruinous
+                ? `un client ${PLANS.pro.name} à pleines minutes coûte ${Math.round(proCost as number)} € par mois, pour un forfait vendu ${PLANS.pro.monthlyPriceEur} €`
+                : null,
+              diverges ? `l'environnement lu ICI dit ${want}` : null,
+            ].filter(Boolean).join(' — '),
+        target: got && priced && !ruinous ? got : PRICED_FOR_MODEL,
+        lever: ruinous
+          ? `ce modèle coûte plus qu'une minute ne rapporte: poser \`VOICE_REALTIME_MODEL=${PRICED_FOR_MODEL}\` sur RENDER, puis \`voice:validate\` et \`voice:resync -- --confirm\` depuis un poste dont le \`.env\` porte la MÊME valeur. \`npm run voice:pricing\` donne la feuille`
+          : !priced
+            ? `son tarif n'a jamais été relevé, donc ce que coûte la minute est INCONNU: le lire sur le tableau de bord Vapi et le poser dans \`REALTIME_RATES\`, ou revenir à \`${PRICED_FOR_MODEL}\``
+            : diverges
+              ? `NE PAS resynchroniser sur cette seule ligne: \`${want}\` est lu dans l'environnement de CE poste, pas dans celui de Render, et un resync écrirait \`${want}\` sur l'assistant. Vérifier d'abord lequel des deux est voulu`
+              : undefined,
       });
       push({
         id: 'tiers-classic', area: 'reglages', status: 'skip',

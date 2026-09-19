@@ -1137,11 +1137,17 @@ describe('le modèle temps réel est nommé', () => {
   };
   const find = (facts: CallFacts, id: string) => auditCall(facts).checks.find(c => c.id === id);
 
-  it("nomme le modèle DISTANT, et dit comment en changer", () => {
+  it("nomme le modèle DISTANT et ce que sa minute coûte", () => {
     const check = find(s2s(), 'tiers')!;
     expect(check.label).toMatch(/temps réel/);
     expect(check.value).toContain('gpt-realtime-mini-2025-12-15');
-    expect(String(check.lever)).toContain('VOICE_REALTIME_MODEL');
+    /* Le tarif dans la valeur: c'est lui qui rend le facteur dix lisible sans
+       aller ouvrir la feuille de prix. */
+    expect(check.value).toMatch(/\u20ac\/min/);
+    expect(check.status).toBe('ok');
+    /* Vert: pas de levier (`AuditCheck.lever` est « absent quand c'est vert »),
+       et surtout AUCUN conseil de resync, qui écraserait ce qui marche. */
+    expect(check.lever).toBeUndefined();
   });
 
   it("écarte explicitement les étages du chemin classique", () => {
@@ -1153,12 +1159,59 @@ describe('le modèle temps réel est nommé', () => {
     expect(check.value).toContain('gpt-4.1-mini');
   });
 
-  it("signale un assistant distant resté sur un AUTRE modèle", () => {
+  /*
+   * LE LEVIER D'AVANT ÉTAIT DESTRUCTEUR (19/09/2026).
+   *
+   * `expected.realtimeModel` est `env.VOICE_REALTIME_MODEL` lu par le SCRIPT,
+   * donc celui du poste qui lance l'audit. L'assistant, lui, est écrit par le
+   * code qui tourne sur Render. Les deux n'ont aucune raison de coïncider, et
+   * la ligne concluait quand même « le resync n'a pas été rejoué » en
+   * conseillant `voice:resync`: ce geste aurait écrit le modèle du POSTE sur
+   * l'assistant, c'est-à-dire le défaut `gpt-realtime-2025-08-28` quand le
+   * poste n'a pas de `.env`. Un modèle dont le tarif n'a JAMAIS été relevé,
+   * posé à la place de celui que Render avait choisi.
+   */
+  it("ne conseille PAS le resync sur un écart avec l'environnement du poste", () => {
     const facts = s2s({ modelName: 'gpt-realtime-2025-08-28' });
     const check = find(facts, 'tiers')!;
     expect(check.status).toBe('warn');
-    expect(check.value).toContain("le resync n'a pas été rejoué");
-    expect(String(check.lever)).toContain('voice:resync');
+    /* L'écart est dit, et dit pour ce qu'il est: deux lectures qui ne
+       viennent pas du même endroit. */
+    expect(check.value).toContain('gpt-realtime-2025-08-28');
+    expect(check.value).toContain('gpt-realtime-mini-2025-12-15');
+    expect(String(check.lever)).toMatch(/NE PAS resynchroniser|jamais été relevé/);
+    expect(String(check.lever)).not.toMatch(/^`npm run voice:resync -- --confirm`$/);
+  });
+
+  /*
+   * LE FAIT LE PLUS CHER QUE CET AUDIT PUISSE SORTIR.
+   *
+   * Relevé sur un compte réel le 19/09/2026: l'assistant qui décroche portait
+   * `gpt-realtime-2` (0,645 $/min) quand Render disait le mini (0,060 $/min).
+   * Rien ne le montrait, et personne ne l'aurait vu avant la facture Vapi.
+   */
+  it("REFUSE un modèle qui coûte plus qu'une minute ne rapporte", () => {
+    const facts = s2s({ modelName: 'gpt-realtime-2' });
+    facts.expected.realtimeModel = 'gpt-realtime-2';
+    const check = find(facts, 'tiers')!;
+    expect(check.status).toBe('fail');
+    /* Le coût mensuel d'un Pro à pleines minutes, en face du prix de vente:
+       c'est la phrase qui fait prendre la décision. */
+    expect(check.value).toMatch(/Pro/);
+    expect(check.value).toMatch(/599/);
+    expect(String(check.lever)).toContain('gpt-realtime-mini-2025-12-15');
+    /* Le verdict ne dépend PAS de l'environnement: ici les deux coïncident,
+       et l'ancienne ligne aurait dit « ok ». */
+    expect(check.value).not.toMatch(/l'environnement lu ICI/);
+  });
+
+  it("dit qu'un tarif jamais relevé empêche de chiffrer la minute", () => {
+    const facts = s2s({ modelName: 'gpt-realtime-2025-08-28' });
+    facts.expected.realtimeModel = 'gpt-realtime-2025-08-28';
+    const check = find(facts, 'tiers')!;
+    expect(check.status).toBe('warn');
+    expect(check.value).toContain('tarif jamais relevé');
+    expect(String(check.lever)).toMatch(/tableau de bord Vapi/);
   });
 
   it('se tait quand l\'assistant distant n\'a pas été lu', () => {
