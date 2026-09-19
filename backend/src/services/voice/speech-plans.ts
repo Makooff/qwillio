@@ -816,8 +816,12 @@ export function buildVoice(opts: {
          l'assistant entier sur un champ inconnu. Ce n'est pas un oubli: le
          timbre de Sonic se choisit en choisissant la voix.
          `chunkPlan` est accepté des deux côtés et sert la même chose: rendre
-         une PHRASE au synthétiseur plutôt que des fragments. */
-      chunkPlan: buildChunkPlan(),
+         une PHRASE au synthétiseur plutôt que des fragments.
+         LE `tuning` EST PASSÉ ICI AUSSI (19/09/2026): la branche ElevenLabs le
+         passait, celle-ci l'oubliait, donc `minChunkChars` d'un niveau était
+         ignoré par le seul fournisseur vers lequel la flotte a basculé. Deux
+         copies d'une même décision, et c'est celle qui sert qui était fausse. */
+      chunkPlan: buildChunkPlan(tuning),
       /* Le filet. Si Cartesia ne répond pas, la ligne repart sur la voix
          ElevenLabs d'origine plutôt que de rester muette. C'est ce qui rend la
          bascule essayable sur de vrais appels entrants. */

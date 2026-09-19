@@ -85,12 +85,30 @@ export function voiceForProfile(profile: ClientVoiceProfile): ProfileVoice {
   };
 
   const decision = cartesiaChoice(inputs);
+
+  /* LES CURSEURS DU NIVEAU, PASSÉS À LA VOIX (19/09/2026).
+     Huitième trou de la famille 6quindecies, et le plus silencieux de tous.
+     `tuningFor(profile)` était appelé vingt lignes plus bas, pour être RENDU
+     aux appelants, et la voix se bâtissait sans lui. `buildSpeech`, l'autre
+     constructeur, le passe depuis toujours (`tuning: opts.tuning`).
+     Conséquence exacte: `speed`, `styleCap`, `ttsModel`, `cartesiaModel` et
+     `minChunkChars` d'un niveau atteignaient la ligne PARTAGÉE des essais et
+     jamais la ligne DÉDIÉE, c'est-à-dire jamais un client qui paie. Le réglage
+     s'enregistrait, l'écran disait enregistré, et l'appelant entendait les
+     valeurs d'environnement.
+     Ça n'a rien cassé jusqu'ici parce que les deux niveaux ne posent aucun de
+     ces champs: `base` est vide par contrat, et `superagent` ne pose que des
+     champs relus ailleurs. Le trou attendait le premier curseur de rendu posé
+     sur un niveau, c'est-à-dire exactement le travail qui commence. */
+  const tuning = tuningFor(profile);
+
   const block = buildVoice({
     ...inputs,
     stability: character.stability,
     similarityBoost: character.similarityBoost,
     style: character.style,
     lang: profile.language,
+    tuning,
   });
 
   /* La règle du moteur n'est pas réécrite ici: `useSpeechToSpeech` reste seul
@@ -107,7 +125,7 @@ export function voiceForProfile(profile: ClientVoiceProfile): ProfileVoice {
     speechToSpeech,
     gender: character.gender,
     tier: servedTier(speechToSpeech),
-    tuning: tuningFor(profile),
+    tuning,
     signature: {
       provider: block.provider === 'cartesia' ? 'cartesia' : '11labs',
       voiceId: block.voiceId,
@@ -155,9 +173,14 @@ export function needsCallBrief(profile: ClientVoiceProfile): boolean {
  */
 export function assistantSpeechForProfile(
   profile: ClientVoiceProfile,
-  opts: { clientId: string; systemPrompt: string; tools: any[]; temperature: number },
+  /* `temperature` est FACULTATIVE, et c'est le second écart avec `buildSpeech`
+     (19/09/2026). Là-bas elle vaut `opts.temperature ?? tuning.temperature`;
+     ici elle était obligatoire, donc un niveau ne pouvait pas la porter, même
+     en la posant. Un appelant qui n'a pas d'avis laisse le niveau décider. */
+  opts: { clientId: string; systemPrompt: string; tools: any[]; temperature?: number },
 ): { model: any; voice: any; speechToSpeech: boolean; tier: VoiceTier } {
   const resolved = voiceForProfile(profile);
+  const tuning = resolveTuning(resolved.tuning);
 
   if (resolved.speechToSpeech) {
     return {
@@ -168,8 +191,8 @@ export function assistantSpeechForProfile(
         gender: resolved.gender,
         systemPrompt: opts.systemPrompt,
         tools: opts.tools,
-        temperature: opts.temperature,
-        realtimeModel: resolveTuning(resolved.tuning).realtimeModel,
+        temperature: opts.temperature ?? tuning.temperature,
+        realtimeModel: tuning.realtimeModel,
       }),
       speechToSpeech: true,
       tier: resolved.tier,
@@ -183,7 +206,14 @@ export function assistantSpeechForProfile(
       customLlmUrl: profile.customLlm ? customLlmUrlFor(opts.clientId) : undefined,
       systemPrompt: opts.systemPrompt,
       tools: opts.tools,
-      temperature: opts.temperature,
+      temperature: opts.temperature ?? tuning.temperature,
+      /* TROISIÈME écart avec `buildSpeech`, qui le passe depuis toujours.
+         Il ne sert que quand Vapi appelle OpenAI lui-même: sur custom-LLM le
+         modèle se choisit dans le backend à chaque tour, et celui porté par
+         l'assistant est décoratif (6duotrigesies). C'est justement pour ça
+         que l'oubli pouvait dormir: il ne se voit que chez un client dont
+         `customLlm` est éteint, où il décide vraiment. */
+      llmModel: tuning.llmModel,
     }),
     voice: resolved.block,
     speechToSpeech: false,
