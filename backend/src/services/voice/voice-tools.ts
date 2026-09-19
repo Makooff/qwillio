@@ -247,6 +247,23 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
               enum: ['morning', 'afternoon', 'evening', 'any'],
               description: 'Caller preference within the day. Use "any" when unspecified.',
             },
+            /* L'HEURE QUE L'APPELANT A DITE, et c'est un argument parce que le
+               modèle ne sait pas la garder en bouche. Appel réel du 18/09/2026:
+               l'appelant demande « 13 heures », le modèle répond « 14 heures »,
+               le corrige, redit « 14 heures », se fait corriger une seconde
+               fois, redit « 14 heures ». Son rendez-vous EXISTANT était à 14 h,
+               et la liste rendue contenait les deux: il a lu son ancre au lieu
+               d'entendre le chiffre.
+               Passée en argument, l'heure revient par le RÉSULTAT de l'outil,
+               qui la renomme. C'est la même règle que le jour de semaine et que
+               la fenêtre d'ouverture: ce que le modèle doit dire, il le lit,
+               il ne le retient pas. */
+            preferredTime: {
+              type: 'string',
+              description:
+                'The exact time the caller asked for, 24h HH:mm, when they named one ("13 heures" -> "13:00"). '
+                + 'Pass it every time they name an hour, including when they correct an earlier one.',
+            },
             serviceType: {
               type: 'string',
               description: 'Service the caller is asking about, when they named one.',

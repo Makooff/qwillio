@@ -1962,6 +1962,146 @@ prouve (6octovicies, 6quinquetrigesies).
 **Reste ouvert:** `endCall` a 11,8 s, `rescheduleBooking` a 8,2 s,
 `checkAvailability` a 6,5 s malgre le cache de jeton Google.
 
+### 6sexagesies. L'heure que l'appelant DIT, contre celle que le modele a en tete (18/09/2026)
+Appel reel, deplacement d'un rendez-vous existant de 14:00. `checkAvailability`
+rend neuf creneaux, le modele les lit TOUS a voix haute, l'appelant repond
+« 13 heures », et l'agent propose « **14 heures** » — son ancienne heure —
+**trois fois**, malgre deux corrections explicites (« Non, 13 heures. Lundi
+13 heures », puis « Je n'ai pas dit 14 heures, j'ai dit 13 heures »). Il a fini
+par y arriver, et l'outil suivant est tombe.
+**Deux causes, et la seconde explique la premiere.** La liste entiere est sous
+les yeux du modele, elle contient 13:00 ET 14:00, et son ancre (le rendez-vous
+en cours, dit par le brief et par `lookupBooking`) vaut 14:00. « Propose-les un
+par un » etait deja ecrit dans le resultat depuis le 13/09 et n'a **pas** ete
+suivi : **une consigne noyee dans un resultat ne gagne pas contre une liste que
+le modele a sous les yeux.** Ce qu'il faut lui donner, c'est la PHRASE a dire,
+pas la regle a appliquer — c'est `weekdayNote` et 6novoquadragesies, une fois de
+plus.
+Le correctif porte donc sur les deux bouts. `checkAvailability` prend un
+argument `preferredTime`, et quand l'appelant a nomme une heure le resultat ne
+rend QUE celle-la (« 13:00 EST LIBRE […] ne propose AUCUNE autre heure »), ou la
+declare prise en nommant **une** voisine. La liste n'est plus enumerable : sans
+`preferredTime` le resultat nomme le creneau a proposer et interdit de lire la
+liste. **La connaissance reste entiere** (6untrigesies : une liste coupee faisait
+dire « le plus tard, c'est 11 heures »), c'est la parole qui se limite.
+**La regle generale, et c'est la troisieme fois qu'elle se paie** : ce que le
+modele doit DIRE, il le lit dans un resultat d'outil ; il ne le retient pas. Un
+chiffre garde en bouche derive vers l'ancre la plus proche.
+`slotForm` est **tolerante a dessein** (« 13h », « 13h00 », « 13 ») : le modele
+ecrit ce qu'il entend, et une heure illisible retomberait en silence sur la
+liste entiere, c'est-a-dire sur le defaut lui-meme. Piege de methode au passage :
+le commentaire que j'avais ecrit affirmait que `parseTimeToMinutes` lisait deja
+« 13h » et « 1 PM ». Elle exige `HH:MM` strict. C'est le CODE qui a ete corrige,
+pas le commentaire (6unquinquagesies).
+**Un refus est un refus.** « Non, ce n'est pas ça, mais c'est pas grave, je
+rappellerai », puis « Non », puis « Laissez tomber, au revoir » : QUATRE
+relances apres, l'agent redemandait toujours l'orthographe du nom. C'est
+6septies (le repli clavier au deuxieme numero illisible) vu depuis l'appelant :
+insister sur ce qui vient d'echouer ne change pas la cause. La discipline temps
+reel porte le refus et le au revoir (`endCall`), plus l'heure de l'appelant et
+sa correction, dans les TROIS langues.
+**Ce qui a TENU et ne doit pas etre rediagnostique** : `weekdayNote` (« lundi
+prochain » resolu au 21 septembre, qui est un vrai lundi), `lookupBooking` (le
+rendez-vous du 22 retrouve du premier coup, sans faire epeler), et la
+suppression des phrases de demarrage en parole-a-parole — **aucune** des
+phrases d'attente du transcript ne figure dans la table `FILLER`, elles sont
+toutes du modele. Le bavardage (« Ça ne prendra qu'une seconde. Je vais verifier
+ça tout de suite. Juste une seconde. ») est ce que le modele produit pour
+meubler un outil lent : **la lenteur des outils FABRIQUE le bavardage**, elle ne
+fait pas que le preceder.
+**Ce qui reste OUVERT, et qu'il ne faut pas corriger en devinant** : la seconde
+lecture d'agenda a leve, donc `degradedMessage` (« AGENDA INDISPONIBLE »), que le
+modele a dit « il y a eu un probleme technique ». Deux constantes se regardent :
+`EXTERNAL_TIMEOUT_MS` vaut **2,5 s** et `CACHE_TTL_MS` du speculateur vaut
+**30 s**, quand la conversation sur le choix du creneau a dure une minute et
+demie — donc la seconde lecture du MEME jour repaie plein tarif. C'est
+l'hypothese de tete ; elle se tranche au relevé (`checkAvailability:error`), pas
+au raisonnement. Allonger le cache ferait proposer un creneau pris entre-temps,
+donc deux clients a la meme heure : ne pas y toucher avant de savoir.
+
+### 6unsexagesies. L'audit taisait le seul fait qui expliquait l'appel (18/09/2026)
+Relevé du meme appel que 6sexagesies. L'agent dit « Je suis desole, il y a eu un
+probleme technique », puis demande un numero de rappel et appelle `captureLead`
+— c'est-a-dire, mot pour mot, ce que `degradedMessage` lui ordonne de faire
+quand un outil a LEVE. L'audit, lui, affichait cinq outils avec leurs durees et
+**aucun signe d'echec**: la ligne « duree des outils » lit le transcript de
+Vapi, ou un repli est un resultat comme un autre, et personne ne lisait
+`ToolEvent.result`.
+Le fait etait donc **deja dans les donnees, jamais lu**. Sans lui, « il a dit
+probleme technique » n'est rattachable a rien, et j'ai passe le debut de la
+seance a defendre une hypothese de delai d'attente que l'audit ne pouvait ni
+confirmer ni infirmer. C'est 6sexvicies: le code qui LIT un champ compte autant
+que celui qui l'ecrit. La ligne `outils tombes en repli` nomme desormais l'outil,
+la seconde, et le repli exact.
+**Deux autres leviers du meme relevé envoyaient au mauvais endroit**, ce qui
+porte a SEPT le compte des faux diagnostics de cet audit.
+1. « repliques doublees » conseillait en TETE de liste: « un plan absent rend la
+   main au defaut de Vapi (0,4 s) » — pendant que sa propre ligne « detecteur de
+   fin de tour », deux ecrans plus bas, etait **VERTE a 0,6 / 0,8**. L'audit se
+   contredisait lui-meme et envoyait reposer un plan deja pose. Le levier lit
+   maintenant le plan reel, avec **le meme test** que la ligne d'en bas (une
+   seconde lecture du meme champ finirait par diverger, 6vicies).
+2. « duree des outils » nommait l'agenda Google des qu'un `checkAvailability`
+   depassait la cible, alors que les deux pires de la liste etaient
+   `captureLead` (7,7 s) et `lookupBooking` (6,1 s) — **deux outils qui ne
+   touchent jamais Google**, ce sont des requetes Prisma. Le levier suit
+   desormais l'outil le PLUS LENT et renvoie a Neon quand celui-la ne lit pas
+   l'agenda.
+**Ce que le relevé dit de bon, et qu'il ne faut pas re-chasser:** le delai
+ressenti est a **0,8 s de mediane, 2,5 s au pire** sur 12 tours. La guerre du
+tour de parole est gagnee; ce qui reste de lenteur, ce sont les OUTILS, et
+d'abord la base, pas le modele. `VOICE_START_WAIT_SECONDS` et
+`VOICE_ENDPOINTING_PUNCTUATION_SECONDS` ne se touchent plus sur ce motif.
+Le brief d'ouverture est **pose** (« 22 appels, 1 rdv »): l'agent connaissait le
+rendez-vous avant le premier mot, et a quand meme demande le nom puis appele
+`lookupBooking` deux fois. Ce n'est donc plus un defaut de plomberie mais de
+discipline, et c'est la prochaine chose a traiter, pas la memoire.
+PREP, LLM et TTFA sont « sans mesure » sur ce chemin, et c'est STRUCTUREL: en
+parole-a-parole `llm-stream` ne tourne pas. La raison affichee (« appel
+anterieur au partage PREP/LLM ») est trompeuse et reste a corriger.
+
+### 6duosexagesies. Une instruction de SESSION gagne contre un message (18/09/2026)
+« Il ne me reconnait pas alors que je suis deja un client dans la base et qu'il
+a mon numero, et meme une fois que je l'ai dit dans l'appel je ne devrais pas
+avoir a le dire deux fois. » Or l'audit du meme appel disait « brief
+d'ouverture: **pose** (22 appels, 1 rdv) ». La plomberie marchait, et le modele
+demandait quand meme.
+**La cause n'est ni le brief ni la memoire: c'est un conflit de consignes.** Le
+brief arrive comme un MESSAGE de la conversation (`add-message` sur l'adresse de
+controle), `buildSystemPrompt` est l'instruction de SESSION, et une instruction
+de session gagne contre un message. Tant que le prompt figé ordonnait
+`« demande-les »` — sans condition, pour le prenom et le nom — le modele
+obeissait a lui, pas au brief. Le brief disait pourtant deja « Ne redemande ni
+le nom ni la date actuelle »: ca n'a jamais suffi, et ca ne pouvait pas.
+**La regle, et elle est generale:** la ligne qui dit LAQUELLE des deux versions
+gagne doit vivre dans celle qui gagne. L'ecrire du cote qui perd, c'est
+l'ecrire deux fois pour rien. C'est exactement le traitement deja donne a la
+DATE — dite « faisant foi » dans le brief — et le NOM ne l'avait pas; c'etait
+la seule difference entre les deux.
+La nuance porte tout: **ne pas REDEMANDER n'est pas refuser une correction.** Un
+appelant qui dement garde le dernier mot (6octotrigesies: une consigne absolue
+sur un nom a tenu contre quatre dementis, ce qui est le defaut oppose et aussi
+couteux).
+**Le plafond du prompt passe a 3700**, et il faut noter pourquoi c'est tombe
+maintenant: la marge etait d'UN caractere (3499 sur 3500). N'importe quelle
+ligne ajoutee l'aurait fait tomber.
+**Ce que l'audit ne disait pas, et qui a failli me faire chercher au mauvais
+endroit:** la note du brief ne portait que des COMPTES. Elle ne distinguait donc
+pas les deux pannes OPPOSEES — le nom est la et le modele redemande (prompt), ou
+le nom manque malgre 22 appels (`getCallerHistory`) — qui ne se reparent pas
+dans le meme fichier. Elle dit desormais `nom: X` ou `SANS NOM CONNU`, et
+l'audit envoie lire `getCallerHistory` dans le second cas. C'est la raison meme
+pour laquelle cette note existe (6novoquinquagesies), et elle ne la remplissait
+qu'a moitie.
+**Le tutoiement, et pourquoi la troisieme ecriture est ailleurs.** La regle
+existait a DEUX endroits (discipline temps reel depuis le 17, regles de parole
+depuis le 09) et le modele tutoyait encore (« Attends une seconde »). La
+reecrire une troisieme fois au meme rang n'aurait rien change. Ce qui est
+OBSERVABLE, en revanche: la ligne de LANGUE tient — tout l'appel s'est dit en
+francais, du premier mot au dernier — et elle est en position 0. Le vouvoiement
+y est donc accroche. **Quand une regle echoue deux fois au meme rang, on la
+rattache a une regle qui tient, on ne la repete pas.**
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

@@ -195,6 +195,23 @@ export function buildSystemPrompt(
            chiffre. Le petit modèle écrit « MAR0N » et la synthèse dit « zéro »
            (13/09/2026). Le nom validé est celui du lead et des rappels. */
         '- Un inconnu épelle son nom de famille, jamais deviné; un nom n\'a jamais de chiffre: « O » est la lettre O, pas « zéro ».',
+        /* LE PROMPT FIGÉ DOIT CÉDER AU BRIEF, et il ne le disait nulle part
+           (18/09/2026). « Il ne me reconnaît pas alors que je suis déjà client
+           et qu'il a mon numéro », sur un appel où le brief d'ouverture était
+           POSÉ et portait son nom et son rendez-vous.
+           La cause n'est pas la plomberie, c'est un conflit de consignes: le
+           brief arrive comme un MESSAGE de la conversation, alors que ce
+           prompt-ci est l'instruction de SESSION, et une instruction de session
+           gagne contre un message. Tant que ce texte ordonne « demande-les »
+           sans condition, le modèle demande.
+           C'est le traitement déjà donné à la DATE, qui est dite « faisant
+           foi » dans le brief: le NOM ne l'avait pas, et c'est la seule
+           différence entre les deux.
+           La nuance porte tout: ne pas REDEMANDER n'est pas refuser une
+           correction. Un appelant qui dément a toujours le dernier mot
+           (6octotrigesies: une consigne absolue sur un nom a tenu contre quatre
+           démentis). */
+        '- Si CONTEXTE DE CET APPEL te donne son nom, il fait foi: ne le redemande pas, ne le fais pas épeler. S\'il dit que ce n\'est pas le sien, il a raison.',
       ].join('\n'),
       [
         'SPEAKING RULES:',
@@ -338,7 +355,7 @@ export function buildSystemPrompt(
              nomme le prochain jour ouvert; c'est lui qui doit le dire. */
           '- checkAvailability AVANT toute heure proposée, même si le jour demandé est fermé (il nomme le prochain jour ouvert). « demain matin » suffit: jamais matin ou après-midi d\'abord, jamais de créneau inventé.',
           '- Propose un créneau à la fois.',
-          '- bookAppointment seulement après accord sur une heure précise, avec prénom et nom de famille (demande-les; un inconnu épelle le nom). « C\'est réservé » comme « je vous réserve » se disent après son retour RESERVE, jamais avant.',
+          '- bookAppointment seulement après accord sur une heure précise, avec prénom et nom de famille (demande-les s\'ils manquent encore; un inconnu épelle le nom). « C\'est réservé » comme « je vous réserve » se disent après son retour RESERVE, jamais avant.',
           '- Pour DÉPLACER un rendez-vous existant: lookupBooking, checkAvailability, puis rescheduleBooking. Jamais bookAppointment pour un déplacement.',
           /* Appel réel du 16/09/2026: l'outil a répondu « AUCUNE RESERVATION
              trouvee » neuf fois de suite, et l'agent a dit « j'ai bien votre

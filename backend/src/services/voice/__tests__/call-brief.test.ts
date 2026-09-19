@@ -150,3 +150,64 @@ describe('le brief est branché sur l\'ouverture de l\'appel', () => {
     expect(body).toMatch(/callBrief\(profile, caller\)/);
   });
 });
+
+/**
+ * LE PROMPT FIGÉ DOIT CÉDER AU BRIEF (18/09/2026).
+ *
+ * « Il ne me reconnaît pas alors que je suis déjà un client dans la base de
+ * données et il a mon numéro de téléphone, donc il est censé me reconnaître et
+ * pas me redemander mon nom. Et même une fois que je l'ai dit dans l'appel, je
+ * ne devrais pas avoir à le dire deux fois. »
+ *
+ * Sur cet appel, l'audit disait « brief d'ouverture: posé (22 appels, 1 rdv) ».
+ * La plomberie marchait donc, et le modèle demandait quand même. La cause est
+ * un CONFLIT DE CONSIGNES: le brief arrive comme un MESSAGE de la conversation,
+ * `buildSystemPrompt` est l'instruction de SESSION, et une instruction de
+ * session gagne contre un message. Tant que le prompt ordonnait « demande-les »
+ * sans condition, le modèle demandait.
+ *
+ * La ligne qui dit laquelle des deux gagne ne peut donc vivre QUE dans le
+ * prompt: la mettre dans le brief, ce serait la remettre du côté qui perd —
+ * et le brief dit DÉJÀ « Ne redemande ni le nom ni la date actuelle », ce qui
+ * n'a pas suffi.
+ */
+describe('le prompt figé cède au brief sur le nom', () => {
+  const src = readFileSync(join(__dirname, '../system-prompt.ts'), 'utf8')
+    /* Les commentaires nomment forcément la forme fautive: un test de source
+       qui ne les retire pas tombe sur sa propre explication (6vicies). */
+    .replace(/\/\*[\s\S]*?\*\//g, '')
+    .replace(/^\s*\/\/.*$/gm, '')
+    /* Les apostrophes du source sont échappées (`s\'ils`) parce qu'elles
+       vivent dans des chaînes à guillemets simples: sans ça, une règle se
+       cherche avec une apostrophe qu'elle ne porte pas. */
+    .replace(/\\'/g, "'");
+
+  it("porte la règle qui fait céder le prompt, dans le prompt lui-même", () => {
+    expect(src).toMatch(/CONTEXTE DE CET APPEL te donne son nom, il fait foi/);
+    expect(src).toMatch(/ne le fais pas épeler/);
+  });
+
+  it("n'ordonne plus « demande-les » sans condition", () => {
+    /* La forme fautive exacte: le point-virgule qui suivait « demande-les »
+       en faisait un impératif inconditionnel, et c'est ce que le modèle a
+       exécuté contre le brief. */
+    expect(src).not.toMatch(/\(demande-les;/);
+    expect(src).toMatch(/demande-les s'ils manquent encore/);
+  });
+
+  it("laisse le dernier mot à l'appelant qui dément", () => {
+    /* Ne pas REDEMANDER n'est pas refuser une correction. Une consigne absolue
+       sur un nom a déjà tenu contre quatre démentis (6octotrigesies), et c'est
+       le défaut opposé, aussi coûteux. */
+    expect(src).toMatch(/ce n'est pas le sien, il a raison/);
+  });
+
+  it("le brief nomme toujours l'appelant, lui, pour que la règle ait un objet", () => {
+    const brief = callBrief(
+      { language: 'fr', timezone: 'Europe/Brussels' } as ClientVoiceProfile,
+      history(),
+    );
+    expect(brief).toContain('Jean-Luc de la Forge');
+    expect(brief).toMatch(/ne redemande pas/i);
+  });
+});

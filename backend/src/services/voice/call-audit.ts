@@ -182,6 +182,14 @@ export const TARGETS = {
 
 const BAD_ENDINGS = ['silence-timed-out', 'pipeline-error', 'assistant-error', 'unknown-error', 'exceeded-max-duration', 'worker-shutdown'];
 
+/** Les seuls outils qui lisent ou écrivent l'agenda Google. Les autres sont des
+ *  requêtes Prisma: leur lenteur ne se répare pas sur un jeton Google. */
+const GOOGLE_BACKED_TOOLS = new Set(['checkAvailability', 'bookAppointment', 'rescheduleBooking']);
+
+/** Les replis que `degradedMessage` renvoie quand un outil a LEVÉ. C'est ce que
+ *  le modèle traduit à voix haute par « il y a eu un problème technique ». */
+const DEGRADED_PREFIXES = ['AGENDA INDISPONIBLE', 'CALENDAR UNAVAILABLE', 'AGENDA NIET BESCHIKBAAR', 'ACTION ECHOUEE', 'ACTION FAILED', 'ACTIE MISLUKT'];
+
 function median(values: number[]): number | null {
   if (!values.length) return null;
   const sorted = [...values].sort((a, b) => a - b);
@@ -419,9 +427,16 @@ export function auditCall(facts: CallFacts): AuditReport {
           ? "JAMAIS TENTÉ sur cet appel: l'agent a décroché sans mémoire de l'appelant ni rendez-vous"
           : brief,
       target: wanted ? 'posé, avec les rendez-vous du numéro' : undefined,
+      /* ET LE CAS OÙ IL EST POSÉ SANS NOM (18/09/2026). Un brief posé compte
+         22 appels et un rendez-vous, et ne nomme personne: ce n'est alors ni un
+         défaut de plomberie ni un défaut de prompt, c'est `getCallerHistory`
+         qui n'a pas résolu le nom — et le prompt n'y peut RIEN. Les deux
+         réparations sont dans des fichiers différents, d'où deux leviers. */
       lever: wanted && (brief === null || !brief.startsWith('pose'))
         ? "journaux Render autour de l'heure de l'appel: `[Voice] brief`. Un `status-update` non reçu, une adresse de contrôle absente ou un refus de Vapi sur `add-message` se lisent là, et aucun des trois ne se répare dans le prompt"
-        : undefined,
+        : wanted && brief?.includes('SANS NOM CONNU') && !brief.includes('0 appels')
+          ? "le brief est posé mais ne NOMME personne, alors que ce numéro a déjà appelé: c'est `getCallerHistory` qu'il faut lire (mémoire d'appelant, nom de la dernière réservation confirmée, `nameCollected` des appels passés), pas le prompt. Tant que le nom manque là, l'agent a raison de le demander"
+          : undefined,
     });
   }
 
@@ -437,8 +452,26 @@ export function auditCall(facts: CallFacts): AuditReport {
           ? `aucune sur ${facts.assistantLines} réplique(s)`
           : `${doubled} sur ${facts.assistantLines} réplique(s) — il répond à un blanc, puis une seconde fois quand l'appelant a fini`,
       target: 'aucune',
+      /* LE LEVIER SE LIT SUR LE PLAN RÉELLEMENT POSÉ (18/09/2026).
+         Il nommait « un plan absent » sans condition, y compris — relevé sur un
+         appel réel — quand la ligne « détecteur de fin de tour » deux écrans
+         plus bas était VERTE à 0,6 / 0,8. L'audit se contredisait donc lui-même
+         en tête de sa propre liste de choses à faire, et envoyait reposer un
+         plan qui était déjà là. Sixième fois qu'une de ces lignes envoie au
+         mauvais endroit (6novoquadragesies, 6duoquinquagesies,
+         6terquinquagesies, 6quaterquinquagesies, 6novoquinquagesies). */
       lever: doubled > 0
-        ? "c'est le détecteur de fin de tour, pas le modèle: lire la ligne « détecteur de fin de tour » plus bas. Un plan absent rend la main au défaut de Vapi (0,4 s), qui coupe quelqu'un qui réfléchit"
+        ? (() => {
+            /* Le MÊME test que la ligne « détecteur de fin de tour » plus bas,
+               qui traite `{provider: 'aucun', …}` comme une absence: deux
+               lectures différentes du même champ finiraient par se contredire,
+               ce qui est précisément le défaut qu'on ferme ici. */
+            const ep = facts.remote.endpointing;
+            const hasPlan = !!ep && (ep.provider !== 'aucun' || ep.waitSeconds !== null || ep.punctuationSeconds !== null);
+            return hasPlan
+              ? `le plan est POSÉ (${ep!.provider}, attente ${ep!.waitSeconds ?? '?'} s, ponctuation ${ep!.punctuationSeconds ?? '?'} s): ce n'est donc PAS une absence de plan, et le reposer ne changera rien. Comparer à la ligne « détecteur de fin de tour » plus bas; ce qui reste ensuite, ce sont des seuils trop courts pour ce mode, ou le modèle qui reprend la parole seul`
+              : "aucun plan sur l'assistant qui décroche: la main est rendue au défaut de Vapi (0,4 s), qui coupe quelqu'un qui réfléchit. `voice:resync --confirm` le repose";
+          })()
         : undefined,
     });
   }
@@ -507,6 +540,33 @@ export function auditCall(facts: CallFacts): AuditReport {
         ? "la raison est dans la valeur: un 4xx OpenAI se corrige dans `toOpenAiBody`, un délai dépassé se lit sur PREP/LLM avant de toucher `VOICE_FIRST_TOKEN_TIMEOUT_MS`"
         : undefined,
     });
+  }
+
+  /* UN OUTIL QUI A LEVÉ SE VOIT, et il ne se voyait NULLE PART (18/09/2026).
+     Appel réel: l'agent dit « Je suis désolé, il y a eu un problème technique »,
+     puis demande un numéro de rappel et appelle `captureLead` — c'est-à-dire,
+     mot pour mot, ce que `degradedMessage` lui ordonne de faire. L'audit, lui,
+     affichait cinq outils avec leurs durées et AUCUN signe d'échec: la ligne
+     « durée des outils » lit le transcript de Vapi, où un repli est un résultat
+     comme un autre.
+     Le fait était donc déjà dans les données, jamais lu — et sans lui, « il a
+     dit problème technique » n'est rattachable à rien. C'est 6sexvicies: le
+     code qui LIT un champ compte autant que celui qui l'écrit. */
+  {
+    const degraded = facts.tools.filter(t => resultSays(t.result, ...DEGRADED_PREFIXES));
+    if (degraded.length) {
+      push({
+        id: 'tool-degraded', area: 'fonctionnement', status: 'fail',
+        label: "outils tombés en repli: ce qui a fait dire « problème technique »",
+        value: degraded
+          .map(t => `${t.name}${t.atSeconds != null ? ` (à ${t.atSeconds.toFixed(0)} s)` : ''}: ${String(t.result).split(':')[0]}`)
+          .join(', '),
+        target: 'aucun',
+        lever: degraded.some(t => GOOGLE_BACKED_TOOLS.has(t.name))
+          ? "l'outil a LEVÉ, il n'a pas rendu une liste vide: journaux Render `[VoiceTools] ... failed`. Premier suspect, `EXTERNAL_TIMEOUT_MS` (2,5 s) sur la lecture Google, et le cache du spéculateur qui ne tient que 30 s — une seconde lecture du MÊME jour, une minute plus tard, repaie plein tarif"
+          : "l'outil a LEVÉ: journaux Render `[VoiceTools] ... failed` nomment l'exception",
+      });
+    }
   }
 
   const booked = facts.tools.find(t => t.name === 'bookAppointment' && resultSays(t.result, 'RESERVE', 'BOOKED', 'GEBOEKT'));
@@ -879,12 +939,22 @@ export function auditCall(facts: CallFacts): AuditReport {
            « le premier accès du processus paie un réveil ». */
         value: timed.map(t => `${t.name} ${t.tookSeconds!.toFixed(1)} s${t.atSeconds != null ? ` (à ${t.atSeconds.toFixed(0)} s)` : ''}`).join(', '),
         target: `≤ ${TARGETS.toolSeconds[0]} s chacun`,
+        /* LE LEVIER SUIT L'OUTIL LE PLUS LENT, PAS LE PREMIER NOM RECONNU
+           (18/09/2026). Il nommait l'agenda Google dès qu'un `checkAvailability`
+           dépassait la cible, même quand les deux pires de la liste étaient
+           `captureLead` (7,7 s) et `lookupBooking` (6,1 s) — deux outils qui ne
+           lisent JAMAIS Google: ce sont des requêtes Prisma. Envoyer renouveler
+           un jeton Google pour une lenteur de base de données, c'est un
+           diagnostic FAUX, et il coûte plus cher que pas de diagnostic
+           (6sexvicies). */
         lever: slow.length
-          ? slow.some(t => t.name === 'checkAvailability')
-            ? "l'agenda Google est lu pendant le tour: la spéculation sur la date partielle n'a pas pris (date non détectée dans le transcript partiel ?), ou jeton Google à renouveler"
-            : slow.some(t => t.name === 'bookAppointment')
-              ? "l'écriture en base est sur le chemin: vérifier que rien d'autre n'est attendu (SMS, agenda sont `void`)"
-              : 'lire l\'outil nommé: un appel réseau attendu sur le chemin de la réponse'
+          ? (() => {
+              const worstTool = timed.reduce((a, b) => (b.tookSeconds! > a.tookSeconds! ? b : a));
+              if (!GOOGLE_BACKED_TOOLS.has(worstTool.name)) {
+                return `le plus lent est \`${worstTool.name}\` (${worstTool.tookSeconds!.toFixed(1)} s), qui ne lit PAS l'agenda: c'est une requête Prisma. Regarder Neon (réveil, pool) et ce qui est attendu sur le chemin de la réponse, pas le jeton Google`;
+              }
+              return "l'agenda Google est lu pendant le tour: la spéculation sur la date partielle n'a pas pris (date non détectée dans le transcript partiel ?), ou jeton Google à renouveler";
+            })()
           : undefined,
       });
     }
