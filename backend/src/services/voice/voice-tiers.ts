@@ -167,7 +167,27 @@ export function entitledTier(profile: TierSource): VoiceTierId | null {
  */
 export function voiceModeFor(profile: TierSource): 'auto' | 'realtime' | 'classic' {
   const tier = entitledTier(profile);
-  return tier ? VOICE_TIERS[tier].voiceMode : 'auto';
+  if (tier) return VOICE_TIERS[tier].voiceMode;
+
+  /* RIEN DE CHOISI ET PAS LE DROIT = CLASSIQUE, jamais `auto` (19/09/2026).
+     `entitledTier` ne borne que ce qui a été CHOISI: quand `requestedTier`
+     rend `null`, il n'a rien à borner et le contrôle ne s'exécute pas. Le
+     mode retombait donc sur `auto`, c'est-à-dire sur `VOICE_SPEECH_TO_SPEECH`,
+     un réglage de PLATEFORME qui ne sait rien des forfaits.
+     Conséquence si ce drapeau passe un jour à `on`: tout client qui n'a jamais
+     touché le réglage bascule en parole-à-parole, Solo et Starter compris,
+     donc une minute dix fois plus chère sur un forfait qui ne l'inclut pas, et
+     personne pour l'apprendre avant la facture. Le commentaire d'`entitledTier`
+     dit que le contrôle est posé à la RÉSOLUTION précisément pour ça; il lui
+     manquait le cas où personne n'a rien demandé.
+     Rien ne change aujourd'hui: le défaut vaut `off`, donc `auto` rendait déjà
+     classique. C'est la porte qu'on ferme, pas le comportement.
+     `undefined` reste `auto`, et il le faut: l'absence de droit veut dire
+     « pas de contrôle » pour les deux appelants sans client derrière eux
+     (`voice:validate`, le banc d'essai). Seul un `false` explicite tranche. */
+  if (profile.superagentAllowed === false) return 'classic';
+
+  return 'auto';
 }
 
 /** Les curseurs du niveau SERVI. Rien de choisi: ceux de l'environnement. */

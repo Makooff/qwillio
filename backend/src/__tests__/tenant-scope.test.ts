@@ -48,8 +48,26 @@ describe('la portée décide du WHERE', () => {
  * le jour où quelqu'un s'en sert.
  */
 describe('les écritures du portail client portent leur portée', () => {
-  const CONTROLLER = join(__dirname, '..', 'controllers', 'client-dashboard.controller.ts');
-  const source = readFileSync(CONTROLLER, 'utf8');
+  /**
+   * PLUSIEURS FICHIERS, et c'est le 19/09/2026 qui l'a imposé.
+   *
+   * Ce garde-fou ne lisait QUE le contrôleur. Le jour où l'annulation d'un
+   * rendez-vous a été sortie de là — pour que l'agent vocal appelle la même
+   * fonction que le portail au lieu d'en recopier les quatre écritures — son
+   * `updateMany` a quitté le champ de vision du test, qui a continué de passer
+   * au vert. La règle n'avait pas changé, le fichier qui la portait, si.
+   *
+   * C'est 6sexvicies d'un cran plus haut: là, une leçon déplaçait un champ et
+   * le code qui le LIT comptait autant que celui qui l'écrit; ici, un
+   * refactoring déplace une ÉCRITURE, et le garde-fou doit la suivre. Tout
+   * fichier qui écrit pour le compte d'un client authentifié s'ajoute à cette
+   * liste, sans quoi le prochain extrait passera par le même trou.
+   */
+  const WRITERS = [
+    join(__dirname, '..', 'controllers', 'client-dashboard.controller.ts'),
+    join(__dirname, '..', 'services', 'booking-cancel.ts'),
+  ];
+  const source = WRITERS.map(f => readFileSync(f, 'utf8')).join('\n');
 
   /** Les appels d'écriture Prisma, avec le bloc `where` qui suit. */
   function writes(): Array<{ model: string; op: string; where: string }> {

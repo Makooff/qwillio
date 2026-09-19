@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { fillerFor } from '../voice-tools';
+import { fillerFor, KNOWN_TOOLS } from '../voice-tools';
 import type { VoiceLanguage } from '../speech-plans';
 
 /**
@@ -21,10 +21,10 @@ import type { VoiceLanguage } from '../speech-plans';
  * phrase venait d'une constante.
  */
 
-const TOOLS = [
-  'checkAvailability', 'bookAppointment', 'captureLead',
-  'lookupBooking', 'rescheduleBooking', 'lookupKnowledge',
-];
+/* La liste se LIT, elle ne se recopie pas. Elle était écrite à la main ici, et
+   un outil ajouté plus tard n'aurait donc jamais été relu par ce garde-fou: la
+   leçon vaut pour toute liste que deux endroits tiennent (6vicies). */
+const TOOLS: readonly string[] = KNOWN_TOOLS;
 const LANGS: VoiceLanguage[] = ['fr', 'en', 'nl'];
 
 /** Les formes exactes qui ont menti, gelées langue par langue. */
@@ -33,14 +33,21 @@ const INTERDIT: Record<VoiceLanguage, string[]> = {
     'je vous réserve', "j'enregistre", 'je déplace', 'je finalise',
     "c'est noté", "c'est fait", "c'est réservé", "j'ai bien",
     'je retrouve', "je mets l'agenda à jour",
+    /* 19/09/2026, avec l'outil d'annulation: « j'annule votre rendez-vous »
+       est la même faute que « je déplace votre rendez-vous », en pire. Un
+       appelant qui l'entend raccroche en croyant son créneau libéré, et le
+       commerce le garde. */
+    "j'annule", 'je supprime', "c'est annulé",
   ],
   en: [
     'lock that in', "i'm booking", 'let me move your', 'finishing the booking',
     'updating the calendar', 'got it,', 'let me find your',
+    "i'm cancelling", "i'm canceling", 'let me cancel your', "that's cancelled",
   ],
   nl: [
     'ik leg dat voor u vast', 'ik boek dat', 'ik verplaats uw afspraak',
     'genoteerd', 'ik rond de reservatie af', 'ik werk de agenda bij',
+    'ik annuleer', 'is geannuleerd',
   ],
 };
 

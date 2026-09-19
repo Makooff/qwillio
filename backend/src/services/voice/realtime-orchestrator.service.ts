@@ -596,6 +596,10 @@ class RealtimeOrchestratorService {
           moodNudge: session.moodNudge,
           toolCalls: session.toolCalls,
           bookingId: session.bookingId,
+          /* Le rendez-vous ANNULE en direct: sans lui, le post-appel relit la
+             transcription, y voit un rendez-vous et le RECREE, a la date que
+             l'appelant venait de liberer. */
+          cancelledBookingId: session.cancelledBookingId,
           lead: session.lead,
           leadActivityId: session.leadActivityId,
           medianTurnLatencyMs: median(session.turnLatencies),

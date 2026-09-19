@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
+import { voiceModeFor } from '../voice-tiers';
 
 /**
  * UNE règle décide du moteur, et tout le monde la lit.
@@ -43,5 +44,35 @@ describe('le moteur se lit par une seule règle', () => {
   it('la règle elle-même est la seule à lire le champ historique', () => {
     // `voice-tiers.ts` a le droit, et lui seul: c'est là que le repli vit.
     expect(source('services/voice/voice-tiers.ts')).toMatch(/profile\.voiceMode/);
+  });
+});
+
+/**
+ * LE DROIT SE CONTRÔLE AUSSI QUAND PERSONNE N'A RIEN CHOISI (19/09/2026).
+ *
+ * `entitledTier` ne borne que ce qui a été demandé. Sans choix, il rend `null`,
+ * le contrôle ne s'exécute pas, et le mode retombait sur `auto`, c'est-à-dire
+ * sur un réglage de plateforme qui ne sait rien des forfaits. Le jour où
+ * `VOICE_SPEECH_TO_SPEECH` passe à `on`, tout Solo et tout Starter qui n'a
+ * jamais touché le réglage bascule sur une minute dix fois plus chère.
+ */
+describe('le droit borne aussi le defaut', () => {
+  it('un client sans droit et sans choix est classique, pas auto', () => {
+    expect(voiceModeFor({ superagentAllowed: false })).toBe('classic');
+  });
+
+  it('un client AVEC droit et sans choix reste auto: le reglage global decide', () => {
+    expect(voiceModeFor({ superagentAllowed: true })).toBe('auto');
+  });
+
+  /* `undefined` veut dire « pas de contrôle », et c'est voulu: `voice:validate`
+     doit pouvoir soumettre les six variantes, le banc d'essai admin aussi. */
+  it("un droit ABSENT n'est pas un droit refuse", () => {
+    expect(voiceModeFor({})).toBe('auto');
+  });
+
+  it('un choix explicite reste borne par le droit, comme avant', () => {
+    expect(voiceModeFor({ voiceTier: 'superagent', superagentAllowed: false })).toBe('classic');
+    expect(voiceModeFor({ voiceTier: 'superagent', superagentAllowed: true })).toBe('realtime');
   });
 });

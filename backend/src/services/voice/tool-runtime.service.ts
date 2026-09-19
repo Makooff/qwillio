@@ -18,6 +18,13 @@ import { nameSimilarity, NAME_MATCH_THRESHOLD } from '../../utils/name-match';
 import { ymdOf } from '../../utils/zoned-time';
 import { dayWindow, nextOpenDay, minutesOf } from '../../utils/opening-hours';
 import { smsReadiness } from '../sms-ready';
+/* LA MEME FONCTION QUE LE PORTAIL. L'annulation est QUATRE ecritures
+   (evenement Google, statut, `googleEventId`, cache appelant) et en oublier
+   une ne se voit pas tout de suite: une ligne restee `confirmed` est celle
+   que l'agent relit, celle qui tient le creneau, et celle qui fera promettre
+   un SMS au prochain appel. Deux copies d'une meme decision divergent en
+   moins d'un mois (6vicies). */
+import { cancelBooking as cancelBookingRecord } from '../booking-cancel';
 
 /** Durée de validité de « ce client a un expéditeur SMS », lu en base sinon. */
 const SMS_SENDER_MEMO_MS = 5 * 60 * 1000;
@@ -541,6 +548,9 @@ class ToolRuntimeService {
         case 'rescheduleBooking':
           result = await this.rescheduleBooking(profile, vapiCallId, call.args);
           break;
+        case 'cancelBooking':
+          result = await this.cancelBooking(profile, vapiCallId, call.args);
+          break;
         case 'captureLead':
           result = await this.captureLead(profile, vapiCallId, call.args);
           break;
@@ -575,6 +585,18 @@ class ToolRuntimeService {
    */
   private degradedMessage(profile: ClientVoiceProfile, tool: string): string {
     const fr = profile.language === 'fr';
+    /* L'ANNULATION A SON PROPRE REPLI. Le message d'agenda parle de « confirmer
+       un creneau », ce qui ne veut rien dire pour quelqu'un qui annule, et
+       surtout ne dit pas l'essentiel: RIEN n'a ete annule. Un appelant qui
+       raccroche en croyant son rendez-vous annule ne rappellera pas, et le
+       commerce l'attendra. */
+    if (tool === 'cancelBooking') {
+      return fr
+        ? "RIEN N'EST ANNULE: l'annulation n'a pas pu etre enregistree. Dis-le clairement, ne dis pas que c'est annule, "
+          + 'propose de noter ses coordonnees pour que quelqu\'un s\'en occupe, puis appelle captureLead.'
+        : 'NOTHING IS CANCELLED: the cancellation could not be recorded. Say so plainly, do not say it is cancelled, '
+          + 'offer to take their details so someone handles it, then call captureLead.';
+    }
     if (tool === 'checkAvailability' || tool === 'bookAppointment' || tool === 'rescheduleBooking') {
       return fr
         ? 'AGENDA INDISPONIBLE: dis au correspondant que tu ne peux pas confirmer le creneau maintenant, propose de noter ses coordonnees pour un rappel rapide, puis appelle captureLead.'
@@ -947,12 +969,12 @@ class ToolRuntimeService {
         + ` N'appelle AUCUN outil pour cette phrase, tu as deja la reponse: ne dis pas que tu verifies, ne dis pas d'attendre.`
         + ` RESERVATION(S) DE CE CORRESPONDANT: ${lines.join(' ; ')}.`
         + ` Le nom ecrit ici est le sien: appelle-le ainsi, pas comme tu l'as entendu. S'il dit que ce n'est PAS lui, crois-le: demande son nom et rappelle lookupBooking avec ce nom.`
-        + ` S'IL VEUT LA DEPLACER, et seulement alors: demande la nouvelle date, checkAvailability, puis rescheduleBooking avec le nom EXACTEMENT tel qu'ecrit ici et currentDate. Jamais bookAppointment pour un deplacement.`
+        + ` S'IL VEUT LA DEPLACER, et seulement alors: demande la nouvelle date, checkAvailability, puis rescheduleBooking avec le nom EXACTEMENT tel qu'ecrit ici et currentDate. Jamais bookAppointment pour un deplacement. S'IL VEUT L'ANNULER: cancelBooking avec currentDate, jamais rescheduleBooking.`
       : `${lead}`
         + ` Call NO tool for this sentence, you already have the answer: do not say you are checking, do not ask them to wait.`
         + ` BOOKING(S) FOR THIS CALLER: ${lines.join(' ; ')}.`
         + ` The name written here is theirs: use it, not what you heard. If they say it is NOT them, believe them: ask their name and call lookupBooking again with it.`
-        + ` IF THEY WANT TO MOVE IT, and only then: ask for the new date, checkAvailability, then rescheduleBooking with the name EXACTLY as written here and currentDate. Never bookAppointment for a move.`;
+        + ` IF THEY WANT TO MOVE IT, and only then: ask for the new date, checkAvailability, then rescheduleBooking with the name EXACTLY as written here and currentDate. Never bookAppointment for a move. IF THEY WANT TO CANCEL IT: cancelBooking with currentDate, never rescheduleBooking.`;
   }
 
   /**
@@ -989,7 +1011,7 @@ class ToolRuntimeService {
   private bookingNotFoundReply(
     profile: ClientVoiceProfile,
     vapiCallId: string | null,
-    tool: 'lookupBooking' | 'rescheduleBooking',
+    tool: 'lookupBooking' | 'rescheduleBooking' | 'cancelBooking',
   ): string {
     const attempts = callSessionStore.noteToolFailure(vapiCallId, `${tool}:not-found`);
     const fr = profile.language === 'fr';
@@ -1017,7 +1039,7 @@ class ToolRuntimeService {
     profile: ClientVoiceProfile,
     callerNumber: string | null,
     args: Record<string, any>,
-  ): Promise<Array<{ id: string; customerName: string; bookingDate: Date; bookingTime: string | null; serviceType: string | null; googleEventId: string | null; score: number }>> {
+  ): Promise<Array<{ id: string; customerName: string; customerPhone: string | null; bookingDate: Date; bookingTime: string | null; serviceType: string | null; googleEventId: string | null; score: number }>> {
     const name = typeof args.customerName === 'string' ? normaliseSpelledName(args.customerName) : '';
     /* `currentDate`, jamais `date`: sur rescheduleBooking, `date` est la
        NOUVELLE date, pas celle du rendez-vous à retrouver. */
@@ -1222,6 +1244,121 @@ class ToolRuntimeService {
       }
     }
     await this.syncBookingToCalendar(clientId, bookingId);
+  }
+
+  // ── cancelBooking ───────────────────────────────────────────────────────
+
+  /**
+   * Annule le rendez-vous de l'appelant et libère le créneau.
+   *
+   * L'outil qui MANQUAIT. Appel réel du 19/09/2026: « je voudrais ANNULER
+   * celui du 22 », et l'agent a répondu « votre rendez-vous du 22 septembre
+   * est DEPLACE au vendredi 25 septembre à 14 heures ». Il n'a pas désobéi:
+   * il avait six outils, dont `rescheduleBooking`, et aucun pour annuler. Un
+   * agent privé d'un outil ne dit pas « je ne peux pas », il fait la chose la
+   * plus proche et l'annonce comme faite (6quindecies, où l'agent sans
+   * transfert proposait de prendre un message).
+   *
+   * Les écritures sont celles du portail, par la MÊME fonction: quatre, et en
+   * oublier une ne se voit qu'au prochain appel (voir `booking-cancel.ts`).
+   */
+  private async cancelBooking(
+    profile: ClientVoiceProfile,
+    vapiCallId: string | null,
+    args: Record<string, any>,
+  ): Promise<string> {
+    const session = callSessionStore.get(vapiCallId);
+    const candidates = await this.findCallerBookings(profile, session?.callerNumber ?? null, args);
+    if (!candidates.length) {
+      return this.bookingNotFoundReply(profile, vapiCallId, 'cancelBooking');
+    }
+
+    /* PLUS STRICT QUE LE DEPLACEMENT, et c'est voulu. `rescheduleBooking` ne
+       demande laquelle qu'en cas d'EGALITE de score; ici la moindre ambiguïté
+       suffit à s'arrêter, parce que les deux gestes ne se défont pas pareil:
+       un rendez-vous déplacé au mauvais endroit se redéplace, un rendez-vous
+       annulé par erreur ne se rattrape pas — l'agent n'a aucun outil pour
+       reprendre le créneau qu'il vient de rendre au public, et il peut très
+       bien être repris entre-temps. Avec plusieurs rendez-vous, il faut donc
+       que l'appelant ait NOMMÉ le jour, et qu'un seul y corresponde. */
+    const saidYmd = typeof args.currentDate === 'string' && parseDate(args.currentDate)
+      ? String(args.currentDate).trim()
+      : null;
+    let target = candidates[0];
+    if (candidates.length > 1) {
+      const named = saidYmd ? candidates.filter(b => ymdOf(b.bookingDate) === saidYmd) : [];
+      if (named.length !== 1) {
+        const list = candidates.slice(0, 3)
+          .map(b => `${b.customerName} ${spokenDate(b.bookingDate, profile.language, profile.timezone)}${b.bookingTime ? ` ${b.bookingTime}` : ''}`)
+          .join(' ; ');
+        return profile.language === 'fr'
+          ? `RIEN N'EST ANNULE. PLUSIEURS RESERVATIONS: ${list}. Demande laquelle annuler, puis rappelle cancelBooking avec currentDate (AAAA-MM-JJ) de celle-la. N'annonce aucune annulation avant.`
+          : `NOTHING IS CANCELLED. SEVERAL BOOKINGS: ${list}. Ask which one to cancel, then call cancelBooking again with that one's currentDate (YYYY-MM-DD). Announce no cancellation before that.`;
+      }
+      target = named[0];
+    }
+
+    /* UN INCONNU N'ANNULE PAS SUR UN NOM SEUL.
+       `findCallerBookings` cherche AUSSI par ressemblance de nom, sur toutes
+       les reservations a venir du commerce, et le seuil est a 0,6 parce qu'un
+       nom ENTENDU est toujours approximatif (« de la Ford », « Delaforde » et
+       « de la foireux » sont tous « de la forge »). C'est ce qu'il faut pour
+       RETROUVER un rendez-vous; c'est beaucoup trop lache pour en SUPPRIMER
+       un. Sans cette garde, un appel depuis un numero inconnu qui prononce un
+       nom plausible libere le creneau de quelqu'un d'autre, et ni le titulaire
+       ni le commerce n'apprennent quoi que ce soit avant le jour dit.
+       Le numero de l'appelant, lui, est une preuve: il n'est pas choisi par
+       celui qui parle. A defaut, on exige qu'il ait NOMME le jour — ce que
+       celui qui a vraiment pris le rendez-vous sait, et ce qu'un appel depuis
+       une autre ligne (le cas legitime) coute alors: une phrase. */
+    const byNumber = !!target.customerPhone
+      && !!session?.callerNumber
+      && phoneForms(session.callerNumber).includes(target.customerPhone);
+    if (!byNumber && (!saidYmd || ymdOf(target.bookingDate) !== saidYmd)) {
+      return profile.language === 'fr'
+        ? "RIEN N'EST ANNULE: cet appel ne vient pas du numero de la reservation. Demande la DATE exacte du rendez-vous a annuler, puis rappelle cancelBooking avec currentDate (AAAA-MM-JJ). N'annonce aucune annulation avant."
+        : "NOTHING IS CANCELLED: this call is not from the number on the booking. Ask for the exact DATE of the appointment to cancel, then call cancelBooking again with currentDate (YYYY-MM-DD). Announce no cancellation before that.";
+    }
+
+    const outcome = await cancelBookingRecord(profile.clientId, target.id);
+    if (!outcome.ok) {
+      return this.bookingNotFoundReply(profile, vapiCallId, 'cancelBooking');
+    }
+
+    /* LE POST-APPEL NE DOIT PAS LE RECRÉER. `analyzeClientCallTranscript` lit
+       « rendez-vous du 22 septembre » dans la transcription et crée une ligne
+       quand rien ne dit qu'elle a déjà été traitée en direct: l'appelant
+       aurait annulé, puis reçu un SMS de confirmation pour le rendez-vous
+       qu'il venait d'annuler. C'est le doublon du 12/09/2026 (6trigesies)
+       retourné, et il se ferme au même endroit. */
+    callSessionStore.markCancelled(vapiCallId, target.id);
+    /* Le créneau rendu au public: la spéculation d'agenda le tient encore pour
+       pris sinon, et l'appelant suivant s'entendrait refuser une heure libre. */
+    availabilitySpeculator.invalidate(profile.clientId, target.bookingDate);
+
+    const day = spokenDate(target.bookingDate, profile.language, profile.timezone);
+    const at = target.bookingTime ? ` ${profile.language === 'fr' ? 'a' : 'at'} ${target.bookingTime}` : '';
+
+    /* IDEMPOTENT, et ce n'est pas du confort: le modèle rappelle un outil avec
+       les mêmes arguments, c'est le comportement connu de ce chemin
+       (6sexquadragesies, neuf appels d'affilée). Le second appel ne refait
+       aucune écriture et ne doit pas se lire comme un échec, sinon le modèle
+       cherche une autre voie pour un geste déjà accompli. */
+    if (outcome.alreadyCancelled) {
+      return profile.language === 'fr'
+        ? `DEJA ANNULE: le rendez-vous de ${target.customerName}, le ${day}${at}, est deja annule. N'appelle PLUS cancelBooking. Confirme simplement a voix haute et demande s'il faut autre chose.`
+        : `ALREADY CANCELLED: ${target.customerName}'s appointment on ${day}${at} is already cancelled. Do NOT call cancelBooking again. Just confirm out loud and ask if they need anything else.`;
+    }
+
+    /* LA PHRASE A DIRE EN PREMIER (19/09/2026): un fait suivi de cinq phrases
+       de procédure a fait tenir la réponse soixante-huit secondes. */
+    return profile.language === 'fr'
+      ? `DIS CECI MAINTENANT, a voix haute: « C'est annule, votre rendez-vous du ${day}${at}. »`
+        + ` N'appelle AUCUN outil pour cette phrase: c'est fait, le creneau est libere.`
+        + ` S'IL VEUT UNE AUTRE DATE, et seulement alors: checkAvailability puis bookAppointment. Demande ensuite s'il faut autre chose.`
+      : `SAY THIS NOW, out loud: "That is cancelled, your appointment on ${day}${at}."`
+        + ` Call NO tool for this sentence: it is done, the slot is released.`
+        + ` IF THEY WANT ANOTHER DATE, and only then: checkAvailability then bookAppointment. Then ask if they need anything else.`;
   }
 
   // ── captureLead ─────────────────────────────────────────────────────────

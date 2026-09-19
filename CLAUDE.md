@@ -2282,6 +2282,87 @@ recevait un bloc ANGLAIS pose au milieu d'une conversation neerlandaise — ce q
 est precisement ce qui fait deriver le modele vers l'anglais quand il perd le
 fil.
 
+### 6septsexagesies. L'agent DEPLACAIT ce qu'on lui demandait d'annuler (19/09/2026)
+Appel reel, mot pour mot: « Je voudrais ANNULER celui du 22. » — « Votre
+rendez-vous du 22 septembre est DEPLACE au vendredi 25 septembre a 14 heures. »
+Le modele n'a pas desobei: il avait six outils, dont `rescheduleBooking`, et
+AUCUN pour annuler. C'est 6quindecies mot pour mot, ou l'agent sans outil de
+transfert proposait de prendre un message, « ce qui ressemble a un choix ». **Un
+agent prive d'un outil ne dit jamais « je ne peux pas »: il fait la chose la plus
+proche et l'annonce comme faite.**
+Le detail qui rendait le defaut invisible en lisant le code: la description de
+`lookupBooking` annonce elle-meme « to confirm, move or CANCEL one ». **La
+surface d'outils PROMETTAIT l'annulation**, et le retour de cet outil ne
+decrivait que le deplacement, donc le seul chemin ecrit sous les yeux du modele,
+au moment ou il lit, etait le mauvais.
+Ce que ca coute sans que personne ne regarde: le commerce garde un creneau que
+le client croyait libere, et le client recoit un SMS de confirmation pour un
+rendez-vous qu'il vient d'annuler.
+**Une fonction PARTAGEE, pas une copie.** L'annulation n'est pas une ecriture,
+c'en est QUATRE (l'evenement Google, le statut que `findCallerBookings` relit,
+`googleEventId` remis a null, le cache appelant) et en oublier une ne se voit
+qu'au prochain appel. `services/booking-cancel.ts` les porte, le portail y passe
+desormais et l'agent aussi (6vicies, deja paye sur la langue, la voix, le niveau
+et les outils).
+**L'ambiguite ARRETE, et c'est plus strict que le deplacement.**
+`rescheduleBooking` ne demande laquelle qu'en cas d'EGALITE de score; ici la
+moindre ambiguite suffit a s'arreter, parce que les deux gestes ne se defont pas
+pareil: un rendez-vous deplace se redeplace, un rendez-vous annule par erreur ne
+se rattrape pas — l'agent n'a aucun outil pour reprendre le creneau qu'il vient
+de rendre au public. Avec plusieurs rendez-vous, il faut donc que l'appelant ait
+NOMME le jour, et qu'un seul y corresponde.
+**UN INCONNU N'ANNULE PAS SUR UN NOM SEUL.** `findCallerBookings` cherche aussi
+par RESSEMBLANCE de nom (seuil 0,6) sur toutes les reservations a venir du
+commerce: il le faut pour retrouver « de la forge » derriere « de la Ford ».
+C'est beaucoup trop lache pour en SUPPRIMER un. Sans garde, un appel depuis un
+numero inconnu qui prononce un nom plausible libere le creneau de quelqu'un
+d'autre, et ni le titulaire ni le commerce ne l'apprennent avant le jour dit. Le
+numero appelant est une preuve — il n'est pas choisi par celui qui parle; a
+defaut, on exige la DATE exacte, que celui qui a pris le rendez-vous connait. Le
+cas legitime (rappeler depuis une autre ligne) coute une phrase.
+**Et un repli qui ECHOUE ne se lit pas comme un succes.** Le message d'agenda
+generique parle de « confirmer un creneau », ce qui ne veut rien dire pour
+quelqu'un qui annule et tait l'essentiel; l'annulation a le sien, qui commence
+par « RIEN N'EST ANNULE ».
+**Le defaut le plus couteux est au RACCROCHE, pas pendant l'appel.** Le
+post-appel relit la transcription et cree une ligne des qu'il y voit un
+rendez-vous demande. Or un appelant qui annule parle forcement du sien: date,
+heure et nom, exactement ce que l'analyse cherche. Sans garde, il raccrochait,
+sa ligne etait annulee, et le post-appel lui en ecrivait une NEUVE au meme
+creneau, SMS de confirmation compris. C'est le doublon du 12/09 (6trigesies)
+retourne, et il se ferme au meme endroit: `cancelledBookingId` voyage de la
+session aux metriques puis au webhook, et sa branche passe AVANT la creation —
+placee apres, elle ne serait jamais atteinte. `bookingConfirmed` y reste FAUX:
+l'appelant repart SANS rendez-vous, et la notification du gerant doit dire cela.
+**Trois endroits nomment le chemin, chacun pour une raison differente.** Le
+RESULTAT de `lookupBooking` (c'est la que le modele decide, et ca ne coute rien
+au prompt rejoue a chaque tour), le BRIEF d'ouverture (l'appelant connu trouve sa
+reponse sans le moindre outil) et le PROMPT, dans les trois langues. La ligne du
+prompt a ete RESSERREE pour tenir sous le plafond (+13 caracteres au lieu de
++101): la consigne « seulement apres confirmation » vit dans la DESCRIPTION de
+l'outil, qui est mise en cache avec les definitions et ne coute rien.
+**Le garde-fou d'isolation a du suivre l'ecriture.** `tenant-scope.test.ts` ne
+lisait que `client-dashboard.controller.ts`; sortir l'annulation du controleur a
+fait quitter son `updateMany` du champ de vision du test, **qui a continue de
+passer au vert**. C'est 6sexvicies d'un cran plus haut: la, une lecon deplacait
+un champ et le code qui le LIT comptait autant; ici un refactoring deplace une
+ECRITURE, et le garde-fou doit la suivre. Il lit desormais une LISTE de fichiers,
+et la forme fautive a ete reintroduite une fois pour verifier qu'il tombe.
+Au passage: `availabilitySpeculator.invalidate(clientId, jour)` rend le creneau
+a la lecture d'agenda. Le cache tient 30 s, soit la duree d'une fin de
+conversation, et sans ce retrait « finalement, ce creneau, c'est possible ? »
+s'entend refuser par une lecture faite AVANT l'annulation — meme famille qu'une
+fermeture inventee (6duoquinquagesies). Et la table `FILLER` interdit desormais
+« j'annule votre rendez-vous » comme elle interdisait « je deplace »: c'est pire
+ici, l'appelant qui l'entend raccroche en croyant son creneau libere. La liste
+d'outils du test de phrases d'attente se LIT sur `KNOWN_TOOLS` au lieu d'etre
+recopiee, sinon le prochain outil ajoute echapperait au garde-fou.
+**Apres deploiement**: `npm run voice:validate` (l'outil entre dans la sonde par
+`buildVoiceTools`, donc il est soumis a l'API vivante sans rien ajouter au
+script, 6quatersexagesies) puis `voice:resync --confirm`, sans quoi l'assistant
+ENREGISTRE — celui qui decroche sur une ligne dediee — garde ses six outils et
+continuera de deplacer ce qu'on lui demande d'annuler.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).
