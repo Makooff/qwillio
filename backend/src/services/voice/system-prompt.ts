@@ -136,11 +136,34 @@ export function buildSystemPrompt(
   const lines: string[] = [];
 
   // ── Identity ──
+  /* L'IDENTITÉ S'ARRÊTAIT À UN INTITULÉ DE POSTE (19/09/2026).
+     Retour après un appel réel sur la chaîne classique: « elle marche bien en
+     général, mais pas hyper réaliste, manque de personnalité, trop robotique ».
+     Ce que le prompt disait alors: un nom, un métier, une entreprise, puis NEUF
+     interdictions (jamais de liste, ne répète pas, ne devine pas, n'invente
+     pas, ne l'annonce pas, ne prononce jamais...) et pas une ligne sur la
+     personne. Un modèle à qui l'on ne dit que ce qu'il ne doit pas faire parle
+     exactement comme ça: prudemment, platement, en procédure. Le registre
+     robotique n'était pas un défaut de synthèse, c'était une absence de
+     consigne.
+     Deux lignes, et elles sont choisies pour ce qu'elles font ENTENDRE:
+       - le « nous » est le seul mot qui distingue quelqu'un qui travaille là
+         d'un service de renseignements. « On est ouvert jusqu'à 18 h » est la
+         seule réplique du relevé du 17/09 que personne n'a reprochée;
+       - « jamais de ton commercial » ferme la dérive que la chaleur ouvre, et
+         il le faut: un agent chaleureux sans cette borne devient mielleux, ce
+         qui s'entend encore plus faux que plat.
+     Aucun verbe qui demande d'AJOUTER une réplique, et c'est délibéré: « réagis
+     à ce qu'on te dit » a été écrit puis retiré ici même. Il fabriquerait un
+     « ah d'accord, je comprends » par tour, c'est-à-dire plus de mots et plus
+     d'attente, quand l'autre moitié du retour est « légèrement trop lent ».
+     C'est le piège de 6quinquies: une glose qui se lit comme une consigne
+     produit un geste que personne n'a demandé. */
   lines.push(
     t(
-      `Tu es ${profile.agentName}, réceptionniste de ${profile.businessName} (${profile.businessType}). Tu réponds au téléphone.`,
-      `You are ${profile.agentName}, the receptionist at ${profile.businessName} (${profile.businessType}). You are answering the phone.`,
-      `Je bent ${profile.agentName}, de receptionist van ${profile.businessName} (${profile.businessType}). Je neemt de telefoon op.`,
+      `Tu es ${profile.agentName}, réceptionniste de ${profile.businessName} (${profile.businessType}). Tu réponds au téléphone. Tu fais partie de la maison: dis « nous », « chez nous », jamais « l'entreprise ». Chaleur et franchise, jamais de ton commercial ni de politesse de façade.`,
+      `You are ${profile.agentName}, the receptionist at ${profile.businessName} (${profile.businessType}). You are answering the phone. You work here: say "we" and "us", never "the business". Warm and straight, never salesy, never scripted politeness.`,
+      `Je bent ${profile.agentName}, de receptionist van ${profile.businessName} (${profile.businessType}). Je neemt de telefoon op. Je hoort erbij: zeg « we » en « bij ons », nooit « het bedrijf ». Hartelijk en direct, nooit commercieel of aangeleerd beleefd.`,
     )
   );
 
@@ -180,6 +203,13 @@ export function buildSystemPrompt(
            s'entend comme une annonce. */
         '- Débit d\'une conversation, pas d\'une annonce: varie le rythme, laisse la voix retomber en fin de phrase.',
         '- Ne répète pas ce que la personne vient de dire.',
+        /* LA RÉPÉTITION DE FORMULES EST LE PLUS FORT DES SIGNAUX DE MACHINE,
+           et le dépôt en porte déjà deux relevés: « Je déplace votre
+           rendez-vous » SEPT fois (16/09), et « un instant, je vérifie »
+           pendant soixante-huit secondes (19/09). Les deux ont été traités
+           par leur cause propre (la table FILLER, la forme du résultat
+           d'outil); aucun n'a jamais dit au modèle de varier. */
+        '- Ne redis pas deux fois la même tournure dans un appel.',
         /* Le VOUVOIEMENT, dit explicitement, et il ne va pas de soi.
            Tout ce prompt s'adresse au modèle en « tu », comme une consigne
            s'écrit; le modèle reprend ce registre et le retourne à l'appelant
@@ -219,6 +249,7 @@ export function buildSystemPrompt(
         '- Spoken English, natural contractions: run words together, do not over-enunciate.',
         '- Conversation pace, not announcement pace: vary the rhythm, let your voice fall at the end of a sentence.',
         '- Do not repeat back what the caller just said.',
+        '- Do not use the same phrasing twice in one call.',
         '- If you get interrupted, stop and listen.',
         '- Never speak a technical tag, code, or anything in brackets.',
         '- A caller you do not know spells their family name; never guess it.',
@@ -230,6 +261,7 @@ export function buildSystemPrompt(
         '- Spreektaal, natuurlijk Nederlands: laat woorden in elkaar overlopen, articuleer niet overdreven.',
         '- Gesprekstempo, geen omroepbericht: varieer je ritme, laat je stem dalen aan het eind van een zin.',
         '- Herhaal niet wat de beller net zei.',
+        '- Gebruik niet twee keer dezelfde formulering in één gesprek.',
         // Même règle, même raison: « u » et non « je », même si la personne tutoie.
         '- Spreek de beller altijd aan met « u », ook als hij je tutoyeert.',
         '- Word je onderbroken, stop dan en luister.',

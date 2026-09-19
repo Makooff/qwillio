@@ -55,6 +55,38 @@ describe('buildSystemPrompt', () => {
     expect(prompt).toMatch(/après son retour RESERVE, jamais avant/);
   });
 
+  /**
+   * LE REGISTRE, GELÉ (19/09/2026).
+   *
+   * Sans ce test, ces deux lignes sont les premières qu'un resserrage de
+   * prompt retire: elles ne portent aucune règle métier, aucun outil, et rien
+   * ne tombe quand elles disparaissent. C'est exactement pour ça qu'il faut
+   * les tenir: le défaut qu'elles réparent ne se voit qu'à l'oreille, sur un
+   * appel réel, et il a coûté un retour utilisateur pour être nommé.
+   */
+  it("dit QUI parle, pas seulement quel poste elle occupe", () => {
+    const prompt = buildSystemPrompt(profile, newCaller);
+    // Quelqu'un qui travaille là, pas un service de renseignements.
+    expect(prompt).toContain('« nous »');
+    expect(prompt).toMatch(/jamais « l'entreprise »/);
+    // La borne sans laquelle la chaleur devient mielleuse.
+    expect(prompt).toMatch(/jamais de ton commercial/);
+    // Le plus fort des signaux de machine: la formule qui revient.
+    expect(prompt).toMatch(/Ne redis pas deux fois la même tournure/);
+  });
+
+  /**
+   * Un verbe qui demande d'AJOUTER une réplique fabrique un « ah d'accord, je
+   * comprends » par tour, c'est-à-dire plus de mots et plus d'attente, quand
+   * l'autre moitié du même retour est « légèrement trop lent ». La formulation
+   * a été écrite puis retirée ici même; ce test empêche de la reposer.
+   */
+  it("ne demande nulle part d'ajouter une réplique d'accusé de réception", () => {
+    const prompt = buildSystemPrompt(profile, newCaller);
+    expect(prompt).not.toMatch(/[Rr]éagis à ce qu/);
+    expect(prompt).not.toMatch(/avant de répondre/);
+  });
+
   it('carries the client instructions and marks them as taking priority', () => {
     const prompt = buildSystemPrompt(profile, newCaller);
     expect(prompt).toContain('Ne jamais donner les prix');
@@ -172,7 +204,24 @@ describe('buildSystemPrompt', () => {
        gagne — la mettre dans le brief, c'est la remettre du côté qui perd.
        À noter pour la prochaine fois: la marge était d'UN caractère (3499),
        donc n'importe quelle ligne l'aurait fait tomber. */
-    expect(buildSystemPrompt(profile, newCaller).length).toBeLessThan(3700);
+    /* 3900: l'agent n'avait pas de PERSONNE (19/09/2026). Retour après un
+       appel réel sur la chaîne classique: « marche bien en général, mais pas
+       hyper réaliste, manque de personnalité, trop robotique ». Le prompt
+       portait alors un nom, un métier, NEUF interdictions, et pas une ligne
+       sur qui parle. Un modèle à qui l'on ne dit que ce qu'il ne doit pas
+       faire parle prudemment et platement: le registre robotique était une
+       absence de consigne, pas un défaut de synthèse.
+       CE QUE CETTE MONTÉE COÛTE VRAIMENT, et c'est la raison pour laquelle
+       elle est plus large que les précédentes: le motif du plafond
+       (« rejoué à chaque tour ») est réel mais PLUS FAIBLE qu'au jour où il
+       a été posé. Le préfixe est mis en cache par OpenAI dès que prompt et
+       définitions d'outils dépassent 4 000 caractères (`cacheablePrefixChars`),
+       les outils y suffisent seuls, et le taux relevé le 16/09 est de 76 %.
+       214 caractères ajoutés à un préfixe caché ne se paient ni en jetons
+       pleins ni en délai avant le premier mot. Le plafond reste, parce qu'un
+       prompt qui enfle dilue l'attention du modèle, ce que le cache ne répare
+       pas; il n'est simplement plus le garde-fou de latence qu'il était. */
+    expect(buildSystemPrompt(profile, newCaller).length).toBeLessThan(3900);
   });
 
   it('injects the pre-rendered knowledge block when one is supplied', () => {
@@ -273,7 +322,7 @@ describe('les règles de transfert, réglées par le client', () => {
   it('ne fait pas grossir le prompt, qui est rejoué à chaque tour', () => {
     // Les trois variantes tiennent la même longueur à quelques caractères près.
     const tailles = (['always', 'hours', 'never'] as const).map(m => withMode(m).length);
-    expect(Math.max(...tailles)).toBeLessThan(3700);
+    expect(Math.max(...tailles)).toBeLessThan(3900);
     expect(Math.max(...tailles) - Math.min(...tailles)).toBeLessThan(30);
   });
 });
