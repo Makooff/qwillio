@@ -107,7 +107,34 @@ function nameWords(name: string): string[] {
   return name.trim().split(/\s+/).filter(w => w && !TITLES.test(w));
 }
 
-export function isPlaceholderName(name: string): boolean {
+/**
+ * LE NOM DE L'AGENT ET CELUI DU COMMERCE SONT DES REMPLISSAGES (19/09/2026).
+ *
+ * Relevé sur un compte réel: TROIS rendez-vous au nom de « Marc De La Foi »,
+ * une mémoire d'appelant sous ce nom, et un brief d'ouverture qui annonçait
+ * « Il s'appelle probablement Marc De La Foi » à chaque appel. L'agent de ce
+ * client s'appelle **Marc** et se présente par « Demtalix, bonjour. Je suis
+ * Marc, votre assistant IA ».
+ *
+ * D'où ça vient: l'analyse de fin d'appel lit le TRANSCRIPT, qui contient
+ * toujours cette phrase, et rend `callerName`. Sur un appel de quatre secondes
+ * où l'appelant n'a RIEN dit, le seul nom propre du transcript est celui de
+ * l'agent. Elle l'a donc rendu, et `nameCollected` l'a écrit sans garde.
+ *
+ * Ensuite tout s'empoisonne en chaîne: la mémoire d'appelant porte ce nom, le
+ * brief le dit au modèle, le modèle réserve sous ce nom, et `lookupBooking`
+ * ne retrouve plus le VRAI nom de l'appelant.
+ *
+ * La liste statique ne pouvait pas l'attraper: « Marc » est un prénom
+ * parfaitement valide. Ce qui le disqualifie n'est pas sa forme, c'est QUI il
+ * désigne, donc la garde doit recevoir les noms de ce client-là.
+ *
+ * Comparaison par MOT et non sur la chaîne entière: « Marc De La Foi » n'est
+ * égal ni à « Marc » ni à « Demtalix », et c'est pourtant le nom de l'agent
+ * collé à un nom de famille estropié. Un nom dont le PREMIER mot est celui de
+ * l'agent vient de l'accueil, pas de l'appelant.
+ */
+export function isPlaceholderName(name: string, ownNames: readonly string[] = []): boolean {
   const words = nameWords(name);
   if (words.length === 0) return true;
   const joined = words.map(fold).join(' ');
@@ -115,7 +142,24 @@ export function isPlaceholderName(name: string): boolean {
   /* « le client », « un inconnu », « the caller ». */
   const stripped = joined.replace(/^(le|la|l'|un|une|the|a|an|de|het|een)\s+/, '');
   if (PLACEHOLDERS.has(stripped)) return true;
-  return !words.some(w => /\p{L}/u.test(w));
+  if (!words.some(w => /\p{L}/u.test(w))) return true;
+
+  const own = ownNames
+    .filter((n): n is string => typeof n === 'string' && n.trim().length > 0)
+    .map(n => nameWords(n).map(fold))
+    .filter(w => w.length > 0);
+  if (own.length) {
+    const said = words.map(fold);
+    for (const parts of own) {
+      /* Le nom entier du client (« Demtalix »), ou le nom de l'agent en tête:
+         « Marc », « Marc De La Foi ». Un appelant qui s'appelle vraiment Marc
+         donne un nom de famille qui n'est pas celui de l'agent, et il n'est
+         de toute façon pas nommé par l'ACCUEIL. */
+      if (parts.every(p => said.includes(p))) return true;
+      if (said[0] === parts[0] && parts[0].length >= 3) return true;
+    }
+  }
+  return false;
 }
 
 /** Prénom ET nom de famille: au moins deux mots portant des lettres. */
@@ -128,9 +172,9 @@ export function hasFamilyName(name: string): boolean {
  * de famille. Un nom épelé lettre par lettre est d'abord recollé par l'appelant.
  */
 export type NameProblem = 'missing' | 'placeholder' | 'firstOnly' | null;
-export function nameProblem(name: string): NameProblem {
+export function nameProblem(name: string, ownNames: readonly string[] = []): NameProblem {
   if (!name.trim()) return 'missing';
-  if (isPlaceholderName(name)) return 'placeholder';
+  if (isPlaceholderName(name, ownNames)) return 'placeholder';
   if (!hasFamilyName(name)) return 'firstOnly';
   return null;
 }
