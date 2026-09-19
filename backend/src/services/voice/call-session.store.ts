@@ -191,6 +191,23 @@ export interface CallSession {
   interruptedSpeechMs: number | null;
   /** La retenue de la phrase de reprise: au plus deux par appel, jamais deux d'affilée. */
   repair: RepairState;
+  /**
+   * L'adresse de CONTRÔLE de l'appel, retenue dès qu'un événement la porte.
+   *
+   * C'est par elle que passe tout ce qu'on dit au modèle PENDANT l'appel
+   * (`add-message`), et elle ne vit que dans l'événement de Vapi. Le brief
+   * d'ouverture la lisait sur l'événement qu'il tenait; un message posé plus
+   * tard n'a pas cette chance, et « SANS ADRESSE DE CONTROLE » est un mode
+   * d'échec déjà relevé. Retenue ici, elle survit à un événement qui ne la
+   * porte pas.
+   */
+  controlUrl: string | null;
+  /**
+   * L'issue du bloc d'HUMEUR posé en cours d'appel, ou `null` s'il n'y avait
+   * rien à poser. Même rôle que `callBrief`: un mécanisme qui n'a jamais été
+   * VU atteindre un appel réel n'est pas prouvé (6octovicies).
+   */
+  moodNudge: string | null;
 }
 
 /** A slot promised on a live call, so a parallel call cannot double-book it. */
@@ -300,6 +317,8 @@ class CallSessionStore {
       pendingHardBargeIn: false,
       interruptedSpeechMs: null,
       repair: newRepairState(),
+      controlUrl: null,
+      moodNudge: null,
     };
     this.sessions.set(input.vapiCallId, session);
     this.notePeak(input.clientId);
@@ -394,6 +413,26 @@ class CallSessionStore {
     const session = this.get(vapiCallId);
     if (!session) return;
     session.llmFailures.push(reason.slice(0, 200));
+  }
+
+  /**
+   * Retient l'adresse de contrôle. Ne l'ÉCRASE PAS par une absence: tous les
+   * événements ne la portent pas, et la perdre en cours d'appel rendrait muet
+   * tout ce qui parle au modèle après l'accueil.
+   */
+  noteControlUrl(vapiCallId: string | null, url: string | null): void {
+    const session = this.get(vapiCallId);
+    if (session && url) session.controlUrl = url;
+  }
+
+  controlUrlFor(vapiCallId: string | null): string | null {
+    return this.get(vapiCallId)?.controlUrl ?? null;
+  }
+
+  /** Voir `moodNudge`: « pose (upset) », « REFUSE: 404 », « sans adresse ». */
+  noteMoodNudge(vapiCallId: string | null, outcome: string): void {
+    const session = this.get(vapiCallId);
+    if (session) session.moodNudge = outcome.slice(0, 120);
   }
 
   /** Voir `callBrief`: « pose (3 rendez-vous) », « refuse: 404 », « sans adresse ». */

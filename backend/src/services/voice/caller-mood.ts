@@ -96,6 +96,30 @@ export function moodPromptBlock(mood: CallerMood, lang: VoiceLanguage): string {
   if (mood === 'neutral') return '';
   const fr = lang === 'fr';
 
+  /* LE NÉERLANDAIS TOMBAIT DANS LA BRANCHE ANGLAISE (19/09/2026).
+     `fr ? ... : ...` n'a que deux issues, et `nl` est une langue servie. Un
+     client flamand recevait donc un bloc ANGLAIS posé au milieu d'une
+     conversation néerlandaise — et c'est précisément ce qui fait basculer le
+     modèle vers l'anglais quand il perd le fil (6novoquinquagesies, « au
+     revoir, d'un coup il passe en anglais »). Une consigne écrite dans une
+     autre langue que la conversation ne coûte pas que sa lisibilité. */
+  if (lang === 'nl') {
+    return mood === 'upset'
+      ? [
+          'TOESTAND VAN DE BELLER: ontevreden.',
+          '- Korte zinnen. Geen enthousiasme, geen verkooptaal.',
+          '- Erken het probleem één keer; blijf je niet verontschuldigen.',
+          '- Vraag niets wat ze al verteld hebben.',
+          '- Bied een doorverbinding naar een mens aan zodra dat relevant is.',
+        ].join('\n')
+      : [
+          'TOESTAND VAN DE BELLER: gehaast.',
+          '- Kom meteen ter zake. Hoogstens één zin per beurt.',
+          '- Bied geen extra opties aan; bied de meest waarschijnlijke aan.',
+          '- Sla de beleefdheden over.',
+        ].join('\n');
+  }
+
   if (mood === 'upset') {
     return fr
       ? [

@@ -11,7 +11,7 @@ import { buildVoiceTools } from './voice-tools';
 import { buildSystemPrompt, firstMessageVariants, ensureDisclosure, hasAiDisclosure } from './system-prompt';
 import { greetingAudioService } from './greeting-audio.service';
 import { routeIntent } from './intent-router';
-import { assessMood } from './caller-mood';
+import { assessMood, moodPromptBlock, type CallerMood } from './caller-mood';
 import { availabilitySpeculator, detectDate } from './availability-speculator';
 import { warmTransferService } from './warm-transfer.service';
 import { forwardingProofService } from './forwarding-proof.service';
@@ -316,6 +316,11 @@ class RealtimeOrchestratorService {
         callerNumber: callerNumberOf(event),
         language: profile?.language ?? 'en',
       });
+      /* L'adresse de CONTRÔLE, retenue: c'est par elle que passe tout ce qu'on
+         dira au modèle après l'accueil, et tous les événements ne la portent
+         pas. Le brief la lit sur l'événement qu'il tient; ce qui vient plus
+         tard n'a que celle-ci. */
+      callSessionStore.noteControlUrl(vapiCallId, controlUrlOf(event));
       /* Pendant que l'accueil se dit, les lectures que le PREMIER tour et la
          réservation paieraient sinon sur le chemin de la réponse: l'historique
          de l'appelant (trois requêtes) et l'expéditeur SMS du client. Sans
@@ -409,6 +414,18 @@ class RealtimeOrchestratorService {
     if (assessed.mood !== session.mood) {
       callSessionStore.setMood(vapiCallId, assessed.mood);
       logger.info(`[Voice] caller mood → ${assessed.mood} (${assessed.signals.join(', ')})`);
+      /* ET ON LE DIT AU MODÈLE, ce qui n'était pas fait sur ce chemin-ci.
+         `moodPromptBlock` n'avait qu'UN consommateur, `llm-stream`, qui le
+         repose à chaque tour — et qui ne tourne pas en parole-à-parole
+         (6quaterquadragesies). L'humeur y était donc mesurée, escaladée,
+         journalisée, et jamais lue: un appelant énervé recevait exactement le
+         même accueil qu'un appelant calme. Encore un fait produit que personne
+         n'ouvre, et celui-là s'entend.
+         Même canal que le brief d'ouverture, le seul qui ait été VU atteindre
+         un appel réel sur ce chemin. Borné par construction: l'humeur ne fait
+         que MONTER et ne compte que trois niveaux, donc au plus deux envois par
+         appel, et aucun sur un appel ordinaire. */
+      void postMoodNudge(session.clientId, vapiCallId, assessed.mood, session.language);
     }
 
     // The caller just named a day: start the calendar read now rather than
@@ -572,6 +589,11 @@ class RealtimeOrchestratorService {
              ligne, « il ne me reconnaît pas » ne distingue pas un brief qui
              n'est pas parti d'un modèle qui l'ignore. */
           callBrief: session.callBrief,
+          /* Le bloc d'humeur: posé, refusé, ou rien à poser. Même raison que
+             la ligne au-dessus — sans elle, « il m'a parlé comme un robot
+             alors que j'étais énervé » ne distingue pas le bloc qui n'est pas
+             parti du bloc parti que le modèle ignore. */
+          moodNudge: session.moodNudge,
           toolCalls: session.toolCalls,
           bookingId: session.bookingId,
           lead: session.lead,
@@ -785,6 +807,56 @@ export function warmCallerContext(clientId: string, callerNumber: string | null)
  * `add-message` n'a pas encore été vu tenir sur un appel réel — un mécanisme
  * qui n'a jamais atteint un appel n'est pas prouvé (6quinquetrigesies).
  */
+/**
+ * LE BLOC D'HUMEUR, posé dans la conversation quand l'humeur CHANGE.
+ *
+ * `moodPromptBlock` décrit comment parler à quelqu'un d'énervé ou de pressé:
+ * phrases courtes, pas d'enthousiasme, ne pas redemander ce qui a déjà été
+ * dit, proposer un humain tôt. Il n'avait qu'UN consommateur, `llm-stream`,
+ * qui ne tourne pas en parole-à-parole ni chez un client dont `customLlm` est
+ * éteint. Sur ces chemins, `assessMood` tournait à chaque tour, escaladait,
+ * écrivait dans les journaux, et rien ne le lisait.
+ *
+ * `needsCallBrief` est LA lecture de « `llm-stream` tourne-t-il ? », et c'est
+ * volontairement la même que celle du brief d'ouverture: deux règles écrites
+ * à la main pour la même question divergent en moins d'un mois (6vicies). Sur
+ * le chemin custom-LLM, poser le bloc ici le ferait compter DEUX fois.
+ *
+ * Ne lève jamais, et n'est jamais attendu: l'appelant est en ligne, et
+ * `handleTranscript` est du côté où il n'attend rien.
+ */
+async function postMoodNudge(
+  clientId: string,
+  vapiCallId: string | null,
+  mood: CallerMood,
+  lang: ClientVoiceProfile['language'],
+): Promise<void> {
+  const block = moodPromptBlock(mood, lang);
+  /* `neutral` rend une chaîne vide, et c'est l'état normal: rien à dire de
+     plus que ce que le prompt porte déjà. Rien n'est noté non plus, sinon
+     tous les appels porteraient une ligne qui ne veut rien dire. */
+  if (!block) return;
+
+  const profile = await realtimeContextService.getClientProfile(clientId).catch(() => null);
+  if (!profile || !needsCallBrief(profile)) return;
+
+  const controlUrl = callSessionStore.controlUrlFor(vapiCallId);
+  if (!controlUrl) {
+    callSessionStore.noteMoodNudge(vapiCallId, 'SANS ADRESSE DE CONTROLE');
+    logger.warn(`[Voice] humeur ${mood} non posée pour ${clientId}: aucune adresse de contrôle retenue`);
+    return;
+  }
+
+  try {
+    await vapiClient.addMessage(controlUrl, { role: 'system', content: block });
+    callSessionStore.noteMoodNudge(vapiCallId, `pose (${mood})`);
+    logger.info(`[Voice] humeur ${mood} posée pour ${clientId}`);
+  } catch (error) {
+    callSessionStore.noteMoodNudge(vapiCallId, `REFUSE: ${(error as Error).message}`);
+    logger.warn(`[Voice] humeur ${mood} refusée pour ${clientId}: ${(error as Error).message}`);
+  }
+}
+
 export async function postCallBrief(
   clientId: string,
   event: VapiEvent,
