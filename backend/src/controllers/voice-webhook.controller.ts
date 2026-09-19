@@ -2,6 +2,7 @@ import { Request, Response } from 'express';
 import { prisma } from '../config/database';
 import { env } from '../config/env';
 import { logger } from '../config/logger';
+import { deadCallWatchService, isSilentCall } from '../services/voice/dead-call-watch.service';
 import { storeError } from '../utils/error-store';
 import { clientCallService } from '../services/client-call.service';
 import { realtimeOrchestratorService, type VapiEvent } from '../services/voice/realtime-orchestrator.service';
@@ -256,6 +257,19 @@ export class VoiceWebhookController {
       logger.info(`[Voice] call ${vapiCallId} ended as ${endedReason} — skipping analysis`);
       return;
     }
+
+    /* LE CANARI DE LA LIGNE MUETTE (19/09/2026), posé ICI et pas ailleurs.
+       Après la sortie répondeur, qui n'est pas une panne: un appelant absent
+       est un appel normal, et le compter ferait sonner l'alerte les nuits
+       creuses. Avant l'analyse, qui coûte un appel de modèle et peut lever:
+       une panne de flotte doit être criée même si le reste échoue.
+       La série est GLOBALE, pas par client: c'est ce qui rend la plateforme
+       distinguable d'un commerce au téléphone cassé. */
+    deadCallWatchService.record({
+      silent: isSilentCall(finalized.transcript),
+      reason: endedReason || null,
+      clientLabel: clientId,
+    });
 
     await clientCallService.handleClientCallCompleted(
       clientId,
