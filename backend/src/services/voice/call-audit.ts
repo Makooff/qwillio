@@ -18,8 +18,8 @@
  */
 
 import type { StageStats } from './latency-tracker';
-import { PLANS } from '../../config/plans';
-import { superagentCost, inclusionCostEur } from '../../config/voice-economics';
+import { PLANS, type PlanId } from '../../config/plans';
+import { superagentCost, inclusionCostEur, eur, revenuePerIncludedMinuteEur } from '../../config/voice-economics';
 import { PRICED_FOR_MODEL } from '../../config/superagent-option';
 import { isPlaceholderName } from '../../utils/spelled-name';
 import { VOICE_TIERS, type VoiceTierId } from './voice-tiers';
@@ -87,6 +87,35 @@ export interface CallFacts {
   } | null;
   /** `null` = non vérifié (pas de clé, pas d'appel réseau). */
   recordingReadable: boolean | null;
+  /**
+   * CE QUE CET APPEL A COÛTÉ, d'après VAPI (`metadata.billing`).
+   *
+   * C'est le seul chiffre de coût qui ne vienne pas de nous. `REALTIME_RATES`
+   * est une table relevée à la main sur un tableau de bord, donc elle vieillit
+   * et elle suppose un modèle; celui-ci est facturé. Quand les deux divergent,
+   * c'est Vapi qui a raison, et c'est tout l'intérêt d'une source indépendante
+   * (6terquinquagesies: un audit doit pouvoir CONTREDIRE son propre chiffre).
+   *
+   * Il était déjà en base et personne ne le lisait: `finalizeCall` assemble
+   * `costBreakdown` depuis le rapport de fin d'appel, `persistMetrics` l'écrit
+   * dans `metadata.billing`, et TOUS ses lecteurs ne prenaient que `costUsd`.
+   * Cinquième fois de la journée que le fait est dans les données et que
+   * personne ne l'ouvre, et la première où ça coûte de l'argent plutôt que du
+   * temps.
+   */
+  cost: {
+    /** Le total de l'appel en dollars, tel que Vapi le facture. */
+    usd: number | null;
+    /**
+     * Le détail par poste, TEL QUE VAPI L'ENVOIE. Forme non figée ici à
+     * dessein: elle n'a pas été lue sur la documentation vivante, donc
+     * l'écrire en dur serait une déduction qui a l'air d'une lecture
+     * (6quinvicies). Le VERDICT ne s'appuie que sur `usd`, qui est sans
+     * ambiguïté; le détail est affiché pour information.
+     */
+    breakdown: Record<string, unknown> | null;
+    durationSeconds: number | null;
+  } | null;
   remote: {
     customLlm: boolean | null;
     endpointing: EndpointingFacts | null;
@@ -179,6 +208,8 @@ export interface CallFacts {
     idleNudgeSeconds?: number;
     /** Combien de relances avant de laisser le raccroché faire son office. */
     idleNudgeCount?: number;
+    /** Le forfait du client, pour juger le coût de la minute. `null` = inconnu. */
+    planId?: PlanId | null;
   };
 }
 
@@ -1158,6 +1189,54 @@ export function auditCall(facts: CallFacts): AuditReport {
        allumé, un assistant temps réel en porte un par construction. */
     const hybride = got === false && want && facts.remote.customLlm === false
       && facts.remote.transcriber === true && !facts.expected.realtimeTranscriber;
+    /* CE QUE L'APPEL A COÛTÉ POUR DE VRAI (19/09/2026).
+       « Ça coûte hyper cher » ne se vérifiait nulle part: l'audit ne parlait
+       d'argent qu'à travers `REALTIME_RATES`, une table relevée à la main qui
+       SUPPOSE le modèle servi. Or Vapi facture et le dit, appel par appel, et
+       ce chiffre dormait en base depuis le début.
+       Le VERDICT ne s'appuie que sur le total et la durée, deux nombres sans
+       ambiguïté. Le détail par poste est affiché SANS être jugé: sa forme n'a
+       pas été lue sur la documentation vivante de Vapi, donc un poste mal
+       reconnu ne doit pas pouvoir fabriquer un verdict (c'est la leçon des
+       sept diagnostics faux: on note ce qu'on peut trancher, on montre le
+       reste). */
+    const money = facts.cost;
+    const minutes = money?.durationSeconds ? money.durationSeconds / 60 : null;
+    if (money && typeof money.usd === 'number' && minutes && minutes > 0) {
+      const eurPerMin = eur(money.usd / minutes);
+      const plan = facts.expected.planId ? PLANS[facts.expected.planId] : null;
+      const revenue = plan ? revenuePerIncludedMinuteEur(plan) : null;
+      /* Sans forfait connu, on juge contre la recette la PLUS BASSE de la
+         grille: au-dessus d'elle, la minute est déficitaire quelque part. */
+      const floor = revenue ?? Math.min(...Object.values(PLANS).map(revenuePerIncludedMinuteEur));
+      const loses = eurPerMin > floor;
+      /* Les postes, par ordre de poids. Les compteurs (jetons, caractères,
+         secondes) ne sont pas des montants: écartés par leur NOM, ce qui est
+         une heuristique assumée — elle ne peut que mal afficher une ligne,
+         jamais changer le verdict. */
+      const lines = Object.entries(money.breakdown ?? {})
+        .filter(([k, v]) => typeof v === 'number' && v > 0 && !/tokens?$|characters?$|seconds?$|ms$|count$/i.test(k))
+        .sort((a, b) => (b[1] as number) - (a[1] as number))
+        .slice(0, 4)
+        .map(([k, v]) => `${k} ${(v as number).toFixed(3)} $`);
+      push({
+        id: 'cout', area: 'reglages',
+        status: loses ? 'fail' : 'ok',
+        label: 'ce que cet appel a coûté chez Vapi',
+        value: [
+          `${money.usd.toFixed(3)} $ pour ${minutes.toFixed(1)} min, soit ${eurPerMin.toFixed(3)} €/min`,
+          lines.length ? lines.join(', ') : null,
+          loses
+            ? `la minute ${plan ? `d'un ${plan.name}` : 'la moins chère de la grille'} en rapporte ${floor.toFixed(3)} €`
+            : null,
+        ].filter(Boolean).join(' — '),
+        target: `≤ ${floor.toFixed(3)} €/min`,
+        lever: loses
+          ? "cette minute coûte plus qu'elle ne rapporte. Le poste le plus lourd est en tête de la valeur: si c'est le modèle, c'est `VOICE_REALTIME_MODEL` (facteur dix entre les six); si c'est la plateforme, c'est la part que supprimerait un trunk SIP direct. `npm run voice:pricing` donne la feuille par palier"
+          : undefined,
+      });
+    }
+
     /* CE QUI NE VIENT PAS DU DÉPÔT (19/09/2026).
        Relevé sur un compte réel: l'assistant portait `gpt-realtime-2` ET un
        transcripteur ElevenLabs Scribe v2. Le modèle, la nouvelle ligne

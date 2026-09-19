@@ -21,6 +21,21 @@ import { clientLocale } from '../utils/client-locale';
 import { auditCall, readVapiMessages, renderAudit, type CallFacts } from '../services/voice/call-audit';
 import { voiceForProfile } from '../services/voice/profile-voice';
 import { readTierId, requestedTier, tuningFor } from '../services/voice/voice-tiers';
+import { PLANS, type PlanId } from '../config/plans';
+
+/**
+ * Le forfait, ou `null` quand la colonne ne désigne rien de connu.
+ *
+ * `getPlan` retombe sur Starter pour toute valeur inconnue, ce qui est juste
+ * pour vendre et faux pour AUDITER: ici, juger la minute d'un client contre la
+ * recette d'un palier qui n'est pas le sien fabriquerait un verdict. Une
+ * colonne vide vaut « je ne sais pas », et la vérification retombe alors sur
+ * la recette la plus basse de la grille.
+ */
+function readPlanId(planType: string | null | undefined): PlanId | null {
+  const key = (planType || '').toLowerCase();
+  return key in PLANS ? (key as PlanId) : null;
+}
 import { realtimeContextService } from '../services/voice/realtime-context.service';
 
 const arg = (name: string): string | null => {
@@ -96,7 +111,7 @@ async function main() {
       durationSeconds: true,
       metadata: true,
       createdAt: true,
-      client: { select: { businessName: true, contactEmail: true, vapiAssistantId: true, country: true, agentLanguage: true, vapiConfig: true } },
+      client: { select: { businessName: true, contactEmail: true, vapiAssistantId: true, country: true, agentLanguage: true, vapiConfig: true, planType: true } },
     },
   });
 
@@ -117,6 +132,11 @@ async function main() {
   const read = readVapiMessages(messages);
 
   const realtime = ((ours?.metadata as Record<string, any> | null)?.realtime ?? null) as Record<string, any> | null;
+  /* CE QUE VAPI A FACTURÉ POUR CET APPEL, écrit par `persistMetrics` et lu par
+     personne jusqu'ici: tous les consommateurs de `billing` ne prenaient que
+     `costUsd`, et le détail par poste — la seule réponse chiffrée à « où part
+     l'argent, le modèle ou la plateforme » — restait dans le JSON. */
+  const billed = ((ours?.metadata as Record<string, any> | null)?.billing ?? null) as Record<string, any> | null;
 
   /* La réservation liée à CET appel, et ce qu'est devenu son SMS. */
   const bookingRow = ours
@@ -238,6 +258,12 @@ async function main() {
     recordingReadable = null;
   }
 
+  /* La durée vient d'abord de ce qui a été FACTURÉ: c'est la même que celle du
+     montant, donc le rapport des deux est juste même si notre colonne diverge. */
+  const billedSeconds = typeof billed?.durationSeconds === 'number'
+    ? billed.durationSeconds
+    : ours?.durationSeconds ?? null;
+
   const facts: CallFacts = {
     callId,
     startedAt: vapiCall?.startedAt ?? ours?.createdAt?.toISOString() ?? null,
@@ -255,6 +281,13 @@ async function main() {
     },
     booking: bookingRow ? { id: bookingRow.id, smsSent: bookingRow.smsConfirmationSent, smsLogs } : null,
     recordingReadable,
+    cost: billed
+      ? {
+          usd: typeof billed.costUsd === 'number' ? billed.costUsd : null,
+          breakdown: (billed.costBreakdown ?? null) as Record<string, unknown> | null,
+          durationSeconds: billedSeconds,
+        }
+      : null,
     remote: { customLlm: remoteCustomLlm, endpointing: remoteEndpointing, speechToSpeech: remoteSpeechToSpeech, modelName: remoteModel, transcriber: remoteTranscriber, transcriberProvider: remoteSttProvider, silenceTimeoutSeconds: remoteSilenceTimeout, stopSpeaking: remoteStopSpeaking },
     expected: {
       endpointing: {
@@ -273,6 +306,8 @@ async function main() {
       /* Le calendrier des relances, pour le comparer au raccroché. */
       idleNudgeSeconds: env.VOICE_IDLE_NUDGE_SECONDS,
       idleNudgeCount: env.VOICE_IDLE_NUDGE_COUNT,
+      /* Le forfait, pour juger la minute contre ce qu'elle rapporte. */
+      planId: readPlanId(ours?.client?.planType),
       /* Le niveau DEMANDÉ vient de la fiche, celui qui DOIT servir du profil:
          `voiceForProfile` applique la priorité de la voix clonée, qui est la
          seule raison légitime d'un écart entre les deux. */

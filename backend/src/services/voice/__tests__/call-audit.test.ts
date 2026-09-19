@@ -52,6 +52,10 @@ const good = (): CallFacts => ({
   ours: { found: true, isLead: true, nameCollected: 'Jean-Luc de la Forge', callerName: 'Jean Lucas', summary: 'Prise de rendez-vous pour un détartrage.', language: 'fr' },
   booking: { id: 'bk_0000001', smsSent: true, smsLogs: [{ status: 'sent', errorMsg: null }] },
   recordingReadable: true,
+  /* Un appel sain sur le mini: 0,11 €/min, sous la recette de tous les
+     paliers. La vérification est donc exercée par TOUS les autres tests, au
+     lieu d'être sautée faute de donnée. */
+  cost: { usd: 0.24, breakdown: { vapi: 0.09, llm: 0.11, transport: 0.02 }, durationSeconds: 120 },
   remote: { customLlm: true, endpointing: { provider: 'livekit', waitSeconds: 0.4, punctuationSeconds: 0.4 }, speechToSpeech: false },
   expected: {
     endpointing: { provider: 'livekit', waitSeconds: 0.4, punctuationSeconds: 0.4 },
@@ -1138,6 +1142,79 @@ describe("l'audit ne s'envoie pas au mauvais endroit", () => {
  * BOOLÉEN. « Y en a-t-il un » répondait oui, et « lequel » n'était posé nulle
  * part. Encore une fois le fait était dans les données et personne ne le lisait.
  */
+/*
+ * CE QUE L'APPEL A COÛTÉ, LU CHEZ VAPI (19/09/2026).
+ *
+ * « Ça coûte hyper cher » ne se vérifiait nulle part: l'audit ne parlait
+ * d'argent qu'à travers `REALTIME_RATES`, une table relevée à la main qui
+ * SUPPOSE quel modèle sert. Vapi, lui, facture et le dit appel par appel, et
+ * ce chiffre dormait dans `metadata.billing` depuis le début: `finalizeCall`
+ * assemble `costBreakdown`, `persistMetrics` l'écrit, et tous ses lecteurs ne
+ * prenaient que `costUsd`.
+ *
+ * C'est la source INDÉPENDANTE qui manquait à la ligne « modèle temps réel »:
+ * celle-ci juge sur notre table, celle-là sur la facture.
+ */
+describe('le coût réel de l\'appel', () => {
+  const find = (facts: CallFacts, id: string) => auditCall(facts).checks.find(c => c.id === id);
+
+  it('accepte une minute qui rapporte plus qu\'elle ne coûte', () => {
+    const check = find(good(), 'cout')!;
+    expect(check.status).toBe('ok');
+    expect(check.value).toMatch(/\u20ac\/min/);
+    expect(check.lever).toBeUndefined();
+  });
+
+  it('REFUSE une minute déficitaire, et nomme le poste le plus lourd', () => {
+    const f = good();
+    f.expected.planId = 'pro';
+    /* 0,71 $/min pendant deux minutes: le relevé réel du 19/09, modèle
+       `gpt-realtime-2`. Un Pro rapporte 0,299 € la minute incluse. */
+    f.cost = { usd: 1.42, breakdown: { llm: 1.29, vapi: 0.09, transport: 0.02 }, durationSeconds: 120 };
+    const check = find(f, 'cout')!;
+    expect(check.status).toBe('fail');
+    /* Le poste le plus lourd d'abord: c'est lui qui dit s'il faut changer de
+       modèle ou changer de plateforme. */
+    expect(check.value).toMatch(/llm 1\.290/);
+    expect(check.value).toMatch(/Pro/);
+    expect(String(check.lever)).toMatch(/VOICE_REALTIME_MODEL/);
+  });
+
+  it('juge contre la recette la plus basse quand le forfait est inconnu', () => {
+    const f = good();
+    f.expected.planId = null;
+    f.cost = { usd: 0.60, breakdown: null, durationSeconds: 60 };
+    const check = find(f, 'cout')!;
+    /* 0,556 €/min, au-dessus des 0,258 € d'Enterprise: déficitaire partout. */
+    expect(check.status).toBe('fail');
+    expect(check.value).toMatch(/la moins chère de la grille/);
+  });
+
+  it('écarte les COMPTEURS du détail, qui ne sont pas des montants', () => {
+    const f = good();
+    f.cost = {
+      usd: 0.24,
+      breakdown: { vapi: 0.09, llmPromptTokens: 4210, ttsCharacters: 980, transport: 0.02 },
+      durationSeconds: 120,
+    };
+    const check = find(f, 'cout')!;
+    expect(check.value).not.toMatch(/llmPromptTokens/);
+    expect(check.value).not.toMatch(/ttsCharacters/);
+    expect(check.value).toMatch(/vapi 0\.090/);
+  });
+
+  it('se tait sans montant ou sans durée', () => {
+    /* Un total sans durée ne fait pas un tarif à la minute, et inventer la
+       durée fabriquerait le verdict. */
+    const noAmount = good(); noAmount.cost = { usd: null, breakdown: null, durationSeconds: 120 };
+    expect(find(noAmount, 'cout')).toBeUndefined();
+    const noTime = good(); noTime.cost = { usd: 0.24, breakdown: null, durationSeconds: 0 };
+    expect(find(noTime, 'cout')).toBeUndefined();
+    const nothing = good(); nothing.cost = null;
+    expect(find(nothing, 'cout')).toBeUndefined();
+  });
+});
+
 describe('le transcripteur distant vient-il du dépôt', () => {
   const find = (facts: CallFacts, id: string) => auditCall(facts).checks.find(c => c.id === id);
   const withStt = (provider: string | null | undefined): CallFacts => {
