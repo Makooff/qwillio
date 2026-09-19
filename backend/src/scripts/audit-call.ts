@@ -93,6 +93,8 @@ async function main() {
   /* LU sur l'assistant distant, pas déduit du réglage du client: l'écart entre
      les deux est exactement ce que cette ligne existe pour montrer. */
   let remoteSpeechToSpeech: boolean | null = null;
+  /** Le modele que l'assistant DISTANT porte: la seule source de « lequel sert ». */
+  let remoteModel: string | null = null;
   let remoteTranscriber: boolean | null = null;
   let remoteSilenceTimeout: number | null = null;
   let remoteStopSpeaking: CallFacts['remote']['stopSpeaking'] = null;
@@ -115,6 +117,7 @@ async function main() {
          épinglé hors custom-LLM est aussi en `openai`. */
       const remoteModelName = typeof assistant?.model?.model === 'string' ? assistant.model.model : '';
       remoteSpeechToSpeech = assistant?.model?.provider === 'openai' && /realtime/i.test(remoteModelName);
+      remoteModel = remoteModelName || null;
       /* Le transcripteur DISTANT, à part: c'est lui qui distingue « le niveau
          n'a pas été écrit » de « un reste l'annule ». Voir `remote.transcriber`
          dans `call-audit.ts`. */
@@ -197,7 +200,7 @@ async function main() {
     },
     booking: bookingRow ? { id: bookingRow.id, smsSent: bookingRow.smsConfirmationSent, smsLogs } : null,
     recordingReadable,
-    remote: { customLlm: remoteCustomLlm, endpointing: remoteEndpointing, speechToSpeech: remoteSpeechToSpeech, transcriber: remoteTranscriber, silenceTimeoutSeconds: remoteSilenceTimeout, stopSpeaking: remoteStopSpeaking },
+    remote: { customLlm: remoteCustomLlm, endpointing: remoteEndpointing, speechToSpeech: remoteSpeechToSpeech, modelName: remoteModel, transcriber: remoteTranscriber, silenceTimeoutSeconds: remoteSilenceTimeout, stopSpeaking: remoteStopSpeaking },
     expected: {
       endpointing: {
         provider: want.smartEndpointingPlan.provider,
@@ -206,6 +209,7 @@ async function main() {
       },
       fullModel: env.VAPI_MODEL,
       miniModel: env.VOICE_SMALL_MODEL,
+      realtimeModel: env.VOICE_REALTIME_MODEL,
       minChunkChars: env.VOICE_TTS_MIN_CHUNK_CHARS,
       greetingPinned: env.VOICE_GREETING_PINNED,
       smsReady: smsReadiness().ok,

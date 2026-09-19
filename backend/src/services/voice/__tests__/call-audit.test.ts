@@ -1108,3 +1108,67 @@ describe("l'audit ne s'envoie pas au mauvais endroit", () => {
     expect(find(facts, 'brief')!.lever).toBeUndefined();
   });
 });
+
+/**
+ * QUEL MODÈLE TEMPS RÉEL SERT, ET IL N'ÉTAIT NOMMÉ NULLE PART (19/09/2026).
+ *
+ * Retour du propriétaire: « le plan de base allait très bien, c'est le
+ * real-time qui est con ». Invérifiable en l'état: sur un appel Superagent,
+ * l'audit affichait « complet gpt-4.1-mini, rapide gpt-4.1-nano », c'est-à-dire
+ * les deux étages du chemin custom-LLM, qui ne tournent PAS ici puisque Vapi
+ * parle à OpenAI directement. Et il ne nommait nulle part celui qui sert.
+ *
+ * Or le catalogue va de 0,060 $ à 0,645 $ la minute (6quinvicies), un facteur
+ * dix qui s'entend. « Il est con » n'est pas une opinion sur le temps réel
+ * tant qu'on ne sait pas lequel des six tournait.
+ *
+ * Le nom est LU sur l'assistant distant, jamais déduit du réglage: c'est le
+ * même écart que « niveau servi », et `audit-call.ts` le lisait déjà pour en
+ * tirer un booléen avant de le jeter.
+ */
+describe('le modèle temps réel est nommé', () => {
+  const s2s = (over: Record<string, unknown> = {}): CallFacts => {
+    const f = good();
+    f.remote.speechToSpeech = true;
+    f.remote.modelName = 'gpt-realtime-mini-2025-12-15';
+    f.expected.realtimeModel = 'gpt-realtime-mini-2025-12-15';
+    Object.assign(f.remote, over);
+    return f;
+  };
+  const find = (facts: CallFacts, id: string) => auditCall(facts).checks.find(c => c.id === id);
+
+  it("nomme le modèle DISTANT, et dit comment en changer", () => {
+    const check = find(s2s(), 'tiers')!;
+    expect(check.label).toMatch(/temps réel/);
+    expect(check.value).toContain('gpt-realtime-mini-2025-12-15');
+    expect(String(check.lever)).toContain('VOICE_REALTIME_MODEL');
+  });
+
+  it("écarte explicitement les étages du chemin classique", () => {
+    /* Les afficher sans le dire envoyait régler `VOICE_SMALL_MODEL` pour un
+       appel où aucun tour n'y passe jamais. */
+    const check = find(s2s(), 'tiers-classic')!;
+    expect(check.status).toBe('skip');
+    expect(check.value).toMatch(/sans objet/);
+    expect(check.value).toContain('gpt-4.1-mini');
+  });
+
+  it("signale un assistant distant resté sur un AUTRE modèle", () => {
+    const facts = s2s({ modelName: 'gpt-realtime-2025-08-28' });
+    const check = find(facts, 'tiers')!;
+    expect(check.status).toBe('warn');
+    expect(check.value).toContain("le resync n'a pas été rejoué");
+    expect(String(check.lever)).toContain('voice:resync');
+  });
+
+  it('se tait quand l\'assistant distant n\'a pas été lu', () => {
+    const facts = s2s({ modelName: null });
+    expect(find(facts, 'tiers')!.status).toBe('skip');
+  });
+
+  it('la chaîne classique garde sa ligne d\'étages, inchangée', () => {
+    const check = find(good(), 'tiers')!;
+    expect(check.label).toBe('étages de modèle');
+    expect(find(good(), 'tiers-classic')).toBeUndefined();
+  });
+});

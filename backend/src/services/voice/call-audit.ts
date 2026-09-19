@@ -97,6 +97,16 @@ export interface CallFacts {
      */
     speechToSpeech: boolean | null;
     /**
+     * Le nom du modele porte par l'assistant DISTANT. `null` = non lu.
+     *
+     * Deja lu par `audit-call.ts` pour en tirer `speechToSpeech`, puis jete:
+     * l'audit affichait donc `VAPI_MODEL` et `VOICE_SMALL_MODEL` sur un appel
+     * en parole-a-parole, ou ni l'un ni l'autre ne tourne, et ne nommait
+     * NULLE PART celui qui sert. « Le real-time est con » n'etait pas
+     * verifiable: on ne savait pas lequel des six c'etait (19/09/2026).
+     */
+    modelName: string | null;
+    /**
      * Un transcripteur est-il posé sur l'assistant DISTANT ? `null` = non lu.
      *
      * Lu pour une raison précise (17/09/2026): il permet de distinguer « le
@@ -132,6 +142,8 @@ export interface CallFacts {
     endpointing: EndpointingFacts;
     fullModel: string;
     miniModel: string;
+    /** `VOICE_REALTIME_MODEL`: celui qui sert en parole-a-parole, et lui seul. */
+    realtimeModel: string;
     /** Le seuil de découpe de la synthèse (`VOICE_TTS_MIN_CHUNK_CHARS`). */
     minChunkChars: number;
     greetingPinned: boolean;
@@ -1172,6 +1184,39 @@ export function auditCall(facts: CallFacts): AuditReport {
        pas, et c'est le levier de la latence qui cesse alors de nommer ce
        bouton. */
     const shape = `complet ${facts.expected.fullModel}, rapide ${facts.expected.miniModel}`;
+
+    /* EN PAROLE-À-PAROLE, CES DEUX MODÈLES NE TOURNENT PAS (19/09/2026).
+       `VAPI_MODEL` et `VOICE_SMALL_MODEL` sont les étages du chemin
+       custom-LLM, et sur ce chemin-ci Vapi parle à OpenAI directement. L'audit
+       les affichait quand même, et ne nommait NULLE PART celui qui sert. Le
+       retour « le real-time est con » n'était donc pas vérifiable: on ne
+       savait pas lequel des six modèles temps réel c'était, et ils vont de
+       0,060 $ à 0,645 $ la minute, soit un facteur dix qui s'entend.
+       Le nom est LU sur l'assistant distant, jamais déduit du réglage
+       (6quinvicies, et c'est le même écart que « niveau servi »). */
+    if (facts.remote.speechToSpeech) {
+      const got = facts.remote.modelName;
+      const want = facts.expected.realtimeModel;
+      push({
+        id: 'tiers', area: 'reglages',
+        status: !got ? 'skip' : got === want ? 'ok' : 'warn',
+        label: 'modèle temps réel servi par l\'assistant qui décroche',
+        value: !got
+          ? 'assistant distant non lu'
+          : got === want
+            ? got
+            : `${got} sur l'assistant, ${want} dans l'environnement: le resync n'a pas été rejoué`,
+        target: want,
+        lever: got && got !== want
+          ? '`npm run voice:resync -- --confirm`'
+          : "c'est CE modèle qui décide de l'intelligence de l'appel, pas `VAPI_MODEL`: `VOICE_REALTIME_MODEL`, puis `voice:validate` et `voice:resync --confirm`. Les identifiants acceptés sont figés dans `env.ts`, ils ne se devinent pas",
+      });
+      push({
+        id: 'tiers-classic', area: 'reglages', status: 'skip',
+        label: 'étages de modèle du chemin classique',
+        value: `${shape}: sans objet ici, Vapi parle à OpenAI directement`,
+      });
+    } else
     push({
       id: 'tiers', area: 'reglages',
       status: sameTier ? 'warn' : 'ok',
