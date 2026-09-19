@@ -18,6 +18,9 @@
  */
 
 import type { StageStats } from './latency-tracker';
+import { PLANS, type PlanId } from '../../config/plans';
+import { superagentCost, inclusionCostEur, eur, revenuePerIncludedMinuteEur } from '../../config/voice-economics';
+import { PRICED_FOR_MODEL } from '../../config/superagent-option';
 import { isPlaceholderName } from '../../utils/spelled-name';
 import { VOICE_TIERS, type VoiceTierId } from './voice-tiers';
 
@@ -84,6 +87,35 @@ export interface CallFacts {
   } | null;
   /** `null` = non vérifié (pas de clé, pas d'appel réseau). */
   recordingReadable: boolean | null;
+  /**
+   * CE QUE CET APPEL A COÛTÉ, d'après VAPI (`metadata.billing`).
+   *
+   * C'est le seul chiffre de coût qui ne vienne pas de nous. `REALTIME_RATES`
+   * est une table relevée à la main sur un tableau de bord, donc elle vieillit
+   * et elle suppose un modèle; celui-ci est facturé. Quand les deux divergent,
+   * c'est Vapi qui a raison, et c'est tout l'intérêt d'une source indépendante
+   * (6terquinquagesies: un audit doit pouvoir CONTREDIRE son propre chiffre).
+   *
+   * Il était déjà en base et personne ne le lisait: `finalizeCall` assemble
+   * `costBreakdown` depuis le rapport de fin d'appel, `persistMetrics` l'écrit
+   * dans `metadata.billing`, et TOUS ses lecteurs ne prenaient que `costUsd`.
+   * Cinquième fois de la journée que le fait est dans les données et que
+   * personne ne l'ouvre, et la première où ça coûte de l'argent plutôt que du
+   * temps.
+   */
+  cost: {
+    /** Le total de l'appel en dollars, tel que Vapi le facture. */
+    usd: number | null;
+    /**
+     * Le détail par poste, TEL QUE VAPI L'ENVOIE. Forme non figée ici à
+     * dessein: elle n'a pas été lue sur la documentation vivante, donc
+     * l'écrire en dur serait une déduction qui a l'air d'une lecture
+     * (6quinvicies). Le VERDICT ne s'appuie que sur `usd`, qui est sans
+     * ambiguïté; le détail est affiché pour information.
+     */
+    breakdown: Record<string, unknown> | null;
+    durationSeconds: number | null;
+  } | null;
   remote: {
     customLlm: boolean | null;
     endpointing: EndpointingFacts | null;
@@ -118,6 +150,17 @@ export interface CallFacts {
      * `voice:tier` en boucle sur un réglage déjà correct.
      */
     transcriber?: boolean | null;
+    /**
+     * Le FOURNISSEUR du transcripteur distant. `null` = aucun transcripteur,
+     * absent = pas lu.
+     *
+     * Le booléen au-dessus répond à « y en a-t-il un », pas à « lequel », et
+     * c'est la seconde question qui débusque une configuration qui ne vient
+     * pas du dépôt: `buildTranscriber` écrit `provider: 'deepgram'` SANS
+     * CONDITION, et c'est le seul constructeur de transcripteur du code. Un
+     * assistant distant qui en porte un autre a donc été écrit ailleurs.
+     */
+    transcriberProvider?: string | null;
     /**
      * Le délai de RACCROCHÉ que l'assistant distant porte. `null` = non lu.
      *
@@ -165,6 +208,8 @@ export interface CallFacts {
     idleNudgeSeconds?: number;
     /** Combien de relances avant de laisser le raccroché faire son office. */
     idleNudgeCount?: number;
+    /** Le forfait du client, pour juger le coût de la minute. `null` = inconnu. */
+    planId?: PlanId | null;
   };
 }
 
@@ -1144,6 +1189,92 @@ export function auditCall(facts: CallFacts): AuditReport {
        allumé, un assistant temps réel en porte un par construction. */
     const hybride = got === false && want && facts.remote.customLlm === false
       && facts.remote.transcriber === true && !facts.expected.realtimeTranscriber;
+    /* CE QUE L'APPEL A COÛTÉ POUR DE VRAI (19/09/2026).
+       « Ça coûte hyper cher » ne se vérifiait nulle part: l'audit ne parlait
+       d'argent qu'à travers `REALTIME_RATES`, une table relevée à la main qui
+       SUPPOSE le modèle servi. Or Vapi facture et le dit, appel par appel, et
+       ce chiffre dormait en base depuis le début.
+       Le VERDICT ne s'appuie que sur le total et la durée, deux nombres sans
+       ambiguïté. Le détail par poste est affiché SANS être jugé: sa forme n'a
+       pas été lue sur la documentation vivante de Vapi, donc un poste mal
+       reconnu ne doit pas pouvoir fabriquer un verdict (c'est la leçon des
+       sept diagnostics faux: on note ce qu'on peut trancher, on montre le
+       reste). */
+    const money = facts.cost;
+    const minutes = money?.durationSeconds ? money.durationSeconds / 60 : null;
+    if (money && typeof money.usd === 'number' && minutes && minutes > 0) {
+      const eurPerMin = eur(money.usd / minutes);
+      const plan = facts.expected.planId ? PLANS[facts.expected.planId] : null;
+      const revenue = plan ? revenuePerIncludedMinuteEur(plan) : null;
+      /* Sans forfait connu, on juge contre la recette la PLUS BASSE de la
+         grille: au-dessus d'elle, la minute est déficitaire quelque part. */
+      const floor = revenue ?? Math.min(...Object.values(PLANS).map(revenuePerIncludedMinuteEur));
+      const loses = eurPerMin > floor;
+      /* Les postes, par ordre de poids. Les compteurs (jetons, caractères,
+         secondes) ne sont pas des montants: écartés par leur NOM, ce qui est
+         une heuristique assumée — elle ne peut que mal afficher une ligne,
+         jamais changer le verdict. */
+      const lines = Object.entries(money.breakdown ?? {})
+        .filter(([k, v]) => typeof v === 'number' && v > 0 && !/tokens?$|characters?$|seconds?$|ms$|count$/i.test(k))
+        .sort((a, b) => (b[1] as number) - (a[1] as number))
+        .slice(0, 4)
+        .map(([k, v]) => `${k} ${(v as number).toFixed(3)} $`);
+      push({
+        id: 'cout', area: 'reglages',
+        status: loses ? 'fail' : 'ok',
+        label: 'ce que cet appel a coûté chez Vapi',
+        value: [
+          `${money.usd.toFixed(3)} $ pour ${minutes.toFixed(1)} min, soit ${eurPerMin.toFixed(3)} €/min`,
+          lines.length ? lines.join(', ') : null,
+          loses
+            ? `la minute ${plan ? `d'un ${plan.name}` : 'la moins chère de la grille'} en rapporte ${floor.toFixed(3)} €`
+            : null,
+        ].filter(Boolean).join(' — '),
+        target: `≤ ${floor.toFixed(3)} €/min`,
+        lever: loses
+          ? "cette minute coûte plus qu'elle ne rapporte. Le poste le plus lourd est en tête de la valeur: si c'est le modèle, c'est `VOICE_REALTIME_MODEL` (facteur dix entre les six); si c'est la plateforme, c'est la part que supprimerait un trunk SIP direct. `npm run voice:pricing` donne la feuille par palier"
+          : undefined,
+      });
+    }
+
+    /* CE QUI NE VIENT PAS DU DÉPÔT (19/09/2026).
+       Relevé sur un compte réel: l'assistant portait `gpt-realtime-2` ET un
+       transcripteur ElevenLabs Scribe v2. Le modèle, la nouvelle ligne
+       ci-dessous le voit; le transcripteur, personne: il n'était lu qu'en
+       BOOLÉEN, « y en a-t-il un », jamais « lequel ».
+       Or `buildTranscriber` écrit `provider: 'deepgram'` sans condition, et
+       c'est le SEUL constructeur de transcripteur du code (le repli de
+       `VOICE_STT_FALLBACK_PROVIDER` vit dans `fallbackPlan`, pas en tête). Un
+       autre fournisseur ne peut donc pas venir d'ici: il a été posé à la main
+       dans le tableau de bord Vapi, ou par un bouton « Model Presets », qui
+       réécrit transcripteur, modèle et voix d'un coup.
+       C'est un DÉFAUT et pas une remarque, pour une raison qui dépasse le
+       réglage lui-même: cet état est INSTABLE. Le prochain enregistrement du
+       portail renvoie `transcriber` explicitement et l'écrase. Deux appels de
+       test encadrant une sauvegarde n'ont donc pas tourné sur la même
+       configuration, et aucune lecture du code ne prédit ce qu'on a entendu.
+       C'est 6duodecies vu de l'autre bout: un réglage fait à la main dans le
+       tableau de bord d'un fournisseur, que le code ignore, et qui décide de
+       ce que quelqu'un paie. */
+    const remoteStt = facts.remote.transcriberProvider;
+    if (remoteStt !== undefined) {
+      const foreign = !!remoteStt && remoteStt.toLowerCase() !== 'deepgram';
+      push({
+        id: 'transcripteur-source', area: 'reglages',
+        status: foreign ? 'fail' : 'ok',
+        label: 'transcripteur de l\'assistant qui décroche',
+        value: remoteStt === null
+          ? 'aucun (parole-à-parole sans transcripteur)'
+          : foreign
+            ? `${remoteStt}: le code n'écrit QUE deepgram, donc ce réglage a été posé hors du dépôt`
+            : remoteStt,
+        target: 'deepgram',
+        lever: foreign
+          ? "l'assistant a été édité dans le tableau de bord Vapi (à la main, ou par un bouton « Model Presets »). Ne pas publier ce brouillon: `npm run voice:resync -- --confirm` remet la configuration du dépôt, et les deux se battraient à chaque enregistrement du portail"
+          : undefined,
+      });
+    }
+
     push({
       id: 'niveau', area: 'reglages',
       status: got === null ? 'skip' : got === want ? 'ok' : 'fail',
@@ -1197,19 +1328,55 @@ export function auditCall(facts: CallFacts): AuditReport {
     if (facts.remote.speechToSpeech) {
       const got = facts.remote.modelName;
       const want = facts.expected.realtimeModel;
+      /* LE VERDICT PORTE SUR CE QUE L'ASSISTANT PORTE, PAS SUR L'ÉCART AVEC
+         L'ENVIRONNEMENT (19/09/2026), et le levier d'avant était DESTRUCTEUR.
+         `facts.expected.realtimeModel` est `env.VOICE_REALTIME_MODEL` lu par le
+         script, donc celui de la MACHINE QUI LANCE L'AUDIT, jamais celui de
+         Render. Les deux n'ont aucune raison de coïncider: l'assistant est
+         écrit par le code qui tourne sur Render, à chaque enregistrement du
+         portail. Un écart ne dit donc pas « l'assistant est périmé », il dit
+         « ces deux lectures ne viennent pas du même endroit » (6duotrigesies).
+         La ligne d'avant tranchait quand même, et conseillait le resync: ce
+         geste aurait écrit le modèle du POSTE sur l'assistant, c'est-à-dire,
+         `.env` absent, le défaut `gpt-realtime-2025-08-28`, dont le tarif n'a
+         jamais été relevé. Huitième diagnostic faux de cet audit, et le
+         premier dont le geste dégrade ce qui marchait.
+         Le juge est donc une source qui ne vient ni de l'env ni de l'assistant:
+         `REALTIME_RATES`, relevé sur le tableau de bord Vapi. Elle répond à la
+         seule question qui engage de l'argent, et le facteur dix entre les six
+         modèles la rend décisive: cette minute coûte-t-elle plus qu'elle ne
+         rapporte ? Relevé sur un compte réel le 19/09: l'assistant portait
+         `gpt-realtime-2` (0,645 $/min) quand Render disait le mini
+         (0,060 $/min), et rien ne le montrait nulle part. */
+      const cost = got ? superagentCost(got) : null;
+      const priced = cost && 'eurPerMinute' in cost ? cost : null;
+      const proCost = got ? inclusionCostEur(PLANS.pro, got) : null;
+      const ruinous = typeof proCost === 'number' && proCost > PLANS.pro.monthlyPriceEur;
+      const diverges = !!got && got !== want;
+      /* Le chiffre dans la valeur, la phrase dans le levier: une valeur qui
+         porte toute l'explication ne se lit plus d'un coup d'œil. */
+      const money = priced ? `${priced.eurPerMinute.toFixed(3)} €/min` : 'tarif jamais relevé';
       push({
         id: 'tiers', area: 'reglages',
-        status: !got ? 'skip' : got === want ? 'ok' : 'warn',
+        status: !got ? 'skip' : ruinous ? 'fail' : !priced || diverges ? 'warn' : 'ok',
         label: 'modèle temps réel servi par l\'assistant qui décroche',
         value: !got
           ? 'assistant distant non lu'
-          : got === want
-            ? got
-            : `${got} sur l'assistant, ${want} dans l'environnement: le resync n'a pas été rejoué`,
-        target: want,
-        lever: got && got !== want
-          ? '`npm run voice:resync -- --confirm`'
-          : "c'est CE modèle qui décide de l'intelligence de l'appel, pas `VAPI_MODEL`: `VOICE_REALTIME_MODEL`, puis `voice:validate` et `voice:resync --confirm`. Les identifiants acceptés sont figés dans `env.ts`, ils ne se devinent pas",
+          : [
+              `${got} (${money})`,
+              ruinous
+                ? `un client ${PLANS.pro.name} à pleines minutes coûte ${Math.round(proCost as number)} € par mois, pour un forfait vendu ${PLANS.pro.monthlyPriceEur} €`
+                : null,
+              diverges ? `l'environnement lu ICI dit ${want}` : null,
+            ].filter(Boolean).join(' — '),
+        target: got && priced && !ruinous ? got : PRICED_FOR_MODEL,
+        lever: ruinous
+          ? `ce modèle coûte plus qu'une minute ne rapporte: poser \`VOICE_REALTIME_MODEL=${PRICED_FOR_MODEL}\` sur RENDER, puis \`voice:validate\` et \`voice:resync -- --confirm\` depuis un poste dont le \`.env\` porte la MÊME valeur. \`npm run voice:pricing\` donne la feuille`
+          : !priced
+            ? `son tarif n'a jamais été relevé, donc ce que coûte la minute est INCONNU: le lire sur le tableau de bord Vapi et le poser dans \`REALTIME_RATES\`, ou revenir à \`${PRICED_FOR_MODEL}\``
+            : diverges
+              ? `NE PAS resynchroniser sur cette seule ligne: \`${want}\` est lu dans l'environnement de CE poste, pas dans celui de Render, et un resync écrirait \`${want}\` sur l'assistant. Vérifier d'abord lequel des deux est voulu`
+              : undefined,
       });
       push({
         id: 'tiers-classic', area: 'reglages', status: 'skip',

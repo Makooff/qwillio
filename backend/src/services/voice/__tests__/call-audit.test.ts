@@ -52,6 +52,10 @@ const good = (): CallFacts => ({
   ours: { found: true, isLead: true, nameCollected: 'Jean-Luc de la Forge', callerName: 'Jean Lucas', summary: 'Prise de rendez-vous pour un détartrage.', language: 'fr' },
   booking: { id: 'bk_0000001', smsSent: true, smsLogs: [{ status: 'sent', errorMsg: null }] },
   recordingReadable: true,
+  /* Un appel sain sur le mini: 0,11 €/min, sous la recette de tous les
+     paliers. La vérification est donc exercée par TOUS les autres tests, au
+     lieu d'être sautée faute de donnée. */
+  cost: { usd: 0.24, breakdown: { vapi: 0.09, llm: 0.11, transport: 0.02 }, durationSeconds: 120 },
   remote: { customLlm: true, endpointing: { provider: 'livekit', waitSeconds: 0.4, punctuationSeconds: 0.4 }, speechToSpeech: false },
   expected: {
     endpointing: { provider: 'livekit', waitSeconds: 0.4, punctuationSeconds: 0.4 },
@@ -1126,6 +1130,129 @@ describe("l'audit ne s'envoie pas au mauvais endroit", () => {
  * même écart que « niveau servi », et `audit-call.ts` le lisait déjà pour en
  * tirer un booléen avant de le jeter.
  */
+/*
+ * CE QUI NE VIENT PAS DU DÉPÔT (19/09/2026).
+ *
+ * Relevé sur un compte réel: l'assistant qui décroche portait un transcripteur
+ * ElevenLabs Scribe v2. `buildTranscriber` écrit `provider: 'deepgram'` SANS
+ * CONDITION, et c'est le seul constructeur de transcripteur du code: ce réglage
+ * a donc été posé dans le tableau de bord Vapi.
+ *
+ * L'audit ne pouvait pas le voir: il lisait `!!assistant.transcriber`, un
+ * BOOLÉEN. « Y en a-t-il un » répondait oui, et « lequel » n'était posé nulle
+ * part. Encore une fois le fait était dans les données et personne ne le lisait.
+ */
+/*
+ * CE QUE L'APPEL A COÛTÉ, LU CHEZ VAPI (19/09/2026).
+ *
+ * « Ça coûte hyper cher » ne se vérifiait nulle part: l'audit ne parlait
+ * d'argent qu'à travers `REALTIME_RATES`, une table relevée à la main qui
+ * SUPPOSE quel modèle sert. Vapi, lui, facture et le dit appel par appel, et
+ * ce chiffre dormait dans `metadata.billing` depuis le début: `finalizeCall`
+ * assemble `costBreakdown`, `persistMetrics` l'écrit, et tous ses lecteurs ne
+ * prenaient que `costUsd`.
+ *
+ * C'est la source INDÉPENDANTE qui manquait à la ligne « modèle temps réel »:
+ * celle-ci juge sur notre table, celle-là sur la facture.
+ */
+describe('le coût réel de l\'appel', () => {
+  const find = (facts: CallFacts, id: string) => auditCall(facts).checks.find(c => c.id === id);
+
+  it('accepte une minute qui rapporte plus qu\'elle ne coûte', () => {
+    const check = find(good(), 'cout')!;
+    expect(check.status).toBe('ok');
+    expect(check.value).toMatch(/\u20ac\/min/);
+    expect(check.lever).toBeUndefined();
+  });
+
+  it('REFUSE une minute déficitaire, et nomme le poste le plus lourd', () => {
+    const f = good();
+    f.expected.planId = 'pro';
+    /* 0,71 $/min pendant deux minutes: le relevé réel du 19/09, modèle
+       `gpt-realtime-2`. Un Pro rapporte 0,299 € la minute incluse. */
+    f.cost = { usd: 1.42, breakdown: { llm: 1.29, vapi: 0.09, transport: 0.02 }, durationSeconds: 120 };
+    const check = find(f, 'cout')!;
+    expect(check.status).toBe('fail');
+    /* Le poste le plus lourd d'abord: c'est lui qui dit s'il faut changer de
+       modèle ou changer de plateforme. */
+    expect(check.value).toMatch(/llm 1\.290/);
+    expect(check.value).toMatch(/Pro/);
+    expect(String(check.lever)).toMatch(/VOICE_REALTIME_MODEL/);
+  });
+
+  it('juge contre la recette la plus basse quand le forfait est inconnu', () => {
+    const f = good();
+    f.expected.planId = null;
+    f.cost = { usd: 0.60, breakdown: null, durationSeconds: 60 };
+    const check = find(f, 'cout')!;
+    /* 0,556 €/min, au-dessus des 0,258 € d'Enterprise: déficitaire partout. */
+    expect(check.status).toBe('fail');
+    expect(check.value).toMatch(/la moins chère de la grille/);
+  });
+
+  it('écarte les COMPTEURS du détail, qui ne sont pas des montants', () => {
+    const f = good();
+    f.cost = {
+      usd: 0.24,
+      breakdown: { vapi: 0.09, llmPromptTokens: 4210, ttsCharacters: 980, transport: 0.02 },
+      durationSeconds: 120,
+    };
+    const check = find(f, 'cout')!;
+    expect(check.value).not.toMatch(/llmPromptTokens/);
+    expect(check.value).not.toMatch(/ttsCharacters/);
+    expect(check.value).toMatch(/vapi 0\.090/);
+  });
+
+  it('se tait sans montant ou sans durée', () => {
+    /* Un total sans durée ne fait pas un tarif à la minute, et inventer la
+       durée fabriquerait le verdict. */
+    const noAmount = good(); noAmount.cost = { usd: null, breakdown: null, durationSeconds: 120 };
+    expect(find(noAmount, 'cout')).toBeUndefined();
+    const noTime = good(); noTime.cost = { usd: 0.24, breakdown: null, durationSeconds: 0 };
+    expect(find(noTime, 'cout')).toBeUndefined();
+    const nothing = good(); nothing.cost = null;
+    expect(find(nothing, 'cout')).toBeUndefined();
+  });
+});
+
+describe('le transcripteur distant vient-il du dépôt', () => {
+  const find = (facts: CallFacts, id: string) => auditCall(facts).checks.find(c => c.id === id);
+  const withStt = (provider: string | null | undefined): CallFacts => {
+    const f = good();
+    f.remote.transcriberProvider = provider;
+    return f;
+  };
+
+  it('accepte deepgram, le seul que le code écrive', () => {
+    const check = find(withStt('deepgram'), 'transcripteur-source')!;
+    expect(check.status).toBe('ok');
+    expect(check.lever).toBeUndefined();
+  });
+
+  it("REFUSE un fournisseur que le code ne peut pas avoir écrit", () => {
+    const check = find(withStt('11labs'), 'transcripteur-source')!;
+    expect(check.status).toBe('fail');
+    expect(check.value).toContain('11labs');
+    expect(check.value).toMatch(/hors du dépôt/);
+    /* Le levier dit de NE PAS publier le brouillon: publier le ferait gagner
+       jusqu'au prochain enregistrement du portail, et les deux se battraient. */
+    expect(String(check.lever)).toMatch(/Ne pas publier/);
+  });
+
+  it("ne dit rien d'un assistant sans transcripteur, qui est l'état voulu en parole-à-parole", () => {
+    const check = find(withStt(null), 'transcripteur-source')!;
+    expect(check.status).toBe('ok');
+    expect(check.value).toMatch(/aucun/);
+  });
+
+  it('se tait quand le fournisseur n\'a pas été lu', () => {
+    /* `undefined` et `null` ne disent pas la même chose: l'un est « pas lu »,
+       l'autre « aucun transcripteur ». Les confondre ferait annoncer un état
+       voulu sur un assistant qu'on n'a pas pu ouvrir. */
+    expect(find(withStt(undefined), 'transcripteur-source')).toBeUndefined();
+  });
+});
+
 describe('le modèle temps réel est nommé', () => {
   const s2s = (over: Record<string, unknown> = {}): CallFacts => {
     const f = good();
@@ -1137,11 +1264,17 @@ describe('le modèle temps réel est nommé', () => {
   };
   const find = (facts: CallFacts, id: string) => auditCall(facts).checks.find(c => c.id === id);
 
-  it("nomme le modèle DISTANT, et dit comment en changer", () => {
+  it("nomme le modèle DISTANT et ce que sa minute coûte", () => {
     const check = find(s2s(), 'tiers')!;
     expect(check.label).toMatch(/temps réel/);
     expect(check.value).toContain('gpt-realtime-mini-2025-12-15');
-    expect(String(check.lever)).toContain('VOICE_REALTIME_MODEL');
+    /* Le tarif dans la valeur: c'est lui qui rend le facteur dix lisible sans
+       aller ouvrir la feuille de prix. */
+    expect(check.value).toMatch(/\u20ac\/min/);
+    expect(check.status).toBe('ok');
+    /* Vert: pas de levier (`AuditCheck.lever` est « absent quand c'est vert »),
+       et surtout AUCUN conseil de resync, qui écraserait ce qui marche. */
+    expect(check.lever).toBeUndefined();
   });
 
   it("écarte explicitement les étages du chemin classique", () => {
@@ -1153,12 +1286,59 @@ describe('le modèle temps réel est nommé', () => {
     expect(check.value).toContain('gpt-4.1-mini');
   });
 
-  it("signale un assistant distant resté sur un AUTRE modèle", () => {
+  /*
+   * LE LEVIER D'AVANT ÉTAIT DESTRUCTEUR (19/09/2026).
+   *
+   * `expected.realtimeModel` est `env.VOICE_REALTIME_MODEL` lu par le SCRIPT,
+   * donc celui du poste qui lance l'audit. L'assistant, lui, est écrit par le
+   * code qui tourne sur Render. Les deux n'ont aucune raison de coïncider, et
+   * la ligne concluait quand même « le resync n'a pas été rejoué » en
+   * conseillant `voice:resync`: ce geste aurait écrit le modèle du POSTE sur
+   * l'assistant, c'est-à-dire le défaut `gpt-realtime-2025-08-28` quand le
+   * poste n'a pas de `.env`. Un modèle dont le tarif n'a JAMAIS été relevé,
+   * posé à la place de celui que Render avait choisi.
+   */
+  it("ne conseille PAS le resync sur un écart avec l'environnement du poste", () => {
     const facts = s2s({ modelName: 'gpt-realtime-2025-08-28' });
     const check = find(facts, 'tiers')!;
     expect(check.status).toBe('warn');
-    expect(check.value).toContain("le resync n'a pas été rejoué");
-    expect(String(check.lever)).toContain('voice:resync');
+    /* L'écart est dit, et dit pour ce qu'il est: deux lectures qui ne
+       viennent pas du même endroit. */
+    expect(check.value).toContain('gpt-realtime-2025-08-28');
+    expect(check.value).toContain('gpt-realtime-mini-2025-12-15');
+    expect(String(check.lever)).toMatch(/NE PAS resynchroniser|jamais été relevé/);
+    expect(String(check.lever)).not.toMatch(/^`npm run voice:resync -- --confirm`$/);
+  });
+
+  /*
+   * LE FAIT LE PLUS CHER QUE CET AUDIT PUISSE SORTIR.
+   *
+   * Relevé sur un compte réel le 19/09/2026: l'assistant qui décroche portait
+   * `gpt-realtime-2` (0,645 $/min) quand Render disait le mini (0,060 $/min).
+   * Rien ne le montrait, et personne ne l'aurait vu avant la facture Vapi.
+   */
+  it("REFUSE un modèle qui coûte plus qu'une minute ne rapporte", () => {
+    const facts = s2s({ modelName: 'gpt-realtime-2' });
+    facts.expected.realtimeModel = 'gpt-realtime-2';
+    const check = find(facts, 'tiers')!;
+    expect(check.status).toBe('fail');
+    /* Le coût mensuel d'un Pro à pleines minutes, en face du prix de vente:
+       c'est la phrase qui fait prendre la décision. */
+    expect(check.value).toMatch(/Pro/);
+    expect(check.value).toMatch(/599/);
+    expect(String(check.lever)).toContain('gpt-realtime-mini-2025-12-15');
+    /* Le verdict ne dépend PAS de l'environnement: ici les deux coïncident,
+       et l'ancienne ligne aurait dit « ok ». */
+    expect(check.value).not.toMatch(/l'environnement lu ICI/);
+  });
+
+  it("dit qu'un tarif jamais relevé empêche de chiffrer la minute", () => {
+    const facts = s2s({ modelName: 'gpt-realtime-2025-08-28' });
+    facts.expected.realtimeModel = 'gpt-realtime-2025-08-28';
+    const check = find(facts, 'tiers')!;
+    expect(check.status).toBe('warn');
+    expect(check.value).toContain('tarif jamais relevé');
+    expect(String(check.lever)).toMatch(/tableau de bord Vapi/);
   });
 
   it('se tait quand l\'assistant distant n\'a pas été lu', () => {
