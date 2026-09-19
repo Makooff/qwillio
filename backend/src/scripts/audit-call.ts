@@ -1,5 +1,5 @@
 /**
- * `npm run voice:audit [-- --call=<vapiCallId>] [-- --email=<client>]`
+ * `npm run voice:audit [-- --call=<vapiCallId|sidTwilio>] [-- --email=<client>] [-- --skip=N]`
  *
  * L'audit d'UN appel, le dernier par défaut: « tout marche ? tout est
  * réglé ? », ligne par ligne avec un verdict et un levier. Ce script ne fait
@@ -28,16 +28,63 @@ const arg = (name: string): string | null => {
   return hit ? hit.slice(name.length + 3) : null;
 };
 
-async function main() {
-  const wantedCall = arg('call');
-  const email = arg('email');
+/**
+ * Un SID Twilio (`CAff00102f…`) n'est PAS un identifiant Vapi.
+ *
+ * C'est pourtant celui qu'on a sous la main: c'est ce que la console Twilio
+ * affiche, et c'est ce qu'on copie quand on veut auditer un appel precis.
+ * Passe tel quel a `--call`, il ne matchait aucune ligne et Vapi repondait
+ * « ne rend pas l'appel », ce qui ressemble a une panne alors que c'est un
+ * identifiant du mauvais systeme.
+ *
+ * La resolution scanne le CORPS des appels recents plutot que de lire un champ
+ * nomme: `phoneCallProviderId` est le nom probable, mais un identifiant ou un
+ * champ ne se DEDUIT jamais de la documentation (6quinvicies) et cette
+ * recherche est juste quel que soit l'endroit ou Vapi le range.
+ */
+const TWILIO_SID = /^CA[0-9a-f]{32}$/i;
 
-  const ours = await prisma.clientCall.findFirst({
+async function resolveTwilioSid(sid: string): Promise<string | null> {
+  try {
+    const calls = (await vapiClient.listCalls(50)) as Array<Record<string, any>>;
+    const hit = calls.find(c => JSON.stringify(c).includes(sid));
+    return typeof hit?.id === 'string' ? hit.id : null;
+  } catch (error) {
+    console.log(`\nVapi ne rend pas la liste des appels: ${(error as Error).message}\n`);
+    return null;
+  }
+}
+
+async function main() {
+  let wantedCall = arg('call');
+  const email = arg('email');
+  /* Le Nieme appel en partant du dernier. Une seance de test produit des
+     appels morts (raccroche a 4 s, faux depart) et l'audit prend le DERNIER:
+     `--skip=1` vise celui d'avant sans avoir a retrouver son identifiant. */
+  const skip = Math.max(0, parseInt(arg('skip') || '0', 10) || 0);
+
+  if (wantedCall && TWILIO_SID.test(wantedCall)) {
+    const resolved = await resolveTwilioSid(wantedCall);
+    if (!resolved) {
+      console.log(
+        `\n${wantedCall} est un SID TWILIO, pas un identifiant Vapi, et aucun des 50 derniers`
+        + ` appels Vapi ne le porte.\nUtiliser l'identifiant Vapi (un UUID), ou \`--skip=1\``
+        + ` pour l'avant-dernier appel.\n`,
+      );
+      return;
+    }
+    console.log(`SID Twilio ${wantedCall} → appel Vapi ${resolved}`);
+    wantedCall = resolved;
+  }
+
+  const [ours] = await prisma.clientCall.findMany({
     where: {
       vapiCallId: wantedCall ? wantedCall : { not: null },
       ...(email ? { client: { contactEmail: email } } : {}),
     },
     orderBy: { createdAt: 'desc' },
+    skip,
+    take: 1,
     select: {
       id: true,
       vapiCallId: true,
