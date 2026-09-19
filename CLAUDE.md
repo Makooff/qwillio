@@ -2363,6 +2363,62 @@ script, 6quatersexagesies) puis `voice:resync --confirm`, sans quoi l'assistant
 ENREGISTRE — celui qui decroche sur une ligne dediee — garde ses six outils et
 continuera de deplacer ce qu'on lui demande d'annuler.
 
+### 6octosexagesies. La ligne etait morte et personne ne le savait (19/09/2026, soir)
+Le solde Vapi est tombe a **-0,06** en pleine production. Vapi a alors decroche
+chaque appel, annonce a l'appelant que la balance etait vide, et raccroche. Deux
+clients avec un renvoi actif, donc deux commerces injoignables, leur propre
+telephone ne sonnant meme plus puisque le reseau envoyait tout chez nous.
+**Le propriétaire l'a decouvert en appelant son propre numero, par hasard**, en
+voulant tester autre chose. Tous les appels entrants entre la panne et cette
+decouverte sont perdus, sans trace et sans rappel possible.
+**Pourquoi le canari existant ne pouvait PAS le voir.** `fallback-watch` a ete
+ecrit le 09/09 pour le cas voisin, mot pour mot: « le credit OpenAI epuise,
+chaque tour en repli, et le premier a l'apprendre aurait ete un client ». Il
+compte les tours que NOTRE backend a servis. Or quand la panne est chez Vapi,
+notre backend n'est jamais appele: pas un tour, pas un outil, pas une ligne. Sa
+fenetre reste vide, son taux reste `null`, il se tait. **Il est aveugle
+exactement quand la panne est la plus grave**, celle qui emporte la flotte au
+lieu de degrader les reponses. Un canari qui se nourrit du trafic ne peut pas
+signaler l'absence de trafic.
+`dead-call-watch.service.ts` regarde donc l'autre bout: un appel termine sans
+une seule parole, ni de l'agent ni de l'appelant. C'est la signature d'une panne
+en AMONT du pipeline, quelle qu'en soit la cause (solde epuise, assistant refuse
+6octies, premiere phrase qui ne part pas 6octovicies).
+**Une FORME, jamais un code d'erreur.** Aucune valeur d'`endedReason` n'est
+testee, et c'est delibere: ces valeurs ne sont pas documentees de facon fiable,
+et deviner celles qui nomment une panne de facturation fabriquerait une lecture
+qui a l'air d'un fait (6quinvicies). L'alerte TRANSPORTE la raison brute telle
+que Vapi l'a dite, sans la classer: c'est elle qui decide de la reparation, et
+c'est la seule chose que le code ne pouvait pas connaitre (6nonies).
+**Une SERIE, pas un taux.** Un appel muet est banal (faux numero, raccroche
+immediat). Sur une flotte de deux clients, un taux mettrait des jours a devenir
+lisible pendant que la ligne est morte. Trois d'affilee ne se produisent pas par
+accident, et **la serie se remet a zero des qu'un seul appel aboutit**: c'est ce
+retour a zero qui distingue une panne d'une coincidence.
+Trois details qui portent le reste. Le canari est pose APRES la sortie
+repondeur (un appelant absent est un appel normal, le compter ferait sonner
+l'alerte les nuits creuses, et une alerte qui crie pour rien s'apprend a etre
+ignoree, 6nonies) et AVANT l'analyse (qui coute un appel de modele et peut
+lever: une panne de flotte doit etre criee meme si tout le reste echoue). La
+LEVEE existe, comme chez son voisin: sans elle personne ne sait que c'est fini.
+Et le message dit ce que l'appelant VIT, pas un compteur: « un renvoi actif leur
+fait perdre l'appel », plus l'ordre de verification (le solde d'abord,
+`voice:audit` ensuite). Un test de source verifie que le canari est branche et
+a la bonne place; la forme fautive a ete reintroduite une fois pour verifier
+qu'il tombe.
+**La mitigation qui ne coute rien, a retenir pour la prochaine fois:** couper le
+renvoi chez le client (`#21#`, ou `##002#` pour tout enlever) rend sa ligne
+normale dans la seconde, et se remet en une commande. Tant que la plateforme est
+morte, c'est la seule chose qui empeche un commerce de perdre ses appels.
+**Releve au meme moment, non traite:** Cartesia repond `402 Model credits limit
+reached` sur les trois variantes d'accueil des deux clients. L'accueil
+pre-enregistre est donc eteint, donc l'optimisation de latence de la premiere
+phrase, en silence (6bis, 6sexvicies, avec un autre fournisseur). Ca ne bloque
+aucun appel: le `fallbackPlan` du bloc `voice` rebascule sur ElevenLabs, et
+`VOICE_TTS_PROVIDER` (defaut `11labs`, cartesia seulement si la variable le dit
+exactement) sort de Cartesia sans deploiement. Apres recharge:
+`npm run voice:greetings` puis `--confirm`, sinon l'accueil reste eteint.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

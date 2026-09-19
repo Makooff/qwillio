@@ -333,6 +333,24 @@ export const env = {
     Math.max(0.01, parseFloat(process.env.VOICE_FALLBACK_ALERT_RATE || '0.2') || 0.2),
   ),
   /**
+   * Appels sans une seule parole, d'affilée, avant d'alerter (19/09/2026).
+   *
+   * Une SÉRIE et non un taux: sur une flotte de deux clients, un taux mettrait
+   * des jours à devenir lisible pendant que la ligne est morte. Un appel muet
+   * est banal (faux numéro, raccroché immédiat); trois de suite ne se
+   * produisent pas par accident, et la série se remet à zéro dès qu'un seul
+   * appel aboutit.
+   *
+   * Trois, pas deux: le 19/09 la panne a duré jusqu'à ce que le propriétaire
+   * appelle son propre numéro par hasard, donc le coût d'une alerte tardive
+   * dépasse de loin celui d'une fausse. Baisser à 2 rend le canari plus
+   * nerveux sans rien casser.
+   */
+  VOICE_DEAD_CALL_ALERT_STREAK: Math.max(
+    2,
+    parseInt(process.env.VOICE_DEAD_CALL_ALERT_STREAK || '3', 10) || 3,
+  ),
+  /**
    * Secondes de sonnerie avant d'abandonner le transfert (REL-6).
    *
    * 20 et non les 60 du défaut de Vapi. Une minute d'attente pendant qu'un
