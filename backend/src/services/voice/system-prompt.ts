@@ -635,6 +635,39 @@ export function ensureDisclosure(greeting: string, profile: ClientVoiceProfile):
  * Exported so the pre-synthesis job (chantier 8) can generate audio for every
  * variant instead of guessing which one will be picked.
  */
+/**
+ * LA DERNIERE PHRASE, dite par VAPI et non par le modele (`endCallMessage`).
+ *
+ * Sans elle, `endCall` laisse un trou: Vapi attend que la file de parole se
+ * vide avant de raccrocher, et le modele, toujours connecte, remplit le
+ * silence avec un tour de plus. Releve a l'horloge sur un appel reel du
+ * 19/09/2026: apres un au revoir francais (tour 15), un tour 16 de 2,3 s sans
+ * aucun transcript, et l'appelant a entendu « Hello, how can I help you ? »
+ * juste avant le raccroche. C'est la derive vers l'anglais de
+ * 6novoquinquagesies, et le MOMENT ou elle tombe est exactement celui ou le
+ * modele n'a plus rien a dire.
+ *
+ * La regle est posee deux fois dans le prompt depuis le 17/09 et elle a echoue
+ * les deux fois. 6duosexagesies dit quoi faire alors: ne pas la reecrire une
+ * troisieme fois au meme rang. Ici on ne la reecrit pas du tout — on supprime
+ * le TOUR. Vapi dit cette phrase lui-meme, dans la langue du client, et le
+ * modele n'a plus de silence a meubler.
+ *
+ * Le champ n'est pas devine: `inbound-routing.service.ts` l'envoie deja en
+ * production sur l'assistant de renvoi, et `vapi-payload.ts` le pose a vide
+ * pour ne rien laisser sur un repondeur. Il reste que la documentation de Vapi
+ * n'est pas lisible d'ici, donc `npm run voice:validate` avant tout
+ * deploiement: un champ refuse ne degrade pas un appel, il annule l'assistant
+ * ENTIER (6octies).
+ */
+export function endCallFarewell(lang: VoiceLanguage): string {
+  return lang === 'fr'
+    ? 'Merci de votre appel, bonne journee.'
+    : lang === 'nl'
+      ? 'Bedankt voor uw oproep, nog een fijne dag.'
+      : 'Thank you for calling, have a good day.';
+}
+
 export function firstMessageVariants(profile: ClientVoiceProfile, rawKnownName: string | null): string[] {
   const lang = profile.language;
   const t = <T>(fr: T, en: T, nl: T): T => pickLang(lang, fr, en, nl);

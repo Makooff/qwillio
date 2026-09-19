@@ -1,5 +1,6 @@
 import { prisma } from '../config/database';
 import { clientLocale } from '../utils/client-locale';
+import { endCallFarewell } from './voice/system-prompt';
 import { vapiClient } from '../config/vapi';
 import { logger } from '../config/logger';
 import { env } from '../config/env';
@@ -145,6 +146,10 @@ export class OnboardingService {
            pas, et l'appel ne laissait plus aucune trace. */
         server: webhookServer(`${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`),
         endCallFunctionEnabled: true,
+        /* La DERNIERE phrase, dite par Vapi. Sans elle le modele remplit le
+           silence pendant que la file de parole se vide, et ce tour-la part
+           en anglais (voir `endCallFarewell`). */
+        endCallMessage: endCallFarewell(lang),
         // Même règle que le runtime: refuser la notice, c'est refuser
         // l'enregistrement — jamais un enregistrement silencieux.
         recordingEnabled: speech?.recording ?? ((client?.vapiConfig as any)?.disableRecordingNotice !== true),
@@ -1121,6 +1126,10 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
         syncSpeech?.tuning ?? {},
       ),
       server: webhookServer(`${env.API_BASE_URL}/api/webhooks/vapi/client/${client.id}`),
+      endCallFunctionEnabled: true,
+      /* Comme a la creation: ce qui decrit comment l'agent PARLE part par les
+         DEUX ecritures, jamais par une seule (6vicies). */
+      endCallMessage: endCallFarewell(syncLang),
       /* Le drapeau d'enregistrement ne voyageait PAS du tout ici: il était posé
          à l'inscription et plus jamais relu. Un client qui coupait
          l'enregistrement dans le portail gardait donc un assistant distant qui
