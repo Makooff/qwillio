@@ -44,6 +44,7 @@ import { webhookServer } from '../services/voice/webhook-identity';
 import { buildRealtimePlans, buildSpeech, type VoiceLanguage } from '../services/voice/speech-plans';
 import { fitAssistantLabel } from '../services/voice/vapi-limits';
 import { buildVoiceTools } from '../services/voice/voice-tools';
+import { endCallFarewell } from '../services/voice/system-prompt';
 import type { ClientVoiceProfile } from '../services/voice/realtime-context.service';
 
 /* 13 caractères, et c'est un compte, pas un goût: le nom complet vaut
@@ -150,6 +151,16 @@ function candidate(lang: VoiceLanguage, speechToSpeech: boolean) {
     server: webhookServer(`${env.API_BASE_URL}/api/webhooks/vapi/client/00000000-0000-0000-0000-000000000000`),
     forwardingPhoneNumber: '+32460000000',
     endCallFunctionEnabled: true,
+    /* LA DERNIERE PHRASE, et elle a failli passer sans etre validee
+       (19/09/2026). Ce script ecrit sa propre charge, donc chaque champ ajoute
+       aux ecritures de production doit etre ajoute ICI aussi, sinon
+       `voice:validate` rend un vert qui ne veut rien dire: c'est 6sexdecies,
+       le script qui validait les plans et pas la partie que personne ne
+       relisait.
+       Par `endCallFarewell`, jamais par une chaine ecrite ici: une copie ne
+       vieillirait pas avec l'original, et c'est l'original qui part chez
+       Vapi. */
+    endCallMessage: endCallFarewell(lang),
     recordingEnabled: true,
     backgroundSound: env.VOICE_BACKGROUND_SOUND,
   };

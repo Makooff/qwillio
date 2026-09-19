@@ -63,6 +63,21 @@ describe('la dernière phrase est la nôtre', () => {
     expect(onboarding).toMatch(/endCallMessage: endCallFarewell\(syncLang\)/);
   });
 
+  it('est SOUMISE à l\'API vivante par `voice:validate`', () => {
+    /* CE SCRIPT ÉCRIT SA PROPRE CHARGE, et c'est le piège de 6sexdecies: il
+       validait les plans et pas la partie que personne ne relisait. Un champ
+       ajouté aux écritures de production sans l'être ici rend un vert qui ne
+       veut rien dire — et un champ refusé n'abîme pas un appel, il annule
+       l'assistant ENTIER (6octies).
+       Par `endCallFarewell` et non par une chaîne recopiée: une copie ne
+       vieillirait pas avec l'original, et c'est l'original qui part chez
+       Vapi. */
+    const probe = stripComments(
+      readFileSync(join(__dirname, '../../../scripts/validate-assistant.ts'), 'utf8'),
+    );
+    expect(probe).toMatch(/endCallMessage: endCallFarewell\(lang\)/);
+  });
+
   it('la synchronisation porte aussi le drapeau qui autorise le raccroché', () => {
     /* `endCallMessage` sans `endCallFunctionEnabled` ne sert à rien: c'est
        l'outil qui déclenche la fin, la phrase ne fait que l'accompagner. */
