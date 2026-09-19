@@ -2102,6 +2102,56 @@ francais, du premier mot au dernier — et elle est en position 0. Le vouvoiemen
 y est donc accroche. **Quand une regle echoue deux fois au meme rang, on la
 rattache a une regle qui tient, on ne la repete pas.**
 
+### 6tersexagesies. La memoire de lead etait classee sous une cle que rien ne relit (19/09/2026)
+Demande: « quand je dis bonjour, j'ai un rendez-vous avec vous mais je ne sais
+plus la date, lui sait deja; sa memoire liee au numero, le prenom et le nom,
+deja charges, pour qu'il n'aille pas chercher. » Le mecanisme existait
+(`callBrief`), et une ligne de code l'annulait.
+`captureLead` ecrit la memoire sous `dictated.e164 ?? session.callerNumber`.
+Le second passe par `normalizeNumber`, donc des CHIFFRES seuls; le premier est
+de l'E.164, donc avec un **« + »**. Or la lecture interroge la cle UNIQUE avec
+le numero de la ligne appelante, toujours sous sa forme chiffres.
+**Consequence exacte:** un appelant qui DICTE un numero de rappel voit son nom
+et son resume classes sous « +32… », une cle que rien ne relit jamais. Au
+rappel suivant l'agent ne le reconnait pas, redemande tout, et le cycle
+recommence. C'est le mode d'echec de `phoneForms` (6septquinquagesies) sur la
+seule table a cle UNIQUE, ou un `in` n'est pas possible a l'ecriture.
+La normalisation vit donc au passage oblige, dans `remember()`, et la lecture
+passe en `findFirst` sur les deux ecritures pour recuperer les lignes deja
+ecrites avec un « + ». Le cache est vide sous les deux formes: n'en vider
+qu'une laisserait servir un nom perime pour la vie du processus.
+**L'index qui manquait, et la premisse fausse qui le rendait urgent.**
+`client_bookings` portait quatre index et AUCUN sur `customer_phone`, alors que
+`findCallerBookings` et `getCallerHistory` cherchent tous deux par ce champ, sur
+le chemin d'un appel en cours. Pire: la fenetre de 90 jours a ete RETIREE le
+17/09 **sur la premisse ecrite que « le numero de l'appelant est indexe et
+exact »**. Elle ne l'etait pas. Le retrait de la borne a donc transforme un
+balayage borne en un balayage de tout l'historique du client. Migration
+`20260919000000`, index `(client_id, customer_phone)`.
+La regle: **une lecon qui s'appuie sur une propriete du schema doit la
+verifier dans le schema**, pas la supposer. Deux commentaires affirmaient
+l'index; personne n'avait ouvert `schema.prisma`.
+**Le repli de Prisma n'etait borne que d'un cote.** La branche « demarrage a
+froid » plafonne a 10 s, la branche « transitoire » faisait `250 * 2^attempt`
+sur douze essais, soit **512 secondes** au dernier et plus de dix-sept minutes
+pour la serie entiere, sur UNE requete. L'asymetrie n'etait pas un choix: les
+deux commentaires decrivent la meme intention. Et cette enveloppe s'applique a
+`$allOperations`, donc aussi aux requetes du chemin d'appel, ou la cible d'un
+outil est 1,5 s. Plafonnee a 4 s, la derniere valeur que la sequence
+documentee nomme elle-meme, donc aucun repli prevu n'est raccourci.
+**Et le premier repli etait en `debug`, donc muet en production**: une requete
+pouvait payer 250 ms plus un aller-retour sans laisser de trace, et « pourquoi
+cet outil a mis six secondes » restait sans reponse. Il est desormais en
+`info`, avec le debut du message d'erreur. C'est ce qui rendra le prochain
+releve LISIBLE au lieu de le laisser deviner — le defaut de forme qui revient
+sans cesse ici: le fait existe, personne ne le lit (6unsexagesies).
+**Ce qui n'est PAS explique, et qu'il ne faut pas corriger en devinant:** le
+releve du 18/09 montre des outils qui RALENTISSENT au fil de l'appel (2,2 s
+puis 6,1, 2,9, 4,5, 7,7), ce qui est l'inverse d'un demarrage a froid. Les
+journaux Render diront maintenant si des replis Prisma sont payes pendant ces
+appels. Tant qu'ils ne l'ont pas dit, l'index et le plafond sont des correctifs
+JUSTES, pas la cause demontree.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

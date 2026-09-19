@@ -421,8 +421,16 @@ class RealtimeContextService {
     if (cached) return cached;
 
     const [memory, calls, bookings] = await Promise.all([
-      prisma.callerMemory.findUnique({
-        where: { clientId_callerNumber: { clientId, callerNumber } },
+      /* Par ses ÉCRITURES ici aussi, et pas seulement sur les réservations
+         (19/09/2026). Les lignes écrites avant la normalisation de
+         `callerMemoryService.remember` portent un « + » (un numéro de rappel
+         DICTÉ arrive en E.164), et une clé unique ne se cherche que par
+         égalité: elles étaient donc perdues pour toujours. `findFirst` sur les
+         deux écritures les récupère, et la plus récemment touchée gagne si les
+         deux existent. */
+      prisma.callerMemory.findFirst({
+        where: { clientId, callerNumber: { in: phoneForms(callerNumber) } },
+        orderBy: { lastCallAt: 'desc' },
         select: { knownName: true, profileSummary: true, lastSummary: true, lastCallAt: true, totalCalls: true },
       }),
       prisma.clientCall.findMany({

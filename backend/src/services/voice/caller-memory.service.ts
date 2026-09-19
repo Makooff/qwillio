@@ -1,6 +1,7 @@
 import { prisma } from '../../config/database';
 import { logger } from '../../config/logger';
 import { realtimeContextService } from './realtime-context.service';
+import { normalizeNumber } from './phone-allocation.service';
 
 /**
  * Persistent caller memory.
@@ -76,9 +77,28 @@ class CallerMemoryService {
   }): Promise<void> {
     if (!input.callerNumber) return;
 
+    /* LA CLÉ SE NORMALISE ICI, ET NULLE PART AILLEURS (19/09/2026).
+     *
+     * `captureLead` écrit la mémoire sous `dictated.e164 ?? session.callerNumber`.
+     * Le second est passé par `normalizeNumber`, donc des CHIFFRES seuls; le
+     * premier est de l'E.164, donc avec un « + ». Or la lecture
+     * (`getCallerHistory`) interroge la clé unique avec le numéro de la ligne
+     * appelante, qui est toujours la forme chiffres.
+     *
+     * Conséquence exacte, et c'est le retour du 19/09 mot pour mot: un appelant
+     * qui DICTE un numéro de rappel voit son nom et son résumé classés sous
+     * « +32… », une clé que rien ne relit jamais. Au rappel suivant l'agent ne
+     * le reconnaît pas, redemande son nom, et le cycle recommence. La requête
+     * réussit et ne trouve rien, en silence — le mode d'échec de `phoneForms`,
+     * ici sur la seule table à clé unique, où `in` n'est pas possible.
+     *
+     * La normalisation vit donc à l'ÉCRITURE, au passage obligé, parce qu'une
+     * seconde règle écrite près d'un appelant divergerait (6vicies). */
+    const callerNumber = normalizeNumber(input.callerNumber) ?? input.callerNumber;
+
     try {
       const existing = await prisma.callerMemory.findUnique({
-        where: { clientId_callerNumber: { clientId: input.clientId, callerNumber: input.callerNumber } },
+        where: { clientId_callerNumber: { clientId: input.clientId, callerNumber } },
         select: { profileSummary: true, preferences: true, knownName: true, email: true },
       });
 
@@ -86,10 +106,10 @@ class CallerMemoryService {
       const profileSummary = this.rollSummary(existing?.profileSummary ?? null, input.summary ?? null);
 
       await prisma.callerMemory.upsert({
-        where: { clientId_callerNumber: { clientId: input.clientId, callerNumber: input.callerNumber } },
+        where: { clientId_callerNumber: { clientId: input.clientId, callerNumber } },
         create: {
           clientId: input.clientId,
-          callerNumber: input.callerNumber,
+          callerNumber,
           knownName: input.name ?? null,
           email: input.email ?? null,
           profileSummary,
@@ -113,7 +133,13 @@ class CallerMemoryService {
         },
       });
 
-      await realtimeContextService.invalidateCaller(input.clientId, input.callerNumber);
+      /* Le cache se vide sur les DEUX écritures: la forme normalisée qu'on
+         vient d'écrire, et celle qu'on a reçue, sous laquelle une entrée de
+         cache a pu être posée par une lecture antérieure. */
+      await realtimeContextService.invalidateCaller(input.clientId, callerNumber);
+      if (callerNumber !== input.callerNumber) {
+        await realtimeContextService.invalidateCaller(input.clientId, input.callerNumber);
+      }
     } catch (error) {
       logger.warn(`[CallerMemory] write failed for ${input.clientId}: ${(error as Error).message}`);
     }
