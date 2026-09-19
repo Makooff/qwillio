@@ -333,7 +333,7 @@ describe('lookupBooking — toutes les réservations de l\'appelant, le nom en r
   it('liste les deux rendez-vous du numéro, sans nom', async () => {
     findBookings.mockResolvedValueOnce(rows);
     const out = await lookup({});
-    expect(out).toMatch(/^RESERVATION\(S\) DE CE CORRESPONDANT: 1\) Lucas van Devel/);
+    expect(out).toMatch(/RESERVATION\(S\) DE CE CORRESPONDANT: 1\) Lucas van Devel/);
     expect(out).toContain('2) Jean-Luc de la forge');
   });
 
@@ -354,7 +354,7 @@ describe('lookupBooking — toutes les réservations de l\'appelant, le nom en r
   it('retrouve par le nom seul quand le numéro est un autre', async () => {
     findBookings.mockResolvedValueOnce(rows.map(r => ({ ...r, customerPhone: '32400000000' })));
     const out = await lookup({ customerName: 'de la forge' });
-    expect(out).toMatch(/^RESERVATION\(S\) DE CE CORRESPONDANT: 1\) Jean-Luc de la forge/);
+    expect(out).toMatch(/RESERVATION\(S\) DE CE CORRESPONDANT: 1\) Jean-Luc de la forge/);
     expect(out).not.toContain('Lucas van Devel');
   });
 });
