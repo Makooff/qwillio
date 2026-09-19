@@ -15,6 +15,7 @@ import { spamDetectionService } from './spam-detection.service';
 import { knowledgeGapService } from './voice/knowledge-gap.service';
 import { readEndedReason, transferFunnel } from './voice/call-outcome';
 import { todayIso } from './voice/clock';
+import { isPlaceholderName } from '../utils/spelled-name';
 import { businessTimezone } from '../utils/zoned-time';
 import { analysisDateRule, parseAnalysisDate } from '../utils/analysis-date';
 
@@ -96,6 +97,32 @@ export class ClientCallService {
       ? this.emptyAnalysis()
       : await this.analyzeClientCallTranscript(transcript, client, known);
     if (known) analysis.callerName = known;
+
+    /* LE NOM DE L'AGENT N'EST PAS CELUI DE L'APPELANT (19/09/2026).
+     *
+     * L'analyse lit le TRANSCRIPT, qui porte toujours l'accueil (« Demtalix,
+     * bonjour. Je suis Marc, votre assistant IA »). Sur un appel de quatre
+     * secondes ou l'appelant n'a RIEN dit, le seul nom propre disponible est
+     * celui de l'agent: elle a rendu « Marc », et ces deux colonnes l'ont
+     * ecrit sans garde.
+     *
+     * Ce qui suit est une chaine: `getCallerHistory` lit `nameCollected`, le
+     * brief d'ouverture annonce « il s'appelle probablement Marc De La Foi » a
+     * chaque appel, le modele reserve sous ce nom, et `lookupBooking` ne
+     * retrouve plus le vrai. Releve sur un compte reel: TROIS rendez-vous au
+     * nom de l'agent.
+     *
+     * C'est la meme famille que le nom bidon de 6quadragesies, mais la liste
+     * statique ne pouvait pas l'attraper: « Marc » est un prenom valide, et ce
+     * qui le disqualifie est QUI il designe. La garde recoit donc les noms de
+     * ce client-la. */
+    if (analysis.callerName && isPlaceholderName(analysis.callerName, [client.agentName ?? '', client.businessName ?? ''])) {
+      logger.warn(
+        `[ClientCall] nom d'appelant ecarte pour ${client.businessName}: `
+          + `« ${analysis.callerName} » designe l'agent ou le commerce, pas l'appelant`,
+      );
+      analysis.callerName = '';
+    }
 
     /* LA DATE QUE LE MODÈLE A ÉCRITE, RELUE UNE FOIS, ici, pour les deux
        écritures qui suivent (la fiche d'appel et la réservation de

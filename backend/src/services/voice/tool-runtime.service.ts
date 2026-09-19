@@ -699,7 +699,10 @@ class ToolRuntimeService {
        réserve ça », au revoir. Aucun nom demandé, aucune réservation, aucun
        SMS. L'ancien « INFOS MANQUANTES » ne disait ni que rien n'était pris,
        ni quoi faire: le modèle a annoncé une réservation qui n'existait pas. */
-    const nameIssue = nameProblem(customerName);
+    /* Les noms de CE client sont interdits: l'agent se presente a chaque appel,
+       donc son prenom est le seul nom propre d'un transcript ou l'appelant n'a
+       rien dit (19/09/2026, trois rendez-vous au nom de l'agent). */
+    const nameIssue = nameProblem(customerName, [profile.agentName, profile.businessName]);
     if (!date || minutes === null || nameIssue) {
       return missingBookingInfo(profile.language, { name: nameIssue, date: !date, time: minutes === null }, customerName);
     }
@@ -1212,7 +1215,7 @@ class ToolRuntimeService {
     const lead = {
       /* Un nom bidon (« client », « inconnu ») n'entre ni dans le CRM ni
          dans la mémoire d'appelant: il y resterait, et l'agent le redirait. */
-      name: typeof args.name === 'string' && !isPlaceholderName(args.name) ? normaliseSpelledName(args.name) || null : null,
+      name: typeof args.name === 'string' && !isPlaceholderName(args.name, [profile.agentName, profile.businessName]) ? normaliseSpelledName(args.name) || null : null,
       email: typeof args.email === 'string' ? args.email.trim() || null : null,
       reason: typeof args.reason === 'string' ? args.reason.trim() : '',
       urgency: ['low', 'normal', 'high'].includes(args.urgency) ? String(args.urgency) : 'normal',

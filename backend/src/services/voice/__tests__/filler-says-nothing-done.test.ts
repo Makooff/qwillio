@@ -115,9 +115,16 @@ describe('les phrases d\'attente décrivent le geste, jamais son issue', () => {
  * propriétaire. En classique la phrase reste indispensable: la chaîne ne peut
  * RIEN dire pendant que l'outil tourne.
  *
- * La phrase RETARDÉE reste des deux côtés: elle ne part qu'après
- * `VOICE_FILLER_DELAY_MS`, quand le modèle a fini d'annoncer et qu'il ne reste
- * que du silence. Un `lookupBooking` à 7,9 s est exactement ce cas-là.
+ * ET LA PHRASE RETARDÉE SE TAIT AUSSI (19/09/2026). Elle avait été gardée au
+ * motif qu'elle « ne part qu'après `VOICE_FILLER_DELAY_MS`, quand il ne reste
+ * que du silence ». Ce seuil vaut 1 200 ms, et le relevé du LENDEMAIN donne
+ * les durées d'outil réelles: 2,2 / 6,1 / 2,9 / 4,5 / 7,7 s. Les cinq le
+ * dépassent, donc elle partait sur TOUS les outils, par-dessus la narration
+ * du modèle. Même défaut, même retour du propriétaire, et le correctif du 17
+ * n'en fermait que la moitié.
+ *
+ * La règle: une justification qui repose sur un seuil se relit quand on MESURE
+ * ce que ce seuil filtre.
  */
 describe('la phrase de démarrage se tait en parole-à-parole', () => {
   const profile = (over: Record<string, unknown> = {}) => ({
@@ -139,10 +146,22 @@ describe('la phrase de démarrage se tait en parole-à-parole', () => {
     expect(startMessages(tools)).toHaveLength(0);
   });
 
-  it('la phrase RETARDÉE reste: après sept secondes, l\'appelant croit la ligne coupée', async () => {
+  it('la phrase RETARDÉE se tait aussi: 1 200 ms est sous TOUTES les durées mesurées', async () => {
+    /* La version précédente de ce test exigeait l'inverse, sur la foi d'un
+       seuil que les mesures du lendemain contredisent. Elle passait pendant
+       que l'appelant entendait deux voix dire la même chose. */
     const { buildVoiceTools } = await import('../voice-tools');
     const tools = buildVoiceTools(profile({ voiceTier: 'superagent' }));
-    expect(delayedMessages(tools).length).toBeGreaterThan(0);
+    expect(delayedMessages(tools)).toHaveLength(0);
+  });
+
+  it('aucun message de meublage du tout en parole-à-parole', async () => {
+    /* Les deux ensemble, parce que c'est la propriété qui compte pour
+       l'appelant: sur ce chemin le modèle est le SEUL à parler. */
+    const { buildVoiceTools } = await import('../voice-tools');
+    const tools = buildVoiceTools(profile({ voiceTier: 'superagent' }));
+    const meublage = tools.flatMap((t: any) => (t.messages ?? []));
+    expect(meublage).toHaveLength(0);
   });
 
   it('la chaîne classique les garde toutes les deux: elle ne peut rien dire pendant l\'outil', async () => {
