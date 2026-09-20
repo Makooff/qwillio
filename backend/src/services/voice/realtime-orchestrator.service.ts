@@ -23,6 +23,7 @@ import { callerIdentity, type LineAgent } from './inbound-routing.service';
 import { isSelfCall, hangUpSelfCall, controlUrlOf } from './self-call-guard';
 import { needsCallBrief } from './profile-voice';
 import { measureDbRoundTrip } from './db-round-trip';
+import { dbRetrySnapshot } from '../../config/database';
 import { callBrief } from './call-brief';
 import { vapiClient } from '../../config/vapi';
 import { voiceModeFor } from './voice-tiers';
@@ -609,6 +610,18 @@ class RealtimeOrchestratorService {
              traverser, et la décision de région se prend au raisonnement
              plutôt qu'au relevé. */
           dbRoundTrip: session.dbRoundTrip,
+          /* Ce que les REPLIS Prisma ont coûté pendant cet appel. Le journal
+             existait déjà (19/09) mais se lisait dans Render, à la main, en
+             connaissant l'heure: le fait était là, personne ne l'ouvrait. */
+          dbRetries: (() => {
+            const now = dbRetrySnapshot();
+            const before = session.dbRetriesAtStart;
+            return {
+              count: now.count - before.count,
+              waitedMs: now.waitedMs - before.waitedMs,
+              coldStarts: now.coldStarts - before.coldStarts,
+            };
+          })(),
           bookingId: session.bookingId,
           /* Le rendez-vous ANNULE en direct: sans lui, le post-appel relit la
              transcription, y voit un rendez-vous et le RECREE, a la date que

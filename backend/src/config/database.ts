@@ -74,6 +74,30 @@ const MAX_RETRIES = 12;
 // pool/connection hiccups, which recover in <500ms.
 const COLDSTART_PATTERNS = ["Can't reach database server", 'Connection refused', 'ECONNRESET'];
 
+/**
+ * COMBIEN DE REPLIS CE PROCESSUS A PAYÉS, et combien de temps ils ont coûté en
+ * pure attente.
+ *
+ * Le journal de repli est passé en `info` le 19/09 précisément parce qu'il
+ * était muet: « une requête pouvait payer 250 ms plus un aller-retour sans
+ * laisser la moindre trace, et pourquoi cet outil a mis six secondes restait
+ * sans réponse ». Mais un journal se lit dans Render, à la main, en connaissant
+ * l'heure de l'appel — donc le fait existait toujours sans que personne ne
+ * l'ouvre, ce qui est le défaut de forme qui revient sans cesse ici
+ * (6unsexagesies).
+ *
+ * Ce compteur est PROCESSUS-LARGE, et il le reste: une extension Prisma ne sait
+ * pas quel appel est en vol. La différence entre deux relevés dit donc « ce
+ * processus a payé N replis pendant cet appel », et avec deux appels simultanés
+ * elle les compte pour les deux. L'audit le dit plutôt que de faire semblant:
+ * un chiffre honnête et large vaut mieux qu'un chiffre précis et faux.
+ */
+const dbRetryTally = { count: 0, waitedMs: 0, coldStarts: 0 };
+
+export function dbRetrySnapshot(): { count: number; waitedMs: number; coldStarts: number } {
+  return { ...dbRetryTally };
+}
+
 const prisma = basePrisma.$extends({
   query: {
     async $allOperations({ args, query }: { args: any; query: (args: any) => Promise<any> }) {
@@ -101,6 +125,12 @@ const prisma = basePrisma.$extends({
             const backoff = isColdStart
               ? Math.min(10000, 1000 * Math.pow(2, attempt))
               : Math.min(4000, 250 * Math.pow(2, attempt));
+            /* Compté AVANT l'attente: un processus tué pendant le repli aurait
+               quand même payé la requête perdue, et ne pas la compter ferait
+               disparaître le pire cas — celui qu'on cherche. */
+            dbRetryTally.count++;
+            dbRetryTally.waitedMs += backoff;
+            if (isColdStart) dbRetryTally.coldStarts++;
             /* VISIBLE DÈS LE PREMIER ESSAI. Le premier repli était en `debug`,
              * donc muet en production: une requête pouvait payer 250 ms plus un
              * aller-retour sans laisser la moindre trace, et « pourquoi cet

@@ -1714,3 +1714,53 @@ describe('auditCall — les deux distances', () => {
     expect(find(good(), 'vapi-hop')).toBeUndefined();
   });
 });
+
+/**
+ * LES REPLIS PRISMA, QUESTION LAISSÉE OUVERTE LE 19/09.
+ *
+ * Le relevé du 18/09 montre des outils qui RALENTISSENT au fil de l'appel
+ * (2,2 puis 6,1, 2,9, 4,5, 7,7 s), ce qui est l'inverse d'un démarrage à
+ * froid. Le journal de repli a été passé en `info` pour répondre, mais il se
+ * lit dans Render, à la main, en connaissant l'heure de l'appel: le fait
+ * existait sans que personne ne l'ouvre.
+ */
+describe('auditCall — les replis Prisma de cet appel', () => {
+  const withRetries = (r: { count: number; waitedMs: number; coldStarts: number }): CallFacts => {
+    const f = good();
+    f.realtime!.dbRetries = r;
+    return f;
+  };
+  const line = (f: CallFacts) => auditCall(f).checks.find(c => c.id === 'db-retries');
+
+  it("ZÉRO n'affiche rien: un écran qu'on relit en entier n'a pas besoin d'un vert de plus", () => {
+    expect(line(withRetries({ count: 0, waitedMs: 0, coldStarts: 0 }))).toBeUndefined();
+    expect(line(good())).toBeUndefined();
+  });
+
+  it("nomme l'attente PURE, celle qui s'ajoute à la durée des outils sans être dans la requête", () => {
+    const c = line(withRetries({ count: 2, waitedMs: 750, coldStarts: 0 }))!;
+    expect(c.status).toBe('warn');
+    expect(c.value).toMatch(/2 repli\(s\), 750 ms d'attente pure/);
+    expect(String(c.lever)).toMatch(/\[prisma\]/);
+  });
+
+  it('une seconde ou plus devient un DÉFAUT: la cible d\'un outil est 1,5 s', () => {
+    expect(line(withRetries({ count: 4, waitedMs: 1900, coldStarts: 0 }))!.status).toBe('fail');
+  });
+
+  it("un démarrage à froid envoie au keepalive, pas à la requête", () => {
+    /* Les deux réparations n'ont rien à voir: un calcul Neon endormi se règle
+       en l'empêchant de s'endormir, jamais en relisant un `findMany`. */
+    const c = line(withRetries({ count: 3, waitedMs: 7000, coldStarts: 2 }))!;
+    expect(c.value).toMatch(/dont 2 sur un démarrage à froid/);
+    expect(String(c.lever)).toMatch(/keepalive/);
+    expect(String(c.lever)).not.toMatch(/\[prisma\]/);
+  });
+
+  it('dit sa propre réserve: le compteur est processus-large', () => {
+    /* Une extension Prisma ne sait pas quel appel est en vol. Taire ça ferait
+       lire un chiffre partagé comme un chiffre par appel. */
+    expect(line(withRetries({ count: 1, waitedMs: 250, coldStarts: 0 }))!.value)
+      .toMatch(/PROCESSUS-LARGE/);
+  });
+});

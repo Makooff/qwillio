@@ -1230,6 +1230,42 @@ export function auditCall(facts: CallFacts): AuditReport {
   }
 
   {
+    /* LES REPLIS PRISMA PAYÉS PENDANT CET APPEL.
+     *
+     * Question laissée ouverte le 19/09 et jamais refermée: le relevé du 18/09
+     * montre des outils qui RALENTISSENT au fil de l'appel (2,2 puis 6,1, 2,9,
+     * 4,5, 7,7 s), ce qui est l'inverse d'un démarrage à froid. Le journal de
+     * repli a été passé en `info` pour répondre, mais il se lit dans Render, à
+     * la main, en connaissant l'heure de l'appel — donc le fait existait sans
+     * que personne ne l'ouvre, encore (6unsexagesies).
+     *
+     * ZÉRO N'EST PAS UNE LIGNE. Un appel sain n'en paie aucun, et afficher
+     * « 0 repli » à chaque passage ajouterait une ligne verte de plus à un
+     * écran qu'il faut déjà relire en entier. Elle n'apparaît que quand il y a
+     * quelque chose à dire. */
+    const retries = rt?.dbRetries as { count?: number; waitedMs?: number; coldStarts?: number } | undefined;
+    if (retries && (retries.count ?? 0) > 0) {
+      const waited = retries.waitedMs ?? 0;
+      const cold = retries.coldStarts ?? 0;
+      push({
+        id: 'db-retries', area: 'latence',
+        status: waited >= 1000 ? 'fail' : 'warn',
+        label: 'replis Prisma payés pendant cet appel',
+        value: `${retries.count} repli(s), ${waited} ms d'attente pure`
+          + (cold > 0 ? `, dont ${cold} sur un démarrage à froid` : '')
+          /* La réserve fait partie du chiffre: une extension Prisma ne sait pas
+             quel appel est en vol, donc deux appels simultanés se partagent le
+             compteur. Le dire vaut mieux qu'un chiffre précis et faux. */
+          + '. Compteur PROCESSUS-LARGE: avec des appels simultanés, il les compte pour les deux',
+        target: 'aucun',
+        lever: cold > 0
+          ? "démarrage à froid de Neon: le calcul s'était endormi. C'est le `keepalive` qu'il faut regarder, pas la requête — et ça explique à soi seul un outil qui dépasse la cible"
+          : "replis transitoires (pool, connexion fermée): ils s'ajoutent à la durée des outils sans apparaître dans la requête. Journaux Render `[prisma]` autour de l'heure de l'appel pour la cause exacte",
+      });
+    }
+  }
+
+  {
     const hop = vapiHopMs(facts.tools, rt?.toolCalls as Array<{ name: string; ms: number }> | undefined);
     if (hop && hop.pairs > 0) {
       /* UN ÉCART NÉGATIF N'EST PAS UNE DISTANCE NÉGATIVE: c'est que les deux

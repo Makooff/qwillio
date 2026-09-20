@@ -1,4 +1,5 @@
 import { logger } from '../../config/logger';
+import { dbRetrySnapshot } from '../../config/database';
 import { CallLatencyTracker } from './latency-tracker';
 import type { VoiceLanguage } from './speech-plans';
 import type { CallerMood } from './caller-mood';
@@ -88,6 +89,16 @@ export interface CallSession {
    * (6duotrigesies, 6quinquesexagesies). Voir `db-round-trip.ts`.
    */
   dbRoundTrip: DbRoundTrip | null;
+  /**
+   * Les replis Prisma que le processus avait payés quand cet appel a commencé.
+   *
+   * Relevé DANS `start()`, donc sur les trois chemins qui ouvrent une session
+   * sans qu'aucun puisse l'oublier: une règle posée chez un seul appelant
+   * diverge des autres en moins d'un mois (6vicies). La différence avec le
+   * relevé de fin dit ce que CET appel a payé, à la réserve près que le
+   * compteur est processus-large (voir `dbRetrySnapshot`).
+   */
+  dbRetriesAtStart: { count: number; waitedMs: number; coldStarts: number };
   /**
    * Combien de fois un outil a échoué de la MÊME façon sur cet appel.
    *
@@ -318,6 +329,7 @@ class CallSessionStore {
       bargeIns: 0,
       toolCalls: [],
       dbRoundTrip: null,
+      dbRetriesAtStart: dbRetrySnapshot(),
       toolFailures: {},
       lead: null,
       leadActivityId: null,

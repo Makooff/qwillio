@@ -2581,6 +2581,21 @@ TTFA plus grand que le pire delai de Vapi (6terquinquagesies).
 aucune ne tranche seule, et l'audit doit afficher les deux ensemble plutot
 qu'une recommandation. Quatre formes fautives reintroduites une a une (sonde
 attendue, releve non persiste, client avec reprise, ecart negatif note).
+**Second lot du meme passage: les REPLIS Prisma de l'appel.** Question laissee
+ouverte le 19/09 et jamais refermee — le releve du 18/09 montre des outils qui
+RALENTISSENT au fil de l'appel (2,2 puis 6,1, 2,9, 4,5, 7,7 s), ce qui est
+l'inverse d'un demarrage a froid. Le journal a bien ete passe en `info` pour
+repondre, mais il se lit dans Render, a la main, en connaissant l'heure de
+l'appel: un fait qui demande ca n'est pas lu (6unsexagesies, encore). Le
+compteur est pris DANS `start()`, donc sur les trois chemins qui ouvrent une
+session sans qu'aucun puisse l'oublier (6vicies), et incremente AVANT l'attente
+— compter apres ferait disparaitre le pire cas, qui est justement celui qu'on
+cherche. Il est PROCESSUS-LARGE et la ligne le DIT: une extension Prisma ne
+sait pas quel appel est en vol, donc deux appels simultanes se partagent le
+compteur, et un chiffre honnete et large vaut mieux qu'un chiffre precis et
+faux. Zero n'affiche rien: un ecran qu'on relit en entier n'a pas besoin d'un
+vert de plus. Un demarrage a froid envoie au `keepalive`, un repli transitoire
+aux journaux `[prisma]`: les deux reparations n'ont rien a voir.
 
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
