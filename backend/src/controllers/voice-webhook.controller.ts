@@ -271,7 +271,8 @@ export class VoiceWebhookController {
       clientLabel: clientId,
     });
 
-    await clientCallService.handleClientCallCompleted(
+    const liveLead = (finalized.metrics as { lead?: LeadForAlert | null } | null)?.lead ?? null;
+    const { rescuedLead } = await clientCallService.handleClientCallCompleted(
       clientId,
       vapiCallId,
       finalized.transcript,
@@ -288,6 +289,10 @@ export class VoiceWebhookController {
            pas ce que l'appelant vient d'annuler. */
         liveCancelledBookingId:
           (finalized.metrics as { cancelledBookingId?: string | null } | null)?.cancelledBookingId ?? null,
+        /* Le lead capté PENDANT l'appel: sa présence dit au filet des
+           promesses qu'il n'a rien à rattraper. Sans lui, un appel où tout
+           s'est bien passé produirait un second lead et une seconde alerte. */
+        liveLead,
       },
     );
 
@@ -309,7 +314,11 @@ export class VoiceWebhookController {
       .notify({
         clientId,
         vapiCallId: vapiCallId ?? null,
-        lead: (finalized.metrics as { lead?: LeadForAlert | null } | null)?.lead ?? null,
+        /* Le lead de l'appel, ou celui que le post-appel a RECONSTRUIT quand
+           l'agent a promis un rappel sans appeler `captureLead`. Sans ce
+           second terme, la promesse sortait sur « no_lead » et personne
+           n'apprenait qu'un appelant attend. */
+        lead: liveLead ?? rescuedLead,
         callerNumber: finalized.callerNumber ?? null,
         /* Le rendez-vous pris, quand il y en a un. Son ABSENCE veut dire que
            l'agent a promis un rappel de vive voix, et une promesse passe avant
