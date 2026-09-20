@@ -23,6 +23,7 @@ import { superagentCost, inclusionCostEur, eur, revenuePerIncludedMinuteEur } fr
 import { PRICED_FOR_MODEL } from '../../config/superagent-option';
 import { isPlaceholderName } from '../../utils/spelled-name';
 import { VOICE_TIERS, type VoiceTierId } from './voice-tiers';
+import { llmStreamRuns } from './profile-voice';
 
 export type AuditStatus = 'ok' | 'warn' | 'fail' | 'skip';
 export type AuditArea = 'fonctionnement' | 'latence' | 'reglages';
@@ -436,6 +437,36 @@ export function auditCall(facts: CallFacts): AuditReport {
   const checks: AuditCheck[] = [];
   const push = (c: AuditCheck) => checks.push(c);
   const rt = facts.realtime;
+
+  /* `llm-stream` A-T-IL TOURNÉ SUR CET APPEL ? Lu une fois, par tout le monde.
+   *
+   * Il ne tourne ni en parole-à-parole ni chez un client dont `customLlm` est
+   * éteint: Vapi parle alors à OpenAI lui-même et rien ne passe par nous. Deux
+   * lignes en dépendent et concluaient chacune de son côté, sur la même
+   * question posée deux fois à la main (6vicies).
+   *
+   * Ce qui se perd quand il ne tourne pas: le brief d'ouverture, mais AUSSI
+   * les étages PREP, LLM et TTFA, qu'aucune requête de modèle ne vient plus
+   * poser. Leur absence est alors STRUCTURELLE, pas un défaut. L'audit
+   * l'expliquait par « appel antérieur au partage PREP/LLM », une cause
+   * inventée qui envoie chercher un vieux relevé là où la réponse est « ce
+   * chemin n'a pas cet étage » — neuvième ligne de cet audit à trancher sur ce
+   * qu'elle ne peut pas voir (6sexvicies, 6unsexagesies). Et comme la découpe
+   * du délai ressenti se calcule par soustraction de ces étages, la ligne qui
+   * nomme le PLUS GROS poste ne s'affichait pas du tout sur ces appels: le
+   * seul écran qui réponde à « il attend une seconde avant de parler » était
+   * muet précisément sur le moteur que le propriétaire dit préférer.
+   *
+   * La lecture se fait sur l'assistant DISTANT — ce qui a décroché, jamais le
+   * réglage du client — et par `llmStreamRuns`, partagé avec `needsCallBrief`
+   * pour que les deux ne puissent pas répondre autrement l'un que l'autre.
+   * `null` veut dire « pas lu », et on ne conclut alors rien: une absence sans
+   * cause connue se dit telle quelle plutôt que de se ranger du côté le plus
+   * commode. */
+  const ownStages: boolean | null =
+    facts.remote.speechToSpeech === null || facts.remote.customLlm === null
+      ? null
+      : llmStreamRuns({ speechToSpeech: facts.remote.speechToSpeech, customLlm: facts.remote.customLlm });
   /* Ce que chaque étage de modèle a SERVI. Lu une fois: deux lignes s'en
      servent, et l'une propose un levier que l'autre peut démentir. */
   const tiers = tierTurns(rt?.models as Record<string, number> | undefined,
@@ -473,12 +504,18 @@ export function auditCall(facts: CallFacts): AuditReport {
      * `llm-stream` repose la mémoire à chaque tour et le brief n'existe pas.
      */
     const brief = typeof facts.realtime?.callBrief === 'string' ? facts.realtime.callBrief : null;
-    const wanted = facts.remote.speechToSpeech === true || facts.remote.customLlm === false;
+    /* `ownStages`, pas une seconde lecture écrite ici. Elle l'était, et elle
+       rangeait un assistant JAMAIS LU du côté custom-LLM: « sans objet » sur
+       un appel dont on ignore le chemin, c'est-à-dire un vert inventé sur la
+       ligne qui existe pour distinguer deux pannes opposées. */
+    const wanted = ownStages === false;
     push({
       id: 'brief', area: 'fonctionnement',
-      status: !wanted ? 'skip' : brief === null ? 'fail' : brief.startsWith('pose') ? 'ok' : 'fail',
+      status: ownStages === null || !wanted ? 'skip' : brief === null ? 'fail' : brief.startsWith('pose') ? 'ok' : 'fail',
       label: "brief d'ouverture: ce que l'agent SAIT avant le premier mot",
-      value: !wanted
+      value: ownStages === null
+        ? "l'assistant distant n'a pas été lu: on ne sait pas si ce chemin attend un brief"
+        : !wanted
         ? "sans objet: `llm-stream` repose la mémoire à chaque tour sur ce chemin"
         : brief === null
           ? "JAMAIS TENTÉ sur cet appel: l'agent a décroché sans mémoire de l'appelant ni rendez-vous"
@@ -729,12 +766,28 @@ export function auditCall(facts: CallFacts): AuditReport {
   const ttfa = stage(rt, 'ttfa');
   const total = stage(rt, 'total');
 
+  const noStagesWhy = ownStages === false
+    ? facts.remote.speechToSpeech
+      ? "sans objet: en parole-à-parole, Vapi parle à OpenAI en audio direct, `llm-stream` ne tourne pas et cet étage n'existe pas"
+      : "sans objet: `customLlm` est éteint sur l'assistant distant, Vapi appelle OpenAI lui-même, `llm-stream` ne tourne pas et cet étage n'existe pas"
+    : null;
+
   push({
     id: 'prep', area: 'latence',
     status: prep ? grade(prep.median, TARGETS.prepMs) : 'skip',
     label: 'PREP: notre serveur avant l\'envoi à OpenAI',
-    value: prep ? `médiane ${prep.median} ms, p95 ${prep.p95} ms sur ${prep.count} tour(s)` : 'pas de mesure (appel antérieur au partage PREP/LLM)',
-    target: `≤ ${TARGETS.prepMs[0]} ms`,
+    value: prep
+      ? `médiane ${prep.median} ms, p95 ${prep.p95} ms sur ${prep.count} tour(s)`
+      : noStagesWhy
+      ? noStagesWhy
+      /* Le SEUL cas où « appel antérieur » est vrai: le LLM a été mesuré et
+         PREP non, donc le partage n'existait pas encore à ce relevé. Sans
+         cette distinction, la phrase s'appliquait aussi aux appels qui n'ont
+         tout simplement pas cet étage. */
+      : llm
+      ? 'pas de mesure (appel antérieur au partage PREP/LLM)'
+      : 'pas de mesure',
+    target: !prep && noStagesWhy ? undefined : `≤ ${TARGETS.prepMs[0]} ms`,
     lever: prep && prep.median > TARGETS.prepMs[0]
       ? "c'est chez nous: profil ou historique relus à chaque tour (cache local ?), blocs de prompt trop lourds; profiler `handle()` avant `proxy()`"
       : undefined,
@@ -743,9 +796,11 @@ export function auditCall(facts: CallFacts): AuditReport {
   push({
     id: 'llm', area: 'latence',
     status: llm ? grade(llm.median, TARGETS.llmMs) : 'skip',
-    label: prep ? 'LLM: OpenAI seul, envoi → premier jeton' : 'LLM: serveur + OpenAI (non séparés sur cet appel)',
-    value: llm ? `médiane ${llm.median} ms, p95 ${llm.p95} ms sur ${llm.count} tour(s)` : 'pas de mesure',
-    target: `≤ ${TARGETS.llmMs[0]} ms`,
+    label: prep || (!llm && noStagesWhy) ? 'LLM: OpenAI seul, envoi → premier jeton' : 'LLM: serveur + OpenAI (non séparés sur cet appel)',
+    value: llm
+      ? `médiane ${llm.median} ms, p95 ${llm.p95} ms sur ${llm.count} tour(s)`
+      : noStagesWhy ?? 'pas de mesure',
+    target: !llm && noStagesWhy ? undefined : `≤ ${TARGETS.llmMs[0]} ms`,
     lever: llm && llm.median > TARGETS.llmMs[0]
       ? "d'abord le cache de préfixe (ligne suivante); ensuite la taille du prompt et des outils"
         + (fastTierIdle
@@ -800,12 +855,12 @@ export function auditCall(facts: CallFacts): AuditReport {
     status: !ttfa ? 'skip' : ttfaImpossible ? 'warn' : grade(ttfa.median, TARGETS.ttfaMs),
     label: 'TTFA: premier jeton → premier son',
     value: !ttfa
-      ? 'pas de mesure'
+      ? noStagesWhy ?? 'pas de mesure'
       : ttfaImpossible
       ? `MESURE INUTILISABLE: médiane ${ttfa.median} ms alors que l'horloge de Vapi plafonne le délai ressenti à `
         + `${Math.round(felt!)} ms. Le TTFA est un morceau de ce délai, il ne peut pas le dépasser.`
       : `médiane ${ttfa.median} ms, p95 ${ttfa.p95} ms sur ${ttfa.count} tour(s)`,
-    target: ttfaImpossible ? undefined : `≤ ${TARGETS.ttfaMs[0]} ms`,
+    target: ttfaImpossible || (!ttfa && noStagesWhy) ? undefined : `≤ ${TARGETS.ttfaMs[0]} ms`,
     lever: ttfaImpossible
       ? 'nos bornes ont dérivé, pas la synthèse: un tour non fermé (`markAssistantSpeechStart`) ou des événements Vapi manquants. Ne toucher à AUCUN réglage de voix sur ce relevé'
       : ttfa && ttfa.median > TARGETS.ttfaMs[0]
@@ -914,17 +969,6 @@ export function auditCall(facts: CallFacts): AuditReport {
 
   {
     const gap = median(facts.vapiGapsSeconds);
-    push({
-      id: 'vapi-gap', area: 'latence',
-      status: gap !== null ? grade(gap, TARGETS.vapiGapSeconds) : 'skip',
-      label: "délai ressenti: fin de parole → réponse (horloge Vapi)",
-      value: gap !== null ? `médiane ${gap.toFixed(1)} s, max ${Math.max(...facts.vapiGapsSeconds).toFixed(1)} s sur ${facts.vapiGapsSeconds.length} tour(s)` : 'pas de mesure',
-      target: `≤ ${TARGETS.vapiGapSeconds[0]} s`,
-      lever: gap !== null && gap > TARGETS.vapiGapSeconds[0]
-        ? 'la ligne suivante dit quelle PART est à nous et laquelle est la détection de fin de tour'
-        : undefined,
-    });
-
     /* CE QUE L'APPELANT ATTEND, DÉCOUPÉ EN DEUX.
      *
      * Retour du 17/09/2026: « les outils longs ne me dérangent pas, ça fait
@@ -946,10 +990,43 @@ export function auditCall(facts: CallFacts): AuditReport {
      * (transcription, routage). Sans cette comparaison, on baisserait des
      * seuils qui ne sont pas la cause. */
     const ep = facts.remote.endpointing;
+    const configuredMs = Math.round(((ep?.waitSeconds ?? 0) + (ep?.punctuationSeconds ?? 0)) * 1000);
     const stagesMs = (prep?.median ?? 0) + (llm?.median ?? 0) + (ttfa?.median ?? 0);
     const beforeUs = gap !== null && stagesMs > 0 ? Math.round(gap * 1000 - stagesMs) : null;
-    if (beforeUs !== null && beforeUs > 0) {
-      const configuredMs = Math.round(((ep?.waitSeconds ?? 0) + (ep?.punctuationSeconds ?? 0)) * 1000);
+
+    /* DEUX FORMES DE DÉCOUPE, et une seule est possible par appel.
+     *
+     * La soustraction quand nos étages existent; sinon le PLANCHER seul,
+     * parce que soustraire zéro rendrait le délai ENTIER et attribuerait à la
+     * détection de fin de tour le temps qu'OpenAI passe à répondre. Ce geste-là
+     * envoie baisser un seuil pour une seconde qui n'est pas la sienne, et
+     * c'est très exactement la faute que cet audit a déjà commise huit fois,
+     * avec à chaque fois un levier qui DÉGRADE ce qui marche
+     * (6novoquadragesies, 6duoquinquagesies, 6terquinquagesies). */
+    const splits = beforeUs !== null && beforeUs > 0;
+    const floorOnly = !splits && ownStages === false && gap !== null && configuredMs > 0;
+
+    push({
+      id: 'vapi-gap', area: 'latence',
+      status: gap !== null ? grade(gap, TARGETS.vapiGapSeconds) : 'skip',
+      label: "délai ressenti: fin de parole → réponse (horloge Vapi)",
+      value: gap !== null ? `médiane ${gap.toFixed(1)} s, max ${Math.max(...facts.vapiGapsSeconds).toFixed(1)} s sur ${facts.vapiGapsSeconds.length} tour(s)` : 'pas de mesure',
+      target: `≤ ${TARGETS.vapiGapSeconds[0]} s`,
+      /* Le levier ne renvoie à la ligne suivante que si elle EXISTE et
+         répond bien à la question posée. Il envoyait lire « quelle part est à
+         nous » sur tout appel hors cible, y compris ceux où cette ligne
+         n'était jamais poussée faute d'étages — c'est-à-dire précisément les
+         appels en parole-à-parole, où le propriétaire dit préférer parler. */
+      lever: gap === null || gap <= TARGETS.vapiGapSeconds[0]
+        ? undefined
+        : splits
+        ? 'la ligne suivante dit quelle PART est à nous et laquelle est la détection de fin de tour'
+        : floorOnly
+        ? "la ligne suivante dit ce que les seuils posés pèsent là-dedans; le reste est la réponse d'OpenAI, que ce chemin ne laisse pas mesurer"
+        : "rien ne permet de le découper sur ce relevé: ni nos étages (`llm-stream` n'a pas tourné) ni les seuils de l'assistant distant n'ont été lus",
+    });
+
+    if (splits) {
       /* La marge couvre ce que la somme des seuils ne dit pas: le
          transcripteur (`VOICE_ENDPOINTING_MS`, 150 ms), le trajet jusqu'à
          l'Oregon et le routage de Vapi. 600 ms plutôt que 400, et le choix est
@@ -959,22 +1036,67 @@ export function auditCall(facts: CallFacts): AuditReport {
          envoie chercher la cause dans un seuil qui n'y est pour rien. Le
          relevé réel du 17/09 donnait 1 216 ms pour 800 ms de seuils, à 16 ms
          d'une marge de 400. */
-      const explained = configuredMs > 0 && beforeUs <= configuredMs + 600;
+      const before = beforeUs!;
+      const explained = configuredMs > 0 && before <= configuredMs + 600;
       push({
         id: 'turn-detect', area: 'latence',
-        status: beforeUs <= TARGETS.turnDetectMs[0] ? 'ok' : beforeUs <= TARGETS.turnDetectMs[1] ? 'warn' : 'fail',
+        status: before <= TARGETS.turnDetectMs[0] ? 'ok' : before <= TARGETS.turnDetectMs[1] ? 'warn' : 'fail',
         label: "détection de fin de tour: avant que la requête n'arrive chez nous",
-        value: `${beforeUs} ms des ${Math.round(gap! * 1000)} ms de délai ressenti (nos étages: ${Math.round(stagesMs)} ms)`
+        value: `${before} ms des ${Math.round(gap! * 1000)} ms de délai ressenti (nos étages: ${Math.round(stagesMs)} ms)`
           + (configuredMs > 0
             ? explained
               ? `, cohérent avec les seuils posés (${configuredMs} ms + transcripteur)`
-              : `, soit ${beforeUs - configuredMs} ms de PLUS que les seuils posés (${configuredMs} ms): les baisser ne rendra pas tout ça`
+              : `, soit ${before - configuredMs} ms de PLUS que les seuils posés (${configuredMs} ms): les baisser ne rendra pas tout ça`
             : ''),
         target: `≤ ${TARGETS.turnDetectMs[0]} ms`,
-        lever: beforeUs > TARGETS.turnDetectMs[0]
+        lever: before > TARGETS.turnDetectMs[0]
           ? explained
             ? "`VOICE_START_WAIT_SECONDS` (0,4) est un PLANCHER posé au-dessus du détecteur intelligent: c'est le premier à baisser. GARDER `VOICE_ENDPOINTING_PUNCTUATION_SECONDS` à 0,4, c'est lui qui empêche de couper sur une respiration. Variables d'environnement, puis `voice:resync --confirm`"
             : "les seuils ne suffisent pas à l'expliquer: regarder `VOICE_ENDPOINTING_NO_PUNCTUATION_SECONDS` (1,2 s quand le transcripteur ne met pas de point) et `VOICE_ENDPOINTING_MS`, avant de toucher au reste"
+          : undefined,
+      });
+    } else if (floorOnly) {
+      /* LE PLANCHER, ET RIEN QUE LUI.
+       *
+       * Ce qui reste vrai sans nos étages: les seuils posés sur l'assistant
+       * distant sont du temps dépensé AVANT que quoi que ce soit ne commence,
+       * quel que soit le chemin. On note donc ce plancher, et le reste est
+       * nommé « non mesuré » plutôt que deviné.
+       *
+       * ET ON NE LE NOTE PAS EN ROUGE SUR SA SEULE VALEUR, ce qui serait le
+       * neuvième faux diagnostic: le niveau superagent porte 0,6 / 0,8 s, soit
+       * 1 400 ms, au-dessus de la cible — et ces valeurs ont été MONTÉES
+       * exprès le 17/09 après « je dis bonjour et il pose direct une question
+       * alors que j'ai pas fini ma phrase » (6octoquinquagesies). Les noter
+       * rouges enverrait défaire un réglage posé contre un retour réel.
+       *
+       * La question à laquelle ce chiffre PEUT répondre n'est donc pas « est-il
+       * grand » mais « pèse-t-il la majorité d'un délai déjà hors cible »
+       * (6quaterquinquagesies). Sur un appel dans les clous, il n'y a rien à
+       * faire et la ligne est informative. Le rouge, lui, reste sur la ligne
+       * au-dessus, une seule fois: `vapi-gap` et celle-ci mesurent le même
+       * fait, et le noter deux fois lui donnerait deux fois son poids. */
+      const feltMs = Math.round(gap! * 1000);
+      const restMs = feltMs - configuredMs;
+      const overTarget = gap! > TARGETS.vapiGapSeconds[0];
+      const majority = configuredMs * 2 >= feltMs;
+      push({
+        id: 'turn-detect', area: 'latence',
+        status: overTarget && majority ? 'warn' : 'ok',
+        label: "détection de fin de tour: le plancher posé (le reste n'est pas mesurable ici)",
+        value: `${configuredMs} ms de seuils sur ${feltMs} ms de délai ressenti`
+          + (restMs > 0
+            ? `; les ${restMs} ms restants sont la réponse d'OpenAI et le routage, que ce chemin ne nous laisse pas mesurer`
+            : '')
+          + (overTarget
+            ? majority
+              ? '. Les seuils portent la MAJORITÉ de ce délai: les baisser rendra vraiment quelque chose'
+              : ". Les seuils sont MINORITAIRES: les baisser ne rendra qu'une fraction, la cause est ailleurs"
+            : ''),
+        lever: overTarget && majority
+          ? "les seuils du NIVEAU (`VOICE_REALTIME_START_WAIT_SECONDS` et ses voisines, portées par le `tuning` de `superagent`), jamais les variables globales: elles ont été SÉPARÉES parce qu'en parole-à-parole le modèle répond une seconde plus tôt, donc à seuil égal il pose sa voix trop tôt (6octoquinquagesies). Puis `voice:resync --confirm`"
+          : overTarget
+          ? "pas les seuils: regarder le modèle temps réel servi (`remote.modelName`) et la durée des outils, qui sont dans le délai sans être dans ce plancher"
           : undefined,
       });
     }

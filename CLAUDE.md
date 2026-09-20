@@ -2482,6 +2482,56 @@ du motif de 600 caracteres qui avait deja emporte un numero une fois.
 `voice:resync --confirm`, sinon l'assistant enregistre garde l'ancien schema
 d'outil et ne remplira jamais `forPerson` ni `callbackWhen`.
 
+### 6septuagesies. L'audit etait AVEUGLE sur le moteur qu'on prefere (20/09/2026)
+Point 2 du rapport de mesure, et c'est le NEUVIEME faux diagnostic de cet
+audit. PREP, LLM et TTFA sont poses par `llm-stream`, qui ne tourne ni en
+parole-a-parole ni chez un client dont `customLlm` est eteint
+(6quaterquadragesies): Vapi parle alors a OpenAI lui-meme et aucune requete de
+modele ne passe par nous. L'audit expliquait leur absence par **« appel
+anterieur au partage PREP/LLM »**, une cause INVENTEE qui envoie chercher un
+vieux releve la ou la reponse est « ce chemin n'a pas cet etage ».
+**Le cout reel n'est pas la phrase, c'est ce qu'elle emportait avec elle.** La
+ligne « detection de fin de tour » — celle qui nomme le PLUS GROS poste, ~1,2 s
+sur 2,5 s de delai ressenti (6quinquinquagesies) — se calcule par SOUSTRACTION
+de ces etages, sous un `if (stagesMs > 0)`. Elle ne s'affichait donc **pas du
+tout** en parole-a-parole. Le seul ecran qui reponde a « apres ma phrase il
+attend une ou deux secondes avant de parler » etait muet precisement sur le
+moteur dont le proprietaire dit qu'il est « beaucoup mieux pour parler avec »
+(6septquinquagesies). Et le levier de la ligne au-dessus envoyait quand meme
+lire « quelle PART est a nous » sur cette ligne absente.
+**Ce qui remplace la soustraction, et pourquoi pas la soustraction.** Sans nos
+etages, `gap - 0` rendrait le delai ENTIER et attribuerait a la detection de
+fin de tour le temps qu'OpenAI passe a repondre: un levier qui fait baisser un
+seuil pour une seconde qui n'est pas la sienne, c'est-a-dire le geste qui
+DEGRADE, huit fois deja (6novoquadragesies, 6duoquinquagesies,
+6terquinquagesies). Ce qui reste vrai est le **PLANCHER**: les seuils poses
+sont depenses avant que quoi que ce soit ne commence, quel que soit le chemin.
+**Et ce plancher ne se note PAS sur sa seule valeur.** Le niveau superagent
+porte 0,6 / 0,8 s, soit 1 400 ms, au-dessus de la cible — et ces valeurs ont
+ete MONTEES expres le 17/09 apres « je dis bonjour et il pose direct une
+question alors que j'ai pas fini ma phrase » (6octoquinquagesies). Les noter
+rouges enverrait defaire un reglage pose contre un retour reel. La question a
+laquelle ce chiffre PEUT repondre n'est donc pas « est-il grand » mais « pese-
+t-il la majorite d'un delai deja hors cible » (6quaterquinquagesies); sur un
+appel dans les clous la ligne est informative, et le rouge reste sur
+`vapi-gap`, une seule fois, les deux mesurant le meme fait.
+**Une regle, deux lecteurs qui ne tiennent pas la meme chose.**
+`llmStreamRuns` (`profile-voice.ts`) est LA lecture, et `needsCallBrief` en est
+desormais la negation: le webhook a le profil du client, l'audit a l'assistant
+DISTANT, c'est-a-dire ce qui a vraiment decroche. **Le test qui l'impose a
+debusque un doublon prealable**: la ligne « brief » reecrivait la meme regle a
+la main et rangeait un assistant JAMAIS LU du cote custom-LLM, donc repondait
+« sans objet » — un vert invente sur la ligne qui existe justement pour
+distinguer deux pannes opposees. `null` veut dire « pas lu », et on ne conclut
+alors rien.
+Quatre formes fautives ont ete reintroduites une a une pour verifier que les
+tests tombent (3, 5, 1 et 1 echecs). **Ce qui n'a PAS ete touche**:
+`describeStoredLatency`, que lit `voice:doctor`. Il ne recoit que le releve,
+pas l'assistant distant, donc deduire « `llm-stream` n'a pas tourne » de la
+forme du releve serait une deduction qui a l'air d'une lecture (6quinvicies).
+Il dit « pas de mesure » sans inventer de cause, et c'est le plancher honnete:
+le docteur DECRIT, l'audit TRANCHE.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

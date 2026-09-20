@@ -1352,3 +1352,213 @@ describe('le modèle temps réel est nommé', () => {
     expect(find(good(), 'tiers-classic')).toBeUndefined();
   });
 });
+
+/**
+ * LES ÉTAGES QUI N'EXISTENT PAS SUR CE CHEMIN.
+ *
+ * PREP, LLM et TTFA sont posés par `llm-stream`, qui ne tourne ni en
+ * parole-à-parole ni chez un client dont `customLlm` est éteint. L'audit
+ * expliquait leur absence par « appel antérieur au partage PREP/LLM », une
+ * cause inventée qui envoie chercher un vieux relevé là où la réponse est
+ * « ce chemin n'a pas cet étage ». Et comme la découpe du délai ressenti se
+ * calcule par soustraction de ces étages, la ligne qui nomme le PLUS GROS
+ * poste ne s'affichait pas du tout sur ces appels: le seul écran qui réponde
+ * à « il attend une seconde avant de parler » était muet précisément sur le
+ * moteur que le propriétaire dit préférer.
+ */
+describe('auditCall — un étage absent dit POURQUOI', () => {
+  /** Un appel en parole-à-parole: la session vit, mais `llm-stream` non. */
+  const s2s = (): CallFacts => {
+    const f = good();
+    f.expected.tierRequested = 'superagent';
+    f.expected.tierServed = 'superagent';
+    f.expected.realtimeTranscriber = true;
+    f.remote.customLlm = false;
+    f.remote.speechToSpeech = true;
+    f.remote.transcriber = true;
+    f.remote.modelName = 'gpt-realtime-mini-2025-12-15';
+    /* Ce que ce chemin laisse vraiment en base: le TOTAL, dont les deux
+       bornes sont des webhooks de Vapi, et rien d'autre. */
+    f.realtime!.latency = { total: { count: 5, median: 1500, p95: 1900, max: 1900 } };
+    return f;
+  };
+
+  const lat = (f: CallFacts, id: string) => auditCall(f).checks.find(c => c.id === id)!;
+
+  it('nomme le parole-à-parole, et jamais « appel antérieur au partage »', () => {
+    for (const id of ['prep', 'llm', 'ttfa']) {
+      const c = lat(s2s(), id);
+      expect(c.status).toBe('skip');
+      expect(c.value).toMatch(/parole-à-parole/);
+      expect(c.value).toMatch(/llm-stream/);
+      expect(c.value).not.toMatch(/antérieur au partage/);
+      /* Pas de cible non plus: en afficher une pour un étage qui n'existe pas
+         fait lire un manque comme un retard. */
+      expect(c.target).toBeUndefined();
+    }
+  });
+
+  it('nomme `customLlm` éteint quand c\'est ça, pas le parole-à-parole', () => {
+    const f = good();
+    f.remote.customLlm = false;
+    f.remote.speechToSpeech = false;
+    f.realtime!.latency = { total: { count: 5, median: 1500, p95: 1900, max: 1900 } };
+    const c = lat(f, 'prep');
+    expect(c.value).toMatch(/customLlm/);
+    expect(c.value).not.toMatch(/parole-à-parole/);
+  });
+
+  it("ne conclut RIEN quand l'assistant distant n'a pas été lu", () => {
+    const f = good();
+    f.remote.customLlm = null;
+    f.remote.speechToSpeech = null;
+    f.realtime!.latency = { total: { count: 5, median: 1500, p95: 1900, max: 1900 } };
+    const c = lat(f, 'prep');
+    expect(c.value).toBe('pas de mesure');
+    expect(c.value).not.toMatch(/sans objet/);
+  });
+
+  it('garde « appel antérieur au partage » pour le SEUL cas où c\'est vrai', () => {
+    /* LLM mesuré, PREP non, sur la chaîne classique: le partage n'existait
+       pas encore à ce relevé. C'est la phrase d'origine, et elle reste. */
+    const f = good();
+    f.realtime!.latency = {
+      llm: { count: 6, median: 650, p95: 900, max: 900 },
+      total: { count: 5, median: 1500, p95: 1900, max: 1900 },
+    };
+    expect(lat(f, 'prep').value).toMatch(/antérieur au partage/);
+  });
+
+  it('la chaîne classique complète garde ses trois étages notés', () => {
+    for (const id of ['prep', 'llm', 'ttfa']) {
+      const c = lat(good(), id);
+      expect(c.value).toMatch(/médiane/);
+      expect(c.target).toBeDefined();
+    }
+  });
+});
+
+/**
+ * LA DÉCOUPE DU DÉLAI RESSENTI QUAND NOS ÉTAGES N'EXISTENT PAS.
+ *
+ * Soustraire zéro rendrait le délai ENTIER et attribuerait à la détection de
+ * fin de tour le temps qu'OpenAI passe à répondre, donc enverrait baisser un
+ * seuil pour une seconde qui n'est pas la sienne. Ce qui reste vrai est le
+ * PLANCHER: les seuils posés sont dépensés avant que quoi que ce soit ne
+ * commence. Il se décrit; il ne se note que s'il pèse la majorité d'un délai
+ * déjà hors cible.
+ */
+describe('auditCall — le plancher de fin de tour en parole-à-parole', () => {
+  const s2s = (gaps: number[], ep = { provider: 'livekit', waitSeconds: 0.6, punctuationSeconds: 0.8 }): CallFacts => {
+    const f = good();
+    f.expected.tierServed = 'superagent';
+    f.expected.realtimeTranscriber = true;
+    f.remote.customLlm = false;
+    f.remote.speechToSpeech = true;
+    f.remote.transcriber = true;
+    f.remote.endpointing = ep;
+    f.expected.endpointing = ep;
+    f.vapiGapsSeconds = gaps;
+    f.realtime!.latency = { total: { count: 5, median: 1500, p95: 1900, max: 1900 } };
+    return f;
+  };
+  const turn = (f: CallFacts) => auditCall(f).checks.find(c => c.id === 'turn-detect');
+
+  it('la ligne EXISTE, alors qu\'elle était absente faute d\'étages', () => {
+    const c = turn(s2s([1.6, 1.8, 1.7]))!;
+    expect(c).toBeDefined();
+    expect(c.value).toMatch(/1400 ms de seuils/);
+    expect(c.value).toMatch(/que ce chemin ne nous laisse pas mesurer/);
+  });
+
+  it("un appel DANS les clous ne devient pas rouge à cause de seuils montés exprès", () => {
+    /* 0,6 / 0,8 sont les valeurs du niveau superagent, montées le 17/09 après
+       « il pose direct une question alors que j'ai pas fini ma phrase ». Les
+       noter rouges sur leur seule valeur enverrait défaire un réglage posé
+       contre un retour réel: c'est le geste que cet audit a déjà appelé huit
+       fois à tort. */
+    const c = turn(s2s([1.6, 1.8, 1.7]))!;
+    expect(c.status).toBe('ok');
+    expect(c.lever).toBeUndefined();
+  });
+
+  it('hors cible ET majoritaire: il note, et nomme les seuils du NIVEAU', () => {
+    const c = turn(s2s([2.4, 2.6, 2.5]))!;
+    expect(c.status).toBe('warn');
+    expect(c.value).toMatch(/MAJORITÉ/);
+    expect(String(c.lever)).toMatch(/VOICE_REALTIME_START_WAIT_SECONDS/);
+    /* Surtout pas la variable globale: elle sert la chaîne classique, dont la
+       latence vient APRÈS la décision. */
+    expect(String(c.lever)).not.toMatch(/`VOICE_START_WAIT_SECONDS`/);
+    expect(String(c.lever)).toMatch(/voice:resync/);
+  });
+
+  it('hors cible mais MINORITAIRE: il renvoie ailleurs plutôt qu\'aux seuils', () => {
+    const c = turn(s2s([5.0, 5.2, 5.1], { provider: 'livekit', waitSeconds: 0.2, punctuationSeconds: 0.2 }))!;
+    expect(c.status).toBe('ok');
+    expect(c.value).toMatch(/MINORITAIRES/);
+    expect(String(c.lever)).toMatch(/pas les seuils/);
+  });
+
+  it('le délai ressenti n\'est noté QU\'UNE fois, sur sa propre ligne', () => {
+    /* `vapi-gap` et le plancher mesurent le même fait. Les noter tous les
+       deux, c'est compter deux fois (6quaterquinquagesies). */
+    const report = auditCall(s2s([2.4, 2.6, 2.5]));
+    expect(report.checks.find(c => c.id === 'vapi-gap')!.status).toBe('warn');
+    expect(report.checks.find(c => c.id === 'turn-detect')!.status).not.toBe('fail');
+  });
+
+  it("le levier du délai ressenti ne renvoie jamais à une ligne absente", () => {
+    /* Sans seuils lus ET sans étages, aucune ligne ne suit: le levier disait
+       quand même « la ligne suivante dit quelle PART est à nous ». */
+    const f = s2s([2.4, 2.6, 2.5]);
+    f.remote.endpointing = null;
+    const report = auditCall(f);
+    expect(report.checks.find(c => c.id === 'turn-detect')).toBeUndefined();
+    const gap = report.checks.find(c => c.id === 'vapi-gap')!;
+    expect(String(gap.lever)).not.toMatch(/ligne suivante/);
+    expect(String(gap.lever)).toMatch(/rien ne permet de le découper/);
+  });
+
+  it('la chaîne classique garde la soustraction, inchangée', () => {
+    const c = turn(good())!;
+    expect(c.label).toMatch(/avant que la requête n'arrive chez nous/);
+    expect(c.value).toMatch(/nos étages/);
+  });
+});
+
+/**
+ * LE BRIEF ET LES ÉTAGES RÉPONDENT À LA MÊME QUESTION, UNE SEULE FOIS.
+ *
+ * Les deux dépendent de « `llm-stream` tourne-t-il », et chacune la posait de
+ * son côté. Celle du brief rangeait un assistant JAMAIS LU du côté custom-LLM
+ * et concluait « sans objet », c'est-à-dire un vert inventé sur la ligne qui
+ * existe précisément pour distinguer deux pannes opposées.
+ */
+describe('auditCall — le brief lit la même règle que les étages', () => {
+  const brief = (f: CallFacts) => auditCall(f).checks.find(c => c.id === 'brief')!;
+
+  it("ne conclut pas « sans objet » sur un assistant distant non lu", () => {
+    const f = good();
+    f.remote.customLlm = null;
+    f.remote.speechToSpeech = null;
+    const c = brief(f);
+    expect(c.status).toBe('skip');
+    expect(c.value).toMatch(/n'a pas été lu/);
+    expect(c.value).not.toMatch(/sans objet/);
+    expect(c.target).toBeUndefined();
+  });
+
+  it('reste « sans objet » sur la chaîne custom-LLM, qui repose tout à chaque tour', () => {
+    const c = brief(good());
+    expect(c.status).toBe('skip');
+    expect(c.value).toMatch(/sans objet/);
+  });
+
+  it('et le réclame en parole-à-parole, où rien ne le repose', () => {
+    const f = good();
+    f.remote.customLlm = false;
+    f.remote.speechToSpeech = true;
+    expect(brief(f).status).toBe('fail');
+  });
+});
