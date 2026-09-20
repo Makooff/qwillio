@@ -47,6 +47,22 @@ export interface LeadForAlert {
   phone?: string | null;
   reason: string;
   urgency: string;
+  /**
+   * POUR QUI le message est pris (20/09/2026).
+   *
+   * « Je voudrais parler a Marie »: une receptionniste humaine note le
+   * destinataire, et c'est ce qui rend le message utilisable. Dans un commerce
+   * a trois personnes, un message sans destinataire oblige le gerant a
+   * rappeler pour demander a qui il s'adresse.
+   */
+  forPerson?: string | null;
+  /**
+   * QUAND rappeler, tel que l'appelant l'a dit (« apres 17h », « demain
+   * matin »). Note en clair et jamais interprete en date: « demain » depend du
+   * moment ou le gerant lit, et une date fabriquee ici serait une date que
+   * personne n'a dite (6octoquadragesies).
+   */
+  callbackWhen?: string | null;
 }
 
 /**
@@ -133,10 +149,15 @@ export function buildSms(lead: LeadForAlert, callerNumber: string | null, lang: 
      rendez-vous pour... » et pas une chiffre pour rappeler.
      On réserve donc la place du numéro d'abord, et le motif prend ce qui
      reste. */
+  /* POUR QUI, et QUAND rappeler: deux faits courts qui changent ce que le
+     gerant peut faire du message, donc places avec le numero dans la partie
+     RESERVEE, jamais dans le motif qui se fait couper. */
+  const pour = lead.forPerson ? (fr ? `\nPour : ${lead.forPerson}` : `\nFor: ${lead.forPerson}`) : '';
+  const quand = lead.callbackWhen ? (fr ? `\nQuand : ${lead.callbackWhen}` : `\nWhen: ${lead.callbackWhen}`) : '';
   const fixe = `${urgent}${head} — ${who}`;
-  const place = 320 - fixe.length - back.length;
+  const place = 320 - fixe.length - back.length - pour.length - quand.length;
   const motif = why.length > place ? `${why.slice(0, Math.max(0, place - 1))}…` : why;
-  return `${fixe}${place > 0 ? motif : ''}${back}`.slice(0, 320);
+  return `${fixe}${place > 0 ? motif : ''}${pour}${quand}${back}`.slice(0, 320);
 }
 
 /**

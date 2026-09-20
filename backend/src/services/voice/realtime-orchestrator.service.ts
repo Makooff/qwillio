@@ -796,6 +796,10 @@ export const realtimeOrchestratorService = new RealtimeOrchestratorService();
 export function warmCallerContext(clientId: string, callerNumber: string | null): void {
   void realtimeContextService.getCallerHistory(clientId, callerNumber).catch(() => {});
   void toolRuntimeService.warmSmsSender(clientId).catch(() => {});
+  /* Le jeton Google, dont le cache est vide au premier appel du processus: sans
+     ça, c'est `checkAvailability` qui paie la frappe, donc le tour où
+     l'appelant attend. */
+  void toolRuntimeService.warmCalendarToken(clientId).catch(() => {});
 }
 
 /**

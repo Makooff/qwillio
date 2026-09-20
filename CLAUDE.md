@@ -2419,6 +2419,69 @@ aucun appel: le `fallbackPlan` du bloc `voice` rebascule sur ElevenLabs, et
 exactement) sort de Cartesia sans deploiement. Apres recharge:
 `npm run voice:greetings` puis `--confirm`, sinon l'accueil reste eteint.
 
+### 6novosexagesies. Quatre marches vers une receptionniste humaine (20/09/2026)
+Demande: « le receptionniste le plus intelligent et pousse possible, equivalent
+a une receptionniste humaine ». Quatre chantiers, tous partis d'un defaut
+RELEVE sur un appel reel, aucun d'une idee.
+
+**(1) Une promesse de rappel ne peut plus disparaitre.** « Je note votre
+demande et je transmets a l'equipe », sans un seul appel a `captureLead`:
+releve TROIS fois (16/09 deux fois, 18/09). `leadAlertService` sort alors sur
+`no_lead`, rien n'est ecrit, personne ne rappelle, et l'appelant raccroche
+RASSURE. Aucune erreur, aucune trace, un client perdu a chaque fois.
+La regle de prompt existe dans les trois langues depuis le 16/09 et a ete
+enfreinte DEUX fois depuis. **Une consigne est une probabilite, pas une
+garantie: ce qui doit arriver a coup sur se pose dans le code.** Le prompt
+reste, il fait faire le geste au bon moment (pendant l'appel, numero relu a
+voix haute); `promise-rescue.ts` est le filet. L'analyse post-appel rend
+`callbackPromised`, et quand aucun lead n'a ete capte ni aucun rendez-vous
+pris, le lead est reconstruit depuis l'analyse et remonte jusqu'a l'alerte.
+**Sans moyen de rappeler, on REFUSE**: ni numero (masque) ni courriel, on ne
+fabrique rien, parce qu'une fiche que le gerant ne peut pas honorer lui fait
+croire qu'il le peut. Le rattrapage est BRUYANT: si ce journal sort a chaque
+appel, c'est le prompt qu'il faut reprendre, pas le filet qu'il faut elargir.
+
+**(2) La politique inventee, relevee le 16/09 et jamais corrigee.** « Nos
+rendez-vous se prennent a l'heure pile, pas a la demi-heure »: personne n'a
+ecrit cette regle. C'est la GRANULARITE de nos creneaux, une commodite de
+calcul, lue comme une politique de l'entreprise et annoncee a un client. Meme
+famille que la fermeture inventee (6duoquinquagesies), meme correctif:
+`policyNote()` dit au modele ce que la liste NE prouve PAS, et nomme les
+quatre politiques qu'il pourrait inventer (heure pile, duree, delai, nombre de
+personnes) plutot qu'un « n'invente rien » abstrait qui n'a pas empeche
+celle-ci. Dans le RESULTAT D'OUTIL, zero caractere au prompt.
+
+**(3) Deux lectures qui attendaient l'une l'autre.** `findCallerBookings`
+enchainait `byNumber` puis `byName` par deux `await`: un appelant qui donne son
+nom payait DEUX allers-retours Neon la ou un seul suffit, sur l'outil releve a
+6,1 s. Elles sont independantes PAR CONSTRUCTION (la seconde exclut les numeros
+que la premiere selectionne, `notIn`), donc `Promise.all`. Et le jeton Google,
+dont le cache d'une heure est VIDE au premier appel d'un processus, est
+desormais frappe pendant que l'accueil se dit (`warmCalendarToken`, a cote de
+`warmSmsSender`) au lieu d'etre paye par `checkAvailability`, c'est-a-dire par
+le tour ou l'appelant attend.
+**Ce qui n'a PAS ete touche, et pourquoi**: `CACHE_TTL_MS` du speculateur, que
+6sexagesies interdit d'allonger sans releve (deux clients a la meme heure), et
+les seuils de tour de parole, que 6unsexagesies declare hors sujet depuis que
+le delai ressenti est a 0,8 s.
+
+**(4) Ce qu'une humaine note et que l'agent ne notait pas.** « Je voudrais
+parler a Marie »: le destinataire du message. Dans un commerce a trois
+personnes, un message sans destinataire oblige le gerant a rappeler pour savoir
+a qui il s'adresse. Et « rappelez-moi apres 17h »: le moment, **dans les mots
+de l'appelant**, jamais converti en date, parce que « demain » depend du moment
+ou le gerant lit et qu'une date fabriquee est la faute de 6octoquadragesies.
+Deux champs sur `captureLead` plutot qu'un outil de plus: chaque outil ajoute
+est une surface que Vapi peut refuser en entier (6octies). Ils voyagent jusqu'au
+SMS et au CRM, et ils sont places dans la partie RESERVEE du SMS, avec le
+numero: c'est le MOTIF qui se fait couper, jamais eux, et un test rejoue le cas
+du motif de 600 caracteres qui avait deja emporte un numero une fois.
+
+**Apres deploiement**: `npm run voice:validate` (les deux champs de
+`captureLead` entrent dans la sonde par `buildVoiceTools`) puis
+`voice:resync --confirm`, sinon l'assistant enregistre garde l'ancien schema
+d'outil et ne remplira jamais `forPerson` ni `callbackWhen`.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).
