@@ -236,7 +236,64 @@ export const TARGETS = {
   toolSeconds: [1.5, 2.5],
   cacheHitPct: [40, 15],
   streamedPct: [50, 25],
+  /* Une base dans la même région répond en quelques millisecondes; une côte à
+     l'autre des États-Unis coûte 60 à 80 ms, un océan davantage. Le seuil
+     orange est donc posé là où « ailleurs » devient la seule explication. */
+  dbRoundTripMs: [15, 60],
+  /* GÉNÉREUX À DESSEIN: cet écart ne contient pas que du réseau (voir
+     `vapiHopMs`), et une ligne qui crie au loup sur un chiffre composite est
+     exactement ce que cet audit a déjà fait neuf fois. */
+  vapiHopMs: [120, 250],
 } as const;
+
+/**
+ * L'ALLER-RETOUR ENTRE VAPI ET NOTRE BACKEND, lu sur DEUX horloges.
+ *
+ * Vapi chronomètre chaque outil depuis son propre pipeline (`secondsFromStart`
+ * du transcript); nous chronométrons la MÊME exécution depuis `recordToolCall`.
+ * La différence est tout ce qui se passe entre les deux: le trajet réseau
+ * aller, notre file HTTP, le trajet retour, et la reprise en main de Vapi.
+ *
+ * C'est donc un PLAFOND du trajet réseau, jamais le trajet lui-même, et la
+ * ligne le dit: annoncer « 90 ms de réseau » sur un chiffre qui contient aussi
+ * notre file serait une déduction qui a l'air d'une lecture (6quinvicies).
+ *
+ * Ce qu'il tranche, et c'est la seule question qui engage une facture
+ * d'infrastructure: si cet écart est petit, l'orchestration de Vapi est proche
+ * de l'Oregon, et déplacer le backend en Europe AJOUTERAIT cette distance à
+ * chaque outil et à chaque tour de modèle custom-LLM. S'il est grand, la
+ * question de la région est ouverte. Aucun raisonnement ne remplace ce relevé:
+ * l'API de Vapi répond derrière Cloudflare, donc son nom de domaine ne dit rien
+ * de l'endroit où tourne son orchestration.
+ *
+ * L'appariement se fait par NOM et dans l'ORDRE: un même outil peut être appelé
+ * plusieurs fois dans un appel, et les deux listes les voient dans le même
+ * ordre. Nos noms d'échec portent un suffixe `:error`, retiré ici — sinon un
+ * appel où un outil a levé n'apparierait rien et la ligne se tairait
+ * précisément sur l'appel qui a mal tourné.
+ */
+export function vapiHopMs(
+  vapiTools: Array<{ name: string; tookSeconds: number | null }>,
+  ours: Array<{ name: string; ms: number }> | undefined,
+): { medianMs: number; pairs: number } | null {
+  if (!ours?.length) return null;
+  const queues = new Map<string, number[]>();
+  for (const c of ours) {
+    const name = c.name.replace(/:error$/, '');
+    const q = queues.get(name) ?? [];
+    q.push(c.ms);
+    queues.set(name, q);
+  }
+  const gaps: number[] = [];
+  for (const t of vapiTools) {
+    if (t.tookSeconds === null) continue;
+    const q = queues.get(t.name);
+    if (!q?.length) continue;
+    gaps.push(t.tookSeconds * 1000 - q.shift()!);
+  }
+  const m = median(gaps);
+  return m === null ? null : { medianMs: Math.round(m), pairs: gaps.length };
+}
 
 const BAD_ENDINGS = ['silence-timed-out', 'pipeline-error', 'assistant-error', 'unknown-error', 'exceeded-max-duration', 'worker-shutdown'];
 
@@ -1134,6 +1191,74 @@ export function auditCall(facts: CallFacts): AuditReport {
               }
               return "l'agenda Google est lu pendant le tour: la spéculation sur la date partielle n'a pas pris (date non détectée dans le transcript partiel ?), ou jeton Google à renouveler";
             })()
+          : undefined,
+      });
+    }
+  }
+
+  /* OÙ SONT LES MACHINES, mesuré et non déduit.
+   *
+   * Ces deux lignes existent pour une décision qui engage une facture: faut-il
+   * déplacer le backend. Elle se prenait jusqu'ici au raisonnement, et le
+   * raisonnement a déjà eu tort — la table de coûts disait que le modèle pesait
+   * le plus quand la facture disait la plateforme (6quinquesexagesies).
+   *
+   * Elles mesurent les DEUX distances qui comptent, et elles tirent dans des
+   * sens opposés: la base est à l'est, l'orchestration de Vapi est où elle est.
+   * Déplacer le backend vers l'une l'éloigne de l'autre, donc aucune des deux
+   * ne suffit seule à trancher. */
+  {
+    const db = rt?.dbRoundTrip as { floorMs?: number; worstMs?: number; samples?: number } | undefined;
+    if (db && typeof db.floorMs === 'number') {
+      const far = db.floorMs > TARGETS.dbRoundTripMs[1];
+      push({
+        id: 'db-distance', area: 'latence',
+        status: grade(db.floorMs, TARGETS.dbRoundTripMs),
+        label: 'aller-retour vers notre propre base',
+        /* Le PLANCHER et le PIRE séparément: le premier est le réseau seul et
+           répond à « la base est-elle loin », le second est ce qu'un réveil de
+           pool ou de calcul Neon ajoute, et c'est une autre réparation. Une
+           moyenne ne répondrait à aucune des deux. */
+        value: `${db.floorMs} ms au plancher, ${db.worstMs} ms au pire, sur ${db.samples} sonde(s)`
+          + (far ? " — c'est une distance de continent, pas de centre de données" : ''),
+        target: `≤ ${TARGETS.dbRoundTripMs[0]} ms`,
+        lever: db.floorMs > TARGETS.dbRoundTripMs[0]
+          ? "le backend et la base ne sont pas dans la même région (`render.yaml` déclare `oregon`, l'URL de production nomme `us-east-1`): CHAQUE requête Prisma du chemin d'appel paie ça, et les outils sont le plus gros poste qui reste. Les rapprocher vaut plus que n'importe quel réglage de voix — et déplacer le backend SANS déplacer la base allonge cet aller-retour au lieu de le raccourcir"
+          : undefined,
+      });
+    }
+  }
+
+  {
+    const hop = vapiHopMs(facts.tools, rt?.toolCalls as Array<{ name: string; ms: number }> | undefined);
+    if (hop && hop.pairs > 0) {
+      /* UN ÉCART NÉGATIF N'EST PAS UNE DISTANCE NÉGATIVE: c'est que les deux
+         horloges ne parlent pas du même intervalle, ou que l'appariement s'est
+         décalé. On le dit inutilisable plutôt que de le noter, exactement comme
+         un TTFA plus grand que le pire délai de Vapi (6terquinquagesies). */
+      const unusable = hop.medianMs < 0;
+      push({
+        id: 'vapi-hop', area: 'latence',
+        status: unusable ? 'warn' : grade(hop.medianMs, TARGETS.vapiHopMs),
+        label: 'aller-retour entre Vapi et notre backend (deux horloges)',
+        value: unusable
+          ? `MESURE INUTILISABLE: ${hop.medianMs} ms, donc Vapi compterait un outil plus court que nous ne l'avons exécuté. `
+            + `Les deux horloges ne bornent pas le même intervalle sur cet appel`
+          : `${hop.medianMs} ms de médiane sur ${hop.pairs} outil(s): ce que Vapi compte en plus de notre propre exécution. `
+            + `PLAFOND du trajet réseau, pas le trajet lui-même — notre file HTTP et la reprise en main de Vapi sont dedans`
+            /* LA CONCLUSION EST DANS LA VALEUR, PAS DANS LE LEVIER. Une ligne
+               verte sans lever ne dit rien, et c'est précisément le cas qui
+               répond « non » à la question qui coûte cher. Un audit qui ne
+               parle que quand ça va mal laisse décider au raisonnement le jour
+               où ça va bien. */
+            + (hop.medianMs <= TARGETS.vapiHopMs[0]
+              ? `. Vapi est donc PROCHE du backend: déplacer celui-ci en Europe ajouterait cette distance à chaque outil ET à chaque tour de modèle custom-LLM`
+              : ''),
+        target: unusable ? undefined : `≤ ${TARGETS.vapiHopMs[0]} ms`,
+        lever: unusable
+          ? "apparier les outils dans l'ordre suppose que les deux listes les voient dans le même: vérifier `recordToolCall` et `readVapiMessages` avant de conclure quoi que ce soit sur la région"
+          : hop.medianMs > TARGETS.vapiHopMs[0]
+          ? "l'orchestration de Vapi est LOIN du backend: c'est l'argument pour déplacer la région, et il se pèse contre la ligne `aller-retour vers notre propre base`, qui tire dans l'autre sens"
           : undefined,
       });
     }

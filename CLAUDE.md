@@ -2532,6 +2532,56 @@ forme du releve serait une deduction qui a l'air d'une lecture (6quinvicies).
 Il dit « pas de mesure » sans inventer de cause, et c'est le plancher honnete:
 le docteur DECRIT, l'audit TRANCHE.
 
+### 6unseptuagesies. OU SONT LES MACHINES: deux distances, et elles tirent en sens contraire (20/09/2026)
+Retour du proprietaire sur la proposition de quitter l'Oregon: « j'ai peur que
+ca ralentisse parce que le reste est aux USA ». Il a raison, et ma phrase
+d'avant (« la region est le seul levier qui vaut des centaines de ms ») etait
+une DEDUCTION presentee comme une lecture — 6quinvicies, applique a une
+facture d'infrastructure cette fois.
+**Ce qui se LIT dans le depot, et qui renverse la question.** `render.yaml`
+declare `region: oregon`; `docs/VOICE-DEPLOY-RUNBOOK.md` nomme l'URL de
+production, `...-pooler.c-5.us-east-1.aws.neon.tech`. Deux cotes DANS NOTRE
+PROPRE PILE: chaque requete Prisma du chemin d'appel traverse un continent, et
+les outils sont justement le plus gros poste de latence qui reste
+(6unsexagesies). La question n'est donc pas « Oregon ou Francfort », c'est
+« pourquoi le backend est a 4 000 km de sa base ». Et deplacer le backend vers
+l'Europe SANS deplacer la base ALLONGE cet aller-retour.
+**Ce qui ne se deduit PAS.** `api.vapi.ai` resout sur du Cloudflare (anycast),
+donc le nom de domaine ne dit rien de l'endroit ou tourne l'orchestration. Or
+c'est elle qui parle a notre backend a chaque outil et a chaque tour
+custom-LLM. Aucun raisonnement ne repond: il faut mesurer.
+**Les deux instruments, et pourquoi deux.** `db-round-trip.ts` sonde
+`SELECT 1` trois fois EN SEQUENCE (en parallele, les sondes partagent le meme
+aller-retour et mesureraient la largeur du pool), avec `basePrisma` et jamais
+`prisma` — le second porte l'enveloppe de reprise, donc une sonde qui
+retenterait en silence mesurerait la reprise (6tersexagesies). Elle rend le
+PLANCHER et le PIRE separement: le premier est le reseau et repond a « la base
+est-elle loin », le second est un reveil de pool, et c'est une autre
+reparation. Une moyenne ne repondrait ni a l'une ni a l'autre. Cote Vapi,
+`vapiHopMs()` compare DEUX horloges: la duree d'un outil au transcript de Vapi
+moins la duree de notre propre execution (`recordToolCall`). C'est un PLAFOND
+du trajet reseau, jamais le trajet — notre file HTTP et la reprise en main de
+Vapi sont dedans — et la ligne le dit, parce qu'annoncer « 90 ms de reseau »
+sur un chiffre composite serait la meme faute qu'au depart.
+**Ou la sonde vit, et c'est la moitie du correctif.** Dans le PROCESSUS qui
+sert l'appel, a l'ouverture, jamais attendue (l'accueil se dit pendant ce
+temps), et son releve voyage avec les metriques. Lire `DATABASE_URL` depuis le
+script d'audit donnerait le `.env` du POSTE, faute deja payee deux fois
+(6duotrigesies, 6quinquesexagesies). Elle tourne sur TOUS les appels et non
+derriere un drapeau: un mecanisme qui ne s'exercerait qu'a la demande reste
+endormi jusqu'au jour ou on compte dessus (6octovicies).
+**La conclusion vit dans la VALEUR, pas seulement dans le levier.** Le cas VERT
+— Vapi proche du backend — est precisement celui qui repond « non » a la
+question qui coute cher, et une ligne verte muette laisserait decider au
+raisonnement. Elle dit donc elle-meme que deplacer le backend ajouterait cette
+distance a chaque outil. Un ecart NEGATIF n'est pas une distance negative: il
+se dit INUTILISABLE et nomme l'appariement a verifier, meme traitement qu'un
+TTFA plus grand que le pire delai de Vapi (6terquinquagesies).
+**La regle qui sort du lot**: quand deux distances tirent en sens contraire,
+aucune ne tranche seule, et l'audit doit afficher les deux ensemble plutot
+qu'une recommandation. Quatre formes fautives reintroduites une a une (sonde
+attendue, releve non persiste, client avec reprise, ecart negatif note).
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

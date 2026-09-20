@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { auditCall, chunkableReplies, readVapiMessages, renderAudit, TARGETS, tierTurns, type CallFacts } from '../call-audit';
+import { auditCall, chunkableReplies, readVapiMessages, renderAudit, TARGETS, tierTurns, vapiHopMs, type CallFacts } from '../call-audit';
 
 /**
  * L'audit tranche sur des faits: un appel qui a tout fait est vert, un
@@ -1560,5 +1560,157 @@ describe('auditCall — le brief lit la même règle que les étages', () => {
     f.remote.customLlm = false;
     f.remote.speechToSpeech = true;
     expect(brief(f).status).toBe('fail');
+  });
+});
+
+/**
+ * OÙ SONT LES MACHINES, mesuré et non déduit.
+ *
+ * Deux lignes pour une décision qui engage une facture d'infrastructure, et
+ * elles tirent dans des sens OPPOSÉS: la base est à l'est, l'orchestration de
+ * Vapi est où elle est. Déplacer le backend vers l'une l'éloigne de l'autre,
+ * donc aucune des deux ne tranche seule. Jusqu'ici la décision se prenait au
+ * raisonnement, et le raisonnement a déjà eu tort sur exactement ce sujet
+ * (6quinquesexagesies: la table de coûts disait le modèle, la facture disait la
+ * plateforme).
+ */
+describe('vapiHopMs — l\'écart entre deux horloges', () => {
+  it('apparie par nom ET dans l\'ordre, un même outil pouvant revenir', () => {
+    const hop = vapiHopMs(
+      [
+        { name: 'lookupBooking', tookSeconds: 1.2 },
+        { name: 'checkAvailability', tookSeconds: 1.6 },
+        { name: 'lookupBooking', tookSeconds: 0.9 },
+      ],
+      [
+        { name: 'lookupBooking', ms: 1100 },
+        { name: 'checkAvailability', ms: 1500 },
+        { name: 'lookupBooking', ms: 800 },
+      ],
+    );
+    expect(hop).toEqual({ medianMs: 100, pairs: 3 });
+  });
+
+  it('lit nos échecs malgré leur suffixe, sinon il se tait sur l\'appel qui a mal tourné', () => {
+    /* `recordToolCall` écrit `checkAvailability:error` quand l'outil lève. Sans
+       retirer le suffixe, rien ne s'apparie précisément sur l'appel dont on
+       veut comprendre la lenteur. */
+    const hop = vapiHopMs(
+      [{ name: 'checkAvailability', tookSeconds: 2.5 }],
+      [{ name: 'checkAvailability:error', ms: 2400 }],
+    );
+    expect(hop).toEqual({ medianMs: 100, pairs: 1 });
+  });
+
+  it('ne rend rien sans nos propres relevés', () => {
+    expect(vapiHopMs([{ name: 'lookupBooking', tookSeconds: 1.2 }], undefined)).toBeNull();
+    expect(vapiHopMs([{ name: 'lookupBooking', tookSeconds: 1.2 }], [])).toBeNull();
+  });
+
+  it('ignore un outil que Vapi n\'a pas chronométré', () => {
+    expect(vapiHopMs(
+      [{ name: 'lookupBooking', tookSeconds: null }, { name: 'captureLead', tookSeconds: 0.5 }],
+      [{ name: 'lookupBooking', ms: 900 }, { name: 'captureLead', ms: 400 }],
+    )).toEqual({ medianMs: 100, pairs: 1 });
+  });
+});
+
+describe('auditCall — les deux distances', () => {
+  const find = (f: CallFacts, id: string) => auditCall(f).checks.find(c => c.id === id);
+
+  const withDb = (floorMs: number, worstMs = floorMs + 20): CallFacts => {
+    const f = good();
+    f.realtime!.dbRoundTrip = { floorMs, worstMs, samples: 3 };
+    return f;
+  };
+
+  it('une base dans la même région passe au vert, sans levier', () => {
+    const c = find(withDb(4), 'db-distance')!;
+    expect(c.status).toBe('ok');
+    expect(c.value).toMatch(/4 ms au plancher/);
+    expect(c.lever).toBeUndefined();
+  });
+
+  it("une base à l'autre bout du pays nomme la cause et le piège du déplacement", () => {
+    /* Oregon → us-east-1: 60 à 80 ms, payés par CHAQUE requête Prisma du
+       chemin d'appel, c'est-à-dire par les outils, qui sont le plus gros poste
+       de latence restant (6unsexagesies). */
+    const c = find(withDb(72, 310), 'db-distance')!;
+    expect(c.status).toBe('fail');
+    expect(c.value).toMatch(/distance de continent/);
+    expect(String(c.lever)).toMatch(/oregon/);
+    expect(String(c.lever)).toMatch(/us-east-1/);
+    /* LE PIÈGE, et c'est la moitié de la ligne: déplacer le backend sans
+       déplacer la base ALLONGE cet aller-retour. */
+    expect(String(c.lever)).toMatch(/SANS déplacer la base/);
+  });
+
+  it('sépare le plancher du pire: un réveil de pool n\'est pas une distance', () => {
+    const c = find(withDb(4, 310), 'db-distance')!;
+    expect(c.status).toBe('ok');
+    expect(c.value).toMatch(/310 ms au pire/);
+  });
+
+  it('se tait quand la sonde n\'a rien rendu', () => {
+    expect(find(good(), 'db-distance')).toBeUndefined();
+  });
+
+  it('un Vapi PROCHE dit lui-même que déplacer le backend coûterait', () => {
+    /* La conclusion vit dans la VALEUR, pas dans le levier: c'est le cas vert
+       qui répond « non » à la question qui coûte cher, et un audit muet quand
+       tout va bien laisse décider au raisonnement. */
+    const f = good();
+    f.realtime!.toolCalls = [
+      { name: 'checkAvailability', ms: 570 },
+      { name: 'bookAppointment', ms: 370 },
+      { name: 'captureLead', ms: 170 },
+    ];
+    const c = find(f, 'vapi-hop')!;
+    expect(c.status).toBe('ok');
+    expect(c.value).toMatch(/30 ms de médiane sur 3 outil/);
+    expect(c.value).toMatch(/Vapi est donc PROCHE/);
+    expect(c.value).toMatch(/ajouterait cette distance/);
+  });
+
+  it('un Vapi LOIN devient l\'argument pour la région, pesé contre la base', () => {
+    const f = good();
+    f.realtime!.toolCalls = [
+      { name: 'checkAvailability', ms: 400 },
+      { name: 'bookAppointment', ms: 200 },
+      { name: 'captureLead', ms: 20 },
+    ];
+    const c = find(f, 'vapi-hop')!;
+    expect(c.status).not.toBe('ok');
+    expect(String(c.lever)).toMatch(/LOIN/);
+    expect(String(c.lever)).toMatch(/aller-retour vers notre propre base/);
+  });
+
+  it('dit PLAFOND, jamais « réseau »: notre file HTTP est dedans', () => {
+    /* Annoncer « 90 ms de réseau » sur un chiffre composite serait une
+       déduction qui a l'air d'une lecture (6quinvicies). */
+    const f = good();
+    f.realtime!.toolCalls = [{ name: 'checkAvailability', ms: 570 }];
+    expect(find(f, 'vapi-hop')!.value).toMatch(/PLAFOND du trajet réseau/);
+  });
+
+  it('un écart NÉGATIF se dit inutilisable, il ne se note pas', () => {
+    /* Vapi ne peut pas compter un outil plus court que notre exécution: c'est
+       l'appariement ou les horloges, pas une distance négative. Même
+       traitement qu'un TTFA plus grand que le pire délai de Vapi. */
+    const f = good();
+    f.realtime!.toolCalls = [
+      { name: 'checkAvailability', ms: 900 },
+      { name: 'bookAppointment', ms: 900 },
+      { name: 'captureLead', ms: 900 },
+    ];
+    const c = find(f, 'vapi-hop')!;
+    expect(c.status).toBe('warn');
+    expect(c.value).toMatch(/MESURE INUTILISABLE/);
+    expect(c.target).toBeUndefined();
+    expect(String(c.lever)).toMatch(/avant de conclure quoi que ce soit sur la région/);
+  });
+
+  it('se tait quand nous n\'avons pas chronométré nos outils', () => {
+    expect(find(good(), 'vapi-hop')).toBeUndefined();
   });
 });
