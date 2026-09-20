@@ -2596,6 +2596,22 @@ compteur, et un chiffre honnete et large vaut mieux qu'un chiffre precis et
 faux. Zero n'affiche rien: un ecran qu'on relit en entier n'a pas besoin d'un
 vert de plus. Un demarrage a froid envoie au `keepalive`, un repli transitoire
 aux journaux `[prisma]`: les deux reparations n'ont rien a voir.
+**Ce que la LECTURE tranche deja sur `checkAvailability` a 6,5 s** (6novoquinquagesies,
+reste ouvert). Le corps de l'outil n'attend qu'UNE chose, `freeSlots`, et elle
+est enveloppee dans `withTimeout(..., EXTERNAL_TIMEOUT_MS)` a 2,5 s. Tout ce qui
+la precede est local (`parseDate`, `pastDateReply`, `closedDayReply`), le profil
+arrive deja resolu en argument, et `freeSlots` porte DANS la course sa requete
+Prisma, la frappe du jeton Google et l'unique `fetch` vers `/freeBusy` — un
+seul aller-retour Google, verifie, pas une sequence. Donc **un
+`checkAvailability` a 6,5 s qui n'est PAS tombe en « AGENDA INDISPONIBLE » ne
+peut pas etre 6,5 s de notre travail**: la course aurait rejete a 2,5 s. Les
+quatre secondes restantes sont ailleurs — resolution du profil en amont, trajet
+Vapi↔nous, comptabilite de Vapi — c'est-a-dire exactement ce que la ligne
+`aller-retour entre Vapi et notre backend` mesure desormais.
+**Ce qu'il ne faut donc PAS faire**, et c'est la raison d'ecrire ce paragraphe:
+baisser `EXTERNAL_TIMEOUT_MS` pour « reparer » un outil a 6,5 s. Ca ne toucherait
+pas les quatre secondes et ca ferait tomber en repli des lectures d'agenda qui
+aboutissaient. Neuvieme fois que ce genre de levier degraderait ce qui marche.
 
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
