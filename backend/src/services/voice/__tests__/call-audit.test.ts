@@ -1764,3 +1764,54 @@ describe('auditCall — les replis Prisma de cet appel', () => {
       .toMatch(/PROCESSUS-LARGE/);
   });
 });
+
+/**
+ * `endCall` N'EST PAS UN DE NOS OUTILS, et l'audit le comptait quand même.
+ *
+ * Relevé réel du 21/09: `endCall 5.5 s` classé le plus lent de l'appel, avec
+ * pour levier « qui ne lit PAS l'agenda: c'est une requête Prisma. Regarder
+ * Neon ». `endCall` n'est ni dans `KNOWN_TOOLS` ni nulle part dans le runtime:
+ * il ne touche jamais notre backend. Ces cinq secondes sont Vapi qui vide sa
+ * file de parole avant de raccrocher. Dixième diagnostic faux de cet audit.
+ */
+describe('auditCall — les outils de Vapi ne sont pas les nôtres', () => {
+  const withEndCall = (): CallFacts => {
+    const f = good();
+    f.tools = [
+      { name: 'lookupBooking', args: {}, result: 'RDV', tookSeconds: 1.2, atSeconds: 18 },
+      { name: 'endCall', args: {}, result: null, tookSeconds: 5.5, atSeconds: 101 },
+    ];
+    return f;
+  };
+  const tools = (f: CallFacts) => auditCall(f).checks.find(c => c.id === 'tools')!;
+
+  it("ne rougit pas la ligne sur un chiffre qui n'est pas le nôtre", () => {
+    const c = tools(withEndCall());
+    expect(c.status).toBe('ok');
+  });
+
+  it("n'envoie JAMAIS à Neon pour un outil que nous n'exécutons pas", () => {
+    /* Le geste appelé n'avait aucun rapport avec la cause: cinq secondes de
+       file de parole chez Vapi ne se réparent pas dans une requête Prisma. */
+    expect(tools(withEndCall()).lever).toBeUndefined();
+  });
+
+  it("les affiche quand même: l'appelant vit ces secondes avant le raccroché", () => {
+    const c = tools(withEndCall());
+    expect(c.value).toMatch(/chez VAPI, hors de notre portée/);
+    expect(c.value).toMatch(/endCall 5\.5 s/);
+  });
+
+  it('un de NOS outils trop lent reste un défaut, avec son levier', () => {
+    const f = good();
+    f.tools = [
+      { name: 'lookupBooking', args: {}, result: 'RDV', tookSeconds: 3.0, atSeconds: 18 },
+      { name: 'endCall', args: {}, result: null, tookSeconds: 5.5, atSeconds: 101 },
+    ];
+    const c = tools(f);
+    expect(c.status).not.toBe('ok');
+    /* Le plus lent des NÔTRES, pas le plus lent du transcript. */
+    expect(String(c.lever)).toMatch(/lookupBooking/);
+    expect(String(c.lever)).not.toMatch(/endCall/);
+  });
+});

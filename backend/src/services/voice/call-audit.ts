@@ -24,6 +24,7 @@ import { PRICED_FOR_MODEL } from '../../config/superagent-option';
 import { isPlaceholderName } from '../../utils/spelled-name';
 import { VOICE_TIERS, type VoiceTierId } from './voice-tiers';
 import { llmStreamRuns } from './profile-voice';
+import { isKnownTool } from './voice-tools';
 
 export type AuditStatus = 'ok' | 'warn' | 'fail' | 'skip';
 export type AuditArea = 'fonctionnement' | 'latence' | 'reglages';
@@ -1160,7 +1161,24 @@ export function auditCall(facts: CallFacts): AuditReport {
   }
 
   {
-    const timed = facts.tools.filter(t => t.tookSeconds !== null);
+    /* CE QUE NOUS EXECUTONS, ET RIEN D'AUTRE (21/09/2026).
+     *
+     * `facts.tools` vient du TRANSCRIPT de Vapi, qui y range aussi ses outils a
+     * LUI. Relevé réel: `endCall 5.5 s`, classé le plus lent de l'appel, avec
+     * pour levier « qui ne lit PAS l'agenda: c'est une requête Prisma. Regarder
+     * Neon ». Or `endCall` n'est ni dans `KNOWN_TOOLS` ni nulle part dans notre
+     * runtime: il ne touche jamais notre backend, encore moins Neon. Ces cinq
+     * secondes sont Vapi qui VIDE SA FILE DE PAROLE avant de raccrocher
+     * (6quatersexagesies), donc l'au revoir que l'appelant entend.
+     *
+     * Dixième diagnostic faux de cet audit, et il avait les deux défauts de la
+     * famille: il envoie réparer au mauvais endroit, ET il rougit une ligne sur
+     * un chiffre qui n'est pas le nôtre. Les outils de Vapi restent AFFICHES —
+     * cinq secondes avant le raccroché, l'appelant les vit — mais hors du
+     * verdict et hors du levier. */
+    const ours = facts.tools.filter(t => isKnownTool(t.name));
+    const theirs = facts.tools.filter(t => !isKnownTool(t.name) && t.tookSeconds !== null);
+    const timed = ours.filter(t => t.tookSeconds !== null);
     const slow = timed.filter(t => t.tookSeconds! > TARGETS.toolSeconds[0]);
     if (timed.length) {
       const worst = Math.max(...timed.map(t => t.tookSeconds!));
@@ -1173,7 +1191,10 @@ export function auditCall(facts: CallFacts): AuditReport {
            suivants moins: une moyenne par nom d'outil ne peut pas montrer ça,
            et c'est pourtant la différence entre « cette requête est lente » et
            « le premier accès du processus paie un réveil ». */
-        value: timed.map(t => `${t.name} ${t.tookSeconds!.toFixed(1)} s${t.atSeconds != null ? ` (à ${t.atSeconds.toFixed(0)} s)` : ''}`).join(', '),
+        value: timed.map(t => `${t.name} ${t.tookSeconds!.toFixed(1)} s${t.atSeconds != null ? ` (à ${t.atSeconds.toFixed(0)} s)` : ''}`).join(', ')
+          + (theirs.length
+            ? ` — et chez VAPI, hors de notre portée: ${theirs.map(t => `${t.name} ${t.tookSeconds!.toFixed(1)} s`).join(', ')}`
+            : ''),
         target: `≤ ${TARGETS.toolSeconds[0]} s chacun`,
         /* LE LEVIER SUIT L'OUTIL LE PLUS LENT, PAS LE PREMIER NOM RECONNU
            (18/09/2026). Il nommait l'agenda Google dès qu'un `checkAvailability`
