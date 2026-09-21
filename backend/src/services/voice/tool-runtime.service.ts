@@ -282,12 +282,18 @@ function readBackName(lang: string, name: string): string {
  */
 function askCallerToSpell(lang: string, name: string): string {
   const base: Record<string, string> = {
-    fr: `NOM ENTENDU: « ${name} », correspondant INCONNU. Demande-lui d'ÉPELER son nom de famille lettre par lettre (le prénom suffit tel quel). `
-      + "Laisse-le finir sans l'interrompre ni dire « merci » entre les lettres, puis rappelle l'outil avec le prénom et le nom tel qu'épelé. Un nom ne contient jamais de chiffre: « O » est la lettre O.",
-    en: `NAME HEARD: "${name}", UNKNOWN caller. Ask them to SPELL their family name letter by letter (the first name is fine as is). `
-      + 'Let them finish without interrupting, then call the tool again with the first name and the family name exactly as spelled. A name never contains a digit: "O" is the letter O.',
-    nl: `NAAM GEHOORD: « ${name} », ONBEKENDE beller. Vraag om de familienaam letter voor letter te SPELLEN (de voornaam volstaat zo). `
-      + 'Laat de beller uitspreken zonder te onderbreken en roep de tool daarna opnieuw aan met de voornaam en de gespelde familienaam. Een naam bevat nooit een cijfer: « O » is de letter O.',
+    fr: `NOM ENTENDU: « ${name} », correspondant INCONNU, et il peut être FAUX: c'est justement pourquoi on fait épeler. `
+      + "Demande-lui d'ÉPELER son nom de famille lettre par lettre (le prénom suffit tel quel), laisse-le finir sans l'interrompre ni dire « merci » entre les lettres. "
+      + "CE QU'IL ÉPELLE FAIT FOI, même plus court ou tout autre: n'exige JAMAIS un nombre de lettres et ne conteste pas la longueur, « Bar » et « Ng » sont de vrais noms. "
+      + "Rappelle l'outil avec le prénom et le nom TEL QU'ÉPELÉ, jamais celui ci-dessus. Un nom ne contient jamais de chiffre: « O » est la lettre O.",
+    en: `NAME HEARD: "${name}", UNKNOWN caller, and it may be WRONG: that is precisely why you ask them to spell. `
+      + 'Ask them to SPELL their family name letter by letter (the first name is fine as is), let them finish without interrupting. '
+      + 'WHAT THEY SPELL PREVAILS, even if shorter or entirely different: NEVER demand a number of letters and do not argue about length, "Bar" and "Ng" are real names. '
+      + 'Call the tool again with the first name and the family name EXACTLY AS SPELLED, never the one above. A name never contains a digit: "O" is the letter O.',
+    nl: `NAAM GEHOORD: « ${name} », ONBEKENDE beller, en hij kan FOUT zijn: daarom laat je juist spellen. `
+      + 'Vraag om de familienaam letter voor letter te SPELLEN (de voornaam volstaat zo) en laat de beller uitspreken zonder te onderbreken. '
+      + 'WAT HIJ SPELT IS BEPALEND, ook als het korter of heel anders is: eis NOOIT een aantal letters en betwist de lengte niet, « Bar » en « Ng » zijn echte namen. '
+      + 'Roep de tool opnieuw aan met de voornaam en de familienaam ZOALS GESPELD, nooit die hierboven. Een naam bevat nooit een cijfer: « O » is de letter O.',
   };
   return base[lang] ?? base.en;
 }

@@ -103,4 +103,24 @@ describe('captureLead — un appelant inconnu épelle son nom de famille', () =>
     expect(out).toContain('M-A-R-O-N');
     expect(create.mock.calls[0][0].data.content.contact.name).toBe('Marc Maron');
   });
+
+  /* LE NOM ENTENDU EST UNE RÉFÉRENCE, PAS UNE AUTORITÉ (21/09/2026).
+     Appel réel. Le transcripteur entend « Virginie Barre »; elle épelle
+     « B A R », qui est son vrai nom; et l'agent la CONTREDIT: « il me faut
+     toutes les lettres du nom de famille, pas juste 3 ». Cette règle n'existe
+     nulle part dans le code, le modèle l'a déduite du seul nom qu'il avait
+     sous les yeux, celui que le résultat d'outil lui montrait. Une phrase
+     produit donc deux défauts: l'agent discute le nom de quelqu'un, et il a
+     un nom faux prêt à recopier en argument. */
+  it('dit que le nom entendu peut être faux et que l\'épellation fait foi', async () => {
+    getHistory.mockResolvedValue({ knownName: null, previousCalls: 0 });
+    const out = String(await capture({ name: 'Virginie Barre', reason: 'rdv' }));
+    expect(out).toMatch(/peut être FAUX/);
+    expect(out).toMatch(/FAIT FOI/);
+    /* Aucune longueur minimale: « Bar », « Ng » et « Li » sont de vrais noms,
+       et une politique inventée sur les noms des gens en refuserait. */
+    expect(out).toMatch(/n'exige JAMAIS un nombre de lettres/);
+    /* Et le nom montré ne doit pas repartir comme argument. */
+    expect(out).toMatch(/TEL QU'ÉPELÉ, jamais celui ci-dessus/);
+  });
 });
