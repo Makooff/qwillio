@@ -691,13 +691,30 @@ export function ensureDisclosure(greeting: string, profile: ClientVoiceProfile):
  * n'est pas lisible d'ici, donc `npm run voice:validate` avant tout
  * deploiement: un champ refuse ne degrade pas un appel, il annule l'assistant
  * ENTIER (6octies).
+ *
+ * ELLE NE NOMME AUCUN MOMENT DE LA JOURNEE (21/09/2026). Elle disait « bonne
+ * journee », et un appel du soir s'est termine ainsi:
+ *
+ *   modele: « Bonne soiree a vous. »
+ *   Vapi:   « Merci de votre appel. Bonne journee. »
+ *
+ * Le modele, lui, avait juste: il connait l'heure. Cette phrase-ci ne la
+ * connait PAS et ne peut pas la connaitre — elle est ecrite dans l'assistant a
+ * la SYNCHRONISATION, des semaines avant l'appel. C'est exactement pourquoi la
+ * date du prompt fige passe par un gabarit que Vapi remplit et non par une
+ * date reelle (6novovicies): ce qui est fige ne peut pas dependre du moment.
+ *
+ * Elle contredisait donc le modele en plus d'avoir tort une soiree sur deux.
+ * « Au revoir » est vrai a toute heure, et garde la longueur qui fait le
+ * travail: occuper la file de parole pour que le modele n'ait pas de silence a
+ * meubler.
  */
 export function endCallFarewell(lang: VoiceLanguage): string {
   return lang === 'fr'
-    ? 'Merci de votre appel, bonne journee.'
+    ? 'Merci de votre appel, au revoir.'
     : lang === 'nl'
-      ? 'Bedankt voor uw oproep, nog een fijne dag.'
-      : 'Thank you for calling, have a good day.';
+      ? 'Bedankt voor uw oproep, tot ziens.'
+      : 'Thank you for calling, goodbye.';
 }
 
 export function firstMessageVariants(profile: ClientVoiceProfile, rawKnownName: string | null): string[] {

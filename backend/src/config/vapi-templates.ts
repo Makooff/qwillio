@@ -225,9 +225,14 @@ export function buildVapiAssistantConfig(params: {
         ? `${params.businessName}, salut ! C'est Marie, comment je peux t'aider ?`
         : `${params.businessName}, bonjour ! C'est Marie, comment je peux vous aider ?`)
       : `Thank you for calling ${params.businessName}, this is Ashley. How can I help you today?`,
+    /* Pas de moment de la journee ici non plus: ce champ est ecrit dans
+       l'assistant a la construction, donc il ne connait pas l'heure de l'appel
+       qui l'entendra. Meme defaut que `endCallFarewell`, releve le 21/09/2026
+       sur un appel du soir. Quand une lecon nomme une forme interdite, tous
+       les endroits qui l'ecrivent comptent (6quinquesexagesies). */
     endCallMessage: params.language === 'fr'
-      ? 'Merci pour votre appel, bonne journée !'
-      : 'Thank you for calling, have a great day!',
+      ? 'Merci pour votre appel, au revoir !'
+      : 'Thank you for calling, goodbye!',
     // E.164 or absent. Vapi validates this field and rejects the whole
     // assistant when it fails, so a number typed with spaces here would take
     // the assistant down rather than just disable transfers.
