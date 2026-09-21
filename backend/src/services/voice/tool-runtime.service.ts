@@ -11,9 +11,9 @@ import { businessMemoryService } from './business-memory.service';
 import { knowledgeGapService } from './knowledge-gap.service';
 import { availabilitySpeculator } from './availability-speculator';
 import { parseSpokenPhone } from '../../utils/phone-spoken';
-import { phoneWords } from '../../utils/text-for-speech';
+import { phoneWords, timeWords } from '../../utils/text-for-speech';
 import { normaliseAddress } from '../../utils/be-communes';
-import { normaliseSpelledName, familyName, spellOut, nameProblem, isPlaceholderName, type NameProblem } from '../../utils/spelled-name';
+import { normaliseSpelledName, familyName, spellOut, nameProblem, isPlaceholderName, spellingLostLetters, type NameProblem } from '../../utils/spelled-name';
 import { nameSimilarity, NAME_MATCH_THRESHOLD } from '../../utils/name-match';
 import { ymdOf } from '../../utils/zoned-time';
 import { dayWindow, nextOpenDay, minutesOf } from '../../utils/opening-hours';
@@ -290,6 +290,57 @@ function askCallerToSpell(lang: string, name: string): string {
       + 'Laat de beller uitspreken zonder te onderbreken en roep de tool daarna opnieuw aan met de voornaam en de gespelde familienaam. Een naam bevat nooit een cijfer: « O » is de letter O.',
   };
   return base[lang] ?? base.en;
+}
+
+/**
+ * LES HEURES D'UNE PHRASE, TELLES QU'ELLES SE DISENT (21/09/2026).
+ *
+ * Appel réel: le résultat de `lookupBooking` porte l'heure STOCKÉE, « 09:00 »,
+ * et le modèle l'a prononcée « à 9 », sans « heures ». C'est 6sexagesies une
+ * fois de plus: ce que le modèle doit DIRE, il le lit dans un résultat
+ * d'outil, il ne le reformate pas de façon fiable. Lui écrire « neuf heures »
+ * ne lui laisse rien à reformater.
+ *
+ * SEULEMENT dans les phrases qu'on lui ordonne de PRONONCER. La liste des
+ * réservations garde `HH:MM`, parce que c'est elle qu'il recopie en argument
+ * (`currentDate`, `time`) et qu'une heure en toutes lettres y deviendrait un
+ * argument illisible. Même partage que `spokenDate`, pour raisonner, et
+ * `spokenDateAloud`, pour dire.
+ *
+ * Le néerlandais et l'anglais ressortent inchangés: `timeWords` écrit du
+ * français, et rendre une heure française dans une phrase néerlandaise serait
+ * exactement ce qui fait déraper la langue du modèle. Les heures tiennent dans
+ * 0-23 et les minutes sous 60, donc la variante belge ne change rien ici:
+ * septante et nonante ne peuvent pas apparaître.
+ */
+function hoursAloud(text: string, lang: string): string {
+  return lang === 'fr' ? timeWords(text) : text;
+}
+
+/**
+ * LE NOM À ÉCRIRE: recollé, et jamais raccourci par l'épellation (21/09/2026).
+ *
+ * Appel réel. « Virginie Barre » est entendu PARFAITEMENT quand elle le dit
+ * normalement; l'agent lui demande alors d'épeler, le transcripteur rend
+ * « BAR. », et c'est « Bar » qui part dans l'agenda. L'étape qui existe pour
+ * fiabiliser le nom est celle qui l'a cassé, et rien ne regardait qu'elle
+ * venait de raccourcir un nom déjà là.
+ *
+ * `spellingLostLetters` dit cette seule situation, et le nom entendu reprend
+ * alors la main. L'appelant garde le dernier mot pour autant: la relecture
+ * qui suit (`confirmNameBeforeBooking`, `readBackName`) lui épelle le nom
+ * retenu et il peut le corriger — c'est un canal DIFFÉRENT de celui qui vient
+ * d'échouer, ce que redemander une épellation ne serait pas (6septies: la
+ * cause ne bouge pas entre deux essais).
+ *
+ * UNE fonction pour les deux écritures: le CRM et l'agenda doivent porter la
+ * même orthographe, et deux copies d'une même règle divergent en moins d'un
+ * mois (6vicies).
+ */
+function callerNameToWrite(raw: unknown, vapiCallId: string | null): string {
+  const name = typeof raw === 'string' ? normaliseSpelledName(raw) : '';
+  const heard = callSessionStore.spellingHeardName(vapiCallId);
+  return heard && spellingLostLetters(heard, name) ? heard : name;
 }
 
 /**
@@ -747,7 +798,7 @@ class ToolRuntimeService {
   ): Promise<string> {
     const date = parseDate(args.date);
     const minutes = parseTimeToMinutes(args.time);
-    const customerName = typeof args.customerName === 'string' ? normaliseSpelledName(args.customerName) : '';
+    const customerName = callerNameToWrite(args.customerName, vapiCallId);
 
     /* RIEN n'est réservé tant qu'il manque quelque chose, et le résultat le
        DIT, en nommant ce qui manque. Appel réel du 15/09/2026, appelant
@@ -772,7 +823,7 @@ class ToolRuntimeService {
     if (outside) return outside;
 
     /* Un appelant inconnu ÉPELLE d'abord son nom de famille (13/09). */
-    if (await this.needsCallerSpelling(profile, vapiCallId)) {
+    if (await this.needsCallerSpelling(profile, vapiCallId, customerName)) {
       return notBookedYet(profile.language) + askCallerToSpell(profile.language, customerName);
     }
     /* Le nom est relu AVANT d'écrire dans l'agenda: une réservation au
@@ -841,7 +892,7 @@ class ToolRuntimeService {
 
     const day = spokenDateAloud(date, profile.language, profile.timezone);
     if (profile.language === 'fr') {
-      return `RESERVE: ${customerName}, le ${day} a ${args.time}. Confirme a voix haute, en nommant le jour.`
+      return `RESERVE: ${customerName}, le ${day} a ${hoursAloud(String(args.time), profile.language)}. Confirme a voix haute, en nommant le jour.`
         + (smsPromised ? " Dis-lui qu'un SMS de confirmation avec le lien pour l'agenda part sur son numero." : '')
         + " Demande s'il faut autre chose.";
     }
@@ -1013,10 +1064,13 @@ class ToolRuntimeService {
        la mauvaise (meme raison qu'en 6octotrigesies, ou un numero qui reserve
        pour deux personnes ne doit nommer PERSONNE). L'ordre de parler tout de
        suite, lui, vaut dans les deux cas: c'est lui qui manquait. */
+    /* La phrase A DIRE porte l'heure en toutes lettres; la LISTE, plus bas,
+       garde `HH:MM`, que le modèle recopie en argument. */
+    const spokenOne = hoursAloud(lines[0].replace(/^\d\)\s*/, '').replace(/^[^,]+,\s*/, ''), profile.language);
     const lead = found.length === 1
       ? (profile.language === 'fr'
-          ? `DIS CECI MAINTENANT, a voix haute, avant toute autre chose: « Vous avez rendez-vous ${lines[0].replace(/^\d\)\s*/, '').replace(/^[^,]+,\s*/, '')}. »`
-          : `SAY THIS NOW, out loud, before anything else: "You have an appointment ${lines[0].replace(/^\d\)\s*/, '').replace(/^[^,]+,\s*/, '')}."`)
+          ? `DIS CECI MAINTENANT, a voix haute, avant toute autre chose: « Vous avez rendez-vous ${spokenOne}. »`
+          : `SAY THIS NOW, out loud, before anything else: "You have an appointment ${spokenOne}."`)
       : (profile.language === 'fr'
           ? `DIS MAINTENANT, a voix haute, celle qui correspond a ce qu'il decrit, avec sa date et son heure.`
           : `SAY NOW, out loud, the one matching what they describe, with its date and time.`);
@@ -1406,7 +1460,7 @@ class ToolRuntimeService {
     availabilitySpeculator.invalidate(profile.clientId, target.bookingDate);
 
     const day = spokenDateAloud(target.bookingDate, profile.language, profile.timezone);
-    const at = target.bookingTime ? ` ${profile.language === 'fr' ? 'a' : 'at'} ${target.bookingTime}` : '';
+    const at = target.bookingTime ? ` ${profile.language === 'fr' ? 'a' : 'at'} ${hoursAloud(target.bookingTime, profile.language)}` : '';
 
     /* IDEMPOTENT, et ce n'est pas du confort: le modèle rappelle un outil avec
        les mêmes arguments, c'est le comportement connu de ce chemin
@@ -1456,7 +1510,7 @@ class ToolRuntimeService {
     const lead = {
       /* Un nom bidon (« client », « inconnu ») n'entre ni dans le CRM ni
          dans la mémoire d'appelant: il y resterait, et l'agent le redirait. */
-      name: typeof args.name === 'string' && !isPlaceholderName(args.name, [profile.agentName, profile.businessName]) ? normaliseSpelledName(args.name) || null : null,
+      name: typeof args.name === 'string' && !isPlaceholderName(args.name, [profile.agentName, profile.businessName]) ? callerNameToWrite(args.name, vapiCallId) || null : null,
       email: typeof args.email === 'string' ? args.email.trim() || null : null,
       reason: typeof args.reason === 'string' ? args.reason.trim() : '',
       urgency: ['low', 'normal', 'high'].includes(args.urgency) ? String(args.urgency) : 'normal',
@@ -1472,7 +1526,7 @@ class ToolRuntimeService {
     /* AVANT toute écriture: un appelant inconnu épelle son nom de famille, et
        c'est l'orthographe épelée qui entre dans le CRM et la mémoire, jamais
        le nom entendu (13/09/2026). */
-    if (lead.name && await this.needsCallerSpelling(profile, vapiCallId)) {
+    if (lead.name && await this.needsCallerSpelling(profile, vapiCallId, lead.name)) {
       return askCallerToSpell(profile.language, lead.name);
     }
 
@@ -1589,7 +1643,7 @@ class ToolRuntimeService {
    * l'historique est illisible, on ne demande pas d'épeler: la relecture
    * épelée par l'agent, qui suit, reste le filet.
    */
-  private async needsCallerSpelling(profile: ClientVoiceProfile, vapiCallId: string | null): Promise<boolean> {
+  private async needsCallerSpelling(profile: ClientVoiceProfile, vapiCallId: string | null, heard: string): Promise<boolean> {
     const session = callSessionStore.get(vapiCallId);
     if (!session) return false;
     try {
@@ -1599,7 +1653,7 @@ class ToolRuntimeService {
       logger.warn(`[VoiceTools] historique appelant illisible, pas d'épellation demandée: ${(error as Error).message}`);
       return false;
     }
-    return callSessionStore.needsNameSpelling(vapiCallId);
+    return callSessionStore.needsNameSpelling(vapiCallId, heard);
   }
 
   // ── lookupKnowledge ─────────────────────────────────────────────────────

@@ -29,6 +29,10 @@ vi.mock('../call-session.store', () => ({
     // Le nom se relit aussi, mais pas dans ces scénarios: ils testent le numéro.
     needsNameReadBack: vi.fn(() => false),
     needsNameSpelling: vi.fn(() => false),
+    /* Le nom ENTENDU avant l'épellation (21/09/2026). Absent du bouchon,
+       l'appel levait et l'outil rendait son repli sûr, qui masque le vrai
+       message: même piège que `noteToolFailure` ci-dessus. */
+    spellingHeardName: vi.fn(() => null),
   },
 }));
 vi.mock('../caller-memory.service', () => ({ callerMemoryService: { remember } }));

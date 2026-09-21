@@ -203,6 +203,16 @@ export interface CallSession {
   /** L'épellation du nom de famille a déjà été demandée à cet appelant inconnu. */
   nameSpellingAsked: boolean;
   /**
+   * Le nom ENTENDU au moment où l'épellation a été demandée.
+   *
+   * Il est retenu pour une seule raison: le transcripteur mange des lettres
+   * quand on les lui épelle (« Virginie Barre » entendu juste, puis « BAR. »
+   * épelé, appel réel du 21/09/2026). Sans cette copie, rien ne peut voir que
+   * la forme qui revient est plus courte que celle qui était déjà là, et
+   * l'étape censée corriger le nom l'abîme en silence.
+   */
+  nameSpellingHeard: string | null;
+  /**
    * L'agent a-t-il été coupé au milieu d'une VRAIE phrase, sans avoir encore
    * repris la parole depuis ? Posé par `recordBargeIn`, consommé au tour
    * suivant.
@@ -350,6 +360,7 @@ class CallSessionStore {
       phoneReadBack: null,
       nameReadBack: null,
       nameSpellingAsked: false,
+      nameSpellingHeard: null,
       pendingHardBargeIn: false,
       interruptedSpeechMs: null,
       repair: newRepairState(),
@@ -549,11 +560,25 @@ class CallSessionStore {
    * nom »). Ensuite l'orthographe validée est celle du lead, et l'appelant
    * suivant qui redit ce nom n'est plus interrogé.
    */
-  needsNameSpelling(vapiCallId: string | null): boolean {
+  needsNameSpelling(vapiCallId: string | null, heard = ''): boolean {
     const session = this.get(vapiCallId);
     if (!session || session.nameSpellingAsked) return false;
     session.nameSpellingAsked = true;
+    /* Ce qu'on avait AVANT de demander d'épeler, pour pouvoir constater que
+       l'épellation a perdu des lettres au lieu d'en corriger. */
+    session.nameSpellingHeard = heard.trim() || null;
     return true;
+  }
+
+  /**
+   * Le nom entendu avant l'épellation, ou `null`.
+   *
+   * Lu au retour, quand le modèle rappelle l'outil avec ce qu'il a cru
+   * entendre épeler: c'est le seul moment où les deux formes existent en même
+   * temps, et donc le seul où la comparaison est possible.
+   */
+  spellingHeardName(vapiCallId: string | null): string | null {
+    return this.get(vapiCallId)?.nameSpellingHeard ?? null;
   }
 
   needsPhoneReadBack(vapiCallId: string | null, e164: string): boolean {

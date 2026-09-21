@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { normaliseSpelledName, spellOut, familyName, nameProblem, isPlaceholderName } from '../spelled-name';
+import { normaliseSpelledName, spellOut, familyName, nameProblem, isPlaceholderName, spellingLostLetters } from '../spelled-name';
 
 /**
  * Un nom épelé arrive lettre par lettre; il faut le recoller. « Polle »
@@ -67,5 +67,60 @@ describe('nameProblem: un nom bidon vaut absence de nom', () => {
   it('vide: manquant', () => {
     expect(nameProblem('')).toBe('missing');
     expect(nameProblem('   ')).toBe('missing');
+  });
+});
+
+/**
+ * L'ÉPELLATION QUI RACCOURCIT LE NOM (21/09/2026).
+ *
+ * Appel réel: « Virginie Barre » est entendu juste, l'agent lui demande
+ * d'épeler, le transcripteur rend « BAR. », et c'est « Bar » qui part dans
+ * l'agenda. L'étape qui existe pour fiabiliser le nom est celle qui l'a cassé.
+ *
+ * Ce que ces cas figent, c'est que la garde attrape CE défaut sans toucher aux
+ * corrections que l'épellation existe pour capter.
+ */
+describe('spellingLostLetters', () => {
+  it('voit une épellation tronquée: le cas réel du 21/09', () => {
+    expect(spellingLostLetters('Virginie Barre', 'Virginie Bar')).toBe(true);
+    expect(spellingLostLetters('Virginie Barre', 'Virginie Barr')).toBe(true);
+    /* Les accents ne comptent pas: c'est la même lettre entendue. */
+    expect(spellingLostLetters('Virginie Barré', 'Virginie Barr')).toBe(true);
+  });
+
+  it('ne touche PAS aux corrections qui ont fait naître l\'épellation', () => {
+    /* Les deux appels réels qui ont posé « le nom épelé prime » (12 et 13/09).
+       Si la garde attrapait ceux-là, elle annulerait la règle entière. */
+    expect(spellingLostLetters('Paul', 'Polle')).toBe(false);
+    expect(spellingLostLetters('Jean-Luc de la Ford', 'Jean-Luc Delaforge')).toBe(false);
+    expect(spellingLostLetters('Mathieu', 'Matthieu')).toBe(false);
+  });
+
+  it('un vrai nom de famille court reste accepté', () => {
+    /* « Bar », « Ng », « Li » sont de vrais noms. Une longueur minimale serait
+       une politique inventée sur les noms des gens, et elle refuserait des
+       appelants réels: la garde ne regarde que le RACCOURCISSEMENT. */
+    expect(spellingLostLetters('Virginie Bar', 'Virginie Bar')).toBe(false);
+    expect(spellingLostLetters('Lin Ng', 'Lin Ng')).toBe(false);
+  });
+
+  it('une épellation plus longue est une correction, pas une perte', () => {
+    expect(spellingLostLetters('Virginie Bar', 'Virginie Barre')).toBe(false);
+  });
+
+  it('un AUTRE appelant que celui qui a épelé ne récupère pas son nom', () => {
+    /* Un rendez-vous pris en cours d'appel pour un proche: « Marc Bar » n'est
+       pas « Virginie Barre » raccourcie, et sans ce test il repartirait sous
+       le nom de l'appelante — le mauvais nom sur la mauvaise réservation. */
+    expect(spellingLostLetters('Virginie Barre', 'Marc Bar')).toBe(false);
+  });
+
+  it('un nom de famille seul ne se compare pas', () => {
+    expect(spellingLostLetters('Virginie Barre', 'Bar')).toBe(false);
+  });
+
+  it('sans nom des deux côtés, elle ne conclut rien', () => {
+    expect(spellingLostLetters('', 'Virginie Bar')).toBe(false);
+    expect(spellingLostLetters('Virginie Barre', '')).toBe(false);
   });
 });

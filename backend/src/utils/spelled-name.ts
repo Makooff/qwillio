@@ -178,3 +178,50 @@ export function nameProblem(name: string, ownNames: readonly string[] = []): Nam
   if (!hasFamilyName(name)) return 'firstOnly';
   return null;
 }
+
+/**
+ * L'ÉPELLATION A PERDU DES LETTRES (21/09/2026).
+ *
+ * Appel réel. Le transcripteur entend « Virginie Barre » parfaitement quand
+ * elle le dit normalement, puis rend « BAR. » quand elle l'épelle — et c'est
+ * cette forme-là qui est partie dans l'agenda. L'étape qui existe pour
+ * corriger le nom entendu a donc corrompu un nom entendu juste, et rien ne
+ * comparait les deux.
+ *
+ * La règle « le nom ÉPELÉ prime, jamais celui qui est entendu »
+ * (6octotrigesies) reste vraie: elle est née de « Polle » entendu « Paul ».
+ * Mais elle n'avait aucune garde, alors que le transcripteur rend les lettres
+ * épelées collées et en capitales (« VAN espace H0LD », 12/09/2026), donc il
+ * en mange.
+ *
+ * LA GARDE EST ÉTROITE À DESSEIN: seulement quand la forme épelée est un
+ * préfixe STRICT et plus court de la forme entendue. C'est la seule signature
+ * qui dise « il manque des lettres à la fin » sans rien dire d'autre. Une
+ * distance d'édition plus large écarterait justement les corrections que
+ * cette étape existe pour capter: « Paul » → « Polle » et « de la Ford » →
+ * « Delaforge » sont des corrections réelles, et aucune des deux n'est un
+ * préfixe de ce qui avait été entendu.
+ *
+ * Deux cas qui ne déclenchent RIEN, et c'est voulu: une épellation plus
+ * LONGUE que ce qui a été entendu (« Bar » puis « Barre ») est une correction
+ * normale; et un nom de famille de trois lettres épelé à l'identique reste
+ * accepté, parce que « Bar », « Ng » et « Li » sont de vrais noms et qu'une
+ * longueur minimale serait une politique inventée sur les noms des gens.
+ */
+export function spellingLostLetters(heard: string, spelled: string): boolean {
+  const before = nameWords(heard).map(fold);
+  const after = nameWords(spelled).map(fold);
+  /* Prénom ET nom des deux côtés. Un nom de famille seul ne se compare pas:
+     `nameProblem` le refuse déjà, et l'agent redemande le nom entier. */
+  if (before.length < 2 || after.length < 2) return false;
+  /* TOUT CE QUI PRÉCÈDE LE NOM DE FAMILLE DOIT ÊTRE LE MÊME, et c'est la
+     moitié de la garde. Sans ce test, un rendez-vous pris en cours d'appel
+     POUR QUELQU'UN D'AUTRE (« Marc Bar », un proche) verrait son nom de
+     famille reconnu comme un raccourcissement de celui de l'appelante, et
+     repartirait sous « Virginie Barre »: le mauvais nom sur la réservation de
+     la mauvaise personne, ce que cette fonction existe justement pour empêcher. */
+  if (before.slice(0, -1).join(' ') !== after.slice(0, -1).join(' ')) return false;
+  const family = before[before.length - 1];
+  const spelt = after[after.length - 1];
+  return spelt.length < family.length && family.startsWith(spelt);
+}
