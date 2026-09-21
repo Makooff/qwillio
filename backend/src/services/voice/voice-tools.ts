@@ -526,6 +526,25 @@ export function buildVoiceTools(profile: ClientVoiceProfile) {
             description:
               'Street address, exactly as the caller said it, including postcode and town when given. Only when an address is relevant to why they called.',
           },
+          /* POUR QUI, et c'est ce qu'une receptionniste humaine demande
+             d'instinct: « je voudrais parler a Marie ». Sans ce champ, le
+             message arrive chez le gerant sans destinataire, et dans un
+             commerce a trois personnes il doit rappeler pour savoir a qui il
+             s'adresse. */
+          forPerson: {
+            type: 'string',
+            description:
+              'Name of the person the caller asked for, when they asked for someone by name. Leave empty otherwise.',
+          },
+          /* QUAND rappeler, dans les mots de l'appelant. Jamais converti en
+             date ici: « demain » depend du moment ou le gerant lit le message,
+             et fabriquer une date que personne n'a dite est la faute qui a
+             produit un rendez-vous en 2023 (6octoquadragesies). */
+          callbackWhen: {
+            type: 'string',
+            description:
+              'When the caller asked to be called back, in their own words ("after 5pm", "tomorrow morning"). Only when they said it. Never convert it to a date.',
+          },
           urgency: { type: 'string', enum: ['low', 'normal', 'high'] },
         },
         required: ['reason'],

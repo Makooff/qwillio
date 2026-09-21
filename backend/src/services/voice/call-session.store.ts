@@ -1,10 +1,12 @@
 import { logger } from '../../config/logger';
+import { dbRetrySnapshot } from '../../config/database';
 import { CallLatencyTracker } from './latency-tracker';
 import type { VoiceLanguage } from './speech-plans';
 import type { CallerMood } from './caller-mood';
 import { newRepairState, recoveryLine, type RepairState } from './conversational-repair';
 import { isFalseCut } from './false-cut';
 import { voiceTracing } from './voice-tracing';
+import type { DbRoundTrip } from './db-round-trip';
 
 /**
  * In-process state for calls that are currently on the line (Phase 1.3).
@@ -77,6 +79,26 @@ export interface CallSession {
   /** Times the caller cut the assistant off. High counts mean bad pacing. */
   bargeIns: number;
   toolCalls: Array<{ name: string; ms: number }>;
+  /**
+   * L'aller-retour vers notre propre base, sondé à l'ouverture de l'appel.
+   *
+   * Il voyage avec les métriques parce qu'il ne se lit QUE depuis le processus
+   * qui a servi l'appel: le backend est déclaré en `oregon` et l'URL de
+   * production nomme `us-east-1`, mais cette URL vit dans l'environnement de
+   * Render, et un audit lancé depuis un poste lirait le `.env` de ce poste
+   * (6duotrigesies, 6quinquesexagesies). Voir `db-round-trip.ts`.
+   */
+  dbRoundTrip: DbRoundTrip | null;
+  /**
+   * Les replis Prisma que le processus avait payés quand cet appel a commencé.
+   *
+   * Relevé DANS `start()`, donc sur les trois chemins qui ouvrent une session
+   * sans qu'aucun puisse l'oublier: une règle posée chez un seul appelant
+   * diverge des autres en moins d'un mois (6vicies). La différence avec le
+   * relevé de fin dit ce que CET appel a payé, à la réserve près que le
+   * compteur est processus-large (voir `dbRetrySnapshot`).
+   */
+  dbRetriesAtStart: { count: number; waitedMs: number; coldStarts: number };
   /**
    * Combien de fois un outil a échoué de la MÊME façon sur cet appel.
    *
@@ -306,6 +328,8 @@ class CallSessionStore {
       deflectedTurns: 0,
       bargeIns: 0,
       toolCalls: [],
+      dbRoundTrip: null,
+      dbRetriesAtStart: dbRetrySnapshot(),
       toolFailures: {},
       lead: null,
       leadActivityId: null,
@@ -636,6 +660,12 @@ class CallSessionStore {
   recordToolCall(vapiCallId: string | null, name: string, ms: number): void {
     const session = this.get(vapiCallId);
     if (session) session.toolCalls.push({ name, ms });
+  }
+
+  /** Le relevé de distance à la base, pour cet appel. Voir `db-round-trip.ts`. */
+  noteDbRoundTrip(vapiCallId: string | null, rt: DbRoundTrip | null): void {
+    const session = this.get(vapiCallId);
+    if (session && rt) session.dbRoundTrip = rt;
   }
 
   /**

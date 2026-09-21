@@ -22,6 +22,8 @@ import { resolveCharacter } from '../../config/voice-characters';
 import { callerIdentity, type LineAgent } from './inbound-routing.service';
 import { isSelfCall, hangUpSelfCall, controlUrlOf } from './self-call-guard';
 import { needsCallBrief } from './profile-voice';
+import { measureDbRoundTrip } from './db-round-trip';
+import { dbRetrySnapshot } from '../../config/database';
 import { callBrief } from './call-brief';
 import { vapiClient } from '../../config/vapi';
 import { voiceModeFor } from './voice-tiers';
@@ -326,6 +328,14 @@ class RealtimeOrchestratorService {
          de l'appelant (trois requêtes) et l'expéditeur SMS du client. Sans
          await, et sans conséquence si ça rate: le tour les relira. */
       warmCallerContext(clientId, callerNumberOf(event));
+      /* CE QUE COÛTE UN ALLER-RETOUR VERS NOTRE PROPRE BASE, sondé ici parce
+         que c'est le seul endroit qui soit à la fois dans le processus qui sert
+         l'appel et hors du chemin où l'appelant attend: l'accueil se dit
+         pendant ce temps. Jamais attendu.
+         Il est sondé sur TOUS les appels et non derrière un drapeau: un
+         mécanisme qui ne s'exercerait qu'à la demande reste endormi jusqu'au
+         jour où on compte dessus (6octovicies). Trois `SELECT 1`. */
+      void noteDbRoundTrip(vapiCallId);
       /* Ce que le prompt FIGÉ de l'assistant enregistré ne peut pas porter, et
          que `llm-stream` ne reposera pas sur ce chemin: la date réelle et la
          mémoire de l'appelant. Voir `call-brief.ts` et `needsCallBrief`. Sans
@@ -595,6 +605,23 @@ class RealtimeOrchestratorService {
              parti du bloc parti que le modèle ignore. */
           moodNudge: session.moodNudge,
           toolCalls: session.toolCalls,
+          /* La distance à notre propre base. Sans elle, « cet outil a mis six
+             secondes » ne distingue pas une requête lente d'un continent à
+             traverser, et la décision de région se prend au raisonnement
+             plutôt qu'au relevé. */
+          dbRoundTrip: session.dbRoundTrip,
+          /* Ce que les REPLIS Prisma ont coûté pendant cet appel. Le journal
+             existait déjà (19/09) mais se lisait dans Render, à la main, en
+             connaissant l'heure: le fait était là, personne ne l'ouvrait. */
+          dbRetries: (() => {
+            const now = dbRetrySnapshot();
+            const before = session.dbRetriesAtStart;
+            return {
+              count: now.count - before.count,
+              waitedMs: now.waitedMs - before.waitedMs,
+              coldStarts: now.coldStarts - before.coldStarts,
+            };
+          })(),
           bookingId: session.bookingId,
           /* Le rendez-vous ANNULE en direct: sans lui, le post-appel relit la
              transcription, y voit un rendez-vous et le RECREE, a la date que
@@ -796,6 +823,28 @@ export const realtimeOrchestratorService = new RealtimeOrchestratorService();
 export function warmCallerContext(clientId: string, callerNumber: string | null): void {
   void realtimeContextService.getCallerHistory(clientId, callerNumber).catch(() => {});
   void toolRuntimeService.warmSmsSender(clientId).catch(() => {});
+  /* Le jeton Google, dont le cache est vide au premier appel du processus: sans
+     ça, c'est `checkAvailability` qui paie la frappe, donc le tour où
+     l'appelant attend. */
+  void toolRuntimeService.warmCalendarToken(clientId).catch(() => {});
+}
+
+/**
+ * Sonde la distance à la base et la pose sur la session. Jamais attendu.
+ *
+ * Séparé de `warmCallerContext` à dessein: celui-ci REMPLIT des caches pour que
+ * le premier tour ne les paie pas, celui-ci MESURE et ne rend rien plus rapide.
+ * Les mélanger ferait disparaître la sonde le jour où on réécrirait le
+ * préchauffage.
+ */
+export async function noteDbRoundTrip(vapiCallId: string): Promise<void> {
+  try {
+    callSessionStore.noteDbRoundTrip(vapiCallId, await measureDbRoundTrip());
+  } catch {
+    /* Une sonde qui tombe ne doit rien coûter à l'appel: l'absence se lit
+       « pas de mesure » à l'audit, jamais un zéro qui se lirait « la base est
+       à côté ». */
+  }
 }
 
 /**

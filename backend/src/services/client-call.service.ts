@@ -17,6 +17,8 @@ import { readEndedReason, transferFunnel } from './voice/call-outcome';
 import { todayIso } from './voice/clock';
 import { isPlaceholderName } from '../utils/spelled-name';
 import { businessTimezone } from '../utils/zoned-time';
+import { rescuePromise, type PromiseFacts } from './voice/promise-rescue';
+import type { LeadForAlert } from './voice/lead-alert.service';
 import { analysisDateRule, parseAnalysisDate } from '../utils/analysis-date';
 
 export class ClientCallService {
@@ -66,12 +68,12 @@ export class ClientCallService {
        `undefined` reste `null` en base: un mode inventé serait un mode
        facturé. */
     voiceMode?: string | null,
-    extra: { liveBookingId?: string | null; liveCancelledBookingId?: string | null } = {},
-  ) {
+    extra: { liveBookingId?: string | null; liveCancelledBookingId?: string | null; liveLead?: unknown } = {},
+  ): Promise<{ rescuedLead: LeadForAlert | null }> {
     const client = await prisma.client.findUnique({ where: { id: clientId } });
     if (!client) {
       logger.error(`Client not found for call processing: ${clientId}`);
-      return;
+      return { rescuedLead: null };
     }
 
     // Spam shield (all plans): score the call before we spend anything else on
@@ -189,7 +191,8 @@ export class ClientCallService {
       // Spam is NOT counted as a real call: it does not touch totalCallsMade or
       // lastCallDate, so it never eats into the client's quota. "Spam doesn't
       // count against you" is a selling point of the shield.
-      return clientCall;
+      /* Un appel de spam n'a rien promis a personne: aucun rattrapage. */
+      return { rescuedLead: null };
     }
 
     /* ── Ce que l'agent n'a pas su dire, retenu pour la prochaine fois ──
@@ -415,7 +418,56 @@ export class ClientCallService {
       );
     }
 
+    /* LE FILET DES PROMESSES (20/09/2026).
+       Si l'agent a promis un rappel sans appeler `captureLead`, personne ne
+       le saurait: `leadAlertService` sort sur `no_lead` et l'appelant
+       raccroche rassuré. On reconstruit le lead depuis l'analyse et on le
+       rend à l'appelant de cette fonction, qui porte l'alerte. */
+    const rescue = rescuePromise({
+      analysis: analysis as PromiseFacts,
+      callerNumber: callerNumber ?? null,
+      hasLiveLead: !!extra.liveLead,
+      hasBooking: bookingConfirmed,
+    });
+    let rescuedLead: LeadForAlert | null = null;
+    if (rescue.rescued) {
+      rescuedLead = rescue.lead;
+      /* Écrit dans le CRM comme un lead ordinaire: sans ça le gérant reçoit
+         une alerte et ne retrouve rien dans son portail, donc deux endroits
+         où chercher pour une seule promesse. */
+      await prisma.agentCrmActivity.create({
+        data: {
+          clientId,
+          type: 'lead_capture',
+          status: 'pending',
+          content: {
+            source: 'ai_receptionist_rescue',
+            vapiCallId,
+            clientCallId: clientCall.id,
+            capturedAt: new Date().toISOString(),
+            contact: { name: rescue.lead.name, email: rescue.lead.email, phone: rescue.lead.phone },
+            reason: rescue.lead.reason,
+            urgency: rescue.lead.urgency,
+            businessName: client.businessName,
+          },
+        },
+      }).catch(err => logger.warn(`[Promise] lead de rattrapage non écrit: ${err.message}`));
+      /* BRUYANT, parce que c'est une défaillance du modèle qu'il faut pouvoir
+         compter: si ce journal sort à chaque appel, c'est le prompt qu'il faut
+         reprendre, pas le filet qu'il faut élargir. */
+      logger.warn(
+        `[Promise] rappel PROMIS sans captureLead pour ${client.businessName} ` +
+          `(appel ${vapiCallId}): lead reconstruit depuis l'analyse.`,
+      );
+    } else if (rescue.why === 'unreachable') {
+      logger.warn(
+        `[Promise] rappel promis pour ${client.businessName} (appel ${vapiCallId}) ` +
+          `mais AUCUN moyen de rappeler: ni numéro (masqué ?) ni courriel.`,
+      );
+    }
+
     logger.info(`Client call processed: ${client.businessName} | ${analysis.sentiment} | Lead: ${analysis.isLead} | Booking: ${analysis.bookingRequested}`);
+    return { rescuedLead };
   }
 
   // Neutral analysis used for spam calls, which skip the GPT-4 pass entirely.
@@ -436,6 +488,9 @@ export class ClientCallService {
       isLead: false,
       leadScore: 0,
       tags: [],
+      /* Faux par defaut: un appel de spam, ou une analyse qui n'a pas tourne,
+         n'a promis a personne. Le filet ne doit jamais inventer une promesse. */
+      callbackPromised: false,
     };
   }
 
@@ -486,6 +541,7 @@ Return a JSON object with:
 - isLead: is this person a potential customer/qualified lead? (boolean)
 - leadScore: lead quality score 1-10 (number)
 - tags: relevant tags like ["new_customer", "complaint", "urgent", "vip", "repeat_customer"] (string[])
+- callbackPromised: did the receptionist tell the caller that someone would call them back, get back to them, pass their request to the team, or otherwise follow up after the call? true only when a follow-up was actually promised out loud, false when the caller was fully served on the call. (boolean)
 - unansweredQuestions: questions the CALLER asked that the receptionist could not answer, each in the caller's own words, at most 3. Only genuine gaps in business knowledge (prices, hours, services, policies) — never a question the receptionist answered, and never something only the caller could know such as their own name or booking. Empty array when there is none. (string[])${nameHint}`,
             },
             {
@@ -511,6 +567,9 @@ Return a JSON object with:
     } catch (error) {
       logger.error('Error analyzing client call transcript:', error);
       return {
+        /* Analyse indisponible: on ne DEVINE pas de promesse. Un filet qui se
+           declenche sur une absence de donnee fabriquerait des leads vides. */
+        callbackPromised: false,
         callerName: null,
         emailCollected: null,
         sentiment: 'neutral',
@@ -676,6 +735,16 @@ interface ClientCallAnalysis {
   isLead: boolean;
   leadScore: number;
   tags: string[];
+  /**
+   * Un rappel a-t-il été PROMIS à voix haute pendant l'appel.
+   *
+   * Ce champ existe parce que la règle de prompt n'a pas tenu: « promettre un
+   * rappel EXIGE captureLead » est écrite dans les trois langues depuis le
+   * 16/09, et le modèle l'a enfreinte deux fois depuis. Ce qui doit arriver à
+   * coup sûr se pose dans le code, pas dans une consigne. Voir
+   * `voice/promise-rescue.ts`.
+   */
+  callbackPromised: boolean;
   /**
    * Les questions restées sans réponse, dans les mots de l'appelant.
    *

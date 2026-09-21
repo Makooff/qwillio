@@ -152,7 +152,29 @@ export function voiceForProfile(profile: ClientVoiceProfile): ProfileVoice {
  * d'un mois (6vicies). Voir `call-brief.ts` pour ce que le brief contient.
  */
 export function needsCallBrief(profile: ClientVoiceProfile): boolean {
-  return voiceForProfile(profile).speechToSpeech || !profile.customLlm;
+  return !llmStreamRuns({
+    speechToSpeech: voiceForProfile(profile).speechToSpeech,
+    customLlm: !!profile.customLlm,
+  });
+}
+
+/**
+ * `llm-stream` tourne-t-il sur ce chemin ?
+ *
+ * La même question que ci-dessus, posée sur des FAITS plutôt que sur un
+ * profil, parce que deux lecteurs en ont besoin et qu'ils ne tiennent pas la
+ * même chose: le webhook a le profil du client, l'audit a l'assistant
+ * DISTANT, c'est-à-dire ce qui a vraiment décroché. Une seconde règle écrite
+ * à la main de l'autre côté aurait divergé de celle-ci en moins d'un mois
+ * (6vicies), et les deux réponses seraient alors également crédibles.
+ *
+ * Ce qui se perd quand il ne tourne pas ne se limite pas au brief d'ouverture:
+ * PREP, LLM et TTFA n'existent pas non plus, aucune requête de modèle ne
+ * passant par nous. Leur absence est STRUCTURELLE sur ces chemins, et un
+ * audit qui l'ignore invente une cause à une absence (6unsexagesies).
+ */
+export function llmStreamRuns(o: { speechToSpeech: boolean; customLlm: boolean }): boolean {
+  return !o.speechToSpeech && o.customLlm;
 }
 
 /**

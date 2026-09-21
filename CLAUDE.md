@@ -2419,6 +2419,200 @@ aucun appel: le `fallbackPlan` du bloc `voice` rebascule sur ElevenLabs, et
 exactement) sort de Cartesia sans deploiement. Apres recharge:
 `npm run voice:greetings` puis `--confirm`, sinon l'accueil reste eteint.
 
+### 6novosexagesies. Quatre marches vers une receptionniste humaine (20/09/2026)
+Demande: « le receptionniste le plus intelligent et pousse possible, equivalent
+a une receptionniste humaine ». Quatre chantiers, tous partis d'un defaut
+RELEVE sur un appel reel, aucun d'une idee.
+
+**(1) Une promesse de rappel ne peut plus disparaitre.** « Je note votre
+demande et je transmets a l'equipe », sans un seul appel a `captureLead`:
+releve TROIS fois (16/09 deux fois, 18/09). `leadAlertService` sort alors sur
+`no_lead`, rien n'est ecrit, personne ne rappelle, et l'appelant raccroche
+RASSURE. Aucune erreur, aucune trace, un client perdu a chaque fois.
+La regle de prompt existe dans les trois langues depuis le 16/09 et a ete
+enfreinte DEUX fois depuis. **Une consigne est une probabilite, pas une
+garantie: ce qui doit arriver a coup sur se pose dans le code.** Le prompt
+reste, il fait faire le geste au bon moment (pendant l'appel, numero relu a
+voix haute); `promise-rescue.ts` est le filet. L'analyse post-appel rend
+`callbackPromised`, et quand aucun lead n'a ete capte ni aucun rendez-vous
+pris, le lead est reconstruit depuis l'analyse et remonte jusqu'a l'alerte.
+**Sans moyen de rappeler, on REFUSE**: ni numero (masque) ni courriel, on ne
+fabrique rien, parce qu'une fiche que le gerant ne peut pas honorer lui fait
+croire qu'il le peut. Le rattrapage est BRUYANT: si ce journal sort a chaque
+appel, c'est le prompt qu'il faut reprendre, pas le filet qu'il faut elargir.
+
+**(2) La politique inventee, relevee le 16/09 et jamais corrigee.** « Nos
+rendez-vous se prennent a l'heure pile, pas a la demi-heure »: personne n'a
+ecrit cette regle. C'est la GRANULARITE de nos creneaux, une commodite de
+calcul, lue comme une politique de l'entreprise et annoncee a un client. Meme
+famille que la fermeture inventee (6duoquinquagesies), meme correctif:
+`policyNote()` dit au modele ce que la liste NE prouve PAS, et nomme les
+quatre politiques qu'il pourrait inventer (heure pile, duree, delai, nombre de
+personnes) plutot qu'un « n'invente rien » abstrait qui n'a pas empeche
+celle-ci. Dans le RESULTAT D'OUTIL, zero caractere au prompt.
+
+**(3) Deux lectures qui attendaient l'une l'autre.** `findCallerBookings`
+enchainait `byNumber` puis `byName` par deux `await`: un appelant qui donne son
+nom payait DEUX allers-retours Neon la ou un seul suffit, sur l'outil releve a
+6,1 s. Elles sont independantes PAR CONSTRUCTION (la seconde exclut les numeros
+que la premiere selectionne, `notIn`), donc `Promise.all`. Et le jeton Google,
+dont le cache d'une heure est VIDE au premier appel d'un processus, est
+desormais frappe pendant que l'accueil se dit (`warmCalendarToken`, a cote de
+`warmSmsSender`) au lieu d'etre paye par `checkAvailability`, c'est-a-dire par
+le tour ou l'appelant attend.
+**Ce qui n'a PAS ete touche, et pourquoi**: `CACHE_TTL_MS` du speculateur, que
+6sexagesies interdit d'allonger sans releve (deux clients a la meme heure), et
+les seuils de tour de parole, que 6unsexagesies declare hors sujet depuis que
+le delai ressenti est a 0,8 s.
+
+**(4) Ce qu'une humaine note et que l'agent ne notait pas.** « Je voudrais
+parler a Marie »: le destinataire du message. Dans un commerce a trois
+personnes, un message sans destinataire oblige le gerant a rappeler pour savoir
+a qui il s'adresse. Et « rappelez-moi apres 17h »: le moment, **dans les mots
+de l'appelant**, jamais converti en date, parce que « demain » depend du moment
+ou le gerant lit et qu'une date fabriquee est la faute de 6octoquadragesies.
+Deux champs sur `captureLead` plutot qu'un outil de plus: chaque outil ajoute
+est une surface que Vapi peut refuser en entier (6octies). Ils voyagent jusqu'au
+SMS et au CRM, et ils sont places dans la partie RESERVEE du SMS, avec le
+numero: c'est le MOTIF qui se fait couper, jamais eux, et un test rejoue le cas
+du motif de 600 caracteres qui avait deja emporte un numero une fois.
+
+**Apres deploiement**: `npm run voice:validate` (les deux champs de
+`captureLead` entrent dans la sonde par `buildVoiceTools`) puis
+`voice:resync --confirm`, sinon l'assistant enregistre garde l'ancien schema
+d'outil et ne remplira jamais `forPerson` ni `callbackWhen`.
+
+### 6septuagesies. L'audit etait AVEUGLE sur le moteur qu'on prefere (20/09/2026)
+Point 2 du rapport de mesure, et c'est le NEUVIEME faux diagnostic de cet
+audit. PREP, LLM et TTFA sont poses par `llm-stream`, qui ne tourne ni en
+parole-a-parole ni chez un client dont `customLlm` est eteint
+(6quaterquadragesies): Vapi parle alors a OpenAI lui-meme et aucune requete de
+modele ne passe par nous. L'audit expliquait leur absence par **« appel
+anterieur au partage PREP/LLM »**, une cause INVENTEE qui envoie chercher un
+vieux releve la ou la reponse est « ce chemin n'a pas cet etage ».
+**Le cout reel n'est pas la phrase, c'est ce qu'elle emportait avec elle.** La
+ligne « detection de fin de tour » — celle qui nomme le PLUS GROS poste, ~1,2 s
+sur 2,5 s de delai ressenti (6quinquinquagesies) — se calcule par SOUSTRACTION
+de ces etages, sous un `if (stagesMs > 0)`. Elle ne s'affichait donc **pas du
+tout** en parole-a-parole. Le seul ecran qui reponde a « apres ma phrase il
+attend une ou deux secondes avant de parler » etait muet precisement sur le
+moteur dont le proprietaire dit qu'il est « beaucoup mieux pour parler avec »
+(6septquinquagesies). Et le levier de la ligne au-dessus envoyait quand meme
+lire « quelle PART est a nous » sur cette ligne absente.
+**Ce qui remplace la soustraction, et pourquoi pas la soustraction.** Sans nos
+etages, `gap - 0` rendrait le delai ENTIER et attribuerait a la detection de
+fin de tour le temps qu'OpenAI passe a repondre: un levier qui fait baisser un
+seuil pour une seconde qui n'est pas la sienne, c'est-a-dire le geste qui
+DEGRADE, huit fois deja (6novoquadragesies, 6duoquinquagesies,
+6terquinquagesies). Ce qui reste vrai est le **PLANCHER**: les seuils poses
+sont depenses avant que quoi que ce soit ne commence, quel que soit le chemin.
+**Et ce plancher ne se note PAS sur sa seule valeur.** Le niveau superagent
+porte 0,6 / 0,8 s, soit 1 400 ms, au-dessus de la cible — et ces valeurs ont
+ete MONTEES expres le 17/09 apres « je dis bonjour et il pose direct une
+question alors que j'ai pas fini ma phrase » (6octoquinquagesies). Les noter
+rouges enverrait defaire un reglage pose contre un retour reel. La question a
+laquelle ce chiffre PEUT repondre n'est donc pas « est-il grand » mais « pese-
+t-il la majorite d'un delai deja hors cible » (6quaterquinquagesies); sur un
+appel dans les clous la ligne est informative, et le rouge reste sur
+`vapi-gap`, une seule fois, les deux mesurant le meme fait.
+**Une regle, deux lecteurs qui ne tiennent pas la meme chose.**
+`llmStreamRuns` (`profile-voice.ts`) est LA lecture, et `needsCallBrief` en est
+desormais la negation: le webhook a le profil du client, l'audit a l'assistant
+DISTANT, c'est-a-dire ce qui a vraiment decroche. **Le test qui l'impose a
+debusque un doublon prealable**: la ligne « brief » reecrivait la meme regle a
+la main et rangeait un assistant JAMAIS LU du cote custom-LLM, donc repondait
+« sans objet » — un vert invente sur la ligne qui existe justement pour
+distinguer deux pannes opposees. `null` veut dire « pas lu », et on ne conclut
+alors rien.
+Quatre formes fautives ont ete reintroduites une a une pour verifier que les
+tests tombent (3, 5, 1 et 1 echecs). **Ce qui n'a PAS ete touche**:
+`describeStoredLatency`, que lit `voice:doctor`. Il ne recoit que le releve,
+pas l'assistant distant, donc deduire « `llm-stream` n'a pas tourne » de la
+forme du releve serait une deduction qui a l'air d'une lecture (6quinvicies).
+Il dit « pas de mesure » sans inventer de cause, et c'est le plancher honnete:
+le docteur DECRIT, l'audit TRANCHE.
+
+### 6unseptuagesies. OU SONT LES MACHINES: deux distances, et elles tirent en sens contraire (20/09/2026)
+Retour du proprietaire sur la proposition de quitter l'Oregon: « j'ai peur que
+ca ralentisse parce que le reste est aux USA ». Il a raison, et ma phrase
+d'avant (« la region est le seul levier qui vaut des centaines de ms ») etait
+une DEDUCTION presentee comme une lecture — 6quinvicies, applique a une
+facture d'infrastructure cette fois.
+**Ce qui se LIT dans le depot, et qui renverse la question.** `render.yaml`
+declare `region: oregon`; `docs/VOICE-DEPLOY-RUNBOOK.md` nomme l'URL de
+production, `...-pooler.c-5.us-east-1.aws.neon.tech`. Deux cotes DANS NOTRE
+PROPRE PILE: chaque requete Prisma du chemin d'appel traverse un continent, et
+les outils sont justement le plus gros poste de latence qui reste
+(6unsexagesies). La question n'est donc pas « Oregon ou Francfort », c'est
+« pourquoi le backend est a 4 000 km de sa base ». Et deplacer le backend vers
+l'Europe SANS deplacer la base ALLONGE cet aller-retour.
+**Ce qui ne se deduit PAS.** `api.vapi.ai` resout sur du Cloudflare (anycast),
+donc le nom de domaine ne dit rien de l'endroit ou tourne l'orchestration. Or
+c'est elle qui parle a notre backend a chaque outil et a chaque tour
+custom-LLM. Aucun raisonnement ne repond: il faut mesurer.
+**Les deux instruments, et pourquoi deux.** `db-round-trip.ts` sonde
+`SELECT 1` trois fois EN SEQUENCE (en parallele, les sondes partagent le meme
+aller-retour et mesureraient la largeur du pool), avec `basePrisma` et jamais
+`prisma` — le second porte l'enveloppe de reprise, donc une sonde qui
+retenterait en silence mesurerait la reprise (6tersexagesies). Elle rend le
+PLANCHER et le PIRE separement: le premier est le reseau et repond a « la base
+est-elle loin », le second est un reveil de pool, et c'est une autre
+reparation. Une moyenne ne repondrait ni a l'une ni a l'autre. Cote Vapi,
+`vapiHopMs()` compare DEUX horloges: la duree d'un outil au transcript de Vapi
+moins la duree de notre propre execution (`recordToolCall`). C'est un PLAFOND
+du trajet reseau, jamais le trajet — notre file HTTP et la reprise en main de
+Vapi sont dedans — et la ligne le dit, parce qu'annoncer « 90 ms de reseau »
+sur un chiffre composite serait la meme faute qu'au depart.
+**Ou la sonde vit, et c'est la moitie du correctif.** Dans le PROCESSUS qui
+sert l'appel, a l'ouverture, jamais attendue (l'accueil se dit pendant ce
+temps), et son releve voyage avec les metriques. Lire `DATABASE_URL` depuis le
+script d'audit donnerait le `.env` du POSTE, faute deja payee deux fois
+(6duotrigesies, 6quinquesexagesies). Elle tourne sur TOUS les appels et non
+derriere un drapeau: un mecanisme qui ne s'exercerait qu'a la demande reste
+endormi jusqu'au jour ou on compte dessus (6octovicies).
+**La conclusion vit dans la VALEUR, pas seulement dans le levier.** Le cas VERT
+— Vapi proche du backend — est precisement celui qui repond « non » a la
+question qui coute cher, et une ligne verte muette laisserait decider au
+raisonnement. Elle dit donc elle-meme que deplacer le backend ajouterait cette
+distance a chaque outil. Un ecart NEGATIF n'est pas une distance negative: il
+se dit INUTILISABLE et nomme l'appariement a verifier, meme traitement qu'un
+TTFA plus grand que le pire delai de Vapi (6terquinquagesies).
+**La regle qui sort du lot**: quand deux distances tirent en sens contraire,
+aucune ne tranche seule, et l'audit doit afficher les deux ensemble plutot
+qu'une recommandation. Quatre formes fautives reintroduites une a une (sonde
+attendue, releve non persiste, client avec reprise, ecart negatif note).
+**Second lot du meme passage: les REPLIS Prisma de l'appel.** Question laissee
+ouverte le 19/09 et jamais refermee — le releve du 18/09 montre des outils qui
+RALENTISSENT au fil de l'appel (2,2 puis 6,1, 2,9, 4,5, 7,7 s), ce qui est
+l'inverse d'un demarrage a froid. Le journal a bien ete passe en `info` pour
+repondre, mais il se lit dans Render, a la main, en connaissant l'heure de
+l'appel: un fait qui demande ca n'est pas lu (6unsexagesies, encore). Le
+compteur est pris DANS `start()`, donc sur les trois chemins qui ouvrent une
+session sans qu'aucun puisse l'oublier (6vicies), et incremente AVANT l'attente
+— compter apres ferait disparaitre le pire cas, qui est justement celui qu'on
+cherche. Il est PROCESSUS-LARGE et la ligne le DIT: une extension Prisma ne
+sait pas quel appel est en vol, donc deux appels simultanes se partagent le
+compteur, et un chiffre honnete et large vaut mieux qu'un chiffre precis et
+faux. Zero n'affiche rien: un ecran qu'on relit en entier n'a pas besoin d'un
+vert de plus. Un demarrage a froid envoie au `keepalive`, un repli transitoire
+aux journaux `[prisma]`: les deux reparations n'ont rien a voir.
+**Ce que la LECTURE tranche deja sur `checkAvailability` a 6,5 s** (6novoquinquagesies,
+reste ouvert). Le corps de l'outil n'attend qu'UNE chose, `freeSlots`, et elle
+est enveloppee dans `withTimeout(..., EXTERNAL_TIMEOUT_MS)` a 2,5 s. Tout ce qui
+la precede est local (`parseDate`, `pastDateReply`, `closedDayReply`), le profil
+arrive deja resolu en argument, et `freeSlots` porte DANS la course sa requete
+Prisma, la frappe du jeton Google et l'unique `fetch` vers `/freeBusy` — un
+seul aller-retour Google, verifie, pas une sequence. Donc **un
+`checkAvailability` a 6,5 s qui n'est PAS tombe en « AGENDA INDISPONIBLE » ne
+peut pas etre 6,5 s de notre travail**: la course aurait rejete a 2,5 s. Les
+quatre secondes restantes sont ailleurs — resolution du profil en amont, trajet
+Vapi↔nous, comptabilite de Vapi — c'est-a-dire exactement ce que la ligne
+`aller-retour entre Vapi et notre backend` mesure desormais.
+**Ce qu'il ne faut donc PAS faire**, et c'est la raison d'ecrire ce paragraphe:
+baisser `EXTERNAL_TIMEOUT_MS` pour « reparer » un outil a 6,5 s. Ca ne toucherait
+pas les quatre secondes et ca ferait tomber en repli des lectures d'agenda qui
+aboutissaient. Neuvieme fois que ce genre de levier degraderait ce qui marche.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).

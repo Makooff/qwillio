@@ -499,6 +499,32 @@ function nearestSlots(free: string[], wantedMinutes: number, howMany = 2): strin
     .sort((a, b) => (parseTimeToMinutes(a) ?? 0) - (parseTimeToMinutes(b) ?? 0));
 }
 
+/**
+ * CE QUE LES CRENEAUX NE DISENT PAS (20/09/2026).
+ *
+ * Appel reel du 16/09: « nos rendez-vous se prennent a l'heure pile, pas a la
+ * demi-heure ». Personne n'a jamais ecrit cette regle. C'est la GRANULARITE de
+ * nos creneaux, une commodite de calcul, que le modele a lue comme une
+ * POLITIQUE de l'entreprise et annoncee a un client.
+ *
+ * Meme famille que la fermeture inventee de 6duoquinquagesies, et meme
+ * correctif: le modele comble un vide avec une regle plausible, donc il faut
+ * lui dire ce que la liste NE prouve PAS. Un fait faux sur l'entreprise, dit a
+ * quelqu'un qui voulait venir, coute plus cher qu'un creneau manque, parce que
+ * l'appelant repart en le croyant et le repete.
+ *
+ * Dans le RESULTAT D'OUTIL, donc zero caractere au prompt rejoue a chaque tour.
+ */
+export function policyNote(lang: string): string {
+  return lang === 'fr'
+    ? ' Ces heures sont les creneaux LIBRES, pas une regle de la maison:'
+      + " n'annonce aucune politique de reservation (heure pile, duree, delai,"
+      + " nombre de personnes) que les horaires ne disent pas."
+    : ' These times are the FREE slots, not a house rule: announce no booking'
+      + ' policy (on the hour, duration, notice, party size) that the opening'
+      + ' hours do not state.';
+}
+
 function windowNote(partOfDay: unknown, lang: string, open: string): string {
   const key = String(partOfDay || 'any');
   const label = PART_OF_DAY_LABELS[key];
@@ -653,7 +679,9 @@ class ToolRuntimeService {
     const hours = window.open ? `${window.from}-${window.to}` : '';
     const day = spokenDate(date, profile.language, profile.timezone);
 
-    const note = windowNote(args.partOfDay, profile.language, hours || '?') + weekdayNote(day, profile.language);
+    const note = windowNote(args.partOfDay, profile.language, hours || '?')
+      + weekdayNote(day, profile.language)
+      + policyNote(profile.language);
 
     if (free.length === 0) {
       const fallback = slots.filter(s => !held.includes(s));
@@ -827,6 +855,28 @@ class ToolRuntimeService {
   /** Le même relevé, lancé à l'ouverture de l'appel pour ne pas le payer à la réservation. */
   async warmSmsSender(clientId: string): Promise<void> {
     await this.canSendSms(clientId);
+  }
+
+  /**
+   * FRAPPE LE JETON GOOGLE PENDANT L'ACCUEIL (20/09/2026).
+   *
+   * Le jeton d'accès vaut une HEURE et il est retenu depuis le 17/09, mais ce
+   * cache est VIDE au premier appel servi par un processus: la première
+   * lecture d'agenda paie donc encore deux allers-retours au lieu d'un, et
+   * c'est `checkAvailability` qui les paie, c'est-à-dire le tour où l'appelant
+   * attend une réponse (relevé à 6,5 s après le cache de jeton).
+   *
+   * Déplacé ici, il est payé pendant que l'accueil se dit, quand l'appelant
+   * n'attend rien. Même raison que `warmSmsSender` juste au-dessus, et même
+   * contrat: jamais attendu, un échec ne coûte rien puisque l'outil relira.
+   */
+  async warmCalendarToken(clientId: string): Promise<void> {
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: { googleCalendarRefreshToken: true },
+    });
+    if (!client?.googleCalendarRefreshToken) return;
+    await googleCalendarService.getAccessTokenFromRefresh(client.googleCalendarRefreshToken);
   }
   private async canSendSms(clientId: string): Promise<boolean> {
     if (!smsReadiness().ok) return false;
@@ -1066,34 +1116,47 @@ class ToolRuntimeService {
        « 32483620980 » par `normalizeNumber`, tantôt « +32… » selon la source.
        Une égalité exacte ratait donc le même numéro sans rien dire. */
     const numberForms = callerNumber ? phoneForms(callerNumber) : [];
-    const byNumber = numberForms.length
-      ? await prisma.clientBooking.findMany({
-          where: { clientId: profile.clientId, status: 'confirmed', bookingDate: { gte: now }, customerPhone: { in: numberForms } },
-          orderBy: { bookingDate: 'asc' },
-          take: 20,
-          select,
-        })
-      : [];
 
-    /* La recherche par NOM garde une fenêtre: elle est relue en mémoire sur
-       toutes les réservations à venir du commerce, pas sur celles d'un
-       appelant, parce que la base ne sait pas comparer deux noms ENTENDUS
-       (« de la Ford », « Delaforde » et « de la foireux » sont tous « de la
-       forge »). Un an couvre ce que prend un client qui réserve à l'avance,
-       et `take` garde la lecture petite. */
-    const byName = name
-      ? await prisma.clientBooking.findMany({
-          where: {
-            clientId: profile.clientId,
-            status: 'confirmed',
-            bookingDate: { gte: now, lte: new Date(now.getTime() + 366 * 24 * 3600 * 1000) },
-            ...(numberForms.length ? { customerPhone: { notIn: numberForms } } : {}),
-          },
-          orderBy: { bookingDate: 'asc' },
-          take: 300,
-          select,
-        })
-      : [];
+    /* LES DEUX LECTURES PARTENT ENSEMBLE (20/09/2026).
+       Elles étaient enchaînées par deux `await`, donc un appelant qui donne
+       son nom payait DEUX allers-retours Neon là où un seul suffit. Elles sont
+       indépendantes par construction: la seconde EXCLUT les numéros que la
+       première sélectionne (`notIn`), donc aucune ne peut dépendre du résultat
+       de l'autre. Relevé sur appels réels: `lookupBooking` à 2,5 s puis 6,1 s,
+       et l'audit avait déjà écarté l'agenda Google, ce sont des requêtes
+       Prisma (6unsexagesies).
+       Ce que ça coûte ne se limite pas à l'attente: « il met du temps à
+       répondre donc il répond en même temps que moi ». La lenteur FABRIQUE le
+       chevauchement (6octoquinquagesies). */
+    const [byNumber, byName] = await Promise.all([
+      numberForms.length
+        ? prisma.clientBooking.findMany({
+            where: { clientId: profile.clientId, status: 'confirmed', bookingDate: { gte: now }, customerPhone: { in: numberForms } },
+            orderBy: { bookingDate: 'asc' },
+            take: 20,
+            select,
+          })
+        : Promise.resolve([]),
+      /* La recherche par NOM garde une fenêtre: elle est relue en mémoire sur
+         toutes les réservations à venir du commerce, pas sur celles d'un
+         appelant, parce que la base ne sait pas comparer deux noms ENTENDUS
+         (« de la Ford », « Delaforde » et « de la foireux » sont tous « de la
+         forge »). Un an couvre ce que prend un client qui réserve à l'avance,
+         et `take` garde la lecture petite. */
+      name
+        ? prisma.clientBooking.findMany({
+            where: {
+              clientId: profile.clientId,
+              status: 'confirmed',
+              bookingDate: { gte: now, lte: new Date(now.getTime() + 366 * 24 * 3600 * 1000) },
+              ...(numberForms.length ? { customerPhone: { notIn: numberForms } } : {}),
+            },
+            orderBy: { bookingDate: 'asc' },
+            take: 300,
+            select,
+          })
+        : Promise.resolve([]),
+    ]);
 
     const rows = [...byNumber, ...byName];
 
@@ -1391,6 +1454,10 @@ class ToolRuntimeService {
       email: typeof args.email === 'string' ? args.email.trim() || null : null,
       reason: typeof args.reason === 'string' ? args.reason.trim() : '',
       urgency: ['low', 'normal', 'high'].includes(args.urgency) ? String(args.urgency) : 'normal',
+      /* Coupes court: ces deux champs partent dans un SMS borne a 320
+         caracteres, et c'est le MOTIF qui doit pouvoir s'y etaler, pas eux. */
+      forPerson: typeof args.forPerson === 'string' ? args.forPerson.trim().slice(0, 40) || null : null,
+      callbackWhen: typeof args.callbackWhen === 'string' ? args.callbackWhen.trim().slice(0, 40) || null : null,
     };
     /* `recordLead` attend maintenant le numéro, donc il attend `phone`, calculé
        plus bas. Le lead n'est plus posé ici: le poser avant le numéro était
@@ -1458,6 +1525,9 @@ class ToolRuntimeService {
           contact: { name: lead.name, email: lead.email, phone, address },
           reason: lead.reason,
           urgency: lead.urgency,
+          /* Dans le CRM aussi: le SMS se perd, la fiche reste. */
+          forPerson: lead.forPerson,
+          callbackWhen: lead.callbackWhen,
           language: profile.language,
           businessName: profile.businessName,
         },

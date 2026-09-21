@@ -5,7 +5,7 @@ import { join } from 'path';
 vi.mock('../../../config/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
 
 import { callBrief } from '../call-brief';
-import { needsCallBrief } from '../profile-voice';
+import { needsCallBrief, llmStreamRuns } from '../profile-voice';
 import type { CallerHistory, ClientVoiceProfile } from '../realtime-context.service';
 
 /**
@@ -123,6 +123,43 @@ describe('needsCallBrief', () => {
 
   it("la chaîne custom-LLM n'en a pas besoin: `llm-stream` repose le bloc à chaque tour", () => {
     expect(needsCallBrief(prof({ customLlm: true }))).toBe(false);
+  });
+});
+
+/**
+ * UNE règle, DEUX lecteurs qui ne tiennent pas la même chose.
+ *
+ * Le webhook a le profil du client; l'audit a l'assistant DISTANT, c'est-à-dire
+ * ce qui a vraiment décroché. La question est pourtant la même — `llm-stream`
+ * tourne-t-il — et ce qu'elle décide déborde du brief: sans lui, PREP, LLM et
+ * TTFA n'existent pas non plus. Écrite deux fois, elle divergerait en moins
+ * d'un mois et les deux réponses seraient également crédibles (6vicies).
+ */
+describe('llmStreamRuns', () => {
+  it('ne tourne ni en parole-à-parole ni sans custom-LLM', () => {
+    expect(llmStreamRuns({ speechToSpeech: true, customLlm: true })).toBe(false);
+    expect(llmStreamRuns({ speechToSpeech: true, customLlm: false })).toBe(false);
+    expect(llmStreamRuns({ speechToSpeech: false, customLlm: false })).toBe(false);
+  });
+
+  it('ne tourne QUE sur la chaîne classique en custom-LLM', () => {
+    expect(llmStreamRuns({ speechToSpeech: false, customLlm: true })).toBe(true);
+  });
+
+  it("`needsCallBrief` en est la négation, pas une seconde règle", () => {
+    const src = stripComments(readFileSync(join(__dirname, '../profile-voice.ts'), 'utf8'));
+    expect(src).toMatch(/return !llmStreamRuns\(\{/);
+    expect(src).not.toMatch(/speechToSpeech \|\| !profile\.customLlm/);
+  });
+
+  it("l'audit la LIT au lieu de la réécrire à la main", () => {
+    /* Le code qui lit un champ compte autant que celui qui l'écrit
+       (6sexvicies): c'est en réécrivant cette question de son côté que
+       l'audit aurait pu conclure autre chose que le webhook sur le même
+       appel. */
+    const src = stripComments(readFileSync(join(__dirname, '../call-audit.ts'), 'utf8'));
+    expect(src).toMatch(/llmStreamRuns\(\{ speechToSpeech:/);
+    expect(src).not.toMatch(/speechToSpeech === true \|\| /);
   });
 });
 
