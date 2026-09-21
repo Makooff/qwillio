@@ -22,7 +22,7 @@ import { resolveCharacter } from '../../config/voice-characters';
 import { callerIdentity, type LineAgent } from './inbound-routing.service';
 import { isSelfCall, hangUpSelfCall, controlUrlOf } from './self-call-guard';
 import { needsCallBrief } from './profile-voice';
-import { measureDbRoundTrip } from './db-round-trip';
+import { measureDbRoundTrip, dbRegion } from './db-round-trip';
 import { dbRetrySnapshot } from '../../config/database';
 import { callBrief } from './call-brief';
 import { vapiClient } from '../../config/vapi';
@@ -577,6 +577,30 @@ class RealtimeOrchestratorService {
       session.latency.attachVendorMetrics(msg.performanceMetrics ?? msg.performance ?? null);
     }
 
+    /* LA SECONDE SONDE, ET C'EST ELLE QUI TRANCHE (21/09/2026).
+     *
+     * La première tombe à l'OUVERTURE, et son relevé — 310 ms de plancher pour
+     * un `SELECT 1`, quand Oregon → `us-east-1` coûte ~70 ms — se lit de DEUX
+     * façons qui n'appellent pas la même réparation:
+     *  - 310 ms PAR REQUÊTE: chaque lecture du chemin d'appel les paie, et
+     *    c'est la région qu'il faut rapprocher;
+     *  - 310 ms PAR CONNEXION NEUVE (TCP + TLS + authentification font quatre
+     *    à cinq allers-retours, ce qui tombe pile sur ce chiffre): seules les
+     *    premières les paient, et c'est le pool qu'il faut garder chaud.
+     *
+     * Les trois sondes d'ouverture ne les départagent pas: leur STABILITÉ
+     * (310 contre 316) écarte un pic transitoire, mais pas un coût payé
+     * identiquement par chacune. J'ai lu ce chiffre comme un coût par requête
+     * sans pouvoir l'établir, ce qui est exactement la faute que cet audit
+     * passe son temps à corriger chez lui-même.
+     *
+     * Ici, l'appel est TERMINÉ: le pool a servi tout ce qu'il avait à servir,
+     * donc une connexion chaude existe forcément. Si la mesure s'effondre, le
+     * coût était l'établissement; si elle tient, c'est la distance. Et comme
+     * plus personne n'attend au bout du fil, elle est ATTENDUE, contrairement
+     * à celle de l'ouverture. */
+    const dbRoundTripEnd = await measureDbRoundTrip().catch(() => null);
+
     const metrics = session
       ? {
           callerTurns: session.callerTurns,
@@ -610,6 +634,11 @@ class RealtimeOrchestratorService {
              traverser, et la décision de région se prend au raisonnement
              plutôt qu'au relevé. */
           dbRoundTrip: session.dbRoundTrip,
+          /* La même mesure, pool CHAUD. Voir le commentaire de la sonde. */
+          dbRoundTripEnd,
+          /* La région lue sur l'hôte: sans elle, les millisecondes ne se
+             comparent à aucune distance. */
+          dbRegion: dbRegion(),
           /* Ce que les REPLIS Prisma ont coûté pendant cet appel. Le journal
              existait déjà (19/09) mais se lisait dans Render, à la main, en
              connaissant l'heure: le fait était là, personne ne l'ouvrait. */

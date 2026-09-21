@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { measureDbRoundTrip } from '../db-round-trip';
+import { measureDbRoundTrip, dbRegion } from '../db-round-trip';
 
 /**
  * La sonde répond à UNE question: la base est-elle loin du processus qui sert
@@ -53,5 +53,40 @@ describe('measureDbRoundTrip', () => {
       if (++n === 2) throw new Error('P1001');
     });
     expect(rt).toEqual({ floorMs: 70, worstMs: 72, samples: 2 });
+  });
+});
+
+/**
+ * LA RÉGION SE LIT SUR L'HÔTE, ET RIEN D'AUTRE NE SORT.
+ *
+ * Sans elle, « 310 ms » ne se compare à aucune distance. Avec elle, on sait que
+ * `us-east-1` depuis l'Oregon vaut ~70 ms, donc que 310 ms est un multiple et
+ * pas la distance.
+ */
+describe('dbRegion', () => {
+  const real = 'postgresql://user:MOTDEPASSE@ep-delicate-silence-amnou7z5-pooler.c-5.us-east-1.aws.neon.tech/neondb?sslmode=require';
+
+  it("lit la région d'un hôte Neon réel", () => {
+    expect(dbRegion(real)).toBe('us-east-1');
+  });
+
+  it('ne laisse RIEN sortir que la région', () => {
+    /* Un relevé voyage jusque dans un journal et dans une conversation: il ne
+       transporte que ce qu'il doit prouver. */
+    const got = dbRegion(real) ?? '';
+    expect(got).not.toContain('MOTDEPASSE');
+    expect(got).not.toContain('neondb');
+    expect(got).not.toContain('ep-delicate');
+  });
+
+  it("rend `null` sur un hôte qu'elle ne sait pas lire, au lieu de deviner", () => {
+    /* Une région devinée conclut sur une distance qu'on n'a pas lue. */
+    expect(dbRegion('postgresql://u:p@localhost:5432/db')).toBeNull();
+    expect(dbRegion('')).toBeNull();
+  });
+
+  it('lit les autres formes de région AWS', () => {
+    expect(dbRegion('postgresql://u:p@x.eu-central-1.aws.neon.tech/db')).toBe('eu-central-1');
+    expect(dbRegion('postgresql://u:p@x.ap-southeast-2.aws.neon.tech/db')).toBe('ap-southeast-2');
   });
 });

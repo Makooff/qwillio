@@ -1621,6 +1621,9 @@ describe('auditCall — les deux distances', () => {
   const withDb = (floorMs: number, worstMs = floorMs + 20): CallFacts => {
     const f = good();
     f.realtime!.dbRoundTrip = { floorMs, worstMs, samples: 3 };
+    /* La région vient du SERVEUR depuis le 21/09, plus d'un littéral dans le
+       levier: la fixture doit donc la porter pour que la ligne la nomme. */
+    f.realtime!.dbRegion = 'us-east-1';
     return f;
   };
 
@@ -1813,5 +1816,63 @@ describe('auditCall — les outils de Vapi ne sont pas les nôtres', () => {
     /* Le plus lent des NÔTRES, pas le plus lent du transcript. */
     expect(String(c.lever)).toMatch(/lookupBooking/);
     expect(String(c.lever)).not.toMatch(/endCall/);
+  });
+});
+
+/**
+ * DEUX SONDES, PARCE QU'UNE SEULE NE TRANCHE PAS.
+ *
+ * Relevé réel du 21/09: 310 ms de plancher pour un `SELECT 1`, quand
+ * Oregon → us-east-1 coûte ~70 ms. Deux lectures, deux réparations opposées:
+ * 310 ms PAR REQUÊTE (c'est la région), ou 310 ms PAR CONNEXION NEUVE (TCP,
+ * TLS, authentification font quatre à cinq allers-retours, ce qui tombe pile
+ * sur ce chiffre — et là c'est le pool).
+ *
+ * La stabilité des trois sondes d'ouverture (310 contre 316) écarte un pic
+ * transitoire, PAS un coût payé identiquement par chacune. La seconde sonde
+ * tombe en fin d'appel, sur un pool que l'appel entier vient de chauffer.
+ */
+describe('auditCall — la distance à la base se tranche à deux sondes', () => {
+  const find = (f: CallFacts, id: string) => auditCall(f).checks.find(c => c.id === id);
+  const withProbes = (openMs: number, warmMs: number | null, region: string | null = 'us-east-1'): CallFacts => {
+    const f = good();
+    f.realtime!.dbRoundTrip = { floorMs: openMs, worstMs: openMs + 6, samples: 3 };
+    if (warmMs !== null) f.realtime!.dbRoundTripEnd = { floorMs: warmMs, worstMs: warmMs + 4, samples: 3 };
+    if (region) f.realtime!.dbRegion = region;
+    return f;
+  };
+
+  it("un pool chaud qui s'effondre dit l'ÉTABLISSEMENT, et interdit la région", () => {
+    const c = find(withProbes(310, 72), 'db-distance')!;
+    expect(c.value).toMatch(/POOL CHAUD EN FIN D'APPEL: 72 ms/);
+    expect(c.value).toMatch(/ÉTABLISSEMENT d'une connexion, pas la distance/);
+    expect(String(c.lever)).toMatch(/ce n'est PAS la région/);
+    expect(String(c.lever)).toMatch(/connection_limit/);
+    /* Il NOMME `render.yaml` pour l'écarter: c'est le geste qu'on empêche. */
+    expect(String(c.lever)).toMatch(/PAS `render\.yaml`/);
+  });
+
+  it('un pool chaud qui TIENT dit la distance, et là la région est la réponse', () => {
+    const c = find(withProbes(310, 305), 'db-distance')!;
+    expect(c.value).toMatch(/c'est bien la DISTANCE/);
+    expect(String(c.lever)).toMatch(/render\.yaml/);
+    expect(String(c.lever)).toMatch(/us-east-1/);
+  });
+
+  it('nomme la région lue sur le serveur, jamais celle du poste', () => {
+    expect(find(withProbes(310, 305, 'eu-central-1'), 'db-distance')!.value).toMatch(/base en eu-central-1/);
+  });
+
+  it("sans seconde sonde, il DIT qu'il ne peut pas trancher", () => {
+    /* Une ligne qui conclurait quand même enverrait migrer sur une lecture
+       qu'elle n'a pas faite. */
+    const c = find(withProbes(310, null), 'db-distance')!;
+    expect(c.value).toMatch(/impossible de dire si c'est la distance ou l'établissement/);
+  });
+
+  it('une base vraiment proche reste verte, sans levier', () => {
+    const c = find(withProbes(4, 3), 'db-distance')!;
+    expect(c.status).toBe('ok');
+    expect(c.lever).toBeUndefined();
   });
 });
