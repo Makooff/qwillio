@@ -654,13 +654,33 @@ class LlmStreamService {
     stream.end();
   }
 
-  /** Spoken when the model is unreachable. Never mentions a technical fault. */
+  /**
+   * Dite quand le modèle n'a pas répondu. Ne nomme aucune panne — ET N'ACCUSE
+   * PLUS L'APPELANT (21/09/2026).
+   *
+   * Elle disait « Pardon, je vous ai mal entendu. Vous pouvez répéter ? », ce
+   * qui affirme une CAUSE: que l'appelant a parlé, et mal. Appel réel, et
+   * l'appelant a corrigé lui-même: « Non, je n'ai rien dit. » La vraie cause
+   * était notre délai — `VOICE_FIRST_TOKEN_TIMEOUT_MS` a coupé pendant
+   * qu'OpenAI réfléchissait (p95 mesuré à 2940 ms sur cet appel).
+   *
+   * C'est la leçon des phrases d'attente, d'un cran plus haut: une phrase de
+   * démarrage ne doit pas annoncer une ISSUE (6sexquadragesies), et une phrase
+   * de repli ne doit pas annoncer une CAUSE qu'elle ne connaît pas. Ici le
+   * mensonge coûte plus cher qu'un blanc: il fait douter l'appelant de sa
+   * propre diction, et il le fait répéter quelque chose qu'il n'a pas dit.
+   *
+   * La nouvelle forme rend la parole sans rien affirmer, ce qui est vrai dans
+   * les DEUX cas — l'appelant a parlé et nous l'avons perdu, ou il n'a rien dit
+   * et nous avons été lents. Ne pas la raccourcir jusqu'au silence: l'appelant
+   * attend, et un blanc se lit comme une ligne coupée.
+   */
   private fallbackLine(lang: VoiceLanguage): string {
     // Le néerlandais aussi: sans lui, un appelant flamand s'entend répondre en
     // anglais au moment précis où quelque chose vient de mal se passer.
-    if (lang === 'fr') return 'Pardon, je vous ai mal entendu. Vous pouvez répéter ?';
-    if (lang === 'nl') return 'Sorry, ik heb u niet goed verstaan. Kunt u het herhalen?';
-    return 'Sorry, I did not catch that. Could you say it again?';
+    if (lang === 'fr') return 'Pardon, je vous écoute.';
+    if (lang === 'nl') return 'Sorry, ik luister.';
+    return 'Sorry, go ahead.';
   }
 }
 

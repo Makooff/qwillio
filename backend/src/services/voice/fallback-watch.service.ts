@@ -6,10 +6,11 @@ import { discordService } from '../discord.service';
  * Le canari des replis du modèle (TST-8).
  *
  * Quand le modèle ne répond pas, `llm-stream` parle à sa place: « pardon, je
- * vous ai mal entendu, vous pouvez répéter ? ». La phrase est bien choisie —
- * elle ne nomme aucune panne — et c'est exactement ce qui la rend dangereuse:
- * une flotte dont le modèle est mort tient une conversation entière de
- * « pouvez-vous répéter ? » sans qu'aucun voyant ne s'allume. C'est arrivé le
+ * vous écoute » (elle accusait l'appelant d'avoir mal parlé jusqu'au
+ * 21/09/2026, voir `fallbackLine`). La phrase est bien choisie — elle ne nomme
+ * aucune panne — et c'est exactement ce qui la rend dangereuse: une flotte dont
+ * le modèle est mort tient une conversation entière de politesses sans qu'aucun
+ * voyant ne s'allume. C'est arrivé le
  * 09/09/2026: le crédit OpenAI épuisé, chaque tour en repli, et le premier à
  * l'apprendre aurait été un client.
  *
