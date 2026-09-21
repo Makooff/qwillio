@@ -31,6 +31,29 @@
 
 import { basePrisma } from '../../config/database';
 
+/**
+ * LA RÉGION DE LA BASE, lue sur l'hôte et jamais sur les identifiants.
+ *
+ * Sans elle, « 310 ms » ne se compare à rien: c'est en sachant que l'hôte dit
+ * `us-east-1` et que le backend est déclaré `oregon` qu'on peut dire si la
+ * mesure vaut la distance (~70 ms) ou un multiple de celle-ci.
+ *
+ * Elle se lit DANS LE PROCESSUS qui sert l'appel, comme la mesure elle-même:
+ * `DATABASE_URL` lu depuis un poste est le `.env` de ce poste, faute déjà
+ * payée deux fois (6duotrigesies, 6quinquesexagesies).
+ *
+ * Seul le jeton de région sort d'ici. Ni l'hôte complet, ni le nom de la base,
+ * ni évidemment le mot de passe: un relevé voyage jusque dans un journal et
+ * dans une conversation, donc il ne transporte que ce qu'il doit prouver.
+ */
+export function dbRegion(url = process.env.DATABASE_URL || ''): string | null {
+  const host = url.split('@')[1]?.split('/')[0] ?? '';
+  /* La forme AWS/Neon: `…-pooler.c-5.us-east-1.aws.neon.tech`. Un hôte qui n'y
+     répond pas rend `null` plutôt qu'une supposition: un audit qui devine une
+     région conclut sur une distance qu'il n'a pas lue (6quinvicies). */
+  return host.match(/\b([a-z]{2}-[a-z]+-\d)\b/)?.[1] ?? null;
+}
+
 export interface DbRoundTrip {
   /** La plus rapide des sondes: le réseau seul, sans réveil ni file. */
   floorMs: number;

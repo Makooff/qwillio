@@ -24,6 +24,7 @@ import { PRICED_FOR_MODEL } from '../../config/superagent-option';
 import { isPlaceholderName } from '../../utils/spelled-name';
 import { VOICE_TIERS, type VoiceTierId } from './voice-tiers';
 import { llmStreamRuns } from './profile-voice';
+import { isKnownTool } from './voice-tools';
 
 export type AuditStatus = 'ok' | 'warn' | 'fail' | 'skip';
 export type AuditArea = 'fonctionnement' | 'latence' | 'reglages';
@@ -1160,7 +1161,24 @@ export function auditCall(facts: CallFacts): AuditReport {
   }
 
   {
-    const timed = facts.tools.filter(t => t.tookSeconds !== null);
+    /* CE QUE NOUS EXECUTONS, ET RIEN D'AUTRE (21/09/2026).
+     *
+     * `facts.tools` vient du TRANSCRIPT de Vapi, qui y range aussi ses outils a
+     * LUI. Relevé réel: `endCall 5.5 s`, classé le plus lent de l'appel, avec
+     * pour levier « qui ne lit PAS l'agenda: c'est une requête Prisma. Regarder
+     * Neon ». Or `endCall` n'est ni dans `KNOWN_TOOLS` ni nulle part dans notre
+     * runtime: il ne touche jamais notre backend, encore moins Neon. Ces cinq
+     * secondes sont Vapi qui VIDE SA FILE DE PAROLE avant de raccrocher
+     * (6quatersexagesies), donc l'au revoir que l'appelant entend.
+     *
+     * Dixième diagnostic faux de cet audit, et il avait les deux défauts de la
+     * famille: il envoie réparer au mauvais endroit, ET il rougit une ligne sur
+     * un chiffre qui n'est pas le nôtre. Les outils de Vapi restent AFFICHES —
+     * cinq secondes avant le raccroché, l'appelant les vit — mais hors du
+     * verdict et hors du levier. */
+    const ours = facts.tools.filter(t => isKnownTool(t.name));
+    const theirs = facts.tools.filter(t => !isKnownTool(t.name) && t.tookSeconds !== null);
+    const timed = ours.filter(t => t.tookSeconds !== null);
     const slow = timed.filter(t => t.tookSeconds! > TARGETS.toolSeconds[0]);
     if (timed.length) {
       const worst = Math.max(...timed.map(t => t.tookSeconds!));
@@ -1173,7 +1191,10 @@ export function auditCall(facts: CallFacts): AuditReport {
            suivants moins: une moyenne par nom d'outil ne peut pas montrer ça,
            et c'est pourtant la différence entre « cette requête est lente » et
            « le premier accès du processus paie un réveil ». */
-        value: timed.map(t => `${t.name} ${t.tookSeconds!.toFixed(1)} s${t.atSeconds != null ? ` (à ${t.atSeconds.toFixed(0)} s)` : ''}`).join(', '),
+        value: timed.map(t => `${t.name} ${t.tookSeconds!.toFixed(1)} s${t.atSeconds != null ? ` (à ${t.atSeconds.toFixed(0)} s)` : ''}`).join(', ')
+          + (theirs.length
+            ? ` — et chez VAPI, hors de notre portée: ${theirs.map(t => `${t.name} ${t.tookSeconds!.toFixed(1)} s`).join(', ')}`
+            : ''),
         target: `≤ ${TARGETS.toolSeconds[0]} s chacun`,
         /* LE LEVIER SUIT L'OUTIL LE PLUS LENT, PAS LE PREMIER NOM RECONNU
            (18/09/2026). Il nommait l'agenda Google dès qu'un `checkAvailability`
@@ -1211,19 +1232,46 @@ export function auditCall(facts: CallFacts): AuditReport {
     const db = rt?.dbRoundTrip as { floorMs?: number; worstMs?: number; samples?: number } | undefined;
     if (db && typeof db.floorMs === 'number') {
       const far = db.floorMs > TARGETS.dbRoundTripMs[1];
+      /* LES DEUX SONDES, ET C'EST LEUR ÉCART QUI DIT QUOI RÉPARER.
+       *
+       * Celle de l'OUVERTURE peut payer l'établissement d'une connexion (TCP,
+       * TLS, authentification: quatre à cinq allers-retours). Celle de la FIN
+       * tombe sur un pool que l'appel entier vient de chauffer. Si la seconde
+       * s'effondre, le coût était la connexion et c'est le pool qu'il faut
+       * tenir chaud; si elle tient, c'est la DISTANCE, et là seulement la
+       * région est la réponse.
+       *
+       * Sans cette comparaison, 310 ms se lisait « chaque requête du chemin
+       * d'appel paie ça » — une lecture que rien n'établissait, et qui engage
+       * une migration. */
+      const end = rt?.dbRoundTripEnd as { floorMs?: number } | undefined;
+      const warmMs = typeof end?.floorMs === 'number' ? end.floorMs : null;
+      /* La moitié: assez pour que l'écart ne soit pas du bruit, et le seuil
+         est franc parce que les deux causes ne se ressemblent pas — un
+         établissement de connexion coûte plusieurs fois la distance. */
+      const wasHandshake = warmMs !== null && warmMs * 2 <= db.floorMs;
+      const region = typeof rt?.dbRegion === 'string' ? rt.dbRegion : null;
       push({
         id: 'db-distance', area: 'latence',
-        status: grade(db.floorMs, TARGETS.dbRoundTripMs),
+        status: wasHandshake ? 'warn' : grade(db.floorMs, TARGETS.dbRoundTripMs),
         label: 'aller-retour vers notre propre base',
         /* Le PLANCHER et le PIRE séparément: le premier est le réseau seul et
            répond à « la base est-elle loin », le second est ce qu'un réveil de
            pool ou de calcul Neon ajoute, et c'est une autre réparation. Une
            moyenne ne répondrait à aucune des deux. */
-        value: `${db.floorMs} ms au plancher, ${db.worstMs} ms au pire, sur ${db.samples} sonde(s)`
-          + (far ? " — c'est une distance de continent, pas de centre de données" : ''),
+        value: `${db.floorMs} ms au plancher à l'ouverture, ${db.worstMs} ms au pire, sur ${db.samples} sonde(s)`
+          + (region ? `, base en ${region}` : '')
+          + (warmMs === null
+            ? " — pas de seconde sonde: impossible de dire si c'est la distance ou l'établissement de connexion"
+            : wasHandshake
+            ? `. POOL CHAUD EN FIN D'APPEL: ${warmMs} ms. L'écart dit que l'ouverture payait l'ÉTABLISSEMENT d'une connexion, pas la distance`
+            : `. Pool chaud en fin d'appel: ${warmMs} ms, donc c'est bien la DISTANCE que chaque requête paie`)
+          + (far && !wasHandshake ? " — une distance de continent, pas de centre de données" : ''),
         target: `≤ ${TARGETS.dbRoundTripMs[0]} ms`,
-        lever: db.floorMs > TARGETS.dbRoundTripMs[0]
-          ? "le backend et la base ne sont pas dans la même région (`render.yaml` déclare `oregon`, l'URL de production nomme `us-east-1`): CHAQUE requête Prisma du chemin d'appel paie ça, et les outils sont le plus gros poste qui reste. Les rapprocher vaut plus que n'importe quel réglage de voix — et déplacer le backend SANS déplacer la base allonge cet aller-retour au lieu de le raccourcir"
+        lever: wasHandshake
+          ? "ce n'est PAS la région: une connexion neuve coûte quatre à cinq allers-retours (TCP, TLS, authentification), et le pool en ouvre pendant que l'appelant écoute l'accueil. Regarder `connection_limit` et ce qui garde le pool chaud entre deux appels, PAS `render.yaml`"
+          : db.floorMs > TARGETS.dbRoundTripMs[0]
+          ? `le backend et la base ne sont pas dans la même région (\`render.yaml\` déclare \`oregon\`${region ? `, la base répond en ${region}` : ''}): CHAQUE requête Prisma du chemin d'appel paie ça, et les outils sont le plus gros poste qui reste. Les rapprocher vaut plus que n'importe quel réglage de voix — et déplacer le backend SANS déplacer la base allonge cet aller-retour au lieu de le raccourcir`
           : undefined,
       });
     }

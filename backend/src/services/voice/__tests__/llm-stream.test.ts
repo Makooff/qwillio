@@ -218,7 +218,7 @@ describe('llmStreamService.handle — proxied turns', () => {
       stream.handle
     );
 
-    expect(stream.text()).toMatch(/catch that/i);
+    expect(stream.text()).toMatch(/go ahead/i);
   });
 
   it('falls back when the request itself throws', async () => {
@@ -286,7 +286,10 @@ describe('llmStreamService — un modèle qui ne répond pas', () => {
     await handling;
 
     expect(Date.now() - started).toBeLessThan(4_000);
-    expect(stream.text()).toMatch(/répéter/i);
+    /* La formulation a change le 21/09: elle n'accuse plus l'appelant d'avoir
+       mal parle (voir `fallback-accuses-nobody.test.ts`). Ce que ce test
+       protege reste le DELAI — une phrase part avant le silence. */
+    expect(stream.text()).toMatch(/je vous écoute/i);
     expect(stream.ended).toBe(true);
     vi.useRealTimers();
   });
@@ -303,7 +306,11 @@ describe('llmStreamService — un modèle qui ne répond pas', () => {
       { messages: [systemTurn, userTurn('ik wil graag een afspraak maken volgende week')] },
       stream.handle,
     );
-    expect(stream.text()).toMatch(/herhalen/i);
+    /* Ce que ce test protege est la LANGUE, pas les mots: sans le
+       neerlandais, un appelant flamand s'entend repondre en anglais au moment
+       precis ou quelque chose vient de rater. */
+    expect(stream.text()).toMatch(/ik luister/i);
+    expect(stream.text()).not.toMatch(/go ahead/i);
   });
 });
 

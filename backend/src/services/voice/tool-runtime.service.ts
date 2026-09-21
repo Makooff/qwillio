@@ -1,5 +1,5 @@
 import { prisma } from '../../config/database';
-import { spokenDate, todayIso } from './clock';
+import { spokenDate, spokenDateAloud, todayIso } from './clock';
 import { logger } from '../../config/logger';
 import { googleCalendarService } from '../google-calendar.service';
 import { realtimeContextService, type ClientVoiceProfile } from './realtime-context.service';
@@ -125,7 +125,13 @@ function farDateReply(
   if (year === todayIso(profile.timezone).slice(0, 4)) return null;
   /* Deja annonce pour CETTE date: l'appelant a eu l'occasion de dire non. */
   if (callSessionStore.noteFarDateAnnounced(vapiCallId, ymd) > 1) return null;
-  const spoken = spokenDate(parseDate(ymd)!, profile.language, profile.timezone);
+  /* L'ANNEE EST AJOUTEE JUSTE APRES, EN CLAIR, et c'est tout l'objet de ce
+     repli: la date elle-meme ne doit donc PAS la porter, sinon elle se dit
+     DEUX fois (« le vendredi 22 mars 2027 2027 »). En passant la date comme
+     « maintenant », `spokenDateAloud` la voit dans son propre millesime et
+     l'omet, ce qui laisse l'annee au seul endroit qui la met en valeur. */
+  const target = parseDate(ymd)!;
+  const spoken = spokenDateAloud(target, profile.language, profile.timezone, target);
   return profile.language === 'fr'
     ? `RIEN N'EST ENCORE ENREGISTRE. La date que tu t'apprêtes a poser tombe en ${year}, pas cette annee: le ${spoken} ${year}. Dis-la a voix haute AVEC L'ANNEE et demande a l'appelant si c'est bien ce qu'il veut. S'il confirme, rappelle l'outil avec la meme date. Sinon, demande-lui la date exacte: il a peut-etre dit un JOUR DE LA SEMAINE que tu as pris pour un mois.`
     : `NOTHING IS SAVED YET. The date you are about to set falls in ${year}, not this year: ${spoken} ${year}. Say it out loud WITH THE YEAR and ask the caller to confirm. If they confirm, call the tool again with the same date. If not, ask for the exact date: they may have said a WEEKDAY you took for a month.`;
@@ -148,9 +154,9 @@ function closedDayReply(profile: ClientVoiceProfile, raw: unknown): string | nul
   if (typeof raw !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(raw.trim())) return null;
   const ymd = raw.trim();
   if (dayWindow(profile.weekHours, ymd, profile.timezone).open) return null;
-  const day = spokenDate(parseDate(ymd)!, profile.language, profile.timezone);
+  const day = spokenDateAloud(parseDate(ymd)!, profile.language, profile.timezone);
   const next = nextOpenDay(profile.weekHours, ymd, profile.timezone);
-  const nextDay = next ? spokenDate(parseDate(next)!, profile.language, profile.timezone) : null;
+  const nextDay = next ? spokenDateAloud(parseDate(next)!, profile.language, profile.timezone) : null;
   if (profile.language === 'fr') {
     return `FERME le ${day}: l'entreprise n'ouvre pas ce jour-la.`
       + (nextDay ? ` Prochain jour ouvert: ${nextDay} (${next}). Propose-le, ou demande un autre jour.` : ' Demande un autre jour.');
@@ -166,7 +172,7 @@ function outsideHoursReply(profile: ClientVoiceProfile, ymd: string, minutes: nu
   const from = minutesOf(window.from) ?? 0;
   const to = minutesOf(window.to) ?? 24 * 60;
   if (minutes >= from && minutes < to) return null;
-  const day = spokenDate(parseDate(ymd)!, profile.language, profile.timezone);
+  const day = spokenDateAloud(parseDate(ymd)!, profile.language, profile.timezone);
   return profile.language === 'fr'
     ? `HORS HORAIRES: le ${day}, l'entreprise est ouverte de ${window.from} a ${window.to}. Propose un horaire dans cette plage.`
     : `OUTSIDE OPENING HOURS: on ${day} the business is open from ${window.from} to ${window.to}. Offer a time within that window.`;
@@ -677,7 +683,7 @@ class ToolRuntimeService {
        fois, pas la connaissance. */
     const window = dayWindow(profile.weekHours, String(args.date).trim(), profile.timezone);
     const hours = window.open ? `${window.from}-${window.to}` : '';
-    const day = spokenDate(date, profile.language, profile.timezone);
+    const day = spokenDateAloud(date, profile.language, profile.timezone);
 
     const note = windowNote(args.partOfDay, profile.language, hours || '?')
       + weekdayNote(day, profile.language)
@@ -833,7 +839,7 @@ class ToolRuntimeService {
       void this.sendBookingSms(profile, booking.id, smsTo, customerName, date, String(args.time), args.serviceType);
     }
 
-    const day = spokenDate(date, profile.language, profile.timezone);
+    const day = spokenDateAloud(date, profile.language, profile.timezone);
     if (profile.language === 'fr') {
       return `RESERVE: ${customerName}, le ${day} a ${args.time}. Confirme a voix haute, en nommant le jour.`
         + (smsPromised ? " Dis-lui qu'un SMS de confirmation avec le lien pour l'agenda part sur son numero." : '')
@@ -982,7 +988,7 @@ class ToolRuntimeService {
        suite. La liste dit ce qu'il y a; le modèle choisit ce que l'appelant
        décrit. */
     const lines = found.slice(0, 3).map((b, i) => {
-      const day = spokenDate(b.bookingDate, profile.language, profile.timezone);
+      const day = spokenDateAloud(b.bookingDate, profile.language, profile.timezone);
       return `${i + 1}) ${b.customerName}, ${profile.language === 'fr' ? 'le ' : ''}${day}${b.bookingTime ? ` ${profile.language === 'fr' ? 'a' : 'at'} ${b.bookingTime}` : ''}${b.serviceType ? ` (${b.serviceType})` : ''}`;
     });
     /* LA PHRASE A DIRE EN PREMIER, ET LA PROCEDURE APRES (19/09/2026).
@@ -1214,7 +1220,7 @@ class ToolRuntimeService {
     const candidates = await this.findCallerBookings(profile, session?.callerNumber ?? null, args);
     const booking = candidates[0];
     if (booking && candidates.length > 1 && candidates[1].score === booking.score) {
-      const list = candidates.slice(0, 3).map(b => `${b.customerName} ${spokenDate(b.bookingDate, profile.language, profile.timezone)}${b.bookingTime ? ` ${b.bookingTime}` : ''}`).join(' ; ');
+      const list = candidates.slice(0, 3).map(b => `${b.customerName} ${spokenDateAloud(b.bookingDate, profile.language, profile.timezone)}${b.bookingTime ? ` ${b.bookingTime}` : ''}`).join(' ; ');
       return profile.language === 'fr'
         ? `PLUSIEURS RESERVATIONS: ${list}. Demande laquelle deplacer, puis rappelle rescheduleBooking avec currentDate (AAAA-MM-JJ) de celle-la.`
         : `SEVERAL BOOKINGS: ${list}. Ask which one to move, then call rescheduleBooking again with that one's currentDate (YYYY-MM-DD).`;
@@ -1243,7 +1249,7 @@ class ToolRuntimeService {
      * Et c'est aussi la bonne réponse métier: l'appelant n'a rien demandé de
      * neuf, donc il n'y a rien à faire ni à annoncer autrement. */
     if (ymdOf(booking.bookingDate) === ymdOf(date) && booking.bookingTime === time) {
-      const already = spokenDate(date, profile.language, profile.timezone);
+      const already = spokenDateAloud(date, profile.language, profile.timezone);
       return profile.language === 'fr'
         ? `DEJA FAIT: le rendez-vous de ${booking.customerName} est deja au ${already} a ${time}. N'appelle PLUS rescheduleBooking. Confirme simplement a voix haute, en nommant le jour, et demande s'il faut autre chose.`
         : `ALREADY DONE: ${booking.customerName}'s appointment is already on ${already} at ${time}. Do NOT call rescheduleBooking again. Just confirm out loud, naming the day, and ask if they need anything else.`;
@@ -1278,8 +1284,8 @@ class ToolRuntimeService {
       void this.sendBookingSms(profile, booking.id, smsTo, booking.customerName, date, time, booking.serviceType);
     }
 
-    const oldDay = spokenDate(booking.bookingDate, profile.language, profile.timezone);
-    const newDay = spokenDate(date, profile.language, profile.timezone);
+    const oldDay = spokenDateAloud(booking.bookingDate, profile.language, profile.timezone);
+    const newDay = spokenDateAloud(date, profile.language, profile.timezone);
     if (profile.language === 'fr') {
       return `DEPLACE: ${booking.customerName}, du ${oldDay}${booking.bookingTime ? ` ${booking.bookingTime}` : ''} au ${newDay} a ${time}. L'ancien creneau est libere. Confirme a voix haute, en nommant le nouveau jour.`
         + (smsPromised ? " Dis-lui qu'un SMS de confirmation avec le lien pour l'agenda part sur son numero." : '')
@@ -1352,7 +1358,7 @@ class ToolRuntimeService {
       const named = saidYmd ? candidates.filter(b => ymdOf(b.bookingDate) === saidYmd) : [];
       if (named.length !== 1) {
         const list = candidates.slice(0, 3)
-          .map(b => `${b.customerName} ${spokenDate(b.bookingDate, profile.language, profile.timezone)}${b.bookingTime ? ` ${b.bookingTime}` : ''}`)
+          .map(b => `${b.customerName} ${spokenDateAloud(b.bookingDate, profile.language, profile.timezone)}${b.bookingTime ? ` ${b.bookingTime}` : ''}`)
           .join(' ; ');
         return profile.language === 'fr'
           ? `RIEN N'EST ANNULE. PLUSIEURS RESERVATIONS: ${list}. Demande laquelle annuler, puis rappelle cancelBooking avec currentDate (AAAA-MM-JJ) de celle-la. N'annonce aucune annulation avant.`
@@ -1399,7 +1405,7 @@ class ToolRuntimeService {
        pris sinon, et l'appelant suivant s'entendrait refuser une heure libre. */
     availabilitySpeculator.invalidate(profile.clientId, target.bookingDate);
 
-    const day = spokenDate(target.bookingDate, profile.language, profile.timezone);
+    const day = spokenDateAloud(target.bookingDate, profile.language, profile.timezone);
     const at = target.bookingTime ? ` ${profile.language === 'fr' ? 'a' : 'at'} ${target.bookingTime}` : '';
 
     /* IDEMPOTENT, et ce n'est pas du confort: le modèle rappelle un outil avec

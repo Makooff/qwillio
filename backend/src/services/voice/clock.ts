@@ -29,6 +29,50 @@ export function spokenDate(date: Date, lang: VoiceLanguage, timezone: string): s
   }).format(date);
 }
 
+/**
+ * LA MÊME DATE, MAIS DITE À VOIX HAUTE: l'année n'y figure que si elle apprend
+ * quelque chose (21/09/2026).
+ *
+ * Appel réel: « Vous avez rendez-vous le vendredi 25 septembre, 2 0 2 6 à 14 ».
+ * Cartesia épelle l'année chiffre par chiffre. C'était relevé le 13/09
+ * (6sextrigesies, « à traiter si ça se répète ») et ça vient de se répéter.
+ *
+ * Le correctif n'est PAS une consigne de prompt. Ce que le modèle doit DIRE, il
+ * le lit dans la chaîne qu'on lui donne et il la rend telle quelle: une règle
+ * « ne prononce pas l'année » se perdrait comme s'est perdu « propose-les un
+ * par un » (6sexagesies). C'est donc la CHAÎNE qui change.
+ *
+ * POURQUOI DEUX FONCTIONS, et c'est l'essentiel. La version longue reste celle
+ * qui sert à RAISONNER, et les tests l'ont prouvé en tombant: `clockLine` dit
+ * au modèle quel jour on est, et une date du jour sans année est exactement ce
+ * qui lui a fait écrire `2023-09-18` en base (6octoquadragesies). Le brief
+ * garde la sienne pour la même raison — une réservation de MARS 2027 lue sans
+ * son année a fait chercher le modèle en septembre 2026 (6octoquinquagesies).
+ *
+ * Ici, au contraire, la date part vers l'oreille de l'appelant, et l'année
+ * courante n'y apprend rien: le jour d'aujourd'hui est déjà posé dans le prompt
+ * et dans le brief, donc « 25 septembre » ne peut désigner que celui-ci. Une
+ * date d'une AUTRE année garde la sienne, et c'est le seul cas où le caractère
+ * épelé vaut ce qu'il coûte.
+ *
+ * `now` est un paramètre pour qu'un test se place à une date fixe sans toucher
+ * l'horloge du processus.
+ */
+export function spokenDateAloud(
+  date: Date,
+  lang: VoiceLanguage,
+  timezone: string,
+  now: Date = new Date(),
+): string {
+  const yearOf = (d: Date) =>
+    new Intl.DateTimeFormat('en-CA', { year: 'numeric', timeZone: timezone }).format(d);
+  return new Intl.DateTimeFormat(LOCALE[lang], {
+    weekday: 'long', day: 'numeric', month: 'long',
+    ...(yearOf(date) === yearOf(now) ? {} : { year: 'numeric' as const }),
+    timeZone: timezone,
+  }).format(date);
+}
+
 /** « 06:31 », dans le fuseau de l'entreprise. */
 export function spokenTime(date: Date, lang: VoiceLanguage, timezone: string): string {
   return new Intl.DateTimeFormat(LOCALE[lang], {
