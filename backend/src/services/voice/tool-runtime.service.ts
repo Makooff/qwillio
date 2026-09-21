@@ -13,7 +13,7 @@ import { availabilitySpeculator } from './availability-speculator';
 import { parseSpokenPhone } from '../../utils/phone-spoken';
 import { phoneWords, timeWords } from '../../utils/text-for-speech';
 import { normaliseAddress } from '../../utils/be-communes';
-import { normaliseSpelledName, familyName, spellOut, nameProblem, isPlaceholderName, spellingLostLetters, type NameProblem } from '../../utils/spelled-name';
+import { normaliseSpelledName, familyName, spellOut, nameProblem, isPlaceholderName, type NameProblem } from '../../utils/spelled-name';
 import { nameSimilarity, NAME_MATCH_THRESHOLD } from '../../utils/name-match';
 import { ymdOf } from '../../utils/zoned-time';
 import { dayWindow, nextOpenDay, minutesOf } from '../../utils/opening-hours';
@@ -315,32 +315,6 @@ function askCallerToSpell(lang: string, name: string): string {
  */
 function hoursAloud(text: string, lang: string): string {
   return lang === 'fr' ? timeWords(text) : text;
-}
-
-/**
- * LE NOM À ÉCRIRE: recollé, et jamais raccourci par l'épellation (21/09/2026).
- *
- * Appel réel. « Virginie Barre » est entendu PARFAITEMENT quand elle le dit
- * normalement; l'agent lui demande alors d'épeler, le transcripteur rend
- * « BAR. », et c'est « Bar » qui part dans l'agenda. L'étape qui existe pour
- * fiabiliser le nom est celle qui l'a cassé, et rien ne regardait qu'elle
- * venait de raccourcir un nom déjà là.
- *
- * `spellingLostLetters` dit cette seule situation, et le nom entendu reprend
- * alors la main. L'appelant garde le dernier mot pour autant: la relecture
- * qui suit (`confirmNameBeforeBooking`, `readBackName`) lui épelle le nom
- * retenu et il peut le corriger — c'est un canal DIFFÉRENT de celui qui vient
- * d'échouer, ce que redemander une épellation ne serait pas (6septies: la
- * cause ne bouge pas entre deux essais).
- *
- * UNE fonction pour les deux écritures: le CRM et l'agenda doivent porter la
- * même orthographe, et deux copies d'une même règle divergent en moins d'un
- * mois (6vicies).
- */
-function callerNameToWrite(raw: unknown, vapiCallId: string | null): string {
-  const name = typeof raw === 'string' ? normaliseSpelledName(raw) : '';
-  const heard = callSessionStore.spellingHeardName(vapiCallId);
-  return heard && spellingLostLetters(heard, name) ? heard : name;
 }
 
 /**
@@ -798,7 +772,7 @@ class ToolRuntimeService {
   ): Promise<string> {
     const date = parseDate(args.date);
     const minutes = parseTimeToMinutes(args.time);
-    const customerName = callerNameToWrite(args.customerName, vapiCallId);
+    const customerName = typeof args.customerName === 'string' ? normaliseSpelledName(args.customerName) : '';
 
     /* RIEN n'est réservé tant qu'il manque quelque chose, et le résultat le
        DIT, en nommant ce qui manque. Appel réel du 15/09/2026, appelant
@@ -823,7 +797,7 @@ class ToolRuntimeService {
     if (outside) return outside;
 
     /* Un appelant inconnu ÉPELLE d'abord son nom de famille (13/09). */
-    if (await this.needsCallerSpelling(profile, vapiCallId, customerName)) {
+    if (await this.needsCallerSpelling(profile, vapiCallId)) {
       return notBookedYet(profile.language) + askCallerToSpell(profile.language, customerName);
     }
     /* Le nom est relu AVANT d'écrire dans l'agenda: une réservation au
@@ -1510,7 +1484,7 @@ class ToolRuntimeService {
     const lead = {
       /* Un nom bidon (« client », « inconnu ») n'entre ni dans le CRM ni
          dans la mémoire d'appelant: il y resterait, et l'agent le redirait. */
-      name: typeof args.name === 'string' && !isPlaceholderName(args.name, [profile.agentName, profile.businessName]) ? callerNameToWrite(args.name, vapiCallId) || null : null,
+      name: typeof args.name === 'string' && !isPlaceholderName(args.name, [profile.agentName, profile.businessName]) ? normaliseSpelledName(args.name) || null : null,
       email: typeof args.email === 'string' ? args.email.trim() || null : null,
       reason: typeof args.reason === 'string' ? args.reason.trim() : '',
       urgency: ['low', 'normal', 'high'].includes(args.urgency) ? String(args.urgency) : 'normal',
@@ -1526,7 +1500,7 @@ class ToolRuntimeService {
     /* AVANT toute écriture: un appelant inconnu épelle son nom de famille, et
        c'est l'orthographe épelée qui entre dans le CRM et la mémoire, jamais
        le nom entendu (13/09/2026). */
-    if (lead.name && await this.needsCallerSpelling(profile, vapiCallId, lead.name)) {
+    if (lead.name && await this.needsCallerSpelling(profile, vapiCallId)) {
       return askCallerToSpell(profile.language, lead.name);
     }
 
@@ -1643,7 +1617,7 @@ class ToolRuntimeService {
    * l'historique est illisible, on ne demande pas d'épeler: la relecture
    * épelée par l'agent, qui suit, reste le filet.
    */
-  private async needsCallerSpelling(profile: ClientVoiceProfile, vapiCallId: string | null, heard: string): Promise<boolean> {
+  private async needsCallerSpelling(profile: ClientVoiceProfile, vapiCallId: string | null): Promise<boolean> {
     const session = callSessionStore.get(vapiCallId);
     if (!session) return false;
     try {
@@ -1653,7 +1627,7 @@ class ToolRuntimeService {
       logger.warn(`[VoiceTools] historique appelant illisible, pas d'épellation demandée: ${(error as Error).message}`);
       return false;
     }
-    return callSessionStore.needsNameSpelling(vapiCallId, heard);
+    return callSessionStore.needsNameSpelling(vapiCallId);
   }
 
   // ── lookupKnowledge ─────────────────────────────────────────────────────

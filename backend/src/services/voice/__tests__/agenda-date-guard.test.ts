@@ -44,10 +44,6 @@ vi.mock('../call-session.store', () => ({
     markLeadActivity: vi.fn(),
     needsNameReadBack,
     needsNameSpelling: vi.fn(() => false),
-    /* Le nom ENTENDU avant l'épellation (21/09/2026). Absent du bouchon,
-       l'appel levait et l'outil rendait son repli sûr, qui masque le vrai
-       message: même piège que `noteToolFailure` ci-dessus. */
-    spellingHeardName: vi.fn(() => null),
     /* Le compteur d'échecs par outil (16/09/2026). Absent du bouchon, l'appel
        levait et l'outil rendait « AGENDA INDISPONIBLE »: un repli sûr, mais
        qui masquait le vrai message. */
