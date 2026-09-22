@@ -11,7 +11,7 @@ import { businessMemoryService } from './business-memory.service';
 import { knowledgeGapService } from './knowledge-gap.service';
 import { availabilitySpeculator } from './availability-speculator';
 import { parseSpokenPhone } from '../../utils/phone-spoken';
-import { phoneWords } from '../../utils/text-for-speech';
+import { phoneWords, timeWords } from '../../utils/text-for-speech';
 import { normaliseAddress } from '../../utils/be-communes';
 import { normaliseSpelledName, familyName, spellOut, nameProblem, isPlaceholderName, type NameProblem } from '../../utils/spelled-name';
 import { nameSimilarity, NAME_MATCH_THRESHOLD } from '../../utils/name-match';
@@ -282,14 +282,45 @@ function readBackName(lang: string, name: string): string {
  */
 function askCallerToSpell(lang: string, name: string): string {
   const base: Record<string, string> = {
-    fr: `NOM ENTENDU: « ${name} », correspondant INCONNU. Demande-lui d'ÉPELER son nom de famille lettre par lettre (le prénom suffit tel quel). `
-      + "Laisse-le finir sans l'interrompre ni dire « merci » entre les lettres, puis rappelle l'outil avec le prénom et le nom tel qu'épelé. Un nom ne contient jamais de chiffre: « O » est la lettre O.",
-    en: `NAME HEARD: "${name}", UNKNOWN caller. Ask them to SPELL their family name letter by letter (the first name is fine as is). `
-      + 'Let them finish without interrupting, then call the tool again with the first name and the family name exactly as spelled. A name never contains a digit: "O" is the letter O.',
-    nl: `NAAM GEHOORD: « ${name} », ONBEKENDE beller. Vraag om de familienaam letter voor letter te SPELLEN (de voornaam volstaat zo). `
-      + 'Laat de beller uitspreken zonder te onderbreken en roep de tool daarna opnieuw aan met de voornaam en de gespelde familienaam. Een naam bevat nooit een cijfer: « O » is de letter O.',
+    fr: `NOM ENTENDU: « ${name} », correspondant INCONNU, et il peut être FAUX: c'est justement pourquoi on fait épeler. `
+      + "Demande-lui d'ÉPELER son nom de famille lettre par lettre (le prénom suffit tel quel), laisse-le finir sans l'interrompre ni dire « merci » entre les lettres. "
+      + "CE QU'IL ÉPELLE FAIT FOI, même plus court ou tout autre: n'exige JAMAIS un nombre de lettres et ne conteste pas la longueur, « Bar » et « Ng » sont de vrais noms. "
+      + "Rappelle l'outil avec le prénom et le nom TEL QU'ÉPELÉ, jamais celui ci-dessus. Un nom ne contient jamais de chiffre: « O » est la lettre O.",
+    en: `NAME HEARD: "${name}", UNKNOWN caller, and it may be WRONG: that is precisely why you ask them to spell. `
+      + 'Ask them to SPELL their family name letter by letter (the first name is fine as is), let them finish without interrupting. '
+      + 'WHAT THEY SPELL PREVAILS, even if shorter or entirely different: NEVER demand a number of letters and do not argue about length, "Bar" and "Ng" are real names. '
+      + 'Call the tool again with the first name and the family name EXACTLY AS SPELLED, never the one above. A name never contains a digit: "O" is the letter O.',
+    nl: `NAAM GEHOORD: « ${name} », ONBEKENDE beller, en hij kan FOUT zijn: daarom laat je juist spellen. `
+      + 'Vraag om de familienaam letter voor letter te SPELLEN (de voornaam volstaat zo) en laat de beller uitspreken zonder te onderbreken. '
+      + 'WAT HIJ SPELT IS BEPALEND, ook als het korter of heel anders is: eis NOOIT een aantal letters en betwist de lengte niet, « Bar » en « Ng » zijn echte namen. '
+      + 'Roep de tool opnieuw aan met de voornaam en de familienaam ZOALS GESPELD, nooit die hierboven. Een naam bevat nooit een cijfer: « O » is de letter O.',
   };
   return base[lang] ?? base.en;
+}
+
+/**
+ * LES HEURES D'UNE PHRASE, TELLES QU'ELLES SE DISENT (21/09/2026).
+ *
+ * Appel réel: le résultat de `lookupBooking` porte l'heure STOCKÉE, « 09:00 »,
+ * et le modèle l'a prononcée « à 9 », sans « heures ». C'est 6sexagesies une
+ * fois de plus: ce que le modèle doit DIRE, il le lit dans un résultat
+ * d'outil, il ne le reformate pas de façon fiable. Lui écrire « neuf heures »
+ * ne lui laisse rien à reformater.
+ *
+ * SEULEMENT dans les phrases qu'on lui ordonne de PRONONCER. La liste des
+ * réservations garde `HH:MM`, parce que c'est elle qu'il recopie en argument
+ * (`currentDate`, `time`) et qu'une heure en toutes lettres y deviendrait un
+ * argument illisible. Même partage que `spokenDate`, pour raisonner, et
+ * `spokenDateAloud`, pour dire.
+ *
+ * Le néerlandais et l'anglais ressortent inchangés: `timeWords` écrit du
+ * français, et rendre une heure française dans une phrase néerlandaise serait
+ * exactement ce qui fait déraper la langue du modèle. Les heures tiennent dans
+ * 0-23 et les minutes sous 60, donc la variante belge ne change rien ici:
+ * septante et nonante ne peuvent pas apparaître.
+ */
+function hoursAloud(text: string, lang: string): string {
+  return lang === 'fr' ? timeWords(text) : text;
 }
 
 /**
@@ -841,7 +872,7 @@ class ToolRuntimeService {
 
     const day = spokenDateAloud(date, profile.language, profile.timezone);
     if (profile.language === 'fr') {
-      return `RESERVE: ${customerName}, le ${day} a ${args.time}. Confirme a voix haute, en nommant le jour.`
+      return `RESERVE: ${customerName}, le ${day} a ${hoursAloud(String(args.time), profile.language)}. Confirme a voix haute, en nommant le jour.`
         + (smsPromised ? " Dis-lui qu'un SMS de confirmation avec le lien pour l'agenda part sur son numero." : '')
         + " Demande s'il faut autre chose.";
     }
@@ -1013,10 +1044,13 @@ class ToolRuntimeService {
        la mauvaise (meme raison qu'en 6octotrigesies, ou un numero qui reserve
        pour deux personnes ne doit nommer PERSONNE). L'ordre de parler tout de
        suite, lui, vaut dans les deux cas: c'est lui qui manquait. */
+    /* La phrase A DIRE porte l'heure en toutes lettres; la LISTE, plus bas,
+       garde `HH:MM`, que le modèle recopie en argument. */
+    const spokenOne = hoursAloud(lines[0].replace(/^\d\)\s*/, '').replace(/^[^,]+,\s*/, ''), profile.language);
     const lead = found.length === 1
       ? (profile.language === 'fr'
-          ? `DIS CECI MAINTENANT, a voix haute, avant toute autre chose: « Vous avez rendez-vous ${lines[0].replace(/^\d\)\s*/, '').replace(/^[^,]+,\s*/, '')}. »`
-          : `SAY THIS NOW, out loud, before anything else: "You have an appointment ${lines[0].replace(/^\d\)\s*/, '').replace(/^[^,]+,\s*/, '')}."`)
+          ? `DIS CECI MAINTENANT, a voix haute, avant toute autre chose: « Vous avez rendez-vous ${spokenOne}. »`
+          : `SAY THIS NOW, out loud, before anything else: "You have an appointment ${spokenOne}."`)
       : (profile.language === 'fr'
           ? `DIS MAINTENANT, a voix haute, celle qui correspond a ce qu'il decrit, avec sa date et son heure.`
           : `SAY NOW, out loud, the one matching what they describe, with its date and time.`);
@@ -1406,7 +1440,7 @@ class ToolRuntimeService {
     availabilitySpeculator.invalidate(profile.clientId, target.bookingDate);
 
     const day = spokenDateAloud(target.bookingDate, profile.language, profile.timezone);
-    const at = target.bookingTime ? ` ${profile.language === 'fr' ? 'a' : 'at'} ${target.bookingTime}` : '';
+    const at = target.bookingTime ? ` ${profile.language === 'fr' ? 'a' : 'at'} ${hoursAloud(target.bookingTime, profile.language)}` : '';
 
     /* IDEMPOTENT, et ce n'est pas du confort: le modèle rappelle un outil avec
        les mêmes arguments, c'est le comportement connu de ce chemin

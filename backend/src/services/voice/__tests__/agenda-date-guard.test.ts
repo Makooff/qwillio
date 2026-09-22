@@ -227,7 +227,9 @@ describe('bookAppointment — le nom et le jour', () => {
     const out = String(await book({ customerName: 'Mathieu P O L L E', date: '2099-09-17', time: '09:00' }));
     expect(createBooking).toHaveBeenCalledTimes(1);
     expect(createBooking.mock.calls[0][0].data.customerName).toBe('Mathieu Polle');
-    expect(out).toMatch(/^RESERVE: Mathieu Polle, le jeudi 17 septembre 2099 a 09:00/);
+    /* L'heure est écrite EN TOUTES LETTRES dans la phrase à prononcer
+       (21/09/2026): le modèle a rendu « 09:00 » par « à 9 », sans « heures ». */
+    expect(out).toMatch(/^RESERVE: Mathieu Polle, le jeudi 17 septembre 2099 a neuf heures/);
     // Pas de SMS promis: SMS_ENABLED n'est pas posé dans les tests.
     expect(out).not.toMatch(/SMS/);
   });
