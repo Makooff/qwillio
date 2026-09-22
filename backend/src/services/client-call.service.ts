@@ -507,6 +507,16 @@ export class ClientCallService {
     /* Le nom confirmé (réservation relue et épelée, ou mémoire d'appelant)
        est donné au modèle d'analyse: le transcripteur écrit « Jean Lucas »
        pour « Jean-Luc », et sans cette ligne le résumé le répète. */
+    /* SANS nom confirmé, le NOM ÉPELÉ du transcript fait foi (21/09/2026).
+       Appel réel: le transcripteur entend « Virginie Barre », elle épelle
+       « B A R », qui est son vrai nom, l'agent le redit à voix haute — et la
+       réservation de rattrapage est partie sous « Barre ». La règle est dans
+       la description du champ `callerName` ci-dessous, parce que c'est là que
+       le modèle lit quoi extraire.
+       Pourquoi ici et pas seulement en aval: quand `bookAppointment` n'a jamais
+       abouti, `knownCallerName` rend `null` et l'analyse est la SEULE source du
+       nom. L'orthographe épelée est dans le transcript, personne ne lui disait
+       de la préférer. */
     const nameHint = knownName
       ? `\n\nThe caller's confirmed name is "${knownName.replace(/["\n]/g, ' ').trim()}" (verified against their booking or prior calls). Use exactly this name for callerName and in the summary, even if the transcript spells it differently.`
       : '';
@@ -527,7 +537,7 @@ export class ClientCallService {
 Write every free-text field (summary, serviceType, specialRequests, unansweredQuestions) in ${ANALYSIS_LANGUAGE[clientLocale(client)]}, the language of the business, whatever language the transcript is in.
 
 Return a JSON object with:
-- callerName: caller's name if mentioned (string or null)
+- callerName: caller's name if mentioned (string or null). If the caller SPELLS their family name letter by letter anywhere in the transcript, that spelling IS the name, even when it is shorter or different from the name heard earlier: the earlier mention is what the transcriber guessed, the spelling is what the caller actually said. Join the letters into one word ("B A R" or "BAR" -> "Bar").
 - emailCollected: email if the caller provided one (string or null)
 - sentiment: "positive", "neutral", or "negative"
 - outcome: "booking_made", "info_provided", "message_taken", "transferred", "complaint", "missed", or "other"
