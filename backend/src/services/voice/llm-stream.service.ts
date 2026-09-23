@@ -225,6 +225,42 @@ export function parseUsageChunk(chunk: string): { input: number; cached: number;
 }
 
 /**
+ * CETTE TRANCHE EMPORTE-T-ELLE UN APPEL D'OUTIL ? (22/09/2026)
+ *
+ * Elle sert à dater le départ, et c'est la seule borne d'un côté qu'on tienne.
+ * Sur le chemin custom-LLM, le « modèle » qui décide d'appeler un outil, c'est
+ * NOUS: la tranche part d'ici, Vapi la lit, puis Vapi nous rappelle sur
+ * `/webhooks/vapi/tools/:clientId`. Les deux bouts sont donc dans le MÊME
+ * processus et sur la MÊME horloge, ce qui n'est pas le cas de la mesure
+ * qu'on avait.
+ *
+ * Pourquoi ça compte: `tookSeconds`, chez Vapi, borne l'émission de l'appel
+ * d'outil jusqu'au résultat consigné, et il en sort ~2 s quand notre exécution
+ * en fait 400. Cet écart était noté « aller-retour réseau », en le disant
+ * PLAFOND, et le levier qui en découlait était de déménager la région. Or il
+ * peut tout aussi bien contenir le TOUR DE MODÈLE SUIVANT — 1513 ms de médiane
+ * mesurés sur le même appel, ce qui suffirait à l'expliquer presque en entier.
+ * Une mesure qui ne peut pas départager les deux ne doit pas nommer de levier
+ * (6terquinquagesies: il faut une source capable de CONTREDIRE le chiffre).
+ *
+ * Le test de sous-chaîne avant tout `JSON.parse`, comme ses deux voisines: la
+ * boucle tourne sur chaque tranche de chaque tour.
+ */
+export function hasToolCallDelta(chunk: string): boolean {
+  if (!chunk.includes('"tool_calls"')) return false;
+  for (const line of chunk.split('\n')) {
+    if (!line.startsWith('data: ') || line.includes('[DONE]')) continue;
+    try {
+      const delta = JSON.parse(line.slice(6))?.choices?.[0]?.delta;
+      if (Array.isArray(delta?.tool_calls) && delta.tool_calls.length > 0) return true;
+    } catch {
+      /* tranche partielle: l'appel d'outil arrive entier dans une suivante */
+    }
+  }
+  return false;
+}
+
+/**
  * Le nom du modèle tel qu'OpenAI le rend dans chaque tranche du flux
  * (`gpt-4.1-mini-2025-04-14`): c'est le modèle qui a servi, daté, et non celui
  * qu'on a demandé. Un alias (`gpt-4.1-mini`) se résout côté OpenAI, et seule
@@ -644,6 +680,9 @@ class LlmStreamService {
         const usage = parseUsageChunk(text);
         if (usage) callSessionStore.recordTokens(vapiCallId, usage);
         stream.write(text);
+        /* APRÈS l'écriture, jamais avant: on date le moment où la tranche part
+           vers Vapi, pas celui où on a fini de la lire chez OpenAI. */
+        if (hasToolCallDelta(text)) callSessionStore.markToolEmitted(vapiCallId);
       }
     } finally {
       clearTimeout(firstTokenTimer);

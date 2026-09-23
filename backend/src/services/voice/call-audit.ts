@@ -296,6 +296,84 @@ export function vapiHopMs(
   return m === null ? null : { medianMs: Math.round(m), pairs: gaps.length };
 }
 
+/**
+ * L'ALLER-RETOUR D'OUTIL, DÉCOMPOSÉ (22/09/2026).
+ *
+ * `vapiHopMs` ci-dessus compare DEUX horloges et rend un PLAFOND: tout ce que
+ * Vapi compte en plus de notre exécution, sans dire quoi. Il valait ~2 s sur
+ * deux appels indépendants, et le levier qui en sortait était de déménager la
+ * région. Or ce plafond contient au moins trois choses, et elles ne se
+ * réparent pas au même endroit:
+ *
+ *  - `dispatch`: de notre émission de l'appel d'outil à l'arrivée de la
+ *    requête chez nous. Mesuré sur UNE horloge, la nôtre, des deux côtés — la
+ *    réaction de Vapi plus les deux trajets réseau. C'est le seul des trois
+ *    qui parle vraiment de distance.
+ *  - `overhead`: ce que notre processus fait autour de l'outil (Express,
+ *    décodage du corps). À nous, et invisible jusqu'ici.
+ *  - le RESTE: ce que Vapi compte APRÈS notre réponse. Il peut contenir le
+ *    TOUR DE MODÈLE SUIVANT, mesuré à 1513 ms sur le même appel, ce qui
+ *    suffirait à expliquer presque tout l'écart. Dans ce cas l'aller-retour
+ *    n'est pas en cause du tout et déménager la région ne rendrait rien.
+ *
+ * `dispatch` est `null` là où `llm-stream` ne tourne pas (parole-à-parole,
+ * custom-LLM éteint): le modèle est alors chez Vapi et l'émission ne passe pas
+ * par nous. On ne conclut alors rien, plutôt que d'attribuer par défaut.
+ */
+export function hopBreakdown(
+  dispatch: Array<{ name: string; dispatchMs: number | null; handlerMs: number }> | undefined,
+  ours: Array<{ name: string; ms: number }> | undefined,
+): { dispatchMs: number | null; overheadMs: number | null; samples: number } | null {
+  if (!dispatch?.length) return null;
+  const dispatches = dispatch.map(d => d.dispatchMs).filter((n): n is number => typeof n === 'number' && n >= 0);
+  const handler = median(dispatch.map(d => d.handlerMs));
+  const exec = median((ours ?? []).map(c => c.ms));
+  const d = median(dispatches);
+  /* L'overhead est une SOUSTRACTION de deux médianes, donc il peut sortir
+     négatif quand les deux listes n'ont pas la même longueur (un outil exécuté
+     sans que le dispatch soit consigné). Négatif, il ne veut rien dire: on le
+     tait au lieu d'afficher un nombre qui a l'air d'une mesure. */
+  const overhead = handler === null || exec === null ? null : Math.round(handler - exec);
+  return {
+    dispatchMs: d === null ? null : Math.round(d),
+    overheadMs: overhead === null || overhead < 0 ? null : overhead,
+    samples: dispatch.length,
+  };
+}
+
+/**
+ * LE LEVIER DE L'ALLER-RETOUR, choisi par la PART qui le porte (22/09/2026).
+ *
+ * L'ancienne version en nommait un seul — « l'orchestration de Vapi est LOIN,
+ * c'est l'argument pour déplacer la région » — sur un nombre qui ne disait pas
+ * où le temps passait. C'est la faute que cet audit a déjà commise neuf fois:
+ * noter un composite, puis appeler un geste qui n'en répare qu'une part,
+ * parfois celle qui allait bien. Ici le geste coûte un déménagement
+ * d'infrastructure, donc l'erreur se paie plus cher que d'habitude.
+ *
+ * Trois sorties, trois réparations sans rapport — et un REFUS quand la mesure
+ * ne permet pas de choisir, qui est le cas le plus important des quatre.
+ */
+function hopLever(
+  hopMs: number,
+  parts: { dispatchMs: number | null; overheadMs: number | null } | null,
+): string {
+  if (!parts || parts.dispatchMs === null) {
+    return "chiffre COMPOSITE, aucun levier: sans la borne d'émission, rien ne dit si ces millisecondes sont le réseau, notre overhead, "
+      + "ou le tour de modèle que Vapi compte APRÈS notre réponse. Ne pas déménager la région là-dessus";
+  }
+  const rest = Math.max(0, Math.round(hopMs - parts.dispatchMs - (parts.overheadMs ?? 0)));
+  if (parts.dispatchMs > TARGETS.vapiHopMs[1]) {
+    return `le TRAJET porte l'essentiel (${parts.dispatchMs} ms de notre émission à l'arrivée de la requête, une seule horloge): `
+      + "c'est l'argument pour rapprocher le backend de Vapi, et il se pèse contre la ligne `aller-retour vers notre propre base`, qui tire dans l'autre sens";
+  }
+  if (parts.overheadMs !== null && parts.overheadMs > rest && parts.overheadMs > 200) {
+    return `l'essentiel est CHEZ NOUS et autour de l'outil (${parts.overheadMs} ms hors exécution): regarder ce que le contrôleur et Express font avant \`execute\`, pas la région`;
+  }
+  return `le trajet ne fait que ${parts.dispatchMs} ms: le reste (~${rest} ms) est compté par Vapi APRÈS notre réponse, et c'est là que tombe le tour de modèle suivant. `
+    + "NE PAS déménager la région sur ce chiffre — lire la ligne `LLM`";
+}
+
 const BAD_ENDINGS = ['silence-timed-out', 'pipeline-error', 'assistant-error', 'unknown-error', 'exceeded-max-duration', 'worker-shutdown'];
 
 /** Les seuls outils qui lisent ou écrivent l'agenda Google. Les autres sont des
@@ -1315,6 +1393,10 @@ export function auditCall(facts: CallFacts): AuditReport {
 
   {
     const hop = vapiHopMs(facts.tools, rt?.toolCalls as Array<{ name: string; ms: number }> | undefined);
+    const parts = hopBreakdown(
+      rt?.toolDispatch as Array<{ name: string; dispatchMs: number | null; handlerMs: number }> | undefined,
+      rt?.toolCalls as Array<{ name: string; ms: number }> | undefined,
+    );
     if (hop && hop.pairs > 0) {
       /* UN ÉCART NÉGATIF N'EST PAS UNE DISTANCE NÉGATIVE: c'est que les deux
          horloges ne parlent pas du même intervalle, ou que l'appariement s'est
@@ -1328,8 +1410,16 @@ export function auditCall(facts: CallFacts): AuditReport {
         value: unusable
           ? `MESURE INUTILISABLE: ${hop.medianMs} ms, donc Vapi compterait un outil plus court que nous ne l'avons exécuté. `
             + `Les deux horloges ne bornent pas le même intervalle sur cet appel`
-          : `${hop.medianMs} ms de médiane sur ${hop.pairs} outil(s): ce que Vapi compte en plus de notre propre exécution. `
-            + `PLAFOND du trajet réseau, pas le trajet lui-même — notre file HTTP et la reprise en main de Vapi sont dedans`
+          : `${hop.medianMs} ms de médiane sur ${hop.pairs} outil(s): ce que Vapi compte en plus de notre propre exécution`
+            + (parts?.dispatchMs === null || parts === null
+              /* SANS la borne d'émission, on en est au plafond d'avant: on le
+                 DIT, au lieu de laisser croire que le chiffre désigne le
+                 réseau. En parole-à-parole le modèle est chez Vapi, donc cette
+                 borne n'existe pas et ne peut pas exister. */
+              ? `. PLAFOND, pas le trajet: sans la borne d'émission (\`llm-stream\` n'a pas tourné sur cet appel), rien ne dit ce qu'il y a dedans`
+              : `, DÉCOMPOSÉ: ${parts.dispatchMs} ms entre notre émission de l'appel d'outil et l'arrivée de la requête chez nous`
+                + (parts.overheadMs === null ? '' : `, ${parts.overheadMs} ms d'overhead chez nous autour de l'outil`)
+                + `, le reste étant ce que Vapi compte APRÈS notre réponse`)
             /* LA CONCLUSION EST DANS LA VALEUR, PAS DANS LE LEVIER. Une ligne
                verte sans lever ne dit rien, et c'est précisément le cas qui
                répond « non » à la question qui coûte cher. Un audit qui ne
@@ -1342,7 +1432,7 @@ export function auditCall(facts: CallFacts): AuditReport {
         lever: unusable
           ? "apparier les outils dans l'ordre suppose que les deux listes les voient dans le même: vérifier `recordToolCall` et `readVapiMessages` avant de conclure quoi que ce soit sur la région"
           : hop.medianMs > TARGETS.vapiHopMs[0]
-          ? "l'orchestration de Vapi est LOIN du backend: c'est l'argument pour déplacer la région, et il se pèse contre la ligne `aller-retour vers notre propre base`, qui tire dans l'autre sens"
+          ? hopLever(hop.medianMs, parts)
           : undefined,
       });
     }

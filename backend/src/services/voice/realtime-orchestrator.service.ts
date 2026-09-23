@@ -497,9 +497,14 @@ class RealtimeOrchestratorService {
    * `tool-calls` / `function-call`. The caller is on the line waiting, so this
    * runs the tools concurrently and returns as soon as the slowest one is done.
    */
-  async handleToolCalls(clientId: string, event: VapiEvent): Promise<ToolCallResult[]> {
+  async handleToolCalls(clientId: string, event: VapiEvent, receivedAt: number = Date.now()): Promise<ToolCallResult[]> {
     const msg = unwrap(event);
     const vapiCallId = callIdOf(event);
+
+    /* CONSOMMÉE TOUT DE SUITE, avant que la session puisse être refaite plus
+       bas: une session recréée naît sans borne d'émission, et la lire après
+       rendrait `null` sur tous les appels qui ont traversé un déploiement. */
+    const emittedAt = callSessionStore.takeToolEmittedAt(vapiCallId, receivedAt);
 
     const raw: any[] =
       msg.toolCalls ??
@@ -549,7 +554,19 @@ class RealtimeOrchestratorService {
       logger.info(`[Realtime] session recréée sur tool-calls pour ${vapiCallId}`);
     }
 
-    return Promise.all(calls.map(call => toolRuntimeService.execute(clientId, vapiCallId, call)));
+    const results = await Promise.all(calls.map(call => toolRuntimeService.execute(clientId, vapiCallId, call)));
+
+    /* CE QUE NOTRE PROCESSUS A VRAIMENT COÛTÉ, et ce que Vapi a mis à nous
+       rappeler. `handlerMs` part de l'entrée du contrôleur, donc il porte
+       Express et le décodage du corps en plus de l'exécution: c'est ce qui le
+       distingue de `toolCalls`, qui ne borne que l'outil. La différence entre
+       les deux est la seule part d'overhead qui soit à nous. */
+    const handlerMs = Date.now() - receivedAt;
+    const dispatchMs = emittedAt === null ? null : receivedAt - emittedAt;
+    for (const call of calls) {
+      callSessionStore.recordToolDispatch(vapiCallId, call.name, dispatchMs, handlerMs);
+    }
+    return results;
   }
 
   /**
@@ -629,6 +646,13 @@ class RealtimeOrchestratorService {
              parti du bloc parti que le modèle ignore. */
           moodNudge: session.moodNudge,
           toolCalls: session.toolCalls,
+          /* L'aller-retour d'outil DÉCOMPOSÉ (22/09/2026). Sans lui, l'écart
+             entre ce que Vapi compte pour un outil (~2 s) et ce que notre
+             exécution en fait (~400 ms) était attribué en bloc au réseau, et le
+             levier qui en sortait était de déménager la région. Il peut tout
+             aussi bien contenir le tour de modèle SUIVANT, mesuré à 1513 ms sur
+             le même appel. Deux réparations opposées derrière un seul nombre. */
+          toolDispatch: session.toolDispatch,
           /* La distance à notre propre base. Sans elle, « cet outil a mis six
              secondes » ne distingue pas une requête lente d'un continent à
              traverser, et la décision de région se prend au raisonnement

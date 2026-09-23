@@ -1675,17 +1675,62 @@ describe('auditCall — les deux distances', () => {
     expect(c.value).toMatch(/ajouterait cette distance/);
   });
 
-  it('un Vapi LOIN devient l\'argument pour la région, pesé contre la base', () => {
+  it('un TRAJET long devient l\'argument pour la région, pesé contre la base', () => {
+    /* La région ne s'invoque plus sur le composite mais sur la part MESURÉE du
+       trajet, sur une seule horloge (22/09/2026). */
     const f = good();
     f.realtime!.toolCalls = [
       { name: 'checkAvailability', ms: 400 },
       { name: 'bookAppointment', ms: 200 },
       { name: 'captureLead', ms: 20 },
     ];
+    f.realtime!.toolDispatch = [
+      { name: 'checkAvailability', dispatchMs: 900, handlerMs: 410 },
+      { name: 'bookAppointment', dispatchMs: 880, handlerMs: 210 },
+      { name: 'captureLead', dispatchMs: 910, handlerMs: 25 },
+    ];
     const c = find(f, 'vapi-hop')!;
     expect(c.status).not.toBe('ok');
-    expect(String(c.lever)).toMatch(/LOIN/);
+    expect(String(c.lever)).toMatch(/TRAJET porte l'essentiel/);
     expect(String(c.lever)).toMatch(/aller-retour vers notre propre base/);
+  });
+
+  it('un trajet COURT interdit la région et renvoie au tour de modèle', () => {
+    /* Le cas qui renverse l'ancien levier: Vapi compte ~2 s, mais le trajet
+       mesuré n'en fait que 80, donc le reste tombe APRÈS notre réponse — le
+       tour de modèle suivant. Déménager la région n'y changerait rien, et
+       c'est un déménagement d'infrastructure. */
+    const f = good();
+    f.realtime!.toolCalls = [{ name: 'checkAvailability', ms: 400 }];
+    f.realtime!.toolDispatch = [{ name: 'checkAvailability', dispatchMs: 80, handlerMs: 420 }];
+    const c = find(f, 'vapi-hop')!;
+    expect(String(c.lever)).toMatch(/NE PAS déménager la région/);
+    expect(String(c.lever)).not.toMatch(/rapprocher le backend/);
+  });
+
+  it('notre propre overhead se nomme, et il n\'envoie pas à la région', () => {
+    const f = good();
+    f.realtime!.toolCalls = [{ name: 'checkAvailability', ms: 400 }];
+    f.realtime!.toolDispatch = [{ name: 'checkAvailability', dispatchMs: 60, handlerMs: 1800 }];
+    const c = find(f, 'vapi-hop')!;
+    expect(String(c.lever)).toMatch(/CHEZ NOUS/);
+    expect(String(c.lever)).toMatch(/pas la région/);
+  });
+
+  it('SANS borne d\'émission, aucun levier: c\'est le refus qui compte', () => {
+    /* En parole-à-parole le modèle est chez Vapi, donc l'émission ne passe pas
+       par nous et cette borne ne peut PAS exister. L'audit doit alors refuser
+       de nommer un geste, au lieu de retomber sur « la région »: c'est le
+       neuvième faux levier de cette ligne qu'on ferme ici. */
+    const f = good();
+    f.realtime!.toolCalls = [
+      { name: 'checkAvailability', ms: 400 },
+      { name: 'bookAppointment', ms: 200 },
+    ];
+    delete (f.realtime as Record<string, unknown>).toolDispatch;
+    const c = find(f, 'vapi-hop')!;
+    expect(String(c.lever)).toMatch(/aucun levier/);
+    expect(String(c.lever)).toMatch(/Ne pas déménager la région/);
   });
 
   it('dit PLAFOND, jamais « réseau »: notre file HTTP est dedans', () => {
@@ -1693,7 +1738,11 @@ describe('auditCall — les deux distances', () => {
        déduction qui a l'air d'une lecture (6quinvicies). */
     const f = good();
     f.realtime!.toolCalls = [{ name: 'checkAvailability', ms: 570 }];
-    expect(find(f, 'vapi-hop')!.value).toMatch(/PLAFOND du trajet réseau/);
+    delete (f.realtime as Record<string, unknown>).toolDispatch;
+    const value = find(f, 'vapi-hop')!.value;
+    expect(value).toMatch(/PLAFOND, pas le trajet/);
+    /* Et surtout: la valeur ne doit PAS affirmer que c'est du réseau. */
+    expect(value).not.toMatch(/ms de réseau/);
   });
 
   it('un écart NÉGATIF se dit inutilisable, il ne se note pas', () => {
