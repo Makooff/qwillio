@@ -3,6 +3,15 @@ import { dbRetrySnapshot } from '../../config/database';
 import { CallLatencyTracker } from './latency-tracker';
 import type { VoiceLanguage } from './speech-plans';
 import type { CallerMood } from './caller-mood';
+
+/**
+ * Au-delà de ce délai, une borne d'émission d'outil ne désigne plus
+ * l'aller-retour qui suit: l'outil a été abandonné ou l'appel s'est coupé
+ * entre-temps. `VOICE_TOOL_TIMEOUT_SECONDS` borne l'attente de Vapi côté
+ * outil, donc au-delà de trente secondes plus personne n'attend cette
+ * réponse-là.
+ */
+const STALE_TOOL_EMIT_MS = 30_000;
 import { newRepairState, recoveryLine, type RepairState } from './conversational-repair';
 import { isFalseCut } from './false-cut';
 import { voiceTracing } from './voice-tracing';
@@ -79,6 +88,27 @@ export interface CallSession {
   /** Times the caller cut the assistant off. High counts mean bad pacing. */
   bargeIns: number;
   toolCalls: Array<{ name: string; ms: number }>;
+  /**
+   * Quand la tranche portant l'appel d'outil est PARTIE vers Vapi, ou `null`.
+   *
+   * Posée par `llm-stream`, consommée par le webhook d'outil: c'est la seule
+   * paire de bornes de cet aller-retour qui soit sur UNE horloge, la nôtre.
+   */
+  toolEmittedAt: number | null;
+  /**
+   * L'aller-retour d'outil, DÉCOMPOSÉ.
+   *
+   * `dispatchMs`: de notre émission à l'arrivée de la requête chez nous, donc
+   * la réaction de Vapi plus les deux trajets réseau. `handlerMs`: tout ce que
+   * notre processus fait ensuite, Express compris — et non la seule exécution
+   * de l'outil, qui est déjà dans `toolCalls`.
+   *
+   * Ce que Vapi compte EN PLUS de ces deux-là se lit alors par soustraction, et
+   * c'est ce qui manquait: sans cette décomposition, les ~2 s d'écart étaient
+   * attribuées en bloc au réseau, et le levier qui en sortait était de
+   * déménager la région.
+   */
+  toolDispatch: Array<{ name: string; dispatchMs: number | null; handlerMs: number }>;
   /**
    * L'aller-retour vers notre propre base, sondé à l'ouverture de l'appel.
    *
@@ -328,6 +358,8 @@ class CallSessionStore {
       deflectedTurns: 0,
       bargeIns: 0,
       toolCalls: [],
+      toolEmittedAt: null,
+      toolDispatch: [],
       dbRoundTrip: null,
       dbRetriesAtStart: dbRetrySnapshot(),
       toolFailures: {},
@@ -660,6 +692,43 @@ class CallSessionStore {
   recordToolCall(vapiCallId: string | null, name: string, ms: number): void {
     const session = this.get(vapiCallId);
     if (session) session.toolCalls.push({ name, ms });
+  }
+
+  /**
+   * La tranche qui porte l'appel d'outil vient de partir vers Vapi.
+   *
+   * La PREMIÈRE du tour fait foi, et pas la dernière: les suivantes portent les
+   * arguments morceau par morceau, donc prendre la dernière mesurerait la
+   * génération des arguments au lieu du trajet.
+   */
+  markToolEmitted(vapiCallId: string | null, at: number = Date.now()): void {
+    const session = this.get(vapiCallId);
+    if (session && session.toolEmittedAt === null) session.toolEmittedAt = at;
+  }
+
+  /**
+   * La borne d'émission, CONSOMMÉE: elle ne vaut que pour l'aller-retour qui
+   * la suit immédiatement.
+   *
+   * Périmée au-delà de `STALE_TOOL_EMIT_MS`, et c'est la moitié de la méthode.
+   * Un tour qui émet un appel d'outil dont la requête n'arrive jamais (Vapi
+   * l'abandonne, l'appel se coupe) laisserait sinon une borne en place, et le
+   * PROCHAIN outil mesurerait son trajet depuis ce tour-là. C'est exactement
+   * la dérive de `llmFirstDeltaAt` du 16/09: une borne qu'on n'efface pas
+   * fabrique des durées impossibles qui ont l'air de mesures.
+   */
+  takeToolEmittedAt(vapiCallId: string | null, now: number = Date.now()): number | null {
+    const session = this.get(vapiCallId);
+    if (!session) return null;
+    const at = session.toolEmittedAt;
+    session.toolEmittedAt = null;
+    if (at === null || now - at > STALE_TOOL_EMIT_MS) return null;
+    return at;
+  }
+
+  recordToolDispatch(vapiCallId: string | null, name: string, dispatchMs: number | null, handlerMs: number): void {
+    const session = this.get(vapiCallId);
+    if (session) session.toolDispatch.push({ name, dispatchMs, handlerMs });
   }
 
   /** Le relevé de distance à la base, pour cet appel. Voir `db-round-trip.ts`. */

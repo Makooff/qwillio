@@ -97,6 +97,7 @@ export class VoiceWebhookController {
     }
 
     const clientId = req.params.clientId as string;
+    const receivedAt = Date.now();
     const event = req.body as VapiEvent;
     const messageType: string = event.message?.type || event.type || 'unknown';
 
@@ -115,7 +116,11 @@ export class VoiceWebhookController {
 
         case 'tool-calls':
         case 'function-call': {
-          const results = await realtimeOrchestratorService.handleToolCalls(clientId, event);
+          /* Même borne que sur la route dédiée: un outil qui arrive ici (ligne
+             partagée, assistant pas encore resynchronisé) se mesure pareil,
+             sinon la décomposition manque justement sur le chemin le plus lent
+             — celui qui fait la queue derrière la télémétrie. */
+          const results = await realtimeOrchestratorService.handleToolCalls(clientId, event, receivedAt);
           return res.json({ results });
         }
 
@@ -201,7 +206,7 @@ export class VoiceWebhookController {
     const started = Date.now();
 
     try {
-      const results = await realtimeOrchestratorService.handleToolCalls(clientId, req.body as VapiEvent);
+      const results = await realtimeOrchestratorService.handleToolCalls(clientId, req.body as VapiEvent, started);
       const elapsed = Date.now() - started;
       if (elapsed > 1_500) {
         logger.warn(`[Voice] slow tool round-trip for ${clientId}: ${elapsed}ms`);
