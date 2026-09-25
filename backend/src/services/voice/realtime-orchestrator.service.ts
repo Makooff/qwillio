@@ -653,6 +653,11 @@ class RealtimeOrchestratorService {
              aussi bien contenir le tour de modèle SUIVANT, mesuré à 1513 ms sur
              le même appel. Deux réparations opposées derrière un seul nombre. */
           toolDispatch: session.toolDispatch,
+          /* Les outils exécutés DANS notre flux (`VOICE_INLINE_TOOLS`). Ils ne
+             figurent pas au transcript de Vapi, qui ne les a pas vus passer:
+             sans cette liste, l'audit conclurait qu'aucun outil n'a tourné,
+             c'est-à-dire l'inverse de ce qui s'est passé. */
+          inlineTools: session.inlineTools,
           /* La distance à notre propre base. Sans elle, « cet outil a mis six
              secondes » ne distingue pas une requête lente d'un continent à
              traverser, et la décision de région se prend au raisonnement

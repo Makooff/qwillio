@@ -1258,6 +1258,34 @@ export function auditCall(facts: CallFacts): AuditReport {
     const theirs = facts.tools.filter(t => !isKnownTool(t.name) && t.tookSeconds !== null);
     const timed = ours.filter(t => t.tookSeconds !== null);
     const slow = timed.filter(t => t.tookSeconds! > TARGETS.toolSeconds[0]);
+
+    /* LES OUTILS EXÉCUTÉS EN LIGNE NE SONT PAS AU TRANSCRIPT DE VAPI
+       (25/09/2026), puisqu'il ne les a pas vus passer. Sans cette ligne,
+       l'audit d'un appel où TOUT a marché dirait « aucun outil », et on
+       chercherait une panne qui n'existe pas — la faute que cet audit a déjà
+       commise dix fois. C'est notre propre relevé qui fait foi ici. */
+    const inline = (rt?.inlineTools as string[] | undefined) ?? [];
+    if (inline.length) {
+      const mine = (rt?.toolCalls as Array<{ name: string; ms: number }> | undefined) ?? [];
+      const inlineTimed = mine.filter(c => inline.includes(c.name.replace(/:error$/, '')));
+      const worstMs = inlineTimed.length ? Math.max(...inlineTimed.map(c => c.ms)) : 0;
+      push({
+        id: 'tools-inline', area: 'latence',
+        /* Sans durée relevée, on ne note pas: on dit seulement qu'ils ont
+           tourné ici. Un vert inventé vaudrait moins que rien. */
+        status: inlineTimed.length ? grade(worstMs / 1000, TARGETS.toolSeconds) : 'skip',
+        label: 'outils exécutés dans notre flux (sans aller-retour Vapi)',
+        value: (inlineTimed.length
+          ? inlineTimed.map(c => `${c.name} ${(c.ms / 1000).toFixed(1)} s`).join(', ')
+          : inline.join(', '))
+          + `. Vapi ne les a pas vus passer, donc ils ne comptent NI dans « durée des outils » NI dans l'aller-retour: c'est exactement ce qu'on voulait`,
+        target: `≤ ${TARGETS.toolSeconds[0]} s chacun`,
+        lever: inlineTimed.length && worstMs / 1000 > TARGETS.toolSeconds[0]
+          ? "ce qui reste est notre exécution seule, sans réseau: regarder la requête elle-même (`aller-retour vers notre propre base`, l'agenda Google), jamais la région"
+          : undefined,
+      });
+    }
+
     if (timed.length) {
       const worst = Math.max(...timed.map(t => t.tookSeconds!));
       push({
