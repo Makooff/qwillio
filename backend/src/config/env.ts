@@ -664,6 +664,25 @@ export const env = {
   VOICE_FILLER_DELAY_MS: parseInt(process.env.VOICE_FILLER_DELAY_MS || '1200', 10),
   /** Vapi-side tool timeout; the runtime's own ceiling is lower. */
   VOICE_TOOL_TIMEOUT_SECONDS: parseInt(process.env.VOICE_TOOL_TIMEOUT_SECONDS || '8', 10),
+  /**
+   * EXÉCUTER LES OUTILS DANS NOTRE PROPRE FLUX, sans les faire faire à Vapi.
+   *
+   * Sur custom-LLM, le modèle qui demande l'outil c'est nous, et celui qui
+   * l'exécute aussi: Vapi ne fait que porter l'aller-retour entre nos deux
+   * moitiés. Mesuré le 24/09 sur un appel réel: 2014 ms par outil comptés en
+   * plus de notre exécution, dont 1273 ms entre notre émission et l'arrivée de
+   * la requête chez nous, et 0 ms d'overhead de notre côté.
+   *
+   * DÉFAUT À FAUX, et c'est délibéré: ce chemin réécrit la mécanique de tous
+   * les tours d'outil de la flotte dédiée. Il s'allume pour un appel de test,
+   * se lit à l'audit, et le défaut ne bascule qu'après. Une panne ici ne
+   * dégraderait pas un appel, elle l'emporterait.
+   *
+   * Ne concerne QUE les sept outils de données (`KNOWN_TOOLS`). `transferCall`
+   * et `endCall` agissent sur l'appel lui-même et restent chez Vapi: les
+   * exécuter ici ne voudrait rien dire.
+   */
+  VOICE_INLINE_TOOLS: process.env.VOICE_INLINE_TOOLS === 'true',
   /** Client profile cache TTL. Invalidated explicitly on config changes. */
   VOICE_CONTEXT_TTL_MS: parseInt(process.env.VOICE_CONTEXT_TTL_MS || '300000', 10),
   /** Cheap tier for conversational turns that still need a model. */

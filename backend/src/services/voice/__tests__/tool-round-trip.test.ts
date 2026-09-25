@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { readFileSync } from 'fs';
 import { join } from 'path';
 import { callSessionStore } from '../call-session.store';
-import { hasToolCallDelta } from '../llm-stream.service';
+import { collectToolCallDeltas, toolArgs, type PendingToolCall } from '../llm-stream.service';
 import { hopBreakdown } from '../call-audit';
 
 /**
@@ -23,25 +23,61 @@ const base = { vapiCallId: 'rt_1', clientId: 'c1', callerNumber: '+32475000000',
 const chunk = (delta: Record<string, unknown>) =>
   `data: ${JSON.stringify({ choices: [{ index: 0, delta, finish_reason: null }] })}\n\n`;
 
-describe('hasToolCallDelta — dater le départ de l\'appel d\'outil', () => {
+describe('collectToolCallDeltas — dater le départ ET assembler l\'appel', () => {
+  const fresh = () => new Map<number, PendingToolCall>();
+
   it('voit un appel d\'outil dans la tranche', () => {
-    expect(hasToolCallDelta(chunk({ tool_calls: [{ index: 0, function: { name: 'lookupBooking' } }] }))).toBe(true);
+    expect(collectToolCallDeltas(chunk({ tool_calls: [{ index: 0, function: { name: 'lookupBooking' } }] }), fresh())).toBe(true);
   });
 
   it('ignore le texte ordinaire, qui est l\'immense majorité des tranches', () => {
-    expect(hasToolCallDelta(chunk({ content: 'Un instant' }))).toBe(false);
-    expect(hasToolCallDelta('data: [DONE]\n\n')).toBe(false);
-    expect(hasToolCallDelta('')).toBe(false);
+    expect(collectToolCallDeltas(chunk({ content: 'Un instant' }), fresh())).toBe(false);
+    expect(collectToolCallDeltas('data: [DONE]\n\n', fresh())).toBe(false);
+    expect(collectToolCallDeltas('', fresh())).toBe(false);
   });
 
   it('une liste VIDE n\'est pas un appel d\'outil', () => {
     /* OpenAI clôt le tour avec `tool_calls` en `finish_reason`, sans delta:
        compter cette tranche daterait la FIN de l'émission au lieu du début. */
-    expect(hasToolCallDelta(chunk({ tool_calls: [] }))).toBe(false);
+    expect(collectToolCallDeltas(chunk({ tool_calls: [] }), fresh())).toBe(false);
   });
 
   it('une tranche coupée en deux ne fait pas tomber la boucle', () => {
-    expect(hasToolCallDelta('data: {"choices":[{"delta":{"tool_ca')).toBe(false);
+    expect(collectToolCallDeltas('data: {"choices":[{"delta":{"tool_ca', fresh())).toBe(false);
+  });
+
+  it('recolle un appel réparti sur plusieurs tranches', () => {
+    /* OpenAI n'envoie pas l'appel d'un bloc: le nom d'abord, les arguments en
+       morceaux. Les exécuter sur un JSON tronqué appellerait l'outil sans ses
+       arguments. */
+    const acc = fresh();
+    collectToolCallDeltas(chunk({ tool_calls: [{ index: 0, id: 'call_1', function: { name: 'checkAvailability', arguments: '{"date"' } }] }), acc);
+    collectToolCallDeltas(chunk({ tool_calls: [{ index: 0, function: { arguments: ':"2026-09-24"}' } }] }), acc);
+    expect(acc.get(0)).toEqual({ id: 'call_1', name: 'checkAvailability', args: '{"date":"2026-09-24"}' });
+  });
+
+  it('sépare deux appels par leur index', () => {
+    const acc = fresh();
+    collectToolCallDeltas(chunk({ tool_calls: [
+      { index: 0, id: 'a', function: { name: 'lookupBooking', arguments: '{}' } },
+      { index: 1, id: 'b', function: { name: 'captureLead', arguments: '{}' } },
+    ] }), acc);
+    expect([...acc.values()].map(c => c.name)).toEqual(['lookupBooking', 'captureLead']);
+  });
+});
+
+describe('toolArgs — un JSON tronqué ne fait pas tomber le tour', () => {
+  it('lit les arguments', () => {
+    expect(toolArgs('{"date":"2026-09-24"}')).toEqual({ date: '2026-09-24' });
+  });
+
+  it('rend un objet vide plutôt que de lever', () => {
+    /* L'outil répondra ce qu'il répond quand il manque quelque chose, ce qu'il
+       sait déjà faire. Lever ferait tomber le tour ENTIER en phrase de repli,
+       ce qui est pire pour l'appelant. */
+    expect(toolArgs('{"date"')).toEqual({});
+    expect(toolArgs('')).toEqual({});
+    expect(toolArgs('"une chaine"')).toEqual({});
   });
 });
 
@@ -142,7 +178,7 @@ const read = (f: string) => stripComments(readFileSync(join(__dirname, f), 'utf8
 describe('la décomposition est BRANCHÉE, des deux bouts', () => {
   it('`llm-stream` date le départ dans la boucle de flux', () => {
     const src = read('../llm-stream.service.ts');
-    expect(src).toMatch(/hasToolCallDelta\(text\)/);
+    expect(src).toMatch(/collectToolCallDeltas\(text, pending\)/);
     expect(src).toMatch(/markToolEmitted/);
   });
 

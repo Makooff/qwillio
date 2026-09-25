@@ -9,6 +9,8 @@ import { callerHistoryBlock } from './system-prompt';
 import { realtimeContextService } from './realtime-context.service';
 import { spokenPrefix } from './spoken-prefix';
 import type { VoiceLanguage } from './speech-plans';
+import { toolRuntimeService } from './tool-runtime.service';
+import { fillerFor, isKnownTool } from './voice-tools';
 
 /**
  * Custom-LLM streaming endpoint (closes the Phase 3 loop).
@@ -224,40 +226,65 @@ export function parseUsageChunk(chunk: string): { input: number; cached: number;
   return null;
 }
 
+/** Un appel d'outil en cours d'assemblage, tranche après tranche. */
+export interface PendingToolCall {
+  id: string;
+  name: string;
+  args: string;
+}
+
 /**
- * CETTE TRANCHE EMPORTE-T-ELLE UN APPEL D'OUTIL ? (22/09/2026)
+ * LES APPELS D'OUTIL D'UNE TRANCHE, ASSEMBLÉS AU FIL DU FLUX (25/09/2026).
  *
- * Elle sert à dater le départ, et c'est la seule borne d'un côté qu'on tienne.
- * Sur le chemin custom-LLM, le « modèle » qui décide d'appeler un outil, c'est
- * NOUS: la tranche part d'ici, Vapi la lit, puis Vapi nous rappelle sur
- * `/webhooks/vapi/tools/:clientId`. Les deux bouts sont donc dans le MÊME
- * processus et sur la MÊME horloge, ce qui n'est pas le cas de la mesure
- * qu'on avait.
+ * OpenAI n'envoie pas un appel d'outil d'un bloc: le nom arrive dans la
+ * première tranche, les arguments en morceaux, et `index` est ce qui relie les
+ * morceaux d'un même appel quand il y en a plusieurs. D'où l'accumulateur
+ * passé en argument plutôt qu'un retour: la fonction est appelée sur chaque
+ * tranche et n'a pas de mémoire à elle.
  *
- * Pourquoi ça compte: `tookSeconds`, chez Vapi, borne l'émission de l'appel
- * d'outil jusqu'au résultat consigné, et il en sort ~2 s quand notre exécution
- * en fait 400. Cet écart était noté « aller-retour réseau », en le disant
- * PLAFOND, et le levier qui en découlait était de déménager la région. Or il
- * peut tout aussi bien contenir le TOUR DE MODÈLE SUIVANT — 1513 ms de médiane
- * mesurés sur le même appel, ce qui suffirait à l'expliquer presque en entier.
- * Une mesure qui ne peut pas départager les deux ne doit pas nommer de levier
- * (6terquinquagesies: il faut une source capable de CONTREDIRE le chiffre).
- *
- * Le test de sous-chaîne avant tout `JSON.parse`, comme ses deux voisines: la
- * boucle tourne sur chaque tranche de chaque tour.
+ * Le nom se CONCATÈNE lui aussi, bien qu'il arrive entier en pratique: rien
+ * dans le protocole ne le garantit, et concaténer une chaîne vide ne coûte
+ * rien alors qu'un nom tronqué ferait exécuter un autre outil.
  */
-export function hasToolCallDelta(chunk: string): boolean {
+export function collectToolCallDeltas(chunk: string, into: Map<number, PendingToolCall>): boolean {
   if (!chunk.includes('"tool_calls"')) return false;
+  let saw = false;
   for (const line of chunk.split('\n')) {
     if (!line.startsWith('data: ') || line.includes('[DONE]')) continue;
     try {
-      const delta = JSON.parse(line.slice(6))?.choices?.[0]?.delta;
-      if (Array.isArray(delta?.tool_calls) && delta.tool_calls.length > 0) return true;
+      const calls = JSON.parse(line.slice(6))?.choices?.[0]?.delta?.tool_calls;
+      if (!Array.isArray(calls)) continue;
+      for (const c of calls) {
+        const i = typeof c.index === 'number' ? c.index : 0;
+        const cur = into.get(i) ?? { id: '', name: '', args: '' };
+        if (typeof c.id === 'string' && c.id) cur.id = c.id;
+        if (typeof c.function?.name === 'string') cur.name += c.function.name;
+        if (typeof c.function?.arguments === 'string') cur.args += c.function.arguments;
+        into.set(i, cur);
+        saw = true;
+      }
     } catch {
-      /* tranche partielle: l'appel d'outil arrive entier dans une suivante */
+      /* tranche partielle: le morceau arrive entier dans une suivante */
     }
   }
-  return false;
+  return saw;
+}
+
+/**
+ * Les arguments d'un appel d'outil, ou un objet vide.
+ *
+ * Un JSON tronqué (flux coupé au milieu des arguments) ne doit pas faire lever
+ * le tour: l'outil recevra des arguments vides et répondra ce qu'il répond
+ * quand il manque quelque chose, ce qu'il sait déjà faire. Lever ici ferait
+ * tomber le tour entier en phrase de repli, ce qui est pire pour l'appelant.
+ */
+export function toolArgs(raw: string): Record<string, unknown> {
+  try {
+    const parsed = JSON.parse(raw || '{}');
+    return parsed && typeof parsed === 'object' ? parsed as Record<string, unknown> : {};
+  } catch {
+    return {};
+  }
 }
 
 /**
@@ -409,7 +436,7 @@ class LlmStreamService {
         ),
         vapiCallId,
       );
-      await this.proxy(prepared, plan.model, stream, vapiCallId);
+      await this.proxy(prepared, plan.model, stream, vapiCallId, clientId, lang);
       callSessionStore.markLatency(vapiCallId, 'llmEnd');
       /* Le tour RÉUSSI compte autant que le raté: sans dénominateur il n'y a
          pas de taux, seulement un compteur qui monte pour toujours (TST-8). */
@@ -598,11 +625,85 @@ class LlmStreamService {
    * so the first token reaches the synthesiser as fast as it would have without
    * this hop.
    */
+  /**
+   * EXÉCUTER L'OUTIL ICI, ET CONTINUER LA PHRASE (25/09/2026).
+   *
+   * Sur custom-LLM, le modèle qui demande l'outil c'est nous, et celui qui
+   * l'exécute aussi. Vapi ne fait que porter l'aller-retour entre nos deux
+   * moitiés, et il le facture cher: 2014 ms par outil comptés en plus de notre
+   * exécution, dont 1273 ms entre notre émission et l'arrivée de la requête
+   * chez nous, pour 0 ms d'overhead de notre côté (relevé du 24/09). Ce chemin
+   * supprime l'aller-retour par construction, pas par réglage.
+   *
+   * TROIS CHOSES QU'IL NE FAUT PAS DÉFAIRE.
+   *
+   * 1. LA PHRASE D'ATTENTE PART EN PREMIER. C'est Vapi qui la disait, au vu de
+   *    l'appel d'outil qu'il ne voit plus passer. Sans elle, l'appelant entend
+   *    un blanc de deux à quatre secondes — le mode d'échec le plus cher d'un
+   *    appel, et on l'aurait fabriqué en optimisant la latence. Elle sort de
+   *    la MÊME table qu'avant, donc elle décrit ce qui est en cours et jamais
+   *    son issue (6sexquadragesies).
+   * 2. PAS DE `toolTurn`. Ce marqueur efface les bornes de synthèse du tour
+   *    parce que, chez Vapi, le son vient du tour SUIVANT. Ici il vient de
+   *    CELUI-CI: la phrase d'attente puis la réponse sortent du même flux.
+   *    Le poser rendrait le TTFA non mesurable sur les tours d'outil.
+   * 3. PAS DE RÉCURSION. Le second tour repasse `mayInline` à faux, donc un
+   *    deuxième appel d'outil repart chez Vapi comme avant. Enchaîner ferait
+   *    tenir la ligne pendant N tours de modèle sans qu'aucun son ne parte.
+   */
+  private async runToolsInline(
+    clientId: string,
+    request: ChatCompletionRequest,
+    model: string,
+    stream: StreamHandle,
+    vapiCallId: string | null,
+    lang: VoiceLanguage,
+    calls: PendingToolCall[],
+  ): Promise<void> {
+    const id = `chatcmpl-inline-${Date.now()}`;
+    const filler = fillerFor(calls[0].name, lang, 'start')[0];
+    if (filler) stream.write(sseChunk(id, model, { role: 'assistant', content: `${filler} ` }, null));
+
+    const results = await Promise.all(
+      calls.map(call =>
+        toolRuntimeService.execute(clientId, vapiCallId, {
+          toolCallId: call.id || `inline_${call.name}`,
+          name: call.name,
+          args: toolArgs(call.args),
+        }),
+      ),
+    );
+    callSessionStore.recordInlineTools(vapiCallId, calls.map(c => c.name));
+    logger.info(`[VoiceLLM] outil(s) en ligne pour ${clientId}: ${calls.map(c => c.name).join(', ')}`);
+
+    const followUp: ChatCompletionRequest = {
+      ...request,
+      messages: [
+        ...request.messages,
+        {
+          role: 'assistant',
+          content: null,
+          tool_calls: calls.map(call => ({
+            id: call.id || `inline_${call.name}`,
+            type: 'function',
+            function: { name: call.name, arguments: call.args || '{}' },
+          })),
+        },
+        ...results.map(r => ({ role: 'tool' as const, tool_call_id: r.toolCallId, content: r.result })),
+      ],
+    };
+
+    await this.proxy(followUp, model, stream, vapiCallId, clientId, lang, false);
+  }
+
   private async proxy(
     request: ChatCompletionRequest,
     model: string,
     stream: StreamHandle,
     vapiCallId: string | null,
+    clientId: string,
+    lang: VoiceLanguage,
+    mayInline: boolean = env.VOICE_INLINE_TOOLS,
   ): Promise<void> {
     const controller = new AbortController();
     /* Le plafond sur le PREMIER token, relu à chaque tour et non figé au
@@ -652,6 +753,15 @@ class LlmStreamService {
     const decoder = new TextDecoder();
     let sawFirstChunk = false;
     let served: string | null = null;
+    /* L'appel d'outil en cours d'assemblage, et les tranches RETENUES.
+       On ne retient que si l'exécution en ligne est permise ET qu'aucun texte
+       n'est encore parti: avec le drapeau éteint, chaque octet part quand il
+       arrive, exactement comme avant. C'est la garantie que ce chemin ne
+       change RIEN tant qu'on ne l'allume pas. */
+    const pending = new Map<number, PendingToolCall>();
+    const held: string[] = [];
+    let holding = false;
+    let wroteAnything = false;
 
     try {
       for (;;) {
@@ -679,10 +789,28 @@ class LlmStreamService {
         }
         const usage = parseUsageChunk(text);
         if (usage) callSessionStore.recordTokens(vapiCallId, usage);
-        stream.write(text);
-        /* APRÈS l'écriture, jamais avant: on date le moment où la tranche part
-           vers Vapi, pas celui où on a fini de la lire chez OpenAI. */
-        if (hasToolCallDelta(text)) callSessionStore.markToolEmitted(vapiCallId);
+
+        /* L'accumulateur tourne TOUJOURS, même sans exécution en ligne: c'est
+           lui qui date l'émission, et la date sert au diagnostic quel que soit
+           le chemin. */
+        const carries = collectToolCallDeltas(text, pending);
+        /* `mayInline` porte DEUX choses, et la seconde ne se voit pas d'ici:
+           le drapeau de production, et le garde anti-récursion (le second tour
+           le reçoit à faux). Le retirer de cette condition ne rend pas
+           seulement le chemin actif par défaut — il fait boucler l'exécution
+           en ligne sur elle-même, ligne tenue et aucun son qui part. Les deux
+           formes fautives ont été réintroduites: elles ne font pas échouer un
+           test, elles TUENT le worker. */
+        if (carries && !wroteAnything && mayInline) holding = true;
+        if (holding) {
+          held.push(text);
+        } else {
+          stream.write(text);
+          wroteAnything = true;
+          /* APRÈS l'écriture, jamais avant: on date le moment où la tranche
+             part vers Vapi, pas celui où on a fini de la lire chez OpenAI. */
+          if (carries) callSessionStore.markToolEmitted(vapiCallId);
+        }
       }
     } finally {
       clearTimeout(firstTokenTimer);
@@ -690,6 +818,25 @@ class LlmStreamService {
     }
 
     if (!sawFirstChunk) throw new Error('OpenAI stream closed without a token');
+
+    /* LA SECONDE BORNE: le flux d'OpenAI est fini, donc les arguments aussi.
+       L'écart avec la première dit ce qu'OpenAI a mis à les ÉCRIRE, et c'est
+       ce qui manquait pour savoir si les 1273 ms mesurés le 24/09 sont la
+       réaction de Vapi ou notre propre modèle en train de finir sa phrase. */
+    if (pending.size > 0) callSessionStore.markToolStreamDone(vapiCallId);
+
+    if (holding) {
+      const calls = [...pending.values()].filter(c => c.name);
+      if (calls.length > 0 && calls.every(c => isKnownTool(c.name))) {
+        await this.runToolsInline(clientId, request, model, stream, vapiCallId, lang, calls);
+        return;
+      }
+      /* Un outil qui n'est pas des nôtres (`transferCall`, `endCall` agissent
+         sur l'APPEL, pas sur des données) ou aucun nom lisible: on rend la
+         main à Vapi, exactement comme avant. */
+      for (const chunk of held) stream.write(chunk);
+      callSessionStore.markToolEmitted(vapiCallId);
+    }
     stream.end();
   }
 

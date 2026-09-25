@@ -108,7 +108,26 @@ export interface CallSession {
    * attribuées en bloc au réseau, et le levier qui en sortait était de
    * déménager la région.
    */
-  toolDispatch: Array<{ name: string; dispatchMs: number | null; handlerMs: number }>;
+  toolDispatch: Array<{ name: string; dispatchMs: number | null; handlerMs: number; argsMs: number | null }>;
+  /** Quand le flux portant l'appel d'outil s'est TERMINÉ (arguments compris). */
+  toolStreamDoneAt: number | null;
+  /**
+   * La dernière borne d'émission CONSOMMÉE.
+   *
+   * `toolEmittedAt` est remis à `null` dès qu'on le lit, pour qu'une borne
+   * ne serve pas deux tours. Mais l'écart « émission → fin d'écriture des
+   * arguments » se calcule plus tard, au moment d'enregistrer: il faut donc
+   * garder la valeur quelque part où la consommation ne l'efface pas.
+   */
+  lastToolEmittedAt: number | null;
+  /**
+   * Les outils exécutés DANS notre flux, sans aller-retour par Vapi.
+   *
+   * Sans cette liste, un outil en ligne disparaît du transcript de Vapi et
+   * l'audit conclut qu'aucun outil n'a tourné — c'est-à-dire l'inverse de ce
+   * qui s'est passé, sur le chemin qu'on vient d'allumer.
+   */
+  inlineTools: string[];
   /**
    * L'aller-retour vers notre propre base, sondé à l'ouverture de l'appel.
    *
@@ -359,7 +378,10 @@ class CallSessionStore {
       bargeIns: 0,
       toolCalls: [],
       toolEmittedAt: null,
+      toolStreamDoneAt: null,
+      lastToolEmittedAt: null,
       toolDispatch: [],
+      inlineTools: [],
       dbRoundTrip: null,
       dbRetriesAtStart: dbRetrySnapshot(),
       toolFailures: {},
@@ -723,12 +745,38 @@ class CallSessionStore {
     const at = session.toolEmittedAt;
     session.toolEmittedAt = null;
     if (at === null || now - at > STALE_TOOL_EMIT_MS) return null;
+    session.lastToolEmittedAt = at;
     return at;
+  }
+
+  /**
+   * Le flux portant l'appel d'outil est terminé: les arguments sont écrits.
+   *
+   * L'écart avec `markToolEmitted` dit ce qu'OpenAI a mis à les écrire, et
+   * c'est la moitié qu'il fallait retirer de « 1273 ms de trajet » avant d'en
+   * conclure quoi que ce soit sur la distance.
+   */
+  markToolStreamDone(vapiCallId: string | null, at: number = Date.now()): void {
+    const session = this.get(vapiCallId);
+    if (session && session.toolStreamDoneAt === null) session.toolStreamDoneAt = at;
   }
 
   recordToolDispatch(vapiCallId: string | null, name: string, dispatchMs: number | null, handlerMs: number): void {
     const session = this.get(vapiCallId);
-    if (session) session.toolDispatch.push({ name, dispatchMs, handlerMs });
+    if (!session) return;
+    /* Consommé avec la borne d'émission: les deux décrivent le même tour. */
+    const doneAt = session.toolStreamDoneAt;
+    session.toolStreamDoneAt = null;
+    const argsMs = doneAt !== null && dispatchMs !== null && session.lastToolEmittedAt !== null
+      ? Math.max(0, doneAt - session.lastToolEmittedAt)
+      : null;
+    session.toolDispatch.push({ name, dispatchMs, handlerMs, argsMs });
+  }
+
+  /** Un outil exécuté dans notre flux, sans aller-retour par Vapi. */
+  recordInlineTools(vapiCallId: string | null, names: string[]): void {
+    const session = this.get(vapiCallId);
+    if (session) session.inlineTools.push(...names);
   }
 
   /** Le relevé de distance à la base, pour cet appel. Voir `db-round-trip.ts`. */
