@@ -664,7 +664,29 @@ class LlmStreamService {
     const filler = fillerFor(calls[0].name, lang, 'start')[0];
     if (filler) stream.write(sseChunk(id, model, { role: 'assistant', content: `${filler} ` }, null));
 
-    const results = await Promise.all(
+    /* LA PHRASE RETARDÉE, et elle ne sert pas qu'à meubler. Vapi l'émettait
+       après `VOICE_FILLER_DELAY_MS` quand un outil trainait; il ne voit plus
+       passer d'outil, donc elle disparaissait avec lui. Or entre notre phrase
+       d'attente et le premier jeton du second tour, il peut s'écouler HUIT
+       secondes sur un `checkAvailability` lent — huit secondes pendant
+       lesquelles aucun octet ne part sur un flux que Vapi tient ouvert. Elle
+       remplit les deux rôles: l'appelant entend qu'on est toujours là, et le
+       flux ne reste pas muet assez longtemps pour qu'on se demande s'il a été
+       coupé. */
+    const delayed = fillerFor(calls[0].name, lang, 'delayed')[0];
+    const keepAlive = delayed
+      ? setTimeout(() => {
+          try {
+            stream.write(sseChunk(id, model, { content: `${delayed} ` }, null));
+          } catch {
+            /* le flux a été fermé entre-temps: il n'y a rien à rattraper */
+          }
+        }, env.VOICE_FILLER_DELAY_MS)
+      : null;
+
+    let results;
+    try {
+      results = await Promise.all(
       calls.map(call =>
         toolRuntimeService.execute(clientId, vapiCallId, {
           toolCallId: call.id || `inline_${call.name}`,
@@ -672,7 +694,10 @@ class LlmStreamService {
           args: toolArgs(call.args),
         }),
       ),
-    );
+      );
+    } finally {
+      if (keepAlive) clearTimeout(keepAlive);
+    }
     callSessionStore.recordInlineTools(vapiCallId, calls.map(c => c.name));
     logger.info(`[VoiceLLM] outil(s) en ligne pour ${clientId}: ${calls.map(c => c.name).join(', ')}`);
 
@@ -828,8 +853,29 @@ class LlmStreamService {
     if (holding) {
       const calls = [...pending.values()].filter(c => c.name);
       if (calls.length > 0 && calls.every(c => isKnownTool(c.name))) {
-        await this.runToolsInline(clientId, request, model, stream, vapiCallId, lang, calls);
-        return;
+        try {
+          await this.runToolsInline(clientId, request, model, stream, vapiCallId, lang, calls);
+          return;
+        } catch (error) {
+          /* LE CHEMIN NEUF NE DOIT JAMAIS EMPORTER LE TOUR (26/09/2026).
+             Premier essai en production: l'appelant a entendu « Pardon, je
+             vous écoute » à répétition, c'est-à-dire la phrase de REPLI — le
+             tour levait. Le chemin prouvé était pourtant juste à côté,
+             inutilisé: les tranches retenues n'attendaient que d'être
+             rendues à Vapi.
+             C'est la faute de conception, indépendamment de la cause: une
+             optimisation qui échoue doit redevenir ce qu'elle optimisait,
+             jamais un silence ni une phrase d'excuse. Le pire cas redevient
+             « comme avant », et l'erreur est NOMMÉE dans le journal plutôt
+             que devinée. */
+          logger.error(
+            `[VoiceLLM] exécution en ligne tombée pour ${clientId}, on rend la main à Vapi: ${(error as Error).message}`,
+          );
+          for (const chunk of held) stream.write(chunk);
+          callSessionStore.markToolEmitted(vapiCallId);
+          stream.end();
+          return;
+        }
       }
       /* Un outil qui n'est pas des nôtres (`transferCall`, `endCall` agissent
          sur l'APPEL, pas sur des données) ou aucun nom lisible: on rend la
