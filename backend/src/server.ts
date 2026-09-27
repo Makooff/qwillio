@@ -52,6 +52,7 @@ import prospectingRoutes from './routes/prospecting.routes';
 import adminRoutes from './routes/admin.routes';
 import adminAgentsRoutes from './routes/admin-agents.routes';
 import clientApiRoutes from './routes/client-api.routes';
+import voiceCoreRoutes from './routes/voice-core.routes';
 import autofixRoutes from './routes/autofix.routes';
 import closerRoutes from './routes/closer.routes';
 import aiAgentsRoutes from './routes/ai-agents.routes';
@@ -161,6 +162,10 @@ app.use('/api/prospecting', prospectingRoutes);
 app.use('/api/admin/agents', adminAgentsRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/client', clientApiRoutes);
+/* Le pont vers qwillio-voice-core. ADDITIF : aucune route existante n'est
+   touchee, et sans VOICE_CORE_API_KEY ces deux-la repondent 503. Rien ne
+   s'execute tant qu'un numero ne pointe pas vers voice-core chez Twilio. */
+app.use('/api/voice-core', voiceCoreRoutes);
 app.use('/api/autofix', autofixRoutes);
 app.use('/api/closer', closerRoutes);
 app.use('/api/ai-agents', aiAgentsRoutes);
