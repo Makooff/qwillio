@@ -3,7 +3,29 @@ import path from 'path';
 import type { StringValue } from 'ms';
 import { validateEnv } from './env-validation';
 
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+/* LE .env DU POSTE N'ENTRE PAS DANS LES TESTS (28/09/2026).
+ *
+ * `dotenv.config` lit le fichier de la machine sur laquelle il tourne. En
+ * intégration continue ce fichier n'existe pas, donc la suite est partie d'un
+ * environnement vide et tous les tests ont été écrits pour celui-là. Sur un
+ * poste de développement il existe — et la même suite, sur le même commit,
+ * échouait quatorze fois alors qu'elle était verte en CI.
+ *
+ * Les défauts ne ressemblaient à rien de commun : un jeton en trop dans une
+ * URL custom-LLM (VAPI_WEBHOOK_SECRET posé), un SMS promis à l'appelant
+ * (SMS_ENABLED posé), un SMS qui déborde son plafond de segments (FRONTEND_URL
+ * plus longue que le défaut), une caisse Stripe qui vérifie un prix que le
+ * bouchon n'a jamais créé (STRIPE_PRICE_* posés). Aucun n'est un bug du
+ * produit ; tous sont le poste qui parle.
+ *
+ * Le coût réel est là : une suite rouge pour de mauvaises raisons ne sert plus
+ * à rien, et c'est précisément l'outil qui valide chaque changement.
+ *
+ * `VITEST` n'est posé que par vitest, dans son propre processus. La production
+ * et le `ts-node` de développement ne voient aucune différence. */
+if (!process.env.VITEST) {
+  dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+}
 
 // ─── Fix deleted VAPI assistant IDs (Render env var has stale value) ───
 const DELETED_ASSISTANT_ID = 'd98364c2-8ca4-4efb-af00-8534af00fa06';
@@ -750,6 +772,17 @@ export const env = {
    * Sans eux, l'achat d'un numéro belge est refusé par Twilio. */
   TWILIO_BE_BUNDLE_SID: process.env.TWILIO_BE_BUNDLE_SID || '',
   TWILIO_BE_ADDRESS_SID: process.env.TWILIO_BE_ADDRESS_SID || '',
+  /* Le trunk Elastic SIP qui achemine les numéros du stock vers LiveKit, `TK...`.
+   *
+   * C'est la pièce qui remplace l'import Vapi : un numéro acheté y est rattaché,
+   * et c'est ce rattachement — pas une ligne en base — qui fait qu'un appel
+   * entrant quitte Twilio en direction du cœur vocal.
+   *
+   * Vide, l'achat continue de fonctionner mais range les numéros SANS
+   * acheminement : le stock refusera ensuite de les attribuer, ce qui est le
+   * bon comportement — mieux vaut un client sans numéro qu'un client avec un
+   * numéro muet. */
+  TWILIO_SIP_TRUNK_SID: process.env.TWILIO_SIP_TRUNK_SID || '',
   /* En-dessous de ce nombre de numéros libres, le stock est signalé comme bas.
    * Il ne déclenche AUCUN achat: racheter une fournée reste une décision
    * d'exploitation, comme PHONE_AUTO_PROVISION. */

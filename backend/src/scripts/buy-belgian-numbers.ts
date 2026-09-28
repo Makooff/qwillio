@@ -10,13 +10,26 @@
  *   1. acheté chez TWILIO, sous le dossier réglementaire de Qwillio
  *      (`TWILIO_BE_BUNDLE_SID` + `TWILIO_BE_ADDRESS_SID`), jamais au nom d'un
  *      client;
- *   2. importé chez VAPI, qui l'exploite sans le posséder;
+ *   2. RATTACHÉ AU TRUNK ELASTIC SIP (`TWILIO_SIP_TRUNK_SID`), qui l'achemine
+ *      vers LiveKit;
  *   3. écrit dans `phone_number_stock`, libre, en attente d'un client.
  *
- * Les trois doivent réussir pour qu'une ligne soit attribuable. Si l'import
- * Vapi échoue, le numéro est quand même enregistré (il est acheté, donc
- * facturé: l'oublier en base le rendrait invisible et inutilisable) mais
- * SANS `vapiNumberId`, et le stock refusera de l'attribuer.
+ * Les trois doivent réussir pour qu'une ligne soit attribuable. Si le
+ * rattachement échoue, le numéro est quand même enregistré (il est acheté,
+ * donc facturé: l'oublier en base le rendrait invisible et inutilisable) mais
+ * SANS `sipTrunkSid`, et le stock refusera de l'attribuer.
+ *
+ * ── L'ÉTAPE 2 ÉTAIT « IMPORTÉ CHEZ VAPI » (corrigé le 28/09/2026) ───────────
+ *
+ * Elle l'est restée après que le cœur vocal a remplacé Vapi, et ça ne se
+ * voyait pas: la fournée s'achetait, les numéros se rangeaient, le stock les
+ * disait prêts. Ils partaient simplement tous chez le fournisseur qu'on est en
+ * train de quitter. Le premier client à en recevoir un aurait été décroché par
+ * Vapi, ou par personne.
+ *
+ * Twilio n'achemine un numéro que vers UN destinataire. Rattacher au trunk,
+ * c'est donc retirer le numéro à Vapi — il n'y a rien à détacher, et pas de
+ * moment où les deux répondent.
  *
  * ── Pourquoi la simulation est le défaut ────────────────────────────────────
  *
@@ -26,7 +39,6 @@
  */
 import { prisma } from '../config/database';
 import { env } from '../config/env';
-import { vapiClient } from '../config/vapi';
 
 /**
  * Les types que Twilio expose par pays, et ce qu'ils coûtent À L'APPELANT.
@@ -81,7 +93,7 @@ function twilioClient() {
 interface Bought {
   number: string;
   twilioSid: string;
-  vapiNumberId: string | null;
+  sipTrunkSid: string | null;
   error?: string;
 }
 
@@ -206,24 +218,25 @@ async function main() {
         friendlyName: 'Qwillio — stock',
       });
 
-      let vapiNumberId: string | null = null;
+      let sipTrunkSid: string | null = null;
       let error: string | undefined;
 
-      try {
-        /* La paire clé d'API / secret est préférée au jeton de compte: elle est
-           révocable seule, alors que le jeton ouvre tout le compte Twilio. */
-        const imported = (await vapiClient.importTwilioNumber({
-          number: phoneNumber,
-          twilioAccountSid: env.TWILIO_ACCOUNT_SID,
-          ...(env.TWILIO_API_KEY_SID && env.TWILIO_API_KEY_SECRET
-            ? { twilioApiKey: env.TWILIO_API_KEY_SID, twilioApiSecret: env.TWILIO_API_KEY_SECRET }
-            : { twilioAuthToken: env.TWILIO_AUTH_TOKEN }),
-          name: `Qwillio stock ${phoneNumber}`,
-        })) as { id?: string };
-        vapiNumberId = imported?.id ?? null;
-        if (!vapiNumberId) error = 'Vapi a répondu sans identifiant.';
-      } catch (e) {
-        error = `Import Vapi échoué: ${(e as Error).message}`;
+      if (!env.TWILIO_SIP_TRUNK_SID) {
+        error =
+          'TWILIO_SIP_TRUNK_SID manquant: numéro acheté mais acheminé nulle part.';
+      } else {
+        try {
+          /* LE RATTACHEMENT SE FAIT PAR SID, PAS PAR NUMÉRO. On vient de
+             l'acheter, donc on tient déjà son `PN...`: le chercher à nouveau
+             par son écriture rouvrirait la question des formats (+32, 0032, 0…)
+             que ce dépôt a déjà payée une fois. */
+          await client.trunking.v1
+            .trunks(env.TWILIO_SIP_TRUNK_SID)
+            .phoneNumbers.create({ phoneNumberSid: bought.sid });
+          sipTrunkSid = env.TWILIO_SIP_TRUNK_SID;
+        } catch (e) {
+          error = `Rattachement au trunk SIP échoué: ${(e as Error).message}`;
+        }
       }
 
       await prisma.phoneNumberStock.create({
@@ -232,28 +245,28 @@ async function main() {
           country: 'BE',
           numberType: args.type,
           twilioSid: bought.sid,
-          vapiNumberId,
+          sipTrunkSid,
           bundleSid: env.TWILIO_BE_BUNDLE_SID,
           status: 'available',
           ...(error ? { notes: error } : {}),
         },
       });
 
-      results.push({ number: phoneNumber, twilioSid: bought.sid, vapiNumberId, error });
-      console.log(`  ${vapiNumberId ? 'OK  ' : 'PART'} ${phoneNumber}${error ? ` — ${error}` : ''}`);
+      results.push({ number: phoneNumber, twilioSid: bought.sid, sipTrunkSid, error });
+      console.log(`  ${sipTrunkSid ? 'OK  ' : 'PART'} ${phoneNumber}${error ? ` — ${error}` : ''}`);
     } catch (e) {
       console.error(`  ÉCHEC ${phoneNumber} — ${(e as Error).message}`);
     }
   }
 
-  const usable = results.filter(r => r.vapiNumberId).length;
+  const usable = results.filter(r => r.sipTrunkSid).length;
   const partial = results.length - usable;
 
   console.log(
     `\n${usable} numéro(s) prêt(s) à être attribués.` +
       (partial > 0
-        ? `\n${partial} acheté(s) chez Twilio mais NON importé(s) chez Vapi: facturés et ` +
-          `inutilisables tant que l'import n'est pas rejoué (voir la colonne notes).`
+        ? `\n${partial} acheté(s) chez Twilio mais NON rattaché(s) au trunk SIP: facturés et ` +
+          `inutilisables tant que le rattachement n'est pas rejoué (voir la colonne notes).`
         : ''),
   );
 

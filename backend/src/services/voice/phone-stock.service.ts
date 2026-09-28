@@ -28,8 +28,34 @@ import { vapiClient } from '../../config/vapi';
  * fenêtre grande ouverte entre les deux.
  *
  * Un numéro pris mais qui ne sonne chez personne est PIRE que pas de numéro:
- * le client le voit actif et découvre la panne par un appelant. Si le
- * rattachement à l'assistant échoue chez Vapi, la prise est donc annulée.
+ * le client le voit actif et découvre la panne par un appelant. La prise est
+ * donc annulée dès que le rattachement échoue.
+ *
+ * ── CE QUI FAIT SONNER UN NUMÉRO A CHANGÉ (28/09/2026) ──────────────────────
+ *
+ * Ce module a été écrit quand Vapi décrochait. Il attribuait un numéro, le
+ * rattachait à l'assistant Vapi, et c'était tout. Le cœur vocal, lui, ne
+ * connaît pas Vapi: au décroché il appelle `/context/by-number`, qui cherche
+ * le client dans `client_phone_numbers` (ou dans `clients.vapi_phone_number`).
+ *
+ * Personne n'écrivait cette ligne. Un client activé recevait donc un numéro
+ * attribué en base, branché sur Vapi, et TOTALEMENT INCONNU de la
+ * réceptionniste — qui décrochait au nom générique de « Qwillio » chez un
+ * client qui paie pour le sien, quand elle décrochait. Le seul client qui
+ * fonctionnait devait sa ligne au script de seed, écrite à la main.
+ *
+ * L'ordre d'importance est donc inversé ici, explicitement:
+ *
+ *   1. `client_phone_numbers` est BLOQUANT. C'est la seule table que le cœur
+ *      vocal lit, donc c'est elle qui décide si le numéro sonne. Si elle
+ *      échoue, le numéro repart au stock — la règle du dessus, appliquée à ce
+ *      qui tient désormais le rôle.
+ *   2. Le rattachement Vapi devient DE CONFORT. Il est rejoué quand la ligne
+ *      en porte encore un identifiant, et son échec ne fait plus rien tomber:
+ *      Twilio n'envoie l'appel qu'à UN seul destinataire, et ce destinataire
+ *      est le trunk SIP dès que le numéro y est rattaché.
+ *   3. On refuse la prise si le numéro ne sonne NULLE PART — ni trunk SIP, ni
+ *      Vapi. C'est la règle d'origine, rendue à sa forme générale.
  */
 
 export type StockClaim =
@@ -41,6 +67,65 @@ interface ClaimedRow {
   id: string;
   number: string;
   vapiNumberId: string | null;
+  sipTrunkSid: string | null;
+}
+
+/**
+ * Où ce numéro sonne-t-il, s'il sonne.
+ *
+ * `voice-core` gagne quand les deux sont posés: Twilio n'achemine un numéro
+ * que vers UN destinataire, et un numéro rattaché au trunk SIP part chez
+ * LiveKit quoi que Vapi en pense.
+ */
+function acheminement(ligne: { vapiNumberId: string | null; sipTrunkSid: string | null }):
+  | 'voice-core'
+  | 'vapi'
+  | null {
+  if (ligne.sipTrunkSid) return 'voice-core';
+  if (ligne.vapiNumberId) return 'vapi';
+  return null;
+}
+
+/**
+ * Inscrit la ligne LÀ OÙ LE CŒUR VOCAL LA LIT.
+ *
+ * `client_phone_numbers` n'a pas de contrainte d'unicité sur (client, numéro):
+ * on lit puis on écrit. La fenêtre est sans danger ici — la prise du stock,
+ * elle, est atomique, donc deux activations du même client ne peuvent pas
+ * tenir deux numéros différents, et le pire cas est une ligne réactivée deux
+ * fois.
+ *
+ * Une ligne déjà là est RÉACTIVÉE plutôt que dupliquée: deux lignes actives
+ * pour le même numéro feraient dépendre la réponse de `findFirst`, c'est-à-dire
+ * de l'ordre d'insertion.
+ */
+async function inscrireLaLigne(
+  clientId: string,
+  numero: string,
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  try {
+    const existante = await prisma.clientPhoneNumber.findFirst({
+      where: { clientId, number: numero },
+      select: { id: true, isActive: true },
+    });
+
+    if (existante) {
+      if (!existante.isActive) {
+        await prisma.clientPhoneNumber.update({
+          where: { id: existante.id },
+          data: { isActive: true },
+        });
+      }
+      return { ok: true };
+    }
+
+    await prisma.clientPhoneNumber.create({
+      data: { clientId, number: numero, label: 'Ligne principale', isActive: true },
+    });
+    return { ok: true };
+  } catch (error) {
+    return { ok: false, reason: `Inscription de la ligne refusée: ${(error as Error).message}` };
+  }
 }
 
 /**
@@ -53,15 +138,18 @@ interface ClaimedRow {
 export async function claimNumberForClient(clientId: string, assistantId: string): Promise<StockClaim> {
   const held = await prisma.phoneNumberStock.findFirst({
     where: { clientId, status: 'assigned' },
-    select: { id: true, number: true, vapiNumberId: true },
+    select: { id: true, number: true, vapiNumberId: true, sipTrunkSid: true },
     orderBy: { assignedAt: 'asc' },
   });
 
   if (held) {
-    /* Le rattachement est rejoué: l'assistant a pu être recréé depuis (nouvel
-       identifiant Vapi) alors que le numéro, lui, n'a pas bougé. */
-    const attached = await attachAssistant(held.vapiNumberId, assistantId);
-    if (!attached.ok) return { kind: 'failed', reason: attached.reason };
+    /* L'INSCRIPTION EST REJOUÉE, ET C'EST TOUT L'INTÉRÊT DE PASSER ICI.
+       Les clients activés avant cette correction tiennent un numéro sans ligne
+       dans `client_phone_numbers`: ils sont injoignables et rien ne le dit. Une
+       réactivation les répare, sans consommer un second numéro. */
+    const inscrite = await inscrireLaLigne(clientId, held.number);
+    if (!inscrite.ok) return { kind: 'failed', reason: inscrite.reason };
+    await rejouerVapi(held, assistantId);
     return { kind: 'claimed', number: held.number, vapiNumberId: held.vapiNumberId, reused: true };
   }
 
@@ -87,7 +175,7 @@ export async function claimNumberForClient(clientId: string, assistantId: string
         LIMIT 1
         FOR UPDATE SKIP LOCKED
      )
-    RETURNING id, number, vapi_number_id AS "vapiNumberId"
+    RETURNING id, number, vapi_number_id AS "vapiNumberId", sip_trunk_sid AS "sipTrunkSid"
   `;
 
   const claimed = rows?.[0];
@@ -96,20 +184,37 @@ export async function claimNumberForClient(clientId: string, assistantId: string
     return { kind: 'empty' };
   }
 
-  const attached = await attachAssistant(claimed.vapiNumberId, assistantId);
-  if (!attached.ok) {
-    /* On rend le numéro plutôt que de laisser un client « actif » sur une
-       ligne muette. Le numéro reste acheté et facturé de toute façon; ce qui
-       compte est qu'il retourne dans le lot des libres. */
+  /* On rend le numéro plutôt que de laisser un client « actif » sur une ligne
+     muette. Le numéro reste acheté et facturé de toute façon; ce qui compte
+     est qu'il retourne dans le lot des libres. */
+  const rendre = async (raison: string): Promise<StockClaim> => {
     await prisma.phoneNumberStock.update({
       where: { id: claimed.id },
       data: { status: 'available', clientId: null, assignedAt: null },
     });
-    logger.error(`[PhoneStock] ${claimed.number} rendu au stock: ${attached.reason}`);
-    return { kind: 'failed', reason: attached.reason };
+    logger.error(`[PhoneStock] ${claimed.number} rendu au stock: ${raison}`);
+    return { kind: 'failed', reason: raison };
+  };
+
+  /* Le numéro ne sonne nulle part: ni trunk SIP, ni Vapi. L'attribuer
+     donnerait au client une ligne qu'aucun appel n'atteindra. */
+  if (acheminement(claimed) === null) {
+    return rendre(
+      `${claimed.number} n'est rattaché à rien (ni trunk SIP, ni Vapi): ` +
+        'acheté et facturé, mais aucun appel ne lui parviendra.',
+    );
   }
 
-  logger.info(`[PhoneStock] ${claimed.number} attribué à ${clientId}`);
+  /* LA LIGNE QUE LE CŒUR VOCAL LIT. Bloquante: sans elle, `/context/by-number`
+     ne trouve pas le client et la réceptionniste décroche au nom générique. */
+  const inscrite = await inscrireLaLigne(clientId, claimed.number);
+  if (!inscrite.ok) return rendre(inscrite.reason);
+
+  await rejouerVapi(claimed, assistantId);
+
+  logger.info(
+    `[PhoneStock] ${claimed.number} attribué à ${clientId} (acheminement: ${acheminement(claimed)})`,
+  );
   await warnIfLow();
   return { kind: 'claimed', number: claimed.number, vapiNumberId: claimed.vapiNumberId, reused: false };
 }
@@ -137,6 +242,26 @@ export async function releaseClientNumbers(clientId: string): Promise<number> {
          base: le numéro doit redevenir attribuable de toute façon, et le
          prochain preneur écrasera l'assistant. */
       logger.warn(`[PhoneStock] détachement Vapi échoué pour ${line.number}: ${(error as Error).message}`);
+    }
+  }
+
+  /* ÉTEINDRE LA LIGNE AVANT DE RENDRE LE NUMÉRO, et ce n'est pas un détail de
+     ménage. Une ligne laissée active pointe encore vers l'ancien client; le
+     numéro repart au lot, un nouveau client le prend, et `/context/by-number`
+     trouve alors DEUX lignes pour ce numéro. Le résident de la première
+     décroche chez le second — avec son nom, ses horaires et ses rendez-vous.
+     La symétrie de l'inscription est donc obligatoire, pas facultative. */
+  for (const line of held) {
+    try {
+      await prisma.clientPhoneNumber.updateMany({
+        where: { clientId, number: line.number },
+        data: { isActive: false },
+      });
+    } catch (error) {
+      logger.error(
+        `[PhoneStock] ligne ${line.number} NON désactivée: ${(error as Error).message}. ` +
+          'Elle répondra encore pour ce client si le numéro est réattribué.',
+      );
     }
   }
 
@@ -190,21 +315,38 @@ async function warnIfLow(): Promise<void> {
   }
 }
 
-/** Rattache le numéro à l'assistant chez Vapi. */
-async function attachAssistant(
-  vapiNumberId: string | null,
+/**
+ * Rattache le numéro à l'assistant Vapi — AU MIEUX, plus jamais en bloquant.
+ *
+ * Tant que des numéros restent acheminés vers Vapi, ce rattachement est ce qui
+ * les fait sonner, et il continue donc d'être rejoué. Mais il ne décide plus
+ * du sort d'une activation: un numéro déjà sur le trunk SIP n'a rien à faire
+ * chez Vapi, et faire échouer sa prise parce qu'une API qu'on quitte a répondu
+ * 4xx serait se rendre dépendant de ce qu'on est en train de retirer.
+ *
+ * L'échec est journalisé en `warn` et non avalé: quand la ligne est encore
+ * VRAIMENT chez Vapi, c'est la seule trace qui dira pourquoi elle ne sonne pas.
+ */
+async function rejouerVapi(
+  ligne: { number: string; vapiNumberId: string | null; sipTrunkSid: string | null },
   assistantId: string,
-): Promise<{ ok: true } | { ok: false; reason: string }> {
-  if (!vapiNumberId) {
-    /* Numéro acheté chez Twilio mais jamais importé chez Vapi: il est facturé
-       sans être joignable. Le script d'achat pose les deux; une ligne sans
-       identifiant Vapi signale que l'import s'est arrêté en route. */
-    return { ok: false, reason: "Le numéro n'est pas importé chez Vapi (vapiNumberId absent)." };
-  }
+): Promise<void> {
+  if (!ligne.vapiNumberId) return;
   try {
-    await vapiClient.updatePhoneNumber(vapiNumberId, { assistantId });
-    return { ok: true };
+    await vapiClient.updatePhoneNumber(ligne.vapiNumberId, { assistantId });
   } catch (error) {
-    return { ok: false, reason: `Rattachement Vapi refusé: ${(error as Error).message}` };
+    /* Un accès indexé sur le journal se type mal et n'apporte rien : deux
+       branches explicites, et le message n'est pas le même de toute façon. */
+    if (acheminement(ligne) === 'vapi') {
+      logger.error(
+        `[PhoneStock] rattachement Vapi échoué pour ${ligne.number}: ` +
+          `${(error as Error).message} — ce numéro est acheminé vers Vapi, il ne sonnera pas.`,
+      );
+    } else {
+      logger.warn(
+        `[PhoneStock] rattachement Vapi échoué pour ${ligne.number}: ` +
+          `${(error as Error).message} (sans effet : le numéro est acheminé vers le cœur vocal).`,
+      );
+    }
   }
 }
