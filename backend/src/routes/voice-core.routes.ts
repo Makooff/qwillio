@@ -5,6 +5,7 @@ import { voiceCoreAuth } from '../middleware/voice-core.middleware';
 import { realtimeContextService } from '../services/voice/realtime-context.service';
 import { clientCallService } from '../services/client-call.service';
 import { toolRuntimeService } from '../services/voice/tool-runtime.service';
+import { callerMemoryService } from '../services/voice/caller-memory.service';
 
 /**
  * Le pont vers `qwillio-voice-core` — /api/voice-core/*
@@ -112,12 +113,77 @@ router.get('/context/by-number/:trunkNumber', async (req, res) => {
       transferNumber: ligne?.transferNumber || profil.transferNumber || null,
       transferMode: profil.transferMode || 'always',
       forwardingType: profil.forwardingType || null,
+
+      /* LES HORAIRES DU CLIENT, et ils ne passaient pas (28/09/2026).
+         `voice-core` décidait avec une table écrite en dur dans `storage.py` —
+         lundi-vendredi 9 h-18 h, samedi 9 h-13 h — qui ne sont les horaires de
+         personne. Un client règle ses heures dans le portail, l'écran les
+         affiche, l'agenda les respecte, et l'agent proposait mercredi 9 h chez
+         un commerce fermé le mercredi.
+         C'est l'incident du 12/09 (rendez-vous pris un dimanche chez un
+         commerce fermé le dimanche) réapparu dans le nouveau moteur, pour la
+         même raison : les horaires n'étaient lus nulle part. */
+      openingHours: profil.weekHours || null,
+      /* La FORME PARLÉE des mêmes horaires, déjà construite ici. L'agent la
+         dit à voix haute ; la reconstruire côté Python aurait donné deux
+         phrases différentes pour les mêmes heures. */
+      openingHoursSpoken: profil.openingHours || null,
+      /* Le fuseau de l'entreprise, la même règle que l'agenda et les créneaux :
+         `businessTimezone`. Un agent qui calcule « demain » dans un autre
+         fuseau se trompe de jour une nuit sur deux. */
+      timezone: profil.timezone || null,
+      services: profil.services || [],
+      bookingEnabled: profil.bookingEnabled !== false,
       lines: [...new Set(lignes)],
       phoneNumber: profil.inboundNumber,
     });
   } catch (error) {
     logger.error('[voice-core] contexte illisible:', error);
     return res.status(500).json({ error: 'context_failed' });
+  }
+});
+
+/**
+ * POST /api/voice-core/calls/start — l'appel qui commence.
+ *
+ * Pour que le gérant voie l'appel PENDANT qu'il a lieu, et pas trois minutes
+ * après. La colonne `status` de `ClientCall` vaut `in-progress` par défaut :
+ * le schéma attendait cette ligne depuis le début.
+ *
+ * On NE passe PAS par un websocket. `emitEvent` diffuse à tous les navigateurs
+ * connectés sans filtrer par client : y mettre un numéro d'appelant le
+ * montrerait au tableau de bord de tous les autres. La ligne en base est lue
+ * par le client concerné, et par lui seul.
+ *
+ * Elle ne bloque jamais le décroché : `voice-core` l'appelle sans l'attendre.
+ */
+router.post('/calls/start', async (req, res) => {
+  const { clientId, room, caller, trunkNumber, brain } = req.body || {};
+  if (!clientId || !room) return res.status(400).json({ error: 'missing_room_or_client' });
+
+  try {
+    const salle = String(room);
+    const appel = await prisma.clientCall.upsert({
+      where: { vapiCallId: salle },
+      create: {
+        clientId: String(clientId),
+        vapiCallId: salle,
+        callerNumber: caller ? String(caller) : null,
+        direction: 'inbound',
+        status: 'in-progress',
+        startedAt: new Date(),
+        metadata: { source: 'voice-core', room: salle, brain: brain ?? null,
+                    trunkNumber: trunkNumber ?? null, live: true },
+      },
+      /* Un rejeu ne réécrit rien : si la fiche existe déjà, l'appel est plus
+         avancé que ce message-ci. */
+      update: {},
+      select: { id: true },
+    });
+    return res.status(201).json({ id: appel.id });
+  } catch (error) {
+    logger.error('[voice-core] appel en cours non affiché:', error);
+    return res.status(500).json({ error: 'start_failed' });
   }
 });
 
@@ -170,12 +236,18 @@ router.post('/calls', async (req, res) => {
   try {
     if (enCours.has(salle)) return res.status(202).json({ room: salle, pending: true });
 
-    /* La room LiveKit est l'identifiant naturel : une room, un appel. */
+    /* La room LiveKit est l'identifiant naturel : une room, un appel.
+       MAIS une fiche `in-progress` n'est PAS un appel déjà traité : c'est le
+       placeholder posé au décroché pour que le gérant voie l'appel en direct.
+       Le confondre avec un doublon ferait sauter tout le traitement de fin
+       d'appel — transcript, résumé, lead — sur CHAQUE appel. */
     const deja = await prisma.clientCall.findUnique({
       where: { vapiCallId: salle },
-      select: { id: true },
+      select: { id: true, status: true },
     });
-    if (deja) return res.status(200).json({ id: deja.id, already: true });
+    if (deja && deja.status !== 'in-progress') {
+      return res.status(200).json({ id: deja.id, already: true });
+    }
 
     enCours.add(salle);
     res.status(202).json({ room: salle, accepted: true });
@@ -191,6 +263,15 @@ router.post('/calls', async (req, res) => {
     const duree = Number.isFinite(Number(durationSeconds))
       ? Math.max(0, Math.trunc(Number(durationSeconds)))
       : 0;
+
+    /* Le placeholder s'efface juste avant que le service écrive la vraie
+       fiche. `handleClientCallCompleted` fait un `create`, pas un `upsert` —
+       le laisser en place le ferait échouer sur la contrainte d'unicité de
+       `vapiCallId`. La fenêtre est de quelques millisecondes et l'appel est
+       terminé : personne ne regarde cette ligne à cet instant. */
+    await prisma.clientCall.deleteMany({
+      where: { vapiCallId: salle, status: 'in-progress' },
+    });
 
     await clientCallService.handleClientCallCompleted(
       String(clientId),
@@ -490,6 +571,226 @@ router.post('/bookings/:id/cancel', async (req, res) => {
   } catch (error) {
     logger.error('[voice-core] annulation refusée:', error);
     return res.status(500).json({ error: 'cancel_failed' });
+  }
+});
+
+/* ══════════════════════════════════════════════════════════════════════════
+   CE QUI RESTAIT DANS SQLITE
+
+   Les rendez-vous sont partis les premiers. Restaient les leads, la base de
+   connaissance, le journal des lacunes et la memoire d'appelant — tous les
+   quatre dans `voice-core.db`, un fichier pose a cote du worker.
+
+   Tant qu'il existe, le worker n'est pas sans etat : il lui faut un disque,
+   donc une instance unique, donc un plan, donc une region. Et le jour ou l'on
+   met deux workers pour absorber les appels simultanes, deux SQLite divergent
+   sans que personne le voie.
+
+   Ces quatre routes finissent le travail. Apres elles, le worker est du calcul
+   pur : il se deploie n'importe ou, se duplique, se redeploie sans rien
+   perdre — et le choix de l'hebergeur redevient une question de prix,
+   revisable, au lieu d'une decision d'architecture.
+
+   Les quatre tables existaient DEJA dans ce schema. SQLite etait l'echafaudage
+   qui a permis a `voice-core` d'exister avant le pont.
+   ══════════════════════════════════════════════════════════════════════════ */
+
+/**
+ * POST /api/voice-core/leads — la fiche de rappel.
+ *
+ * Ecrit une `AgentCrmActivity` de type `lead_capture`, exactement comme le
+ * fait `captureLead` pour Vapi : c'est la ligne durable ET la charge utile que
+ * la synchro CRM externe draine. Ecrire ailleurs aurait produit des leads que
+ * le CRM ne voit pas — precisement l'ecart que ce pont existe pour fermer.
+ *
+ * La memoire d'appelant suit, en tache de fond : c'est un supplement, et un
+ * supplement ne doit jamais faire echouer la fiche qu'il enrichit.
+ */
+router.post('/leads', async (req, res) => {
+  const { clientId, caller, name, reason, email, adresse, pourQui, quand, urgence, room } =
+    req.body || {};
+  if (!clientId) return res.status(400).json({ error: 'bad_client' });
+
+  try {
+    const profil = await realtimeContextService.getClientProfile(String(clientId));
+    const telephone = caller ? String(caller) : null;
+
+    const activite = await prisma.agentCrmActivity.create({
+      data: {
+        clientId: String(clientId),
+        type: 'lead_capture',
+        status: 'pending',
+        content: {
+          source: 'voice-core',
+          vapiCallId: room ? String(room) : null,
+          capturedAt: new Date().toISOString(),
+          contact: {
+            name: name ? String(name) : null,
+            email: email ? String(email) : null,
+            phone: telephone,
+            address: adresse ? String(adresse) : null,
+          },
+          reason: reason ? String(reason) : '',
+          /* `voice-core` parle francais, le CRM attend low|normal|high. */
+          urgency: urgence === 'urgente' ? 'high' : urgence === 'faible' ? 'low' : 'normal',
+          forPerson: pourQui ? String(pourQui).slice(0, 40) : null,
+          callbackWhen: quand ? String(quand).slice(0, 40) : null,
+          language: profil?.language ?? 'fr',
+          businessName: profil?.businessName ?? null,
+        },
+      },
+      select: { id: true },
+    });
+
+    res.status(201).json({ id: activite.id });
+
+    void callerMemoryService
+      .remember({
+        clientId: String(clientId),
+        callerNumber: telephone,
+        name: name ? String(name) : null,
+        email: email ? String(email) : null,
+        summary: reason ? String(reason) : null,
+        outcome: 'lead',
+      })
+      .catch((e: Error) => logger.warn(`[voice-core] memoire d'appelant non ecrite: ${e.message}`));
+    return;
+  } catch (error) {
+    logger.error('[voice-core] lead refuse:', error);
+    return res.status(500).json({ error: 'lead_failed' });
+  }
+});
+
+/**
+ * GET /api/voice-core/knowledge — ce que le commerce sait.
+ *
+ * Lu UNE FOIS au decroche, pas par tour : un acces reseau au milieu d'un tour
+ * est une latence que l'appelant entend.
+ *
+ * On ne rend PAS `embedding`. `voice-core` fait une recherche lexicale en
+ * microsecondes la ou l'ancien lancait un aller-retour d'embedding sur un tour
+ * que l'appelant attend ; transporter le vecteur serait payer le poids d'une
+ * fonctionnalite qu'on a delibrement retiree.
+ */
+router.get('/knowledge', async (req, res) => {
+  const clientId = String(req.query.clientId || '');
+  if (!clientId) return res.status(400).json({ error: 'bad_client' });
+
+  try {
+    const entrees = await prisma.businessKnowledge.findMany({
+      where: { clientId, isActive: true },
+      select: { id: true, kind: true, title: true, content: true, keywords: true, priority: true },
+      orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
+      take: 500,
+    });
+    return res.json({
+      entries: entrees.map((e) => ({
+        id: e.id,
+        genre: e.kind,
+        titre: e.title,
+        contenu: e.content,
+        mots_cles: e.keywords ?? [],
+        priorite: e.priority,
+      })),
+    });
+  } catch (error) {
+    logger.error('[voice-core] connaissance illisible:', error);
+    return res.status(500).json({ error: 'knowledge_failed' });
+  }
+});
+
+/**
+ * POST /api/voice-core/knowledge-gaps — la question restee sans reponse.
+ *
+ * Regroupee par empreinte, avec le nombre de fois qu'elle a ete posee et la
+ * formulation la plus recente — dans les mots de l'appelant, seul moment ou
+ * elle existe. Sans ca, l'agent promet de faire remonter la question et la
+ * question s'arrete la : le gerant ne l'apprend pas, la base ne grossit pas,
+ * et l'appelant suivant repose la meme question pour la meme absence de
+ * reponse.
+ *
+ * `upsert` sur (clientId, fingerprint), qui est l'index unique du schema :
+ * c'est la base qui compte, pas nous.
+ */
+router.post('/knowledge-gaps', async (req, res) => {
+  const { clientId, empreinte, question, langue } = req.body || {};
+  if (!clientId || !empreinte || !question) {
+    return res.status(400).json({ error: 'missing_gap_fields' });
+  }
+
+  try {
+    await prisma.knowledgeGap.upsert({
+      where: {
+        clientId_fingerprint: { clientId: String(clientId), fingerprint: String(empreinte) },
+      },
+      create: {
+        clientId: String(clientId),
+        fingerprint: String(empreinte),
+        question: String(question).slice(0, 500),
+        language: ['fr', 'en', 'nl'].includes(String(langue)) ? String(langue) : 'fr',
+        source: 'voice-core',
+      },
+      update: {
+        askedCount: { increment: 1 },
+        /* La formulation la PLUS RECENTE remplace l'ancienne : c'est celle
+           qui dit le mieux comment les gens posent la question aujourd'hui. */
+        question: String(question).slice(0, 500),
+        lastAskedAt: new Date(),
+      },
+    });
+    return res.status(204).end();
+  } catch (error) {
+    logger.error('[voice-core] lacune non notee:', error);
+    return res.status(500).json({ error: 'gap_failed' });
+  }
+});
+
+/**
+ * GET /api/voice-core/caller — ce qu'on sait deja de ce numero.
+ *
+ * Sert au bloc d'ouverture : saluer par le prenom, savoir qu'un rendez-vous
+ * est a venir, ne pas redemander ce qui a deja ete donne. Le site le promet en
+ * toutes lettres.
+ *
+ * Le nom vient de la MEMOIRE d'appelant d'abord, des reservations ensuite :
+ * la memoire porte le nom confirme (relu, epele), la reservation porte ce qui
+ * a ete tape. Quand les deux existent, c'est le confirme qui gagne.
+ */
+router.get('/caller', async (req, res) => {
+  const clientId = String(req.query.clientId || '');
+  const caller = String(req.query.caller || '');
+  if (!clientId || !caller) return res.status(400).json({ error: 'bad_client_or_caller' });
+
+  try {
+    const formes = ecrituresDuNumero(caller);
+    const aujourd = new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z');
+
+    const [memoire, appels, rdv] = await Promise.all([
+      prisma.callerMemory.findFirst({
+        where: { clientId, callerNumber: { in: formes } },
+        select: { knownName: true, totalCalls: true, lastSummary: true },
+      }),
+      prisma.clientCall.count({ where: { clientId, callerNumber: { in: formes } } }),
+      prisma.clientBooking.findFirst({
+        where: {
+          clientId,
+          customerPhone: { in: formes },
+          status: 'confirmed',
+          bookingDate: { gte: aujourd },
+        },
+        select: { customerName: true },
+      }),
+    ]);
+
+    return res.json({
+      appels: Math.max(appels, memoire?.totalCalls ?? 0),
+      nom: memoire?.knownName || rdv?.customerName || null,
+      dernier_motif: memoire?.lastSummary || null,
+      rdv: Boolean(rdv),
+    });
+  } catch (error) {
+    logger.error('[voice-core] historique appelant illisible:', error);
+    return res.status(500).json({ error: 'caller_failed' });
   }
 });
 
