@@ -38,7 +38,7 @@
   "rewrites": [
     {
       "source": "/api/(.*)",
-      "destination": "https://qwillio.onrender.com/api/$1"
+      "destination": "https://qwillio-eu.onrender.com/api/$1"
     },
     {
       "source": "/demo-marie.html",
