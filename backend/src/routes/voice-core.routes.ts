@@ -2,7 +2,8 @@ import { Router } from 'express';
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { voiceCoreAuth } from '../middleware/voice-core.middleware';
-import { realtimeContextService } from '../services/voice/realtime-context.service';
+import { realtimeContextService, shouldRecord } from '../services/voice/realtime-context.service';
+import { twilioRecordingService } from '../services/voice/twilio-recording.service';
 import { clientCallService } from '../services/client-call.service';
 import { toolRuntimeService } from '../services/voice/tool-runtime.service';
 import { callerMemoryService } from '../services/voice/caller-memory.service';
@@ -104,6 +105,15 @@ router.get('/context/by-number/:trunkNumber', async (req, res) => {
 
     return res.json({
       clientId: profil.clientId,
+      /* L'ENREGISTREMENT SE DIT PAR CLIENT, PAS PAR WORKER.
+         `voice-core` avait son propre VC_RECORDING, un booléen d'environnement
+         valable pour tout le monde à la fois: un client qui coupe
+         l'enregistrement dans son portail restait enregistré, et un client qui
+         l'accepte n'entendait rien annoncer. Le réglage voyage donc avec le
+         profil, comme la langue et les horaires, et c'est LUI qui décide à la
+         fois de la notice dite à l'appelant et du démarrage de
+         l'enregistrement. Un seul prédicat pour les deux: `shouldRecord`. */
+      enregistrement: shouldRecord(profil),
       business: profil.businessName,
       businessType: profil.businessType,
       agent: ligne?.agentName || profil.agentName,
@@ -158,7 +168,7 @@ router.get('/context/by-number/:trunkNumber', async (req, res) => {
  * Elle ne bloque jamais le décroché : `voice-core` l'appelle sans l'attendre.
  */
 router.post('/calls/start', async (req, res) => {
-  const { clientId, room, caller, trunkNumber, brain } = req.body || {};
+  const { clientId, room, caller, trunkNumber, brain, twilioCallSid } = req.body || {};
   if (!clientId || !room) return res.status(400).json({ error: 'missing_room_or_client' });
 
   try {
@@ -178,9 +188,52 @@ router.post('/calls/start', async (req, res) => {
       /* Un rejeu ne réécrit rien : si la fiche existe déjà, l'appel est plus
          avancé que ce message-ci. */
       update: {},
-      select: { id: true },
+      select: { id: true, metadata: true },
     });
-    return res.status(201).json({ id: appel.id });
+
+    /* L'ENREGISTREMENT DÉMARRE ICI, PAS SUR LE TRUNK.
+
+       Le trunk sait enregistrer tout seul, et c'est justement le piège: son
+       réglage vaut pour tous les clients qui passent par lui. Démarré ici, il
+       n'existe QUE pour un client qui l'accepte — pour celui qui a coupé,
+       l'enregistrement n'a jamais lieu, ce qui n'est pas la même chose que de
+       l'effacer après coup.
+
+       Au décroché et pas en fin d'appel, évidemment: on n'enregistre pas le
+       passé. Et sans attendre — la réponse est déjà ce que `voice-core`
+       attend pour afficher l'appel en cours, et un enregistrement qui tarde
+       d'une seconde vaut mieux qu'un décroché qui tarde d'une seconde. */
+    res.status(201).json({ id: appel.id });
+
+    if (twilioCallSid) {
+      void (async () => {
+        try {
+          const profil = await realtimeContextService.getClientProfile(String(clientId));
+          if (profil && !shouldRecord(profil)) {
+            logger.info(`[voice-core] ${clientId} a coupé l'enregistrement — appel non enregistré.`);
+            return;
+          }
+          const sid = await twilioRecordingService.demarrer(String(twilioCallSid));
+          if (!sid) return;
+          /* Le SID est rangé sur la fiche pour que la fin d'appel n'ait pas à
+             redemander à Twilio ce qu'on savait déjà — et pour qu'un appel
+             dont la remontée se perd garde quand même la trace de son audio,
+             seul moyen de le purger plus tard. */
+          await prisma.clientCall.update({
+            where: { id: appel.id },
+            data: {
+              metadata: {
+                ...((appel.metadata as Record<string, unknown> | null) ?? {}),
+                recordingSid: sid,
+              },
+            },
+          });
+        } catch (e) {
+          logger.error(`[voice-core] enregistrement non démarré pour ${salle}: ${(e as Error).message}`);
+        }
+      })();
+    }
+    return;
   } catch (error) {
     logger.error('[voice-core] appel en cours non affiché:', error);
     return res.status(500).json({ error: 'start_failed' });
@@ -224,8 +277,8 @@ const enCours = new Set<string>();
  * charge utile dans son log dans les deux cas.
  */
 router.post('/calls', async (req, res) => {
-  const { room, caller, trunkNumber, clientId, brain, startedAt, durationSeconds, latency, transcript } =
-    req.body || {};
+  const { room, caller, trunkNumber, clientId, brain, startedAt, durationSeconds, latency, transcript,
+          twilioCallSid } = req.body || {};
 
   if (!room || !clientId) {
     return res.status(400).json({ error: 'missing_room_or_client' });
@@ -273,15 +326,27 @@ router.post('/calls', async (req, res) => {
       where: { vapiCallId: salle, status: 'in-progress' },
     });
 
+    const enregistrement = twilioCallSid
+      ? await twilioRecordingService.delAppel(String(twilioCallSid))
+      : null;
+
     await clientCallService.handleClientCallCompleted(
       String(clientId),
       salle,
       typeof transcript === 'string' ? transcript : '',
       duree,
       caller ? String(caller) : undefined,
-      /* `recordingUrl` : l'enregistrement est celui de Twilio, et `voice-core`
-         n'en connaît pas l'URL. À brancher séparément, côté Twilio. */
-      undefined,
+      /* L'ENREGISTREMENT, s'il y en a eu un.
+
+         Demandé à Twilio plutôt que déduit du SID posé au décroché: seule la
+         fin d'appel sait si l'enregistrement s'est terminé, et une URL rendue
+         pour un média encore en traitement répondrait 404 au portail — pire
+         qu'une absence d'URL, qui elle au moins se dit. `delAppel` rend null
+         dans ce cas, et la ligne reste simplement sans audio.
+
+         Une absence ici n'est PAS une anomalie: c'est l'état normal d'un
+         client qui a coupé l'enregistrement. */
+      enregistrement?.url,
       /* `voiceMode` RESTE NULL, volontairement. Le schéma dit « null =
          inconnu, donc jamais facturé », et les deux valeurs qu'il accepte
          ('realtime' | 'classic') décrivent le moteur Vapi, pas les cerveaux

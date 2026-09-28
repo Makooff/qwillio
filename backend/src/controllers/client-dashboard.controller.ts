@@ -19,6 +19,7 @@ import { clientMessage, type PhoneSetupState } from '../services/voice/phone-set
 import { wouldLoop, LOOP_MESSAGE } from '../services/voice/transfer-loop';
 import { vapiClient } from '../config/vapi';
 import { recordingCandidates } from '../services/voice/recording-urls';
+import { enteteAuthTwilio, sidDepuisUrl } from '../services/voice/twilio-recording.service';
 import { Readable } from 'stream';
 import { voiceModeFor } from '../services/voice/voice-tiers';
 import { lowestPlanFor, superagentAllowed } from '../config/plan-features';
@@ -402,7 +403,16 @@ export class ClientDashboardController {
          la première (`artifact.recordingUrl`) est une adresse R2 nue, privée
          au compte, et le même appel en porte d'autres (13/09). */
       const urls: string[] = [];
-      if (call.vapiCallId) {
+
+      /* L'ENREGISTREMENT EST-IL CHEZ TWILIO ? Alors Vapi n'a rien à en dire.
+
+         `vapiCallId` porte le nom de la salle LiveKit pour un appel servi par
+         `voice-core`: l'envoyer à Vapi coûte deux requêtes inutiles et deux
+         avertissements dans les journaux à CHAQUE écoute, pour une réponse
+         qui ne pouvait être que vide. */
+      const chezTwilio = Boolean(sidDepuisUrl(call.recordingUrl));
+
+      if (call.vapiCallId && !chezTwilio) {
         /* L'adresse SIGNÉE d'abord (`/call/:id/mono-recording`, 302): c'est
            la seule qui se lit sur le stockage privé de Vapi. Les adresses
            nues de l'appel restent en repli pour un compte dont le stockage
@@ -428,7 +438,16 @@ export class ClientDashboardController {
       let why = '';
       let lastStatus = 0;
       for (const url of urls) {
-        const attempt = await fetch(url, { headers: range ? { Range: range } : {} });
+        /* UNE URL DE MÉDIA TWILIO EST PRIVÉE, et le dit par un 401 sec.
+           Vapi signe ses adresses, Twilio non: c'est le compte qui ouvre la
+           sienne, en Basic. Sans cet en-tête le lecteur affichait un 502 et
+           le gérant concluait que l'appel n'avait pas été enregistré. */
+        const entetes: Record<string, string> = range ? { Range: range } : {};
+        if (sidDepuisUrl(url)) {
+          const auth = enteteAuthTwilio();
+          if (auth) entetes.Authorization = auth;
+        }
+        const attempt = await fetch(url, { headers: entetes });
         if (attempt.ok) {
           upstream = attempt;
           break;
