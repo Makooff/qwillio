@@ -39,6 +39,7 @@
  */
 import { prisma } from '../config/database';
 import { env } from '../config/env';
+import { twilioTrunkClient } from '../config/twilio-trunk';
 
 /**
  * Les types que Twilio expose par pays, et ce qu'ils coûtent À L'APPELANT.
@@ -89,6 +90,15 @@ function twilioClient() {
   const twilio = require('twilio');
   return twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN);
 }
+
+/**
+ * Le client Twilio pour les appels de TRUNKING, qui n'est pas le même.
+ *
+ * Les numéros se listent sur l'API par défaut; le trunk, lui, vit dans sa
+ * région et n'est joignable que là. Un seul client pour les deux ferait donc
+ * échouer l'un ou l'autre, selon la région choisie — d'où deux clients, et un
+ * commentaire pour que le prochain ne les refonde pas en un.
+ */
 
 interface Bought {
   number: string;
@@ -230,8 +240,8 @@ async function main() {
              l'acheter, donc on tient déjà son `PN...`: le chercher à nouveau
              par son écriture rouvrirait la question des formats (+32, 0032, 0…)
              que ce dépôt a déjà payée une fois. */
-          await client.trunking.v1
-            .trunks(env.TWILIO_SIP_TRUNK_SID)
+          await twilioTrunkClient()
+            .trunking.v1.trunks(env.TWILIO_SIP_TRUNK_SID)
             .phoneNumbers.create({ phoneNumberSid: bought.sid });
           sipTrunkSid = env.TWILIO_SIP_TRUNK_SID;
         } catch (e) {

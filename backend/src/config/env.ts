@@ -783,6 +783,38 @@ export const env = {
    * bon comportement — mieux vaut un client sans numéro qu'un client avec un
    * numéro muet. */
   TWILIO_SIP_TRUNK_SID: process.env.TWILIO_SIP_TRUNK_SID || '',
+  /* La RÉGION Twilio du trunk: `ie1` (Irlande), `au1`, `de1`… Vide = us1.
+   *
+   * Twilio le dit sans détour: « IP Access Control Lists, Credential Lists,
+   * and phone number associations are also Region-specific. When configuring
+   * your SIP Trunk in a given Region, create these related resources and
+   * settings in the same Region. »
+   *
+   * Un trunk créé en Irlande n'existe donc PAS pour l'API par défaut, qui
+   * répond « Invalid SIP Trunk SID provided » en rendant le SID qu'on vient de
+   * lui donner — un message qui accuse la valeur alors que le problème est
+   * l'adresse à laquelle on la pose. Deux heures perdues garanties sans cette
+   * variable. */
+  TWILIO_TRUNK_REGION: process.env.TWILIO_TRUNK_REGION || '',
+  /* L'EDGE du trunk: `dublin` pour `ie1`, `sydney` pour `au1`, `frankfurt`
+   * pour `de1`. Vide = laisser Twilio choisir.
+   *
+   * Sans lui, le SDK fabrique `trunking.ie1.twilio.com` — un nom qui EXISTE
+   * dans le DNS mais dont le certificat ne couvre que `console.ie1…`, d'où un
+   * échec TLS qui ressemble à une panne réseau. L'hôte réel de l'API de
+   * trunking irlandaise est `trunking.dublin.ie1.twilio.com`, et le SDK ne le
+   * compose qu'avec la région ET l'edge. */
+  TWILIO_TRUNK_EDGE: process.env.TWILIO_TRUNK_EDGE || '',
+  /* La cle API REGIONALE du trunk, et son secret.
+   *
+   * L'auth token du compte est un identifiant us1: l'hote regional le refuse
+   * par un 401 « Authenticate », sans dire que c'est la region qui coince.
+   * Une cle creee dans la region est le seul identifiant qu'il accepte.
+   *
+   * Vides quand TWILIO_TRUNK_REGION est vide: sans region, l'API par defaut
+   * repond a l'auth token et il n'y a pas de cle a faire vivre. */
+  TWILIO_TRUNK_KEY_SID: process.env.TWILIO_TRUNK_KEY_SID || '',
+  TWILIO_TRUNK_KEY_SECRET: process.env.TWILIO_TRUNK_KEY_SECRET || '',
   /* En-dessous de ce nombre de numéros libres, le stock est signalé comme bas.
    * Il ne déclenche AUCUN achat: racheter une fournée reste une décision
    * d'exploitation, comme PHONE_AUTO_PROVISION. */
