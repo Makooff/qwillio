@@ -1,6 +1,7 @@
 import { Prisma } from '@prisma/client';
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
+import { twilioRecordingService, sidDepuisUrl } from './voice/twilio-recording.service';
 import { env } from '../config/env';
 
 /**
@@ -125,11 +126,11 @@ class DataRetentionService {
       if (vapiBudget > 0) {
         const withRecordings = await prisma.clientCall.findMany({
           where: { clientId: client.id, ...expired(cutoff, now), recordingUrl: { not: null }, vapiCallId: { not: null } },
-          select: { id: true, vapiCallId: true },
+          select: { id: true, vapiCallId: true, recordingUrl: true },
           take: vapiBudget,
         });
         for (const call of withRecordings) {
-          const ok = await this.deleteVapiCall(call.vapiCallId!);
+          const ok = await this.supprimerLAudio(call.recordingUrl, call.vapiCallId);
           if (ok) {
             // Purge locale immédiate: si le processus meurt entre les deux,
             // la ligne garde son URL et sera revisitée demain — un DELETE
@@ -277,8 +278,8 @@ class DataRetentionService {
     });
 
     for (const call of calls) {
-      if (call.recordingUrl && call.vapiCallId) {
-        await this.deleteVapiCall(call.vapiCallId);
+      if (call.recordingUrl) {
+        await this.supprimerLAudio(call.recordingUrl, call.vapiCallId);
       }
     }
 
@@ -330,6 +331,27 @@ class DataRetentionService {
   }
 
   /** DELETE /call/{id} chez Vapi. Best-effort: un échec sera retenté demain. */
+  /**
+   * Efface l'audio LÀ OÙ IL EST, ce qui n'est plus toujours chez Vapi.
+   *
+   * Depuis `voice-core`, l'enregistrement est celui de Twilio et `vapiCallId`
+   * ne porte plus un identifiant Vapi mais le nom de la salle LiveKit. Envoyer
+   * ce nom à Vapi rend un 404 — que cette classe traite en succès, à raison,
+   * puisqu'un audio absent est l'objectif. Le résultat serait donc le pire des
+   * deux mondes: la ligne locale perdrait son URL, la purge se déclarerait
+   * satisfaite, et l'audio resterait chez Twilio pour toujours, hors de portée
+   * de toute purge future puisque plus rien ne pointerait dessus.
+   *
+   * L'URL tranche sans ambiguïté: une adresse `…twilio.com/…/Recordings/RE…`
+   * porte son SID, et c'est la seule chose dont Twilio a besoin.
+   */
+  private async supprimerLAudio(recordingUrl: string | null, vapiCallId: string | null): Promise<boolean> {
+    const sidTwilio = sidDepuisUrl(recordingUrl);
+    if (sidTwilio) return twilioRecordingService.supprimer(sidTwilio);
+    if (vapiCallId) return this.deleteVapiCall(vapiCallId);
+    return false;
+  }
+
   private async deleteVapiCall(vapiCallId: string): Promise<boolean> {
     if (!env.VAPI_PRIVATE_KEY) return false;
     try {
