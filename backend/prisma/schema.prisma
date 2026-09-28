@@ -1957,6 +1957,19 @@ model PhoneNumberStock {
   /// permet de le voir.
   twilioSid    String?   @unique @map("twilio_sid") @db.VarChar(64)
   vapiNumberId String?   @unique @map("vapi_number_id") @db.VarChar(64)
+  /// Le trunk SIP Twilio qui achemine ce numéro vers LiveKit, `TK...`.
+  ///
+  /// L'EXACT PENDANT DE `vapiNumberId` POUR LA NOUVELLE PILE, et il existe pour
+  /// la même raison, écrite juste au-dessus : une ligne achetée mais branchée
+  /// nulle part est facturée sans être joignable, et seul l'écart entre ces
+  /// colonnes permet de le voir. `vapiNumberId` disait « Vapi l'exploite » ;
+  /// celle-ci dit « le cœur vocal l'exploite ».
+  ///
+  /// Pendant la bascule les deux coexistent, et c'est voulu : un numéro est
+  /// attribuable tant qu'il sonne QUELQUE PART. Le jour où Vapi disparaît, la
+  /// colonne d'à côté se vide et celle-ci reste seule — sans qu'aucune ligne
+  /// de logique n'ait à changer.
+  sipTrunkSid  String?   @map("sip_trunk_sid") @db.VarChar(64)
   /// Le bundle réglementaire qui a autorisé l'achat. Conservé pour l'audit:
   /// un bundle expiré ou révoqué met en cause tous les numéros qu'il couvre.
   bundleSid    String?   @map("bundle_sid") @db.VarChar(64)

@@ -23,7 +23,14 @@ vi.mock('../../google-calendar.service', () => ({ googleCalendarService: {} }));
 
 const { toolRuntimeService } = await import('../tool-runtime.service');
 
-const stripComments = (src: string) => src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+/* LES FINS DE LIGNE D'ABORD, ET C'EST TOUT LE TEST QUI EN DÉPEND.
+ *
+ * Ce test cherche un bloc de code sur PLUSIEURS lignes. Git rend le dépôt en
+ * CRLF sur Windows (`core.autocrlf`), et une recherche écrite en `\n` n'y
+ * trouve alors rien du tout: `indexOf` rend -1 et le test se déclare violé
+ * sans que rien n'ait bougé dans le code. Vert en CI, rouge sur le poste. */
+const stripComments = (src: string) =>
+  src.replace(/\r\n/g, '\n').replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
 
 describe('préchauffage à l\'ouverture de l\'appel', () => {
   beforeEach(() => senderFor.mockReset());
