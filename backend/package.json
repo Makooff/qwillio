@@ -90,5 +90,12 @@
     "typescript": "^5.7.3",
     "typescript-eslint": "^8.61.0",
     "vitest": "^2.1.9"
+  },
+  "allowScripts": {
+    "@prisma/client@6.19.3": true,
+    "@prisma/engines@6.19.3": true,
+    "prisma@6.19.3": true,
+    "esbuild@0.27.3": true,
+    "esbuild@0.21.5": true
   }
 }
