@@ -128,10 +128,17 @@ async function askModel(messages: ChatMessage[], tools: unknown[]): Promise<Mode
         ...(tools.length ? { tools } : {}),
       }),
     });
-    if (response.status !== 429 || attempt >= EVAL_RATE_LIMIT_RETRIES) break;
+    if (response.status !== 429) break;
     /* Le corps est lu ICI, donc consommé: il faut refaire la requête, ce que
        la boucle fait, et ne jamais le relire plus bas. */
-    await sleep(retryDelayMs(await response.text().catch(() => '')));
+    const corps = await response.text().catch(() => '');
+    /* Le crédit épuisé sort AVANT le compteur de réessais: réessayer une
+       facture impayée ne fait que la représenter. */
+    if (estQuotaEpuise(corps)) throw new QuotaEpuiseError(corps);
+    if (attempt >= EVAL_RATE_LIMIT_RETRIES) {
+      throw new Error(`OpenAI responded 429: ${corps.slice(0, 300)}`);
+    }
+    await sleep(retryDelayMs(corps));
   }
   if (!response.ok) {
     throw new Error(`OpenAI responded ${response.status}: ${(await response.text()).slice(0, 300)}`);
@@ -285,6 +292,47 @@ export function missingKeyBehaviour(opts: { requireKey: boolean; isCI: boolean }
 }
 
 /**
+ * Un 429 de CRÉDIT ÉPUISÉ, qui n'est pas un 429 de débit.
+ *
+ * Les deux portent le même code HTTP et c'est tout ce qu'ils ont en commun.
+ * Le débit dit « ralentis », se rouvre en une seconde, et se réessaie. Le
+ * crédit épuisé dit « ce compte ne paie plus »: le réessayer ne fait que
+ * répéter la question, et l'attendre ne sert à rien puisque rien ne se
+ * rouvrira sans un geste de facturation.
+ *
+ * Les distinguer n'est pas une subtilité: confondus, vingt scénarios tombent
+ * en « erreur d'exécution » et la CI affiche `0/20 scénarios verts` — le
+ * visage exact d'une régression totale du prompt, pour une carte à recharger.
+ * Un signal qui crie au loup une fois est un signal qu'on cesse de lire.
+ */
+export function estQuotaEpuise(corps: string): boolean {
+  return /insufficient_quota|credit_balance_exhausted|billing_hard_limit_reached/i.test(corps);
+}
+
+/** Le 429 qu'aucun réessai ne résoudra: le compte n'a plus de crédit. */
+export class QuotaEpuiseError extends Error {
+  readonly quotaEpuise = true;
+  constructor(corps: string) {
+    super(`crédit OpenAI épuisé — ${corps.slice(0, 200)}`);
+    this.name = 'QuotaEpuiseError';
+  }
+}
+
+/**
+ * Ce que la CI doit afficher quand le crédit est épuisé.
+ *
+ * Même règle que la clé absente: NON EXÉCUTÉ se dit, ne se colorie pas en
+ * rouge. Rouge veut dire « le réceptionniste s'est mis à mal répondre », et
+ * cette phrase-là doit rester vraie.
+ */
+export function quotaEpuiseBehaviour(opts: { isCI: boolean }): string {
+  const warning =
+    'crédit OpenAI épuisé — évals NON EXÉCUTÉES. Cette étape ne prouve rien, ' +
+    "et n'est pas un signal de régression. Recharger le compte OpenAI, puis relancer le run.";
+  return opts.isCI ? `::warning::${warning}` : `[evals] ${warning}`;
+}
+
+/**
  * Combien de fois on interroge le modèle avant de déclarer rouge.
  *
  * DEUX, et c'est un aveu sur ce qu'on mesure: le système sous test est
@@ -377,6 +425,13 @@ async function main() {
         console.log(`✓ ${scenario.id}`);
       }
     } catch (error) {
+      /* Le compte ne paie plus: les scénarios restants diraient la même chose
+         vingt fois. On s'arrête, on le dit, et on sort en 0 — rien n'a été
+         mesuré, donc rien ne peut être déclaré cassé. */
+      if (error instanceof QuotaEpuiseError) {
+        console.warn(quotaEpuiseBehaviour({ isCI: !!process.env.GITHUB_ACTIONS }));
+        return;
+      }
       failed += 1;
       console.error(`✗ ${scenario.id} — erreur d'exécution: ${(error as Error).message}`);
     }
