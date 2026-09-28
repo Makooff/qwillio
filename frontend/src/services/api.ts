@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const rawUrl = (import.meta.env.VITE_API_URL || 'https://qwillio.onrender.com').replace(/\/$/, '');
+const rawUrl = (import.meta.env.VITE_API_URL || 'https://qwillio-eu.onrender.com').replace(/\/$/, '');
 const baseURL = rawUrl.endsWith('/api') ? rawUrl : `${rawUrl}/api`;
 
 /* Exportée pour les réponses lues en FLUX.

@@ -1,0 +1,81 @@
+# L'INFRASTRUCTURE DU PONT, DÉCRITE PLUTÔT QUE CLIQUÉE.
+#
+# CE QUI A MOTIVÉ CE FICHIER (28/09/2026). Les trois morceaux du système
+# s'étaient posés sur trois continents logiques, sans que personne l'ait
+# décidé :
+#
+#     appelant belge → LiveKit Germany 2
+#                        worker voice-core  ·  Francfort
+#                        pont (ce service)  ·  Oregon    (~150 ms)
+#                        base Neon          ·  us-east   (~70 ms de plus)
+#
+# Une simple vérification de disponibilité partait de Francfort, traversait
+# l'Atlantique, retraversait les États-Unis, et refaisait le chemin inverse :
+# de l'ordre de 400 ms de réseau pur, sur un temps que l'appelant entend
+# comme un silence. On passait la journée à gratter des dizaines de
+# millisecondes ailleurs.
+#
+# Et Render NE SAIT PAS déplacer un service : la région est fixée à la
+# création. Il faut donc en créer un autre — ce qui, la première fois, veut
+# dire recopier 86 variables à la main. Ce fichier existe pour qu'il n'y ait
+# pas de deuxième fois.
+#
+# LES SECRETS NE SONT PAS ICI, et ne doivent jamais y être. Ils vivent dans
+# un Environment Group que ce service référence : le groupe se rattache à
+# n'importe quel service en une ligne, et un futur déménagement redevient un
+# changement de région dans ce fichier.
+
+services:
+  - type: web
+    name: qwillio-eu
+    runtime: node
+    # ── LA SEULE LIGNE QUI COMPTE VRAIMENT ──────────────────────────────────
+    # Même région que le worker LiveKit (Germany 2) et que la base Neon
+    # (eu-central-1). Les trois dans la même zone, c'est quelques
+    # millisecondes au lieu de quatre cents — et les données d'appelants
+    # belges ne quittent plus l'Union.
+    region: frankfurt
+    plan: starter
+    repo: https://github.com/Makooff/qwillio
+    branch: master
+    # Le dépôt porte aussi le frontend (déployé sur Vercel) : sans ceci, les
+    # commandes tourneraient à la racine et ne trouveraient rien.
+    rootDir: backend
+
+    # `npm ci` et non `npm install` : la CI et la production doivent installer
+    # EXACTEMENT ce que le lockfile décrit, sinon une version mineure
+    # différente s'installe en prod et le bug ne se reproduit nulle part.
+    buildCommand: npm ci && npm run build
+
+    # LES MIGRATIONS AVANT LE DÉMARRAGE, et `migrate deploy` — jamais
+    # `db push`, qui recalcule le schéma depuis `schema.prisma` et
+    # SUPPRIMERAIT l'index partiel `client_bookings_slot_unique`. Cet index
+    # vit dans la migration `20260813170000` et nulle part ailleurs : c'est
+    # lui, et lui seul, qui empêche deux appelants de réserver le même
+    # créneau.
+    preDeployCommand: npx prisma migrate deploy
+
+    startCommand: npm start
+
+    # Le point que Render interroge pour savoir si le service est vivant.
+    healthCheckPath: /api/health
+
+    # NE PAS REDÉPLOYER LE BACKEND POUR UN CHANGEMENT DE FRONTEND. Le dépôt
+    # est un monorepo : sans ce filtre, chaque commit de la vitrine
+    # reconstruit l'API, et chaque correction d'API reconstruit la vitrine.
+    buildFilter:
+      paths:
+        - backend/**
+        - render.yaml
+
+    envVars:
+      # TOUT LE RESTE EST DANS LE GROUPE. Les 86 variables — Stripe, Twilio,
+      # Google, Resend, Sentry, les clés de modèles, et les deux URLs Neon —
+      # y vivent une seule fois et servent tous les services qui s'y
+      # rattachent. Aucun secret dans ce fichier, aucun secret dans Git.
+      - fromGroup: qwillio-prod
+      # Celles-ci décrivent le service, pas un secret : elles restent ici.
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
