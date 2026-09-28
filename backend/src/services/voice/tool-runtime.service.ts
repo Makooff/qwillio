@@ -925,8 +925,14 @@ class ToolRuntimeService {
     return ok;
   }
 
-  /** Le SMS de confirmation, avec le lien d'agenda public de la réservation. */
-  private async sendBookingSms(
+  /** Le SMS de confirmation, avec le lien d'agenda public de la réservation.
+   *
+   * Public depuis le 28/09/2026 : le pont `voice-core` enregistre ses propres
+   * réservations et doit envoyer LE MÊME SMS. Recopier la construction du
+   * message de l'autre côté aurait donné deux gabarits, deux liens d'agenda et
+   * deux façons de marquer `smsConfirmationSent` — divergents au premier des
+   * deux qu'on modifie. Un seul chemin, appelé de deux endroits. */
+  async sendBookingSms(
     profile: ClientVoiceProfile,
     bookingId: string,
     to: string,
