@@ -313,6 +313,38 @@ router.post('/calls', async (req, res) => {
       },
     });
 
+    /* LA MÉMOIRE DE L'APPELANT, écrite à la fin de CHAQUE appel.
+
+       Elle vivait dans `realtime-orchestrator.persistMemory`, que `voice-core`
+       ne traverse plus. Résultat, jusqu'ici: seule la capture d'un lead en
+       laissait une trace. Un appelant qui réservait, ou qui posait une
+       question et raccrochait, repartait sans rien — et au rappel suivant
+       l'agent redemandait son nom et son motif comme au premier jour, alors
+       que `GET /caller` était là, prêt à les lui donner. Lire une mémoire que
+       presque personne n'alimente, c'est la même chose que ne pas en avoir.
+
+       Ordre des champs repris tel quel de l'ancienne route, y compris son
+       correctif du 13/09: `nameCollected` porte le nom CONFIRMÉ (réservation
+       relue, mémoire), le lead capté en cours d'appel porte le nom ENTENDU.
+       L'ordre inverse réécrivait un nom approximatif à chaque appel.
+
+       Jamais bloquant: la mémoire est un confort, l'appel est déjà fini, et la
+       fiche est écrite. */
+    const fiche = await prisma.clientCall.findUnique({
+      where: { vapiCallId: salle },
+      select: { summary: true, outcome: true, nameCollected: true, emailCollected: true },
+    });
+    void callerMemoryService
+      .remember({
+        clientId: String(clientId),
+        callerNumber: caller ? String(caller) : null,
+        name: fiche?.nameCollected ?? null,
+        email: fiche?.emailCollected ?? null,
+        summary: fiche?.summary ?? null,
+        outcome: fiche?.outcome ?? null,
+      })
+      .catch((e: Error) => logger.warn(`[voice-core] mémoire d'appelant non écrite: ${e.message}`));
+
     logger.info(`[voice-core] appel enregistré : ${salle} (${duree}s, ${brain ?? 'cerveau inconnu'})`);
   } catch (error) {
     /* La réponse est déjà partie : `voice-core` croit la remontée passée, et
