@@ -367,6 +367,7 @@ function dateEnJour(d: Date): string {
 function enBooking(b: {
   id: string; clientId: string; bookingDate: Date; bookingTime: string | null;
   customerPhone: string | null; customerName: string; serviceType: string | null; status: string;
+  customerEmail?: string | null; partySize?: number | null; specialRequests?: string | null;
 }) {
   return {
     id: b.id,
@@ -377,12 +378,20 @@ function enBooking(b: {
     name: b.customerName,
     service: b.serviceType || '',
     status: b.status,
+    /* Les trois détails RENVOYÉS, pas seulement acceptés. `voice-core` relit
+       la réservation qu'il vient d'écrire pour la relire à voix haute et pour
+       la retrouver au rappel ; les taire ici ferait dire « c'est noté » sur
+       un nombre de couverts que l'agent ne saurait plus. */
+    email: b.customerEmail || '',
+    partySize: b.partySize ?? 0,
+    notes: b.specialRequests || '',
   };
 }
 
 const CHAMPS = {
   id: true, clientId: true, bookingDate: true, bookingTime: true,
   customerPhone: true, customerName: true, serviceType: true, status: true,
+  customerEmail: true, partySize: true, specialRequests: true,
 } as const;
 
 /** Postgres refuse le doublon par l'index partiel : c'est le seul juge. */
@@ -462,12 +471,31 @@ router.get('/bookings/upcoming', async (req, res) => {
  * ligne. C'est exactement l'ordre qu'applique `bookAppointment`.
  */
 router.post('/bookings', async (req, res) => {
-  const { clientId, day, slot, caller, name, service } = req.body || {};
+  const { clientId, day, slot, caller, name, service, email, partySize, notes } =
+    req.body || {};
   const jour = jourEnDate(day);
   const heure = typeof slot === 'string' && /^\d{2}:\d{2}$/.test(slot) ? slot : null;
   if (!clientId || !jour || !heure || !name) {
     return res.status(400).json({ error: 'missing_booking_fields' });
   }
+
+  /* LES TROIS DÉTAILS, VALIDÉS ICI ET NON EN AMONT.
+     `customer_email`, `party_size` et `special_requests` existent dans
+     `client_bookings` depuis le début et la voix ne les remplissait pas : le
+     restaurant recevait une table sans couverts, le salon un rendez-vous sans
+     adresse à qui écrire. Ils arrivent d'un modèle de langue, donc ils sont
+     bornés ici — c'est la dernière frontière avant la base, et la seule que
+     rien ne contourne. `partySize` est un entier de colonne : un « 200 » dicté
+     par erreur, ou un flottant, casserait l'écriture au lieu du rendez-vous. */
+  const courriel = typeof email === 'string' && /^[^@\s]+@[^@\s]+\.[A-Za-z]{2,}$/.test(email.trim())
+    ? email.trim().toLowerCase().slice(0, 255)
+    : null;
+  const couverts = Number.isInteger(Number(partySize)) && Number(partySize) > 0
+    ? Math.min(Number(partySize), 500)
+    : null;
+  const demandes = typeof notes === 'string' && notes.trim()
+    ? notes.trim().slice(0, 500)
+    : null;
 
   let cree;
   try {
@@ -479,6 +507,9 @@ router.post('/bookings', async (req, res) => {
         customerName: String(name),
         customerPhone: caller ? String(caller) : null,
         serviceType: service ? String(service) : null,
+        customerEmail: courriel,
+        partySize: couverts,
+        specialRequests: demandes,
         status: 'confirmed',
       },
       select: CHAMPS,

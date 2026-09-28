@@ -172,6 +172,45 @@ describe('la remontée d\'appel passe par le chemin existant', () => {
     expect(code).toMatch(/status !== 'in-progress'/);
   });
 
+  /* ── Les trois details de reservation ─────────────────────────────────────
+     `client_bookings` porte `customer_email`, `party_size` et
+     `special_requests` depuis le premier jour, et la chaine vocale n'en
+     remplissait aucun : un restaurant recevait « table pour Dupont, 20 h »
+     sans savoir combien de couverts mettre, et rappelait — ce que l'agent
+     etait cense lui eviter. Ces colonnes sont maintenant remplies ; ce qui
+     suit gele le fait qu'elles le restent. */
+
+  it('ecrit les trois details que la base portait a vide', () => {
+    for (const colonne of ['customerEmail:', 'partySize:', 'specialRequests:']) {
+      expect(code).toContain(colonne);
+    }
+  });
+
+  it('les RENVOIE aussi, pas seulement les accepte', () => {
+    /* L'agent relit la reservation qu'il vient d'ecrire pour la confirmer a
+       voix haute et la retrouver au rappel. Les taire au retour ferait dire
+       « c'est note » sur un nombre de couverts qu'il ne saurait plus. */
+    for (const champ of ['customerEmail: true', 'partySize: true', 'specialRequests: true']) {
+      expect(code).toContain(champ);
+    }
+  });
+
+  it('borne ce qui vient d\'un modele de langue avant la base', () => {
+    /* Derniere frontiere avant Postgres, et la seule que rien ne contourne.
+       `party_size` est une colonne entiere : un flottant ou un « 200 » dicte
+       par erreur casserait l'ecriture au lieu du rendez-vous. */
+    expect(code).toMatch(/Number\.isInteger\(Number\(partySize\)\)/);
+    expect(code).toMatch(/Math\.min\(Number\(partySize\), 500\)/);
+    expect(code).toMatch(/slice\(0, 255\)/);   // email
+    expect(code).toMatch(/slice\(0, 500\)/);   // demandes particulieres
+  });
+
+  it('jette une adresse qui n\'en est pas une plutot que de l\'ecrire', () => {
+    /* Une adresse fausse est pire qu'une adresse absente : le gerant ecrit,
+       et son message part dans le vide sans jamais revenir en erreur. */
+    expect(code).toMatch(/\[\^@\\s\]\+@\[\^@\\s\]\+/);
+  });
+
   it('transporte les horaires du client jusqu\'à l\'agent', () => {
     /* Sans eux, `voice-core` décide avec une table écrite en dur et propose
        mercredi 9 h chez un commerce fermé le mercredi. */
