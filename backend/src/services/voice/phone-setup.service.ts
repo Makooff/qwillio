@@ -160,10 +160,30 @@ class PhoneSetupService {
        évite de réordonner les écritures de l'onboarding pour ce seul besoin. */
     const assistantId = assistantIdOverride ?? client.vapiAssistantId;
 
-    if (hasPaidSubscription(client.subscriptionStatus)) {
-      return this.provisionDedicated(client.id, assistantId);
-    }
-    return this.fallBackToShared(client.id, "L'essai utilise la ligne partagée. Un numéro dédié est attribué dès le passage à un abonnement.");
+    /* CHAQUE CLIENT A SA LIGNE, ESSAI COMPRIS.
+     *
+     * L'essai partageait une ligne, et un numéro dédié n'arrivait qu'à la
+     * conversion. C'était défendable quand chaque ligne se payait à l'unité:
+     * immobiliser un numéro facturé pour quelqu'un qui peut partir en sept
+     * jours était une dépense à crédit.
+     *
+     * Ça ne l'est plus. Le STOCK est acheté d'avance, couvert par le dossier
+     * réglementaire belge, et facturé qu'il serve ou non. Un numéro libre ne
+     * coûte donc rien de moins qu'un numéro attribué — le garder au chaud
+     * n'économise rien, et prive l'essai de la seule chose qui le rend
+     * convaincant: un numéro à soi, à donner tout de suite.
+     *
+     * CE QUI RESTE GARDÉ, c'est la DÉPENSE. Le stock s'ouvre à tous; l'ACHAT
+     * automatique, lui, reste réservé aux abonnements payés. Un essai qui
+     * tombe sur un stock épuisé prend la ligne partagée, il ne déclenche pas
+     * une commande chez Twilio. C'est la distinction qui compte: donner un
+     * numéro déjà payé n'engage rien, en acheter un pour un client qui n'a
+     * encore rien versé engage tous les mois qui suivent. */
+    return this.provisionDedicated(
+      client.id,
+      assistantId,
+      hasPaidSubscription(client.subscriptionStatus),
+    );
   }
 
   /**
@@ -171,18 +191,30 @@ class PhoneSetupService {
    * laisser un client injoignable: une ligne partagée avec renvoi vaut mieux
    * qu'un numéro absent, et l'état dit lequel des deux on a obtenu.
    */
-  private async provisionDedicated(clientId: string, assistantId: string | null): Promise<LineOutcome> {
+  private async provisionDedicated(
+    clientId: string,
+    assistantId: string | null,
+    peutAcheter: boolean,
+  ): Promise<LineOutcome> {
+    /* LE STOCK D'ABORD, ET SANS ASSISTANT.
+       Ces numéros sont déjà achetés, déjà couverts par le dossier
+       réglementaire belge, et depuis le passage au trunk SIP ils sonnent chez
+       LiveKit quoi que Vapi en sache: le rattachement à un assistant n'est
+       plus qu'un confort, et `claimNumberForClient` le dit lui-même. Exiger
+       l'assistant ICI repoussait la ligne d'un client inscrit mais pas encore
+       configuré — c'est-à-dire tous, entre le paiement et l'onboarding. */
+    const fromStock = await this.takeFromStock(clientId, assistantId ?? '');
+    if (fromStock) return fromStock;
+
+    /* Le stock est vide. À partir d'ici on DÉPENSE, donc les deux gardes. */
+    if (!peutAcheter) {
+      return this.fallBackToShared(clientId, "Stock de numéros épuisé. Un numéro sera acheté au passage à un abonnement payé; ligne partagée en attendant.");
+    }
     if (!assistantId) {
       // Vapi rattache le numéro à un assistant: sans lui, l'achat produirait
       // une ligne qui sonne dans le vide, et facturée.
       return this.fail(clientId, "L'assistant n'est pas encore créé. La ligne sera attribuée juste après.");
     }
-    /* Le stock d'abord: ces numéros sont DÉJÀ achetés et déjà couverts par le
-       dossier réglementaire belge, donc l'attribution est immédiate et ne
-       dépend d'aucune validation externe. Les deux chemins suivants ne servent
-       plus que lorsque le lot est épuisé. */
-    const fromStock = await this.takeFromStock(clientId, assistantId);
-    if (fromStock) return fromStock;
 
     if (!autoProvisionEnabled()) {
       return this.fallBackToShared(clientId, "Stock de numéros épuisé et achat automatique désactivé (PHONE_AUTO_PROVISION). Ligne partagée en attendant.");

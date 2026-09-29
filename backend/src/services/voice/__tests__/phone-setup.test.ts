@@ -119,25 +119,59 @@ describe('un abonné payant reçoit sa propre ligne', () => {
     );
   });
 
-  it('ne donne PAS de ligne dédiée à un essai', () => {
-    /* Le critère est l'abonnement, pas le palier: une ligne coûte de l'ordre
-       d'un euro contre 99 au moins d'abonnement, donc la réserver aux gros
-       paliers laisserait les petits clients sur le chemin fragile. Ce qu'on
-       écarte, c'est une ligne par essai gratuit. */
+  it("garde l'ACHAT pour les abonnements payés, et rien d'autre", () => {
+    /* Ce prédicat ne décide plus si le client a une ligne — le stock est
+       ouvert à tous. Il décide s'il est permis de DÉPENSER quand le stock est
+       vide. Donner un numéro déjà payé n'engage rien; en acheter un pour un
+       client qui n'a encore rien versé engage tous les mois qui suivent. */
     expect(hasPaidSubscription('active')).toBe(true);
     expect(hasPaidSubscription('trialing')).toBe(false);
     expect(hasPaidSubscription(null)).toBe(false);
   });
 
-  it('met un essai sur la ligne partagée, en disant pourquoi', async () => {
+  it('donne un numéro du stock à un ESSAI, comme à tout le monde', async () => {
+    /* Le stock est acheté d'avance et facturé qu'il serve ou non: un numéro
+       libre ne coûte pas moins qu'un numéro attribué. Le garder au chaud
+       n'économise rien et prive l'essai de la seule chose qui le rend
+       convaincant — un numéro à soi, à donner tout de suite. */
+    findUnique.mockResolvedValue(client({ subscriptionStatus: 'trialing' }));
+    claimNumberForClient.mockResolvedValue({
+      kind: 'claimed', number: '+32460206690', vapiNumberId: null, reused: false,
+    });
+
+    const r = await phoneSetupService.ensureLine('c1');
+
+    expect(r.state).toBe('active');
+    expect(r.number).toBe('+32460206690');
+    expect(autoProvisionNumber).not.toHaveBeenCalled();
+  });
+
+  it("sert un essai SANS assistant: le stock n'en a pas besoin", async () => {
+    /* Depuis le trunk SIP, un numéro du stock sonne chez LiveKit quoi que Vapi
+       en sache. Exiger l'assistant avant le stock repoussait la ligne de tout
+       client inscrit mais pas encore configuré — c'est-à-dire tous, entre le
+       paiement et l'onboarding. */
+    findUnique.mockResolvedValue(client({ subscriptionStatus: 'trialing', vapiAssistantId: null }));
+    claimNumberForClient.mockResolvedValue({
+      kind: 'claimed', number: '+32460203415', vapiNumberId: null, reused: false,
+    });
+
+    const r = await phoneSetupService.ensureLine('c1');
+
+    expect(r.state).toBe('active');
+    expect(r.number).toBe('+32460203415');
+  });
+
+  it("met un essai sur la ligne partagée quand le stock est VIDE, sans rien acheter", async () => {
+    // Le stock vide est la seule situation où un essai n'a pas sa ligne — et
+    // il n'est surtout pas question de déclencher une commande pour lui.
     findUnique.mockResolvedValue(client({ subscriptionStatus: 'trialing' }));
     allocateInboundNumber.mockResolvedValue({ kind: 'allocated', number: '+3280000000', numberId: null });
 
     const r = await phoneSetupService.ensureLine('c1');
 
     expect(r.state).toBe('shared');
-    expect(r.reason).toMatch(/essai/i);
-    // Et surtout: aucun achat n'est déclenché pour un essai.
+    expect(r.reason).toMatch(/stock/i);
     expect(autoProvisionNumber).not.toHaveBeenCalled();
   });
 });

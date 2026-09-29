@@ -22,6 +22,8 @@ const BASE: string[] = [
   'Transcription + analyse de sentiment',
   'Bouclier anti-spam (non facturé)',
   'SMS de confirmation au client',
+  'Rappel automatique la veille du rendez-vous',
+  'Relance automatique après un rendez-vous manqué',
   'Email récapitulatif après chaque appel',
   'Tableau de bord complet',
 ];
@@ -66,7 +68,18 @@ export function planFeatures(plan: string | null | undefined): string[] {
  *    le scoring de lead et le CRM interne: les couper en Solo dégraderait des
  *    fonctions vendues dans le socle ;
  *  - la langue de l'agent, qui est un réglage client (`agentLanguage`) et non
- *    une capacité.
+ *    une capacité ;
+ *  - le rappel de la veille, qui était réservé à Pro et Enterprise par un
+ *    tableau écrit en dur DANS le service d'envoi. Il n'apparaissait donc
+ *    ni dans ce qui est VENDU ni dans ce qui est AUTORISÉ: un commerce en
+ *    Solo perdait le message qui fait revenir ses clients sans qu'on le lui
+ *    ait jamais proposé à la vente. Ouvert à tous le 29/09/2026 et inscrit
+ *    dans le socle plus haut — un SMS coûte quelques centimes, un
+ *    rendez-vous manqué coûte un service entier. La relance qui suit un
+ *    rendez-vous manqué a suivi le même chemin, le même jour, et pour une
+ *    raison de plus: son `continue` sautait aussi le passage en
+ *    `no_show`, donc un commerce en Solo lisait un taux d'absence de zéro
+ *    qui n'avait jamais été vrai.
  *
  * Elles ont donc été corrigées sur la page tarifs plutôt que bridées ici. Une
  * restriction artificielle coûte toujours plus qu'elle ne rapporte.
