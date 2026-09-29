@@ -106,8 +106,8 @@ export default function Pricing() {
            client (`agentLanguage`), pas une capacité vendue par palier, et le
            portail l'annonce déjà ainsi. La transcription et le sentiment
            rejoignent la liste pour la même raison. */
-        ? ['250 minutes incluses par mois', 'IA 24/7 bilingue FR / EN', 'Prise de RDV + agenda', 'Transfert des urgences', 'Transcription + sentiment', 'Bouclier anti-spam inclus', 'Conforme RGPD', 'Support email']
-        : ['250 minutes included per month', '24/7 AI, bilingual FR / EN', 'Booking + calendar sync', 'Urgency transfer', 'Transcript + sentiment', 'Spam shield included', 'GDPR compliant', 'Email support'],
+        ? ['250 minutes incluses par mois', 'IA 24/7 bilingue FR / EN', 'Prise de RDV + agenda', 'Rappel auto la veille du RDV', 'Transfert des urgences', 'Transcription + sentiment', 'Bouclier anti-spam inclus', 'Conforme RGPD', 'Support email']
+        : ['250 minutes included per month', '24/7 AI, bilingual FR / EN', 'Booking + calendar sync', 'Automatic day-before reminder', 'Urgency transfer', 'Transcript + sentiment', 'Spam shield included', 'GDPR compliant', 'Email support'],
       cta: isFr ? 'Commencer' : 'Start',
       popular: false,
     },
@@ -119,8 +119,8 @@ export default function Pricing() {
       overage: 0.39,
       description: isFr ? 'Pour commencer' : 'To get started',
       features: isFr
-        ? ['750 minutes incluses par mois', 'IA 24/7 bilingue FR / EN', 'Prise de RDV + agenda', 'Transfert des urgences', 'Transcription + sentiment', 'Bouclier anti-spam inclus', 'Capture de leads', 'Support email']
-        : ['750 minutes included per month', '24/7 AI, bilingual FR / EN', 'Booking + calendar sync', 'Urgency transfer', 'Transcript + sentiment', 'Spam shield included', 'Lead capture', 'Email support'],
+        ? ['750 minutes incluses par mois', 'IA 24/7 bilingue FR / EN', 'Prise de RDV + agenda', 'Rappel auto la veille du RDV', 'Transfert des urgences', 'Transcription + sentiment', 'Bouclier anti-spam inclus', 'Capture de leads', 'Support email']
+        : ['750 minutes included per month', '24/7 AI, bilingual FR / EN', 'Booking + calendar sync', 'Automatic day-before reminder', 'Urgency transfer', 'Transcript + sentiment', 'Spam shield included', 'Lead capture', 'Email support'],
       cta: isFr ? 'Commencer' : 'Start',
       popular: false,
     },
@@ -222,6 +222,13 @@ export default function Pricing() {
                APPLIQUÉES par le serveur (`plan.middleware.ts`). */
             ['IA 24/7 bilingue FR + EN', '✓', '✓', '✓', '✓'],
             ['Prise de RDV + agenda', '✓', '✓', '✓', '✓'],
+            /* Le rappel de la veille et la relance d'absence existaient
+               depuis des mois, réservées à Pro par un tableau écrit en dur
+               dans le service d'envoi — donc vendues nulle part, ici pas
+               plus qu'au portail. Ouvertes à tous le 29/09/2026: elles
+               s'annoncent maintenant là où on les achète. */
+            ['Rappel automatique la veille', '✓', '✓', '✓', '✓'],
+            ['Relance après un RDV manqué', '✓', '✓', '✓', '✓'],
             ['Transfert des urgences', '✓', '✓', '✓', '✓'],
             ['Bouclier anti-spam', '✓', '✓', '✓', '✓'],
             ['Transcription + sentiment', '✓', '✓', '✓', '✓'],
@@ -259,6 +266,8 @@ export default function Pricing() {
           rows: [
             ['24/7 bilingual AI, FR + EN', '✓', '✓', '✓', '✓'],
             ['Booking + calendar', '✓', '✓', '✓', '✓'],
+            ['Automatic day-before reminder', '✓', '✓', '✓', '✓'],
+            ['No-show follow-up', '✓', '✓', '✓', '✓'],
             ['Urgency transfer', '✓', '✓', '✓', '✓'],
             ['Spam shield', '✓', '✓', '✓', '✓'],
             ['Transcript + sentiment', '✓', '✓', '✓', '✓'],
