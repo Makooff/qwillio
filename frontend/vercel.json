@@ -40,7 +40,7 @@
     }
   ],
   "rewrites": [
-    { "source": "/api/(.*)", "destination": "https://qwillio.onrender.com/api/$1" },
+    { "source": "/api/(.*)", "destination": "https://qwillio-eu.onrender.com/api/$1" },
     { "source": "/demo.html", "destination": "/demo.html" },
     { "source": "/demo-marie.html", "destination": "/demo-marie.html" },
     { "source": "/onboarding.html", "destination": "/onboarding.html" },
