@@ -109,8 +109,21 @@ export default function Subscribe() {
     } catch (err: unknown) {
       const status = (err as { response?: { status?: number } })?.response?.status;
       if (status === 409) {
-        // Already subscribed, the guard will route on the refreshed user.
-        navigate('/onboard');
+        /* ON RELIT L'UTILISATEUR AVANT DE ROUTER.
+           Le commentaire promettait « the refreshed user », mais rien ne le
+           rafraîchissait: on naviguait sur un `user` périmé, le garde de
+           /onboard renvoyait ici, et la page se rechargeait vide sans un
+           mot. Une boucle silencieuse sur l'écran de paiement.
+           Si l'abonnement existe vraiment, on entre. Sinon on le DIT. */
+        await useAuthStore.getState().checkAuth();
+        const frais = useAuthStore.getState().user as { hasSubscription?: boolean } | null;
+        if (frais?.hasSubscription) {
+          navigate('/onboard');
+          return;
+        }
+        setError(isFr
+          ? "Un abonnement est déjà enregistré sur ce compte. Écrivez-nous si ce n'est pas le cas."
+          : 'A subscription is already recorded on this account. Contact us if that is wrong.');
         return;
       }
       setError(isFr
