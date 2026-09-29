@@ -18,5 +18,5 @@ jobs:
       - name: Ping warmup
         run: |
           curl -fsS --max-time 60 --retry 2 --retry-delay 5 \
-            https://qwillio.onrender.com/api/auth/warmup \
+            https://qwillio-eu.onrender.com/api/auth/warmup \
             -o /dev/null -w "HTTP %{http_code} in %{time_total}s\n"
