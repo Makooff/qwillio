@@ -209,13 +209,65 @@ function signupStep(user: { emailConfirmed?: boolean; hasSubscription?: boolean 
   return '/onboard';
 }
 
+/**
+ * L'ATTENTE DU WEBHOOK, QUI N'EST PAS UN LAISSEZ-PASSER.
+ *
+ * Stripe renvoie le navigateur sur /onboard?payment=success à l'instant où la
+ * caisse se ferme. Le webhook `checkout.session.completed` est un appel HTTP
+ * SÉPARÉ, et c'est lui qui écrit la ligne `clients` et le
+ * `stripeSubscriptionId` dont /api/auth/me déduit `hasSubscription`. Le
+ * navigateur gagne la course — d'autant plus si le backend sort de veille —
+ * donc `hasSubscription` est encore faux, et le garde renvoyait l'inscrit sur
+ * /subscribe: la page qu'il venait de payer, et sans même le paramètre qui
+ * aurait expliqué pourquoi, puisque `Navigate` ne le transporte pas.
+ *
+ * On attend donc, au lieu de trancher sur la première lecture. Ce n'est PAS
+ * le laissez-passer sur `?payment=success` qui a été retiré de `ClientRoute`,
+ * et à raison: le droit reste exactement celui que le serveur accorde, on lui
+ * laisse seulement le temps d'arriver. Si rien ne vient dans le délai, on
+ * renvoie sur /subscribe — mais après avoir vraiment demandé.
+ */
+const ATTENTE_WEBHOOK_MS = 25000;
+const RELANCE_WEBHOOK_MS = 2000;
+
+function useAttenteAbonnement(actif: boolean) {
+  const { checkAuth } = useAuthStore();
+  const [abandon, setAbandon] = useState(false);
+  useEffect(() => {
+    if (!actif) return;
+    let vivant = true;
+    let minuteur = 0;
+    const debut = Date.now();
+    const tick = async () => {
+      if (!vivant) return;
+      if (Date.now() - debut > ATTENTE_WEBHOOK_MS) { setAbandon(true); return; }
+      await checkAuth();
+      if (vivant) minuteur = window.setTimeout(tick, RELANCE_WEBHOOK_MS);
+    };
+    minuteur = window.setTimeout(tick, RELANCE_WEBHOOK_MS);
+    return () => { vivant = false; window.clearTimeout(minuteur); };
+  }, [actif, checkAuth]);
+  return abandon;
+}
+
 function OnboardRoute({ children }: { children: React.ReactNode }) {
   const { user, isLoading } = useAuthStore();
+  const { search } = useLocation();
+  const retourDeCaisse = new URLSearchParams(search).get('payment') === 'success';
+  /* Les crochets se déclarent avant toute sortie anticipée: c'est la règle
+     des hooks, et `enAttente` reste faux tant qu'il n'y a pas d'utilisateur. */
+  const enAttente = Boolean(user) && !user!.onboardingCompleted
+    && signupStep(user!) === '/subscribe' && retourDeCaisse;
+  const abandon = useAttenteAbonnement(enAttente);
+
   if (isLoading) return <Spinner />;
   if (!user) return <Navigate to="/login" />;
   if (user.onboardingCompleted) return <Navigate to={homeRoute(user)} />;
   const step = signupStep(user);
-  if (step !== '/onboard') return <Navigate to={step} />;
+  if (step !== '/onboard') {
+    if (enAttente && !abandon) return <Spinner />;
+    return <Navigate to={step} />;
+  }
   return <>{children}</>;
 }
 

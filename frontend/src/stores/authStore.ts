@@ -92,7 +92,7 @@ export const useAuthStore = create<AuthState>((set) => ({
       return;
     }
     try {
-      const { data } = await api.get('/auth/me');
+      const { data } = await api.get('/auth/me', { timeout: 35000 });
 
       // Validate response is a real user object (not HTML from ngrok interstitial)
       if (!data || typeof data !== 'object' || !data.id || !data.email) {
@@ -104,9 +104,25 @@ export const useAuthStore = create<AuthState>((set) => ({
         localStorage.setItem('token', data.token);
       }
       set({ user: data, token: data.token || token, isLoading: false });
-    } catch {
-      localStorage.removeItem('token');
-      set({ user: null, token: null, isLoading: false });
+    } catch (err) {
+      /* SEUL UN REFUS DU SERVEUR DÉCONNECTE.
+         Ce `catch` jetait la session sur n'importe quelle erreur, délai de
+         réponse compris. Or ce fichier sait déjà qu'un premier appel après
+         le réveil de Render dépasse le délai par défaut — c'est la raison
+         d'être de `postAuthWithWakeRetry` juste au-dessus. Un démarrage à
+         froid déconnectait donc un utilisateur parfaitement authentifié,
+         qui retrouvait l'écran de connexion sans avoir rien fait.
+         Un 401 ou un 403 est un vrai refus: le jeton part. Une panne de
+         réseau, un 502 de la plateforme, un délai dépassé ou une page
+         d'interstitiel ne disent RIEN du jeton: on le garde, et l'appel
+         suivant tranchera. */
+      const status = (err as { response?: { status?: number } }).response?.status;
+      if (status === 401 || status === 403) {
+        localStorage.removeItem('token');
+        set({ user: null, token: null, isLoading: false });
+        return;
+      }
+      set({ isLoading: false });
     }
   },
 }));
