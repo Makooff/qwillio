@@ -115,7 +115,9 @@ describe('sign-up checkout', () => {
 
   it('refuses a second subscription for a customer who already pays', async () => {
     userFindUnique.mockResolvedValue(CONFIRMED_USER);
-    clientFindUnique.mockResolvedValue({ id: 'client_1', stripeSubscriptionId: 'sub_live' });
+    /* « qui paie déjà » doit se lire dans le fixture: le STATUT, pas le seul
+       identifiant. Sans lui, ce test décrivait aussi bien un résilié. */
+    clientFindUnique.mockResolvedValue({ id: 'client_1', stripeSubscriptionId: 'sub_live', subscriptionStatus: 'active' });
     const res = mockRes();
 
     await authController.startSubscription(
@@ -125,6 +127,39 @@ describe('sign-up checkout', () => {
 
     expect(res.status).toHaveBeenCalledWith(409);
     expect(checkoutCreate).not.toHaveBeenCalled();
+  });
+
+  it("ferme aussi la caisse pendant un essai et sur un impaye", async () => {
+    for (const subscriptionStatus of ['trialing', 'past_due', 'unpaid']) {
+      checkoutCreate.mockClear();
+      userFindUnique.mockResolvedValue(CONFIRMED_USER);
+      clientFindUnique.mockResolvedValue({ id: 'client_1', stripeSubscriptionId: 'sub_live', subscriptionStatus });
+      const res = mockRes();
+      await authController.startSubscription(
+        { userId: 'user_1', body: { businessName: 'Chez Marie', planType: 'pro' } } as any,
+        res,
+      );
+      expect(res.status).toHaveBeenCalledWith(409);
+      expect(checkoutCreate).not.toHaveBeenCalled();
+    }
+  });
+
+  it('LAISSE se reabonner un client qui a resilie', async () => {
+    /* L'identifiant Stripe reste en base a vie. Le garde lisait sa PRESENCE,
+       donc un client resilie ne pouvait plus jamais revenir: il remplissait
+       la page et recevait un 409 que l'ecran traduisait en rechargement muet.
+       C'est la vente la moins chere qui existe, et elle etait refusee. */
+    userFindUnique.mockResolvedValue(CONFIRMED_USER);
+    clientFindUnique.mockResolvedValue({ id: 'client_1', stripeSubscriptionId: 'sub_mort', subscriptionStatus: 'canceled' });
+    const res = mockRes();
+
+    await authController.startSubscription(
+      { userId: 'user_1', body: { businessName: 'Chez Marie', planType: 'pro' } } as any,
+      res,
+    );
+
+    expect(res.status).not.toHaveBeenCalledWith(409);
+    expect(checkoutCreate).toHaveBeenCalled();
   });
 
   it('rejects an unknown plan rather than charging for it', async () => {
