@@ -395,10 +395,20 @@ export class AuthController {
       const user = await prisma.user.findUnique({ where: { id: req.userId } });
       if (!user) return res.status(401).json({ error: 'Non authentifié' });
 
-      // Already paying: nothing to buy. Sending them through Checkout again
-      // would open a second subscription on the same account.
+      /* UN ABONNEMENT RÉSILIÉ N'EST PLUS UN ABONNEMENT.
+         Ce garde lisait la PRÉSENCE de `stripeSubscriptionId`, pas son état.
+         Or cet identifiant reste en base à vie: un client qui résilie ne
+         pouvait donc PLUS JAMAIS se réabonner. Il remplissait la page, et
+         recevait un 409 que l'écran traduisait en rechargement muet.
+         Ce n'est pas un cas de test: c'est le retour d'un client perdu, la
+         vente la moins chère qui existe, et elle était refusée en silence.
+         Seuls les états où Stripe facture encore ferment la caisse — y
+         compris `past_due` et `unpaid`, où un second abonnement doublerait
+         le prélèvement au lieu de régler l'impayé. */
+      const ABONNEMENT_VIVANT = ['active', 'trialing', 'past_due', 'unpaid'];
       const existing = await prisma.client.findUnique({ where: { userId: user.id } });
-      if (existing?.stripeSubscriptionId) {
+      const etat = String(existing?.subscriptionStatus ?? '').toLowerCase();
+      if (existing?.stripeSubscriptionId && ABONNEMENT_VIVANT.includes(etat)) {
         return res.status(409).json({ error: 'subscription_exists', clientId: existing.id });
       }
 
