@@ -45,12 +45,42 @@ export default function SelfOnboard() {
      configuré, le bloc apparaît de lui-même. */
   const [notificationChannel, setNotificationChannel] = useState<'sms' | 'whatsapp'>('sms');
   const [whatsappAvailable, setWhatsappAvailable] = useState(false);
+  /* L'assistant a-t-il enregistré QUELQUE CHOSE ?
+
+     Le bouton « Terminer » appelait `finish()` sans condition. Un client qui
+     ouvrait l'assistant, ne disait rien et cliquait arrivait au tableau de bord
+     avec `onboardingCompleted` posé et une fiche vide: pas de nom, pas
+     d'horaires, pas de services — et une réceptionniste qui décrochait pour
+     inventer. La sortie reste possible, mais elle passe par le formulaire
+     plutôt que par le vide. */
+  const [assistantSaved, setAssistantSaved] = useState(false);
 
   useEffect(() => {
     // Échec silencieux et volontaire: à ce stade le compte client peut ne pas
     // encore exister, et un 404 signifie simplement « pas de choix à offrir ».
     api.get('/my-dashboard/settings')
-      .then(r => setWhatsappAvailable(!!r.data?.whatsappAvailable))
+      .then(r => {
+        setWhatsappAvailable(!!r.data?.whatsappAvailable);
+        /* Ce que le compte SAIT déjà, reposé dans les champs.
+
+           Le nom, le métier et le téléphone ont été donnés à l'abonnement et
+           vivent sur la fiche client. Le formulaire démarrait vide et les
+           redemandait tous les trois: le client répondait une deuxième fois à
+           une question qu'il venait de traiter, et un champ laissé vide par
+           lassitude écrasait la bonne valeur. Rien n'est écrasé ici: on ne
+           remplit qu'un champ encore vide, donc une frappe en cours survit à
+           l'arrivée de la réponse. */
+        const fiche = r.data || {};
+        if (typeof fiche.businessName === 'string' && fiche.businessName.trim()) {
+          setBusinessName(prev => prev || fiche.businessName.trim());
+        }
+        if (typeof fiche.businessType === 'string' && fiche.businessType.trim()) {
+          setIndustry(prev => prev || fiche.businessType.trim());
+        }
+        if (typeof fiche.contactPhone === 'string' && fiche.contactPhone.trim()) {
+          setPhone(prev => prev || fiche.contactPhone.trim());
+        }
+      })
       .catch(() => setWhatsappAvailable(false));
   }, []);
 
@@ -194,6 +224,9 @@ export default function SelfOnboard() {
               initialMode="onboarding"
               lockMode
               onCompleted={() => { void finish(); }}
+              /* Chaque écriture de l'assistant est notée ici: c'est ce qui
+                 distingue « j'ai fini » de « je n'ai rien dit ». */
+              onConfigChanged={() => setAssistantSaved(true)}
               /* First-time setup: no number is assigned yet and the page above
                  already introduces the step, so the identity header is noise. */
               showHeader={false}
@@ -201,7 +234,22 @@ export default function SelfOnboard() {
 
             <button
               type="button"
-              onClick={() => { void finish(); }}
+              onClick={() => {
+                /* Rien d'enregistré = on n'achève pas l'inscription sur une
+                   fiche vide. On bascule sur le formulaire, qui garantit au
+                   moins un nom, plutôt que de refuser le clic: un bouton
+                   désactivé enfermerait le client le jour où l'assistant est
+                   en panne. */
+                if (!assistantSaved) {
+                  setError(isFr
+                    ? "L'assistant n'a encore rien enregistré. Renseignez au moins le nom de votre établissement ci-dessous : votre réceptionniste répondrait sans rien savoir de vous."
+                    : 'The assistant has not saved anything yet. Fill in at least your business name below — otherwise your receptionist answers knowing nothing about you.');
+                  setPath('manual');
+                  setStep(1);
+                  return;
+                }
+                void finish();
+              }}
               disabled={loading}
               className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-[#1d1d1f] px-6 py-3.5 text-[15px] font-medium text-white transition-colors duration-300 hover:bg-[#7a5fff] disabled:opacity-40"
             >

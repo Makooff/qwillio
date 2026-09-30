@@ -620,8 +620,14 @@ export default function AssistantChat({
           }
         }
       }
+      /* Zéro fragment alors que le flux s'est ouvert puis fermé sans erreur. Le
+         serveur émet désormais toujours sa réponse, repli compris, donc ce cas
+         est devenu anormal — et ce n'est PAS un défaut de compréhension:
+         l'ancien texte accusait le gérant d'une panne qui ne venait pas de lui. */
       if (!received) {
-        appendToLast(c => c || (isFr ? 'Désolée, je n’ai pas compris.' : 'Sorry, I didn’t catch that.'));
+        appendToLast(c => c || (isFr
+          ? 'Je n’ai pas pu répondre. Réessayez dans un instant.'
+          : 'I couldn’t answer. Please try again in a moment.'));
       }
     } catch {
       // La carte vide resterait vide, donc muette. On y écrit l'échec plutôt
