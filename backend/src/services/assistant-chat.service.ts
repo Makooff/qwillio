@@ -220,13 +220,15 @@ export class AssistantChatService {
     onDelta: (text: string) => void = () => { /* noop */ },
     onActivity: (activity: ChatActivity) => void = () => { /* noop */ },
   ): Promise<ChatResult> {
+    /* Le texte part AUSSI sur le flux, pas seulement dans la valeur de retour.
+       Le flux est le seul canal que l'écran lit: une phrase rendue ici sans
+       être émise arrivait au navigateur comme zéro fragment, et l'écran
+       affichait « je n'ai pas compris » — une clé manquante maquillée en faute
+       du gérant. */
     if (!env.OPENAI_API_KEY) {
-      return {
-        reply: "L'assistant conversationnel n'est pas encore configuré (clé OpenAI manquante).",
-        configChanged: false,
-        config: {},
-        completed: false,
-      };
+      const indisponible = "L'assistant conversationnel n'est pas encore configuré (clé OpenAI manquante).";
+      onDelta(indisponible);
+      return { reply: indisponible, configChanged: false, config: {}, completed: false };
     }
 
     const client = await prisma.client.findUnique({
@@ -254,10 +256,24 @@ export class AssistantChatService {
       ...messages.slice(-16).map(m => ({ role: m.role, content: m.content })),
     ];
 
+    /* Ce qui est VRAIMENT parti sur le fil. L'écran ne juge pas la réponse sur
+       la valeur de retour, qu'il ne voit jamais, mais sur les fragments reçus:
+       tout texte décidé ici et non émis est un texte perdu. */
+    let emitted = false;
+    const emit = (text: string) => { if (text) { emitted = true; onDelta(text); } };
+
     let reply = '';
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-      const msg = await this.streamOpenAI(convo, mode, onDelta);
-      if (!msg) break;
+      const msg = await this.streamOpenAI(convo, mode, emit);
+      /* `null` veut dire que le fournisseur a refusé ou n'a pas répondu: clé
+         invalide, quota épuisé, panne. Si rien n'a encore été dit, c'est une
+         PANNE et elle doit se voir — l'erreur voyage dans le flux et l'écran
+         l'annonce comme telle. Si une phrase est déjà partie, on la garde et on
+         s'arrête là plutôt que de contredire ce que le gérant vient de lire. */
+      if (!msg) {
+        if (!emitted) throw new Error('assistant_unavailable');
+        break;
+      }
       convo.push(msg);
 
       const toolCalls = msg.tool_calls || [];
@@ -287,8 +303,14 @@ export class AssistantChatService {
       }
     }
 
+    /* Un tour qui n'a produit que des appels d'outils ne dit rien: l'action a
+       bien eu lieu, la phrase manque. Le repli la fournit — et il part sur le
+       flux, sinon l'écran compte zéro fragment et conclut, à tort, qu'il n'a
+       pas compris. */
     const fallback = { fr: "D'accord.", en: 'Okay.', nl: 'Goed.' }[locale];
-    return { reply: reply || fallback, configChanged, config, completed };
+    const finalReply = reply || fallback;
+    if (!emitted) emit(finalReply);
+    return { reply: finalReply, configChanged, config, completed };
   }
 
   private async runTool(

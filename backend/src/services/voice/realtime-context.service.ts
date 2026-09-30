@@ -344,9 +344,26 @@ class RealtimeContextService {
        paramètres: l'écran disait enregistré, l'appel restait en français. */
     const language: 'fr' | 'en' | 'nl' = clientLocale(client);
 
-    /* Sans horaires enregistrés, ceux que le portail AFFICHE: l'agent, l'agenda
-       et l'écran disent la même chose, au lieu d'un agent qui devine. */
-    const weekHours = parseWeekHours(onboarding.hours) ?? DEFAULT_WEEK_HOURS;
+    /* DEUX écritures, UNE lecture — et elles ne se rencontraient pas.
+
+       Le parcours guidé enregistre dans `onboardingData`. L'assistant
+       d'inscription et l'écran Réceptionniste, eux, écrivent dans
+       `vapiConfig` (voir `applyConfigPatch`, qui ne touche que cette colonne).
+       Ce profil ne lisait que la première: tout ce qu'un client dictait à
+       l'assistant pendant son inscription — ses horaires, ses services, son
+       ton — restait dans l'autre colonne et n'arrivait JAMAIS à la
+       réceptionniste, qui retombait sur lundi-vendredi 9 h-18 h et une carte
+       vide. Pire: `setup-completeness` note son score sur `vapiConfig`, donc
+       la case passait au vert pendant que le téléphone ne savait rien — et
+       l'agent inventait, ce que ce module dit justement vouloir empêcher.
+
+       La forme est la MÊME des deux côtés (`{ monday: { open, from, to } }`),
+       donc une lecture en repli suffit, et elle soigne les comptes déjà
+       créés sans migration. `onboardingData` garde la priorité: c'est la
+       saisie explicite du parcours guidé. */
+    const weekHours = parseWeekHours(onboarding.hours)
+      ?? parseWeekHours(vapiConfig.hours)
+      ?? DEFAULT_WEEK_HOURS;
     const profile: ClientVoiceProfile = {
       clientId: client.id,
       businessName: client.businessName,
@@ -362,8 +379,16 @@ class RealtimeContextService {
       transferMode: ['always', 'hours', 'never'].includes(String(vapiConfig.transferMode))
         ? (vapiConfig.transferMode as 'always' | 'hours' | 'never')
         : 'always',
-      instructions: onboarding.specialInstructions || onboarding.instructions || null,
-      services: Array.isArray(onboarding.services) ? onboarding.services.slice(0, 12) : [],
+      /* `personalityNotes` en dernier repli: c'est le champ où l'assistant et
+         l'écran Réceptionniste rangent les consignes de ton (« ne donnez
+         jamais de prix »). Il n'était lu que par le mode test au clavier:
+         l'essai respectait la consigne, l'appel réel l'ignorait. */
+      instructions: onboarding.specialInstructions
+        || onboarding.instructions
+        || (typeof vapiConfig.personalityNotes === 'string' && vapiConfig.personalityNotes.trim()
+          ? vapiConfig.personalityNotes.trim()
+          : null),
+      services: readServices(onboarding.services, vapiConfig.items),
       /* Les horaires du portail sont un OBJET (`hours`, jour par jour). Les
          mettre dans une chaîne donnait « Horaires: [object Object] » dans le
          prompt: l'agent ne savait pas que le dimanche est fermé (12/09/2026). */
@@ -392,7 +417,14 @@ class RealtimeContextService {
       // que de décider en silence de ce que l'appelant entend.
       ttsProvider: ['11labs', 'cartesia'].includes(vapiConfig.ttsProvider) ? vapiConfig.ttsProvider : undefined,
       hasKnowledgeBase: knowledgeCount > 0,
-      knowledgeFields: knowledgeFieldsBlock(vapiConfig.knowledge, client.businessType),
+      /* Les champs nommés du métier, PLUS la connaissance libre que le client
+         a tapée. `vapiConfig.faq` et `vapiConfig.faqEntries` n'avaient aucun
+         lecteur côté appel: le gérant écrivait les questions qu'on lui pose
+         le plus, et sa réceptionniste ne les avait jamais vues. */
+      knowledgeFields: [
+        knowledgeFieldsBlock(vapiConfig.knowledge, client.businessType),
+        readFaqBlock(vapiConfig.faq, vapiConfig.faqEntries),
+      ].filter(Boolean).join('\n\n'),
       recordCalls: vapiConfig.disableRecordingNotice !== true && vapiConfig.recordCalls !== false,
     };
 
@@ -595,3 +627,59 @@ class RealtimeContextService {
 }
 
 export const realtimeContextService = new RealtimeContextService();
+
+/**
+ * Les services que la réceptionniste peut citer, d'où qu'ils viennent.
+ *
+ * Le parcours guidé écrit `onboardingData.services`, une liste de chaînes.
+ * L'assistant d'inscription écrit `vapiConfig.items`, des objets
+ * `{ name, price }`. Les deux décrivent la même carte et l'appel n'en lisait
+ * qu'une. Le libellé reprend EXACTEMENT celui du mode test
+ * (`assistant-chat.service.ts`), pour que l'essai au clavier et l'appel réel
+ * énoncent les mêmes prix.
+ */
+export function readServices(fromOnboarding: unknown, fromConfig: unknown): string[] {
+  const guided = Array.isArray(fromOnboarding)
+    ? fromOnboarding.filter((s): s is string => typeof s === 'string' && s.trim() !== '')
+    : [];
+  if (guided.length) return guided.slice(0, 12);
+
+  if (!Array.isArray(fromConfig)) return [];
+  return fromConfig
+    .filter((i): i is Record<string, unknown> => !!i && typeof i === 'object' && !Array.isArray(i))
+    .map(i => {
+      const name = typeof i.name === 'string' ? i.name.trim() : '';
+      const price = typeof i.price === 'string' ? i.price.trim() : '';
+      if (!name) return '';
+      return price ? `${name} (${price})` : name;
+    })
+    .filter(Boolean)
+    .slice(0, 12);
+}
+
+/**
+ * La connaissance libre du client, en un bloc lisible par le prompt.
+ *
+ * Deux formes coexistent, écrites par deux écrans: `faq`, une chaîne, et
+ * `faqEntries`, des paires question/réponse. Les deux sont rendues, les paires
+ * d'abord parce qu'elles portent leur propre question. Borné à 2 000
+ * caractères: c'est un prompt d'appel, pas une base de connaissances — celle-là
+ * vit dans `businessKnowledge` et a son propre outil.
+ */
+export function readFaqBlock(faq: unknown, faqEntries: unknown): string {
+  const lines: string[] = [];
+
+  if (Array.isArray(faqEntries)) {
+    for (const entry of faqEntries) {
+      if (!entry || typeof entry !== 'object' || Array.isArray(entry)) continue;
+      const e = entry as Record<string, unknown>;
+      const q = typeof e.q === 'string' ? e.q.trim() : '';
+      const a = typeof e.a === 'string' ? e.a.trim() : '';
+      if (q && a) lines.push(`- ${q} — ${a}`);
+    }
+  }
+  if (typeof faq === 'string' && faq.trim()) lines.push(faq.trim());
+
+  if (!lines.length) return '';
+  return `BUSINESS KNOWLEDGE:\n${lines.join('\n').slice(0, 2000)}`;
+}
