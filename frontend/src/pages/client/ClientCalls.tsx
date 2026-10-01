@@ -13,6 +13,7 @@ import { fetchLive, peekLive, subscribeLive } from '../../services/liveData';
 import SentimentBadge from '../../components/client-dashboard/SentimentBadge';
 import Pagination from '../../components/client-dashboard/Pagination';
 import EmptyState from '../../components/client-dashboard/EmptyState';
+import LiveCalls from '../../components/client-dashboard/LiveCalls';
 import AbandonByTurn from '../../components/client-dashboard/AbandonByTurn';
 import TransferFunnel from '../../components/client-dashboard/TransferFunnel';
 import RecordingPlayer from '../../components/client-dashboard/RecordingPlayer';
@@ -336,6 +337,11 @@ export default function ClientCalls() {
           panne d'installation, et la lire dans une liste d'appels un par un ne
           la fait jamais apparaître. L'encart s'efface tout seul tant qu'il n'y
           a pas d'appel à décrire. */}
+      {/* L'appel en cours passe DEVANT tout le reste. Le diagnostic des sept
+          derniers jours attendra trente secondes ; une conversation qui a lieu
+          maintenant, non. */}
+      <LiveCalls />
+
       <AbandonByTurn />
       <TransferFunnel />
 

@@ -49,6 +49,9 @@ router.get('/calls', (req, res) => clientDashboardController.getMyCalls(req, res
    `advancedAnalytics`: un abandon au premier tour est une panne d'installation,
    pas une finesse d'analyse, et c'est le petit forfait qui en a le plus besoin. */
 router.get('/calls/abandonment', (req, res) => clientDashboardController.getCallAbandonment(req, res));
+/* AVANT toute route `/calls/:id` : « live » est un segment, et Express prend
+   la première qui correspond. */
+router.get('/calls/live', (req, res) => clientDashboardController.getMyLiveCalls(req, res));
 /* L'enregistrement d'un appel, servi par nous avec le jeton du portail: une URL
    Vapi posée telle quelle dans un lecteur donnait 0:00 / 0:00 (12/09/2026). */
 router.get('/calls/:id/recording', (req, res) => clientDashboardController.getMyCallRecording(req, res));
