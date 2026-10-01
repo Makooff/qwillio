@@ -1984,6 +1984,58 @@ export class ClientDashboardController {
   }
 
   /**
+   * GET /my-dashboard/calls/live — les appels EN LIGNE, maintenant.
+   *
+   * La fiche existe depuis le décroché (`POST /api/voice-core/calls/start`
+   * écrit un `ClientCall` en `in-progress`), et `getMyCalls` la renvoie déjà
+   * puisqu'il ne filtre pas sur le statut. Mais la page ne se recharge jamais,
+   * et la fiche est vide : le gérant apprend qu'un appel a eu lieu une fois
+   * qu'il est fini. Cette route existe pour qu'il puisse le LIRE pendant.
+   *
+   * ELLE EST VOLONTAIREMENT MINUSCULE. Elle est sondée toutes les deux
+   * secondes par chaque onglet ouvert : une requête qui agrège, compte ou
+   * joint se paierait en charge permanente sur la base, pour afficher trois
+   * champs. Une lecture indexée par `clientId` + `status`, et les lignes
+   * viennent de la mémoire.
+   *
+   * LA FENÊTRE DE TRENTE MINUTES N'EST PAS UNE OPTIMISATION, c'est un filet.
+   * Un appel dont la remontée de fin se perd — processus tué, réseau coupé —
+   * reste `in-progress` pour toujours en base. Sans cette borne, le tableau de
+   * bord afficherait « en cours » un appel d'il y a trois semaines, et le
+   * gérant appellerait le support.
+   */
+  async getMyLiveCalls(req: any, res: Response) {
+    try {
+      const { liveTranscripts } = await import('../services/voice/live-transcript.store');
+      const depuis = new Date(Date.now() - 30 * 60 * 1000);
+      const appels = await prisma.clientCall.findMany({
+        where: { clientId: req.clientId, status: 'in-progress', startedAt: { gte: depuis } },
+        orderBy: { startedAt: 'desc' },
+        take: 5,
+        select: { id: true, callerNumber: true, startedAt: true, vapiCallId: true },
+      });
+
+      res.json({
+        data: appels.map((a) => ({
+          id: a.id,
+          callerNumber: a.callerNumber,
+          startedAt: a.startedAt,
+          /* `vapiCallId` porte la room LiveKit pour un appel `voice-core`.
+             Il ne sort PAS d'ici : c'est la clé du store, et elle est
+             devinable à partir du numéro appelé. Le serveur fait la jointure,
+             le navigateur reçoit des lignes. */
+          lines: liveTranscripts.lignes(a.vapiCallId ?? '', req.clientId),
+        })),
+      });
+    } catch (error: any) {
+      /* Le direct n'est jamais load-bearing : un échec ici ne doit pas faire
+         clignoter une erreur rouge sur une page qui, par ailleurs, marche. */
+      logger.error(`[live] appels en cours illisibles: ${error.message}`);
+      res.json({ data: [] });
+    }
+  }
+
+  /**
    * GET /my-dashboard/transfers — ce que deviennent les transferts (REL-7).
    *
    * `req.clientId`, jamais un identifiant venu de l'appelant.

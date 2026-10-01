@@ -7,6 +7,7 @@ import { twilioRecordingService } from '../services/voice/twilio-recording.servi
 import { clientCallService } from '../services/client-call.service';
 import { toolRuntimeService } from '../services/voice/tool-runtime.service';
 import { callerMemoryService } from '../services/voice/caller-memory.service';
+import { liveTranscripts } from '../services/voice/live-transcript.store';
 
 /**
  * Le pont vers `qwillio-voice-core` — /api/voice-core/*
@@ -191,6 +192,13 @@ router.post('/calls/start', async (req, res) => {
       select: { id: true, metadata: true },
     });
 
+    /* LA PLACE DU DIRECT S'OUVRE ICI, et c'est le seul endroit où le store
+       apprend à quel client appartient cette salle. Les lignes de transcript
+       qui suivront ne portent que `{room, role, text}` : les faire porter le
+       client obligerait à relire la fiche en base à chaque tour de parole,
+       c'est-à-dire l'aller-retour que ce store existe pour supprimer. */
+    liveTranscripts.ouvrir(salle, String(clientId));
+
     /* L'ENREGISTREMENT DÉMARRE ICI, PAS SUR LE TRUNK.
 
        Le trunk sait enregistrer tout seul, et c'est justement le piège: son
@@ -238,6 +246,27 @@ router.post('/calls/start', async (req, res) => {
     logger.error('[voice-core] appel en cours non affiché:', error);
     return res.status(500).json({ error: 'start_failed' });
   }
+});
+
+/**
+ * POST /api/voice-core/calls/transcript — une ligne, pendant que ça se dit.
+ *
+ * RÉPOND 204 ET NE TOUCHE PAS LA BASE. `voice-core` coupe cette requête à
+ * deux secondes et l'émet depuis la boucle de sa session, entre deux tours de
+ * parole : tout ce qui traîne ici se paie en silence sur la ligne. Une ligne
+ * perdue ne se rattrape pas et n'a pas à l'être — `POST /calls` renvoie le
+ * transcript complet à la fin, et c'est lui qui fait foi.
+ *
+ * Une salle inconnue rend 204 elle aussi, délibérément. Ça arrive quand ce
+ * processus a redémarré pendant l'appel : il n'y a rien à faire, et répondre
+ * en erreur ferait journaliser une panne à chaque tour de parole d'un appel
+ * qui, lui, se déroule parfaitement.
+ */
+router.post('/calls/transcript', (req, res) => {
+  const { room, role, text } = req.body || {};
+  if (!room || !text) return res.status(400).json({ error: 'missing_room_or_text' });
+  liveTranscripts.ajouter(String(room), role === 'user' ? 'user' : 'assistant', String(text));
+  return res.status(204).end();
 });
 
 /* LES APPELS EN COURS DE TRAITEMENT, en mémoire.
@@ -303,6 +332,10 @@ router.post('/calls', async (req, res) => {
     }
 
     enCours.add(salle);
+    /* Le direct s'arrête ici : le transcript complet est dans cette requête,
+       et le garder en mémoire ferait afficher « en cours » un appel
+       raccroché. */
+    liveTranscripts.terminer(salle);
     res.status(202).json({ room: salle, accepted: true });
   } catch (error) {
     logger.error('[voice-core] remontée refusée:', error);
