@@ -822,6 +822,146 @@ router.post('/leads', async (req, res) => {
   }
 });
 
+/** Les trois genres que `voice-core` sait classer. */
+type Genre = 'regle' | 'equipe' | 'faq';
+
+/** Une entree telle que `voice-core` la consomme (cf. connaissance.Entree). */
+interface EntreeVocal {
+  id: string;
+  genre: Genre;
+  titre: string;
+  contenu: string;
+  mots_cles: string[];
+  priorite: number;
+}
+
+const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+/**
+ * Les items vendables (la carte, les services) deviennent des entrees `faq`.
+ *
+ * POURQUOI ICI. Il y a DEUX magasins de connaissance : la table
+ * `businessKnowledge` (une ligne par question) et le blob `vapiConfig` que le
+ * client edite lui-meme (champs nommes : `items`, `hours`, `faq`). Le prompt de
+ * l'assistant ENREGISTRE lisait les deux ; ce chemin-ci ne lisait que la table.
+ * Un restaurent remplissait sa carte dans le portail — trente-trois plats avec
+ * leurs prix — et l'agent repondait « je n'ai pas l'info », puis notait la
+ * lacune. La donnee n'etait pas perdue, elle etait dans un magasin qu'on ne
+ * lisait pas.
+ *
+ * Les plats sont ecrits en UNE entree (et non trente-trois) : `MAX_RESULTATS`
+ * vaut 3 cote voix, et trente-trois lignes de carte evinceraient la FAQ. Une
+ * seule entree « Carte / menu » porte tout, et ses mots-cles sont les noms des
+ * plats, pour que « vous faites quoi comme fruit de mer » tombe dessus.
+ */
+export function entreesDepuisConfig(cfg: Record<string, unknown>): EntreeVocal[] {
+  const sortie: EntreeVocal[] = [];
+
+  // ── La carte / les services ────────────────────────────────────────────────
+  const items = Array.isArray(cfg.items) ? cfg.items : [];
+  const propres = items.filter(
+    (it): it is { name?: unknown; price?: unknown; category?: unknown } =>
+      !!it && typeof it === 'object',
+  );
+
+  // Le champ `faq` est une chaine libre dans le blob : quelques clients y
+  // ecrivent leur carte en texte. On la traite comme telle si `items` est vide.
+  const faqLibre = typeof cfg.faq === 'string' ? cfg.faq.trim() : '';
+
+  if (propres.length) {
+    // Les mots-cles sont les NOMS des plats, pas leur categorie : c'est ce que
+    // l'appelant prononce. « scampis », « salade cesar », « angus ».
+    const motsCles = new Set<string>();
+    for (const it of propres) {
+      const nom = String(it.name ?? '').trim();
+      if (!nom) continue;
+      // Le nom entier, puis chaque mot de plus de 3 lettres : « Salade cesar
+      // au poulet » donne aussi « salade », « cesar », « poulet ».
+      motsCles.add(nom.toLowerCase());
+      for (const mot of nom.toLowerCase().split(/[^a-z0-9à-ÿ']+/)) {
+        if (mot.length > 3) motsCles.add(mot);
+      }
+    }
+
+    const parCategorie = new Map<string, string[]>();
+    for (const it of propres) {
+      const nom = String(it.name ?? '').trim();
+      if (!nom) continue;
+      const prix = String(it.price ?? '').trim();
+      const cat = String(it.category ?? 'menu').trim() || 'menu';
+      const ligne = prix ? `${nom} — ${prix}` : nom;
+      if (!parCategorie.has(cat)) parCategorie.set(cat, []);
+      parCategorie.get(cat)!.push(ligne);
+    }
+
+    const corps = [...parCategorie.entries()]
+      .map(([cat, lignes]) => `${cat} : ${lignes.join(' • ')}`)
+      .join('\n');
+
+    // Une carte dont tous les items sont sans nom ne fabrique rien : une entree
+    // au contenu vide serait offerte au modele comme une reponse a lire, et il
+    // repondrait « voici votre carte : (rien) » au lieu d'avouer qu'il ne sait
+    // pas. Le filtre `propres` ne suffit pas, il garde les objets sans nom.
+    if (corps) {
+      sortie.push({
+        id: 'config:items',
+        genre: 'faq',
+        titre: 'Carte / services et prix',
+        contenu: corps,
+        mots_cles: [...motsCles].slice(0, 200),
+        // Au-dessus de la FAQ generale : c'est ce qu'un appelant demande au
+        // telephone, et la question la plus frequente d'un restaurant.
+        priorite: 5,
+      });
+    }
+  } else if (faqLibre) {
+    sortie.push({
+      id: 'config:faq',
+      genre: 'faq',
+      titre: 'Carte / services',
+      contenu: faqLibre,
+      mots_cles: [],
+      priorite: 5,
+    });
+  }
+
+  // ── Les horaires ───────────────────────────────────────────────────────────
+  // Le blob les porte en objet {lundi: {open, from, to}} avec des cles
+  // ANGLAISES, quel que soit le pays. L'agent les annonce, donc on les rend en
+  // clair plutot que de les laisser deviner un format.
+  const hours = cfg.hours && typeof cfg.hours === 'object' ? (cfg.hours as Record<string, unknown>) : null;
+  if (hours && Object.keys(hours).length) {
+    const jours: [string, string][] = [
+      ['monday', 'Lundi'], ['tuesday', 'Mardi'], ['wednesday', 'Mercredi'],
+      ['thursday', 'Jeudi'], ['friday', 'Vendredi'], ['saturday', 'Samedi'],
+      ['sunday', 'Dimanche'],
+    ];
+    const lignes: string[] = [];
+    for (const [cle, label] of jours) {
+      const j = hours[cle];
+      if (!j || typeof j !== 'object') continue;
+      const { open, from, to } = j as { open?: unknown; from?: unknown; to?: unknown };
+      if (open === false || !from || !to) {
+        lignes.push(`${label} : fermé`);
+      } else {
+        lignes.push(`${label} : ${String(from)} – ${String(to)}`);
+      }
+    }
+    if (lignes.length) {
+      sortie.push({
+        id: 'config:hours',
+        genre: 'faq',
+        titre: 'Horaires d’ouverture',
+        contenu: lignes.join('\n'),
+        mots_cles: ['horaire', 'horaires', 'ouvert', 'ferme', 'ouverture', 'fermeture', 'heure'],
+        priorite: 4,
+      });
+    }
+  }
+
+  return sortie;
+}
+
 /**
  * GET /api/voice-core/knowledge — ce que le commerce sait.
  *
@@ -837,6 +977,15 @@ router.get('/knowledge', async (req, res) => {
   const clientId = String(req.query.clientId || '');
   if (!clientId) return res.status(400).json({ error: 'bad_client' });
 
+  // Le repli cote voix est la chaine `"local"` (client inconnu : appel de test,
+  // numero non rattache). Or `businessKnowledge.clientId` est un `@db.Uuid` :
+  // Prisma refuse le cast et rend un 500 que le worker lit comme « connaissance
+  // indisponible ». On repond donc une base VIDE, ce qui est la verite pour un
+  // client qu'on ne connait pas, sans faire echouer la requete.
+  if (!UUID_RE.test(clientId)) {
+    return res.json({ entries: [], client_inconnu: true });
+  }
+
   try {
     const entrees = await prisma.businessKnowledge.findMany({
       where: { clientId, isActive: true },
@@ -844,16 +993,28 @@ router.get('/knowledge', async (req, res) => {
       orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
       take: 500,
     });
-    return res.json({
-      entries: entrees.map((e) => ({
-        id: e.id,
-        genre: e.kind,
-        titre: e.title,
-        contenu: e.content,
-        mots_cles: e.keywords ?? [],
-        priorite: e.priority,
-      })),
+
+    const depuisTable: EntreeVocal[] = entrees.map((e) => ({
+      id: e.id,
+      genre: e.kind as Genre,
+      titre: e.title,
+      contenu: e.content,
+      mots_cles: e.keywords ?? [],
+      priorite: e.priority,
+    }));
+
+    // Le second magasin : ce que le client a rempli dans son portail et qui
+    // n'a jamais de ligne en base. Voir `entreesDepuisConfig`.
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: { vapiConfig: true },
     });
+    const cfg = (client?.vapiConfig && typeof client.vapiConfig === 'object'
+      ? (client.vapiConfig as Record<string, unknown>)
+      : {});
+    const depuisConfig = entreesDepuisConfig(cfg);
+
+    return res.json({ entries: [...depuisTable, ...depuisConfig] });
   } catch (error) {
     logger.error('[voice-core] connaissance illisible:', error);
     return res.status(500).json({ error: 'knowledge_failed' });
