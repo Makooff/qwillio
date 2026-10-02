@@ -172,6 +172,53 @@ describe('allumé, l\'outil tourne ici', () => {
     expect(stream.chunks.join('')).toContain('"name":"checkAvailability"');
   });
 
+  it('si l\'exécution en ligne TOMBE, on rend la main à Vapi', async () => {
+    /* Premier essai en production: l'appelant a entendu « Pardon, je vous
+       écoute » à répétition, c'est-à-dire la phrase de REPLI — le tour levait.
+       Le chemin prouvé était pourtant juste à côté, inutilisé.
+       Une optimisation qui échoue doit redevenir ce qu'elle optimisait, jamais
+       un silence ni une phrase d'excuse. */
+    execute.mockRejectedValue(new Error('base injoignable'));
+    mockOpenAi([toolChunk('checkAvailability', '{"date":"2026-09-24"}'), DONE]);
+    const stream = makeStream();
+
+    await llmStreamService.handle('c1', null, 'fr', business(), stream.handle);
+
+    /* Vapi reçoit l'appel d'outil qu'on avait retenu: il l'exécutera comme
+       avant. Le pire cas est « comme avant », pas une excuse à l'appelant. */
+    expect(stream.chunks.join('')).toContain('"name":"checkAvailability"');
+    expect(stream.text()).not.toContain('Pardon');
+    expect(stream.ended).toBe(true);
+  });
+
+  it('un second tour de modèle qui échoue rend aussi la main', async () => {
+    /* L'outil a réussi, c'est OpenAI qui refuse la seconde requête. Sans le
+       repli, tout ce qui vient d'être calculé partait à la poubelle et
+       l'appelant entendait la phrase d'excuse. */
+    let call = 0;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () => {
+      if (call++ === 0) {
+        const payloads = [toolChunk('lookupBooking'), DONE];
+        let i = 0;
+        const encoder = new TextEncoder();
+        return {
+          ok: true, status: 200,
+          body: { getReader: () => ({
+            read: async () => (i < payloads.length ? { done: false, value: encoder.encode(payloads[i++]) } : { done: true, value: undefined }),
+            releaseLock: () => {},
+          }) },
+        } as unknown as Response;
+      }
+      return { ok: false, status: 400, text: async () => 'Invalid request' } as unknown as Response;
+    });
+    const stream = makeStream();
+
+    await llmStreamService.handle('c1', null, 'fr', business(), stream.handle);
+
+    expect(stream.chunks.join('')).toContain('"name":"lookupBooking"');
+    expect(stream.text()).not.toContain('Pardon');
+  });
+
   it('PAS de récursion: un second appel d\'outil repart chez Vapi', async () => {
     /* Enchaîner ferait tenir la ligne pendant N tours de modèle sans qu'aucun
        son ne parte. Un seul étage, puis on redevient le chemin d'avant. */
