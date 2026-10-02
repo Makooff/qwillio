@@ -33,6 +33,35 @@ export class SmsService {
     return env.TWILIO_PHONE_NUMBER || null;
   }
 
+  /**
+   * Le pays du client, pour convertir un numéro en forme nationale.
+   *
+   * Lu en base et MIS EN CACHE : `sendSMS` est appelé depuis des chemins qui ne
+   * doivent pas attendre (une alerte de lead, une confirmation de réservation en
+   * fin d'appel), et le pays d'un client ne change pas en cours de journée.
+   *
+   * Rend `null` plutôt que de lever : un pays inconnu fait retomber `toE164` sur
+   * son comportement d'avant — un numéro international passe, un numéro
+   * national ambigu est refusé avec sa raison dans le log.
+   */
+  private paysCache = new Map<string, string | null>();
+
+  private async paysDuClient(clientId?: string | null): Promise<string | null> {
+    if (!clientId) return null;
+    if (this.paysCache.has(clientId)) return this.paysCache.get(clientId) ?? null;
+    try {
+      const c = await prisma.client.findUnique({
+        where: { id: clientId },
+        select: { country: true },
+      });
+      const pays = c?.country || null;
+      this.paysCache.set(clientId, pays);
+      return pays;
+    } catch {
+      return null;
+    }
+  }
+
   private getTwilioClient() {
     if (this.twilioClient) return this.twilioClient;
     try {
@@ -114,10 +143,17 @@ export class SmsService {
       return { success: false, error: 'SMS_ENABLED=false' };
     }
     /* Twilio veut E.164 avec le « + »; le numéro de l'appelant arrive réduit à
-       ses chiffres (« 32483620980 », refusé 21211 le 12/09/2026). */
-    const dest = toE164(to);
+       ses chiffres (« 32483620980 », refusé 21211 le 12/09/2026).
+
+       ET SOUVENT EN FORME NATIONALE. Un appelant belge dit « 0483620980 », et
+       sans pays ce numéro ne se convertit pas : la réservation existait, le SMS
+       de confirmation ne partait nulle part, et rien ne le disait à l'appelant.
+       On lit donc le pays du client — celui qui reçoit la confirmation est dans
+       le pays de la ligne qu'il a appelée. */
+    const pays = await this.paysDuClient(metadata?.clientId);
+    const dest = toE164(to, pays) ?? toE164(to);
     if (!dest) {
-      logger.warn(`[SMS] destinataire illisible: « ${to} »`);
+      logger.warn(`[SMS] destinataire illisible: « ${to} » (pays: ${pays || 'inconnu'})`);
       return { success: false, error: `invalid_to: ${to}` };
     }
     to = dest;
