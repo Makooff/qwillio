@@ -15,6 +15,14 @@ import { env } from '../config/env';
 import { smsService } from './sms.service';
 import { smsTemplates } from './sms-templates';
 import { detectLanguage, getAgentName } from '../config/vapi-templates';
+import { PLANS } from '../config/plans';
+
+/* La duree d'essai vient de `PLANS`, jamais d'un nombre ecrit ici.
+   Six endroits de ce fichier annonçaient « essai gratuit de 30 jours »,
+   « free 30-day trial », « free month » ou « mois offert ». `PLANS` porte
+   `trialDays: 7` aux quatre paliers. Ces textes partent en prospection AVANT
+   l'inscription: c'est la promesse que le prospect verifiera en premier. */
+const ESSAI_JOURS = PLANS.solo.trialDays;
 import { emailService } from './email.service';
 import { resend } from '../config/resend';
 import { discordService } from './discord.service';
@@ -37,9 +45,9 @@ const NICHE_SEND_HOUR: Record<string, number> = {
 
 // ─── Email sequence subjects ───────────────────────────────
 const EMAIL_SEQUENCE: Array<{ dayOffset: number; subject: string; bodyKey: string }> = [
-  { dayOffset: 0, subject: 'Start your free 30-day trial — Qwillio', bodyKey: 'demo' },
+  { dayOffset: 0, subject: `Start your free ${ESSAI_JOURS}-day trial: Qwillio`, bodyKey: 'demo' },
   { dayOffset: 3, subject: 'How {{niche}} businesses like yours use Qwillio', bodyKey: 'case_study' },
-  { dayOffset: 7, subject: 'Last chance: free month for {{business_name}}', bodyKey: 'last_chance' },
+  { dayOffset: 7, subject: `Last chance: ${ESSAI_JOURS}-day trial for {{business_name}}`, bodyKey: 'last_chance' },
 ];
 
 export class FollowUpSequencesService {
@@ -254,7 +262,7 @@ export class FollowUpSequencesService {
     const subjects: Record<number, Record<'en' | 'fr', string>> = {
       1: { en: 'Your AI receptionist demo — Qwillio', fr: 'Votre démo réceptionniste IA — Qwillio' },
       2: { en: `How ${niche} businesses use Qwillio`, fr: `Comment les ${niche} utilisent Qwillio` },
-      3: { en: `Last chance: free month for ${businessName}`, fr: `Dernière chance : mois offert pour ${businessName}` },
+      3: { en: `Last chance: ${ESSAI_JOURS}-day trial for ${businessName}`, fr: `Dernière chance : essai de ${ESSAI_JOURS} jours pour ${businessName}` },
     };
     return subjects[step]?.[lang] ?? subjects[1][lang];
   }
@@ -269,14 +277,14 @@ export class FollowUpSequencesService {
     agentName: string,
   ): string {
     if (lang === 'fr') {
-      if (step === 1) return `Bonjour ${firstName},\n\nComme promis, Qwillio peut gérer vos appels 24/7 pour les ${niche}.\n\nDémarrez votre essai gratuit de 30 jours : ${registrationLink}\n\nAucun engagement, annulez quand vous voulez.\n\n${agentName}, Qwillio`;
+      if (step === 1) return `Bonjour ${firstName},\n\nComme promis, Qwillio peut gérer vos appels 24/7 pour les ${niche}.\n\nDémarrez votre essai gratuit de ${ESSAI_JOURS} jours : ${registrationLink}\n\nAucun engagement, annulez quand vous voulez.\n\n${agentName}, Qwillio`;
       if (step === 2) return `Bonjour ${firstName},\n\nVoici comment des ${niche} comme vous utilisent Qwillio pour ne plus jamais manquer un appel client.\n\nEssai gratuit : ${registrationLink}\n\n${agentName}, Qwillio`;
       return `Bonjour ${firstName},\n\nDernière chance d'activer votre mois gratuit pour ${businessName}.\n\nInscription : ${registrationLink}\n\n${agentName}, Qwillio`;
     }
 
-    if (step === 1) return `Hi ${firstName},\n\nAs promised, Qwillio can handle your calls 24/7 for ${niche} businesses like yours.\n\nStart your free 30-day trial: ${registrationLink}\n\nNo commitment, cancel anytime.\n\n${agentName}, Qwillio`;
+    if (step === 1) return `Hi ${firstName},\n\nAs promised, Qwillio can handle your calls 24/7 for ${niche} businesses like yours.\n\nStart your free ${ESSAI_JOURS}-day trial: ${registrationLink}\n\nNo commitment, cancel anytime.\n\n${agentName}, Qwillio`;
     if (step === 2) return `Hi ${firstName},\n\nHere's how ${niche} businesses like yours are using Qwillio to never miss a customer call.\n\nStart your free trial: ${registrationLink}\n\n${agentName}, Qwillio`;
-    return `Hi ${firstName},\n\nLast chance to activate your free month for ${businessName}.\n\nSign up now: ${registrationLink}\n\n${agentName}, Qwillio`;
+    return `Hi ${firstName},\n\nLast chance to activate your ${ESSAI_JOURS}-day trial for ${businessName}.\n\nSign up now: ${registrationLink}\n\n${agentName}, Qwillio`;
   }
 }
 

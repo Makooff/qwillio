@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { smsTemplates } from '../sms-templates';
+import { PLANS } from '../../config/plans';
 
 describe('smsTemplates — bilingual selection', () => {
   it('renders the welcome SMS in French with the FR opt-out line', () => {
@@ -12,7 +13,14 @@ describe('smsTemplates — bilingual selection', () => {
   it('renders the welcome SMS in English with the EN opt-out line', () => {
     const body = smsTemplates.welcome({ firstName: 'John', agentName: 'Ashley', registrationLink: 'https://x', lang: 'en' });
     expect(body).toContain('Hi John');
-    expect(body).toContain('free 30-day trial');
+    /* Le nombre vient de `PLANS`, pas d'un litteral.
+       Ce test figeait « free 30-day trial » alors que la duree reelle est
+       `PLANS.solo.trialDays` = 7. Il a rendu service en tombant quand le texte
+       a ete corrige: c'est exactement ce qu'on veut d'un test sur une promesse
+       commerciale. L'ecrire en dur ici le rendrait complice de la prochaine
+       divergence au lieu de la signaler. */
+    expect(body).toContain(`free ${PLANS.solo.trialDays}-day trial`);
+    expect(body).not.toContain('30-day');
     expect(body).toContain('Reply STOP to opt out.');
   });
 

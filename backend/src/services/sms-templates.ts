@@ -16,6 +16,17 @@
 
 export type Lang = 'fr' | 'en';
 
+import { PLANS } from '../config/plans';
+
+/* La duree d'essai vient de `PLANS`, jamais d'un nombre ecrit ici.
+   Six messages de ce fichier — celui que les envois reels ET le panneau de test
+   de l'admin lisent — annonçaient « essai gratuit de 30 jours » et « free
+   30-day trial ». `PLANS` porte `trialDays: 7` aux quatre paliers, et
+   l'inscription demande une carte des le premier jour. Le fichier se declare
+   lui-meme « source of truth » des SMS: un chiffre faux y est donc diffuse
+   partout. */
+const ESSAI_JOURS = PLANS.solo.trialDays;
+
 const STOP: Record<Lang, string> = {
   en: 'Reply STOP to opt out.',
   fr: 'Répondez STOP pour vous désinscrire.',
@@ -34,20 +45,20 @@ export const smsTemplates = {
   /** Standard follow-up after a qualified call (admin test "welcome"). */
   welcome: (d: { firstName: string; agentName: string; registrationLink: string; lang: Lang }) =>
     d.lang === 'fr'
-      ? `Bonjour ${d.firstName}, ${d.agentName} de Qwillio. Démarrez votre essai gratuit de 30 jours : ${d.registrationLink}. Sans engagement. ${STOP.fr}`
-      : `Hi ${d.firstName}, it's ${d.agentName} from Qwillio. Start your free 30-day trial: ${d.registrationLink}. No commitment. ${STOP.en}`,
+      ? `Bonjour ${d.firstName}, ${d.agentName} de Qwillio. Démarrez votre essai gratuit de ${ESSAI_JOURS} jours : ${d.registrationLink}. Sans engagement. ${STOP.fr}`
+      : `Hi ${d.firstName}, it's ${d.agentName} from Qwillio. Start your free ${ESSAI_JOURS}-day trial: ${d.registrationLink}. No commitment. ${STOP.en}`,
 
   /** Bot dropped to voicemail — leave a written follow-up. */
   voicemail: (d: { niche: string; registrationLink: string; lang: Lang }) =>
     d.lang === 'fr'
-      ? `Bonjour, je vous ai laissé un message au sujet de Qwillio — réceptionniste IA pour les entreprises ${d.niche}. Essai gratuit de 30 jours : ${d.registrationLink}. ${STOP.fr}`
-      : `Hi, I left you a voicemail about Qwillio — AI receptionist for ${d.niche} businesses. Start your free 30-day trial: ${d.registrationLink}. ${STOP.en}`,
+      ? `Bonjour, je vous ai laissé un message au sujet de Qwillio — réceptionniste IA pour les entreprises ${d.niche}. Essai gratuit de ${ESSAI_JOURS} jours : ${d.registrationLink}. ${STOP.fr}`
+      : `Hi, I left you a voicemail about Qwillio — AI receptionist for ${d.niche} businesses. Start your free ${ESSAI_JOURS}-day trial: ${d.registrationLink}. ${STOP.en}`,
 
   /** Outcome "interested" / "qualified" on a live call. */
   interested: (d: { firstName: string; agentName: string; registrationLink: string; lang: Lang }) =>
     d.lang === 'fr'
-      ? `Bonjour ${d.firstName}, merci d'avoir discuté avec ${d.agentName} de Qwillio. Démarrez votre essai gratuit de 30 jours : ${d.registrationLink}. Sans engagement, annulable à tout moment. ${STOP.fr}`
-      : `Hi ${d.firstName}, thanks for chatting with ${d.agentName} from Qwillio. Start your free 30-day trial: ${d.registrationLink}. No commitment, cancel anytime. ${STOP.en}`,
+      ? `Bonjour ${d.firstName}, merci d'avoir discuté avec ${d.agentName} de Qwillio. Démarrez votre essai gratuit de ${ESSAI_JOURS} jours : ${d.registrationLink}. Sans engagement, annulable à tout moment. ${STOP.fr}`
+      : `Hi ${d.firstName}, thanks for chatting with ${d.agentName} from Qwillio. Start your free ${ESSAI_JOURS}-day trial: ${d.registrationLink}. No commitment, cancel anytime. ${STOP.en}`,
 
   /** Outcome "callback_later". */
   callback: (d: { firstName: string; agentName: string; lang: Lang }) =>

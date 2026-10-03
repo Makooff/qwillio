@@ -13,6 +13,16 @@ import { env } from '../config/env';
 import { emitEvent } from '../config/socket';
 import { discordService } from './discord.service';
 import { abTestingService } from './ab-testing.service';
+import { PLANS } from '../config/plans';
+
+/* Ce que l'agent annonce AU TELEPHONE vient de `PLANS`.
+   Ce fichier promettait « first month's completely free », « premier mois
+   offert » et « $497 flat ». La duree reelle est `PLANS.solo.trialDays` = 7
+   jours, la carte est demandee a l'inscription, et le palier d'entree est a
+   99 EUR, pas 497 dollars. Un prix et une duree annonces a l'oral engagent
+   plus qu'un texte: le prospect les note et les rappelle. */
+const ESSAI_JOURS = PLANS.solo.trialDays;
+const PRIX_ENTREE = PLANS.solo.monthlyPriceEur;
 import { followUpSequencesService } from './follow-up-sequences.service';
 import { isHoliday } from '../config/scheduling';
 import { requiresPriorConsent, isWithinCallingWindow, maxCallsPerMonth } from '../utils/outbound-legal';
@@ -60,18 +70,18 @@ const ASHLEY_SCRIPTS: Record<string, Record<'A' | 'B', string>> = {
   home_services: {
     A: `Hi, this is Ashley — quick question, when you're out on a job and your phone rings, what usually happens to that call?
 [Listen]
-Yeah exactly — and every one of those missed calls is a job going straight to your competitor. We fix that. Qwillio gives you an AI receptionist that answers every single call, books the job, and captures the customer info — 24/7, even when you're under a sink at 2pm. First month's completely free. Takes 48 hours to set up. Want me to show you how it works for {{business_name}}?`,
+Yeah exactly — and every one of those missed calls is a job going straight to your competitor. We fix that. Qwillio gives you an AI receptionist that answers every single call, books the job, and captures the customer info — 24/7, even when you're under a sink at 2pm. Free ${ESSAI_JOURS}-day trial, card at signup. Takes 48 hours to set up. Want me to show you how it works for {{business_name}}?`,
     B: `Hi, is this {{business_name}}? Great — I'll be quick. I'm Ashley from Qwillio. We work with plumbers and HVAC guys in {{city}} to make sure they never miss a customer call again. Right now, how are you handling calls when you're on a job?
 [Listen]
-So you're losing leads every single day. Here's what we do — your calls get answered by an AI receptionist that sounds completely human, books the appointment, gets their info. You see it all in a dashboard. First month free, no setup fee. Can I show you in 10 minutes how it'd work for your business?`,
+So you're losing leads every single day. Here's what we do — your calls get answered by an AI receptionist that sounds completely human, books the appointment, gets their info. You see it all in a dashboard. Free ${ESSAI_JOURS}-day trial, no setup fee. Can I show you in 10 minutes how it'd work for your business?`,
   },
   dental: {
     A: `Hi, this is Ashley calling for {{business_name}}. Quick question — when your front desk is with a patient, what happens to calls coming in?
 [Listen]
-Right, so you're losing new patient inquiries every day to voicemail. We solve that. Qwillio gives your practice an AI receptionist that answers every call, answers insurance questions, and books appointments directly — 24/7. Your staff stays focused on patients. First month completely free. Want to see how it works?`,
+Right, so you're losing new patient inquiries every day to voicemail. We solve that. Qwillio gives your practice an AI receptionist that answers every call, answers insurance questions, and books appointments directly — 24/7. Your staff stays focused on patients. Free ${ESSAI_JOURS}-day trial, card at signup. Want to see how it works?`,
     B: `Hi, I'm Ashley from Qwillio. Quick question for the office manager — when you're with a patient and the phone rings, who picks it up?
 [Listen]
-That's the gap we close. Our AI receptionist handles every overflow call, answers common insurance questions, books appointments. First month's on us. Can I walk you through it in 5 minutes?`,
+That's the gap we close. Our AI receptionist handles every overflow call, answers common insurance questions, books appointments. Your first ${ESSAI_JOURS} days are on us. Can I walk you through it in 5 minutes?`,
   },
 };
 
@@ -80,7 +90,7 @@ const MARIE_SCRIPTS: Record<string, Record<'A' | 'B', string>> = {
   home_services: {
     A: `Allô, bonjour — c'est Marie de Qwillio. Question rapide — quand vous êtes sur un chantier et votre téléphone sonne, ça se passe comment ?
 [Écouter]
-Ouais, exactement — et chaque appel manqué c'est un client qui part chez le voisin. Nous on règle ça. Qwillio vous donne une réceptionniste IA qui répond à chaque appel, prend les infos, fixe le rendez-vous — 24h/24. Premier mois offert, zéro frais de setup. Je peux vous montrer comment ça marche pour {{business_name}} ?`,
+Ouais, exactement — et chaque appel manqué c'est un client qui part chez le voisin. Nous on règle ça. Qwillio vous donne une réceptionniste IA qui répond à chaque appel, prend les infos, fixe le rendez-vous — 24h/24. Essai de ${ESSAI_JOURS} jours, zéro frais de setup. Je peux vous montrer comment ça marche pour {{business_name}} ?`,
     B: `Bonjour, c'est Marie de Qwillio. Je suis rapide — vous êtes {{business_name}} à {{city}} ? Parfait. On aide les artisans à ne plus jamais manquer un appel client. Comment vous gérez les appels quand vous êtes en intervention ?
 [Écouter]
 Exactement — notre réceptionniste IA répond, prend les coordonnées, fixe le rendez-vous. Tout s'affiche dans votre tableau de bord. Premier mois gratuit. Je vous montre en 10 minutes ?`,
@@ -91,7 +101,7 @@ Exactement — notre réceptionniste IA répond, prend les coordonnées, fixe le
 Du coup vous perdez des nouveaux patients tous les jours sur messagerie. Notre IA répond à chaque appel, répond aux questions sur les assurances, prend les rendez-vous — directement dans votre agenda. Premier mois gratuit. Vous voulez voir comment ça fonctionne ?`,
     B: `Bonjour, Marie de Qwillio. Question rapide — combien d'appels votre cabinet manque-t-il par semaine quand la secrétaire est occupée ?
 [Écouter]
-Voilà — notre réceptionniste IA comble ce manque. Chaque appel est répondu, chaque rendez-vous est pris. Pas de frais de setup, premier mois offert. On regarde ensemble en 5 minutes ?`,
+Voilà — notre réceptionniste IA comble ce manque. Chaque appel est répondu, chaque rendez-vous est pris. Pas de frais de setup, essai de ${ESSAI_JOURS} jours. On regarde ensemble en 5 minutes ?`,
   },
 };
 
@@ -99,7 +109,7 @@ Voilà — notre réceptionniste IA comble ce manque. Chaque appel est répondu,
 const OBJECTION_HANDLERS: Record<string, string> = {
   voicemail:      "Voicemail loses 80% of callers — they hang up and call your competitor. Ashley books them instead.",
   receptionist:   "Perfect — Ashley handles overflow and after-hours. Your receptionist focuses on patients in front of her.",
-  cost:           "First month is completely free. After that, $497 flat — less than one missed job per month.",
+  cost:           "Free ${ESSAI_JOURS}-day trial, card at signup. After that, from EUR ${PRIX_ENTREE} a month: less than one missed job per month.",
   think_about_it: "Totally fair. Can I send you a quick demo? 2-minute audio clip, no commitment.",
   send_email:     "Of course — what's the best email? I'll send it in the next 5 minutes with a demo clip.",
 };

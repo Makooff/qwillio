@@ -2,6 +2,10 @@ import { resend } from '../config/resend';
 import { env } from '../config/env';
 import { logger } from '../config/logger';
 import { PACKAGES } from '../types';
+import { PLANS } from '../config/plans';
+
+/* La duree d'essai vient de `PLANS`, jamais d'un nombre ecrit ici. */
+const ESSAI_JOURS = PLANS.solo.trialDays;
 import { formatDate } from '../utils/helpers';
 import { brandWrap, brandTitle, brandText, brandButton, brandList, brandSmall, brandLink } from './email-template';
 import {
@@ -367,12 +371,12 @@ export class EmailService {
               data.isTrial && data.trialEndDate
                 ? brandSmall(`Votre essai gratuit se termine le <strong>${formatDate(data.trialEndDate, 'fr')}</strong>. Aucun paiement avant.`)
                 : '',
-              brandSmall('Après la configuration, vous recevrez une vidéo de présentation personnalisée. — L\'équipe Qwillio'),
+              brandSmall('Après la configuration, vous recevrez une vidéo de présentation personnalisée. L\'équipe Qwillio'),
             ].join(''),
           });
         })()
       : (() => {
-          const planLabel = data.isTrial ? '30-day free trial' : `${pkg.name} plan`;
+          const planLabel = data.isTrial ? `${ESSAI_JOURS}-day free trial` : `${pkg.name} plan`;
           return brandWrap({
             lang,
             title: 'Set up your AI receptionist',
@@ -391,7 +395,7 @@ export class EmailService {
               data.isTrial && data.trialEndDate
                 ? brandSmall(`Your free trial ends on <strong>${formatDate(data.trialEndDate, 'en')}</strong>. No payment until then.`)
                 : '',
-              brandSmall('After setup, you will receive a personalized walkthrough video. — The Qwillio Team'),
+              brandSmall('After setup, you will receive a personalized walkthrough video. The Qwillio Team'),
             ].join(''),
           });
         })();
@@ -422,7 +426,7 @@ export class EmailService {
             brandTitle('Votre configuration est terminée'),
             brandText(`Bonjour ${data.contactName}, votre réceptionniste IA pour <strong>${data.businessName}</strong> est maintenant entièrement configurée avec les informations de votre entreprise.`),
             brandButton('Ouvrir mon tableau de bord', data.dashboardUrl),
-            brandText("Un membre de l'équipe enregistre une vidéo de présentation personnalisée — vous la recevrez sous 24 heures."),
+            brandText("Un membre de l'équipe enregistre une vidéo de présentation personnalisée : vous la recevrez sous 24 heures."),
             brandText('Votre IA connaît désormais :'),
             brandList([
               'Vos horaires et votre emplacement',
@@ -431,7 +435,7 @@ export class EmailService {
               'La gestion des appels urgents',
               'Les spécificités de votre secteur',
             ]),
-            brandSmall('— L\'équipe Qwillio'),
+            brandSmall('L\'équipe Qwillio'),
           ].join(''),
         })
       : brandWrap({
@@ -442,7 +446,7 @@ export class EmailService {
             brandTitle('Your setup is complete'),
             brandText(`Hi ${data.contactName}, your AI receptionist for <strong>${data.businessName}</strong> is now fully configured with your business information.`),
             brandButton('Open my dashboard', data.dashboardUrl),
-            brandText("A teammate is recording a personalized walkthrough video — you'll receive it within 24 hours."),
+            brandText("A teammate is recording a personalized walkthrough video: you'll receive it within 24 hours."),
             brandText('Your AI now knows:'),
             brandList([
               'Business hours & location',
@@ -451,7 +455,7 @@ export class EmailService {
               'Urgent call handling',
               'Industry-specific knowledge',
             ]),
-            brandSmall('— The Qwillio Team'),
+            brandSmall('The Qwillio Team'),
           ].join(''),
         });
     try {
@@ -497,16 +501,16 @@ export class EmailService {
             ]),
             brandHighlight('Premier paiement', `${total} $`, 28),
             brandButton('M\'abonner et garder mon IA', data.paymentLink),
-            brandSmall('Sans paiement sous 7 jours, votre réceptionniste IA et l\'accès au tableau de bord seront désactivés. — Marie, Qwillio'),
+            brandSmall('Sans paiement sous 7 jours, votre réceptionniste IA et l\'accès au tableau de bord seront désactivés. Marie, Qwillio'),
           ].join(''),
         })
       : brandWrap({
           lang,
           title: 'Your trial results & invoice',
-          preheader: `30-day recap for ${data.businessName} + first payment.`,
+          preheader: `Recap of your ${ESSAI_JOURS}-day trial for ${data.businessName}, plus the first payment.`,
           body: [
             brandTitle('Your trial results'),
-            brandText(`Hi ${data.contactName}, your 30-day trial for <strong>${data.businessName}</strong> has ended. Here is what your AI accomplished:`),
+            brandText(`Hi ${data.contactName}, your ${ESSAI_JOURS}-day trial for <strong>${data.businessName}</strong> has ended. Here is what your AI accomplished:`),
             brandList([
               `<strong>${data.trialStats.totalCalls}</strong> calls handled`,
               `<strong>${data.trialStats.totalBookings}</strong> bookings created`,
@@ -519,7 +523,7 @@ export class EmailService {
             ]),
             brandHighlight('First payment', `$${total}`, 28),
             brandButton('Subscribe & keep my AI', data.paymentLink),
-            brandSmall('Without payment within 7 days, your AI receptionist and dashboard access will be deactivated. — Ashley, Qwillio'),
+            brandSmall('Without payment within 7 days, your AI receptionist and dashboard access will be deactivated. Ashley, Qwillio'),
           ].join(''),
         });
     try {
@@ -554,7 +558,7 @@ export class EmailService {
               'Rappels et analyses en pause',
             ]),
             brandButton('Nous contacter pour réactiver', reactivateMail),
-            brandSmall('Votre configuration est conservée 30 jours, puis supprimée définitivement. — Marie, Qwillio'),
+            brandSmall('Votre configuration est conservée 30 jours, puis supprimée définitivement. Marie, Qwillio'),
           ].join(''),
         })
       : brandWrap({
@@ -571,7 +575,7 @@ export class EmailService {
               'Reminders & analytics paused',
             ]),
             brandButton('Contact us to reactivate', reactivateMail),
-            brandSmall('Your configuration is saved for 30 days, then permanently deleted. — Ashley, Qwillio'),
+            brandSmall('Your configuration is saved for 30 days, then permanently deleted. Ashley, Qwillio'),
           ].join(''),
         });
     try {
@@ -605,7 +609,7 @@ export class EmailService {
           preheader: `Une dernière étape pour activer ${data.businessName}.`,
           body: [
             brandTitle('Contrat signé'),
-            brandText(`Bonjour ${data.contactName}, votre entente de service pour <strong>${data.businessName}</strong> a été signée. Une dernière étape — complétez le paiement pour activer votre réceptionniste IA immédiatement.`),
+            brandText(`Bonjour ${data.contactName}, votre entente de service pour <strong>${data.businessName}</strong> a été signée. Une dernière étape : complétez le paiement pour activer votre réceptionniste IA immédiatement.`),
             brandText('Votre forfait :'),
             brandList([
               `Forfait <strong>${data.packageType.toUpperCase()}</strong>`,
@@ -614,7 +618,7 @@ export class EmailService {
             ]),
             brandHighlight('Premier paiement', `${total.toLocaleString()} $`, 28),
             brandButton('Compléter le paiement', data.paymentLink),
-            brandSmall("Dès réception du paiement, nous configurons votre réceptionniste IA et vous envoyons vos détails d'intégration en quelques minutes. — L'équipe Qwillio"),
+            brandSmall("Dès réception du paiement, nous configurons votre réceptionniste IA et vous envoyons vos détails d'intégration en quelques minutes. L'équipe Qwillio"),
           ].join(''),
         })
       : brandWrap({
@@ -623,7 +627,7 @@ export class EmailService {
           preheader: `One last step to activate ${data.businessName}.`,
           body: [
             brandTitle('Contract signed'),
-            brandText(`Hi ${data.contactName}, your service agreement for <strong>${data.businessName}</strong> has been signed. One last step — complete payment to activate your AI receptionist immediately.`),
+            brandText(`Hi ${data.contactName}, your service agreement for <strong>${data.businessName}</strong> has been signed. One last step: complete payment to activate your AI receptionist immediately.`),
             brandText('Your plan:'),
             brandList([
               `<strong>${data.packageType.toUpperCase()}</strong> package`,
@@ -632,13 +636,13 @@ export class EmailService {
             ]),
             brandHighlight('First payment', `$${total.toLocaleString()}`, 28),
             brandButton('Complete payment', data.paymentLink),
-            brandSmall("Once payment clears, we'll set up your AI receptionist and email your onboarding details within minutes. — The Qwillio Team"),
+            brandSmall("Once payment clears, we'll set up your AI receptionist and email your onboarding details within minutes. The Qwillio Team"),
           ].join(''),
         });
     try {
       await resend.emails.send({
         from: env.RESEND_FROM_EMAIL, to: data.to,
-        subject: lang === 'fr' ? `Contrat signé — complétez votre configuration pour ${data.businessName}` : `Contract signed — complete your setup for ${data.businessName}`,
+        subject: lang === 'fr' ? `Contrat signé : complétez votre configuration pour ${data.businessName}` : `Contract signed: complete your setup for ${data.businessName}`,
         html, replyTo: env.RESEND_REPLY_TO,
         tags: [{ name: 'campaign', value: 'contract_signed_payment' }],
       });
@@ -666,7 +670,7 @@ export class EmailService {
               : '',
             brandText('Raisons fréquentes d\'un paiement refusé :'),
             brandList(['Carte expirée', 'Fonds insuffisants', 'Carte bloquée par votre banque', 'Adresse de facturation périmée']),
-            brandSmall('— L\'équipe Qwillio'),
+            brandSmall('L\'équipe Qwillio'),
           ].join(''),
         })
       : brandWrap({
@@ -685,7 +689,7 @@ export class EmailService {
               : '',
             brandText('Common reasons for failed payments:'),
             brandList(['Expired credit card', 'Insufficient funds', 'Card blocked by your bank', 'Outdated billing address']),
-            brandSmall('— The Qwillio Team'),
+            brandSmall('The Qwillio Team'),
           ].join(''),
         });
     try {
@@ -779,7 +783,7 @@ export class EmailService {
             brandTitle('Merci pour votre échange'),
             brandText(`Bonjour ${data.contactName || 'à vous'}, ravie d'avoir discuté de <strong>${data.businessName}</strong>. Comme promis, voici une courte démo de 2 minutes de votre réceptionniste IA en action.`),
             brandButton('Voir la démo', demoUrl),
-            brandSmall(`Ceci confirme aussi que nous avons la bonne adresse — aucune action requise. Nous reviendrons vers vous bientôt avec plus de détails. — Marie, Qwillio`),
+            brandSmall(`Ceci confirme aussi que nous avons la bonne adresse : aucune action requise. Nous reviendrons vers vous bientôt avec plus de détails. Marie, Qwillio`),
           ].join(''),
         })
       : brandWrap({
@@ -790,7 +794,7 @@ export class EmailService {
             brandTitle('Thanks for chatting'),
             brandText(`Hi ${data.contactName || 'there'}, great talking with you about <strong>${data.businessName}</strong>. As promised, here is a quick 2-minute demo of your AI receptionist in action.`),
             brandButton('Watch the demo', demoUrl),
-            brandSmall(`This also confirms we have the right address for you — no action needed. We'll follow up with more details soon. — Ashley, Qwillio`),
+            brandSmall(`This also confirms we have the right address for you: no action needed. We'll follow up with more details soon. Ashley, Qwillio`),
           ].join(''),
         });
 
@@ -938,7 +942,7 @@ export class EmailService {
       /* Ce courriel n'a pas de paramètre de langue et son corps est écrit en
          français de bout en bout: le pied de page l'est donc aussi. */
       lang: 'fr',
-      title: `${data.businessName} — Daily Email Digest`,
+      title: `${data.businessName} : Daily Email Digest`,
       preheader: `Résumé des dernières 24h pour ${data.businessName}.`,
       body: [
         brandTitle('Récap des dernières 24h'),
@@ -952,7 +956,7 @@ export class EmailService {
           `<strong>${data.needsReview}</strong> en attente de votre revue`,
         ]),
         brandButton('Voir dans le dashboard', dashboardUrl),
-        brandSmall('— Qwillio AI'),
+        brandSmall('Qwillio AI'),
       ].join(''),
     });
     const html = this.injectUnsubscribeLink(rawHtml, data.to);
@@ -960,7 +964,7 @@ export class EmailService {
       await resend.emails.send({
         from: env.RESEND_FROM_EMAIL,
         to: data.to,
-        subject: `${data.businessName} — Daily Email Digest`,
+        subject: `${data.businessName} : Daily Email Digest`,
         html,
         replyTo: env.RESEND_REPLY_TO,
         headers: { 'List-Unsubscribe': `<${this.getUnsubscribeUrl(data.to)}>` },
@@ -984,11 +988,11 @@ export class EmailService {
             preheader: `7 jours gratuits pour ${data.businessName}.`,
             body: [
               brandTitle('Votre IA est prête'),
-              brandText(`Bonjour ${data.contactName}, ravie de notre échange. Qwillio gère vos appels entrants 24 h/24 — répond aux questions, prend les rendez-vous et qualifie les leads pendant que vous vous concentrez sur votre entreprise.`),
-              brandText(`Nous recommandons le forfait <strong>${planName}</strong> pour <strong>${data.businessName}</strong>. Vos 30 premiers jours sont entièrement gratuits — sans engagement, annulable à tout moment.`),
+              brandText(`Bonjour ${data.contactName}, ravie de notre échange. Qwillio gère vos appels entrants 24 h/24 : répond aux questions, prend les rendez-vous et qualifie les leads pendant que vous vous concentrez sur votre entreprise.`),
+              brandText(`Nous recommandons le forfait <strong>${planName}</strong> pour <strong>${data.businessName}</strong>. Vos ${ESSAI_JOURS} premiers jours sont gratuits. Carte requise à l'inscription, annulable à tout moment.`),
               brandHighlight('Essai gratuit', '7 jours', 28),
               brandButton('Démarrer mon essai gratuit', data.registrationUrl),
-              brandSmall('La configuration prend moins de 5 minutes. Sans carte de crédit. — Marie, Qwillio IA'),
+              brandSmall('La configuration prend moins de 5 minutes. Marie, Qwillio IA'),
             ].join(''),
           })
         : brandWrap({
@@ -997,11 +1001,11 @@ export class EmailService {
             preheader: `7 days free for ${data.businessName}.`,
             body: [
               brandTitle('Your AI is ready'),
-              brandText(`Hi ${data.contactName}, great speaking with you. Qwillio handles your incoming calls 24/7 — answering questions, booking appointments and qualifying leads while you focus on your business.`),
-              brandText(`We recommend the <strong>${planName}</strong> plan for <strong>${data.businessName}</strong>. Your first 7 days are completely free — cancel anytime before they end.`),
+              brandText(`Hi ${data.contactName}, great speaking with you. Qwillio handles your incoming calls 24/7: answering questions, booking appointments and qualifying leads while you focus on your business.`),
+              brandText(`We recommend the <strong>${planName}</strong> plan for <strong>${data.businessName}</strong>. Your first ${ESSAI_JOURS} days are completely free. Cancel anytime before they end.`),
               brandHighlight('Free trial', '7 days', 28),
               brandButton('Start your free trial', data.registrationUrl),
-              brandSmall('Setup takes less than 5 minutes. No credit card required. — Ashley, Qwillio AI'),
+              brandSmall('Setup takes less than 5 minutes. No credit card required. Ashley, Qwillio AI'),
             ].join(''),
           });
       const html = this.injectUnsubscribeLink(rawHtml, data.to);

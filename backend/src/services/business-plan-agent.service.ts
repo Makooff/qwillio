@@ -1,4 +1,12 @@
 import { prisma } from '../config/database';
+import { PLANS } from '../config/plans';
+
+/* Les prix de ce document viennent de `PLANS`.
+   Il annonçait « $99 setup + $149/month », en dollars, alors que la grille est
+   en euros (99/249/599/1290) et qu'aucun de ces montants n'existe. Ce document
+   est un argumentaire de vente: un prix qu'on y lit et qu'on ne retrouve pas a
+   l'inscription est la premiere chose que le prospect verifie. */
+const PRIX_ENTREE = PLANS.solo.monthlyPriceEur;
 import { logger } from '../config/logger';
 import { env } from '../config/env';
 import { agentMemoryService } from './agent-memory.service';
@@ -47,7 +55,7 @@ function buildFallbackHtml(businessName: string, niche: string): GptBusinessPlan
       </ul>
       <h2>Key Benefits</h2>
       <ul>${keyBenefits.map((b) => `<li>${b}</li>`).join('')}</ul>
-      <p><strong>Investment:</strong> $99 setup + $149/month</p>
+      <p><strong>Investment:</strong> from EUR ${PRIX_ENTREE}/month, no setup fee</p>
     </div>
   `;
 
@@ -67,7 +75,7 @@ async function callGptBusinessPlan(
 ): Promise<GptBusinessPlanResponse> {
   const prompt = `You are an ROI pitch writer for Qwillio AI receptionist.
 Given this prospect data, generate a personalized HTML business plan with projected revenue gains.
-Assume Qwillio costs $99/month setup + $149/month. Industry avg: each missed call = $200 lost revenue.
+Assume Qwillio costs EUR ${PRIX_ENTREE}/month with no setup fee. Industry avg: each missed call = $200 lost revenue.
 
 Business: ${businessName}
 Niche: ${niche}
