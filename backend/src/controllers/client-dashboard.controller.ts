@@ -13,7 +13,7 @@ import { listCharacters, resolveCharacter, CHARACTERS, isValidCharacterId, DEFAU
 import { buildVapiConfigPatch, parseFaq } from '../services/client-config.service';
 import { knowledgePreset } from '../config/knowledge-presets';
 import { setupCompleteness } from '../services/setup-completeness';
-import { realtimeContextService } from '../services/voice/realtime-context.service';
+import { realtimeContextService, shouldRecord } from '../services/voice/realtime-context.service';
 import { knowledgeGapService } from '../services/voice/knowledge-gap.service';
 import { clientMessage, type PhoneSetupState } from '../services/voice/phone-setup.service';
 import { wouldLoop, LOOP_MESSAGE } from '../services/voice/transfer-loop';
@@ -623,6 +623,15 @@ export class ClientDashboardController {
            l'écran proposerait un canal qui n'enverra jamais rien, et le client
            croirait avoir activé quelque chose. */
         whatsappAvailable: !!env.TWILIO_WHATSAPP_NUMBER && Object.keys(env.WHATSAPP_TEMPLATE_SIDS).length > 0,
+        /* L'ENREGISTREMENT, EN LECTURE. `PUT /settings` l'accepte depuis
+           toujours (`body.recordCalls`), et aucun ecran ne le lisait: la valeur
+           etait donc reglable seulement en ecrivant le JSON a la main, ce que
+           le commentaire de l'ecriture denoncait deja. Un client ne peut pas
+           cocher une option que la lecture ne lui rend pas.
+           `shouldRecord` est la meme fonction qui decide de la notice dite a
+           l'appelant et du demarrage reel: l'ecran, la phrase et l'acte lisent
+           une seule regle. */
+        recordCalls: shouldRecord({ recordCalls: cfg.recordCalls !== false && cfg.disableRecordingNotice !== true }),
       });
     } catch (error: any) {
       res.status(500).json({ error: error.message });

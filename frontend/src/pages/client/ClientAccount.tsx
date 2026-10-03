@@ -7,6 +7,7 @@ import {
   User, Lock, Check, Bell, LogOut, Eye, EyeOff, ChevronRight,
   CreditCard, Bot, HelpCircle, Sparkles, Shield, Globe,
   Building2, MapPin, BookOpen, Clock, Plus, Pencil, Trash2, X, AlertTriangle,
+  ShieldCheck,
   LucideIcon,
 } from '../../components/icons';
 import { useAuthStore } from '../../stores/authStore';
@@ -258,6 +259,16 @@ export default function ClientAccount() {
      enverrait trente messages par jour au commerce qui reçoit trente appels. */
   const [leadAlert, setLeadAlert] = useState<'all' | 'urgent' | 'none'>('urgent');
   const [whatsappAvailable, setWhatsappAvailable] = useState(false);
+  /* L'ENREGISTREMENT DES APPELS, et c'est une OPTION que le client coche.
+     Elle etait acceptee en ecriture (`PUT /settings { recordCalls }`) depuis
+     toujours et n'etait affichee nulle part : le client ne pouvait la regler
+     qu'en ecrivant le JSON a la main. Or c'est elle qui decide de la phrase
+     « cet appel est enregistre » dite au decroche. Une option qu'on ne peut pas
+     cocher n'existe pas.
+     `true` par defaut, comme le moteur : ne rien avoir coche ne doit pas
+     eteindre un enregistrement sans que personne ne l'ait demande. */
+  const [recordCalls, setRecordCalls] = useState(true);
+  const [recordSaving, setRecordSaving] = useState(false);
   const [businessName, setBusinessName] = useState('');
   const [businessType, setBusinessType] = useState('');
   const [contactPhone, setContactPhone] = useState('');
@@ -320,6 +331,7 @@ export default function ClientAccount() {
     try {
       const { data } = await api.get('/my-dashboard/retention');
       if (typeof data?.retentionDays === 'number') setRetentionDays(data.retentionDays);
+      if (typeof data?.recordCalls === 'boolean') setRecordCalls(data.recordCalls);
       if (typeof data?.defaultDays === 'number') setRetentionDefault(data.defaultDays);
       setRetentionIsDefault(data?.isDefault !== false);
     } catch {
@@ -417,6 +429,24 @@ export default function ClientAccount() {
       setRetentionError(kbMessage(e, "L'enregistrement a échoué."));
     } finally {
       setRetentionSaving(false);
+    }
+  };
+
+  /* Cocher ou decocher l'enregistrement. On revient a la valeur precedente en
+     cas d'echec: l'interrupteur ne doit pas afficher un etat que le serveur n'a
+     pas accepte, sinon le client croit avoir coupe un enregistrement qui tourne
+     toujours. `recordCalls` decide AUSSI de la phrase dite au decroche, donc un
+     affichage faux ferait mentir l'agent a l'appel suivant. */
+  const saveRecordCalls = async (valeur: boolean) => {
+    const precedent = recordCalls;
+    setRecordCalls(valeur);
+    setRecordSaving(true);
+    try {
+      await api.put('/my-dashboard/settings', { recordCalls: valeur });
+    } catch {
+      setRecordCalls(precedent);
+    } finally {
+      setRecordSaving(false);
     }
   };
 
@@ -1379,6 +1409,25 @@ export default function ClientAccount() {
               </motion.div>
             )}
           </AnimatePresence>
+
+          {/* ENREGISTREMENT DES APPELS. C'est une option du client, et c'est
+              elle qui decide de la phrase dite au decroche: `shouldRecord` sert
+              a la fois l'ecran, la notice et le demarrage reel, donc les trois
+              ne peuvent pas diverger. Desactive, l'enregistrement n'a jamais
+              lieu et « cet appel est enregistre » n'est plus prononce.
+              L'interrupteur reste utilisable meme si aucun enregistrement ne
+              peut aboutir pour l'instant (la ligne n'est pas encore sur un
+              trunk SIP): le reglage est celui du produit, l'infrastructure est
+              un autre sujet. */}
+          <Row
+            icon={ShieldCheck}
+            label="Enregistrement des appels"
+            hint={recordCalls ? "Activé, vos appels sont conservés" : "Désactivé, aucun appel n'est enregistré"}
+            onClick={() => { void saveRecordCalls(!recordCalls); }}
+          />
+          {recordSaving && (
+            <p className="text-[11.5px] px-5 pb-3" style={{ color: C.textTer }}>Enregistrement…</p>
+          )}
 
           {/* CONSERVATION. La politique publiée annonçait 90 jours sans que rien
               ne purge; la purge existe désormais et tourne chaque jour. Ce
