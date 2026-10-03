@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { RefreshCw, Search, ChevronUp, ChevronDown, Phone, MapPin } from '../components/icons';
 
-const API = import.meta.env.VITE_API_URL || 'https://qwillio.onrender.com';
+const API = import.meta.env.VITE_API_URL || 'https://qwillio-eu.onrender.com';
 const getH = (): Record<string, string> => {
   const tok = localStorage.getItem('token');
   return tok ? { Authorization: `Bearer ${tok}` } : {};

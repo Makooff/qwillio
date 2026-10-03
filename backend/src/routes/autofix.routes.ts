@@ -63,7 +63,7 @@ router.post('/propose', requireAutofixToken, async (req: Request, res: Response)
   });
 
   // Build approval URLs
-  const base = process.env.PUBLIC_BASE_URL || 'https://qwillio.onrender.com';
+  const base = process.env.PUBLIC_BASE_URL || 'https://qwillio-eu.onrender.com';
   const approveUrl = `${base}/api/autofix/approve/${fix.id}`;
   const rejectUrl = `${base}/api/autofix/reject/${fix.id}`;
 

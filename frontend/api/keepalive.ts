@@ -2,7 +2,7 @@ export const config = { runtime: 'edge' };
 
 export default async function handler() {
   try {
-    await fetch('https://qwillio.onrender.com/api/auth/warmup', {
+    await fetch('https://qwillio-eu.onrender.com/api/auth/warmup', {
       signal: AbortSignal.timeout(90000),
     });
   } catch {}

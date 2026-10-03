@@ -18,7 +18,7 @@ import type { Page, Route } from '@playwright/test';
  * vérifier.
  */
 
-export const API = 'https://qwillio.onrender.com/api';
+export const API = 'https://qwillio-eu.onrender.com/api';
 
 /** Ce que `/auth/me` doit rendre pour que `ClientRoute` laisse passer. */
 export const CLIENT_USER = {

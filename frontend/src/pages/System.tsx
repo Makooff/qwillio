@@ -1,6 +1,6 @@
 ﻿import { useEffect, useState } from 'react'
 
-const API = import.meta.env.VITE_API_URL || 'https://qwillio.onrender.com'
+const API = import.meta.env.VITE_API_URL || 'https://qwillio-eu.onrender.com'
 
 function getHeaders(): Record<string, string> {
   const t = localStorage.getItem('token')

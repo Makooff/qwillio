@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 
-const API = import.meta.env.VITE_API_URL || 'https://qwillio.onrender.com'
+const API = import.meta.env.VITE_API_URL || 'https://qwillio-eu.onrender.com'
 
 interface Call {
   id: string
