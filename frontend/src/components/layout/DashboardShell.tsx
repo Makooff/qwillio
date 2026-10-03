@@ -4,7 +4,7 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import {
   LogOut, X, ChevronDown,
   Settings as SettingsIcon, LayoutDashboard,
-  HelpCircle, BookOpen, type LucideIcon,
+  HelpCircle, BookOpen, ShieldCheck, type LucideIcon,
 } from '../icons';
 import { useAuthStore } from '../../stores/authStore';
 import QwillioLogo from '../QwillioLogo';
@@ -294,6 +294,22 @@ export default function DashboardShell(props: DashboardShellProps) {
             <BookOpen className="w-[18px] h-[18px] flex-shrink-0" />
             <span className="text-[13px] font-medium">Documentation</span>
           </a>
+          {/* Google exige que la politique de confidentialite soit atteignable
+              DEPUIS l'interface qui demande l'acces aux donnees, pas seulement
+              depuis le site public. Le pied de page public la portait deja
+              (FooterV2), le portail connecte non: c'est le motif de rejet le
+              plus courant des dossiers de verification OAuth. Ce lien vit avec
+              « Aide » et « Documentation » plutot que dans un pied de page: la
+              barre laterale est visible sur tous les ecrans, un pied de page
+              ne l'est pas. */}
+          <Link
+            to="/privacy"
+            className="flex items-center gap-3 px-3 py-2 rounded-[10px] transition-colors hover:bg-white/[0.03]"
+            style={{ color: t.textSec }}
+          >
+            <ShieldCheck className="w-[18px] h-[18px] flex-shrink-0" />
+            <span className="text-[13px] font-medium">Confidentialité</span>
+          </Link>
         </div>
       )}
 

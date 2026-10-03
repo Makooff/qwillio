@@ -6,9 +6,17 @@ import { env } from '../config/env';
 import { logger } from '../config/logger';
 import { businessTimezone, zonedInstant, ymdOf } from '../utils/zoned-time';
 
+/* Le service n'appelle QUE l'endpoint `freeBusy` (ligne 189) pour connaitre
+   les creneaux occupes. Il ne lit jamais le contenu d'un evenement. Or
+   `calendar.readonly` ouvre l'agenda entier en lecture: titres, invites,
+   descriptions, lieux. Une permission qui lit plus que necessaire est le
+   premier motif de rejet d'un dossier de verification OAuth, et elle expose
+   le client sans rien apporter. `calendar.freebusy` couvre exactement l'usage
+   reel: des intervalles occupes, jamais leur contenu. Verifie sur appel reel
+   le 12/09/2026 (double reservation evitee le dimanche d'un commerce ferme). */
 const OAUTH_SCOPES = [
   'https://www.googleapis.com/auth/calendar.events',
-  'https://www.googleapis.com/auth/calendar.readonly',
+  'https://www.googleapis.com/auth/calendar.freebusy',
 ];
 
 // ═══════════════════════════════════════════════════════════
