@@ -38,10 +38,11 @@ export default function Gdpr() {
   const isFr = lang === 'fr';
 
   useSEO({
-    title: 'GDPR Rights',
-    description: 'Your GDPR data rights with Qwillio: access, rectification, erasure, portability and more.',
+    title: isFr ? 'Vos droits RGPD' : 'GDPR Rights',
+    description: isFr
+      ? 'Vos droits RGPD chez Qwillio : accès, rectification, effacement, portabilité, et comment les exercer.'
+      : 'Your GDPR data rights with Qwillio: access, rectification, erasure, portability and how to use them.',
     canonical: 'https://qwillio.com/gdpr',
-    noindex: true,
   });
 
   const sections: LegalSectionRef[] = useMemo(

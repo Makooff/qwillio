@@ -24,11 +24,18 @@ export default function Privacy() {
   const isFr = lang === 'fr';
 
   useSEO({
-    title: 'Privacy Policy',
-    description:
-      'Qwillio privacy policy: how we collect, use, and protect your data in compliance with GDPR and CCPA.',
+    /* Titre et description en francais, et indexables.
+       La page etait declaree `noindex` depuis la refonte V2, sans commentaire ni
+       decision ecrite. Or c'est la page que Google ouvre pour valider l'app, et
+       celle que le portail client lie depuis sa barre laterale: une politique de
+       confidentialite que Google refuse d'indexer est un signal negatif au
+       moment precis ou on lui demande de nous faire confiance. Le `canonical`
+       porte deja l'adresse; `noindex` disait le contraire. */
+    title: isFr ? 'Politique de confidentialité' : 'Privacy Policy',
+    description: isFr
+      ? 'Comment Qwillio collecte, utilise et protège vos données. Conforme au RGPD et au CCPA, sans détour.'
+      : 'How Qwillio collects, uses and protects your data. GDPR and CCPA compliant, without the runaround.',
     canonical: 'https://qwillio.com/privacy',
-    noindex: true,
   });
 
   const sections: LegalSectionRef[] = useMemo(
