@@ -16,11 +16,11 @@ const details: string[] = [
 
 ---
 
-Service — ${data.serviceType}
+Service : ${data.serviceType}
 
 ---
 
-Notes — ${data.specialRequests}
+Notes : ${data.specialRequests}
 
 ---
 
@@ -47,11 +47,11 @@ const details: string[] = [
 
 ---
 
-Service — ${data.serviceType}
+Service : ${data.serviceType}
 
 ---
 
-Notes — ${data.specialRequests}
+Notes : ${data.specialRequests}
 
 ---
 

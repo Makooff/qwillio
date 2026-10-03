@@ -45,7 +45,7 @@ export function renderQuoteTemplate(data: {
         brandList(data.features),
         brandHighlight('Offre valable jusqu\'au', formatDate(data.validUntil, 'fr'), 18),
         brandButton('Compléter mon inscription', data.paymentLink),
-        brandSmall('Installation complétée dans les 48 h suivant le paiement. Répondez à ce courriel pour toute question. — Marie, Qwillio'),
+        brandSmall('Installation complétée dans les 48 h suivant le paiement. Répondez à ce courriel pour toute question. Marie, Qwillio'),
       ].join(''),
     });
   }
@@ -62,7 +62,7 @@ export function renderQuoteTemplate(data: {
       brandList(data.features),
       brandHighlight('Offer valid until', formatDate(data.validUntil, 'en'), 18),
       brandButton('Complete my signup', data.paymentLink),
-      brandSmall('Setup completed within 48 hours of payment. Reply to this email if you have questions. — Ashley, Qwillio'),
+      brandSmall('Setup completed within 48 hours of payment. Reply to this email if you have questions. Ashley, Qwillio'),
     ].join(''),
   });
 }
@@ -91,7 +91,7 @@ export function renderFollowUpTemplate(data: {
           brandHighlight(`Forfait ${data.packageName}`, `${data.monthlyPrice} €/mois`, 28),
           brandText(`Sans frais d'installation, sans engagement. Notre IA fait en sorte que vous ne manquiez plus jamais un appel client.`),
           brandButton('Voir mon offre', data.paymentLink),
-          brandSmall('— Marie, Qwillio'),
+          brandSmall('Marie, Qwillio'),
         ].join(''),
       });
     }
@@ -110,7 +110,7 @@ export function renderFollowUpTemplate(data: {
             'Rentabilité dès le 2e mois',
           ]),
           brandButton('Compléter mon inscription', data.paymentLink),
-          brandSmall('— Marie, Qwillio'),
+          brandSmall('Marie, Qwillio'),
         ].join(''),
       });
     }
@@ -125,7 +125,7 @@ export function renderFollowUpTemplate(data: {
         brandHighlight(`Forfait ${data.packageName}`, `${data.monthlyPrice} €/mois`, 28),
         brandText(`Sans frais d'installation, sans engagement.`),
         brandButton('Profiter de mon offre', data.paymentLink),
-        brandSmall("Cette offre ne sera plus disponible après aujourd'hui. — Marie, Qwillio"),
+        brandSmall("Cette offre ne sera plus disponible après aujourd'hui. Marie, Qwillio"),
       ].join(''),
     });
   }
@@ -141,7 +141,7 @@ export function renderFollowUpTemplate(data: {
         brandHighlight(`${data.packageName} package`, `€${data.monthlyPrice}/mo`, 28),
         brandText(`No setup fee, no commitment. Our AI ensures you never miss a customer call again.`),
         brandButton('View my offer', data.paymentLink),
-        brandSmall('— Ashley, Qwillio'),
+        brandSmall('Ashley, Qwillio'),
       ].join(''),
     });
   }
@@ -161,7 +161,7 @@ export function renderFollowUpTemplate(data: {
           'Positive ROI within the 2nd month',
         ]),
         brandButton('Complete my signup', data.paymentLink),
-        brandSmall('— Ashley, Qwillio'),
+        brandSmall('Ashley, Qwillio'),
       ].join(''),
     });
   }
@@ -177,7 +177,7 @@ export function renderFollowUpTemplate(data: {
       brandHighlight(`${data.packageName} package`, `€${data.monthlyPrice}/mo`, 28),
       brandText(`No setup fee, no commitment.`),
       brandButton('Claim my offer now', data.paymentLink),
-      brandSmall('This offer will no longer be available after today. — Ashley, Qwillio'),
+      brandSmall('This offer will no longer be available after today. Ashley, Qwillio'),
     ].join(''),
   });
 }
@@ -212,7 +212,7 @@ export function renderWelcomeTemplate(data: {
           `<strong>Personnalisez-la.</strong> Ouvrez le tableau de bord pour définir vos horaires, votre FAQ et vos tarifs.`,
           ...(phone ? [`<strong>Redirigez vos appels.</strong> Transférez votre ligne principale vers le ${phone} quand vous êtes prêt.`] : []),
         ]),
-        brandSmall('Conseil — durant les 7 premiers jours, gardez votre système téléphonique actuel en parallèle pour une transition en douceur.'),
+        brandSmall('Conseil : durant les 7 premiers jours, gardez votre système téléphonique actuel en parallèle pour une transition en douceur.'),
       ].join(''),
     });
   }
@@ -231,7 +231,7 @@ export function renderWelcomeTemplate(data: {
         `<strong>Customize it.</strong> Open the dashboard to set hours, FAQ and pricing.`,
         ...(phone ? [`<strong>Forward your calls.</strong> Redirect your main line to ${phone} when you're ready.`] : []),
       ]),
-      brandSmall('Tip — during the first 7 days, keep your current phone system running in parallel for a smooth transition.'),
+      brandSmall('Tip: during the first 7 days, keep your current phone system running in parallel for a smooth transition.'),
     ].join(''),
   });
 }
@@ -245,14 +245,25 @@ export function renderTrialWelcomeTemplate(data: {
   lang?: Lang;
 }): string {
   const lang = L(data.lang);
+  /* La duree annoncee se CALCULE, elle ne s'ecrit pas.
+     Ce courriel annoncait « 30 jours » alors que `PLANS` porte `trialDays: 7`
+     aux quatre paliers, et que le SMS du closer promettait la meme chose. Un
+     prospect qui s'inscrit apres avoir lu 30 jours decouvre 7: la promesse est
+     fausse au moment precis ou il verifie. On derive donc du seul fait dont on
+     dispose ici — la date de fin — pour qu'une prochaine modification de la
+     duree ne laisse pas ce texte derriere elle. */
+  const trialDays = Math.max(
+    1,
+    Math.round((data.trialEndDate.getTime() - Date.now()) / 86_400_000),
+  );
   if (lang === 'fr') {
     return brandWrap({
       lang,
       title: 'Votre essai gratuit est actif',
-      preheader: `30 jours pour tester Qwillio pour ${data.businessName}.`,
+      preheader: `${trialDays} jours pour tester Qwillio pour ${data.businessName}.`,
       body: [
         brandTitle('Votre essai gratuit est actif'),
-        brandText(`Bonjour ${data.contactName}, votre <strong>essai gratuit de 30 jours</strong> pour <strong>${data.businessName}</strong> vient d'être activé. Sans engagement, sans carte de crédit.`),
+        brandText(`Bonjour ${data.contactName}, votre <strong>essai gratuit de ${trialDays} jours</strong> pour <strong>${data.businessName}</strong> vient d'être activé. Sans engagement, sans carte de crédit.`),
         brandText('Ce qui est inclus dans votre essai :'),
         brandList([
           'Réceptionniste IA disponible 24 h/24',
@@ -263,17 +274,17 @@ export function renderTrialWelcomeTemplate(data: {
         ]),
         brandHighlight('Fin de l\'essai le', formatDate(data.trialEndDate, 'fr'), 18),
         brandText("Prochaines étapes : notre équipe configure votre assistant IA dans les 24 à 48 h et vous envoie le numéro de téléphone IA. Ensuite, il ne reste qu'à tester."),
-        brandSmall('Une question ? Répondez à ce courriel et Marie vous accompagne. — L\'équipe Qwillio'),
+        brandSmall('Une question ? Répondez à ce courriel et Marie vous accompagne. L\'équipe Qwillio'),
       ].join(''),
     });
   }
   return brandWrap({
     lang,
     title: 'Your free trial is active',
-    preheader: `30 days to test Qwillio for ${data.businessName}.`,
+    preheader: `${trialDays} days to test Qwillio for ${data.businessName}.`,
     body: [
       brandTitle('Your free trial is active'),
-      brandText(`Hi ${data.contactName}, your <strong>30-day free trial</strong> for <strong>${data.businessName}</strong> has just been activated. No commitment, no card required.`),
+      brandText(`Hi ${data.contactName}, your <strong>${trialDays}-day free trial</strong> for <strong>${data.businessName}</strong> has just been activated. No commitment, no card required.`),
       brandText("What's included in your trial:"),
       brandList([
         'AI receptionist available 24/7',
@@ -284,7 +295,7 @@ export function renderTrialWelcomeTemplate(data: {
       ]),
       brandHighlight('Trial ends on', formatDate(data.trialEndDate, 'en'), 18),
       brandText('Next steps: our team will set up your AI assistant in the next 24–48 hours and email you the AI phone number. From there, just test and enjoy.'),
-      brandSmall('Questions? Reply to this email and Ashley will jump in. — The Qwillio Team'),
+      brandSmall('Questions? Reply to this email and Ashley will jump in. The Qwillio Team'),
     ].join(''),
   });
 }
@@ -313,7 +324,7 @@ export function renderTrialEndingTemplate(data: {
         brandHighlight(`Forfait ${data.packageType.toUpperCase()}`, `${data.monthlyPrice} €/mois`, 28),
         brandText('Sans engagement. Annulable à tout moment.'),
         brandButton('Continuer avec Qwillio', data.paymentLink),
-        brandSmall("Sans abonnement, votre réceptionniste IA sera désactivée à la fin de l'essai. — Marie, Qwillio"),
+        brandSmall("Sans abonnement, votre réceptionniste IA sera désactivée à la fin de l'essai. Marie, Qwillio"),
       ].join(''),
     });
   }
@@ -329,7 +340,7 @@ export function renderTrialEndingTemplate(data: {
       brandHighlight(`${data.packageType.toUpperCase()} package`, `€${data.monthlyPrice}/mo`, 28),
       brandText('No commitment. Cancel anytime.'),
       brandButton('Continue with Qwillio', data.paymentLink),
-      brandSmall("Without a subscription, your AI receptionist will be deactivated at the end of the trial. — Ashley, Qwillio"),
+      brandSmall("Without a subscription, your AI receptionist will be deactivated at the end of the trial. Ashley, Qwillio"),
     ].join(''),
   });
 }
@@ -350,11 +361,11 @@ export function renderTrialExpiredTemplate(data: {
       preheader: `Réactivez votre réceptionniste IA pour ${data.businessName} en 2 minutes.`,
       body: [
         brandTitle('Votre essai est terminé'),
-        brandText(`Bonjour ${data.contactName}, votre essai gratuit pour <strong>${data.businessName}</strong> vient de se terminer. Votre réceptionniste IA est maintenant en pause — les appels entrants ne sont plus traités.`),
+        brandText(`Bonjour ${data.contactName}, votre essai gratuit pour <strong>${data.businessName}</strong> vient de se terminer. Votre réceptionniste IA est maintenant en pause. Les appels entrants ne sont plus traités.`),
         brandText('Abonnez-vous pour la réactiver en deux minutes :'),
         brandHighlight(`Forfait ${data.packageType.toUpperCase()}`, `${data.monthlyPrice} €/mois`, 28),
         brandButton('Réactiver mon assistant IA', data.paymentLink),
-        brandSmall('Votre configuration est conservée 30 jours, puis supprimée définitivement. — Marie, Qwillio'),
+        brandSmall('Votre configuration est conservée 30 jours, puis supprimée définitivement. Marie, Qwillio'),
       ].join(''),
     });
   }
@@ -364,11 +375,11 @@ export function renderTrialExpiredTemplate(data: {
     preheader: `Reactivate your AI receptionist for ${data.businessName} in 2 minutes.`,
     body: [
       brandTitle('Your trial has ended'),
-      brandText(`Hi ${data.contactName}, your free trial for <strong>${data.businessName}</strong> has just ended. Your AI receptionist is now paused — incoming calls are no longer handled.`),
+      brandText(`Hi ${data.contactName}, your free trial for <strong>${data.businessName}</strong> has just ended. Your AI receptionist is now paused. Incoming calls are no longer handled.`),
       brandText('Subscribe to bring it back in two minutes:'),
       brandHighlight(`${data.packageType.toUpperCase()} package`, `€${data.monthlyPrice}/mo`, 28),
       brandButton('Reactivate my AI assistant', data.paymentLink),
-      brandSmall('Your configuration is saved for 30 days, then permanently deleted. — Ashley, Qwillio'),
+      brandSmall('Your configuration is saved for 30 days, then permanently deleted. Ashley, Qwillio'),
     ].join(''),
   });
 }
@@ -384,7 +395,7 @@ export function renderCallback3MonthsTemplate(data: {
     return brandWrap({
       lang,
       title: 'Des nouvelles de Qwillio',
-      preheader: `Petit suivi pour ${data.businessName} — quelques nouveautés depuis notre dernier échange.`,
+      preheader: `Petit suivi pour ${data.businessName} : quelques nouveautés depuis notre dernier échange.`,
       body: [
         brandTitle('Des nouvelles de Qwillio'),
         brandText(`Bonjour ${data.contactName}, on s'est parlé il y a 3 mois au sujet d'une réceptionniste IA pour <strong>${data.businessName}</strong>. Votre situation a-t-elle changé ?`),
@@ -395,7 +406,7 @@ export function renderCallback3MonthsTemplate(data: {
           'Application mobile pour suivre vos appels en temps réel',
         ]),
         brandButton('Oui, ça m\'intéresse', replyMail),
-        brandSmall("Sinon, aucun souci — écrivez-nous quand vous voulez. — Marie, Qwillio"),
+        brandSmall("Sinon, aucun souci, écrivez-nous quand vous voulez. Marie, Qwillio"),
       ].join(''),
     });
   }
@@ -403,7 +414,7 @@ export function renderCallback3MonthsTemplate(data: {
   return brandWrap({
     lang,
     title: 'News from Qwillio',
-    preheader: `Quick check-in for ${data.businessName} — a few new things since we last spoke.`,
+    preheader: `Quick check-in for ${data.businessName}: a few new things since we last spoke.`,
     body: [
       brandTitle('News from Qwillio'),
       brandText(`Hi ${data.contactName}, we spoke 3 months ago about an AI receptionist for <strong>${data.businessName}</strong>. Has your situation changed?`),
@@ -414,7 +425,7 @@ export function renderCallback3MonthsTemplate(data: {
         'Mobile app to track your calls in real time',
       ]),
       brandButton("Yes, I'm interested", replyMail),
-      brandSmall("If not, no worries — feel free to reach out anytime. — Ashley, Qwillio"),
+      brandSmall("If not, no worries, feel free to reach out anytime. Ashley, Qwillio"),
     ].join(''),
   });
 }
@@ -436,10 +447,10 @@ export function renderBookingReminderTemplate(data: {
 
   if (lang === 'fr') {
     const details: string[] = [
-      `<strong>Où</strong> — ${data.businessName}`,
-      `<strong>Service</strong> — ${data.serviceType}`,
+      `<strong>Où</strong> : ${data.businessName}`,
+      `<strong>Service</strong> : ${data.serviceType}`,
     ];
-    if (data.specialRequests) details.push(`<strong>Notes</strong> — ${data.specialRequests}`);
+    if (data.specialRequests) details.push(`<strong>Notes</strong> : ${data.specialRequests}`);
     return brandWrap({
       lang,
       title: 'Rappel de rendez-vous',
@@ -458,10 +469,10 @@ export function renderBookingReminderTemplate(data: {
   }
 
   const details: string[] = [
-    `<strong>Where</strong> — ${data.businessName}`,
-    `<strong>Service</strong> — ${data.serviceType}`,
+    `<strong>Where</strong> : ${data.businessName}`,
+    `<strong>Service</strong> : ${data.serviceType}`,
   ];
-  if (data.specialRequests) details.push(`<strong>Notes</strong> — ${data.specialRequests}`);
+  if (data.specialRequests) details.push(`<strong>Notes</strong> : ${data.specialRequests}`);
   return brandWrap({
     lang,
     title: 'Appointment reminder',
@@ -496,7 +507,7 @@ export function renderPasswordResetTemplate(data: {
         brandText(`Bonjour ${name}, nous avons reçu une demande de réinitialisation de votre mot de passe Qwillio. Cliquez ci-dessous pour en choisir un nouveau.`),
         brandButton('Réinitialiser mon mot de passe', data.resetUrl),
         brandSmall(`Ou collez ce lien dans votre navigateur :<br><span style="word-break:break-all;color:#A855F7;">${data.resetUrl}</span>`),
-        brandSmall("Ce lien expire dans 1 heure. Si vous n'êtes pas à l'origine de cette demande, ignorez ce courriel — votre mot de passe reste inchangé."),
+        brandSmall("Ce lien expire dans 1 heure. Si vous n'êtes pas à l'origine de cette demande, ignorez ce courriel : votre mot de passe reste inchangé."),
       ].join(''),
     });
   }
@@ -509,7 +520,7 @@ export function renderPasswordResetTemplate(data: {
       brandText(`Hi ${name}, we received a request to reset your Qwillio password. Click below to choose a new one.`),
       brandButton('Reset my password', data.resetUrl),
       brandSmall(`Or paste this link into your browser:<br><span style="word-break:break-all;color:#A855F7;">${data.resetUrl}</span>`),
-      brandSmall("This link expires in 1 hour. If you didn't request this, ignore this email — your password stays unchanged."),
+      brandSmall("This link expires in 1 hour. If you didn't request this, ignore this email: your password stays unchanged."),
     ].join(''),
   });
 }
@@ -573,26 +584,26 @@ export function renderRescheduleTemplate(data: {
     return brandWrap({
       lang,
       title: 'Reprenons rendez-vous',
-      preheader: `On vous a manqué chez ${data.businessName} — trouvons un nouveau moment.`,
+      preheader: `On vous a manqué chez ${data.businessName} : trouvons un nouveau moment.`,
       body: [
         brandTitle('On vous a manqué'),
-        brandText(`Bonjour ${data.customerName}, nous avons remarqué que vous n'avez pas pu vous présenter à votre rendez-vous du <strong>${dateStr}</strong>. Aucun souci — ça arrive.`),
+        brandText(`Bonjour ${data.customerName}, nous avons remarqué que vous n'avez pas pu vous présenter à votre rendez-vous du <strong>${dateStr}</strong>. Aucun souci, ça arrive.`),
         brandText('Nous serions ravis de reprendre rendez-vous à un moment qui vous convient mieux.'),
         brandButton('Appeler pour reporter', `tel:${data.businessPhone}`),
-        brandSmall(`Ou appelez-nous au <strong>${data.businessPhone}</strong> quand vous voulez — notre réceptionniste IA est disponible 24 h/24.`),
+        brandSmall(`Ou appelez-nous au <strong>${data.businessPhone}</strong> quand vous voulez : notre réceptionniste IA est disponible 24 h/24.`),
       ].join(''),
     });
   }
   return brandWrap({
     lang,
     title: "Let's reschedule",
-    preheader: `We missed you at ${data.businessName} — let's find a new time.`,
+    preheader: `We missed you at ${data.businessName}: let's find a new time.`,
     body: [
       brandTitle('We missed you'),
-      brandText(`Hi ${data.customerName}, we noticed you weren't able to make your appointment on <strong>${dateStr}</strong>. No worries — things happen.`),
+      brandText(`Hi ${data.customerName}, we noticed you weren't able to make your appointment on <strong>${dateStr}</strong>. No worries, things happen.`),
       brandText(`We'd love to reschedule at a time that works better for you.`),
       brandButton('Call to reschedule', `tel:${data.businessPhone}`),
-      brandSmall(`Or call us at <strong>${data.businessPhone}</strong> anytime — our AI receptionist is available 24/7.`),
+      brandSmall(`Or call us at <strong>${data.businessPhone}</strong> anytime: our AI receptionist is available 24/7.`),
     ].join(''),
   });
 }

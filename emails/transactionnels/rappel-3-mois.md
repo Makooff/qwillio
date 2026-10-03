@@ -14,7 +14,7 @@ mailto:${env.RESEND_REPLY_TO}?subject=Suivi%20${encodeURIComponent(data.business
 
 ---
 
-Petit suivi pour ${data.businessName} — quelques nouveautés depuis notre dernier échange.
+Petit suivi pour ${data.businessName} : quelques nouveautés depuis notre dernier échange.
 
 ---
 
@@ -26,7 +26,7 @@ mailto:${env.RESEND_REPLY_TO}?subject=Follow-up%20${encodeURIComponent(data.busi
 
 ---
 
-Quick check-in for ${data.businessName} — a few new things since we last spoke.
+Quick check-in for ${data.businessName}: a few new things since we last spoke.
 
 ---
 

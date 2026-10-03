@@ -14,7 +14,7 @@ Réactivez votre réceptionniste IA pour ${data.businessName} en 2 minutes.
 
 ---
 
-Bonjour ${data.contactName}, votre essai gratuit pour ${data.businessName} vient de se terminer. Votre réceptionniste IA est maintenant en pause — les appels entrants ne sont plus traités.
+Bonjour ${data.contactName}, votre essai gratuit pour ${data.businessName} vient de se terminer. Votre réceptionniste IA est maintenant en pause. Les appels entrants ne sont plus traités.
 
 ---
 
@@ -24,7 +24,7 @@ Forfait ${data.packageType.toUpperCase()}
 
 , 28),
 brandButton('Réactiver mon assistant IA', data.paymentLink),
-brandSmall('Votre configuration est conservée 30 jours, puis supprimée définitivement. — Marie, Qwillio'),
+brandSmall('Votre configuration est conservée 30 jours, puis supprimée définitivement. Marie, Qwillio'),
 ].join(''),
 });
 }

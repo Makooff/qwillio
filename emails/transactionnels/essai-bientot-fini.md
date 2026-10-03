@@ -25,7 +25,7 @@ Forfait ${data.packageType.toUpperCase()}
 , 28),
 brandText('Sans engagement. Annulable à tout moment.'),
 brandButton('Continuer avec Qwillio', data.paymentLink),
-brandSmall("Sans abonnement, votre réceptionniste IA sera désactivée à la fin de l'essai. — Marie, Qwillio"),
+brandSmall("Sans abonnement, votre réceptionniste IA sera désactivée à la fin de l'essai. Marie, Qwillio"),
 ].join(''),
 });
 }

@@ -27,6 +27,19 @@ import { discordService } from './discord.service';
 import {
   brandWrap, brandTitle, brandText, brandButton, brandList, brandSmall,
 } from './email-template';
+import { PLANS } from '../config/plans';
+
+/* La duree d'essai annoncee aux prospects vient de `PLANS`, jamais d'un
+   nombre ecrit ici.
+   Ce fichier promettait « essai 30 jours offert », « votre mois offert » et
+   « premier mois entierement gratuit », dans le meme objet, au meme prospect.
+   Or `PLANS` porte `trialDays: 7` aux quatre paliers, et l'inscription demande
+   une carte des le premier jour. Un prospect qui rappelle apres avoir lu
+   30 jours decouvre 7: la promesse est fausse au moment precis ou il verifie,
+   et c'est le closer qui l'a faite. `emails/README.md` porte deja la regle —
+   « toute autre formulation contredit le produit et se decouvre a
+   l'inscription » — celle-ci la fait respecter. */
+const ESSAI_JOURS = PLANS.solo.trialDays;
 
 // ─── Types ────────────────────────────────────────────────
 
@@ -121,7 +134,7 @@ function buildCloserSystemPrompt(lang: 'en' | 'fr'): string {
 Tu es humain(e), directe, ultra-convaincante. Tu n'es PAS un bot.
 Tes messages SMS sont courts (max 160 caractères), naturels, avec un seul CTA.
 Tes emails sont en HTML, écrits à la première personne, comme si tu envoyais un mail personnel.
-Qwillio : premier mois gratuit, puis 497 $/mois. Setup en 48h.
+Qwillio : essai ${ESSAI_JOURS} jours (carte requise a l'inscription), puis a partir de ${PLANS.solo.monthlyPriceEur} EUR par mois. Setup en 48h.
 Règle : JAMAIS de jargon marketing. JAMAIS de "Notre solution innovante". Parle comme un humain.
 Réponds uniquement en JSON valide.`;
   }
@@ -129,7 +142,7 @@ Réponds uniquement en JSON valide.`;
 You are human, direct, ultra-persuasive. You are NOT a bot.
 Your SMS messages are short (max 160 chars), natural, one clear CTA.
 Your emails are HTML, written in first person, like a personal email.
-Qwillio: first month free, then $497/month. 48h setup.
+Qwillio: ${ESSAI_JOURS}-day trial (card required at signup), then from EUR ${PLANS.solo.monthlyPriceEur}/month. 48h setup.
 Rule: NEVER use marketing jargon. NEVER say "Our innovative solution". Talk like a human.
 Reply in valid JSON only.`;
 }
@@ -319,30 +332,30 @@ export class CloserAgentService {
 
     if (lang === 'fr') {
       return {
-        sms1: `Bonjour ${firstName}, c'est ${agent} de Qwillio. Comme promis — essai 30 jours offert : ${url} Répondre STOP pour se désinscrire.`,
+        sms1: `Bonjour ${firstName}, c'est ${agent} de Qwillio. Comme promis : essai ${ESSAI_JOURS} jours offert : ${url} Répondre STOP pour se désinscrire.`,
         sms2: `${proof.slice(0, 100)}… Vous pouvez avoir le même résultat : ${url}`,
         sms4: `Bonjour ${firstName}, avez-vous eu le temps de jeter un œil à Qwillio ? Je peux vous faire une démo en 5 min.`,
-        sms6: `Dernière chance ${firstName} — on garde votre mois offert jusqu'à vendredi. Inscription : ${url}`,
-        emailSubject3: `Comme promis, ${p.businessName} — votre démo Qwillio`,
-        emailHtml3: `Bonjour ${firstName},\n\nComme je vous le disais tout à l'heure, chaque appel non répondu part chez un concurrent.\n\nQwillio répond à 100% des appels, prend les rendez-vous et capture les leads — 24h/24. Premier mois entièrement gratuit.\n\n${proof}\n\nDémarrez votre essai : ${url}\n\nCordialement,\n${agent}, Qwillio`,
+        sms6: `Dernière chance ${firstName}, on garde vos ${ESSAI_JOURS} jours offerts jusqu'à vendredi. Inscription : ${url}`,
+        emailSubject3: `Comme promis : votre démo Qwillio pour ${p.businessName}`,
+        emailHtml3: `Bonjour ${firstName},\n\nComme je vous le disais tout à l'heure, chaque appel non répondu part chez un concurrent.\n\nQwillio répond à 100% des appels, prend les rendez-vous et capture les leads, 24h/24. Essai de ${ESSAI_JOURS} jours, carte requise à l'inscription.\n\n${proof}\n\nDémarrez votre essai : ${url}\n\nCordialement,\n${agent}, Qwillio`,
         emailSubject5: `Comment les ${niche} utilisent Qwillio pour ne plus perdre un seul client`,
-        emailHtml5: `Bonjour ${firstName},\n\n${proof}\n\nLa clé ? Un assistant IA qui répond exactement comme un humain — avec votre nom, votre ton, votre agenda.\n\nSetup en 48h. Aucun engagement. Premier mois gratuit.\n\nInscription : ${url}\n\n${agent}, Qwillio`,
-        emailSubject7: `Dernière chance — mois offert pour ${p.businessName}`,
-        emailHtml7: `Bonjour ${firstName},\n\nJe ne veux pas être insistante, mais je sais qu'un appel manqué vous coûte en moyenne 3x le prix de Qwillio.\n\nCe lien expire bientôt : ${url}\n\nUne question ? Répondez à cet email — je vous réponds en moins d'une heure.\n\n${agent}, Qwillio`,
+        emailHtml5: `Bonjour ${firstName},\n\n${proof}\n\nLa clé ? Un assistant IA qui répond exactement comme un humain, avec votre nom, votre ton, votre agenda.\n\nSetup en 48h. Aucun engagement. Essai de ${ESSAI_JOURS} jours.\n\nInscription : ${url}\n\n${agent}, Qwillio`,
+        emailSubject7: `Dernière chance : essai de ${ESSAI_JOURS} jours pour ${p.businessName}`,
+        emailHtml7: `Bonjour ${firstName},\n\nJe ne veux pas être insistante, mais je sais qu'un appel manqué vous coûte en moyenne 3x le prix de Qwillio.\n\nCe lien expire bientôt : ${url}\n\nUne question ? Répondez à cet email : je vous réponds en moins d'une heure.\n\n${agent}, Qwillio`,
       };
     }
 
     return {
-      sms1: `Hi ${firstName}, it's ${agent} from Qwillio. As promised — free 30-day trial, no commitment: ${url} Reply STOP to opt out.`,
+      sms1: `Hi ${firstName}, it's ${agent} from Qwillio. As promised: free ${ESSAI_JOURS}-day trial, no commitment: ${url} Reply STOP to opt out.`,
       sms2: `${proof.slice(0, 100)}… Your business can do the same: ${url}`,
-      sms4: `Hey ${firstName}, just checking in — did you get a chance to look at Qwillio? Happy to do a 5-min demo anytime.`,
-      sms6: `Last chance ${firstName} — keeping your free month open until Friday. Sign up: ${url}`,
-      emailSubject3: `As promised, ${p.businessName} — your Qwillio demo`,
-      emailHtml3: `Hi ${firstName},\n\nAs I mentioned on our call, every missed call goes straight to your competitor.\n\nQwillio answers 100% of your calls, books jobs, and captures leads — 24/7. First month completely free.\n\n${proof}\n\nStart your trial: ${url}\n\nBest,\n${agent}, Qwillio`,
+      sms4: `Hey ${firstName}, just checking in, did you get a chance to look at Qwillio? Happy to do a 5-min demo anytime.`,
+      sms6: `Last chance ${firstName}, keeping your free ${ESSAI_JOURS} days open until Friday. Sign up: ${url}`,
+      emailSubject3: `As promised: your Qwillio demo for ${p.businessName}`,
+      emailHtml3: `Hi ${firstName},\n\nAs I mentioned on our call, every missed call goes straight to your competitor.\n\nQwillio answers 100% of your calls, books jobs, and captures leads, 24/7. Free ${ESSAI_JOURS}-day trial, card required at signup.\n\n${proof}\n\nStart your trial: ${url}\n\nBest,\n${agent}, Qwillio`,
       emailSubject5: `How ${niche} businesses use Qwillio to stop losing clients`,
-      emailHtml5: `Hi ${firstName},\n\n${proof}\n\nThe key? An AI assistant that answers exactly like a human — with your name, your tone, your schedule.\n\n48h setup. No commitment. First month free.\n\nSign up: ${url}\n\n${agent}, Qwillio`,
-      emailSubject7: `Last chance — free month for ${p.businessName}`,
-      emailHtml7: `Hi ${firstName},\n\nI don't want to be pushy, but I know one missed call costs you more than a month of Qwillio.\n\nThis link expires soon: ${url}\n\nAny questions? Reply to this email — I respond within the hour.\n\n${agent}, Qwillio`,
+      emailHtml5: `Hi ${firstName},\n\n${proof}\n\nThe key? An AI assistant that answers exactly like a human, with your name, your tone, your schedule.\n\n48h setup. No commitment. First month free.\n\nSign up: ${url}\n\n${agent}, Qwillio`,
+      emailSubject7: `Last chance: ${ESSAI_JOURS}-day trial for ${p.businessName}`,
+      emailHtml7: `Hi ${firstName},\n\nI don't want to be pushy, but I know one missed call costs you more than a month of Qwillio.\n\nThis link expires soon: ${url}\n\nAny questions? Reply to this email: I respond within the hour.\n\n${agent}, Qwillio`,
     };
   }
 
