@@ -24,18 +24,22 @@ export default function Privacy() {
   const isFr = lang === 'fr';
 
   useSEO({
-    /* Titre et description en francais, et indexables.
-       La page etait declaree `noindex` depuis la refonte V2, sans commentaire ni
-       decision ecrite. Or c'est la page que Google ouvre pour valider l'app, et
-       celle que le portail client lie depuis sa barre laterale: une politique de
-       confidentialite que Google refuse d'indexer est un signal negatif au
-       moment precis ou on lui demande de nous faire confiance. Le `canonical`
-       porte deja l'adresse; `noindex` disait le contraire. */
+    /* Volontairement hors des resultats Google, pour ne pas prendre la place des
+       pages produit dans les sitelinks. La decision est prise dans
+       `public/robots.txt` (« Block legal pages from indexing »); ce `noindex`
+       la repete ici pour les robots qui executent le JS, car `robots.txt` seul
+       n'empeche pas l'indexation d'une URL deja connue, il empeche seulement
+       son exploration. Les deux disent maintenant la meme chose.
+
+       Ce que Google exige pour valider l'app n'est pas l'indexation mais
+       l'accessibilite: la page repond 200, elle est liee depuis le portail et
+       depuis le pied de page public, et son `canonical` est pose. */
     title: isFr ? 'Politique de confidentialité' : 'Privacy Policy',
     description: isFr
       ? 'Comment Qwillio collecte, utilise et protège vos données. Conforme au RGPD et au CCPA, sans détour.'
       : 'How Qwillio collects, uses and protects your data. GDPR and CCPA compliant, without the runaround.',
     canonical: 'https://qwillio.com/privacy',
+    noindex: true,
   });
 
   const sections: LegalSectionRef[] = useMemo(

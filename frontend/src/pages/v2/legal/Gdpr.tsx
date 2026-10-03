@@ -43,6 +43,7 @@ export default function Gdpr() {
       ? 'Vos droits RGPD chez Qwillio : accès, rectification, effacement, portabilité, et comment les exercer.'
       : 'Your GDPR data rights with Qwillio: access, rectification, erasure, portability and how to use them.',
     canonical: 'https://qwillio.com/gdpr',
+    noindex: true,
   });
 
   const sections: LegalSectionRef[] = useMemo(

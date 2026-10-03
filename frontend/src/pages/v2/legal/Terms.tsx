@@ -23,14 +23,15 @@ export default function Terms() {
   const isFr = lang === 'fr';
 
   useSEO({
-    /* Meme raison que sur la page Confidentialite: ces pages sont liees depuis
-       le portail et depuis le pied de page public, et Google les ouvre pour
-       valider l'app. `noindex` les retirait du web tout en les publiant. */
+    /* Meme choix que sur la page Confidentialite: hors des resultats Google,
+       pour ne pas disputer les sitelinks aux pages produit. Voir
+       `public/robots.txt`, « Block legal pages from indexing ». */
     title: isFr ? "Conditions générales d'utilisation" : 'Terms of Service',
     description: isFr
       ? "Les conditions d'utilisation de Qwillio: ce que le service fait, ce qu'il ne fait pas, et comment le contrat s'arrête."
       : 'The Qwillio terms of service: what the service does, what it does not do, and how the agreement ends.',
     canonical: 'https://qwillio.com/terms',
+    noindex: true,
   });
 
   const sections: LegalSectionRef[] = useMemo(
