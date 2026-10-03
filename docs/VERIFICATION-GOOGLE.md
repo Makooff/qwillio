@@ -143,6 +143,28 @@ S'il est branché un jour, il devra recevoir le même lien — l'écran
 `Integrations.tsx` est précisément celui où l'utilisateur autorise son compte
 Google. Ne pas le brancher en production avant d'avoir ajouté ce lien.
 
+**Mais attention, le V2 n'est PAS la suite du V1.** Une lecture rapide laisse
+croire qu'il suffirait de le brancher pour « moderniser » le portail. C'est
+l'inverse. Constat vérifié :
+
+| | V1 (`pages/client/`) | V2 (`pages/v2/app/`) |
+|---|---|---|
+| Dernière modification | 13 septembre 2026 | 6 août 2026 |
+| Statut | **actif en production** | figé depuis 2 mois |
+| Commits reçus depuis le V2 | **71** | 0 |
+
+Le V2 a été écrit le 6 août, puis la V1 a continué de vivre : page
+Rendez-vous avec calendrier, appels en direct, facturation Superagent, score
+de complétude, guide d'onboarding, préchargement partagé. **71 commits
+d'améliorations n'existent que dans la V1.** Brancher le V2 les jetterait.
+
+Le choix de garder la V1 est **délibéré**, et écrit dans `App.tsx` : les
+modules s'ouvrent « un par un, jamais en bloc », parce qu'ouvrir treize écrans
+à l'aveugle a déjà produit un module présent mais inatteignable. Ce n'est pas
+un chantier inachevé par oubli, c'est une refonte mise en réserve. Le bon geste
+n'est pas de la brancher : c'est de décider, plus tard, écran par écran, ce
+qu'elle apporte qui manque à la V1.
+
 ---
 
 ## 5. Vidéo de démonstration (~3 min)
