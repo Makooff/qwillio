@@ -145,8 +145,8 @@ export default function About() {
             <div className="space-y-6 text-q2-body text-[17px] leading-[1.7] max-w-[640px] q2-body-text">
               <p>
                 {isFr
-                  ? 'Qwillio est né d\'une observation simple : les petites et moyennes entreprises perdent jusqu\'à 35% de leurs appels entrants par manque de personnel. Chaque appel manqué est un client qui va chez le concurrent.'
-                  : 'Qwillio started from a simple observation: small and mid-sized businesses miss up to 35% of inbound calls due to lack of staff. Every missed call is a customer going to a competitor.'}
+                  ? 'Qwillio est né d\'une observation simple : les petites et moyennes entreprises perdent une part importante de leurs appels entrants par manque de personnel. Chaque appel manqué est un client qui va chez le concurrent.'
+                  : 'Qwillio started from a simple observation: small and mid-sized businesses miss a significant share of inbound calls due to lack of staff. Every missed call is a customer going to a competitor.'}
               </p>
               <p>
                 {isFr

@@ -15,19 +15,28 @@ export default function Partenaires() {
   const { lang } = useLang();
   const isFr = lang === 'fr';
 
-  useSEO({
+  /* Le taux de commission partenaire vient de `Agency.commissionPct`.
+   Cette page annoncait 15 % et calculait `price * 0.15`, alors que la base
+   porte `commissionPct Float @default(0.20)` et que `agency.service.ts`
+   calcule `totalMrr * agency.commissionPct`. Un partenaire qui signe sur cette
+   page toucherait 20 %: la page se trompait a son desavantage, mais elle se
+   trompait. Le chiffre est ecrit une fois ici. */
+const COMMISSION_PCT = 20;
+const COMMISSION_RATIO = COMMISSION_PCT / 100;
+
+useSEO({
     title: isFr
       ? 'Programme partenaire fiduciaire · Qwillio'
       : 'Accountancy partner program · Qwillio',
     description: isFr
-      ? 'Fiduciaires belges et françaises : touchez 15 % de commission récurrente sur chaque client Qwillio recommandé, tant qu\'il reste abonné. Contrat 1 page, sans exclusivité, sans engagement de volume.'
-      : 'Belgian and French accountancy firms: earn a recurring 15% commission on every Qwillio customer you refer, for as long as they stay subscribed. One-page contract, no exclusivity, no volume commitment.',
+      ? 'Fiduciaires belges et françaises : touchez ${COMMISSION_PCT} % de commission récurrente sur chaque client Qwillio recommandé, tant qu\'il reste abonné. Contrat 1 page, sans exclusivité, sans engagement de volume.'
+      : 'Belgian and French accountancy firms: earn a recurring ${COMMISSION_PCT}% commission on every Qwillio customer you refer, for as long as they stay subscribed. One-page contract, no exclusivity, no volume commitment.',
     canonical: 'https://qwillio.com/partenaires-fiduciaires',
   });
 
   const benefits = isFr
     ? [
-        '15 % de commission récurrente sur le prix mensuel HT.',
+        `${COMMISSION_PCT} % de commission récurrente sur le prix mensuel HT.`,
         'Versée mensuellement, tant que le client reste abonné.',
         'Sans plafond, sans exclusivité, sans engagement de volume.',
         'Contrat 1 page, résiliable au mois par les deux parties.',
@@ -35,7 +44,7 @@ export default function Partenaires() {
         'Tableau de bord partenaire mis à jour en temps réel.',
       ]
     : [
-        'Recurring 15% commission on the monthly ex-VAT price.',
+        `Recurring ${COMMISSION_PCT}% commission on the monthly ex-VAT price.`,
         'Paid monthly, for as long as the customer stays subscribed.',
         'No cap, no exclusivity, no volume commitment.',
         'One-page contract, cancellable monthly by either party.',
@@ -62,19 +71,19 @@ export default function Partenaires() {
      commission qui n'aurait jamais été versée. */
   const solo = PLAN_MONTHLY_EUR.solo;
   const starter = PLAN_MONTHLY_EUR.starter;
-  const commission = (price: number) => Math.round(price * 0.15);
+  const commission = (price: number) => Math.round(price * COMMISSION_RATIO);
 
   const scenarios = isFr
     ? [
         {
           title: '10 clients Solo',
           detail: `${10 * commission(solo)} € / mois soit ${10 * commission(solo) * 12} € / an`,
-          math: `10 × ${commission(solo)} € (15 % de ${solo} €)`,
+          math: `10 × ${commission(solo)} € (${COMMISSION_PCT} % de ${solo} €)`,
         },
         {
           title: '10 clients Starter',
           detail: `${10 * commission(starter)} € / mois soit ${10 * commission(starter) * 12} € / an`,
-          math: `10 × ${commission(starter)} € (15 % de ${starter} €)`,
+          math: `10 × ${commission(starter)} € (${COMMISSION_PCT} % de ${starter} €)`,
         },
         {
           title: 'Mix 5 Solo + 5 Starter',
@@ -86,12 +95,12 @@ export default function Partenaires() {
         {
           title: '10 Solo clients',
           detail: `${10 * commission(solo)} EUR / month, ${10 * commission(solo) * 12} EUR / year`,
-          math: `10 × ${commission(solo)} EUR (15% of ${solo} EUR)`,
+          math: `10 × ${commission(solo)} EUR (${COMMISSION_PCT}% of ${solo} EUR)`,
         },
         {
           title: '10 Starter clients',
           detail: `${10 * commission(starter)} EUR / month, ${10 * commission(starter) * 12} EUR / year`,
-          math: `10 × ${commission(starter)} EUR (15% of ${starter} EUR)`,
+          math: `10 × ${commission(starter)} EUR (${COMMISSION_PCT}% of ${starter} EUR)`,
         },
         {
           title: 'Mix 5 Solo + 5 Starter',
@@ -121,7 +130,7 @@ export default function Partenaires() {
                 </>
               ) : (
                 <>
-                  15% recurring.
+                  {COMMISSION_PCT}% recurring.
                   <br />
                   <SerifWord>For the customer's lifetime.</SerifWord>
                 </>
@@ -131,8 +140,8 @@ export default function Partenaires() {
           <RevealV2 index={1}>
             <Lead className="max-w-[440px] pb-3 q2-body-text">
               {isFr
-                ? 'Chaque client fiduciaire que vous recommandez à Qwillio vous rapporte 15 % du prix mensuel HT, versés tous les mois tant qu\'il reste abonné. Aucun engagement de volume, aucune exclusivité.'
-                : 'Every accountancy customer you refer to Qwillio earns you 15% of the monthly ex-VAT price, paid every month for as long as they stay subscribed. No volume commitment, no exclusivity.'}
+                ? 'Chaque client fiduciaire que vous recommandez à Qwillio vous rapporte ${COMMISSION_PCT} % du prix mensuel HT, versés tous les mois tant qu\'il reste abonné. Aucun engagement de volume, aucune exclusivité.'
+                : 'Every accountancy customer you refer to Qwillio earns you ${COMMISSION_PCT}% of the monthly ex-VAT price, paid every month for as long as they stay subscribed. No volume commitment, no exclusivity.'}
             </Lead>
           </RevealV2>
         </Container>
