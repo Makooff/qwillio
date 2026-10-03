@@ -61,6 +61,30 @@ export interface CallerHistory {
   lastSummary: string | null;
   /** Name we captured on a previous call, so the agent does not re-ask. */
   knownName: string | null;
+  /**
+   * LES PRÉFÉRENCES STABLES DE CE NUMÉRO, EN CLAIR.
+   *
+   * La colonne `preferences` de `CallerMemory` était ÉCRITE depuis toujours
+   * (`mergePreferences`, jusqu'à 6 entrées) et jamais lue par personne. Elle
+   * servait de journal à personne : l'agent redemandait à chaque appel ce qu'il
+   * avait déjà appris — « toujours la même personne », « préfère le matin ».
+   *
+   * Elles arrivent ici et pas par un appel d'outil, pour la même raison que
+   * `upcomingBookings` : demander au modèle d'appeler un outil pour savoir ce
+   * qu'on sait déjà de l'appelant est une marche de trop en parole-à-parole, et
+   * il l'oublie.
+   */
+  preferences: string[];
+  /**
+   * L'ADRESSE DÉJÀ CONNUE, pour ne pas la redemander.
+   *
+   * `CallerMemory.email` est renseigné par `persistMemory` à chaque appel où
+   * l'adresse a été captée, et n'était relu nulle part : l'agent la réclamait
+   * de nouveau à un habitué qui l'avait donnée la veille. Redemander une
+   * information qu'on possède est le premier signe qu'une réceptionniste ne
+   * reconnaît pas son interlocuteur.
+   */
+  knownEmail: string | null;
   hasUpcomingBooking: boolean;
   /**
    * LES RENDEZ-VOUS À VENIR DE CE NUMÉRO, en clair (17/09/2026).
@@ -443,6 +467,8 @@ class RealtimeContextService {
       lastCallAt: null,
       lastSummary: null,
       knownName: null,
+      preferences: [],
+      knownEmail: null,
       hasUpcomingBooking: false,
       upcomingBookings: [],
     };
@@ -463,7 +489,11 @@ class RealtimeContextService {
       prisma.callerMemory.findFirst({
         where: { clientId, callerNumber: { in: phoneForms(callerNumber) } },
         orderBy: { lastCallAt: 'desc' },
-        select: { knownName: true, profileSummary: true, lastSummary: true, lastCallAt: true, totalCalls: true },
+        select: { knownName: true, profileSummary: true, lastSummary: true, lastCallAt: true, totalCalls: true,
+                  /* Lues enfin. `preferences` était écrite et jetée; `email`
+                     aussi. Deux requêtes vers la même table, autant demander
+                     les colonnes qu'on va afficher. */
+                  preferences: true, email: true },
       }),
       prisma.clientCall.findMany({
         where: { clientId, callerNumber, status: 'completed' },
@@ -524,6 +554,11 @@ class RealtimeContextService {
         || calls.find(c => c.callerName)?.callerName
         || null,
       hasUpcomingBooking: bookings.length > 0,
+      /* Les préférences passent TELLES QUELLES, bornées à six — c'est déjà la
+         limite d'écriture de `mergePreferences`, on ne la rejoue pas ici. Une
+         préférence vide ou blanche n'apprend rien et encombrerait le prompt. */
+      preferences: (memory?.preferences ?? []).map(p => p.trim()).filter(Boolean).slice(0, 6),
+      knownEmail: memory?.email?.trim() || null,
       /* Une ligne sans date est écartée, jamais levée: cette lecture est sur le
          chemin de l'appel, et une exception ici coûterait TOUTE la
          reconnaissance de l'appelant pour une colonne bancale. */

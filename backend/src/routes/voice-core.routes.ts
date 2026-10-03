@@ -1002,7 +1002,9 @@ router.get('/caller', async (req, res) => {
     const [memoire, appels, rdv] = await Promise.all([
       prisma.callerMemory.findFirst({
         where: { clientId, callerNumber: { in: formes } },
-        select: { knownName: true, totalCalls: true, lastSummary: true },
+        select: { knownName: true, totalCalls: true, lastSummary: true,
+                  /* Lues enfin: écrites depuis toujours, jamais servies. */
+                  preferences: true, email: true },
       }),
       prisma.clientCall.count({ where: { clientId, callerNumber: { in: formes } } }),
       prisma.clientBooking.findFirst({
@@ -1021,6 +1023,13 @@ router.get('/caller', async (req, res) => {
       nom: memoire?.knownName || rdv?.customerName || null,
       dernier_motif: memoire?.lastSummary || null,
       rdv: Boolean(rdv),
+      /* CE QU'ON SAIT ET QU'ON NE REDEMANDE PAS.
+         La colonne `preferences` était remplie à chaque appel et n'était
+         relue par personne : l'agent reposait les mêmes questions à un
+         habitué. `email` avait le même sort — réclamé de nouveau alors qu'il
+         était en base depuis l'appel précédent. */
+      preferences: memoire?.preferences ?? [],
+      email: memoire?.email ?? null,
     });
   } catch (error) {
     logger.error('[voice-core] historique appelant illisible:', error);
