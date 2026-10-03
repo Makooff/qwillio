@@ -26,8 +26,8 @@ export const HUMAN_PART_TIME_MONTHLY = 2300;
 /* Les prix vivent dans `pricing-plans`: ce sont des données, et les garder ici
    rendait impossible de les vérifier sans monter la page, donc GSAP et un DOM.
    Ré-exportés parce que la page Partenaires les lit depuis ce module. */
-export { PLAN_MONTHLY_EUR, PLAN_MINUTES, effectivePerMinute } from './pricing-plans';
-import { PLAN_MONTHLY_EUR, PLAN_MINUTES, effectivePerMinute } from './pricing-plans';
+export { PLAN_MONTHLY_EUR, PLAN_MINUTES, PLAN_OVERAGE_EUR, effectivePerMinute } from './pricing-plans';
+import { PLAN_MONTHLY_EUR, PLAN_MINUTES, PLAN_OVERAGE_EUR, effectivePerMinute } from './pricing-plans';
 import { annualTotalEur, annualMonthlyEquivalentEur } from '../../lib/pricing';
 
 interface Tier {
@@ -99,7 +99,7 @@ export default function Pricing() {
         : 'Small businesses, tradespeople, liberal professions (GDPR compliant).',
       monthly: PLAN_MONTHLY_EUR.solo,
       minutes: PLAN_MINUTES.solo,
-      overage: 0.45,
+      overage: PLAN_OVERAGE_EUR.solo,
       description: isFr ? 'Pour un indépendant' : 'For a solo operator',
       features: isFr
         /* Solo est bilingue comme les autres: la langue est un réglage du
@@ -116,7 +116,7 @@ export default function Pricing() {
       name: 'Starter',
       monthly: PLAN_MONTHLY_EUR.starter,
       minutes: PLAN_MINUTES.starter,
-      overage: 0.39,
+      overage: PLAN_OVERAGE_EUR.starter,
       description: isFr ? 'Pour commencer' : 'To get started',
       features: isFr
         ? ['750 minutes incluses par mois', 'IA 24/7 bilingue FR / EN', 'Prise de RDV + agenda', 'Rappel auto la veille du RDV', 'Transfert des urgences', 'Transcription + sentiment', 'Bouclier anti-spam inclus', 'Capture de leads', 'Support email']
@@ -130,7 +130,7 @@ export default function Pricing() {
       badge: isFr ? 'Le plus populaire' : 'Most popular',
       monthly: PLAN_MONTHLY_EUR.pro,
       minutes: PLAN_MINUTES.pro,
-      overage: 0.35,
+      overage: PLAN_OVERAGE_EUR.pro,
       description: isFr ? 'Pour grandir' : 'To grow',
       features: isFr
         ? ['2 000 minutes incluses par mois', 'Tout Starter inclus', 'Analytiques avancées', 'Intégrations CRM natives', 'Support prioritaire']
@@ -143,7 +143,7 @@ export default function Pricing() {
       name: 'Enterprise',
       monthly: PLAN_MONTHLY_EUR.enterprise,
       minutes: PLAN_MINUTES.enterprise,
-      overage: 0.30,
+      overage: PLAN_OVERAGE_EUR.enterprise,
       description: isFr ? 'Pour scale' : 'To scale',
       features: isFr
         ? ['5 000 minutes incluses par mois', 'Tout Pro inclus', 'Multi-sites & numéros multiples', 'Responsable dédié', 'SLA 99,5% uptime', 'Accès API complet']
@@ -186,8 +186,8 @@ export default function Pricing() {
   const fmt = (n: number) => n.toLocaleString('fr-FR');
 
   const humanRow = isFr
-    ? `Un mi-temps humain en Belgique : environ 2 300 € tout compris (brut, charges, chèques repas, backup absences, turnover), pour 20 h par semaine, dans une seule langue.`
-    : `A part-time human in Belgium: roughly 2,300 EUR loaded per month (gross, social charges, meal vouchers, absence backup, turnover), for 20 hours a week, in a single language.`;
+    ? `Un mi-temps humain en Belgique : environ ${fmt(humanMonthly)} € tout compris (brut, charges, chèques repas, backup absences, turnover), pour 20 h par semaine, dans une seule langue.`
+    : `A part-time human in Belgium: roughly ${fmt(humanMonthly)} EUR loaded per month (gross, social charges, meal vouchers, absence backup, turnover), for 20 hours a week, in a single language.`;
 
   const qwillioRow = isFr
     ? `Qwillio Starter : ${fmt(qwillioMonthlyEur)} € par mois, 750 minutes incluses, facturation à la minute au-delà, français et anglais sur le même compte, 24 heures sur 24, 365 jours par an, sans arrêt et sans turnover.`
@@ -205,7 +205,12 @@ export default function Pricing() {
             /* Le chiffre qui rend la grille comparable. Placé JUSTE sous le
                prix: séparés, le lecteur compare l'abonnement et s'arrête là. */
             ['Prix effectif / minute', ...tiers.map(perMinute)],
-            ['Dépassement / minute', '0,45 €', '0,39 €', '0,35 €', '0,30 €'],
+            /* Derive de `t.overage`, qui vient de `PLAN_OVERAGE_EUR`. Les quatre
+               montants etaient ecrits a la main ici: le prochain ajustement
+               tarifaire aurait change le module et laisse la page annoncer les
+               anciens. C'est le defaut que ce fichier reproche deja a la page
+               Partenaires, qui gardait sa propre copie des prix. */
+            ['Dépassement / minute', ...tiers.map((t) => `${t.overage.toFixed(2).replace('.', ',')} €`)],
           ],
         },
         {

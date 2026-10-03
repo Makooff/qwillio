@@ -614,8 +614,8 @@ export default function Home() {
 
   useSEO({
     title: isFr
-      ? 'Réceptionniste IA qui prend les rendez-vous pendant l’appel'
-      : 'AI Receptionist that books appointments during the call',
+      ? 'Qwillio, réceptionniste IA pour les PME belges et françaises'
+      : 'Qwillio, AI receptionist for Belgian and French businesses',
     description: isFr
       ? 'Qwillio décroche 24/7, vérifie votre agenda Google pendant l’appel, inscrit le rendez-vous et vous briefe avant chaque transfert. Français et anglais. À partir de 99 € par mois, 7 jours d’essai.'
       : 'Qwillio answers 24/7, checks your Google Calendar during the call, books the appointment and briefs you before every transfer. French and English. From €99 a month, 7-day trial.',
@@ -846,7 +846,12 @@ export default function Home() {
                   blanc. La primitive portait déjà la variante, il n'y avait
                   qu'à la demander. */}
               <Eyebrow tone="indigo" onDark className="mb-4 sm:mb-6">
-                {isFr ? 'Réceptionniste IA nouvelle génération' : 'Next-generation AI receptionist'}
+                {/* « nouvelle génération » ne veut rien dire et vieillira: dans
+                    six mois, il faudra ecrire « derniere generation », puis on
+                    ne saura plus quoi dire. Le surtitre porte un fait que le
+                    produit tient reellement (francais et anglais, 24 heures sur
+                    24) et qui reste vrai. */}
+                {isFr ? 'Réceptionniste IA, français et anglais' : 'AI receptionist, French and English'}
               </Eyebrow>
               {/* Taille BORNÉE pour ce titre, et pour lui seul (demande
                   utilisateur: « que ça tienne en deux lignes »). `q2-display`
@@ -875,17 +880,24 @@ export default function Home() {
                     alors deux lignes ici et en fait trois ailleurs. Deux blocs
                     donnent DEUX LIGNES quoi qu'il arrive, chacun libre de se
                     replier sur un téléphone étroit sans mélanger les deux
-                    phrases. */}
+                    phrases.
+
+                    L'ESPACE ENTRE LES DEUX BLOCS. Deux elements de bloc sont
+                    peints l'un sous l'autre, mais leurs textes se touchent dans
+                    le DOM: le titre valait « messages.Elle » pour un lecteur
+                    d'ecran comme pour l'indexation. Un espace en fin de premier
+                    bloc retablit la phrase (« messages. Elle ») sans rien
+                    changer au rendu, la fin de ligne etant invisible. */}
                 {isFr ? (
                   <>
-                    <span className="block">Elle ne prend pas de messages.</span>
+                    <span className="block">Elle ne prend pas de messages. </span>
                     <span className="block">
                       Elle prend des <SerifWord>rendez-vous.</SerifWord>
                     </span>
                   </>
                 ) : (
                   <>
-                    <span className="block">She doesn't take messages.</span>
+                    <span className="block">She doesn't take messages. </span>
                     <span className="block">
                       She books <SerifWord>appointments.</SerifWord>
                     </span>
