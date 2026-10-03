@@ -22,6 +22,26 @@ export default function SentimentBadge({ sentiment, size = 'sm' }: SentimentBadg
     neutral: 'Neutre',
   };
 
+  /* UN APPEL EN COURS N'A PAS ENCORE DE SENTIMENT.
+     La ligne existe en base dès le décroché, avec `status = 'in-progress'` et
+     `sentiment = null`. Sans cette branche, la colonne Sentiment affichait
+     « Neutre » — un jugement rendu sur une conversation qui n'a pas eu lieu,
+     et le gérant croyait l'appel terminé. « En cours » dit ce qu'il en est,
+     et la pastille respire pour qu'on voie que ça bouge tout seul. */
+  if (s === 'in-progress' || s === 'in_progress') {
+    return (
+      <span
+        className={`inline-flex items-center gap-1.5 rounded-full font-medium border border-[#7349FE]/30 bg-[#7349FE]/10 text-[#A78BFA] ${sizeClass}`}
+      >
+        <span className="relative flex h-1.5 w-1.5" aria-hidden>
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#7349FE] opacity-75" />
+          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#7349FE]" />
+        </span>
+        En cours
+      </span>
+    );
+  }
+
   return (
     <span className={`inline-flex items-center rounded-full font-medium border ${cls} ${sizeClass}`}>
       {labels[s] || labels.neutral}

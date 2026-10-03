@@ -29,6 +29,11 @@ interface Call {
   callerName: string;
   durationSeconds: number;
   sentiment: string;
+  /* `in-progress` pendant l'appel, `completed` après. La ligne existe en base
+     dès le décroché, donc un appel en cours est DÉJÀ dans cette liste — il n'a
+     simplement ni sentiment ni durée. L'écran doit le dire, sinon « Neutre »
+     fait croire à une conversation terminée qui n'a pas encore eu lieu. */
+  status: string;
   outcome: string;
   summary: string;
   createdAt: string;
@@ -117,14 +122,34 @@ export default function ClientCalls() {
   const [sortKey, setSortKey] = useState<SortKey>('createdAt');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [selectedCall, setSelectedCall] = useState<Call | null>(null);
+
+  /* L'ADRESSE DE LA LISTE, calculée une fois pour toutes.
+     Elle servait deux fois dans `fetchCalls` (lecture + cache), et elle sert
+     maintenant aussi à l'abonnement live : les deux DOIVENT viser la même clé,
+     sinon le rafraîchissement automatique écrirait dans un cache que personne
+     ne lit et la liste resterait figée. La dériver ici rend la divergence
+     impossible au lieu de la laisser à la vigilance. */
+  const listKey = `/my-dashboard/calls?${(() => {
+    const params = new URLSearchParams({ page: '1', limit: '20' });
+    if (sentimentFilter) params.set('sentiment', sentimentFilter);
+    if (dateFrom) params.set('startDate', dateFrom);
+    if (dateTo) params.set('endDate', dateTo);
+    if (phoneParam) params.set('phone', phoneParam);
+    return params;
+  })()}`;
+
   const fetchCalls = useCallback(async (page = 1) => {
     const params = new URLSearchParams({ page: String(page), limit: '20' });
     if (sentimentFilter) params.set('sentiment', sentimentFilter);
     if (dateFrom) params.set('startDate', dateFrom);
     if (dateTo) params.set('endDate', dateTo);
     if (phoneParam) params.set('phone', phoneParam);
-    const key = `/my-dashboard/calls?${params}`;
-
+    /* La page 1 est la clé suivie par la boucle live ; les pages suivantes ont
+       leur propre adresse et ne sont pas rafraîchies en continu (on ne regarde
+       pas l'historique page 4 pendant qu'un appel sonne). `listKey` et ce calcul
+       donnent la même chaîne pour page 1 : c'est la même `URLSearchParams`
+       sérialisée dans le même ordre. */
+    const key = page === 1 ? listKey : `/my-dashboard/calls?${params}`;
     // Whatever is cached goes on screen first. Coming back to this tab with the
     // same filters should show the list, then quietly correct it — not blank it
     // and spin while the same answer comes back.
@@ -144,7 +169,25 @@ export default function ClientCalls() {
     } finally {
       setLoading(false);
     }
-  }, [sentimentFilter, dateFrom, dateTo, phoneParam]);
+  }, [sentimentFilter, dateFrom, dateTo, phoneParam, listKey]);
+
+  /* LA LISTE SE MET À JOUR TOUTE SEULE, y compris pour un appel en cours.
+     La boucle live interroge déjà cette clé toutes les 25 s (elle est dans
+     CLIENT_KEYS), mais personne ne l'écoutait ici : la page chargeait une fois
+     à l'ouverture et ne bougeait plus. Le gérant voyait l'appel arriver au
+     tableau de bord et pas dans la liste, et devait actualiser à la main pour
+     voir son propre appel en cours.
+
+     On s'abonne à `listKey`, la MÊME clé que celle qu'on lit, donc les filtres
+     suivent : changer de filtre change de clé, et l'abonnement suit le
+     changement sans qu'on ait à y penser. */
+  useEffect(() => {
+    const onUpdate = (fresh: { data?: Call[]; pagination?: PaginationState }) => {
+      setCalls(fresh.data || []);
+      if (fresh.pagination) setPagination(fresh.pagination);
+    };
+    return subscribeLive<{ data?: Call[]; pagination?: PaginationState }>(listKey, onUpdate);
+  }, [listKey]);
 
   useEffect(() => { fetchCalls(1); }, [fetchCalls]);
 
@@ -184,6 +227,16 @@ export default function ClientCalls() {
       : [...calls];
 
     filtered.sort((a, b) => {
+      /* UN APPEL EN COURS RESTE EN TÊTE, QUEL QUE SOIT LE TRI.
+         Il n'a ni durée ni sentiment : trié par durée il tomberait au fond
+         (0 seconde), trié par sentiment il s'enterrerait sous les « positif ».
+         Or c'est la seule ligne qui bouge et la seule qui demande un regard
+         maintenant. Le tri choisi classe les appels terminés ; celui qui sonne
+         passe devant. */
+      const liveA = a.status === 'in-progress' ? 1 : 0;
+      const liveB = b.status === 'in-progress' ? 1 : 0;
+      if (liveA !== liveB) return liveB - liveA;
+
       let cmp = 0;
       if (sortKey === 'createdAt') {
         cmp = new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
@@ -449,8 +502,14 @@ export default function ClientCalls() {
                       </span>
                     )}
                   </div>
-                  <span className="text-sm text-[#A1A1A8]">{formatDuration(call.durationSeconds)}</span>
-                  <SentimentBadge sentiment={call.sentiment} />
+                  <span className="text-sm text-[#A1A1A8]">
+                    {call.status === 'in-progress'
+                      ? <span className="text-[#A78BFA]">en direct</span>
+                      : formatDuration(call.durationSeconds)}
+                  </span>
+                  <SentimentBadge
+                    sentiment={call.status === 'in-progress' ? 'in-progress' : call.sentiment}
+                  />
                   <span className="text-xs text-[#A1A1A8]">{formatDateTime(call.createdAt)}</span>
                   <ChevronRight size={14} className="text-white/20 group-hover:text-[#7349fe] transition-colors" aria-hidden="true" />
                 </div>
@@ -474,11 +533,16 @@ export default function ClientCalls() {
                         {call.callerName || call.callerNumber || 'Inconnu'}
                       </p>
                       <p className="text-[11px] text-[#A1A1A8]">
-                        {formatDuration(call.durationSeconds)} · {formatDateTime(call.createdAt)}
+                        {call.status === 'in-progress'
+                          ? <span className="text-[#A78BFA]">en direct</span>
+                          : formatDuration(call.durationSeconds)}
+                        {' · '}{formatDateTime(call.createdAt)}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
-                      <SentimentBadge sentiment={call.sentiment} />
+                      <SentimentBadge
+                        sentiment={call.status === 'in-progress' ? 'in-progress' : call.sentiment}
+                      />
                       <ChevronRight size={14} className="text-white/20" aria-hidden="true" />
                     </div>
                   </div>
