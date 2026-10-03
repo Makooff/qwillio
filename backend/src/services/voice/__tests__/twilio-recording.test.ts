@@ -6,8 +6,8 @@ const h = vi.hoisted(() => ({
   recordingRemove: vi.fn(),
 }));
 
-vi.mock('../../../config/twilio-trunk', () => ({
-  twilioTrunkClient: () => ({
+vi.mock('../../../config/twilio-account', () => ({
+  twilioAccountClient: () => ({
     calls: () => ({ recordings: { create: h.recordingsCreate } }),
     recordings: Object.assign(
       (_sid: string) => ({ remove: h.recordingRemove }),
@@ -94,7 +94,7 @@ describe('delAppel — à la fin, et seulement si le média existe', () => {
     ]);
     await expect(twilioRecordingService.delAppel(CA)).resolves.toEqual({
       sid: RE,
-      url: `https://api.dublin.ie1.twilio.com/2010-04-01/Accounts/${AC}/Recordings/${RE}.mp3`,
+      url: `https://api.twilio.com/2010-04-01/Accounts/${AC}/Recordings/${RE}.mp3`,
     });
   });
 

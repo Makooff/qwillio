@@ -29,20 +29,28 @@
  */
 import { env } from '../../config/env';
 import { logger } from '../../config/logger';
-import { twilioTrunkClient } from '../../config/twilio-trunk';
+import { twilioAccountClient } from '../../config/twilio-account';
 
 /**
- * L'hôte qui SERT le média, qui suit la région comme celui qui l'a créé.
+ * L'hôte qui SERT le média d'un enregistrement.
  *
- * Twilio rend un `uri` relatif; le préfixer bêtement par `api.twilio.com`
- * marche pour un compte us1 et rend 404 pour une ressource irlandaise. La
- * lecture au portail échouerait alors sur les appels les plus récents
- * seulement, ce qui est le genre de panne qu'on met une semaine à voir.
+ * ── IL SUIVAIT LA RÉGION DU TRUNK, ET C'ÉTAIT FAUX AUSSI ────────────────────
+ *
+ * Cette fonction rendait `https://api.dublin.ie1.twilio.com` dès que la région
+ * du trunk était renseignée, en supposant qu'un enregistrement créé en Irlande
+ * se relit en Irlande. C'est le même raisonnement que celui qui a fait échouer
+ * le démarrage, et il mène au même 404.
+ *
+ * L'enregistrement est une ressource du COMPTE : il se crée et se relit sur
+ * l'hôte par défaut. Twilio rend d'ailleurs un `uri` relatif, et le préfixer
+ * par l'hôte du compte est ce que fait la documentation.
+ *
+ * Le garde-fou est conservé tel quel dans l'esprit : on ne compose PAS l'URL à
+ * la main ailleurs, on passe par ici — c'est ce qui garantit que l'hôte qui
+ * sert le média est celui qui a créé la ressource.
  */
 function hoteMedia(): string {
-  const region = env.TWILIO_TRUNK_REGION.trim();
-  const edge = env.TWILIO_TRUNK_EDGE.trim();
-  return region && edge ? `https://api.${edge}.${region}.twilio.com` : 'https://api.twilio.com';
+  return 'https://api.twilio.com';
 }
 
 /**
@@ -103,7 +111,7 @@ class TwilioRecordingService {
       return null;
     }
     try {
-      const rec = await twilioTrunkClient()
+      const rec = await twilioAccountClient()
         .calls(callSid)
         .recordings.create({ recordingChannels: 'dual', trim: 'do-not-trim' });
       logger.info(`[Enregistrement] démarré ${rec.sid} sur l'appel ${callSid}`);
@@ -126,7 +134,7 @@ class TwilioRecordingService {
   async delAppel(callSid: string): Promise<EnregistrementTwilio | null> {
     if (!/^CA[0-9a-f]{32}$/i.test(callSid)) return null;
     try {
-      const recs = await twilioTrunkClient().recordings.list({ callSid, limit: 5 });
+      const recs = await twilioAccountClient().recordings.list({ callSid, limit: 5 });
       const fini = recs.find((r: { status?: string }) => r.status === 'completed') ?? recs[0];
       if (!fini) return null;
       if (fini.status !== 'completed') {
@@ -150,7 +158,7 @@ class TwilioRecordingService {
   async supprimer(recordingSid: string): Promise<boolean> {
     if (!/^RE[0-9a-f]{32}$/i.test(recordingSid)) return false;
     try {
-      await twilioTrunkClient().recordings(recordingSid).remove();
+      await twilioAccountClient().recordings(recordingSid).remove();
       return true;
     } catch (error) {
       const e = error as { status?: number; message?: string };
