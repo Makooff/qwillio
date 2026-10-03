@@ -353,7 +353,7 @@ export class CloserAgentService {
       emailSubject3: `As promised: your Qwillio demo for ${p.businessName}`,
       emailHtml3: `Hi ${firstName},\n\nAs I mentioned on our call, every missed call goes straight to your competitor.\n\nQwillio answers 100% of your calls, books jobs, and captures leads, 24/7. Free ${ESSAI_JOURS}-day trial, card required at signup.\n\n${proof}\n\nStart your trial: ${url}\n\nBest,\n${agent}, Qwillio`,
       emailSubject5: `How ${niche} businesses use Qwillio to stop losing clients`,
-      emailHtml5: `Hi ${firstName},\n\n${proof}\n\nThe key? An AI assistant that answers exactly like a human, with your name, your tone, your schedule.\n\n48h setup. No commitment. First month free.\n\nSign up: ${url}\n\n${agent}, Qwillio`,
+      emailHtml5: `Hi ${firstName},\n\n${proof}\n\nThe key? An AI assistant that answers exactly like a human, with your name, your tone, your schedule.\n\n48h setup. No commitment. Free ${ESSAI_JOURS}-day trial, card at signup.\n\nSign up: ${url}\n\n${agent}, Qwillio`,
       emailSubject7: `Last chance: ${ESSAI_JOURS}-day trial for ${p.businessName}`,
       emailHtml7: `Hi ${firstName},\n\nI don't want to be pushy, but I know one missed call costs you more than a month of Qwillio.\n\nThis link expires soon: ${url}\n\nAny questions? Reply to this email: I respond within the hour.\n\n${agent}, Qwillio`,
     };
