@@ -128,9 +128,20 @@ l'interface qui demande l'accès** — pas seulement depuis le site public.
 
 Constat vérifié : `frontend/src/components/v2/FooterV2.tsx:42` pose le lien
 `/privacy` dans le pied de page **public**. Les pages du portail connecté
-(`frontend/src/pages/v2/app/`, `frontend/src/pages/client/`) n'en contiennent
+(`frontend/src/pages/v2/app/`, `frontend/src/pages/client/`) n'en contenaient
 **aucun**. Un relecteur qui ouvre l'écran d'intégration Google Calendar ne peut
 pas atteindre la politique : c'est un motif de rejet classique.
+
+**Corrigé côté V1** (le portail réellement en production) : le lien
+« Confidentialité » vit dans la barre latérale, avec « Aide » et
+« Documentation » (`frontend/src/components/layout/DashboardShell.tsx`).
+
+⚠️ **Reste à corriger côté V2.** Le portail V2
+(`frontend/src/components/v2/app/AppShell.tsx`, `pages/v2/app/Integrations.tsx`)
+n'est **pas branché** : aucune de ses 25 pages n'est routée dans `App.tsx`.
+S'il est branché un jour, il devra recevoir le même lien — l'écran
+`Integrations.tsx` est précisément celui où l'utilisateur autorise son compte
+Google. Ne pas le brancher en production avant d'avoir ajouté ce lien.
 
 ---
 

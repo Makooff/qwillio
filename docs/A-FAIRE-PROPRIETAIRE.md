@@ -246,7 +246,8 @@ par étage dans `fleetMetrics`.
 | Acheter le numéro belge | Un numéro entrant appartient à UN client ; sans second numéro, pas de second client | Vapi ou Twilio |
 | Choisir : région UE ou pas | Render est en Oregon. Le site ne promet plus l'UE (c'est correct). Basculer rendrait la promesse | `docs/MIGRATION-UE-RUNBOOK.md` |
 | DPIA voix | Obligatoire pour un traitement de voix à grande échelle | Juriste |
-| Mettre à jour la page Confidentialité | Elle annonce 90 jours fermes alors que la durée est désormais réglable par client | `frontend/src/pages/legal/Privacy.tsx` |
+| ~~Mettre à jour la page Confidentialité~~ | **Fait.** Elle dit désormais « 90 jours par défaut, réglable entre 30 jours et 5 ans », ce qui est exact. Le fichier visé n'existe plus : la page est `frontend/src/pages/v2/legal/Privacy.tsx` | — |
+| **Dossier de vérification Google** | Une app non vérifiée est plafonnée à 100 utilisateurs à vie. Le dossier complet est prêt : `docs/VERIFICATION-GOOGLE.md` | Google Cloud Console |
 
 ---
 
