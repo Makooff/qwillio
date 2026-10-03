@@ -9,6 +9,7 @@ import { toolRuntimeService } from '../services/voice/tool-runtime.service';
 import { callerMemoryService } from '../services/voice/caller-memory.service';
 import { liveTranscripts } from '../services/voice/live-transcript.store';
 import { knowledgePreset } from '../config/knowledge-presets';
+import { entreesDepuisVapiConfig } from '../services/voice/portal-knowledge.service';
 
 /**
  * Le pont vers `qwillio-voice-core` — /api/voice-core/*
@@ -839,194 +840,30 @@ interface EntreeVocal {
 const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
 
 /**
- * Les items vendables et les champs nommes deviennent des entrees `faq`.
+ * Les entrees du portail, au format que `voice-core` consomme.
  *
- * POURQUOI ICI. Il y a DEUX magasins de connaissance : la table
- * `businessKnowledge` (une ligne par question) et le blob `vapiConfig` que le
- * client edite lui-meme (champs nommes : `items`, `hours`, `knowledge`, `faq`).
- * Le prompt de l'assistant ENREGISTRE lisait les deux ; ce chemin-ci ne lisait
- * que la table. Un restaurateur remplissait sa carte dans le portail — trente-
- * trois plats avec leurs prix — et l'agent repondait « je n'ai pas l'info », puis
- * notait la lacune. La donnee n'etait pas perdue, elle etait dans un magasin
- * qu'on ne lisait pas.
+ * LA CONVERSION ELLE-MEME VIT AILLEURS. Elle est dans
+ * `services/voice/portal-knowledge.service`, parce que `business-memory.service`
+ * lit les memes donnees pour le chemin temps reel. Deux copies d'une regle
+ * finissent toujours par diverger : celle-ci n'est qu'un renommage des champs,
+ * pour passer de `KnowledgeEntry` a `EntreeVocal` sans toucher ni l'un ni
+ * l'autre contrat.
  *
- * DOUZE METIERS, PAS UN. `knowledgePreset(businessType)` porte, par metier, les
- * libelles des champs ET les libelles des categories d'items : un dentiste a des
- * « Consultations et controles », un avocat des « Honoraires », un garagiste des
- * « Forfaits ». Ecrire « Carte / services et prix » en dur aurait servi un
- * restaurant et menti aux onze autres — c'est le defaut que `niches.ts` decrit :
- * un client « aurait eu ses questions d'onboarding mais pas ses presets, sans
- * que rien ne le signale ».
- *
- * Ce module ne fabrique donc AUCUN libelle : il prend ceux du preset, et retombe
- * sur l'identifiant brut quand le metier est inconnu (`default`), comme
- * `knowledgeFieldsBlock` le fait deja sur les deux autres chemins.
- *
- * LES ITEMS TIENNENT EN UNE ENTREE, pas une par item : `MAX_RESULTATS` vaut 3
- * cote voix, et trente-trois lignes evinceraient la FAQ, les regles et l'equipe.
- * Les mots-cles sont les NOMS des items, parce que c'est ce que l'appelant
- * prononce — « scampis », « detartrage », « vidange » — pas leur categorie.
+ * Ce module ne fabrique AUCUN libelle : ils viennent du preset du metier, via
+ * `entreesDepuisVapiConfig`.
  */
 export function entreesDepuisConfig(
-  cfg: Record<string, unknown>,
-  libellesCategories?: Map<string, string>,
-  libellesChamps?: Map<string, string>,
+  cfg: Record<string, unknown> | null | undefined,
+  businessType?: string | null,
 ): EntreeVocal[] {
-  const sortie: EntreeVocal[] = [];
-
-  // ── Les items vendables (carte, prestations, forfaits) ─────────────────────
-  const items = Array.isArray(cfg.items) ? cfg.items : [];
-  const propres = items.filter(
-    (it): it is { name?: unknown; price?: unknown; category?: unknown } =>
-      !!it && typeof it === 'object',
-  );
-
-  if (propres.length) {
-    // Les mots-cles sont les NOMS des items, pas leur categorie : c'est ce que
-    // l'appelant prononce. « scampis », « detartrage », « courroie ».
-    const motsCles = new Set<string>();
-    for (const it of propres) {
-      const nom = String(it.name ?? '').trim();
-      if (!nom) continue;
-      // Le nom entier, puis chaque mot de plus de 3 lettres : « Salade cesar
-      // au poulet » donne aussi « salade », « cesar », « poulet ».
-      motsCles.add(nom.toLowerCase());
-      for (const mot of nom.toLowerCase().split(/[^a-z0-9à-ÿ']+/)) {
-        if (mot.length > 3) motsCles.add(mot);
-      }
-    }
-
-    const parCategorie = new Map<string, string[]>();
-    for (const it of propres) {
-      const nom = String(it.name ?? '').trim();
-      if (!nom) continue;
-      const prix = String(it.price ?? '').trim();
-      const cat = String(it.category ?? '').trim();
-      const ligne = prix ? `${nom} — ${prix}` : nom;
-      if (!parCategorie.has(cat)) parCategorie.set(cat, []);
-      parCategorie.get(cat)!.push(ligne);
-    }
-
-    const corps = [...parCategorie.entries()]
-      // Le LIBELLE du metier quand le preset le connait, l'identifiant brut
-      // sinon. Une categorie vide (le blob n'en porte pas toujours) ne prend
-      // pas de prefixe du tout plutot que de fabriquer une etiquette.
-      .map(([cat, lignes]) => {
-        const label = cat ? (libellesCategories?.get(cat) || cat) : '';
-        return label ? `${label} : ${lignes.join(' • ')}` : lignes.join(' • ');
-      })
-      .join('\n');
-
-    // Une liste dont tous les items sont sans nom ne fabrique rien : une entree
-    // au contenu vide serait offerte au modele comme une reponse a lire, et il
-    // repondrait « voici la liste : (rien) » au lieu d'avouer qu'il ne sait pas.
-    // Le filtre `propres` ne suffit pas, il garde les objets sans nom.
-    if (corps) {
-      sortie.push({
-        id: 'config:items',
-        genre: 'faq',
-        titre: 'Prestations et tarifs',
-        contenu: corps,
-        mots_cles: [...motsCles].slice(0, 200),
-        // Au-dessus de la FAQ generale : c'est ce qu'un appelant demande au
-        // telephone, quel que soit le metier.
-        priorite: 5,
-      });
-    }
-  }
-
-  // ── Les champs nommes du metier ────────────────────────────────────────────
-  // Ceux que le portail fait remplir et que la voix n'a jamais lus : « Mutuelles
-  // acceptees », « Politique d'annulation », « Acces et stationnement ». Chaque
-  // metier a les siens, donc on passe par le libelle du preset — c'est ce que le
-  // client a cru remplir, et c'est ce que l'agent doit lire.
-  const knowledge = cfg.knowledge;
-  if (knowledge && typeof knowledge === 'object' && !Array.isArray(knowledge)) {
-    const lignes: string[] = [];
-    for (const [id, v] of Object.entries(knowledge as Record<string, unknown>)) {
-      if (typeof v !== 'string' || !v.trim()) continue;
-      lignes.push(`- ${libellesChamps?.get(id) || id} : ${v.trim()}`);
-    }
-    if (lignes.length) {
-      sortie.push({
-        id: 'config:knowledge',
-        genre: 'faq',
-        titre: 'Informations pratiques',
-        contenu: lignes.join('\n'),
-        mots_cles: ['information', 'informations', 'pratique', 'details', 'conditions'],
-        priorite: 3,
-      });
-    }
-  }
-
-  // ── La FAQ libre ───────────────────────────────────────────────────────────
-  // `vapiConfig.faq` (texte) et `faqEntries` (lignes q/a) n'avaient aucun lecteur
-  // cote appel : le gerant ecrivait les questions qu'on lui pose le plus, et sa
-  // receptionniste ne les avait jamais vues. `onboarding` et le temps reel les
-  // lisent ; ce chemin-ci les ignorait.
-  const faqLignes: string[] = [];
-  if (Array.isArray(cfg.faqEntries)) {
-    for (const e of cfg.faqEntries) {
-      if (!e || typeof e !== 'object') continue;
-      const { q, a } = e as { q?: unknown; a?: unknown };
-      const qq = typeof q === 'string' ? q.trim() : '';
-      const aa = typeof a === 'string' ? a.trim() : '';
-      if (qq && aa) faqLignes.push(`${qq} → ${aa}`);
-    }
-  }
-  if (typeof cfg.faq === 'string' && cfg.faq.trim()) faqLignes.push(cfg.faq.trim());
-
-  if (faqLignes.length) {
-    const contenu = faqLignes.join('\n');
-    sortie.push({
-      id: 'config:faq',
-      genre: 'faq',
-      titre: 'Questions fréquentes du commerce',
-      contenu,
-      // Les questions elles-memes sont les meilleurs mots-cles : c'est la
-      // formulation du gerant, souvent celle de ses appelants.
-      mots_cles: [...new Set(
-        faqLignes.join(' ').toLowerCase().split(/[^a-z0-9à-ÿ']+/).filter(m => m.length > 3),
-      )].slice(0, 200),
-      priorite: 3,
-    });
-  }
-
-  // ── Les horaires ───────────────────────────────────────────────────────────
-  // Le blob les porte en objet {lundi: {open, from, to}} avec des cles
-  // ANGLAISES, quel que soit le pays. L'agent les annonce, donc on les rend en
-  // clair plutot que de les laisser deviner un format.
-  const hours = cfg.hours && typeof cfg.hours === 'object' ? (cfg.hours as Record<string, unknown>) : null;
-  if (hours && Object.keys(hours).length) {
-    const jours: [string, string][] = [
-      ['monday', 'Lundi'], ['tuesday', 'Mardi'], ['wednesday', 'Mercredi'],
-      ['thursday', 'Jeudi'], ['friday', 'Vendredi'], ['saturday', 'Samedi'],
-      ['sunday', 'Dimanche'],
-    ];
-    const lignes: string[] = [];
-    for (const [cle, label] of jours) {
-      const j = hours[cle];
-      if (!j || typeof j !== 'object') continue;
-      const { open, from, to } = j as { open?: unknown; from?: unknown; to?: unknown };
-      if (open === false || !from || !to) {
-        lignes.push(`${label} : fermé`);
-      } else {
-        lignes.push(`${label} : ${String(from)} – ${String(to)}`);
-      }
-    }
-    if (lignes.length) {
-      sortie.push({
-        id: 'config:hours',
-        genre: 'faq',
-        titre: 'Horaires d’ouverture',
-        contenu: lignes.join('\n'),
-        mots_cles: ['horaire', 'horaires', 'ouvert', 'ferme', 'ouverture', 'fermeture', 'heure'],
-        priorite: 4,
-      });
-    }
-  }
-
-  return sortie;
+  return entreesDepuisVapiConfig(cfg, businessType).map((e) => ({
+    id: e.id,
+    genre: e.kind,
+    titre: e.title,
+    contenu: e.content,
+    mots_cles: e.keywords,
+    priorite: e.priority,
+  }));
 }
 
 /**
@@ -1084,15 +921,10 @@ router.get('/knowledge', async (req, res) => {
       ? (client.vapiConfig as Record<string, unknown>)
       : {});
 
-    // Les libelles viennent du preset du METIER, jamais d'une chaine ecrite ici.
-    // `knowledgePreset` passe par `resolveNiche`, donc un `businessType` libre
-    // (« Garage Dupont ») tombe sur le bon preset, et un metier inconnu tombe
-    // sur `default` — qui a ses propres libelles, pas rien.
-    const preset = knowledgePreset(client?.businessType);
-    const libellesCategories = new Map(preset.itemCategories.map((c) => [c.v, c.l]));
-    const libellesChamps = new Map(preset.fields.map((f) => [f.id, f.label]));
-
-    const depuisConfig = entreesDepuisConfig(cfg, libellesCategories, libellesChamps);
+    // Les libelles viennent du preset du METIER, et c'est `entreesDepuisConfig`
+    // qui s'en charge : il delegue a `portal-knowledge.service`, ou la
+    // conversion est ecrite une fois et partagee avec `business-memory`.
+    const depuisConfig = entreesDepuisConfig(cfg, client?.businessType);
 
     return res.json({ entries: [...depuisTable, ...depuisConfig] });
   } catch (error) {

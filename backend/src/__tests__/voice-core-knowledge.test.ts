@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { entreesDepuisConfig } from '../routes/voice-core.routes';
-import { knowledgePreset } from '../config/knowledge-presets';
 
 /**
  * Le SECOND magasin de connaissance.
@@ -23,18 +22,15 @@ import { knowledgePreset } from '../config/knowledge-presets';
  * maintenant du preset du metier, et plusieurs metiers sont verifies ici.
  */
 
-/** Les maps de libelles, telles que la route les construit depuis le preset. */
-function libelles(businessType: string) {
-  const preset = knowledgePreset(businessType);
-  return {
-    items: new Map(preset.itemCategories.map((c) => [c.v, c.l])),
-    champs: new Map(preset.fields.map((f) => [f.id, f.label])),
-  };
-}
-
+/**
+ * Les entrees d'un client, pour un metier donne.
+ *
+ * `entreesDepuisConfig` prend le `businessType` BRUT et resout le preset
+ * lui-meme : c'est le pont qui l'appelle ainsi, et un helper de test qui
+ * pre-resoudrait le preset testerait un chemin que la production n'emprunte pas.
+ */
 function pour(businessType: string, cfg: Record<string, unknown>) {
-  const { items, champs } = libelles(businessType);
-  return entreesDepuisConfig(cfg, items, champs);
+  return entreesDepuisConfig(cfg, businessType);
 }
 
 const RESTO = {
@@ -65,7 +61,7 @@ const DENTISTE = {
 
 describe('les items saisis dans le portail deviennent une entree vocale', () => {
   it('rend une entree cherchable portant les items et leurs prix', () => {
-    const carte = pour('restaurant', RESTO).find((e) => e.id === 'config:items');
+    const carte = pour('restaurant', RESTO).find((e) => e.id === 'portail:items');
     expect(carte).toBeDefined();
     expect(carte!.genre).toBe('faq');
     expect(carte!.contenu).toContain('Scampis à l’ail');
@@ -79,7 +75,7 @@ describe('les items saisis dans le portail deviennent une entree vocale', () => 
    * recherche lexicale de `voice-core` ne peut pas tomber dessus.
    */
   it('met les NOMS des items en mots-cles, pas seulement leur categorie', () => {
-    const carte = pour('restaurant', RESTO).find((e) => e.id === 'config:items')!;
+    const carte = pour('restaurant', RESTO).find((e) => e.id === 'portail:items')!;
     const cles = carte.mots_cles.map((c) => c.toLowerCase());
     expect(cles).toContain('scampis');
     expect(cles).toContain('angus');
@@ -92,11 +88,11 @@ describe('les items saisis dans le portail deviennent une entree vocale', () => 
    * evinceraient la FAQ, les regles et l'equipe.
    */
   it('tient toute la liste en une seule entree', () => {
-    expect(pour('restaurant', RESTO).filter((e) => e.id === 'config:items')).toHaveLength(1);
+    expect(pour('restaurant', RESTO).filter((e) => e.id === 'portail:items')).toHaveLength(1);
   });
 
   it('accepte un item sans prix', () => {
-    const carte = pour('dental', DENTISTE).find((e) => e.id === 'config:items')!;
+    const carte = pour('dental', DENTISTE).find((e) => e.id === 'portail:items')!;
     expect(carte.contenu).toContain('Urgence douleur');
   });
 });
@@ -110,13 +106,13 @@ describe('les items saisis dans le portail deviennent une entree vocale', () => 
 
 describe('les libelles suivent le metier du client', () => {
   it('un restaurateur lit les libelles de la restauration', () => {
-    const carte = pour('restaurant', RESTO).find((e) => e.id === 'config:items')!;
+    const carte = pour('restaurant', RESTO).find((e) => e.id === 'portail:items')!;
     expect(carte.contenu).toContain('Plats à la carte');
     expect(carte.contenu).toContain('Menus et formules');
   });
 
   it('un dentiste lit les libelles du cabinet dentaire', () => {
-    const carte = pour('cabinet dentaire', DENTISTE).find((e) => e.id === 'config:items')!;
+    const carte = pour('cabinet dentaire', DENTISTE).find((e) => e.id === 'portail:items')!;
     expect(carte.contenu).toContain('Soins conservateurs');
     expect(carte.contenu).toContain('Prothèses et implants');
     expect(carte.contenu).toContain('Urgences');
@@ -132,7 +128,7 @@ describe('les libelles suivent le metier du client', () => {
   it('trouve le metier derriere un businessType ecrit librement', () => {
     const carte = pour('Garage Dupont & Fils', {
       items: [{ name: 'Vidange', price: '79€', category: 'prestations' }],
-    }).find((e) => e.id === 'config:items')!;
+    }).find((e) => e.id === 'portail:items')!;
     expect(carte).toBeDefined();
     expect(carte.contenu).toContain('Vidange');
   });
@@ -145,7 +141,7 @@ describe('les libelles suivent le metier du client', () => {
     const entrees = pour('chose jamais vue', {
       items: [{ name: 'Forfait A', price: '100€', category: 'formules' }],
     });
-    expect(entrees.find((e) => e.id === 'config:items')).toBeDefined();
+    expect(entrees.find((e) => e.id === 'portail:items')).toBeDefined();
   });
 });
 
@@ -158,7 +154,7 @@ describe('les libelles suivent le metier du client', () => {
 
 describe('les champs nommes du metier deviennent une entree vocale', () => {
   it('rend les champs du dentiste avec leurs libelles', () => {
-    const infos = pour('dental', DENTISTE).find((e) => e.id === 'config:knowledge');
+    const infos = pour('dental', DENTISTE).find((e) => e.id === 'portail:knowledge');
     expect(infos).toBeDefined();
     expect(infos!.contenu).toContain('Mutuelles et conventionnement');
     expect(infos!.contenu).toContain('Partenamut');
@@ -173,14 +169,14 @@ describe('les champs nommes du metier deviennent une entree vocale', () => {
   it('conserve un champ qu aucun preset ne connait, sans le perdre', () => {
     const infos = pour('dental', {
       knowledge: { champDisparu: 'Livraison le samedi' },
-    }).find((e) => e.id === 'config:knowledge')!;
+    }).find((e) => e.id === 'portail:knowledge')!;
     expect(infos.contenu).toContain('champDisparu');
     expect(infos.contenu).toContain('Livraison le samedi');
   });
 
   it('ignore les champs vides', () => {
     const entrees = pour('dental', { knowledge: { parkingAccess: '   ' } });
-    expect(entrees.find((e) => e.id === 'config:knowledge')).toBeUndefined();
+    expect(entrees.find((e) => e.id === 'portail:knowledge')).toBeUndefined();
   });
 });
 
@@ -194,33 +190,33 @@ describe('la FAQ saisie par le gerant devient une entree vocale', () => {
   it('rend les lignes question/reponse', () => {
     const faq = pour('dental', {
       faqEntries: [{ q: 'Prenez-vous de nouveaux patients ?', a: 'Oui, sur rendez-vous.' }],
-    }).find((e) => e.id === 'config:faq')!;
+    }).find((e) => e.id === 'portail:faq')!;
     expect(faq.contenu).toContain('Prenez-vous de nouveaux patients ?');
     expect(faq.contenu).toContain('Oui, sur rendez-vous.');
   });
 
   it('rend aussi le faq en texte libre', () => {
     const faq = pour('restaurant', { faq: 'Le service du soir commence à 19 h.' })
-      .find((e) => e.id === 'config:faq')!;
+      .find((e) => e.id === 'portail:faq')!;
     expect(faq.contenu).toContain('service du soir');
   });
 
   it('met les mots de la question en mots-cles', () => {
     const faq = pour('dental', {
       faqEntries: [{ q: 'Faites-vous du blanchiment ?', a: 'Après un contrôle.' }],
-    }).find((e) => e.id === 'config:faq')!;
+    }).find((e) => e.id === 'portail:faq')!;
     expect(faq.mots_cles).toContain('blanchiment');
   });
 
   it('saute une ligne q/a incomplete plutot que de rendre du vide', () => {
     const entrees = pour('dental', { faqEntries: [{ q: 'Une question ?' }] });
-    expect(entrees.find((e) => e.id === 'config:faq')).toBeUndefined();
+    expect(entrees.find((e) => e.id === 'portail:faq')).toBeUndefined();
   });
 });
 
 describe('les horaires saisis dans le portail deviennent une entree vocale', () => {
   it('rend les jours en clair, pas l objet brut a cles anglaises', () => {
-    const horaires = pour('restaurant', RESTO).find((e) => e.id === 'config:hours');
+    const horaires = pour('restaurant', RESTO).find((e) => e.id === 'portail:hours');
     expect(horaires).toBeDefined();
     expect(horaires!.contenu).toContain('Samedi');
     expect(horaires!.contenu).toContain('12:00 – 22:00');
@@ -228,7 +224,7 @@ describe('les horaires saisis dans le portail deviennent une entree vocale', () 
   });
 
   it('reconnait les mots qu un appelant emploie vraiment', () => {
-    const horaires = pour('restaurant', RESTO).find((e) => e.id === 'config:hours')!;
+    const horaires = pour('restaurant', RESTO).find((e) => e.id === 'portail:hours')!;
     expect(horaires.mots_cles).toContain('ouvert');
     expect(horaires.mots_cles).toContain('ferme');
   });
@@ -250,26 +246,26 @@ describe('ce qui est vide ou malforme ne fabrique pas d entree fantome', () => {
    */
   it('survit a une liste malformee sans lever ni inventer une entree', () => {
     const entrees = pour('restaurant', { items: [null, 'texte', 42, { name: '' }] as unknown[] });
-    expect(entrees.find((e) => e.id === 'config:items')).toBeUndefined();
+    expect(entrees.find((e) => e.id === 'portail:items')).toBeUndefined();
   });
 
   it('ignore les items sans nom et garde les autres', () => {
     const carte = pour('restaurant', {
       items: [{ name: '' }, { name: 'Frites', price: '4,50€', category: 'carte' }],
-    }).find((e) => e.id === 'config:items');
+    }).find((e) => e.id === 'portail:items');
     expect(carte).toBeDefined();
     expect(carte!.contenu).toContain('Frites');
   });
 
   it('ne fabrique pas de prefixe quand le blob ne porte pas de categorie', () => {
     const carte = pour('restaurant', { items: [{ name: 'Frites', price: '4,50€' }] })
-      .find((e) => e.id === 'config:items')!;
+      .find((e) => e.id === 'portail:items')!;
     expect(carte.contenu).toBe('Frites — 4,50€');
   });
 
   it('ne melange pas items et champs nommes dans une seule entree', () => {
     const entrees = pour('dental', DENTISTE);
-    expect(entrees.filter((e) => e.id === 'config:items')).toHaveLength(1);
-    expect(entrees.filter((e) => e.id === 'config:knowledge')).toHaveLength(1);
+    expect(entrees.filter((e) => e.id === 'portail:items')).toHaveLength(1);
+    expect(entrees.filter((e) => e.id === 'portail:knowledge')).toHaveLength(1);
   });
 });

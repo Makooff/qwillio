@@ -2,6 +2,7 @@ import { prisma } from '../../config/database';
 import { logger } from '../../config/logger';
 import { normalizeUtterance } from './intent-router';
 import { knowledgeEmbeddingsService } from './knowledge-embeddings.service';
+import { entreesDepuisVapiConfig, entreesPourIndexation } from './portal-knowledge.service';
 import type { VoiceLanguage } from './speech-plans';
 
 /**
@@ -36,15 +37,74 @@ function clamp(text: string, max: number): string {
   return trimmed.length <= max ? trimmed : `${trimmed.slice(0, max - 1)}…`;
 }
 
+/**
+ * La racine d'un mot francais, pour rapprocher « salades » de « salade ».
+ *
+ * CALQUEE SUR `voice-core` (`connaissance.racine`), et c'est le point : les deux
+ * chemins de recherche doivent trouver les MEMES entrees. Une deuxieme regle
+ * ecrite a la main divergerait au premier cas limite, et on aurait un agent qui
+ * trouve un plat sur la ligne temps reel et pas sur l'autre.
+ *
+ * Les suffixes sont essayes du PLUS LONG au plus court : sinon « ouverture »
+ * perdrait son « e » avant qu'on essaie « ure ». Le radical ne descend jamais
+ * sous quatre lettres, pour que « the » ne devienne pas « th ».
+ */
+const SUFFIXES = [
+  'issement', 'ements', 'ations', 'ation', 'ement', 'ures', 'ure', 'eurs',
+  'euse', 'eur', 'ives', 'ive', 'ifs', 'ing', 'ions', 'iens', 'ien', 'aux',
+  'ales', 'ale', 'als', 'ees', 'es', 'er', 'ez', 'en', 's', 'e',
+] as const;
+const RACINE_MIN = 4;
+
+export function racine(mot: string): string {
+  for (const suf of SUFFIXES) {
+    if (mot.length - suf.length >= RACINE_MIN && mot.endsWith(suf)) {
+      return mot.slice(0, mot.length - suf.length);
+    }
+  }
+  return mot;
+}
+
 class BusinessMemoryService {
-  /** Active entries for a client, highest priority first. */
+  /**
+   * Active entries for a client, highest priority first.
+   *
+   * LES DEUX MAGASINS. La table `businessKnowledge` ET ce que le gerant a
+   * rempli dans son portail (`vapiConfig`). Ce service ne lisait que la table :
+   * un restaurateur saisissait trente-trois plats et sa receptionniste
+   * repondait « je n'ai pas l'info ». La conversion vit dans
+   * `portal-knowledge.service`, partagee avec le pont voice-core — deux copies
+   * d'une regle finissent toujours par diverger.
+   *
+   * Ce que ca change AUSSI : `shouldUseEmbeddings` compte desormais la vraie
+   * base. Un client avec trente-trois plats en portail et zero ligne en table
+   * comptait 0, donc restait sous le seuil de 25 et n'avait jamais de recherche
+   * semantique.
+   */
   async all(clientId: string): Promise<KnowledgeEntry[]> {
     try {
-      return await prisma.businessKnowledge.findMany({
+      const lignes = await prisma.businessKnowledge.findMany({
         where: { clientId, isActive: true },
         orderBy: [{ priority: 'desc' }, { createdAt: 'asc' }],
         select: { id: true, kind: true, title: true, content: true, keywords: true, priority: true },
       });
+
+      const client = await prisma.client.findUnique({
+        where: { id: clientId },
+        select: { vapiConfig: true, businessType: true },
+      });
+      const cfg = client?.vapiConfig as Record<string, unknown> | null;
+
+      // LES DEUX VUES, et c'est deliberе. L'agregee (un plat de carte en une
+      // entree) represente le portail dans le prompt ; les individuelles portent
+      // chacune leur vecteur pour que la recherche semantique retrouve un plat
+      // precis. Leur priorite basse les tient hors du prompt, ou elles
+      // evinceraient la FAQ sur un simple tri par priorite.
+      return [
+        ...lignes,
+        ...entreesDepuisVapiConfig(cfg, client?.businessType),
+        ...entreesPourIndexation(cfg, client?.businessType),
+      ];
     } catch (error) {
       logger.warn(`[BusinessMemory] read failed for ${clientId}: ${(error as Error).message}`);
       return [];
@@ -136,17 +196,33 @@ class BusinessMemoryService {
   /**
    * Explicit keywords are worth more than incidental title or body matches:
    * they are what the client wrote specifically so this entry would be found.
+   *
+   * LA RACINE, ET POURQUOI ELLE EST ICI. L'appelant dit « des salades » quand la
+   * carte porte « Salade de chevre chaud » : le pluriel suffisait a faire
+   * echouer une egalite de tokens, et l'entree n'etait pas trouvee. C'est le
+   * defaut le plus frequent d'une recherche lexicale en francais, et `voice-core`
+   * le corrige deja (`connaissance.racine`, qui coupe les suffixes du plus long
+   * au plus court). On reprend la MEME regle plutot que d'en inventer une
+   * deuxieme : les deux chemins doivent trouver les memes entrees.
    */
   private score(entry: KnowledgeEntry, queryTokens: Set<string>): number {
     const keywordTokens = new Set(entry.keywords.flatMap(k => normalizeUtterance(k).split(' ')));
     const titleTokens = new Set(normalizeUtterance(entry.title).split(' '));
     const bodyTokens = new Set(normalizeUtterance(entry.content).split(' '));
 
+    // Les racines, pour que « salades » atteigne « salade ».
+    const titreRacines = new Set([...titleTokens].map(racine));
+    const corpsRacines = new Set([...bodyTokens].map(racine));
+
     let score = 0;
     for (const token of queryTokens) {
       if (keywordTokens.has(token)) score += 3;
       else if (titleTokens.has(token)) score += 2;
       else if (bodyTokens.has(token)) score += 1;
+      // La racine vaut UN PEU MOINS que le mot exact : « salades » trouve
+      // « salade », mais un mot present tel quel passe devant.
+      else if (titreRacines.has(racine(token))) score += 2;
+      else if (corpsRacines.has(racine(token))) score += 1;
     }
     return score;
   }

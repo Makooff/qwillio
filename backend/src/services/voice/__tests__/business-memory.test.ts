@@ -1,8 +1,19 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
 const findMany = vi.fn();
+/**
+ * `all()` lit AUSSI le blob du portail (`Client.vapiConfig`), pas seulement la
+ * table : c'est tout l'objet du correctif des deux magasins. Le mock doit donc
+ * porter `client.findUnique` — sans lui, l'appel leve et `all()` rend une liste
+ * vide, ce qui ferait echouer les tests de recherche pour une raison qui n'a
+ * rien a voir avec ce qu'ils verifient.
+ */
+const clientFindUnique = vi.fn();
 vi.mock('../../../config/database', () => ({
-  prisma: { businessKnowledge: { findMany: (...a: unknown[]) => findMany(...a) } },
+  prisma: {
+    businessKnowledge: { findMany: (...a: unknown[]) => findMany(...a) },
+    client: { findUnique: (...a: unknown[]) => clientFindUnique(...a) },
+  },
 }));
 
 const { businessMemoryService } = await import('../business-memory.service');
@@ -53,7 +64,13 @@ describe('businessMemoryService.promptBlock', () => {
 });
 
 describe('businessMemoryService.search', () => {
-  beforeEach(() => vi.clearAllMocks());
+  beforeEach(() => {
+    vi.clearAllMocks();
+    // Par defaut : un client sans portail. Les tests qui portent sur la table
+    // seule lisent donc exactement ce qu'ils ont pose dans `findMany`, et un
+    // test qui veut du portail le declare lui-meme.
+    clientFindUnique.mockResolvedValue(null);
+  });
 
   it('matches on an explicit keyword', async () => {
     findMany.mockResolvedValue([entry()]);
@@ -83,6 +100,58 @@ describe('businessMemoryService.search', () => {
   it('degrades to empty on a database failure instead of throwing mid-call', async () => {
     findMany.mockRejectedValue(new Error('connection lost'));
     expect(await businessMemoryService.search('client_1', 'parking')).toEqual([]);
+  });
+
+  /**
+   * Le defaut le plus courant d'une recherche lexicale en francais : l'appelant
+   * dit « des salades », la carte porte « Salade de chevre chaud ». Sans la
+   * racine, l'egalite de tokens echoue et la receptionniste repond qu'elle ne
+   * sait pas — sur un plat qui est sur sa carte.
+   */
+  it('trouve un plat au pluriel quand la carte est au singulier', async () => {
+    clientFindUnique.mockResolvedValue(null);
+    findMany.mockResolvedValue([
+      entry({ id: 'salade', title: 'Salade de chèvre chaud', content: '20€', keywords: [] }),
+    ]);
+    expect(await businessMemoryService.search('client_1', 'vous faites des salades')).toHaveLength(1);
+  });
+
+  it('trouve au singulier quand l appelant dit le pluriel inverse', async () => {
+    clientFindUnique.mockResolvedValue(null);
+    findMany.mockResolvedValue([
+      entry({ id: 'scampis', title: 'Scampis à l’ail', content: '18€', keywords: [] }),
+    ]);
+    expect(await businessMemoryService.search('client_1', 'un scampi à l ail')).toHaveLength(1);
+  });
+
+  it('ne rapproche pas deux mots qui n ont qu un prefixe court en commun', async () => {
+    clientFindUnique.mockResolvedValue(null);
+    findMany.mockResolvedValue([
+      entry({ id: 'sac', title: 'Sac à dos', content: '15€', keywords: [] }),
+    ]);
+    // « salade » et « sac » ne partagent que trois lettres : sous le plancher de
+    // la racine. Sans ce garde-fou, « salade » trouverait « sac ».
+    expect(await businessMemoryService.search('client_1', 'salades')).toEqual([]);
+  });
+
+  /**
+   * Le correctif des deux magasins, vu depuis la recherche : un client qui n'a
+   * RIEN en table mais sa carte dans son portail doit trouver ses plats.
+   */
+  it('trouve les plats du portail quand la table est vide', async () => {
+    findMany.mockResolvedValue([]);
+    clientFindUnique.mockResolvedValue({
+      businessType: 'restaurant',
+      vapiConfig: {
+        items: [
+          { name: 'Steak d’angus', price: '28€', category: 'carte' },
+          { name: 'Salade césar', price: '20€', category: 'carte' },
+        ],
+      },
+    });
+    const res = await businessMemoryService.search('client_1', 'le steak d angus');
+    expect(res.length).toBeGreaterThan(0);
+    expect(res[0].content).toContain('28€');
   });
 });
 
