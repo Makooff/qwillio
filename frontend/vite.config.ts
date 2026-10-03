@@ -32,6 +32,9 @@ export default defineConfig({
     environment: 'jsdom',
     globals: true,
     include: ['src/**/*.test.{ts,tsx}'],
+    /* Installe `localStorage`, que jsdom ne fournit pas ici. Voir l'en-tete du
+       fichier: cinq tests de langue echouaient pour cette seule raison. */
+    setupFiles: ['./src/test-setup.ts'],
   },
   server: {
     port: 5173,
