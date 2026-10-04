@@ -38,6 +38,40 @@ interface CachedSlots {
  * tool call, not long enough to promise a slot someone else just took.
  */
 const CACHE_TTL_MS = 30_000;
+
+/**
+ * La clé comparable d'un créneau : « 19:30 », « 9:30 » et « 09:30 » sont le
+ * même instant, et DOIVENT se comparer égaux.
+ *
+ * La forme n'est pas garantie identique des deux côtés de la comparaison :
+ *
+ *   - les créneaux de Google sortent de `googleCalendarService.getAvailability`
+ *     et sont rendus en `HH:MM` par le fuseau de l'entreprise ;
+ *   - `bookingTime` en base est écrit depuis `args.time`, c'est-à-dire la
+ *     chaîne que le MODÈLE a produite (`parseTime` la valide en `\d{1,2}:\d{2}`
+ *     mais accepte une heure sans zéro devant).
+ *
+ * Comparer ces deux formes en texte brut ferait échouer silencieusement le
+ * rapprochement sur « 9:30 » contre « 09:30 » — c'est-à-dire exactement sur les
+ * créneaux du matin, et seulement eux. Une comparaison textuelle naïve aurait
+ * donc l'air de marcher : elle filtrerait les rendez-vous de l'après-midi et
+ * laisserait passer ceux du matin. On normalise en minutes.
+ *
+ * Rend une chaîne vide pour tout ce qui n'est pas une heure lisible, et
+ * l'appelant écarte ces valeurs : un `bookingTime` illisible ne doit pas
+ * pouvoir entrer dans l'ensemble des créneaux pris, sinon il n'en retirerait
+ * aucun et donnerait le sentiment d'avoir filtré.
+ */
+export function normalizeSlotKey(raw: unknown): string {
+  if (typeof raw !== 'string') return '';
+  const m = raw.trim().match(/^(\d{1,2}):(\d{2})$/);
+  if (!m) return '';
+  const heures = Number(m[1]);
+  const minutes = Number(m[2]);
+  if (heures > 23 || minutes > 59) return '';
+  return `${String(heures).padStart(2, '0')}:${String(minutes).padStart(2, '0')}`;
+}
+
 const MAX_SPECULATIONS_PER_CALL = 4;
 
 /** Weekday names to a JS day index, per language. */
@@ -186,8 +220,78 @@ class AvailabilitySpeculator {
       { from: window.from, to: window.to },
     );
 
-    this.cache.set(key, { slots, expiresAt: Date.now() + CACHE_TTL_MS });
-    return slots;
+    /* ── LA BASE AUSSI, ET C'ÉTAIT LE DÉFAUT ──────────────────────────────
+     *
+     * `freeSlots` ne lisait QUE Google. Une réservation écrite en base dont la
+     * synchronisation calendrier n'était pas encore passée — ou l'avait ratée —
+     * restait donc annoncée « libre » à l'appel suivant. L'agent proposait le
+     * créneau, l'appelant l'acceptait, et l'écriture échouait :
+     *
+     *     Unique constraint failed: (client_id, booking_date, booking_time)
+     *
+     * L'appelant, lui, avait entendu « c'est noté ». C'est le pire scénario de
+     * cette application : une promesse ferme sur un rendez-vous qui n'existe
+     * pas, et personne ne découvre l'erreur avant que le client se présente.
+     *
+     * L'écriture Google est en `void` (fire-and-forget) et le cache d'agenda vit
+     * trente secondes : la fenêtre de divergence est réelle, pas théorique.
+     *
+     * ── ON LIT LA CONTRAINTE, PAS UNE IDÉE DE LA CONTRAINTE ──────────────
+     *
+     * L'index qui produit cette erreur est PARTIEL, et il est déclaré à la main
+     * dans une migration parce que Prisma ne sait pas l'exprimer :
+     *
+     *     CREATE UNIQUE INDEX "client_bookings_slot_unique"
+     *       ON "client_bookings" ("client_id", "booking_date", "booking_time")
+     *       WHERE "status" = 'confirmed' AND "booking_time" IS NOT NULL;
+     *
+     * Notre requête doit donc filtrer sur EXACTEMENT ces deux conditions. Un
+     * `status: { notIn: [...] }` raterait les lignes `pending`, `cancelled` et
+     * tout autre statut, et retirerait des créneaux que la base accepte encore :
+     * l'agent refuserait une heure parfaitement libre. À l'inverse, ne pas
+     * filtrer `booking_time` ferait entrer des rendez-vous sans heure, qui ne
+     * bloquent rien.
+     */
+    /* ── LE JOUR, PAR BORNE ET NON PAR ÉGALITÉ ─────────────────────────────
+     *
+     * `booking_date` est un TIMESTAMP(3), pas un type DATE : la colonne porte
+     * une heure. Aujourd'hui les deux côtés écrivent la même valeur
+     * (`parseDate('2026-10-05')` rend `2026-10-05T12:00:00Z`, et
+     * `bookAppointment` enregistre exactement ce `date`), donc une égalité
+     * marcherait. Mais elle ne marcherait QUE par coïncidence, et la première
+     * ligne écrite par un autre chemin — un import, un rattrapage, un script —
+     * avec un minuit ou une heure locale échapperait au filtre en silence.
+     *
+     * La borne couvre le jour entier quel que soit l'instant enregistré, et
+     * l'index `client_bookings_booking_date_idx` la sert comme l'égalité.
+     */
+    const debutJour = new Date(date);
+    debutJour.setUTCHours(0, 0, 0, 0);
+    const finJour = new Date(debutJour);
+    finJour.setUTCDate(finJour.getUTCDate() + 1);
+
+    const occupe = await prisma.clientBooking.findMany({
+      where: {
+        clientId,
+        bookingDate: { gte: debutJour, lt: finJour },
+        // La contrainte dit `WHERE status = 'confirmed'`, pas « sauf annulé ».
+        status: 'confirmed',
+        bookingTime: { not: null },
+      },
+      select: { bookingTime: true },
+    });
+    const pris = new Set(
+      occupe.map(b => normalizeSlotKey(b.bookingTime as string)).filter(Boolean),
+    );
+    const libres = pris.size ? slots.filter(s => !pris.has(normalizeSlotKey(s))) : slots;
+    if (libres.length !== slots.length) {
+      logger.info(
+        `[Disponibilité] ${slots.length - libres.length} créneau(x) retiré(s) car réservé(s) en base (${key})`,
+      );
+    }
+
+    this.cache.set(key, { slots: libres, expiresAt: Date.now() + CACHE_TTL_MS });
+    return libres;
   }
 
   /**

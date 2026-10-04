@@ -3,9 +3,16 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 const findUnique = vi.fn();
 const getAccessTokenFromRefresh = vi.fn();
 const getAvailability = vi.fn();
+const bookingFindMany = vi.fn();
 
 vi.mock('../../../config/database', () => ({
-  prisma: { client: { findUnique: (...a: unknown[]) => findUnique(...a) } },
+  prisma: {
+    client: { findUnique: (...a: unknown[]) => findUnique(...a) },
+    /* Les réservations DÉJÀ PRISES en base. `freeSlots` ne lisait que Google :
+       un créneau confirmé en base dont la synchro calendrier n'était pas encore
+       passée restait annoncé libre. Voir `availability-speculator.ts`. */
+    clientBooking: { findMany: (...a: unknown[]) => bookingFindMany(...a) },
+  },
 }));
 
 vi.mock('../../google-calendar.service', () => ({
@@ -62,6 +69,9 @@ describe('availabilitySpeculator', () => {
     findUnique.mockResolvedValue({ googleCalendarRefreshToken: 'token', googleCalendarId: 'primary' });
     getAccessTokenFromRefresh.mockResolvedValue('access');
     getAvailability.mockResolvedValue(['10:00', '11:00']);
+    // Par défaut, aucune réservation en base : les tests existants portent sur
+    // la lecture d'agenda et ne doivent pas voir un filtre s'ajouter sous eux.
+    bookingFindMany.mockResolvedValue([]);
   });
 
   const flush = () => new Promise(r => setTimeout(r, 0));
@@ -218,5 +228,116 @@ describe('lectures concurrentes', () => {
 
     getAvailability.mockResolvedValue(['11:00']);
     await expect(availabilitySpeculator.freeSlots('c1', date)).resolves.toEqual(['11:00']);
+  });
+});
+
+
+/**
+ * ── UN CRÉNEAU RÉSERVÉ N'EST PLUS ANNONCÉ LIBRE ─────────────────────────────
+ *
+ * `freeSlots` ne lisait QUE Google. Une réservation écrite en base dont la
+ * synchronisation calendrier n'était pas encore passée — l'écriture Google est
+ * en `void`, et le cache d'agenda vit trente secondes — restait annoncée
+ * « libre » au tour suivant. L'agent la proposait, l'appelant acceptait, et
+ * l'écriture échouait sur :
+ *
+ *     Unique constraint failed: (client_id, booking_date, booking_time)
+ *
+ * L'appelant, lui, avait entendu « c'est noté ». On propose un rendez-vous
+ * qui n'existe pas — le pire résultat possible pour cette application.
+ *
+ * L'index qui produit l'erreur est PARTIEL et déclaré à la main dans une
+ * migration (Prisma ne sait pas l'exprimer) :
+ *
+ *     CREATE UNIQUE INDEX ... ON "client_bookings"
+ *       ("client_id", "booking_date", "booking_time")
+ *       WHERE "status" = 'confirmed' AND "booking_time" IS NOT NULL;
+ *
+ * Ces tests suivent ces deux conditions à la lettre : ils échouent si le code
+ * se met à filtrer « sauf annulé » au lieu de `= 'confirmed'`.
+ */
+describe('freeSlots — les créneaux pris en base', () => {
+  beforeEach(() => {
+    /* Le cache de l'agenda vit trente secondes et se partage par (client, jour) :
+       sans ce reset, chaque test relirait la liste du précédent — même client,
+       même jour — et le filtre ne serait jamais réexécuté. */
+    availabilitySpeculator.reset();
+    vi.clearAllMocks();
+    findUnique.mockResolvedValue({ googleCalendarRefreshToken: 'token', googleCalendarId: 'primary' });
+    getAccessTokenFromRefresh.mockResolvedValue('access');
+    getAvailability.mockResolvedValue(['10:00', '11:00']);
+    bookingFindMany.mockResolvedValue([]);
+  });
+
+  it('retire un créneau confirmé que Google annonce encore libre', async () => {
+    getAvailability.mockResolvedValue(['10:00', '11:00', '14:00']);
+    bookingFindMany.mockResolvedValue([{ bookingTime: '11:00' }]);
+
+    const slots = await availabilitySpeculator.freeSlots('client_1', NOW);
+
+    expect(slots).toEqual(['10:00', '14:00']);
+  });
+
+  it('laisse tout passer quand la base ne porte aucune réservation', async () => {
+    getAvailability.mockResolvedValue(['10:00', '11:00']);
+    bookingFindMany.mockResolvedValue([]);
+
+    expect(await availabilitySpeculator.freeSlots('client_1', NOW)).toEqual(['10:00', '11:00']);
+  });
+
+  it('ne filtre que les CONFIRMÉES — la contrainte dit `= confirmed`', async () => {
+    // Le code ne décide pas de cette règle, il la lit. Un `status: { notIn:
+    // ['cancelled'] }` serait plus permissif que l'index et ne retirerait rien
+    // pour un statut inattendu : on vérifie donc la clause exacte.
+    await availabilitySpeculator.freeSlots('client_1', NOW);
+    const where = bookingFindMany.mock.calls[0][0].where;
+    expect(where.status).toBe('confirmed');
+  });
+
+  it('exige une heure — une réservation sans heure ne bloque aucun créneau', async () => {
+    await availabilitySpeculator.freeSlots('client_1', NOW);
+    const where = bookingFindMany.mock.calls[0][0].where;
+    expect(where.bookingTime).toEqual({ not: null });
+  });
+
+  it('couvre le jour entier, sans dépendre de l’heure enregistrée', async () => {
+    // `booking_date` est un TIMESTAMP(3), pas un type DATE. Une égalité
+    // marcherait aujourd'hui par coïncidence (les deux côtés écrivent midi) et
+    // casserait en silence sur la première ligne venue d'ailleurs.
+    await availabilitySpeculator.freeSlots('client_1', NOW);
+    const where = bookingFindMany.mock.calls[0][0].where;
+    expect(where.bookingDate.gte).toBeInstanceOf(Date);
+    expect(where.bookingDate.lt).toBeInstanceOf(Date);
+    expect(where.bookingDate.lt.getTime() - where.bookingDate.gte.getTime()).toBe(86_400_000);
+  });
+
+  it('rapproche « 9:30 » et « 09:30 », qui sont le même instant', async () => {
+    // Les créneaux de Google sortent en HH:MM ; `bookingTime` est écrit depuis
+    // la chaîne produite par le MODÈLE, qui peut omettre le zéro. Une
+    // comparaison textuelle raterait exactement les créneaux du matin — et
+    // seulement eux, donc elle aurait l'air de marcher.
+    getAvailability.mockResolvedValue(['09:30', '10:00']);
+    bookingFindMany.mockResolvedValue([{ bookingTime: '9:30' }]);
+
+    expect(await availabilitySpeculator.freeSlots('client_1', NOW)).toEqual(['10:00']);
+  });
+
+  it('ignore une heure illisible plutôt que de la prendre pour un créneau', async () => {
+    getAvailability.mockResolvedValue(['10:00', '11:00']);
+    bookingFindMany.mockResolvedValue([{ bookingTime: 'le matin' }, { bookingTime: '' }]);
+
+    expect(await availabilitySpeculator.freeSlots('client_1', NOW)).toEqual(['10:00', '11:00']);
+  });
+
+  it('met en cache la liste FILTRÉE, pas celle de Google', async () => {
+    // Le cache est relu sans repasser par la base : y ranger la liste brute
+    // ferait réapparaître le créneau pris pendant les trente secondes qui
+    // suivent, c'est-à-dire exactement pendant l'appel où on vient de le
+    // réserver.
+    getAvailability.mockResolvedValue(['10:00', '11:00']);
+    bookingFindMany.mockResolvedValue([{ bookingTime: '11:00' }]);
+
+    await availabilitySpeculator.freeSlots('client_1', NOW);
+    expect(await availabilitySpeculator.freeSlots('client_1', NOW)).toEqual(['10:00']);
   });
 });
