@@ -1,43 +1,59 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
-import { framePath, type FrameBox } from './frameJourney';
+import { framePath, frameJourney, type FrameBox } from './frameJourney';
 import { prefersReducedMotion } from './reducedMotion';
 import { onScrollFrame, sceneAt, sceneStarted } from './sceneProgress';
 
 /**
- * Un cadre arrondi posé derrière les étapes.
+ * Un cadre arrondi posé derrière les étapes, qui passe de l'une à l'autre au
+ * scroll en rapetissant par son coin de sortie puis en regrandissant depuis le
+ * coin d'entrée de la suivante.
  *
- * Comportement :
- * - Le cadre **évite les coins des cartes d'en face** : un masque (`[data-step-mask]`)
- *   le découpe dans la bande autour de chaque panneau voisin, si bien qu'il
- *   disparaît avant d'en frôler le bord et réapparaît de l'autre côté.
- * - Il est **épinglé sur l'étape courante** : il ne suit pas le scroll en
- *   continu ; il reste posé et glisse (lissé) vers la suivante uniquement au
- *   franchissement du seuil.
+ * Les boîtes sont MESURÉES dans le DOM (`[data-step-frame]`), jamais écrites en
+ * dur: les étapes n'ont pas la même hauteur selon la langue et la largeur de
+ * l'écran, et un cadre calé sur des coordonnées fixes se décalerait au premier
+ * texte plus long. Un `ResizeObserver` reprend les mesures quand la mise en
+ * page bouge.
  *
- * Les boîtes et les trous du masque sont MESURÉS dans le DOM, jamais écrits en
- * dur. Un `ResizeObserver` reprend les mesures quand la mise en page bouge.
+ * Le trajet vit dans l'attribut `d` et non dans un `transform`, parce que la
+ * TAILLE change en chemin et qu'un `scale` sur un tracé étirerait aussi son
+ * filet: un cadre qui rapetisse aurait un contour plus fin au milieu du trajet.
+ * Le tracé est recalculé, donc le filet garde son épaisseur du début à la fin.
+ * La silhouette, elle, reste un rectangle arrondi tout du long: la déformation
+ * qu'il y avait ici rendait le passage mou (retour utilisateur).
  *
- * En reduced-motion le composant disparaît : c'est du décor.
+ * L'avancée vient de `sceneProgress`, la même règle que celle qui allume
+ * l'étape courante: un scrub autonome donnait un cadre en avance de deux
+ * étapes sur le texte, et deux animations qui racontent la même chose ne
+ * peuvent pas la raconter différemment.
+ *
+ * En reduced-motion le composant disparaît: c'est du décor, il n'a rien à dire
+ * à qui coupe les animations.
  */
 export default function StepFrame({
   /** Sélecteur des éléments à encadrer, dans le conteneur parent. */
   scope,
   radius = 22,
   /**
-   * Marge autour de la boîte encadrée, en pixels.
+   * Marge autour de la boîte encadrée.
    *
-   * > 0 fait respirer le cadre autour du texte, comme une bulle qui désigne
-   *   l'étape au lieu de l'épouser au ras.
+   * À zéro le cadre épouse l'élément, ce qui le fait disparaître derrière un
+   * panneau opaque. Une marge le fait ressortir tout autour, comme un halo qui
+   * désigne l'étape en cours.
    */
   pad = 0,
   /**
    * Rayon d'effacement autour des blocs marqués `[data-step-mask]`, en pixels.
    *
    * Le cadre traverse la scène en diagonale et frôle les panneaux de la colonne
-   * d'en face : le masque l'efface dans cette bande, si bien qu'il disparaît
+   * d'en face: on voyait la forme passer contre eux, ce qui donne un mouvement
+   * qui « bave » sur les cartes voisines (retour utilisateur, qui demande deux
+   * centimètres). Le masque l'efface dans cette bande, si bien qu'il disparaît
    * avant d'arriver au bord d'une carte et réapparaît de l'autre côté.
    *
-   * La valeur est RABOTÉE à la mesure pour ne jamais mordre sur une étape.
+   * La valeur est RABOTÉE à la mesure pour ne jamais mordre sur une étape: si
+   * l'écart réel entre un panneau et l'étape la plus proche est plus petit, le
+   * masque rétrécit d'autant. Sans cela, le cadre au repos se ferait rogner un
+   * bord sur les écrans étroits, où la gouttière se resserre.
    */
   maskPad = 76,
   className = '',
@@ -53,15 +69,19 @@ export default function StepFrame({
   const pathRef = useRef<SVGPathElement>(null);
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   const [holes, setHoles] = useState<FrameBox[]>([]);
+  /* LE RAYON DES TROUS, et c'est tout le sujet des « angles du masque ».
+     Un trou gonflé de 76 px autour d'une carte de 28 px de rayon n'a PAS 28 px
+     de rayon: un contour parallèle s'éloigne d'autant en ligne droite que dans
+     les coins, donc son rayon vaut celui de la carte PLUS le gonflement. Avec
+     28, les coins du masque paraissaient carrés et découpaient la forme à
+     l'équerre (retour utilisateur). */
   const [holeRadius, setHoleRadius] = useState(0);
   const [ready, setReady] = useState(false);
   const boxesRef = useRef<FrameBox[]>([]);
   const maskId = useId();
-  /* Étape sur laquelle le cadre est posé, pour l'épingle lissée. */
-  const currentStep = useRef(0);
-  const targetStep = useRef(0);
-  const rafId = useRef(0);
 
+  /* Les boîtes sont relatives au conteneur, pas à la fenêtre: le cadre est
+     posé dedans en `absolute`, il doit parler le même repère. */
   const measure = useCallback(() => {
     const root = scope.current;
     if (!root) return;
@@ -78,10 +98,11 @@ export default function StepFrame({
         h: b.height + pad * 2,
       };
     });
-
-    /* L'écart le plus grand des deux écarts d'axes : deux rectangles alignés ne
-       se recouvrent que si l'on dépasse l'écart sur les DEUX axes. Rogner sur ce
-       maximum est la borne exacte. */
+    /* LES TROUS DU MASQUE, mesurés comme les étapes et dans le même repère.
+       L'écart utilisé est le PLUS GRAND des deux écarts d'axes: deux rectangles
+       alignés sur les axes ne se recouvrent que si l'on dépasse l'écart sur les
+       DEUX axes à la fois. Rogner sur ce maximum est donc la borne exacte, et
+       non une marge de sécurité choisie au jugé. */
     const gap = (a: FrameBox, b: FrameBox) =>
       Math.max(
         Math.max(a.x - (b.x + b.w), b.x - (a.x + a.w)),
@@ -106,12 +127,22 @@ export default function StepFrame({
 
   useLayoutEffect(() => {
     if (reduced) return;
+
+    /* La ref du conteneur appartient au PARENT, et React la pose après avoir
+       exécuté les effets de mise en page de ses enfants: à la première passe,
+       `scope.current` est encore nul. Sans cette reprise à la frame suivante,
+       la mesure ne se faisait jamais, `size` restait nul, et le composant
+       rendait `null` — le cadre n'a jamais été à l'écran. */
     if (!scope.current) {
       const id = requestAnimationFrame(() => setReady(true));
       return () => cancelAnimationFrame(id);
     }
+
     measure();
     if (typeof ResizeObserver === 'undefined') return;
+    /* Les images et polices arrivent après le premier rendu et déplacent les
+       étapes: sans cet observateur, le cadre resterait calé sur des positions
+       périmées. */
     const ro = new ResizeObserver(() => measure());
     ro.observe(scope.current);
     return () => ro.disconnect();
@@ -128,58 +159,20 @@ export default function StepFrame({
     const aside = root.querySelector<HTMLElement>('[data-scene-aside]');
     const last = boxes.length - 1;
 
-    const ease = (t: number) => t * t * (3 - 2 * t);
-
-    const drawAt = (step: number) => {
-      path.setAttribute('d', framePath(boxes[step], radius));
-    };
-
-    /* Épingle lissée : le cadre ne suit pas le scroll, il glisse vers l'étape
-       cible (lissé) au franchissement du seuil, une seule boucle raf. */
-    const tweenTo = (target: number) => {
-      if (targetStep.current === target) return;
-      targetStep.current = target;
-      const fromStep = currentStep.current;
-      const start = performance.now();
-      const DURATION = 420;
-
-      const tick = (now: number) => {
-        const t = Math.max(0, Math.min(1, (now - start) / DURATION));
-        const a = boxes[fromStep];
-        const b = boxes[target];
-        const box: FrameBox = {
-          x: a.x + (b.x - a.x) * ease(t),
-          y: a.y + (b.y - a.y) * ease(t),
-          w: a.w + (b.w - a.w) * ease(t),
-          h: a.h + (b.h - a.h) * ease(t),
-        };
-        path.setAttribute('d', framePath(box, radius));
-        if (t < 1) {
-          rafId.current = requestAnimationFrame(tick);
-        } else {
-          currentStep.current = target;
-          drawAt(target);
-        }
-      };
-      cancelAnimationFrame(rafId.current);
-      rafId.current = requestAnimationFrame(tick);
-    };
-
-    const unsub = onScrollFrame(() => {
+    return onScrollFrame(() => {
+      /* Tant que la colonne de titre descend encore, le cadre reste posé sur
+         la première étape: il ne part pas avant que la scène commence. */
       const raw = sceneStarted(aside) ? sceneAt(nodes) : 0;
       const at = Math.max(0, Math.min(last, raw));
-      /* Épinglé : partie entière seulement. Pas de mouvement au scroll. */
-      const step = Math.floor(at);
-      if (step !== currentStep.current) tweenTo(step);
+      const i = Math.min(last - 1, Math.floor(at));
+      const { path: d } = frameJourney({
+        from: boxes[i],
+        to: boxes[i + 1],
+        radius,
+        progress: at - i,
+      });
+      path.setAttribute('d', d);
     });
-
-    currentStep.current = 0;
-    drawAt(0);
-
-    return () => {
-      unsub();
-      cancelAnimationFrame(rafId.current);
-    };
   }, [radius, reduced, size, scope]);
 
   if (reduced || !size) return null;
@@ -191,10 +184,49 @@ export default function StepFrame({
       width={size.w}
       height={size.h}
       viewBox={`0 0 ${size.w} ${size.h}`}
+      /* `overflow: visible`: avec une marge, le cadre déborde du conteneur
+         mesuré et un SVG le rognerait par défaut. */
       style={{ overflow: 'visible' }}
+      /* z-0 explicite: le cadre est le FOND des etapes, qui montent en z-10.
+         Sans ordre ecrit, un element positionne passe au-dessus de ses freres
+         statiques, et un fond opaque masque alors tout le texte. */
       className={`pointer-events-none absolute left-0 top-0 z-0 ${className}`}
     >
+      {/* `userSpaceOnUse`, et une zone plus large que le SVG: par défaut un
+          masque se cale sur la boîte de son utilisateur avec 10 % de marge, ce
+          qui couperait le cadre quand il déborde du conteneur mesuré (`pad`). */}
       <defs>
+        {/* ARRONDIR LES ANGLES QUE LE MASQUE CRÉE.
+            Ces angles ne sont pas les coins du trou, ce sont les JONCTIONS
+            entre le bord droit de la forme et la courbe du trou: deux tracés
+            qui se croisent font un sommet, et aucun rayon posé sur l'un ou sur
+            l'autre ne l'arrondit. Il faut donc arrondir la forme APRÈS la
+            découpe.
+            La recette est celle du « goo »: flouter, puis remonter l'alpha à
+            la verticale. Le flou émousse tous les sommets, convexes comme
+            concaves, et le seuil rend la silhouette à nouveau franche. Ce n'est
+            pas un dégradé: la sortie est un aplat à bord net, avec des coins
+            ronds. Le rayon obtenu vaut à peu près 2,5 fois l'écart-type, d'où
+            11 pour retomber sur les 28 px de la carte.
+            L'ordre compte: le filtre est porté par le GROUPE et le masque par
+            le tracé. Sur un même élément, SVG applique le filtre d'abord et le
+            masque ensuite, ce qui rendrait la coupe anguleuse à nouveau. */}
+        <filter
+          id={`${maskId}-round`}
+          x={-400}
+          y={-400}
+          width={size.w + 800}
+          height={size.h + 800}
+          filterUnits="userSpaceOnUse"
+          colorInterpolationFilters="sRGB"
+        >
+          <feGaussianBlur stdDeviation={11} result="soft" />
+          <feColorMatrix
+            in="soft"
+            type="matrix"
+            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 26 -13"
+          />
+        </filter>
         <mask
           id={maskId}
           maskUnits="userSpaceOnUse"
@@ -204,9 +236,9 @@ export default function StepFrame({
           height={size.h + 800}
         >
           <rect x={-400} y={-400} width={size.w + 800} height={size.h + 800} fill="#fff" />
-          {/* Coupe NETTE (retour utilisateur : pas de texture « usée »). Les
-              angles de la découpe sont arrondis par le seul `rx` du trou, sans
-              flou ni seuil. */}
+          {/* Coupe NETTE, et volontairement (retour utilisateur: « je ne veux
+              pas de dégradé »). Les angles que la coupe crée sont arrondis
+              ailleurs, par le filtre ci-dessous, et non ici. */}
           {holes.map(h => (
             <rect
               key={`${h.x},${h.y}`}
@@ -220,15 +252,24 @@ export default function StepFrame({
           ))}
         </mask>
       </defs>
+      <g filter={`url(#${maskId}-round)`}>
       <path
         mask={`url(#${maskId})`}
         ref={pathRef}
         data-frame-path
         d={boxesRef.current[0] ? framePath(boxesRef.current[0], radius) : ''}
-        /* Même matière que le panneau d'en face, un `CardV2` en `bg-q2-band`.
-           Aplat net, sans flou : la découpe vient du seul masque. */
+        /* MÊME matière que le panneau d'en face, qui est un `CardV2` en
+           `bg-q2-band` cerné de `q2-plate`. Le cadre était en voile mauve, si
+           bien que les deux colonnes d'une même ligne n'avaient pas le même
+           fond (retour utilisateur). Il ne désigne plus l'étape par sa couleur
+           mais par sa seule présence. */
         fill="rgb(var(--q2-band))"
+        /* Aucun contour (demande utilisateur). Le filet dessinait la silhouette
+           en mouvement, y compris là où le masque la coupe: on lisait le tracé
+           de l'animation au lieu d'une surface qui se déplace. La forme n'est
+           plus qu'un aplat, de la même matière que le panneau d'en face. */
       />
+      </g>
     </svg>
   );
 }
