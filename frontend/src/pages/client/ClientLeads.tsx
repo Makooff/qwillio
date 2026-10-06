@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Phone, Mail, X, ChevronRight, StickyNote, Star, List, Columns3,
-  UserPlus, PhoneCall, CheckCircle2, XCircle,
+  UserPlus, PhoneCall, CheckCircle2, XCircle, ArrowUpDown, ArrowUp, ArrowDown,
 } from '../../components/icons';
 import { fetchLive, peekLive } from '../../services/liveData';
 import api from '../../services/api';
@@ -20,6 +20,8 @@ import { mergeLeadsAndContacts, leadStatusOf, type ContactLike, type LeadRow } f
 
 type ViewMode = 'table' | 'kanban';
 type LeadStatus = '' | 'new' | 'contacted' | 'converted' | 'lost';
+type SortKey = 'name' | 'status' | 'score' | 'createdAt';
+type SortDir = 'asc' | 'desc';
 
 /* Les couleurs et les libellés viennent d'un seul endroit, partagé avec le
    reste du tableau de bord: ils étaient écrits ici ET dans le CRM. */
@@ -68,6 +70,8 @@ export default function ClientLeads() {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<LeadStatus>('');
   const [showFilters, setShowFilters] = useState(false);
+  const [sortKey, setSortKey] = useState<SortKey>('createdAt');
+  const [sortDir, setSortDir] = useState<SortDir>('desc');
   const [contacts, setContacts] = useState<ContactLike[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [noteText, setNoteText] = useState('');
@@ -155,17 +159,53 @@ export default function ClientLeads() {
      paquet, fermer la page Contacts les ferait simplement disparaître. */
   const rows: LeadRow<Lead>[] = useMemo(() => mergeLeadsAndContacts(leads, contacts), [leads, contacts]);
 
-  const filteredLeads = rows.filter(r => {
-    if (search) {
-      const q = search.toLowerCase();
-      if (!r.name.toLowerCase().includes(q) &&
-          !r.phone.toLowerCase().includes(q) &&
-          !r.email.toLowerCase().includes(q) &&
-          !r.tags.some(t => t.toLowerCase().includes(q))) return false;
-    }
-    if (statusFilter && r.status !== statusFilter) return false;
-    return true;
-  });
+  const filteredLeads = useMemo(() => {
+    const filtered = rows.filter(r => {
+      if (search) {
+        const q = search.toLowerCase();
+        if (!r.name.toLowerCase().includes(q) &&
+            !r.phone.toLowerCase().includes(q) &&
+            !r.email.toLowerCase().includes(q) &&
+            !r.tags.some(t => t.toLowerCase().includes(q))) return false;
+      }
+      if (statusFilter && r.status !== statusFilter) return false;
+      return true;
+    });
+
+    /* Le tri suit l'ordre du pipeline pour le statut (nouveau → contacté →
+       converti → perdu), pas l'ordre alphabétique, qui dirait « converti »
+       avant « contacté » sans raison. Le score vide tombe en bas quel que soit
+       le sens: on ne remonte pas ce qu'on ne connaît pas devant ce qu'on sait. */
+    const statusRank: Record<string, number> = { new: 0, contacted: 1, converted: 2, lost: 3 };
+    filtered.sort((a, b) => {
+      let cmp = 0;
+      if (sortKey === 'name') {
+        cmp = a.name.localeCompare(b.name, 'fr');
+      } else if (sortKey === 'status') {
+        cmp = (statusRank[a.status] ?? 99) - (statusRank[b.status] ?? 99);
+      } else if (sortKey === 'score') {
+        const sa = a.score ?? -1;
+        const sb = b.score ?? -1;
+        cmp = sa - sb;
+      } else if (sortKey === 'createdAt') {
+        cmp = new Date(a.createdAt || 0).getTime() - new Date(b.createdAt || 0).getTime();
+      }
+      return sortDir === 'desc' ? -cmp : cmp;
+    });
+    return filtered;
+  }, [rows, search, statusFilter, sortKey, sortDir]);
+
+  const toggleSort = (key: SortKey) => {
+    if (sortKey === key) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
+    else { setSortKey(key); setSortDir(key === 'name' ? 'asc' : 'desc'); }
+  };
+
+  const SortIcon = ({ k }: { k: SortKey }) => {
+    if (sortKey !== k) return <ArrowUpDown size={12} className="text-[#A1A1A8]" aria-hidden="true" />;
+    return sortDir === 'asc'
+      ? <ArrowUp size={12} className="text-[#7349fe]" aria-hidden="true" />
+      : <ArrowDown size={12} className="text-[#7349fe]" aria-hidden="true" />;
+  };
 
   const statCounts = {
     total: rows.length,
@@ -290,6 +330,44 @@ export default function ClientLeads() {
         <EmptyState icon={Users} title="Personne pour l'instant" description="Les leads apparaîtront une fois que votre IA qualifie les appelants, avec leur fiche." />
       ) : view === 'table' ? (
         <>
+          {/* En-tête de tri, même grammaire que la page Appels: une colonne
+              triée porte sa flèche (mauve), les autres leur double-flèche
+              grise, et le clic change de colonne ou inverse le sens. */}
+          <div
+            className="hidden md:flex items-center gap-6 px-5 py-2.5 text-xs text-[#A1A1A8] font-medium border-b border-white/[0.07] mb-1"
+            role="row"
+          >
+            <button
+              type="button"
+              onClick={() => toggleSort('name')}
+              className="flex items-center gap-1 min-w-0 flex-1 hover:text-[#F5F5F7] text-left"
+            >
+              Nom <SortIcon k="name" />
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleSort('status')}
+              className="flex items-center gap-1 w-28 hover:text-[#F5F5F7]"
+            >
+              Statut <SortIcon k="status" />
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleSort('score')}
+              className="flex items-center gap-1 w-20 hover:text-[#F5F5F7]"
+            >
+              Score <SortIcon k="score" />
+            </button>
+            <button
+              type="button"
+              onClick={() => toggleSort('createdAt')}
+              className="flex items-center gap-1 w-40 hover:text-[#F5F5F7]"
+            >
+              Date <SortIcon k="createdAt" />
+            </button>
+            <div aria-hidden="true" className="w-4" />
+          </div>
+
           <div>
             {filteredLeads.map((r, idx) => {
               const sc = leadStatusStyle(r.status);
