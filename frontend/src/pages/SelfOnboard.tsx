@@ -251,7 +251,7 @@ export default function SelfOnboard() {
                 void finish();
               }}
               disabled={loading}
-              className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-[#1d1d1f] px-6 py-3.5 text-[15px] font-medium text-white transition-colors duration-300 hover:bg-[#7a5fff] disabled:opacity-40"
+              className="mt-5 inline-flex items-center justify-center gap-2 rounded-full bg-white border border-[#7349fe] px-6 py-3.5 text-[15px] font-medium text-[#5b3bd6] transition-colors duration-300 hover:bg-[#f5f5f7] disabled:opacity-40"
             >
               {loading && <Loader2 size={16} />}
               {isFr ? 'Terminer et ouvrir le dashboard' : 'Finish and open the dashboard'}
@@ -298,7 +298,7 @@ export default function SelfOnboard() {
                     <select
                       value={industry}
                       onChange={e => setIndustry(e.target.value)}
-                      className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#7a5fff]/30 focus:border-[#7a5fff] transition-colors"
+                      className="w-full px-4 py-3 rounded-full border border-[#d2d2d7] bg-white text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#7349fe]/30 focus:border-[#7349fe] transition-colors"
                     >
                       <option value="">{t('selfOnboard.selectIndustry')}</option>
                       <option value="restaurant">Restaurant / Food</option>
@@ -364,8 +364,9 @@ export default function SelfOnboard() {
                             type="button"
                             onClick={() => setNotificationChannel(opt)}
                             className="h-10 px-4 rounded-full text-sm font-medium border transition-colors"
+                            aria-pressed={notificationChannel === opt}
                             style={notificationChannel === opt
-                              ? { borderColor: '#7a5fff', background: 'rgba(122,95,255,0.08)', color: '#7a5fff' }
+                              ? { borderColor: '#7349fe', background: '#f5f5f7', color: '#5b3bd6' }
                               : { borderColor: '#d2d2d7', background: '#fff', color: '#1d1d1f' }}
                           >
                             {opt === 'sms' ? 'SMS' : 'WhatsApp'}
@@ -394,7 +395,7 @@ export default function SelfOnboard() {
 
               {step < 2 ? (
                 <button
-                  className="inline-flex items-center gap-1.5 bg-[#7a5fff] text-white text-sm font-medium px-6 py-3 rounded-full hover:bg-[#7349fe] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
+                  className="inline-flex items-center gap-1.5 bg-white border border-[#7349fe] text-[#5b3bd6] text-sm font-medium px-6 py-3 rounded-full hover:bg-[#f5f5f7] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink-0"
                   disabled={!businessName.trim()}
                   onClick={() => setStep(2)}
                 >
@@ -402,7 +403,7 @@ export default function SelfOnboard() {
                 </button>
               ) : (
                 <button
-                  className="inline-flex items-center justify-center gap-1.5 bg-[#1d1d1f] text-white text-sm font-medium px-5 sm:px-6 py-3 rounded-full hover:bg-[#424245] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink min-w-0"
+                  className="inline-flex items-center justify-center gap-1.5 bg-white border border-[#7349fe] text-[#5b3bd6] text-sm font-medium px-5 sm:px-6 py-3 rounded-full hover:bg-[#f5f5f7] transition-colors disabled:opacity-40 disabled:cursor-not-allowed flex-shrink min-w-0"
                   disabled={loading}
                   onClick={() => { void finish(); }}
                 >

@@ -128,7 +128,7 @@ export default function ClientPortal() {
             </div>
             <button
               onClick={fetchData}
-              className="inline-flex items-center gap-1.5 text-sm text-[#7a5fff] hover:text-[#7349fe] transition-colors"
+              className="inline-flex items-center gap-1.5 rounded-full bg-white border border-[#7349fe] px-3 py-1.5 text-sm font-medium text-[#5b3bd6] hover:bg-[#f5f5f7] transition-colors"
             >
               <RefreshCw size={16} /> {t('portal.refresh')}
             </button>
@@ -144,10 +144,11 @@ export default function ClientPortal() {
             <button
               key={tb.key}
               onClick={() => setTab(tb.key)}
-              className={`flex items-center gap-1.5 px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap border-b-2 ${
+              aria-pressed={tab === tb.key}
+              className={`flex items-center gap-1.5 px-4 py-2 my-1.5 rounded-full text-sm font-medium transition-colors whitespace-nowrap border ${
                 tab === tb.key
-                  ? 'border-[#7a5fff] text-[#7a5fff]'
-                  : 'border-transparent text-[#86868b] hover:text-[#1d1d1f]'
+                  ? 'bg-white border-[#7349fe] text-[#5b3bd6]'
+                  : 'bg-transparent border-transparent text-[#86868b] hover:text-[#1d1d1f] hover:bg-white'
               }`}
             >
               <tb.icon size={16} />
@@ -176,7 +177,7 @@ export default function ClientPortal() {
               <div className="flex items-center gap-3 bg-[#7a5fff]/5 border border-[#7a5fff]/20 rounded-2xl px-6 py-4">
                 <AlertCircle size={20} className="text-[#7a5fff] flex-shrink-0" />
                 <span className="text-sm text-[#1d1d1f]">{t('portal.trial.text')} <strong>{ov.trialDaysLeft || 0} {t('portal.trial.days')}</strong></span>
-                <a href="/dashboard/billing" className="ml-auto inline-flex items-center gap-1 text-sm font-medium text-[#7a5fff] hover:underline">
+                <a href="/dashboard/billing" className="ml-auto inline-flex items-center gap-1 rounded-full bg-white border border-[#7349fe] px-3 py-1.5 text-sm font-medium text-[#5b3bd6] hover:bg-[#f5f5f7] transition-colors">
                   {t('portal.trial.upgrade')} <ArrowRight size={14} />
                 </a>
               </div>

@@ -28,8 +28,11 @@ const variantHover: Record<ButtonVariant, React.CSSProperties> = {
 };
 
 const sizeAdjust: Record<ButtonSize, React.CSSProperties> = {
-  md: {},
-  sm: { padding: '6px 12px', fontSize: 12 },
+  /* Plancher de cible (WCAG 2.5.8, 24×24 AA): les gélules md/sm mesurent
+     ~30-34 px naturellement; le plancher garantit la taille même si la
+     police ou le zoom la comprime, sans changer le look courant. */
+  md: { minHeight: 36 },
+  sm: { padding: '6px 12px', fontSize: 12, minHeight: 30 },
 };
 
 /**
@@ -77,7 +80,13 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(function Button(
       }}
       {...rest}
     >
-      {loading ? <span aria-hidden="true">…</span> : icon}
+      {loading
+        ? <span aria-hidden="true">…</span>
+        : icon
+          /* L'icône est décorative à côté d'un libellé: elle sort de
+             l'arbre d'accessibilité pour ne pas polluer le nom. */
+          ? <span aria-hidden="true" style={{ display: 'inline-flex', flexShrink: 0 }}>{icon}</span>
+          : null}
       {children}
     </button>
   );

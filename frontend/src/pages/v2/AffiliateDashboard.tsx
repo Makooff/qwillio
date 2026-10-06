@@ -114,7 +114,7 @@ export default function AffiliateDashboard() {
             <RevealV2>
               <Link
                 to="/affiliate"
-                className="mb-8 inline-flex items-center gap-1.5 text-sm text-q2-body hover:text-q2-ink transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 rounded-md"
+                className="mb-8 inline-flex items-center gap-1.5 min-h-[44px] text-sm text-q2-body hover:text-q2-ink transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 rounded-full"
               >
                 <ArrowLeft size={14} aria-hidden="true" />
                 {isFr ? 'Le programme' : 'The programme'}

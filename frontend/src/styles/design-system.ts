@@ -61,6 +61,10 @@ const btnBase = {
   alignItems: 'center',
   justifyContent: 'center',
   gap: 8,
+  /* Un libellé long (200 % de zoom, toolbar étroite) reflate au lieu de
+     déborder: la gélule passe sur deux lignes, jamais hors de son parent. */
+  flexWrap: 'wrap',
+  maxWidth: '100%',
   /* Gélule partout sur les commandes (décision utilisateur, même référence
      que le bouton « Connexion » du site). */
   borderRadius: t.rFull,
@@ -130,12 +134,15 @@ export const focusRing = {
 
 /* ── Form controls ─────────────────────────────────────────────────────── */
 
-/** Standard text/select input. Matches settings-page aesthetic. */
+/** Standard text/select input. Matches settings-page aesthetic.
+ *  Le focus clavier ne se contente pas de changer la bordure: un anneau
+ *  reprend la couleur de focus du système pour rester visible à 200 %. */
 export const inputCls = [
   'w-full px-3 py-2.5 rounded-xl text-sm outline-none transition-colors',
   'bg-white/[0.04] border border-white/[0.08]',
   'text-white/90 placeholder-white/25',
   'focus:border-[#7349fe]/50',
+  'focus-visible:ring-2 focus-visible:ring-[rgba(115,73,254,0.5)]',
 ].join(' ');
 
 export const selectCls = inputCls + ' appearance-none cursor-pointer';

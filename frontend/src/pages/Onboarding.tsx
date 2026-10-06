@@ -235,9 +235,9 @@ export default function OnboardingPage() {
             key={i}
             className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold transition-colors ${
               i < currentSection
-                ? 'bg-[#7a5fff] text-white'
+                ? 'bg-[#1d1d1f] text-white'
                 : i === currentSection
-                ? 'bg-[#7a5fff]/10 text-[#7a5fff] border-2 border-[#7a5fff]'
+                ? 'bg-white text-[#5b3bd6] border-2 border-[#7349fe]'
                 : 'bg-[#f5f5f7] text-[#86868b]'
             }`}
           >
@@ -272,7 +272,7 @@ export default function OnboardingPage() {
                   />
                 ) : field.type === 'select' ? (
                   <select
-                    className="w-full px-4 py-3 rounded-xl border border-[#d2d2d7] bg-white text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#7a5fff]/30 focus:border-[#7a5fff] transition-colors"
+                    className="w-full px-4 py-3 rounded-full border border-[#d2d2d7] bg-white text-[#1d1d1f] focus:outline-none focus:ring-2 focus:ring-[#7349fe]/30 focus:border-[#7349fe] transition-colors"
                     value={(formData[field.name] as string | undefined) || ''}
                     onChange={e => handleChange(field.name, e.target.value)}
                   >
@@ -287,23 +287,20 @@ export default function OnboardingPage() {
                       const fieldVal = formData[field.name];
                       const selected = Array.isArray(fieldVal) && (fieldVal as string[]).includes(opt);
                       return (
-                        <label
+                        <button
                           key={opt}
-                          className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium cursor-pointer transition-colors ${
+                          type="button"
+                          aria-pressed={selected}
+                          onClick={() => handleMultiSelect(field.name, opt)}
+                          className={`inline-flex items-center gap-1.5 px-4 py-2 rounded-full text-sm font-medium transition-colors ${
                             selected
-                              ? 'bg-[#7a5fff] text-white'
-                              : 'bg-white border border-[#d2d2d7] text-[#1d1d1f] hover:border-[#7a5fff]'
+                              ? 'bg-[#f5f5f7] border border-[#7349fe] text-[#5b3bd6]'
+                              : 'bg-white border border-[#d2d2d7] text-[#1d1d1f] hover:border-[#7349fe]'
                           }`}
                         >
-                          <input
-                            type="checkbox"
-                            checked={selected}
-                            onChange={() => handleMultiSelect(field.name, opt)}
-                            hidden
-                          />
                           {selected && <Check size={14} />}
                           {opt}
-                        </label>
+                        </button>
                       );
                     })}
                   </div>
@@ -333,7 +330,7 @@ export default function OnboardingPage() {
 
             {currentSection < sections.length - 1 ? (
               <button
-                className="inline-flex items-center gap-1.5 bg-[#7a5fff] text-white text-sm font-medium px-6 py-3 rounded-full hover:bg-[#7349fe] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 bg-white border border-[#7349fe] text-[#5b3bd6] text-sm font-medium px-6 py-3 rounded-full hover:bg-[#f5f5f7] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 disabled={!canAdvance()}
                 onClick={() => setCurrentSection(prev => prev + 1)}
               >
@@ -341,7 +338,7 @@ export default function OnboardingPage() {
               </button>
             ) : (
               <button
-                className="inline-flex items-center gap-1.5 bg-[#1d1d1f] text-white text-sm font-medium px-6 py-3 rounded-full hover:bg-[#424245] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="inline-flex items-center gap-1.5 bg-white border border-[#7349fe] text-[#5b3bd6] text-sm font-medium px-6 py-3 rounded-full hover:bg-[#f5f5f7] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 disabled={!canAdvance() || submitting}
                 onClick={handleSubmit}
               >

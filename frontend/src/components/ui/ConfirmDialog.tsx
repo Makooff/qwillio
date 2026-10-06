@@ -78,7 +78,7 @@ export default function ConfirmDialog({
             ref={cancelButton}
             type="button"
             onClick={onCancel}
-            className="flex-1 px-4 py-2 rounded-xl text-sm font-medium transition-colors hover:bg-white/[0.08]"
+            className="flex-1 px-4 py-2 rounded-xl text-sm font-medium transition-colors hover:bg-white/[0.08] focus-visible:ring-2 focus-visible:ring-[rgba(115,73,254,0.5)] focus-visible:outline-none"
             style={{ ...ds.btnGhost, padding: '9px 16px' }}
           >
             Annuler
@@ -88,13 +88,18 @@ export default function ConfirmDialog({
             onClick={onConfirm}
             disabled={loading}
             aria-busy={loading || undefined}
-            className="flex-1 px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+            /* Le libellé reste stable pendant le chargement: un bouton qui
+               perd son nom (« ... ») ne dit plus quelle action est en cours.
+               L'état busy est porté par aria-busy, l'ellipse est décorative,
+               et aria-label épingle le nom pendant que l'ellipse est visible. */
+            aria-label={loading ? confirmLabel : undefined}
+            className="flex-1 px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-[rgba(115,73,254,0.5)] focus-visible:outline-none"
             style={danger
               ? ds.btnDanger
               : { ...ds.btnSubtle, color: t.text }
             }
           >
-            {loading ? '...' : confirmLabel}
+            {loading && <span aria-hidden="true">… </span>}{confirmLabel}
           </button>
         </div>
       </div>

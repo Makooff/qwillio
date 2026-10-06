@@ -53,7 +53,7 @@ export default function ConfirmDialog({
     <div className="fixed inset-0 z-50 flex items-center justify-center">
       <div className="absolute inset-0 bg-black/50" onClick={onCancel} />
       <div ref={panel} role="dialog" aria-modal="true" aria-labelledby={`${id}-title`} aria-describedby={`${id}-message`} className="relative rounded-2xl max-w-sm w-full mx-4 p-6 max-h-[calc(100dvh-32px)] overflow-y-auto" style={{ background: t.panelSolid, border: `1px solid ${t.borderHi}`, boxShadow: t.shadowFloat }}>
-        <button type="button" aria-label="Fermer" onClick={onCancel} className="absolute top-3 right-3 p-2 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" style={{ color: t.textSec }}>
+        <button type="button" aria-label="Fermer" onClick={onCancel} className="absolute top-3 right-3 p-2 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[rgba(115,73,254,0.6)]" style={{ color: t.textSec }}>
           <X size={18} />
         </button>
         <div className="flex items-start gap-3 mb-4">

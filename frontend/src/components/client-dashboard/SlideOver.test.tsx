@@ -56,4 +56,11 @@ describe('SlideOver (fiche appel / fiche lead)', () => {
     view.unmount();
     expect(document.body.style.overflow).toBe('');
   });
+
+  it('le bouton Fermer porte un anneau de focus clavier visible', () => {
+    renderOver();
+    expect(screen.getByRole('button', { name: 'Fermer le panneau' })).toHaveClass(
+      'focus-visible:ring-2'
+    );
+  });
 });

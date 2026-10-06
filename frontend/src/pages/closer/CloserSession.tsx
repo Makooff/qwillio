@@ -272,13 +272,13 @@ export default function CloserSession() {
           </p>
           <div className="flex items-center justify-center gap-2 mt-5">
             <button type="button" onClick={() => loadQueue()}
-                    className="px-4 h-9 text-[12.5px] font-medium rounded-xl"
-                    style={{ background: pro.text, color: '#0B0B0D' }}>
+                    className="px-4 h-9 text-[12.5px] font-medium rounded-full bg-[#161616] hover:bg-[#1c1c1c] transition-colors"
+                    style={{ color: pro.accentHi, border: `1px solid ${pro.accentBrd}` }}>
               Recharger
             </button>
             <Link to="/closer/prospects"
-                  className="px-4 h-9 inline-flex items-center text-[12.5px] font-medium rounded-xl"
-                  style={{ background: pro.panel, color: pro.text, border: `1px solid ${pro.border}` }}>
+                  className="px-4 h-9 inline-flex items-center text-[12.5px] font-medium rounded-full bg-[#161616] hover:bg-[#1c1c1c] transition-colors"
+                  style={{ color: pro.accentHi, border: `1px solid ${pro.accentBrd}` }}>
               <List size={13} className="mr-1.5" /> Voir tous
             </Link>
           </div>
@@ -354,20 +354,20 @@ export default function CloserSession() {
       <div className="flex items-center gap-2">
         {phaseIdx > 0 ? (
           <button type="button" onClick={goPrev} disabled={saving}
-                  className="px-4 h-11 inline-flex items-center gap-1.5 text-[13px] font-medium rounded-xl disabled:opacity-40"
-                  style={{ background: pro.panel, color: pro.text, border: `1px solid ${pro.border}` }}>
+                  className="px-4 h-11 inline-flex items-center gap-1.5 text-[13px] font-medium rounded-full bg-[#161616] hover:bg-[#1c1c1c] transition-colors disabled:opacity-40"
+                  style={{ color: pro.accentHi, border: `1px solid ${pro.accentBrd}` }}>
             <ArrowLeft size={14} /> Précédent
           </button>
         ) : (
           <button type="button" onClick={skip} disabled={saving}
-                  className="px-4 h-11 inline-flex items-center gap-1.5 text-[13px] font-medium rounded-xl disabled:opacity-40"
-                  style={{ background: pro.panel, color: pro.textSec, border: `1px solid ${pro.border}` }}>
+                  className="px-4 h-11 inline-flex items-center gap-1.5 text-[13px] font-medium rounded-full bg-[#161616] hover:bg-[#1c1c1c] transition-colors disabled:opacity-40"
+                  style={{ color: pro.accentHi, border: `1px solid ${pro.accentBrd}` }}>
             <SkipForward size={14} /> Passer
           </button>
         )}
         <button type="button" onClick={goNext} disabled={!canGoNext() || saving}
-                className="flex-1 h-11 inline-flex items-center justify-center gap-1.5 text-[13px] font-semibold rounded-xl disabled:opacity-40"
-                style={{ background: pro.text, color: '#0B0B0D' }}>
+                className="flex-1 h-11 inline-flex items-center justify-center gap-1.5 text-[13px] font-semibold rounded-full bg-[#161616] hover:bg-[#1c1c1c] transition-colors disabled:opacity-40"
+                style={{ color: pro.accentHi, border: `1px solid ${pro.accentBrd}` }}>
           {phase === 'info'     && (<><Phone size={14} /> Appeler maintenant</>)}
           {phase === 'calling'  && (<><PhoneOff size={14} /> Fin d'appel</>)}
           {phase === 'outcome'  && (<>Suivant <ArrowRight size={14} /></>)}
@@ -678,9 +678,9 @@ function OutcomeStep({
             return (
               <button key={o.v} type="button"
                       onClick={() => _(o.v)}
-                      className="flex items-center gap-2 h-12 px-3 rounded-xl transition-colors active:scale-[0.98]"
+                      aria-pressed={sel}
+                      className="flex items-center gap-2 h-12 px-3 rounded-full bg-[#161616] hover:bg-[#1c1c1c] transition-colors active:scale-[0.98]"
                       style={{
-                        background: sel ? `${o.color}22` : pro.panelHi,
                         border: `1px solid ${sel ? `${o.color}88` : pro.border}`,
                         color: sel ? o.color : pro.text,
                       }}>
@@ -776,8 +776,8 @@ function FollowupStep({
                 }}
               />
               <button type="button" onClick={saveEmail} disabled={savingEmail || !emailDraft.trim()}
-                      className="px-3 h-10 text-[12.5px] font-medium rounded-lg disabled:opacity-40"
-                      style={{ background: pro.accent, color: '#fff' }}>
+                      className="px-3 h-10 text-[12.5px] font-medium rounded-full bg-[#161616] hover:bg-[#1c1c1c] transition-colors disabled:opacity-40"
+                      style={{ color: pro.accentHi, border: `1px solid ${pro.accentBrd}` }}>
                 {savingEmail ? '…' : 'Enregistrer'}
               </button>
             </div>
@@ -805,7 +805,7 @@ function FollowupStep({
                   initial={false}
                   animate={isSent ? { scale: [1, 1.06, 1] } : { scale: 1 }}
                   transition={{ duration: 0.35 }}
-                  className="h-11 inline-flex items-center justify-center gap-2 rounded-xl text-[13px] font-medium transition-colors disabled:opacity-50"
+                  className="h-11 inline-flex items-center justify-center gap-2 rounded-full text-[13px] font-medium transition-colors disabled:opacity-50"
                   style={{
                     background: isSent ? 'rgba(34,197,94,0.14)' : pro.panelHi,
                     color:      isSent ? pro.ok : pro.text,
@@ -833,11 +833,12 @@ function FollowupStep({
               return (
                 <button key={i} type="button"
                         onClick={() => setFu(sel ? null : p)}
-                        className="px-3 h-8 text-[12px] font-medium rounded-lg inline-flex items-center gap-1.5 transition-colors"
+                        aria-pressed={sel}
+                        className="px-3 h-8 text-[12px] font-medium rounded-full inline-flex items-center gap-1.5 transition-colors"
                         style={{
-                          background: sel ? pro.accent : pro.panelHi,
-                          color: sel ? '#fff' : pro.text,
-                          border: `1px solid ${sel ? pro.accent : pro.border}`,
+                          background: pro.panelHi,
+                          color: sel ? pro.accentHi : pro.text,
+                          border: `1px solid ${sel ? pro.accentBrd : pro.border}`,
                         }}>
                   <Send size={11} /> {p.l}
                 </button>

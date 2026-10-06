@@ -9,7 +9,22 @@ import { captureBillingPeriod, clearBillingPeriod, readBillingPeriod } from '../
 import type { BillingPeriod } from '../../../lib/billingPeriod';
 import { captureSignupPlan, clearSignupPlan, readSignupPlan } from '../../../lib/signupSelection';
 import { annualTotalEur, annualMonthlyEquivalentEur, superagentOptionPriceEur } from '../../../lib/pricing';
-import AuthShell, { AUTH_ALERT, AUTH_FIELD, AUTH_LABEL, AUTH_SUBMIT } from './AuthShell';
+import AuthShell, { AUTH_ALERT, AUTH_FIELD, AUTH_LABEL, AUTH_SELECT, AUTH_SUBMIT } from './AuthShell';
+
+/* Chevron du sélecteur pilule (AuthShell). Ne intercepte pas les clics:
+   tout le contrôle reste le <select> natif, accessible clavier. */
+function SelectChevron() {
+  return (
+    <svg
+      aria-hidden="true"
+      className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-q2-faint"
+      width="14" height="14" viewBox="0 0 24 24" fill="none"
+      stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"
+    >
+      <path d="m6 9 6 6 6-6" />
+    </svg>
+  );
+}
 
 /**
  * Second gate of sign-up: pick a plan and register a card.
@@ -166,7 +181,7 @@ export default function Subscribe() {
           <LangToggle />
           <button
             onClick={() => { logout(); navigate('/'); }}
-            className="inline-flex items-center gap-1.5 text-sm text-q2-body hover:text-[color:var(--q2-bad-ink)] transition-colors duration-150"
+            className="inline-flex items-center gap-1.5 min-h-[44px] px-2 -mx-2 rounded-full text-sm text-q2-body hover:text-[color:var(--q2-bad-ink)] transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40"
             title={isFr ? 'Se déconnecter' : 'Log out'}
           >
             <LogOut size={16} />
@@ -194,29 +209,35 @@ export default function Subscribe() {
 
       <label className="block mb-8">
         <span className={AUTH_LABEL}>{isFr ? 'Secteur' : 'Industry'}</span>
-        <select
-          value={industry}
-          onChange={e => setIndustry(e.target.value)}
-          className={AUTH_FIELD}
-        >
-          <option value="">{isFr ? 'Choisir…' : 'Select…'}</option>
-          {INDUSTRIES.map(key => (
-            <option key={key} value={key}>{key}</option>
-          ))}
-        </select>
+        <div className="relative">
+          <select
+            value={industry}
+            onChange={e => setIndustry(e.target.value)}
+            className={AUTH_SELECT}
+          >
+            <option value="">{isFr ? 'Choisir…' : 'Select…'}</option>
+            {INDUSTRIES.map(key => (
+              <option key={key} value={key}>{key}</option>
+            ))}
+          </select>
+          <SelectChevron />
+        </div>
       </label>
 
       <label className="block mb-8">
         <span className={AUTH_LABEL}>{isFr ? 'Pays' : 'Country'}</span>
-        <select
-          aria-label={isFr ? 'Pays' : 'Country'}
-          value={country}
-          onChange={e => setCountry(e.target.value as 'BE' | 'FR')}
-          className={AUTH_FIELD}
-        >
-          <option value="BE">{isFr ? 'Belgique' : 'Belgium'}</option>
-          <option value="FR">France</option>
-        </select>
+        <div className="relative">
+          <select
+            aria-label={isFr ? 'Pays' : 'Country'}
+            value={country}
+            onChange={e => setCountry(e.target.value as 'BE' | 'FR')}
+            className={AUTH_SELECT}
+          >
+            <option value="BE">{isFr ? 'Belgique' : 'Belgium'}</option>
+            <option value="FR">France</option>
+          </select>
+          <SelectChevron />
+        </div>
       </label>
 
       {/* Même vocabulaire que le sélecteur de la page tarifs, et comme lui il ne

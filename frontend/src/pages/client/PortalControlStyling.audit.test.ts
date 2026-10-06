@@ -102,3 +102,51 @@ describe('admin — les sélecteurs VoiceLab gardent un arrondi plafonné par cl
     expect(read('pages/admin/VoiceLab.tsx')).not.toMatch(/rounded-full/);
   });
 });
+
+/* Lavages mauves INLINE (style={{ background: 'rgba(122,95,255,…)' }}) sur
+   des contrôles: le grep de classes ne les voit pas, eux. Seuils identiques
+   aux classes: rien au-dessus de ~15 % sur un bouton/état actif. */
+const INLINE_PURPLE_WASH_ON_CONTROL =
+  /background:\s*'rgba\(122,\s*95,\s*255,\s*0?\.(?:1[6-9]|[2-9][0-9]*)\)'/;
+
+describe('portail secondaire + admin routé — pas de lavage mauve inline sur les contrôles', () => {
+  const INLINE_PAGES = [
+    'pages/admin/Agency.tsx',
+    'pages/admin/Agents.tsx',
+    'pages/admin/Calls.tsx',
+    'pages/admin/Leads.tsx',
+    'pages/admin/Billing.tsx',
+    'pages/admin/AdminSettings.tsx',
+    'pages/admin/VoiceLab.tsx',
+    'pages/admin/Lignes.tsx',
+    'pages/client/ClientReceptionist.tsx',
+    'pages/client/ClientIntegrations.tsx',
+    'pages/client/ClientAnalytics.tsx',
+    'pages/client/ClientOverview.tsx',
+    'pages/client/ClientSetupForwarding.tsx',
+    'pages/client/ClientSetupCustomize.tsx',
+    'pages/client/ClientSetupGuide.tsx',
+    'pages/client/AgentCrm.tsx',
+    'pages/client/CrmDeals.tsx',
+    'pages/client/CrmActivities.tsx',
+    'pages/client/CrmContactDetail.tsx',
+    'pages/Dashboard.tsx',
+    'pages/Clients.tsx',
+  ];
+
+  for (const rel of INLINE_PAGES) {
+    it(`${rel} — aucun lavage mauve inline > 15 %`, () => {
+      expect(read(rel)).not.toMatch(INLINE_PURPLE_WASH_ON_CONTROL);
+    });
+  }
+
+  it('Agency — les toggles de permission exposent aria-pressed', () => {
+    expect(read('pages/admin/Agency.tsx')).toMatch(/aria-pressed=\{active\}/);
+  });
+
+  it('ClientReceptionist — le bouton Connecter est un contour mauve, pas un fond', () => {
+    const src = read('pages/client/ClientReceptionist.tsx');
+    expect(src).toMatch(/aria-pressed=\{open\}/);
+    expect(src).not.toMatch(/background:\s*'rgba\(122,95,255,0\.16\)'/);
+  });
+});

@@ -381,10 +381,14 @@ function NewKeyForm({ onCreated }: { onCreated: (keys: ApiKey[]) => void }) {
             return (
               <button
                 key={p}
+                type="button"
+                aria-pressed={active}
                 onClick={() => togglePermission(p)}
                 className="px-3 py-1 rounded-full text-[11px] font-semibold uppercase tracking-wider transition-colors"
                 style={{
-                  background: active ? 'rgba(122,95,255,0.15)' : 'rgba(255,255,255,0.04)',
+                  /* État actif: contour mauve + texte mauve sur fond neutre,
+                     jamais de lavage mauve (décision 2026-10). */
+                  background: active ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.04)',
                   color: active ? pro.accent : pro.textSec,
                   border: `1px solid ${active ? pro.accent : pro.border}`,
                 }}

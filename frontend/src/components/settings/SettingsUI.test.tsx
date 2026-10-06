@@ -86,4 +86,25 @@ describe('TagInput', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Retirer paris' }));
     expect(onRemove).toHaveBeenCalledWith('paris');
   });
+
+  it('cibles et focus: « × » ≥ 20 px avec anneau, « Ajouter » anneau de focus', () => {
+    render(<TagInput {...baseProps} />);
+    const remove = screen.getByRole('button', { name: 'Retirer paris' });
+    expect(remove).toHaveClass('w-5');
+    expect(remove).toHaveClass('focus-visible:ring-2');
+    expect(screen.getByRole('button', { name: 'Ajouter' })).toHaveClass('focus-visible:ring-2');
+  });
+});
+
+describe('Focus clavier partagé (SettingsUI)', () => {
+  it('ConfigSection: anneau de focus visible sur Sauvegarder, désactivé en sauvegarde', () => {
+    render(
+      <ConfigSection icon={<span />} title="X" saveStatus="saving" onSave={() => {}}>
+        <p />
+      </ConfigSection>,
+    );
+    const save = screen.getByRole('button');
+    expect(save).toBeDisabled();
+    expect(save).toHaveClass('focus-visible:ring-2');
+  });
 });

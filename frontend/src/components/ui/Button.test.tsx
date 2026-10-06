@@ -88,4 +88,30 @@ describe('Button (design system)', () => {
     fireEvent.blur(btn);
     expect(btn).not.toHaveStyle({ boxShadow: `0 0 0 2px ${t.borderFocus}` });
   });
+
+  it('icône décorative sortie du nom accessible', () => {
+    render(<Button icon={<svg data-testid="icon" />}>Valider</Button>);
+    const btn = screen.getByRole('button', { name: 'Valider' });
+    const wrapper = btn.querySelector('span[aria-hidden="true"]');
+    expect(wrapper).toBeInTheDocument();
+    expect(wrapper).toContainElement(screen.getByTestId('icon'));
+  });
+
+  it('plancher de cible: hauteur minimale même en sm', () => {
+    render(<Button size="sm">Petit</Button>);
+    expect(screen.getByRole('button', { name: 'Petit' })).toHaveStyle({ minHeight: '30px' });
+    render(<Button>Grand</Button>);
+    expect(screen.getByRole('button', { name: 'Grand' })).toHaveStyle({ minHeight: '36px' });
+  });
+
+  it('les libellés longs refluent (pas de troncature, pas de blanc imposé)', () => {
+    render(
+      <Button>Enregistrer le réceptionniste et publier la configuration complète</Button>
+    );
+    const btn = screen.getByRole('button', {
+      name: 'Enregistrer le réceptionniste et publier la configuration complète',
+    });
+    expect(btn).not.toHaveStyle({ whiteSpace: 'nowrap' });
+    expect(btn).toHaveStyle({ flexWrap: 'wrap' });
+  });
 });

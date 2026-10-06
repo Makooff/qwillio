@@ -38,7 +38,19 @@ export default function CloserAccount() {
       </Card>
 
       <Card>
-        <Row icon={LogOut} label="Déconnexion" hint="Se déconnecter de ce compte" onClick={logout} danger />
+        <button
+          type="button"
+          onClick={logout}
+          className="w-full flex items-center gap-3.5 px-4 h-[58px] rounded-full text-left transition-colors hover:bg-red-500/[0.05]"
+        >
+          <span className="w-8 h-8 flex items-center justify-center flex-shrink-0 rounded-full" style={{ background: 'rgba(239,68,68,0.08)' }}>
+            <LogOut size={14} style={{ color: pro.bad }} />
+          </span>
+          <span className="flex-1 min-w-0">
+            <span className="block text-[13px] font-medium" style={{ color: pro.bad }}>Déconnexion</span>
+            <span className="block text-[11.5px] truncate" style={{ color: pro.textTer }}>Se déconnecter de ce compte</span>
+          </span>
+        </button>
       </Card>
     </div>
   );

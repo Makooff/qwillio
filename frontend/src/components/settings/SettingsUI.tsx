@@ -51,7 +51,7 @@ export function ConfigSection({
           type="button"
           onClick={onSave}
           disabled={saveStatus === 'saving'}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white transition-colors disabled:opacity-50 ${btnBg}`}
+          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-semibold text-white transition-colors disabled:opacity-50 focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:outline-none ${btnBg}`}
         >
           <SaveIcon status={saveStatus} />
         </button>
@@ -101,7 +101,7 @@ export function TagInput({
         <button
           type="button"
           onClick={onAdd}
-          className="px-4 py-2 rounded-xl text-xs font-medium text-white/60 bg-white/[0.05] hover:bg-white/[0.08] transition-colors"
+          className="px-4 py-2 rounded-xl text-xs font-medium text-white/60 bg-white/[0.05] hover:bg-white/[0.08] transition-colors focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:outline-none"
         >
           Ajouter
         </button>
@@ -118,7 +118,9 @@ export function TagInput({
               <button
                 type="button"
                 onClick={() => onRemove(tag)}
-                className="leading-none font-bold hover:opacity-70 transition-opacity"
+                /* Le « × » seul mesurait ~14 px de cible, sous le plancher
+                   WCAG 2.5.8: un peu de garniture et un anneau de focus. */
+                className="leading-none font-bold hover:opacity-70 transition-opacity inline-flex items-center justify-center w-5 h-5 -mr-1 rounded-full focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:outline-none"
                 aria-label={`Retirer ${tag}`}
               >
                 ×

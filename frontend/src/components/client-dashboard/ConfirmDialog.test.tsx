@@ -30,4 +30,11 @@ describe('Confirmation du portail', () => {
     expect(document.body.style.overflow).toBe('hidden'); view.unmount();
     expect(document.body.style.overflow).toBe('clip'); document.body.style.overflow = '';
   });
+
+  it('le bouton Fermer porte une couleur d’anneau de focus explicite', () => {
+    render(<ConfirmDialog {...props} />);
+    expect(screen.getByRole('button', { name: 'Fermer' })).toHaveClass(
+      'focus-visible:outline-[rgba(115,73,254,0.6)]'
+    );
+  });
 });

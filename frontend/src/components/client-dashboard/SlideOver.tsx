@@ -85,7 +85,7 @@ export default function SlideOver({ title, onClose, children, ariaLabel }: Slide
             type="button"
             onClick={onClose}
             aria-label="Fermer le panneau"
-            className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center hover:bg-white/[0.10] transition-colors text-[#A1A1A8] hover:text-[#F5F5F7]"
+            className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center hover:bg-white/[0.10] transition-colors text-[#A1A1A8] hover:text-[#F5F5F7] focus-visible:ring-2 focus-visible:ring-white/50 focus-visible:outline-none"
           >
             <X size={16} aria-hidden="true" />
           </button>

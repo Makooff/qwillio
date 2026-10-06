@@ -77,7 +77,7 @@ export default function CloserFollowUps() {
         subtitle={`${items.length} ${pendingOnly ? 'en attente' : 'au total'}`}
       />
 
-      <div className="flex items-center gap-1 p-1 rounded-xl w-fit" style={{ background: pro.panel, border: `1px solid ${pro.border}` }}>
+      <div className="flex items-center gap-1 p-1 rounded-full w-fit" style={{ background: pro.panel, border: `1px solid ${pro.border}` }}>
         {[
           { v: true,  l: 'En attente' },
           { v: false, l: 'Tous' },
@@ -86,10 +86,12 @@ export default function CloserFollowUps() {
             key={String(opt.v)}
             type="button"
             onClick={() => setPendingOnly(opt.v)}
-            className="px-3 h-8 text-[12px] font-medium rounded-lg transition-colors"
+            className="px-3 h-8 text-[12px] font-medium rounded-full transition-colors"
+            aria-pressed={pendingOnly === opt.v}
             style={{
               background: pendingOnly === opt.v ? pro.panelHi : 'transparent',
-              color: pendingOnly === opt.v ? pro.text : pro.textSec,
+              color: pendingOnly === opt.v ? pro.accentHi : pro.textSec,
+              border: `1px solid ${pendingOnly === opt.v ? pro.accentBrd : 'transparent'}`,
             }}
           >
             <Filter size={11} className="inline mr-1.5 -mt-0.5" />

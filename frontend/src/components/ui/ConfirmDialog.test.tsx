@@ -64,12 +64,20 @@ describe('ConfirmDialog (ui commun)', () => {
     document.body.style.overflow = '';
   });
 
-  it('désactive le bouton de confirmation pendant le chargement', () => {
+  it('garde le nom accessible pendant le chargement et annonce le busy', () => {
     render(<ConfirmDialog {...props} loading />);
-    // En chargement le libellé est remplacé par « ... » (le focus reste sur
-    // l'annulation, action non destructive).
-    const confirm = screen.getByRole('button', { name: '...' });
+    // Le libellé reste « Confirmer » (un bouton qui devient « ... » ne dit plus
+    // quelle action est en cours); l'état est porté par aria-busy, le focus
+    // reste sur l'annulation, action non destructive.
+    const confirm = screen.getByRole('button', { name: 'Confirmer' });
     expect(confirm).toBeDisabled();
     expect(confirm).toHaveAttribute('aria-busy', 'true');
+  });
+
+  it('anneau de focus visible sur les deux actions (clavier)', () => {
+    render(<ConfirmDialog {...props} />);
+    for (const name of ['Annuler', 'Confirmer']) {
+      expect(screen.getByRole('button', { name })).toHaveClass('focus-visible:ring-2');
+    }
   });
 });

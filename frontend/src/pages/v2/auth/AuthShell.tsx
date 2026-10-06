@@ -17,6 +17,13 @@ export const AUTH_LABEL = 'block text-[13px] font-medium text-q2-graphite mb-1.5
 export const AUTH_FIELD =
   'w-full rounded-xl bg-q2-plate/50 border border-q2-plate px-4 py-3 text-[15px] text-q2-ink placeholder:text-q2-faint outline-none transition-colors duration-150 focus:border-q2-indigo focus:bg-q2-canvas';
 
+/* Déclencheurs de liste déroulante: pilule comme les boutons (décision
+   utilisateur 2026-10). Le chevron est posé par le composant consommateur
+   (wrapper relatif, pointer-events-none) plutôt qu'en data-URI, plus robuste
+   avec Tailwind v3. min-h 44 px tient le contrôle utilisable à 200 % de zoom. */
+export const AUTH_SELECT =
+  'w-full min-h-[44px] appearance-none rounded-full bg-q2-plate/50 border border-q2-plate pl-4 pr-10 py-3 text-[15px] text-q2-ink outline-none transition-colors duration-150 focus:border-q2-indigo focus:bg-q2-canvas';
+
 export const AUTH_SUBMIT =
   'w-full inline-flex items-center justify-center gap-2 rounded-full bg-q2-ink text-q2-canvas text-[15px] font-medium px-6 py-3.5 min-h-[44px] hover:opacity-90 transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed';
 

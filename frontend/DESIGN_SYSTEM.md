@@ -134,6 +134,33 @@ colored). See `statusTones` in `components/client-dashboard/StatusBadge.tsx`.
   keeps its own internally consistent local theme — deliberately not
   rewritten.
 
+## Accessibilité des composants partagés (audit 2026-10)
+
+Garanties vérifiées par tests (jsdom) sur les composants partagés — ne pas
+les régresser sans mettre à jour les tests :
+
+- **Boutons (`ui/Button`)** — gélule (pill) partout, fond neutre + contour
+  mauve (`btnPrimary`), anneau de focus `:focus-visible` (`ds.focusRing`),
+  plancher de cible `minHeight` 36 px (md) / 30 px (sm), icône décorative
+  `aria-hidden`, `aria-busy` + `disabled` pendant `loading`, libellés longs
+  autorisés à refluer (`flex-wrap` + `max-width: 100%` dans `btnBase`).
+- **Dialogues (`ui/ConfirmDialog`, `client-dashboard/ConfirmDialog`)** —
+  `role="dialog" aria-modal`, titre + description reliés, focus initial sur
+  l'action non destructive, boucle Tab, Échap = annuler, focus restitué au
+  déclencheur, verrouillage du défilement préservé. En chargement le nom du
+  bouton confirm reste son libellé (`aria-busy`, `aria-label` épingle le nom) —
+  ne jamais le remplacer par « ... ». Anneaux de focus visibles sur toutes
+  les actions, y compris la croix « Fermer ».
+- **`client-dashboard/SlideOver`** — mêmes garanties clavier ; la croix du
+  panneau porte `focus-visible:ring-2`.
+- **Contrôles de formulaire partagés** — `ds.inputCls` / `ds.selectCls`
+  ajoutent un anneau `focus-visible` à la bordure de focus existante ;
+  `SettingsUI` (TagInput ×/Ajouter, ConfigSection) et `LangToggle` (cibles
+  ≥ 28 px, `aria-pressed`) suivent le même réflexe anneau de focus.
+- **Reflux 200 %** — les deux dialogues plafonnent à `100dvh - 32px` avec
+  défilement interne, boutons en `flex-wrap` ; SlideOver est `w-full
+  max-w-md`.
+
 ## Tests
 
 ```

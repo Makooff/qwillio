@@ -23,7 +23,7 @@ export default function LangToggle({
         onClick={() => setLang('en')}
         aria-pressed={lang === 'en'}
         aria-label="English"
-        className={`transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7a5fff]/40 rounded-sm ${
+        className={`transition-colors inline-flex items-center justify-center min-w-[28px] min-h-[28px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7a5fff]/40 rounded-sm ${
           lang === 'en'
             ? onDark ? 'text-white' : 'text-[#1d1d1f]'
             : onDark ? 'text-white/70 hover:text-white' : 'text-[#86868b] hover:text-[#1d1d1f]'
@@ -44,7 +44,7 @@ export default function LangToggle({
         onClick={() => setLang('fr')}
         aria-pressed={lang === 'fr'}
         aria-label="Français"
-        className={`transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7a5fff]/40 rounded-sm ${
+        className={`transition-colors inline-flex items-center justify-center min-w-[28px] min-h-[28px] focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7a5fff]/40 rounded-sm ${
           lang === 'fr'
             ? onDark ? 'text-white' : 'text-[#1d1d1f]'
             : onDark ? 'text-white/70 hover:text-white' : 'text-[#86868b] hover:text-[#1d1d1f]'
