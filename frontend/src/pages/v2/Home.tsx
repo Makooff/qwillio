@@ -24,7 +24,6 @@ import FeatureCards from '../../components/v2/FeatureCards';
 import IntegrationsOrbit from '../../components/v2/IntegrationsOrbit';
 import ImpactStats from '../../components/v2/ImpactStats';
 import TextReveal from '../../components/v2/motion/TextReveal';
-import Magnetic from '../../components/v2/motion/Magnetic';
 import PinnedScene from '../../components/v2/motion/PinnedScene';
 import { SqueezeCarousel, type SqueezeSlide } from '../../components/ui/carousel-squeeze';
 import { prefersReducedMotion } from '../../components/v2/motion/reducedMotion';
@@ -697,21 +696,17 @@ export default function Home() {
               </Lead>
 
               <div className="flex flex-wrap items-center gap-3 mb-2 sm:mb-4">
-                <Magnetic>
-                  <PillLink to="/register" variant="primary" size="lg" className="q2-pill-lit">
-                    {isFr ? 'Essayer 7 jours' : 'Try it for 7 days'}
-                    <ArrowRight size={15} aria-hidden="true" />
-                  </PillLink>
-                </Magnetic>
-                <Magnetic strength={4}>
-                  {/* Plus de page a visiter: la carte d'essai nait de ce
-                      bouton. Un formulaire avant d'entendre la voix etait un
-                      peage que personne ne franchit pour une demonstration. */}
-                  <TryVoiceButton variant="outline">
-                    <Play size={13} fill="currentColor" aria-hidden="true" />
-                    {isFr ? 'L’entendre décrocher' : 'Hear her answer'}
-                  </TryVoiceButton>
-                </Magnetic>
+                <PillLink to="/register" variant="primary" size="lg">
+                  {isFr ? 'Essayer 7 jours' : 'Try it for 7 days'}
+                  <ArrowRight size={15} aria-hidden="true" />
+                </PillLink>
+                {/* Plus de page a visiter: la carte d'essai nait de ce
+                    bouton. Un formulaire avant d'entendre la voix etait un
+                    peage que personne ne franchit pour une demonstration. */}
+                <TryVoiceButton variant="outline">
+                  <Play size={13} fill="currentColor" aria-hidden="true" />
+                  {isFr ? 'L’entendre décrocher' : 'Hear her answer'}
+                </TryVoiceButton>
               </div>
             </div>
           </RevealV2>
@@ -1260,12 +1255,10 @@ export default function Home() {
                   ? '7 jours d’essai. En mensuel, sans engagement — résiliez en un clic.'
                   : '7-day trial. No commitment on monthly — cancel in one click.'}
               </p>
-              <Magnetic strength={7}>
-                <PillLink to="/register" variant="chromatic" size="lg" className="q2-pill-lit">
-                  {isFr ? 'Mettre Qwillio en ligne' : 'Put Qwillio on the line'}
-                  <ArrowRight size={16} aria-hidden="true" />
-                </PillLink>
-              </Magnetic>
+              <PillLink to="/register" variant="chromatic" size="lg">
+                {isFr ? 'Mettre Qwillio en ligne' : 'Put Qwillio on the line'}
+                <ArrowRight size={16} aria-hidden="true" />
+              </PillLink>
             </RevealV2>
           </Container>
         </Container>

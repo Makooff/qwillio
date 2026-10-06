@@ -934,7 +934,7 @@ export default function Receptionist() {
                 : '7-day free trial. No commitment on monthly — cancel in one click.'}
             </p>
             <div className="flex flex-wrap gap-3 lg:justify-end">
-              <PillLink to="/register" variant="chromatic" size="lg" className="q2-pill-lit">
+              <PillLink to="/register" variant="chromatic" size="lg">
                 {isFr ? 'Créer un compte' : 'Create an account'}
                 <ArrowRight size={16} aria-hidden="true" />
               </PillLink>

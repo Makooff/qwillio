@@ -310,15 +310,6 @@ html {
     transform 120ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Action principale: au survol elle s'allume (lueur mauve portée) plutôt
-   que de changer de teinte. Réservé au CTA d'une section, jamais posé sur
-   deux pilules voisines. */
-@media (hover: hover) {
-  .q2-pill-lit:hover {
-    box-shadow: 0 0 0 1px rgba(122, 95, 255, 0.24), 0 12px 34px -10px rgba(122, 95, 255, 0.55);
-  }
-}
-
 @media (hover: hover) {
   .q2-pill:hover {
     transform: translateY(-1px);
