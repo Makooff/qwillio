@@ -37,14 +37,47 @@ interface AppelEnCours {
 
 const CADENCE_MS = 2000;
 
+const CHAINES = {
+  fr: {
+    enCours: 'En cours',
+    numeroMasque: 'Numéro masqué',
+    debut: 'La conversation commence…',
+    appelant: 'Appelant',
+    ia: 'IA',
+    /* A8: la panne ne fait plus disparaître l'appel — elle le marque comme
+       périmé, horodaté, pour que « en cours » reste honnête. */
+    connexionPerdue: 'Connexion directe perdue',
+    donneesDe: (heure: string) => `données de ${heure}`,
+  },
+  en: {
+    enCours: 'Live',
+    numeroMasque: 'Hidden number',
+    debut: 'The conversation is starting…',
+    appelant: 'Caller',
+    ia: 'AI',
+    connexionPerdue: 'Live connection lost',
+    donneesDe: (heure: string) => `data from ${heure}`,
+  },
+} as const;
+
+function formatHeure(t: number): string {
+  return new Date(t).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+}
+
 /** La durée qui tourne, remise à jour par le sondage lui-même. */
 function duree(depuis: string): string {
   const s = Math.max(0, Math.floor((Date.now() - new Date(depuis).getTime()) / 1000));
   return `${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`;
 }
 
-export default function LiveCalls() {
+export default function LiveCalls({ lang = 'fr' }: { lang?: 'fr' | 'en' }) {
+  const t = CHAINES[lang === 'en' ? 'en' : 'fr'];
   const [appels, setAppels] = useState<AppelEnCours[]>([]);
+  /* A8: le dernier état connu survit à une panne. `enErreur` seul dirait
+     « ça ne marche pas » mais rendrait quand même la liste vide — c'est-à-dire
+     exactement le mensonge qu'on corrige. */
+  const [enErreur, setEnErreur] = useState(false);
+  const [derniereReussite, setDerniereReussite] = useState<number | null>(null);
   const bas = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -56,11 +89,17 @@ export default function LiveCalls() {
         const r = await fetchLive<{ data?: AppelEnCours[] }>(
           '/my-dashboard/calls/live', { force: true },
         );
-        if (vivant) setAppels(r.data || []);
+        if (vivant) {
+          setAppels(r.data || []);
+          setEnErreur(false);
+          setDerniereReussite(Date.now());
+        }
       } catch {
-        /* Le direct n'est jamais load-bearing. Une panne ici laisse la liste
-           des appels terminés intacte, et la prochaine tentative est dans
-           deux secondes. */
+        /* A8: l'échec ne vide PLUS la liste. On le note, on garde le dernier
+           état connu, et la prochaine tentative est dans deux secondes — la
+           reprise efface l'indicateur d'elle-même. Le direct n'est jamais
+           load-bearing, mais il ne ment plus. */
+        if (vivant) setEnErreur(true);
       }
     };
 
@@ -82,11 +121,19 @@ export default function LiveCalls() {
      perdue d'avance. */
   useEffect(() => { bas.current?.scrollIntoView({ block: 'nearest' }); }, [appels]);
 
-  // Un encart qui n'a rien à dire ne dit rien. Pas de « aucun appel en cours ».
-  if (appels.length === 0) return null;
+  /* A8: vraie absence = dernier sondage réussi ET liste vide. Une erreur
+     avant le premier succès n'a rien à montrer (aucun état connu); une erreur
+     après des données connues garde les données et l'indicateur. */
+  if (appels.length === 0 && !enErreur) return null;
+  if (appels.length === 0 && enErreur && derniereReussite === null) return null;
 
   return (
     <section className="mb-6 space-y-3" aria-live="polite">
+      {enErreur && derniereReussite !== null && (
+        <p className="text-[12px] text-amber-400/90" role="status">
+          {t.connexionPerdue} — {t.donneesDe(formatHeure(derniereReussite))}
+        </p>
+      )}
       {appels.map(appel => (
         <div
           key={appel.id}
@@ -97,9 +144,9 @@ export default function LiveCalls() {
               <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#7349FE] opacity-60" />
               <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#7349FE]" />
             </span>
-            <span className="text-[13px] font-semibold text-[#F2F2F2]">En cours</span>
+            <span className="text-[13px] font-semibold text-[#F2F2F2]">{t.enCours}</span>
             <span className="text-[13px] text-[#C8C8D0] tabular-nums">
-              {appel.callerNumber || 'Numéro masqué'}
+              {appel.callerNumber || t.numeroMasque}
             </span>
             <span className="ml-auto text-[12px] text-[#9A9AA5] tabular-nums">
               {duree(appel.startedAt)}
@@ -110,13 +157,13 @@ export default function LiveCalls() {
             /* Entre le décroché et la première réplique il s'écoule une
                seconde ou deux. Dire « ça commence » vaut mieux qu'un cadre
                vide qu'on prend pour une panne. */
-            <p className="text-[12px] text-[#9A9AA5] italic">La conversation commence…</p>
+            <p className="text-[12px] text-[#9A9AA5] italic">{t.debut}</p>
           ) : (
             <div className="max-h-56 overflow-y-auto space-y-1.5 pr-1">
               {appel.lines.map((l, i) => (
                 <p key={i} className="text-[12px] leading-relaxed">
                   <span className={l.role === 'user' ? 'text-[#9A9AA5]' : 'text-[#7349FE]'}>
-                    {l.role === 'user' ? 'Appelant' : 'IA'}
+                    {l.role === 'user' ? t.appelant : t.ia}
                   </span>
                   <span className="text-[#C8C8D0]"> — {l.text}</span>
                 </p>

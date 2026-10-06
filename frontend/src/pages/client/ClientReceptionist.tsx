@@ -553,7 +553,7 @@ export default function ClientReceptionist() {
     <div className="flex flex-col items-center justify-center py-20 text-center px-6">
       <AlertCircle className="w-10 h-10 text-[#EF4444] mb-3" />
       <p className="text-sm text-[#8B8BA7]">{error}</p>
-      <button onClick={load} className="mt-4 px-4 py-2 rounded-xl bg-[#7349fe] text-white text-sm">Réessayer</button>
+      <button onClick={load} className="mt-4 px-4 py-2 rounded-full border border-[#8a6fff] bg-transparent text-[#8a6fff] text-sm hover:bg-white/[0.06] transition-colors">Réessayer</button>
     </div>
   );
 
@@ -1020,12 +1020,13 @@ export default function ClientReceptionist() {
                 key={opt.key}
                 type="button"
                 onClick={() => setTransferMode(opt.key)}
-                className={`h-9 px-4 rounded-xl text-[12.5px] font-medium transition-colors ${
+                aria-pressed={transferMode === opt.key}
+                className={`h-9 px-4 rounded-xl text-[12.5px] font-medium transition-colors border ${
                   transferMode === opt.key
-                    ? 'bg-[#7349fe]/15 text-[#b9a8ff]'
-                    : 'bg-white/[0.04] text-[#8B8BA7] hover:text-[#F5F5F7]'
+                    ? 'bg-white/[0.08] text-[#F5F5F7] border-[#8a6fff]'
+                    : 'bg-white/[0.04] text-[#8B8BA7] border-transparent hover:text-[#F5F5F7]'
                 }`}
-              >
+                >
                 {opt.label}
               </button>
             ))}
@@ -1082,7 +1083,7 @@ export default function ClientReceptionist() {
                 <button
                   onClick={connectGcal}
                   disabled={gcalBusy}
-                  className="px-3.5 py-2 text-[12px] font-medium rounded-lg text-white bg-[#7349fe] hover:bg-[#8a6fff] transition-colors disabled:opacity-50"
+                  className="px-3.5 py-2 text-[12px] font-medium rounded-lg text-[#8a6fff] bg-transparent border border-[#8a6fff] hover:bg-white/[0.06] transition-colors disabled:opacity-50"
                 >
                   {gcalBusy ? 'Connexion…' : 'Connecter'}
                 </button>

@@ -88,7 +88,7 @@ export default function AgentInventory() {
           </div>
           <button
             onClick={() => setShowAddModal(true)}
-            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-xl bg-[#7349fe] text-white hover:bg-[#7349fe] transition-colors"
+            className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium rounded-full bg-transparent text-[#8a6fff] border border-[#8a6fff] hover:bg-[#f5f5f7] transition-colors"
           >
             <Plus size={15} /> Add Product
           </button>
@@ -246,10 +246,10 @@ export default function AgentInventory() {
                 <p className="text-sm font-semibold mb-1">QR Code — {products.find(p => p.id === qrProduct)?.name}</p>
                 <p className="text-xs text-[#86868b] mb-3">Scan to log usage or trigger reorder</p>
                 <div className="flex gap-2">
-                  <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#7349fe] text-white rounded-lg hover:bg-[#7349fe] transition-colors">
+                  <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-transparent text-[#8a6fff] border border-[#8a6fff] rounded-full hover:bg-[#f5f5f7] transition-colors">
                     <Download size={11} /> Download PNG
                   </button>
-                  <button onClick={() => setQrProduct(null)} className="px-3 py-1.5 text-xs font-medium bg-white text-[#86868b] rounded-lg border border-[#d2d2d7]/60 hover:bg-[#f5f5f7] transition-colors">
+                  <button onClick={() => setQrProduct(null)} className="px-3 py-1.5 text-xs font-medium bg-white text-[#86868b] rounded-full border border-[#d2d2d7]/60 hover:bg-[#f5f5f7] transition-colors">
                     Close
                   </button>
                 </div>
@@ -421,7 +421,7 @@ export default function AgentInventory() {
                 <button
                   onClick={addProduct}
                   disabled={!newProduct.name.trim()}
-                  className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 text-sm font-medium bg-[#7349fe] text-white rounded-xl hover:bg-[#7349fe] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="flex-1 inline-flex items-center justify-center gap-2 py-2.5 text-sm font-medium bg-transparent text-[#8a6fff] border border-[#8a6fff] rounded-full hover:bg-[#f5f5f7] transition-colors disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
                 >
                   <Check size={15} /> Add Product
                 </button>

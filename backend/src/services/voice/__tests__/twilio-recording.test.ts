@@ -4,6 +4,14 @@ const h = vi.hoisted(() => ({
   recordingsCreate: vi.fn(),
   recordingsList: vi.fn(),
   recordingRemove: vi.fn(),
+  env: {
+    TWILIO_TRUNK_REGION: 'ie1',
+    TWILIO_TRUNK_EDGE: 'dublin',
+    TWILIO_TRUNK_KEY_SID: 'SK' + '1'.repeat(32),
+    TWILIO_TRUNK_KEY_SECRET: 'secret',
+    TWILIO_ACCOUNT_SID: 'AC' + '9'.repeat(32),
+    TWILIO_AUTH_TOKEN: 'jeton',
+  },
 }));
 
 vi.mock('../../../config/twilio-account', () => ({
@@ -19,14 +27,7 @@ vi.mock('../../../config/logger', () => ({
   logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() },
 }));
 vi.mock('../../../config/env', () => ({
-  env: {
-    TWILIO_TRUNK_REGION: 'ie1',
-    TWILIO_TRUNK_EDGE: 'dublin',
-    TWILIO_TRUNK_KEY_SID: 'SK' + '1'.repeat(32),
-    TWILIO_TRUNK_KEY_SECRET: 'secret',
-    TWILIO_ACCOUNT_SID: 'AC' + '9'.repeat(32),
-    TWILIO_AUTH_TOKEN: 'jeton',
-  },
+  env: h.env,
 }));
 
 import { twilioRecordingService, sidDepuisUrl, enteteAuthTwilio } from '../twilio-recording.service';
@@ -129,9 +130,31 @@ describe('supprimer — la purge doit pouvoir se rejouer', () => {
 });
 
 describe('enteteAuthTwilio — le portail lit un média privé', () => {
-  it('préfère la clé régionale, celle qui a créé l’enregistrement', () => {
+  it('préfère les identifiants du COMPTE, comme twilioAccountClient', () => {
+    // A2: le média est servi par api.twilio.com, l'hôte du compte. C'est
+    // l'auth du compte qui y a droit; la clé régionale y répond 403, et le
+    // lecteur affichait un 502 que le gérant lisait comme « pas enregistré ».
+    const attendu = 'Basic ' + Buffer.from(`AC${'9'.repeat(32)}:jeton`).toString('base64');
+    expect(enteteAuthTwilio()).toBe(attendu);
+  });
+
+  it('repli sur la clé régionale seulement quand le compte n’est pas configuré', () => {
+    const garder = { ...h.env };
+    h.env.TWILIO_ACCOUNT_SID = '';
+    h.env.TWILIO_AUTH_TOKEN = '';
     const attendu = 'Basic ' + Buffer.from(`SK${'1'.repeat(32)}:secret`).toString('base64');
     expect(enteteAuthTwilio()).toBe(attendu);
+    Object.assign(h.env, garder);
+  });
+
+  it('rend null quand AUCUN identifiant n’est configuré', () => {
+    const garder = { ...h.env };
+    h.env.TWILIO_TRUNK_KEY_SID = '';
+    h.env.TWILIO_TRUNK_KEY_SECRET = '';
+    h.env.TWILIO_ACCOUNT_SID = '';
+    h.env.TWILIO_AUTH_TOKEN = '';
+    expect(enteteAuthTwilio()).toBeNull();
+    Object.assign(h.env, garder);
   });
 
   it('rend un en-tête Basic, pas une URL signée', () => {

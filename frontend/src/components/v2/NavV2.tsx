@@ -265,6 +265,7 @@ export default function NavV2() {
   const burgerRef = useRef<HTMLButtonElement>(null);
   const asideRef = useGlow<HTMLDivElement>();
   const location = useLocation();
+  const plainHeader = !['/', '/receptionist'].includes(location.pathname.replace(/\/+$/, '') || '/');
   const reduced = useReducedMotion();
 
   useEffect(() => {
@@ -581,6 +582,7 @@ export default function NavV2() {
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-0 top-0 overflow-hidden"
           style={{
+            display: plainHeader ? 'none' : undefined,
             height: '160%',
             opacity: floating || menuOpen ? 0 : 1,
             transition: 'opacity 320ms cubic-bezier(0.16, 1, 0.3, 1)',
@@ -671,7 +673,7 @@ export default function NavV2() {
           )}
           <Link
             to="/"
-            className="flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 rounded-md"
+            className="flex items-center gap-2 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 rounded-full"
           >
             <QwillioLogo size={26} />
             <span className={`text-[15px] font-semibold tracking-tight transition-colors duration-200 ${chromeDark ? 'text-white' : 'text-q2-ink'}`}>Qwillio</span>

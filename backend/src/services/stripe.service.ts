@@ -103,6 +103,11 @@ export class StripeService {
     }
 
     const planType = session.metadata?.planType || user.planType || 'pro';
+    /* Le pays vient de la session Stripe, validé à l'ouverture de la caisse.
+       Les sessions antérieures au champ n'en portent pas: repli EXPLICITE sur
+       'BE' — la seule valeur historique — jamais une supposition depuis la
+       langue du site (A5). */
+    const country: 'BE' | 'FR' = session.metadata?.country === 'FR' ? 'FR' : 'BE';
     /* La période vient de la session Stripe, pas d'une supposition: c'est elle
        qui décide du montant réellement prélevé et de ce que la facturation
        affiche ensuite. */
@@ -125,14 +130,14 @@ export class StripeService {
         contactName: user.name,
         contactEmail: user.email,
         contactPhone: businessPhone,
-        country: 'BE',
+        country,
         /* La langue choisie sur le site, à la caisse ou à l'inscription; le
-           pays ne tranche que si aucune des deux n'est connue. C'est la seule
-           chose qui décide de la langue du premier appel, et elle reste
-           modifiable dans Paramètres. */
+           pays (le VRAI, porté par la session) ne tranche que si aucune des
+           deux n'est connue. C'est la seule chose qui décide de la langue du
+           premier appel, et elle reste modifiable dans Paramètres. */
         agentLanguage: signupAgentLanguage({
           siteLanguage: session.metadata?.language ?? user.language,
-          country: 'BE',
+          country,
         }),
         planType,
         setupFee: 0,
@@ -1144,6 +1149,10 @@ export class StripeService {
        même abonnement et la même facture, plutôt que dans un second passage
        que personne ne fait. */
     withSuperagent = false,
+    /* Le pays choisi sur le formulaire de souscription. Défaut 'BE' pour les
+       appelants plus anciens qui ne le passent pas encore: c'est le repli
+       historique, posé explicitement — jamais déduit de la langue. */
+    country: 'BE' | 'FR' = 'BE',
   ): Promise<string | null> {
     const plan = getPlan(planType);
     const priceId = await this.resolvePriceId(planType, period);
@@ -1181,6 +1190,10 @@ export class StripeService {
         billingPeriod: period,
         businessName,
         industry: industry || 'other',
+        /* Le pays RÉEL choisi à la caisse. Le webhook le reprend tel quel pour
+           `Client.country`: c'est la métadonnée qui fait foi, pas une
+           supposition faite à la création (A5). */
+        country,
         ...(language ? { language } : {}),
         /* Ce qui a RÉELLEMENT été mis dans la caisse, pas ce qui a été demandé:
            `optionLineItems` rend une liste vide quand l'option n'est pas

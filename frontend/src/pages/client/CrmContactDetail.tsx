@@ -63,18 +63,18 @@ const FALLBACK_CONTACT: Contact = {
 };
 
 const TYPE_CONFIG: Record<ActivityType, { icon: React.ElementType; bg: string; iconColor: string; label: string }> = {
-  call:        { icon: PhoneIcon,    bg: 'bg-primary-50',    iconColor: 'text-primary-500',    label: 'Call' },
-  email:       { icon: MailIcon,     bg: 'bg-primary-50',  iconColor: 'text-[#7349fe]',  label: 'Email' },
+  call:        { icon: PhoneIcon,    bg: 'bg-[#7a5fff]/12',    iconColor: 'text-[#7a5fff]',    label: 'Call' },
+  email:       { icon: MailIcon,     bg: 'bg-[#cd6bfb]/12',  iconColor: 'text-[#cd6bfb]',  label: 'Email' },
   note:        { icon: FileText,     bg: 'bg-amber-400/12', iconColor: 'text-amber-300',  label: 'Note' },
   deal_update: { icon: TrendingUp,   bg: 'bg-emerald-400/12', iconColor: 'text-emerald-300', label: 'Mise à jour' },
-  sms:         { icon: MessageSquare,bg: 'bg-violet-300',  iconColor: 'text-violet-500',  label: 'SMS' },
+  sms:         { icon: MessageSquare,bg: 'bg-sky-400/12',  iconColor: 'text-sky-300',  label: 'SMS' },
 };
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
   active:   { bg: 'bg-emerald-400/12', text: 'text-emerald-300' },
-  prospect: { bg: 'bg-primary-50',    text: 'text-primary-700' },
-  client:   { bg: 'bg-primary-50',  text: 'text-primary-700' },
-  inactive: { bg: 'bg-gray-100',   text: 'text-gray-600' },
+  prospect: { bg: 'bg-[#7a5fff]/12',    text: 'text-[#7a5fff]' },
+  client:   { bg: 'bg-emerald-400/12',  text: 'text-emerald-300' },
+  inactive: { bg: 'bg-white/[0.08]',   text: 'text-[#A1A1A8]' },
   lost:     { bg: 'bg-red-400/12',     text: 'text-red-300' },
 };
 
@@ -347,8 +347,8 @@ export default function CrmContactDetail() {
               </div>
             ) : timeline.filter(a => a.type === 'call').map((a: TimelineEntry) => (
               <div key={a.id} className="rounded-2xl border border-white/[0.07] bg-white/[0.03] px-5 py-4 flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-primary-50 flex items-center justify-center flex-shrink-0">
-                  <PhoneIcon size={14} className="text-primary-500" />
+                <div className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center flex-shrink-0">
+                  <PhoneIcon size={14} className="text-[#7a5fff]" />
                 </div>
                 <div>
                   <p className="text-sm font-medium text-[#F5F5F7]">{a.description}</p>
@@ -427,7 +427,7 @@ export default function CrmContactDetail() {
                 type="button"
                 onClick={saveNotes}
                 disabled={savingNotes}
-                className="px-4 py-2 text-xs font-medium text-white bg-[#7349fe] rounded-full hover:bg-[#8259ff] disabled:opacity-60 active:scale-[0.97] transition-transform">
+                className="px-4 py-2 text-xs font-medium text-[#8a6fff] bg-transparent border border-[#8a6fff] rounded-full hover:bg-white/[0.06] disabled:opacity-60 active:scale-[0.97] transition-transform">
                 {savingNotes ? 'Enregistrement…' : 'Enregistrer'}
               </button>
               {notesState === 'saved' && (

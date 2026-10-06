@@ -3,7 +3,10 @@ import { Link } from 'react-router-dom';
 
 /* Pilules V2 — 9999px non négociable (DA/v2-direction.md).
    Sur canvas clair le CTA primaire est encre pleine, jamais mauve.
-   Sur drenched, `chromatic` est LA seule action colorée de la section. */
+   Décision utilisateur (2026-10): PLUS de fond mauve sur les CTA — la variante
+   `chromatic` passe en contour mauve, fond transparent. Le texte reste encre
+   (`q2-ink`, AA dans les deux thèmes); le contour mauve (#7a5fff) tient ≥ 3:1
+   sur crème comme sur noir. Le survol lave en neutre, jamais en mauve. */
 
 type Variant = 'primary' | 'outline' | 'ghost' | 'onDark' | 'chromatic';
 
@@ -17,7 +20,7 @@ const STYLES: Record<Variant, string> = {
   onDark:
     'bg-white text-q2-void hover:bg-q2-mist focus-visible:ring-white/50',
   chromatic:
-    'bg-q2-indigo text-white hover:bg-q2-deep focus-visible:ring-q2-lift/60',
+    'bg-transparent text-q2-ink border border-q2-indigo hover:border-q2-deep hover:bg-q2-band focus-visible:ring-q2-indigo/40',
 };
 
 const SIZES = {

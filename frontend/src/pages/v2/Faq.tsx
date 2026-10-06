@@ -57,11 +57,11 @@ const FAQ_FR: QA[] = [
   },
   {
     q: 'Combien ça coûte ?',
-    a: "Le plan Solo est à 99 € par mois : 250 minutes incluses, soit environ 100 appels. Au-delà, les minutes supplémentaires sont à 0,45 €. Les plans supérieurs ajoutent du volume et des fonctions avancées : Starter 249 € (750 min), Pro 599 € (2 000 min), Enterprise 1 290 € (5 000 min). Les rappels de rendez-vous 24 h avant sont inclus à partir du plan Pro. 7 jours d'essai gratuit, résiliable au mois, remise de 20 % en annuel.",
+    a: "Le plan Solo est à 99 € par mois : 250 minutes incluses, soit environ 100 appels. Au-delà, les minutes supplémentaires sont à 0,45 €. Les plans supérieurs ajoutent du volume et des fonctions avancées : Starter 249 € (750 min), Pro 599 € (2 000 min), Enterprise 1 290 € (5 000 min). Le rappel automatique la veille du rendez-vous est inclus sur tous les plans. 7 jours d'essai gratuit, remise de 20 % en annuel.",
   },
   {
     q: 'Puis-je résilier facilement ?',
-    a: "Oui. Tous les plans sont sans engagement, résiliables au mois en un clic depuis votre tableau de bord. Aucun frais d'installation, aucune période minimale.",
+    a: "Oui. En mensuel, aucun engagement : résiliez en un clic depuis votre tableau de bord, à tout moment. En annuel, vous vous engagez sur 12 mois en échange de la remise de 20 %. Aucun frais d'installation dans les deux cas.",
   },
 ];
 
@@ -108,11 +108,11 @@ const FAQ_EN: QA[] = [
   },
   {
     q: 'How much does it cost?',
-    a: 'The Solo plan is €99 per month: 250 minutes included, roughly 100 calls. Beyond that, extra minutes are €0.45. Higher plans add volume and advanced features: Starter €249 (750 min), Pro €599 (2,000 min), Enterprise €1,290 (5,000 min). Appointment reminders 24 h ahead are included from the Pro plan up. 7-day free trial, cancel monthly, 20% off annually.',
+    a: 'The Solo plan is €99 per month: 250 minutes included, roughly 100 calls. Beyond that, extra minutes are €0.45. Higher plans add volume and advanced features: Starter €249 (750 min), Pro €599 (2,000 min), Enterprise €1,290 (5,000 min). The automatic day-before appointment reminder is included on every plan. 7-day free trial, 20% off annually.',
   },
   {
     q: 'Can I cancel easily?',
-    a: 'Yes. All plans are commitment-free, cancellable monthly in one click from your dashboard. No setup fee, no minimum term.',
+    a: 'Yes. On monthly billing, no commitment: cancel in one click from your dashboard, anytime. On annual, you commit for 12 months in exchange for the 20% discount. No setup fee either way.',
   },
 ];
 

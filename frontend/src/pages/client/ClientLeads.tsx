@@ -12,6 +12,9 @@ import Pagination from '../../components/client-dashboard/Pagination';
 import EmptyState from '../../components/client-dashboard/EmptyState';
 import { formatDateTime } from '../../utils/format';
 import PageHeader from '../../components/dashboard/PageHeader';
+import SlideOver from '../../components/client-dashboard/SlideOver';
+import Button from '../../components/ui/Button';
+import { ds } from '../../styles/design-system';
 import { LEAD_STATUS_ORDER, leadStatusStyle, type LeadStatusKey } from '../../components/dashboard/leadStatus';
 import { mergeLeadsAndContacts, leadStatusOf, type ContactLike, type LeadRow } from '../../components/dashboard/leadRows';
 
@@ -349,40 +352,13 @@ export default function ClientLeads() {
         </div>
       )}
 
-      {/* Lead detail slide-over */}
+      {/* Lead detail slide-over. Voile, panneau et clavier partagés avec la
+          fiche d'appel (SlideOver) — le comportement Echap/Tab/défilement ne
+          se copie plus entre les deux écrans. */}
       <AnimatePresence>
         {selectedLead && (
-          <>
-            {/* Un voile qui ASSOMBRIT, sans flou : le flou rendait la page
-                entière illisible derrière le panneau (retour du 13/09), et le
-                glass décoratif est banni de toute façon. */}
-            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 z-50" onClick={() => setSelectedLead(null)}
-              aria-hidden="true"
-            />
-            {/* Même surface que le panneau des appels : #131313 à 65 % avec un
-                flou moyen (demande du 13/09, « légèrement transparent et flou » ;
-                à 80 % sur une page sombre, rien ne passait). Le voile est à 40 %
-                pour la même raison.
-                Pas `bg-white/[0.02]` sans flou, qui laissait lire la liste au
-                travers de la fiche. L'entête porte la même surface, le contenu
-                défilant dessous. */}
-            <motion.div initial={{ x: '100%' }} animate={{ x: 0 }} exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-[#131313]/65 backdrop-blur-xl border-l border-white/[0.07] shadow-2xl z-50 overflow-y-auto"
-              role="dialog"
-              aria-modal="true"
-              aria-label="Détails du lead"
-            >
-              <div className="sticky top-0 z-10 bg-[#131313]/65 backdrop-blur-xl border-b border-white/[0.07] px-6 py-4 flex items-center justify-between">
-                <h2 className="text-base font-semibold text-[#F5F5F7]">Détails du lead</h2>
-                <button onClick={() => setSelectedLead(null)}
-                  className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center hover:bg-white/[0.10] text-[#A1A1A8] hover:text-[#F5F5F7] transition-colors"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-              <div className="p-6 space-y-5">
+          <SlideOver title="Détails du lead" onClose={() => setSelectedLead(null)}>
+            <div className="p-6 space-y-5">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-amber-400/10 flex items-center justify-center">
                     <Users size={22} className="text-amber-400" />
@@ -466,19 +442,21 @@ export default function ClientLeads() {
                     onChange={e => setNoteText(e.target.value)}
                     placeholder="Ajouter des notes sur ce lead..."
                     rows={3}
-                    className="w-full px-4 py-3 text-sm rounded-xl border border-white/[0.07] bg-q2-carbon text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-q2-smoke-d resize-none transition-colors"
+                    /* `ds.inputCls`: la classe de champ canonique du portail
+                       (settings), au lieu d'un hex codé en dur. */
+                    className={`${ds.inputCls} resize-none`}
                   />
-                  <button
+                  <Button
+                    size="sm"
+                    className="mt-2"
                     onClick={() => handleSaveNote(selectedLead.id)}
                     disabled={savingNote || !noteText.trim()}
-                    className="mt-2 px-4 py-2 text-xs font-medium text-white bg-[#7349fe] rounded-xl hover:bg-[#6a4ee0] disabled:opacity-40 transition-colors"
                   >
                     {savingNote ? 'Enregistrement...' : 'Sauvegarder'}
-                  </button>
+                  </Button>
                 </div>
-              </div>
-            </motion.div>
-          </>
+            </div>
+          </SlideOver>
         )}
       </AnimatePresence>
     </div>

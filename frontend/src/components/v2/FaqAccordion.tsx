@@ -38,7 +38,7 @@ export default function FaqAccordion({
                 aria-expanded={isOpen}
                 aria-controls={panelId}
                 onClick={() => setOpen(isOpen ? null : i)}
-                className={`w-full flex items-center justify-between gap-4 py-5 text-left text-[15px] font-medium ${question} focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 rounded-md`}
+                className={`w-full flex items-center justify-between gap-4 py-5 text-left text-[15px] font-medium ${question} focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 rounded-full`}
               >
                 {item.q}
                 <ChevronDown

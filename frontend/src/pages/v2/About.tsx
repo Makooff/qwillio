@@ -91,10 +91,13 @@ export default function About() {
       num: '03',
       tone: 'indigo',
       icon: Zap,
-      title: isFr ? 'Construit pour scale' : 'Built to scale',
+      title: isFr ? 'Construit pour grandir' : 'Built to grow',
+      /* Sans chiffres inventés: aucune mesure publique ne justifie une
+         fourchette précise (la page en annonçait une, 800 → 40 000, qui
+         n'existait nulle part dans la config ni les métriques). */
       desc: isFr
-        ? 'De 800 à 40 000 appels par mois sans changer d\'outil. La plateforme grandit avec votre entreprise.'
-        : 'From 800 to 40,000 calls a month without switching tools. The platform grows with your business.',
+        ? 'De la première ligne au multi-sites, sans changer d\'outil. La plateforme grandit avec votre entreprise.'
+        : 'From your first line to multi-site, without switching tools. The platform grows with your business.',
     },
   ];
 
@@ -150,13 +153,13 @@ export default function About() {
               </p>
               <p>
                 {isFr
-                  ? 'Les solutions existantes coûtaient trop cher (réceptionnistes humains à 38 000 €/an) ou étaient trop primitives (répondeurs sans intelligence). Personne ne proposait l\'évidence : une IA vocale capable de tenir une vraie conversation, prendre un rendez-vous, et qualifier un lead.'
-                  : 'Existing solutions were either too expensive (human receptionists at 38,000 EUR/year) or too primitive (dumb voicemail). Nobody offered the obvious: a voice AI that could hold a real conversation, book an appointment, and qualify a lead.'}
+                  ? 'Les solutions existantes coûtaient trop cher — un réceptionniste humain coûte couramment plusieurs dizaines de milliers d\'euros par an une fois charges, congés et turnover compris — ou étaient trop primitives (répondeurs sans intelligence). Personne ne proposait l\'évidence : une IA vocale capable de tenir une vraie conversation, prendre un rendez-vous, et qualifier un lead.'
+                  : 'Existing solutions were either too expensive — a human receptionist commonly costs tens of thousands of euros a year once social charges, holidays and turnover are counted — or too primitive (dumb voicemail). Nobody offered the obvious: a voice AI that could hold a real conversation, book an appointment, and qualify a lead.'}
               </p>
               <p>
                 {isFr
-                  ? 'Qwillio est conçu pour les cliniques, garages, salons, restaurants et cabinets d\'avocats, avec un script propre à chaque métier. Nous sommes en tout début de lancement, et l\'engagement est simple : un outil qui marche, sans engagement, sans surprise.'
-                  : 'Qwillio is built for clinics, garages, salons, restaurants and law firms, with a script of its own for each trade. We are very early in launch, and the commitment is simple: a tool that works, no lock-in, no surprises.'}
+                  ? 'Qwillio est conçu pour les cliniques, garages, salons, restaurants et cabinets d\'avocats, avec un script propre à chaque métier. Nous sommes en tout début de lancement, et l\'engagement est simple : un outil qui marche, sans engagement de durée en mensuel, sans frais cachés.'
+                  : 'Qwillio is built for clinics, garages, salons, restaurants and law firms, with a script of its own for each trade. We are very early in launch, and the commitment is simple: a tool that works, no term commitment on monthly billing, no hidden fees.'}
               </p>
             </div>
           </RevealV2>

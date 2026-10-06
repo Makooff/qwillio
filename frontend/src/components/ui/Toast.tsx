@@ -33,8 +33,8 @@ export default function ToastContainer({ toasts, remove }: Props) {
         >
           <div className="mt-0.5 flex-shrink-0">{ICONS[toast.type]}</div>
           <p className="flex-1 text-sm leading-snug" style={{ color: t.text }}>{toast.message}</p>
-          <button onClick={() => remove(toast.id)} className="mt-0.5 hover:opacity-80 transition-opacity" style={{ color: t.textSec }}>
-            <X className="w-3.5 h-3.5" />
+          <button onClick={() => remove(toast.id)} aria-label="Fermer la notification" className="mt-0.5 hover:opacity-80 transition-opacity" style={{ color: t.textSec }}>
+            <X className="w-3.5 h-3.5" aria-hidden="true" />
           </button>
           <div className="absolute bottom-0 left-0 h-0.5 w-full opacity-60" style={{ background: BARS[toast.type] }} />
         </div>

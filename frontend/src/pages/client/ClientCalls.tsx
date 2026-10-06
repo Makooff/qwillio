@@ -11,6 +11,7 @@ import {
 } from '../../components/icons';
 import { fetchLive, peekLive, subscribeLive } from '../../services/liveData';
 import SentimentBadge from '../../components/client-dashboard/SentimentBadge';
+import SlideOver from '../../components/client-dashboard/SlideOver';
 import Pagination from '../../components/client-dashboard/Pagination';
 import EmptyState from '../../components/client-dashboard/EmptyState';
 import LiveCalls from '../../components/client-dashboard/LiveCalls';
@@ -68,10 +69,13 @@ type SortDir = 'asc' | 'desc';
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 
-const inputCls = [
-  'w-full px-4 py-2.5 text-sm rounded-xl outline-none transition-colors',
-  'border border-white/[0.07] bg-q2-carbon text-[#F5F5F7]',
-  'placeholder-[#8B8BA7] focus:border-q2-smoke-d',
+/* Champ de date du panneau de filtres: même langue que `ds.inputCls`
+   (design-system), en plus compact. Les valeurs sont les tokens sombres du
+   portail, pas un hex codé en dur. */
+const dateCls = [
+  'px-3 py-1.5 text-xs rounded-lg outline-none transition-colors',
+  'bg-white/[0.04] border border-white/[0.08] text-white/90',
+  'focus:border-[#7349fe]/50',
 ].join(' ');
 
 /* Le résultat de l'appel est une valeur de base, pas une phrase: la fiche
@@ -309,7 +313,7 @@ export default function ClientCalls() {
                     type="date"
                     value={dateFrom}
                     onChange={(e) => setDateFrom(e.target.value)}
-                    className="px-3 py-1.5 text-xs rounded-lg border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] focus:outline-none focus:border-q2-smoke-d"
+                    className={dateCls}
                   />
                 </div>
                 <div>
@@ -319,7 +323,7 @@ export default function ClientCalls() {
                     type="date"
                     value={dateTo}
                     onChange={(e) => setDateTo(e.target.value)}
-                    className="px-3 py-1.5 text-xs rounded-lg border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] focus:outline-none focus:border-q2-smoke-d"
+                    className={dateCls}
                   />
                 </div>
               </div>
@@ -563,57 +567,13 @@ export default function ClientCalls() {
         </>
       )}
 
-      {/* Slide-over detail panel */}
+      {/* Slide-over detail panel. Le voile, le panneau, Echap, le verrou du
+          défilement et le piège à Tab vivent dans le SlideOver partagé avec
+          la fiche lead — un seul comportement clavier pour les deux. */}
       <AnimatePresence>
         {selectedCall && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="fixed inset-0 bg-black/40 z-50"
-              onClick={() => setSelectedCall(null)}
-              aria-hidden="true"
-            />
-            <motion.aside
-              initial={{ x: '100%' }}
-              animate={{ x: 0 }}
-              exit={{ x: '100%' }}
-              transition={{ type: 'spring', damping: 30, stiffness: 300 }}
-              /* #131313 est la surface des cartes de la page Analytique
-                  (`bg-white/[0.04]` composé sur #0a0a0a). Le panneau la porte à
-                  65 % avec un flou moyen : demande utilisateur du 13/09,
-                  « légèrement transparent et flou ». À 80 % sur une page sombre,
-                  rien ne passait ; le voile est à 40 % pour la même raison. C'est le PANNEAU qui est
-                  translucide, jamais le voile : le voile assombrit sans flouter,
-                  pour que la page derrière reste nette. Le flou fort tient le
-                  gris stable quoi qu'il y ait derrière ; à 2 % de blanc sans flou
-                  (l'ancienne fiche lead), la liste se lisait au travers.
-                  Historique, pour ne pas refaire le tour: `oklch(10% 0 0)`
-                  (#171717) se lisait comme du noir; #1a1a1a, essayé ensuite,
-                  était le bon registre mais pas la bonne valeur. */
-              className="fixed right-0 top-0 bottom-0 w-full max-w-md bg-[#131313]/65 backdrop-blur-xl border-l border-white/[0.07] shadow-2xl z-50 overflow-y-auto"
-              role="dialog"
-              aria-modal="true"
-              aria-label="Détails de l'appel"
-            >
-              {/* L'entête porte la MÊME surface que le panneau (65 %, flou moyen) :
-                  une entête opaque sur un panneau translucide se lirait comme une
-                  bande rapportée. Le panneau défile sous elle ; le flou fort fond
-                  ce qui passe dessous dans le gris au lieu de le laisser lire. */}
-              <div className="sticky top-0 z-10 bg-[#131313]/65 backdrop-blur-xl border-b border-white/[0.07] px-6 py-4 flex items-center justify-between">
-                <h2 className="text-base font-semibold text-[#F5F5F7]">Détails de l'appel</h2>
-                <button
-                  type="button"
-                  onClick={() => setSelectedCall(null)}
-                  aria-label="Fermer le panneau"
-                  className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center hover:bg-white/[0.10] transition-colors text-[#A1A1A8] hover:text-[#F5F5F7]"
-                >
-                  <X size={16} aria-hidden="true" />
-                </button>
-              </div>
-
-              <div className="p-6 space-y-5">
+          <SlideOver title="Détails de l'appel" onClose={() => setSelectedCall(null)}>
+            <div className="p-6 space-y-5">
                 <div className="flex items-center gap-4">
                   <div
                     className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
@@ -768,9 +728,8 @@ export default function ClientCalls() {
                     </div>
                   </div>
                 )}
-              </div>
-            </motion.aside>
-          </>
+            </div>
+          </SlideOver>
         )}
       </AnimatePresence>
     </div>

@@ -462,7 +462,7 @@ export default function CrmDeals() {
           <button
             type="button"
             onClick={() => setShowAddModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-[#7349fe] text-white text-sm font-medium rounded-xl hover:bg-[#8560ff] transition-colors"
+            className="flex items-center gap-2 px-4 py-2 bg-transparent border border-[#8a6fff] text-[#8a6fff] text-sm font-medium rounded-xl hover:bg-white/[0.06] transition-colors"
           >
             <Plus size={16} /> Nouvelle affaire
           </button>
@@ -603,7 +603,7 @@ export default function CrmDeals() {
                 <button
                   type="button"
                   onClick={handleAddDeal}
-                  className="flex-1 px-4 py-2.5 text-sm font-medium text-white bg-[#7349fe] rounded-xl hover:bg-[#7349fe] transition-colors"
+                  className="flex-1 px-4 py-2.5 text-sm font-medium text-[#8a6fff] bg-transparent border border-[#8a6fff] rounded-xl hover:bg-white/[0.06] transition-colors"
                 >
                   Ajouter
                 </button>

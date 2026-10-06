@@ -5,6 +5,9 @@ import { Check, AlertTriangle, Shield, Phone, FileText, Download, CreditCard, Za
 import api from '../../services/api';
 import { formatDate } from '../../utils/format';
 import { annualTotalEur, annualMonthlyEquivalentEur } from '../../lib/pricing';
+import Button from '../../components/ui/Button';
+import { ds, badgeStyle, type Tone } from '../../styles/design-system';
+import { t } from '../../styles/admin-theme';
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -92,8 +95,6 @@ const PLANS = [
       '750 minutes/mois incluses',
       'Tout Solo inclus',
       'Capture de leads',
-      'Intégrations CRM natives',
-      'Support prioritaire',
     ],
   },
   {
@@ -106,6 +107,7 @@ const PLANS = [
     features: [
       '2 000 minutes/mois incluses',
       'Tout Starter inclus',
+      'Intégrations CRM natives',
       'Analytiques avancées + sentiments',
       "Transfert d'appel intelligent",
       'Support prioritaire',
@@ -133,23 +135,22 @@ type PlanId = (typeof PLANS)[number]['id'];
 
 // ── Status badge ─────────────────────────────────────────────────────────────
 
-const STATUS_STYLES: Record<string, { bg: string; text: string; label: string }> = {
-  active:    { bg: 'rgba(34,197,94,0.12)',  text: '#4ade80', label: 'Actif' },
-  trial:     { bg: 'rgba(251,191,36,0.12)', text: '#fbbf24', label: 'Essai' },
-  cancelled: { bg: 'rgba(239,68,68,0.12)',  text: '#f87171', label: 'Annulé' },
-  past_due:  { bg: 'rgba(249,115,22,0.12)', text: '#fb923c', label: 'En retard' },
+/* Les libellés restent ceux de la page; la forme vient du design system
+   (`badgeStyle`), une seule définition des tons au lieu de quatre hex en
+   dur qui dérivaient du reste du portail. */
+const STATUS_META: Record<string, { tone: Tone; label: string }> = {
+  active:    { tone: 'success', label: 'Actif' },
+  trial:     { tone: 'warning', label: 'Essai' },
+  cancelled: { tone: 'danger',  label: 'Annulé' },
+  past_due:  { tone: 'warning', label: 'En retard' },
+  succeeded: { tone: 'success', label: 'Réussi' },
+  failed:    { tone: 'danger',  label: 'Échoué' },
+  refunded:  { tone: 'info',    label: 'Remboursé' },
 };
 
 function StatusPill({ status }: { status: string }) {
-  const s = STATUS_STYLES[status] ?? STATUS_STYLES['active'];
-  return (
-    <span
-      className="text-[11px] font-semibold px-2.5 py-1 rounded-full"
-      style={{ background: s.bg, color: s.text }}
-    >
-      {s.label}
-    </span>
-  );
+  const s = STATUS_META[status] ?? { tone: 'neutral' as Tone, label: status };
+  return <span style={badgeStyle(s.tone)}>{s.label}</span>;
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -173,6 +174,26 @@ export default function ClientBilling() {
   const [superagentBusy, setSuperagentBusy] = useState(false);
   const [invoiceOpening, setInvoiceOpening] = useState<string | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
+  /* Panne de la route payments, distincte du « aucun paiement » réel: la
+     première appelle un retry, la seconde est un état légitime. Les confondre
+     faisait croire à un client solvable qu'il n'avait jamais payé. */
+  const [paymentsError, setPaymentsError] = useState<string | null>(null);
+
+  const loadPayments = async () => {
+    setPaymentsError(null);
+    try {
+      const { data } = await api.get('/my-dashboard/payments');
+      /* `Array.isArray` et non `|| []`: la route peut répondre un objet
+         (enveloppe, message d'erreur applicatif rendu en 200), et
+         `body?.data || body` le laissait passer tel quel. La page tombait
+         alors sur « payments.map is not a function », c'est-à-dire un écran
+         blanc pour une simple liste vide. */
+      const rows = Array.isArray(data) ? data : Array.isArray(data?.data) ? data.data : [];
+      setPayments(rows);
+    } catch {
+      setPaymentsError("L'historique des paiements n'a pas pu être chargé.");
+    }
+  };
 
   useEffect(() => {
     // `allSettled`, et non `all`: les deux requêtes sont indépendantes, et
@@ -182,9 +203,9 @@ export default function ClientBilling() {
     // valeurs par défaut sans que rien ne le signale.
     Promise.allSettled([
       api.get('/my-dashboard/billing'),
-      api.get('/my-dashboard/payments'),
+      loadPayments(),
     ])
-      .then(([billingRes, paymentsRes]) => {
+      .then(([billingRes]) => {
         if (billingRes.status === 'fulfilled') {
           setOverview(billingRes.value.data);
           /* Le sélecteur suit le client. Le poser après la réponse et non à
@@ -193,16 +214,6 @@ export default function ClientBilling() {
           if (billingRes.value.data?.billingPeriod === 'annual') setBillingChoice('annual');
         }
         else setLoadError("Impossible de charger votre abonnement. Rechargez la page, ou contactez-nous si cela persiste.");
-        if (paymentsRes.status === 'fulfilled') {
-          const body = paymentsRes.value.data;
-          /* `Array.isArray` et non `|| []`: la route peut répondre un objet
-             (enveloppe, message d'erreur applicatif rendu en 200), et
-             `body?.data || body` le laissait passer tel quel. La page tombait
-             alors sur « payments.map is not a function », c'est-à-dire un écran
-             blanc pour une simple liste vide. */
-          const rows = Array.isArray(body) ? body : Array.isArray(body?.data) ? body.data : [];
-          setPayments(rows);
-        }
       })
       .finally(() => setLoading(false));
   }, []);
@@ -337,19 +348,59 @@ export default function ClientBilling() {
     );
   }
 
-  const currentPlanId = (overview?.plan ?? 'starter') as PlanId;
+  /* Sans aperçu, il n'y a RIEN à afficher de contractuel: ni plan (le défaut
+     « starter » inventait un forfait), ni statut (« Actif » tombait du ciel),
+     ni minutes (0 n'étaient pas les siennes), ni résiliation (agir dans le
+     vide sur un abonnement inconnu est dangereux). On garde le bandeau
+     d'erreur et le catalogue n'affiche pas de badge ACTUEL. */
+  if (!overview) {
+    return (
+      <div className="space-y-6 pb-10">
+        <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
+          <h1 className="text-[22px] font-semibold tracking-tight" style={{ color: t.text }}>Facturation</h1>
+          <p className="text-[12.5px] mt-0.5" style={{ color: t.textSec }}>Gérez votre abonnement et vos factures</p>
+        </motion.div>
+        {loadError && (
+          <div
+            className="flex items-start gap-3 rounded-xl border px-5 py-4"
+            style={{ background: `color-mix(in oklab, ${t.danger} 8%, transparent)`, borderColor: `color-mix(in oklab, ${t.danger} 25%, transparent)` }}
+            role="alert"
+          >
+            <AlertTriangle size={18} className="mt-0.5 shrink-0" style={{ color: t.danger }} />
+            <div>
+              <p className="text-[13px]" style={{ color: t.text }}>{loadError}</p>
+              <button
+                type="button"
+                onClick={() => window.location.reload()}
+                className="mt-2 text-[12.5px] font-medium hover:underline"
+                style={{ color: t.brand }}
+              >
+                Recharger la page
+              </button>
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  const currentPlanId = overview.plan as PlanId;
   const currentPlan = PLANS.find(p => p.id === currentPlanId) ?? PLANS[0];
-  const minutesUsed = overview?.minutesUsed ?? 0;
-  const minutesLimit = overview?.minutesLimit ?? currentPlan.minutes;
+  /* La période RÉELLE de l'aperçu, pas celle du sélecteur: celui-ci sert à
+     COMPARER une autre offre et ne doit pas réécrire ce que le client paie
+     déjà. */
+  const currentPeriod = overview.billingPeriod === 'annual' ? 'annual' : 'monthly';
+  const minutesUsed = overview.minutesUsed;
+  const minutesLimit = overview.minutesLimit ?? currentPlan.minutes;
   const minutesPct = minutesLimit > 0 ? Math.min(Math.round((minutesUsed / minutesLimit) * 100), 100) : 0;
-  const isCancelled = overview?.status === 'cancelled';
+  const isCancelled = overview.status === 'cancelled';
 
   return (
     <div className="space-y-6 pb-10">
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
-        <h1 className="text-[22px] font-semibold text-[#F5F5F7] tracking-tight">Facturation</h1>
-        <p className="text-[12.5px] text-[#A1A1A8] mt-0.5">Gérez votre abonnement et vos factures</p>
+        <h1 className="text-[22px] font-semibold tracking-tight" style={{ color: t.text }}>Facturation</h1>
+        <p className="text-[12.5px] mt-0.5" style={{ color: t.textSec }}>Gérez votre abonnement et vos factures</p>
       </motion.div>
 
       {/* Une page de facturation qui se trompe en silence est pire qu'une page
@@ -357,11 +408,11 @@ export default function ClientBilling() {
       {loadError && (
         <div
           className="flex items-start gap-3 rounded-xl border px-5 py-4"
-          style={{ background: 'rgba(239,68,68,0.08)', borderColor: 'rgba(239,68,68,0.25)' }}
+          style={{ background: `color-mix(in oklab, ${t.danger} 8%, transparent)`, borderColor: `color-mix(in oklab, ${t.danger} 25%, transparent)` }}
           role="alert"
         >
-          <AlertTriangle size={18} className="text-[#f87171] mt-0.5 shrink-0" />
-          <p className="text-[13px] text-[#F5F5F7]">{loadError}</p>
+          <AlertTriangle size={18} className="mt-0.5 shrink-0" style={{ color: t.danger }} />
+          <p className="text-[13px]" style={{ color: t.text }}>{loadError}</p>
         </div>
       )}
 
@@ -371,15 +422,15 @@ export default function ClientBilling() {
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           className="flex items-start gap-3 rounded-xl border px-5 py-4"
-          style={{ background: 'rgba(122,95,255,0.08)', borderColor: 'rgba(122,95,255,0.25)' }}
+          style={{ background: t.panel, borderColor: t.accentBrd }}
         >
-          <Shield size={18} className="text-[#7349fe] mt-0.5 shrink-0" />
+          <Shield size={18} className="mt-0.5 shrink-0" style={{ color: t.brand }} />
           <div>
-            <p className="text-sm font-medium text-[#F5F5F7]">
+            <p className="text-sm font-medium" style={{ color: t.text }}>
               Période d'essai en cours
             </p>
             {overview.trialEndsAt && (
-              <p className="text-xs text-[#A1A1A8] mt-0.5">
+              <p className="text-xs mt-0.5" style={{ color: t.textSec }}>
                 Expire le {formatDate(overview.trialEndsAt)} — passez à un plan payant pour continuer.
               </p>
             )}
@@ -393,23 +444,42 @@ export default function ClientBilling() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.05 }}
         className="rounded-xl border p-6"
-        style={{ borderColor: 'rgba(122,95,255,0.35)', background: 'rgba(122,95,255,0.06)' }}
+        style={{ borderColor: t.accentBrd, background: t.panel }}
       >
         <div className="flex items-start justify-between gap-4 mb-5">
           <div>
-            <p className="text-xs text-[#A1A1A8] mb-1">Plan actuel</p>
-            <p className="text-2xl font-bold text-[#F5F5F7]">{currentPlan.name}</p>
+            <p className="text-xs mb-1" style={{ color: t.textSec }}>Plan actuel</p>
+            <p className="text-2xl font-bold" style={{ color: t.text }}>{currentPlan.name}</p>
             {overview?.renewalDate && !isCancelled && (
-              <p className="text-xs text-[#A1A1A8] mt-1">
+              <p className="text-xs mt-1" style={{ color: t.textSec }}>
                 Renouvellement le {formatDate(overview.renewalDate)}
               </p>
             )}
           </div>
           <div className="flex items-center gap-3">
-            <StatusPill status={overview?.status ?? 'active'} />
+            <StatusPill status={overview.status} />
             <div className="text-right hidden sm:block">
-              <span className="text-2xl font-bold text-[#F5F5F7]">{currentPlan.monthly.toLocaleString()}€</span>
-              <span className="text-xs text-[#A1A1A8]">/mois</span>
+              {/* Le montant de SON abonnement, dans SA période: un annuel lit
+                  l'équivalent mensuel remisé et le total prélevé, pas le
+                  mensuel plein qu'il ne paie jamais. Les deux chiffres
+                  dérivent des mêmes constantes que le comparateur et que le
+                  backend (`annualTotalEur`), donc ils cohèrent entre eux. */}
+              {currentPeriod === 'annual' ? (
+                <>
+                  <span className="text-2xl font-bold" style={{ color: t.text }}>
+                    {annualMonthlyEquivalentEur(currentPlan.monthly).toLocaleString()}€
+                  </span>
+                  <span className="text-xs" style={{ color: t.textSec }}>/mois</span>
+                  <p className="text-[11px] mt-0.5" style={{ color: t.textSec }}>
+                    Facturé {annualTotalEur(currentPlan.monthly).toLocaleString('fr-FR')} €/an
+                  </p>
+                </>
+              ) : (
+                <>
+                  <span className="text-2xl font-bold" style={{ color: t.text }}>{currentPlan.monthly.toLocaleString()}€</span>
+                  <span className="text-xs" style={{ color: t.textSec }}>/mois</span>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -417,22 +487,22 @@ export default function ClientBilling() {
         {/* Minute usage progress */}
         <div className="mb-2">
           <div className="flex items-center justify-between mb-2">
-            <span className="flex items-center gap-1.5 text-xs text-[#A1A1A8]">
+            <span className="flex items-center gap-1.5 text-xs" style={{ color: t.textSec }}>
               <Phone size={12} />
               Minutes utilisées ce mois
             </span>
-            <span className="text-xs font-medium text-[#F5F5F7]">
+            <span className="text-xs font-medium" style={{ color: t.text }}>
               {minutesUsed.toLocaleString()} / {minutesLimit.toLocaleString()} min
             </span>
           </div>
           <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'rgba(255,255,255,0.08)' }}>
             <div
               className="h-full rounded-full transition-[width] duration-500 ease-out"
-              style={{ width: `${minutesPct}%`, background: '#7349fe' }}
+              style={{ width: `${minutesPct}%`, background: t.brand }}
             />
           </div>
           {minutesPct > 80 && (
-            <p className="text-[11px] mt-1.5" style={{ color: '#fbbf24' }}>
+            <p className="text-[11px] mt-1.5" style={{ color: t.warning }}>
               ⚠ {minutesPct}% du quota mensuel utilisé — envisagez un upgrade
             </p>
           )}
@@ -449,13 +519,13 @@ export default function ClientBilling() {
             de nulle part ailleurs. */}
         {currentPlan.features.length > 0 && (
           <div className="mt-5 pt-5 border-t border-white/[0.06]">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[#A1A1A8] mb-3">
+            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-3" style={{ color: t.textSec }}>
               Ce que votre plan inclut
             </p>
             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
               {currentPlan.features.map((f) => (
-                <li key={f} className="flex items-start gap-2 text-[13px] text-[#D4D4D8]">
-                  <Check size={13} className="mt-[3px] flex-shrink-0" style={{ color: '#b9a8ff' }} aria-hidden="true" />
+                <li key={f} className="flex items-start gap-2 text-[13px]" style={{ color: t.text }}>
+                  <Check size={13} className="mt-[3px] flex-shrink-0" style={{ color: t.violet }} aria-hidden="true" />
                   <span>{f}</span>
                 </li>
               ))}
@@ -479,40 +549,34 @@ export default function ClientBilling() {
           className="rounded-xl border p-5"
           style={{
             borderColor: overview.superagent.active || overview.superagent.included
-              ? 'rgba(122,95,255,0.35)'
-              : 'rgba(255,255,255,0.08)',
+              ? t.accentBrd
+              : t.border,
             background: 'rgba(255,255,255,0.02)',
           }}
         >
           <div className="flex flex-wrap items-start justify-between gap-4">
             <div className="max-w-xl">
               <div className="flex items-center gap-2 mb-1.5">
-                <Zap size={15} style={{ color: '#b9a8ff' }} aria-hidden="true" />
-                <p className="text-sm font-semibold text-[#F5F5F7]">Superagent</p>
+                <Zap size={15} style={{ color: t.violet }} aria-hidden="true" />
+                <p className="text-sm font-semibold" style={{ color: t.text }}>Superagent</p>
                 {overview.superagent.included && (
-                  <span
-                    className="text-[10px] font-semibold uppercase tracking-[0.08em] px-1.5 py-0.5 rounded-full"
-                    style={{ background: 'rgba(122,95,255,0.18)', color: '#b9a8ff' }}
-                  >
+                  <span style={badgeStyle('brand')}>
                     Inclus
                   </span>
                 )}
                 {overview.superagent.active && !overview.superagent.included && (
-                  <span
-                    className="text-[10px] font-semibold uppercase tracking-[0.08em] px-1.5 py-0.5 rounded-full"
-                    style={{ background: 'rgba(122,95,255,0.18)', color: '#b9a8ff' }}
-                  >
+                  <span style={badgeStyle('brand')}>
                     Active
                   </span>
                 )}
               </div>
-              <p className="text-[13px] leading-relaxed text-[#A1A1A8]">
+              <p className="text-[13px] leading-relaxed" style={{ color: t.textSec }}>
                 La voix passe en temps réel: votre réceptionniste entend et répond
                 directement, sans passer par une transcription. Les silences sont plus
                 courts et l'intonation suit la conversation.
               </p>
               {overview.superagent.blockedReason && !overview.superagent.included && !overview.superagent.active && (
-                <p className="text-[12px] mt-2" style={{ color: '#fbbf24' }}>
+                <p className="text-[12px] mt-2" style={{ color: t.warning }}>
                   Indisponible pour le moment.
                 </p>
               )}
@@ -521,28 +585,23 @@ export default function ClientBilling() {
             <div className="flex items-center gap-4">
               {overview.superagent.priceEur !== null && !overview.superagent.included && (
                 <div className="text-right">
-                  <span className="text-lg font-bold text-[#F5F5F7]">
+                  <span className="text-lg font-bold" style={{ color: t.text }}>
                     +{overview.superagent.priceEur}€
                   </span>
-                  <span className="text-xs text-[#A1A1A8]">
+                  <span className="text-xs" style={{ color: t.textSec }}>
                     /{overview.superagent.period === 'annual' ? 'an' : 'mois'}
                   </span>
                 </div>
               )}
               {!overview.superagent.included && (
-                <button
-                  type="button"
+                <Button
+                  variant={overview.superagent.active ? 'ghost' : 'primary'}
                   onClick={() => toggleSuperagent(!overview.superagent!.active)}
                   disabled={superagentBusy || (!overview.superagent.active && !overview.superagent.sellable)}
-                  className="rounded-lg px-4 py-2 text-[13px] font-medium text-white disabled:opacity-40 disabled:cursor-not-allowed focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7349fe]/50 active:scale-[0.97] transition-colors"
-                  style={{
-                    background: overview.superagent.active ? 'rgba(255,255,255,0.06)' : '#7349fe',
-                  }}
+                  loading={superagentBusy}
                 >
-                  {superagentBusy
-                    ? '...'
-                    : overview.superagent.active ? 'Désactiver' : 'Activer'}
-                </button>
+                  {overview.superagent.active ? 'Désactiver' : 'Activer'}
+                </Button>
               )}
             </div>
           </div>
@@ -552,7 +611,7 @@ export default function ClientBilling() {
       {/* Plan grid */}
       <div>
         <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <h2 className="text-sm font-semibold text-[#F5F5F7]">Plans disponibles</h2>
+          <h2 className="text-sm font-semibold" style={{ color: t.text }}>Plans disponibles</h2>
 
           {/* Même geste que le sélecteur de la page tarifs, et comme lui il ne
               s'anime PAS: un contrôle qu'on bascule pour comparer doit répondre
@@ -561,18 +620,21 @@ export default function ClientBilling() {
             role="group"
             aria-label="Fréquence de facturation"
             className="inline-flex items-center gap-1 p-1 rounded-full border"
-            style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.03)' }}
+            style={{ borderColor: t.border, background: 'rgba(255,255,255,0.03)' }}
           >
             {(['monthly', 'annual'] as const).map(période => (
+              /* L'option choisie ne se peint PLUS en mauve plein (demande
+                 utilisateur): lavage neutre + contour mauve en boîte
+                 interne, donc aucun décalage de mise en page au bascule. */
               <button
                 key={période}
                 type="button"
                 onClick={() => setBillingChoice(période)}
                 aria-pressed={billingChoice === période}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[12px] font-medium focus:outline-none focus-visible:ring-2 focus-visible:ring-[#7349fe]/50 active:scale-[0.97] ${
-                  billingChoice === période ? 'text-white' : 'text-[#A1A1A8] hover:text-white'
-                }`}
-                style={billingChoice === période ? { background: '#7349fe' } : undefined}
+                className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-[12px] font-medium active:scale-[0.97] transition-transform"
+                style={billingChoice === période
+                  ? { background: 'rgba(255,255,255,0.10)', color: '#fff', boxShadow: `inset 0 0 0 1px ${t.brand}` }
+                  : { color: t.textSec }}
               >
                 {période === 'monthly' ? 'Mensuel' : 'Annuel'}
                 {période === 'annual' && (
@@ -580,7 +642,7 @@ export default function ClientBilling() {
                     className="text-[10px] font-semibold tracking-[0.08em] uppercase px-1.5 py-0.5 rounded-full"
                     style={billingChoice === 'annual'
                       ? { background: 'rgba(255,255,255,0.16)', color: '#fff' }
-                      : { background: 'rgba(255,255,255,0.06)', color: '#A1A1A8' }}
+                      : { background: 'rgba(255,255,255,0.06)', color: t.textSec }}
                   >
                     −20&nbsp;%
                   </span>
@@ -592,7 +654,6 @@ export default function ClientBilling() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           {PLANS.map((plan, i) => {
             const isCurrent = plan.id === currentPlanId;
-            const currentPeriod = overview?.billingPeriod === 'annual' ? 'annual' : 'monthly';
             const isHigher = PLANS.indexOf(plan) > PLANS.indexOf(currentPlan);
             return (
               <motion.div
@@ -602,9 +663,9 @@ export default function ClientBilling() {
                 transition={{ delay: 0.05 + i * 0.06 }}
                 className="relative rounded-xl border p-5 flex flex-col"
                 style={{
-                  borderColor: isCurrent ? '#7349fe' : 'rgba(255,255,255,0.07)',
+                  borderColor: isCurrent ? t.brand : t.border,
                   background: isCurrent
-                    ? 'rgba(122,95,255,0.07)'
+                    ? t.accentGlow
                     : 'rgba(255,255,255,0.025)',
                 }}
               >
@@ -612,46 +673,49 @@ export default function ClientBilling() {
                 {isCurrent && (
                   <span
                     className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px] font-bold px-3 py-0.5 rounded-full text-white whitespace-nowrap"
-                    style={{ background: '#22c55e' }}
+                    style={{ background: t.success }}
                   >
                     ACTUEL
                   </span>
                 )}
                 {plan.popular && !isCurrent && (
+                  /* Décision 2026-10: plus de pastille mauve pleine — contour
+                     mauve, fond transparent, texte mauve clair (AA sur fond
+                     sombre). */
                   <span
-                    className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px] font-bold px-3 py-0.5 rounded-full text-white whitespace-nowrap"
-                    style={{ background: '#7349fe' }}
+                    className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px] font-bold px-3 py-0.5 rounded-full whitespace-nowrap border"
+                    style={{ background: 'transparent', borderColor: t.brand, color: t.brandHi }}
                   >
                     Recommandé
                   </span>
                 )}
 
                 <div className="mb-4">
-                  <p className="text-base font-bold text-[#F5F5F7] mb-1">{plan.name}</p>
+                  <p className="text-base font-bold mb-1" style={{ color: t.text }}>{plan.name}</p>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-xl font-bold text-[#F5F5F7]">
+                    <span className="text-xl font-bold" style={{ color: t.text }}>
                       {(billingChoice === 'annual'
                         ? annualMonthlyEquivalentEur(plan.monthly)
                         : plan.monthly).toLocaleString()}€
                     </span>
-                    <span className="text-xs text-[#A1A1A8]">/mois</span>
+                    <span className="text-xs" style={{ color: t.textSec }}>/mois</span>
                   </div>
                   {billingChoice === 'annual' && (
                     /* Le montant réellement prélevé, en une fois. L'équivalent
                        mensuel au-dessus aide à comparer, celui-ci engage. */
-                    <p className="text-[11px] text-[#A1A1A8] mt-1">
+                    <p className="text-[11px] mt-1" style={{ color: t.textSec }}>
                       Facturé {annualTotalEur(plan.monthly).toLocaleString('fr-FR')} €/an
                     </p>
                   )}
-                  <p className="text-[11px] text-[#A1A1A8] mt-1">
+                  <p className="text-[11px] mt-1" style={{ color: t.textSec }}>
                     {plan.minutes.toLocaleString()} min · {plan.overage.toFixed(2).replace('.', ',')} €/min supp.
                   </p>
                 </div>
 
                 <ul className="space-y-2 mb-5 flex-1">
                   {plan.features.map((f, j) => (
-                    <li key={j} className="flex items-start gap-2 text-xs text-[#C4C4D0]">
-                      <Check size={13} className="text-emerald-400 shrink-0 mt-0.5" />
+                    <li key={j} className="flex items-start gap-2 text-xs" style={{ color: t.textSec }}>
+                      <Check size={13} style={{ color: t.success }} className="shrink-0 mt-0.5" />
                       {f}
                     </li>
                   ))}
@@ -660,12 +724,17 @@ export default function ClientBilling() {
                 {/* Le forfait COURANT garde un bouton quand la période choisie
                     n'est pas la sienne: « passer à l'annuel » est un vrai
                     changement, et le cacher laissait la remise de 20 % visible
-                    sur la page tarifs et inatteignable depuis le portail. */}
+                    sur la page tarifs et inatteignable depuis le portail.
+                    Outline-marque: fond transparent + contour mauve, en
+                    classes (plus d'état de survol JS — décision 2026-10:
+                    jamais de remplissage mauve, même au survol). Le texte
+                    #8a6fff tient ~5,4:1 sur le fond sombre des cartes. */}
                 {(!isCurrent || billingChoice !== currentPeriod) && (
                   <button
                     onClick={() => handleUpgrade(plan.id)}
                     disabled={upgrading === plan.id}
-                    className="w-full py-2 text-sm font-medium rounded-lg border border-[#7349fe] text-[#7349fe] hover:bg-[#7349fe] hover:text-white transition-colors disabled:opacity-50"
+                    className="w-full rounded-full border py-2 text-[13px] font-medium transition-colors hover:bg-white/[0.06] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent"
+                    style={{ borderColor: t.brandHi, color: t.brandHi }}
                   >
                     {upgrading === plan.id
                       ? 'Redirection…'
@@ -686,22 +755,34 @@ export default function ClientBilling() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.15 }}
         className="rounded-xl border p-6"
-        style={{ borderColor: 'rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.025)' }}
+        style={{ borderColor: t.border, background: 'rgba(255,255,255,0.025)' }}
       >
-        <h2 className="text-sm font-semibold text-[#F5F5F7] mb-4 flex items-center gap-2">
-          <FileText size={15} style={{ color: '#7349fe' }} />
+        <h2 className="text-sm font-semibold mb-4 flex items-center gap-2" style={{ color: t.text }}>
+          <FileText size={15} style={{ color: t.brand }} />
           Historique des paiements
         </h2>
 
-        {payments.length === 0 ? (
-          <p className="text-[12.5px] text-[#A1A1A8]">Aucun paiement enregistré pour l'instant.</p>
+        {paymentsError ? (
+          <div className="flex flex-wrap items-center gap-3" role="alert">
+            <p className="text-[12.5px]" style={{ color: t.danger }}>{paymentsError}</p>
+            <button
+              type="button"
+              onClick={loadPayments}
+              className="text-[12.5px] font-medium hover:underline"
+              style={{ color: t.brand }}
+            >
+              Réessayer
+            </button>
+          </div>
+        ) : payments.length === 0 ? (
+          <p className="text-[12.5px]" style={{ color: t.textSec }}>Aucun paiement enregistré pour l'instant.</p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
                 <tr
-                  className="text-left text-[11px] text-[#A1A1A8] border-b"
-                  style={{ borderColor: 'rgba(255,255,255,0.07)' }}
+                  className="text-left text-[11px] border-b"
+                  style={{ color: t.textSec, borderColor: t.border }}
                 >
                   <th className="pb-3 pr-4 font-medium">Montant</th>
                   <th className="pb-3 pr-4 font-medium">Description</th>
@@ -717,16 +798,16 @@ export default function ClientBilling() {
                     className="border-b last:border-0"
                     style={{ borderColor: 'rgba(255,255,255,0.04)' }}
                   >
-                    <td className="py-3 pr-4 font-semibold text-[#F5F5F7]">
+                    <td className="py-3 pr-4 font-semibold" style={{ color: t.text }}>
                       {Number(p.amount).toFixed(2)}{p.currency === 'EUR' ? '€' : '$'}
                     </td>
-                    <td className="py-3 pr-4 text-[#A1A1A8] text-xs max-w-[160px] truncate">
+                    <td className="py-3 pr-4 text-xs max-w-[160px] truncate" style={{ color: t.textSec }}>
                       {p.description || '—'}
                     </td>
                     <td className="py-3 pr-4">
                       <StatusPill status={p.status} />
                     </td>
-                    <td className="py-3 pr-4 text-[#A1A1A8] text-xs whitespace-nowrap">
+                    <td className="py-3 pr-4 text-xs whitespace-nowrap" style={{ color: t.textSec }}>
                       {formatDate(p.createdAt)}
                     </td>
                     <td className="py-3">
@@ -735,7 +816,7 @@ export default function ClientBilling() {
                         onClick={() => openInvoice(p.id)}
                         disabled={invoiceOpening === p.id}
                         className="flex items-center gap-1 text-xs hover:underline disabled:opacity-50 active:scale-[0.97] transition-transform"
-                        style={{ color: '#7349fe' }}
+                        style={{ color: t.brand }}
                       >
                         <Download size={11} /> {invoiceOpening === p.id ? 'Ouverture…' : 'Facture'}
                       </button>
@@ -761,10 +842,10 @@ export default function ClientBilling() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.18 }}
         className="rounded-xl border p-6"
-        style={{ borderColor: 'rgba(255,255,255,0.07)', background: 'rgba(255,255,255,0.025)' }}
+        style={{ borderColor: t.border, background: 'rgba(255,255,255,0.025)' }}
       >
-        <h2 className="text-sm font-semibold text-[#F5F5F7] mb-1 flex items-center gap-2">
-          <CreditCard size={15} style={{ color: '#7349fe' }} />
+        <h2 className="text-sm font-semibold mb-1 flex items-center gap-2" style={{ color: t.text }}>
+          <CreditCard size={15} style={{ color: t.brand }} />
           Moyen de paiement
         </h2>
         {/* LA CARTE, ÉCRITE. Sans cette ligne, la page annonçait un prix sans
@@ -774,38 +855,33 @@ export default function ClientBilling() {
             transite jamais par nous. */}
         {overview?.paymentMethod ? (
           <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mb-4">
-            <span className="text-sm font-medium text-[#F5F5F7]">
+            <span className="text-sm font-medium" style={{ color: t.text }}>
               {CARD_BRANDS[overview.paymentMethod.brand] || overview.paymentMethod.brand}
             </span>
-            <span className="text-sm text-[#F5F5F7] tabular-nums">
+            <span className="text-sm tabular-nums" style={{ color: t.text }}>
               •••• {overview.paymentMethod.last4}
             </span>
-            <span className="text-xs text-[#A1A1A8] tabular-nums">
+            <span className="text-xs tabular-nums" style={{ color: t.textSec }}>
               expire {String(overview.paymentMethod.expMonth).padStart(2, '0')}/
               {String(overview.paymentMethod.expYear).slice(-2)}
             </span>
           </div>
         ) : overview?.paymentMethodUnavailable ? (
-          <p className="text-xs text-[#A1A1A8] mb-4">
+          <p className="text-xs mb-4" style={{ color: t.textSec }}>
             Votre carte n'a pas pu être lue à l'instant. Elle reste bien enregistrée ; le portail ci-dessous l'affiche.
           </p>
         ) : (
-          <p className="text-xs text-[#A1A1A8] mb-4">
+          <p className="text-xs mb-4" style={{ color: t.textSec }}>
             Aucune carte enregistrée pour le moment.
           </p>
         )}
-        <p className="text-xs text-[#A1A1A8] mb-4">
+        <p className="text-xs mb-4" style={{ color: t.textSec }}>
           Votre carte est conservée par Stripe, notre prestataire de paiement. Le portail permet de la
           remplacer, de mettre à jour l'adresse de facturation et de télécharger vos factures.
         </p>
-        <button
-          type="button"
-          onClick={openBillingPortal}
-          disabled={openingPortal}
-          className="px-4 py-2 text-sm font-medium rounded-full bg-[#7349fe] text-white hover:bg-[#8560ff] disabled:opacity-40 transition-colors active:scale-[0.97]"
-        >
+        <Button onClick={openBillingPortal} loading={openingPortal}>
           {openingPortal ? 'Ouverture…' : 'Gérer mon moyen de paiement'}
-        </button>
+        </Button>
 
         {/* Le NUMÉRO DE TVA a quitté cette page (demande utilisateur): il vit
             désormais avec le nom et le métier, dans « Identité de l'entreprise »
@@ -813,9 +889,9 @@ export default function ClientBilling() {
             société et non un état d'abonnement. Il ne reste ici qu'un renvoi:
             quelqu'un qui le cherchait sur Facturation doit savoir où il est
             parti, sinon le champ a simplement disparu pour lui. */}
-        <p className="mt-6 pt-6 border-t text-xs text-[#A1A1A8]" style={{ borderColor: 'rgba(255,255,255,0.07)' }}>
+        <p className="mt-6 pt-6 border-t text-xs" style={{ borderColor: t.border, color: t.textSec }}>
           Votre numéro de TVA, qui apparaît sur ces factures, se renseigne dans{' '}
-          <Link to="/dashboard/account" className="text-[#7349fe] hover:underline">
+          <Link to="/dashboard/account" className="hover:underline" style={{ color: t.brand }}>
             Compte, Identité de l'entreprise
           </Link>
           .
@@ -828,13 +904,13 @@ export default function ClientBilling() {
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
         className="rounded-xl border p-6"
-        style={{ borderColor: 'rgba(239,68,68,0.2)', background: 'rgba(239,68,68,0.04)' }}
+        style={{ borderColor: `color-mix(in oklab, ${t.danger} 20%, transparent)`, background: `color-mix(in oklab, ${t.danger} 4%, transparent)` }}
       >
-        <h2 className="text-sm font-semibold text-red-400 mb-1 flex items-center gap-2">
+        <h2 className="text-sm font-semibold mb-1 flex items-center gap-2" style={{ color: t.danger }}>
           <AlertTriangle size={15} />
           Zone de danger
         </h2>
-        <p className="text-xs text-[#A1A1A8] mb-4">
+        <p className="text-xs mb-4" style={{ color: t.textSec }}>
           {/* La résiliation prend effet AU TERME de la période déjà payée
               (`cancel_at_period_end` chez Stripe), et non à la seconde du clic:
               le mois est payé, il est dû, et le client garde sa réceptionniste
@@ -843,21 +919,17 @@ export default function ClientBilling() {
         </p>
 
         {!showCancel ? (
-          <button
-            onClick={() => setShowCancel(true)}
-            disabled={isCancelled}
-            className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 disabled:opacity-40 transition-colors"
-          >
+          <Button variant="danger" onClick={() => setShowCancel(true)} disabled={isCancelled}>
             {isCancelled ? 'Abonnement annulé' : "Annuler l'abonnement"}
-          </button>
+          </Button>
         ) : (
           <motion.div
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: 'auto' }}
             className="space-y-3"
           >
-            <p className="text-xs text-[#A1A1A8]">
-              Tapez <span className="font-mono font-bold text-[#F5F5F7]">ANNULER</span> pour confirmer l'annulation.
+            <p className="text-xs" style={{ color: t.textSec }}>
+              Tapez <span className="font-mono font-bold" style={{ color: t.text }}>ANNULER</span> pour confirmer l'annulation.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 max-w-sm">
               <input
@@ -865,28 +937,24 @@ export default function ClientBilling() {
                 value={cancelInput}
                 onChange={e => setCancelInput(e.target.value)}
                 placeholder="Tapez ANNULER"
-                className="flex-1 px-4 py-2 text-sm font-mono rounded-lg border bg-transparent text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none transition-colors"
-                style={{ borderColor: 'rgba(239,68,68,0.4)' }}
+                className={`flex-1 font-mono ${ds.inputCls}`}
+                style={{ borderColor: `color-mix(in oklab, ${t.danger} 40%, transparent)` }}
               />
               <div className="flex gap-2 shrink-0">
-                <button
+                <Button
+                  variant="ghost"
+                  style={{ border: `1px solid ${t.border}` }}
                   onClick={() => { setShowCancel(false); setCancelInput(''); }}
-                  className="px-4 py-2 text-sm font-medium rounded-lg border text-[#A1A1A8] hover:bg-white/5 transition-colors"
-                  style={{ borderColor: 'rgba(255,255,255,0.1)' }}
                 >
                   Annuler
-                </button>
-                <button
-                  onClick={handleCancel}
-                  disabled={cancelInput !== 'ANNULER'}
-                  className="px-4 py-2 text-sm font-medium text-white bg-red-500 rounded-lg hover:bg-red-600 disabled:opacity-40 transition-colors"
-                >
+                </Button>
+                <Button variant="danger" onClick={handleCancel} disabled={cancelInput !== 'ANNULER'}>
                   Confirmer
-                </button>
+                </Button>
               </div>
             </div>
             {cancelError && (
-              <p className="text-[12.5px] text-[#f87171]" role="alert">{cancelError}</p>
+              <p className="text-[12.5px]" role="alert" style={{ color: t.danger }}>{cancelError}</p>
             )}
           </motion.div>
         )}

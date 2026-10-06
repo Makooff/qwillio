@@ -100,7 +100,7 @@ export default function PinnedScene({ aside, children, className = '' }: PinnedS
             className={`group q2-glow border-b border-q2-plate ${
               reduced
                 ? ''
-                : 'opacity-40 data-[active=true]:opacity-100 transition-opacity duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]'
+                : 'opacity-100 lg:opacity-40 data-[active=true]:lg:opacity-100 transition-opacity duration-500 ease-[cubic-bezier(0.16,1,0.3,1)]'
             }`}
           >
             {act}

@@ -9,6 +9,7 @@ import {
 import { useSEO } from '../../hooks/useSEO';
 import { useLang } from '../../stores/langStore';
 import PublicShell from '../../components/v2/PublicShell';
+import HeroBackdrop from '../../components/v2/HeroBackdrop';
 import { Container, Section, Eyebrow, Display, H2, Lead, SerifWord } from '../../components/v2/Primitives';
 import { PillLink } from '../../components/v2/Button';
 import RevealV2 from '../../components/v2/RevealV2';
@@ -339,14 +340,14 @@ export default function Receptionist() {
         'Vos données ne sont ni vendues ni utilisées pour entraîner un modèle externe sans votre accord',
         'Les appels spam sont écartés et ne comptent pas dans vos minutes',
         'Disponible 24/7, français et anglais sur le même appel',
-        `À partir de 99${NB}€ par mois, sans engagement`,
+        `À partir de 99${NB}€ par mois, sans engagement en mensuel`,
       ]
     : [
         'Recording announced at pickup, GDPR compliant',
         'Your data is never sold, never used to train an external model without your consent',
         'Spam calls are filtered out and never counted against your minutes',
         'Available 24/7, French and English on the same call',
-        'From €99 a month, no commitment',
+        'From €99 a month, no commitment on monthly billing',
       ];
 
   return (
@@ -354,14 +355,17 @@ export default function Receptionist() {
       {/* HERO, asymétrique: titre whisper à gauche, le dashboard dans l'iPhone à droite */}
       <Section
         aria-label={isFr ? 'Réceptionniste IA Qwillio' : 'Qwillio AI receptionist'}
-        className="relative !pt-16 md:!pt-24 overflow-hidden"
+        className="relative -mt-16 !pt-32 md:!pt-40 overflow-hidden"
       >
-        {/* Voile lilas du hero, accordé au fond des avatars */}
+        {/* Même décor que l’accueil, continu jusque sous la navigation. */}
         <div
           className="absolute inset-0 pointer-events-none"
           aria-hidden="true"
-          style={{ background: 'linear-gradient(180deg, rgb(var(--q2-band)) 0%, rgb(var(--q2-band)) 55%, rgb(var(--q2-canvas)) 100%)' }}
+          style={{ background: 'linear-gradient(180deg, rgb(var(--q2-canvas)) 0%, rgb(var(--q2-band)) 14%, rgb(var(--q2-band)) 58%, rgb(var(--q2-canvas)) 100%)' }}
         />
+        <HeroBackdrop />
+        {/* Protéger le contraste du texte sur la vidéo, dans les deux thèmes. */}
+        <div aria-hidden="true" className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(90deg, rgb(var(--q2-canvas) / 0.88) 0%, rgb(var(--q2-canvas) / 0.78) 38%, rgb(var(--q2-canvas) / 0.24) 62%, transparent 85%)' }} />
         <Container className="relative grid lg:grid-cols-[1.1fr_1fr] gap-9 sm:gap-14 lg:gap-20 items-center">
           <RevealV2>
             <div>
@@ -397,18 +401,18 @@ export default function Receptionist() {
               </div>
 
               {/* Propriétés vérifiables du produit uniquement (DA/voix.md) */}
-              <dl className="flex flex-wrap items-baseline gap-x-6 sm:gap-x-9 gap-y-3 text-sm text-q2-body border-t border-q2-plate pt-5 sm:pt-6 max-w-[540px]">
-                <div className="flex items-baseline gap-2 whitespace-nowrap">
+              <dl className="grid grid-cols-3 gap-x-3 sm:gap-x-6 gap-y-3 text-sm text-q2-body border-t border-q2-plate pt-5 sm:pt-6 max-w-[540px]">
+                <div className="flex min-w-0 flex-col items-start gap-1 break-words">
                   <dt className="sr-only">{isFr ? 'Temps de décrochage' : 'Pickup time'}</dt>
                   <dd className="text-2xl font-light tracking-tight text-q2-ink tabular-nums">&lt;1&nbsp;s</dd>
                   <span>{isFr ? 'décrochage' : 'pickup'}</span>
                 </div>
-                <div className="flex items-baseline gap-2 whitespace-nowrap">
+                <div className="flex min-w-0 flex-col items-start gap-1 break-words">
                   <dt className="sr-only">{isFr ? 'Langues' : 'Languages'}</dt>
                   <dd className="text-2xl font-light tracking-tight text-q2-ink">FR/EN</dd>
                   <span>{isFr ? 'même appel' : 'same call'}</span>
                 </div>
-                <div className="flex items-baseline gap-2 whitespace-nowrap">
+                <div className="flex min-w-0 flex-col items-start gap-1 break-words">
                   <dt className="sr-only">{isFr ? 'Disponibilité' : 'Uptime'}</dt>
                   <dd className="text-2xl font-light tracking-tight text-q2-ink tabular-nums">24/7</dd>
                   <span>{isFr ? 'jamais fermé' : 'always on'}</span>
@@ -926,8 +930,8 @@ export default function Receptionist() {
           <RevealV2 index={1} className="flex flex-col items-start gap-5 lg:items-end pb-2">
             <p className="text-q2-fog text-[15px] leading-relaxed max-w-[320px] lg:text-right q2-body-text">
               {isFr
-                ? '7 jours d’essai gratuit. Sans engagement, annulable en un clic.'
-                : '7-day free trial. No commitment, cancel in one click.'}
+                ? '7 jours d’essai gratuit. En mensuel, sans engagement — annulez en un clic.'
+                : '7-day free trial. No commitment on monthly — cancel in one click.'}
             </p>
             <div className="flex flex-wrap gap-3 lg:justify-end">
               <PillLink to="/register" variant="chromatic" size="lg" className="q2-pill-lit">

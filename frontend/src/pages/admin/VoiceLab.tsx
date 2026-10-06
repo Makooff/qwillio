@@ -165,9 +165,10 @@ export default function VoiceLab() {
               <div className="flex gap-1.5">
                 {(['classic', 'realtime', 'auto'] as const).map(m => (
                   <button key={m} type="button" onClick={() => setEngine(m)}
+                    aria-pressed={engine === m}
                     className="flex-1 h-9 text-[12px] rounded-lg transition-colors"
                     style={{
-                      background: engine === m ? pro.accentDim : 'rgba(255,255,255,0.03)',
+                      background: engine === m ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)',
                       border: `1px solid ${engine === m ? pro.accentBrd : pro.border}`,
                       color: engine === m ? pro.text : pro.textSec,
                     }}>
@@ -183,9 +184,10 @@ export default function VoiceLab() {
                   <div className="flex gap-1.5">
                     {(['cartesia', '11labs'] as const).map(p => (
                       <button key={p} type="button" onClick={() => { setProvider(p); setVoiceId(''); }}
+                        aria-pressed={provider === p}
                         className="flex-1 h-9 text-[12px] rounded-lg transition-colors"
                         style={{
-                          background: provider === p ? pro.accentDim : 'rgba(255,255,255,0.03)',
+                          background: provider === p ? 'rgba(255,255,255,0.08)' : 'rgba(255,255,255,0.03)',
                           border: `1px solid ${provider === p ? pro.accentBrd : pro.border}`,
                           color: provider === p ? pro.text : pro.textSec,
                         }}>

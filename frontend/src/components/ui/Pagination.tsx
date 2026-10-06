@@ -27,10 +27,11 @@ export default function Pagination({ page, total, limit, onChange }: Props) {
         <button
           onClick={() => onChange(page - 1)}
           disabled={page <= 1}
+          aria-label="Page précédente"
           className="p-1.5 rounded-lg hover:bg-white/[0.06] disabled:opacity-30 transition-colors"
           style={{ color: t.textSec }}
         >
-          <ChevronLeft className="w-4 h-4" />
+          <ChevronLeft className="w-4 h-4" aria-hidden="true" />
         </button>
         {pages.map((p, i) =>
           p === '...' ? (
@@ -39,6 +40,7 @@ export default function Pagination({ page, total, limit, onChange }: Props) {
             <button
               key={p}
               onClick={() => onChange(p as number)}
+              aria-current={p === page ? 'page' : undefined}
               className={`w-8 h-8 rounded-lg text-xs font-medium transition-colors ${
                 p === page
                   ? 'bg-white/[0.10]'
@@ -53,10 +55,11 @@ export default function Pagination({ page, total, limit, onChange }: Props) {
         <button
           onClick={() => onChange(page + 1)}
           disabled={page >= totalPages}
+          aria-label="Page suivante"
           className="p-1.5 rounded-lg hover:bg-white/[0.06] disabled:opacity-30 transition-colors"
           style={{ color: t.textSec }}
         >
-          <ChevronRight className="w-4 h-4" />
+          <ChevronRight className="w-4 h-4" aria-hidden="true" />
         </button>
       </div>
     </div>

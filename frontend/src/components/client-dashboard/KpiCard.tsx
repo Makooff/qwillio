@@ -1,14 +1,16 @@
 import { LucideIcon } from '../icons';
+import { t } from '../../styles/admin-theme';
+import { badgeStyle } from '../../styles/design-system';
 
-const colorMap: Record<string, string> = {
-  blue: 'bg-primary-50 text-primary-600',
-  indigo: 'bg-primary-50 text-[#3f34a8]',
-  purple: 'bg-violet-300 text-violet-600',
-  amber: 'bg-amber-50 text-amber-600',
-  cyan: 'bg-cyan-50 text-cyan-600',
-  emerald: 'bg-emerald-50 text-emerald-600',
-  red: 'bg-red-50 text-red-600',
-  rose: 'bg-rose-50 text-rose-600',
+const colorMap: Record<string, Parameters<typeof badgeStyle>[0]> = {
+  blue: 'info',
+  indigo: 'brand',
+  purple: 'violet',
+  amber: 'warning',
+  cyan: 'info',
+  emerald: 'success',
+  red: 'danger',
+  rose: 'danger',
 };
 
 interface KpiCardProps {
@@ -21,22 +23,28 @@ interface KpiCardProps {
 }
 
 export default function KpiCard({ label, value, icon: Icon, color, subtitle, trend }: KpiCardProps) {
-  const c = colorMap[color] || colorMap.blue;
+  const tone = colorMap[color] ?? 'brand';
   return (
-    <div className="rounded-2xl border border-[#d2d2d7]/60 bg-[#f5f5f7] p-5 hover:shadow-sm transition-shadow">
+    <div
+      className="p-5 transition-colors hover:bg-white/[0.02]"
+      style={{ background: t.panel, border: `1px solid ${t.border}`, borderRadius: t.r }}
+    >
       <div className="flex items-center justify-between mb-3">
-        <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${c}`}>
+        <div className="w-9 h-9 rounded-xl flex items-center justify-center" style={badgeStyle(tone)}>
           <Icon size={18} />
         </div>
         {trend && (
-          <span className={`text-xs font-medium ${trend.positive ? 'text-emerald-600' : 'text-red-500'}`}>
+          <span
+            className="text-xs font-medium"
+            style={{ color: trend.positive ? t.success : t.danger }}
+          >
             {trend.positive ? '+' : ''}{trend.value}%
           </span>
         )}
       </div>
-      <p className="text-2xl font-semibold tracking-tight">{value}</p>
-      <p className="text-xs text-[#86868b] mt-1">{label}</p>
-      {subtitle && <p className="text-[10px] text-[#86868b]/70 mt-0.5">{subtitle}</p>}
+      <p className="text-2xl font-semibold tracking-tight" style={{ color: t.text }}>{value}</p>
+      <p className="text-xs mt-1" style={{ color: t.textSec }}>{label}</p>
+      {subtitle && <p className="text-[10px] mt-0.5" style={{ color: t.textTer }}>{subtitle}</p>}
     </div>
   );
 }

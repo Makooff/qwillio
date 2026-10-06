@@ -84,8 +84,8 @@ export default function Pricing() {
   useSEO({
     title: isFr ? 'Tarifs Qwillio' : 'Qwillio Pricing',
     description: isFr
-      ? 'Tarifs par minute, simples et transparents. Facturation à la minute, minutes incluses par plan. 7 jours d\'essai gratuit, sans engagement. Économisez 20 % en annuel.'
-      : 'Simple transparent per-minute pricing. Billed by the minute, minutes included per plan. 7-day free trial, no commitment. Save 20% on annual billing.',
+      ? 'Tarifs par minute, simples et transparents. Facturation à la minute, minutes incluses par plan. 7 jours d\'essai gratuit, sans engagement en mensuel. Économisez 20 % en annuel (engagement 12 mois).'
+      : 'Simple transparent per-minute pricing. Billed by the minute, minutes included per plan. 7-day free trial, no commitment on monthly. Save 20% on annual billing (12-month commitment).',
     canonical: 'https://qwillio.com/pricing',
   });
 
@@ -127,7 +127,9 @@ export default function Pricing() {
     {
       id: 'pro',
       name: 'Pro',
-      badge: isFr ? 'Le plus populaire' : 'Most popular',
+      /* Pas de badge « populaire » : nous n'avons pas de mesure publique qui
+         le justifie. Le positionnement est porté par les fonctions réelles
+         (CRM natif, analytiques avancées), pas par une étiquette de tri. */
       monthly: PLAN_MONTHLY_EUR.pro,
       minutes: PLAN_MINUTES.pro,
       overage: PLAN_OVERAGE_EUR.pro,
@@ -190,8 +192,8 @@ export default function Pricing() {
     : `A part-time human in Belgium: roughly ${fmt(humanMonthly)} EUR loaded per month (gross, social charges, meal vouchers, absence backup, turnover), for 20 hours a week, in a single language.`;
 
   const qwillioRow = isFr
-    ? `Qwillio Starter : ${fmt(qwillioMonthlyEur)} € par mois, 750 minutes incluses, facturation à la minute au-delà, français et anglais sur le même compte, 24 heures sur 24, 365 jours par an, sans arrêt et sans turnover.`
-    : `Qwillio Starter: ${fmt(qwillioMonthlyEur)} EUR a month, 750 included minutes, billed by the minute beyond that, French and English on the same account, 24 hours a day, 365 days a year, no downtime and no turnover.`;
+    ? `Qwillio Starter : ${fmt(qwillioMonthlyEur)} € par mois, 750 minutes incluses, facturation à la minute au-delà, français et anglais sur le même compte, 24 heures sur 24, 365 jours par an, sans turnover.`
+    : `Qwillio Starter: ${fmt(qwillioMonthlyEur)} EUR a month, 750 included minutes, billed by the minute beyond that, French and English on the same account, 24 hours a day, 365 days a year, no turnover.`;
 
   /* Mêmes lignes que la V1, regroupées pour permettre le repli par groupe.
      La ligne prix reste dérivée de priceFor() pour suivre le sélecteur. */
@@ -394,8 +396,8 @@ export default function Pricing() {
           <RevealV2 index={2}>
             <Lead className="max-w-[400px] q2-body-text">
               {isFr
-                ? `Une secrétaire à mi-temps coûte environ ${HUMAN_PART_TIME_MONTHLY.toLocaleString('fr-FR')} € par mois, charges comprises, et ne répond pas le samedi. Qwillio commence à 99 €.`
-                : `A part-time receptionist costs around €${HUMAN_PART_TIME_MONTHLY.toLocaleString('en-US')} a month all in, and does not answer on Saturday. Qwillio starts at €99.`}
+                ? `Choisissez votre forfait selon votre volume d’appels et les fonctions dont vous avez besoin. À partir de ${PLAN_MONTHLY_EUR.solo} € par mois, avec ${PLAN_MINUTES.solo} minutes incluses.`
+                : `Choose a plan based on your call volume and the features you need. From €${PLAN_MONTHLY_EUR.solo} per month, with ${PLAN_MINUTES.solo} minutes included.`}
             </Lead>
             <p className="text-q2-body text-[13px] leading-relaxed max-w-[400px] mt-4 q2-body-text">
               {isFr
@@ -622,7 +624,7 @@ export default function Pricing() {
             {compareGroups.map((group, gi) => (
               <RevealV2 key={group.label} index={gi}>
                 <details className="group border-b border-q2-plate" open={gi === 0}>
-                  <summary className="flex items-center justify-between gap-4 py-5 cursor-pointer list-none text-[15px] font-medium text-q2-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 rounded-md">
+                  <summary className="flex items-center justify-between gap-4 py-5 cursor-pointer list-none text-[15px] font-medium text-q2-ink focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 rounded-full">
                     {group.label}
                     <ChevronDown
                       size={16}
@@ -796,7 +798,7 @@ export default function Pricing() {
           </RevealV2>
           <RevealV2 index={1} className="flex flex-col items-start gap-5 lg:items-end pb-2">
             <p className="text-q2-fog text-[15px] leading-relaxed max-w-[320px] lg:text-right q2-body-text">
-              {isFr ? 'Sans engagement. 7 jours d’essai gratuit.' : 'No commitment. 7-day free trial.'}
+              {isFr ? 'Sans engagement en mensuel. 7 jours d’essai gratuit.' : 'No commitment on monthly. 7-day free trial.'}
             </p>
             <PillLink to="/register" variant="chromatic" size="lg">
               {isFr ? 'Créer un compte' : 'Create account'}

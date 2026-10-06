@@ -689,7 +689,7 @@ export default function ClientAccount() {
                       type="button"
                       onClick={handleUpdateProfile}
                       disabled={profileSaving}
-                      className="px-4 h-9 text-[12.5px] font-medium rounded-xl disabled:opacity-50 transition-colors"
+                      className="px-4 h-9 text-[12.5px] font-medium rounded-full disabled:opacity-50 transition-colors"
                       style={{ background: C.text, color: '#0B0B0D' }}
                     >
                       {profileSaving ? 'Enregistrement…' : 'Sauvegarder'}
@@ -734,7 +734,7 @@ export default function ClientAccount() {
                       type="button"
                       onClick={handleChangeEmail}
                       disabled={emailSaving || !newEmail.trim() || !emailPw}
-                      className="px-4 h-9 text-[12.5px] font-medium rounded-xl disabled:opacity-50 transition-colors"
+                      className="px-4 h-9 text-[12.5px] font-medium rounded-full disabled:opacity-50 transition-colors"
                       style={{ border: `1px solid ${C.border}`, color: C.text }}
                     >
                       {emailSaving ? 'Envoi…' : 'Envoyer le lien de confirmation'}
@@ -787,7 +787,7 @@ export default function ClientAccount() {
                       type="button"
                       onClick={handleChangePassword}
                       disabled={pwSaving || !currentPw || !newPw}
-                      className="px-4 h-9 text-[12.5px] font-medium rounded-xl disabled:opacity-50 transition-colors"
+                      className="px-4 h-9 text-[12.5px] font-medium rounded-full disabled:opacity-50 transition-colors"
                       style={{ background: C.text, color: '#0B0B0D' }}
                     >
                       {pwSaving ? 'Changement…' : 'Changer le mot de passe'}
@@ -812,7 +812,7 @@ export default function ClientAccount() {
                       type="button"
                       onClick={handleExport}
                       disabled={exporting}
-                      className="px-4 h-9 text-[12.5px] font-medium rounded-xl disabled:opacity-50 transition-colors"
+                      className="px-4 h-9 text-[12.5px] font-medium rounded-full disabled:opacity-50 transition-colors"
                       style={{ border: `1px solid ${C.border}`, color: C.text }}
                     >
                       {exporting ? 'Préparation…' : 'Télécharger mes données'}
@@ -835,7 +835,7 @@ export default function ClientAccount() {
                       <button
                         type="button"
                         onClick={() => setShowDelete(true)}
-                        className="px-4 h-9 text-[12.5px] font-medium rounded-xl transition-colors"
+                        className="px-4 h-9 text-[12.5px] font-medium rounded-full transition-colors"
                         style={{ border: `1px solid ${C.bad}40`, color: C.bad }}
                       >
                         Supprimer mon compte
@@ -863,7 +863,7 @@ export default function ClientAccount() {
                           <button
                             type="button"
                             onClick={() => { setShowDelete(false); setDeleteConfirm(''); setDeletePw(''); setDeleteError(''); }}
-                            className="px-4 h-9 text-[12.5px] font-medium rounded-xl transition-colors"
+                            className="px-4 h-9 text-[12.5px] font-medium rounded-full transition-colors"
                             style={{ border: `1px solid ${C.border}`, color: C.textSec }}
                           >
                             Annuler
@@ -876,7 +876,7 @@ export default function ClientAccount() {
                                serveur, celle-ci n'est là que pour éviter un
                                aller-retour inutile. */
                             disabled={deleting || !deleteConfirm.trim()}
-                            className="px-4 h-9 text-[12.5px] font-medium rounded-xl disabled:opacity-40 transition-colors text-white"
+                            className="px-4 h-9 text-[12.5px] font-medium rounded-full disabled:opacity-40 transition-colors text-white"
                             style={{ background: C.bad }}
                           >
                             {deleting ? 'Suppression…' : 'Supprimer définitivement'}
@@ -927,7 +927,7 @@ export default function ClientAccount() {
                                 .then(() => invalidateLive('/my-dashboard/'))
                                 .catch(() => setNotificationChannel(notificationChannel));
                             }}
-                            className="h-9 px-4 rounded-xl text-[12.5px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
+                            className="h-9 px-4 rounded-full text-[12.5px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-50"
                             style={active
                               ? { background: 'rgba(122,95,255,0.16)', color: '#b9a8ff' }
                               : { background: 'rgba(255,255,255,0.04)', color: C.textSec }}
@@ -978,7 +978,7 @@ export default function ClientAccount() {
                                   .then(() => invalidateLive('/my-dashboard/'))
                                   .catch(() => setLeadAlert(prev));
                               }}
-                              className="h-9 px-4 rounded-xl text-[12.5px] font-medium transition-colors"
+                              className="h-9 px-4 rounded-full text-[12.5px] font-medium transition-colors"
                               style={active
                                 ? { background: 'rgba(122,95,255,0.16)', color: '#b9a8ff' }
                                 : { background: 'rgba(255,255,255,0.04)', color: C.textSec }}
@@ -1087,7 +1087,7 @@ export default function ClientAccount() {
                   {bizError && <p className="text-[12px]" style={{ color: C.bad }}>{bizError}</p>}
                   <div className="flex items-center gap-3 pt-2">
                     <button type="button" onClick={saveBusiness} disabled={bizSaving}
-                      className="px-4 h-9 text-[12.5px] font-medium rounded-xl disabled:opacity-50 transition-colors"
+                      className="px-4 h-9 text-[12.5px] font-medium rounded-full disabled:opacity-50 transition-colors"
                       style={{ background: C.text, color: '#0B0B0D' }}>
                       {bizSaving ? 'Enregistrement…' : 'Sauvegarder'}
                     </button>
@@ -1143,7 +1143,7 @@ export default function ClientAccount() {
                   {bizError && <p className="text-[12px]" style={{ color: C.bad }}>{bizError}</p>}
                   <div className="flex items-center gap-3 pt-2">
                     <button type="button" onClick={saveBusiness} disabled={bizSaving}
-                      className="px-4 h-9 text-[12.5px] font-medium rounded-xl disabled:opacity-50 transition-colors"
+                      className="px-4 h-9 text-[12.5px] font-medium rounded-full disabled:opacity-50 transition-colors"
                       style={{ background: C.text, color: '#0B0B0D' }}>
                       {bizSaving ? 'Enregistrement…' : 'Sauvegarder'}
                     </button>
@@ -1192,7 +1192,7 @@ export default function ClientAccount() {
                       type="button"
                       onClick={importPreset}
                       disabled={kbBusy || !businessType}
-                      className="px-3.5 h-9 text-[12.5px] font-medium rounded-xl inline-flex items-center gap-2 disabled:opacity-40 transition-colors active:scale-[0.97]"
+                      className="px-3.5 h-9 text-[12.5px] font-medium rounded-full inline-flex items-center gap-2 disabled:opacity-40 transition-colors active:scale-[0.97]"
                       style={{ background: C.text, color: '#0B0B0D' }}
                     >
                       <Sparkles size={13} />
@@ -1202,7 +1202,7 @@ export default function ClientAccount() {
                       type="button"
                       onClick={() => { setDraft(emptyDraft()); setDraftOpen(v => !v); setKbError(''); }}
                       disabled={kbBusy || (knowledge?.length ?? 0) >= KNOWLEDGE_MAX_ENTRIES}
-                      className="px-3.5 h-9 text-[12.5px] font-medium rounded-xl border inline-flex items-center gap-2 disabled:opacity-40 transition-colors active:scale-[0.97]"
+                      className="px-3.5 h-9 text-[12.5px] font-medium rounded-full border inline-flex items-center gap-2 disabled:opacity-40 transition-colors active:scale-[0.97]"
                       style={{ borderColor: C.border, color: C.text }}
                     >
                       <Plus size={13} />
@@ -1289,14 +1289,14 @@ export default function ClientAccount() {
                         <div className="flex items-center gap-2 pt-1">
                           <button
                             type="button" onClick={submitDraft} disabled={kbBusy}
-                            className="px-4 h-9 text-[12.5px] font-medium rounded-xl disabled:opacity-50 transition-colors active:scale-[0.97]"
+                            className="px-4 h-9 text-[12.5px] font-medium rounded-full disabled:opacity-50 transition-colors active:scale-[0.97]"
                             style={{ background: C.text, color: '#0B0B0D' }}
                           >
                             {kbBusy ? 'Enregistrement…' : draft.id ? 'Mettre à jour' : 'Ajouter'}
                           </button>
                           <button
                             type="button" onClick={() => { setDraftOpen(false); setDraft(emptyDraft()); setKbError(''); }}
-                            className="px-4 h-9 text-[12.5px] font-medium rounded-xl border transition-colors active:scale-[0.97]"
+                            className="px-4 h-9 text-[12.5px] font-medium rounded-full border transition-colors active:scale-[0.97]"
                             style={{ borderColor: C.border, color: C.textSec }}
                           >
                             Annuler
@@ -1462,7 +1462,7 @@ export default function ClientAccount() {
                           type="button"
                           onClick={() => { setRetentionDays(p.days); void saveRetention(p.days); }}
                           disabled={retentionSaving}
-                          className="px-3.5 h-9 text-[12.5px] font-medium rounded-xl border disabled:opacity-50 transition-colors active:scale-[0.97]"
+                          className="px-3.5 h-9 text-[12.5px] font-medium rounded-full border disabled:opacity-50 transition-colors active:scale-[0.97]"
                           style={{
                             borderColor: active ? C.accent : C.border,
                             background: active ? 'rgba(115,73,254,0.14)' : 'transparent',
@@ -1493,7 +1493,7 @@ export default function ClientAccount() {
                       type="button"
                       onClick={() => saveRetention(retentionDays ?? retentionDefault)}
                       disabled={retentionSaving}
-                      className="px-4 h-9 text-[12.5px] font-medium rounded-xl disabled:opacity-50 transition-colors active:scale-[0.97]"
+                      className="px-4 h-9 text-[12.5px] font-medium rounded-full disabled:opacity-50 transition-colors active:scale-[0.97]"
                       style={{ background: C.text, color: '#0B0B0D' }}
                     >
                       {retentionSaving ? 'Enregistrement…' : 'Appliquer'}

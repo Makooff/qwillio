@@ -88,10 +88,10 @@ export default function AgentEmail() {
           </div>
           <button
             onClick={() => setGmailConnected(c => !c)}
-            className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
+            className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${
               gmailConnected
                 ? 'bg-[#f5f5f7] text-[#86868b] hover:bg-red-50 hover:text-red-600 border border-[#d2d2d7]/60'
-                : 'bg-[#7349fe] text-white hover:bg-[#7349fe]'
+                : 'bg-transparent text-[#8a6fff] border border-[#8a6fff] hover:bg-[#f5f5f7]'
             }`}
           >
             {gmailConnected ? 'Disconnect' : 'Connect Gmail'}
@@ -109,10 +109,10 @@ export default function AgentEmail() {
           </div>
           <button
             onClick={() => setOutlookConnected(c => !c)}
-            className={`px-4 py-2 text-sm font-medium rounded-xl transition-colors ${
+            className={`px-4 py-2 text-sm font-medium rounded-full transition-colors ${
               outlookConnected
                 ? 'bg-[#f5f5f7] text-[#86868b] hover:bg-red-50 hover:text-red-600 border border-[#d2d2d7]/60'
-                : 'bg-[#7349fe] text-white hover:bg-[#7349fe]'
+                : 'bg-transparent text-[#8a6fff] border border-[#8a6fff] hover:bg-[#f5f5f7]'
             }`}
           >
             {outlookConnected ? 'Disconnect' : 'Connect Outlook'}
@@ -212,10 +212,10 @@ export default function AgentEmail() {
                 </div>
                 <p className="text-sm text-[#86868b] mb-3">{selectedEmail.preview}</p>
                 <div className="flex gap-2">
-                  <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-[#7349fe] text-white rounded-lg hover:bg-[#7349fe] transition-colors">
+                  <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-transparent text-[#8a6fff] border border-[#8a6fff] rounded-full hover:bg-[#f5f5f7] transition-colors">
                     <Send size={11} /> Send Reply
                   </button>
-                  <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white text-[#1d1d1f] rounded-lg border border-[#d2d2d7]/60 hover:bg-[#f5f5f7] transition-colors">
+                  <button className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-white text-[#1d1d1f] rounded-full border border-[#d2d2d7]/60 hover:bg-[#f5f5f7] transition-colors">
                     Mark Reviewed
                   </button>
                 </div>
@@ -312,7 +312,7 @@ export default function AgentEmail() {
             <h3 className="text-sm font-semibold">Reply Templates</h3>
             <p className="text-xs text-[#86868b] mt-0.5">AI uses these to auto-respond</p>
           </div>
-          <button className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-xl bg-[#f5f5f7] text-[#1d1d1f] hover:bg-[#e8e8ed] border border-[#d2d2d7]/60 transition-colors">
+          <button className="inline-flex items-center gap-1.5 px-3 py-2 text-xs font-medium rounded-full bg-[#f5f5f7] text-[#1d1d1f] hover:bg-[#e8e8ed] border border-[#d2d2d7]/60 transition-colors">
             <Plus size={13} /> New Template
           </button>
         </div>
@@ -350,8 +350,8 @@ export default function AgentEmail() {
                 defaultValue={TEMPLATES.find(t => t.id === editingTemplate)?.preview}
               />
               <div className="flex gap-2 mt-3">
-                <button className="px-4 py-2 text-xs font-medium bg-[#7349fe] text-white rounded-lg hover:bg-[#7349fe] transition-colors">Save</button>
-                <button onClick={() => setEditingTemplate(null)} className="px-4 py-2 text-xs font-medium bg-white text-[#86868b] rounded-lg border border-[#d2d2d7]/60 hover:bg-[#f5f5f7] transition-colors">Cancel</button>
+                <button className="px-4 py-2 text-xs font-medium bg-transparent text-[#8a6fff] border border-[#8a6fff] rounded-full hover:bg-white transition-colors">Save</button>
+                <button onClick={() => setEditingTemplate(null)} className="px-4 py-2 text-xs font-medium bg-white text-[#86868b] rounded-full border border-[#d2d2d7]/60 hover:bg-[#f5f5f7] transition-colors">Cancel</button>
               </div>
             </motion.div>
           )}

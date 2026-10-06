@@ -205,8 +205,8 @@ export default function ComparisonPage() {
           <RevealV2 index={1} className="flex flex-col items-start gap-5 lg:items-end pb-1">
             <p className="text-q2-fog text-[15px] leading-relaxed max-w-[340px] lg:text-right q2-body-text">
               {isFr
-                ? '7 jours d’essai gratuit. Sans engagement. Comparez par vous-même sur vos vrais appels.'
-                : '7-day free trial. No commitment. Compare on your own real calls.'}
+                ? '7 jours d’essai gratuit. Sans engagement en mensuel. Comparez par vous-même sur vos vrais appels.'
+                : '7-day free trial. No commitment on monthly. Compare on your own real calls.'}
             </p>
             <PillLink to="/register" variant="chromatic" size="lg">
               {isFr ? 'Créer un compte' : 'Create account'}

@@ -24,13 +24,15 @@ export default function Partenaires() {
 const COMMISSION_PCT = 20;
 const COMMISSION_RATIO = COMMISSION_PCT / 100;
 
-useSEO({
+  useSEO({
     title: isFr
       ? 'Programme partenaire fiduciaire · Qwillio'
       : 'Accountancy partner program · Qwillio',
+    /* Template literal, pas une chaîne à $: sans backticks, la description
+       meta affichait littéralement « ${COMMISSION_PCT} » aux moteurs. */
     description: isFr
-      ? 'Fiduciaires belges et françaises : touchez ${COMMISSION_PCT} % de commission récurrente sur chaque client Qwillio recommandé, tant qu\'il reste abonné. Contrat 1 page, sans exclusivité, sans engagement de volume.'
-      : 'Belgian and French accountancy firms: earn a recurring ${COMMISSION_PCT}% commission on every Qwillio customer you refer, for as long as they stay subscribed. One-page contract, no exclusivity, no volume commitment.',
+      ? `Fiduciaires belges et françaises : touchez ${COMMISSION_PCT} % de commission récurrente sur chaque client Qwillio recommandé, tant qu'il reste abonné. Contrat 1 page, sans exclusivité, sans engagement de volume.`
+      : `Belgian and French accountancy firms: earn a recurring ${COMMISSION_PCT}% commission on every Qwillio customer you refer, for as long as they stay subscribed. One-page contract, no exclusivity, no volume commitment.`,
     canonical: 'https://qwillio.com/partenaires-fiduciaires',
   });
 
@@ -140,8 +142,8 @@ useSEO({
           <RevealV2 index={1}>
             <Lead className="max-w-[440px] pb-3 q2-body-text">
               {isFr
-                ? 'Chaque client fiduciaire que vous recommandez à Qwillio vous rapporte ${COMMISSION_PCT} % du prix mensuel HT, versés tous les mois tant qu\'il reste abonné. Aucun engagement de volume, aucune exclusivité.'
-                : 'Every accountancy customer you refer to Qwillio earns you ${COMMISSION_PCT}% of the monthly ex-VAT price, paid every month for as long as they stay subscribed. No volume commitment, no exclusivity.'}
+                ? `Chaque client fiduciaire que vous recommandez à Qwillio vous rapporte ${COMMISSION_PCT} % du prix mensuel HT, versés tous les mois tant qu'il reste abonné. Aucun engagement de volume, aucune exclusivité.`
+                : `Every accountancy customer you refer to Qwillio earns you ${COMMISSION_PCT}% of the monthly ex-VAT price, paid every month for as long as they stay subscribed. No volume commitment, no exclusivity.`}
             </Lead>
           </RevealV2>
         </Container>

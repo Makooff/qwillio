@@ -75,6 +75,15 @@ export class EmailService {
         headers: { 'List-Unsubscribe': `<${this.getUnsubscribeUrl(data.to)}>` },
         tags: data.tags,
       });
+      /* Resend ne lève pas sur un refus HTTP: elle le rend dans `error`.
+         Le prendre pour un succès annonçait « envoyé » pour un e-mail qui ne
+         partait jamais — le succès fictif du support. On lève une erreur
+         SANITISÉE: le message brut du fournisseur peut nommer la clé API, et
+         il ne doit pas franchir la frontière de la route. */
+      if (result.error) {
+        logger.error(`ad-hoc email to ${data.to} rejected by provider: ${result.error.name ?? 'unknown'}`);
+        throw new Error('email_send_failed');
+      }
       logger.info(`ad-hoc email sent to ${data.to} (ID: ${result.data?.id})`);
       return { ok: true, id: result.data?.id };
     } catch (err) {

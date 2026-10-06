@@ -103,7 +103,7 @@ export default function ClientSetupForwarding() {
     <div className="max-w-xl mx-auto pb-16">
       {/* Top bar */}
       <div className="flex items-center gap-2 mb-6">
-        <button onClick={() => navigate(-1)} className="p-1.5 rounded-lg hover:bg-white/[0.06] text-[#9A9AA5]">
+        <button onClick={() => navigate(-1)} className="p-1.5 rounded-full hover:bg-white/[0.06] text-[#9A9AA5]">
           <ChevronLeft size={18} />
         </button>
         <h1 className="text-[17px] font-semibold tracking-tight text-[#F2F2F2]">Renvoi d'appel</h1>

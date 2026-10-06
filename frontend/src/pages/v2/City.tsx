@@ -51,9 +51,9 @@ const CITIES: Record<string, City> = {
     nameEn: 'Liège',
     region: 'Wallonia, Belgium',
     introFr:
-      "À Liège, garages, cabinets et commerces de proximité manquent un quart de leurs appels. Qwillio répond, qualifie et pose les rendez-vous dans votre agenda, sans embaucher.",
+      "À Liège, garages, cabinets et commerces de proximité manquent une part importante de leurs appels. Qwillio répond, qualifie et pose les rendez-vous dans votre agenda, sans embaucher.",
     introEn:
-      'In Liège, garages, practices and local shops miss a quarter of their calls. Qwillio answers, qualifies and books appointments into your calendar, without hiring.',
+      'In Liège, garages, practices and local shops miss a significant share of their calls. Qwillio answers, qualifies and books appointments into your calendar, without hiring.',
   },
   anvers: {
     slug: 'anvers',

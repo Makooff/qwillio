@@ -58,7 +58,7 @@ export default function FooterV2() {
           <div>
             <Link
               to="/"
-              className="inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 mb-3 sm:mb-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 focus-visible:ring-offset-2 rounded-md"
+              className="inline-flex items-center gap-2 min-h-[44px] sm:min-h-0 mb-3 sm:mb-5 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 focus-visible:ring-offset-2 rounded-full"
             >
               <QwillioLogo size={26} />
               <span className="text-[15px] font-semibold tracking-tight text-q2-ink">Qwillio</span>

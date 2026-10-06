@@ -691,8 +691,8 @@ export default function AdminLeads() {
             <div className="flex items-center gap-2 pt-2">
               {telHref(brief.phone) && (
                 <a href={telHref(brief.phone)!}
-                   className="inline-flex items-center gap-2 h-9 px-4 rounded-xl text-[13px] font-medium"
-                   style={{ background: pro.accent, color: '#fff' }}>
+                   className="inline-flex items-center gap-2 h-9 px-4 rounded-full text-[13px] font-medium"
+                   style={{ background: 'transparent', color: pro.accentHi, border: `1px solid ${pro.accentHi}` }}>
                   <Phone size={13} /> Appeler
                 </a>
               )}

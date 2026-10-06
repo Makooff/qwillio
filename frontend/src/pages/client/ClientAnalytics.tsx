@@ -137,13 +137,13 @@ export default function ClientAnalytics() {
         </p>
         <div className="flex gap-3">
           {isNoProfile && (
-            <a href="/dashboard/support" className="px-5 py-2.5 text-sm font-medium text-white bg-[#7349fe] rounded-xl hover:bg-[#8a6fff] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8a6fff]">
+            <a href="/dashboard/support" className="px-5 py-2.5 text-sm font-medium text-[#8a6fff] bg-transparent border border-[#8a6fff] rounded-full hover:bg-white/[0.06] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8a6fff]">
               Contacter le support
             </a>
           )}
           <button
             onClick={fetchData}
-            className="px-5 py-2.5 text-sm font-medium text-white/60 bg-white/[0.06] rounded-xl hover:bg-white/[0.10] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8a6fff]"
+            className="px-5 py-2.5 text-sm font-medium text-white/60 bg-white/[0.06] rounded-full hover:bg-white/[0.10] transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8a6fff]"
           >
             Réessayer
           </button>
@@ -222,8 +222,9 @@ export default function ClientAnalytics() {
               <button
                 key={d}
                 onClick={() => setPeriod(d)}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8a6fff] ${
-                  period === d ? 'bg-[#7349fe] text-white' : 'text-white/50 hover:text-white/80'
+                aria-pressed={period === d}
+                className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors border focus:outline-none focus-visible:ring-2 focus-visible:ring-[#8a6fff] ${
+                  period === d ? 'bg-white/[0.08] text-[#F5F5F7] border-[#8a6fff]' : 'text-white/50 border-transparent hover:text-white/80'
                 }`}
               >
                 {d}j

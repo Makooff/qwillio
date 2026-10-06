@@ -382,7 +382,7 @@ export default function DashboardShell(props: DashboardShellProps) {
               className="md:hidden fixed inset-0 z-40 bg-black/60 backdrop-blur-sm"
               onClick={() => setMobileOpen(false)}
             />
-            <motion.aside
+            <motion.aside id="dashboard-mobile-sidebar"
               initial={{ x: -240 }} animate={{ x: 0 }} exit={{ x: -240 }}
               transition={{ type: 'spring', stiffness: 300, damping: 30 }}
               className="sidebar-surface md:hidden fixed left-0 top-0 bottom-0 z-50 w-[240px] px-4 pt-5 pb-28"
@@ -486,8 +486,12 @@ export default function DashboardShell(props: DashboardShellProps) {
               élément positionné, donc peint au-dessus du contenu en flux. Sans
               ça, la grille, le titre et l'avatar passeraient dessous. */}
           <button
-            onClick={() => setMobileOpen(true)}
-            className="md:hidden relative"
+            onClick={() => setMobileOpen(open => !open)}
+                        type="button"
+                        aria-label={mobileOpen ? 'Fermer le menu' : 'Ouvrir le menu'}
+                        aria-expanded={mobileOpen}
+                        aria-controls="dashboard-mobile-sidebar"
+                        className="md:hidden relative"
             style={{ color: t.textSec }}
           >
             <LayoutDashboard className="w-5 h-5" />

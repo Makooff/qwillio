@@ -7,6 +7,7 @@ import { Container, Section, Eyebrow, Display, H2, Lead, SerifWord } from '../..
 import { PillLink } from '../../components/v2/Button';
 import RevealV2 from '../../components/v2/RevealV2';
 import FaqAccordion, { type FaqEntry } from '../../components/v2/FaqAccordion';
+import { PLAN_MONTHLY_EUR } from './pricing-plans';
 
 /* Page secteur V2. Le dictionnaire SECTORS, les prix, la prop `secteur` et la
    redirection secteur inconnu vers la home sont ceux de la V1, inchanges.
@@ -80,9 +81,9 @@ const SECTORS: Record<string, Sector> = {
     headlineFr: 'La réceptionniste IA qui prend les urgences plomberie 24/7',
     headlineEn: 'The AI receptionist that takes plumbing emergencies 24/7',
     painFr:
-      "Vous êtes bras dans les canalisations, votre téléphone sonne, personne ne décroche. En 60 secondes, votre client compose le concurrent. 5 appels ratés par semaine, c'est 15 000 € de CA qui part chaque année.",
+      "Vous êtes bras dans les canalisations, votre téléphone sonne, personne ne décroche. En 60 secondes, votre client compose le concurrent. 5 appels ratés par semaine peuvent représenter plusieurs milliers d'euros de chiffre qui part chaque année.",
     painEn:
-      'You are hands-deep in a pipe, your phone rings, no one picks up. In 60 seconds your customer calls the next plumber on the list. 5 missed calls a week is €15,000 in lost revenue a year.',
+      'You are hands-deep in a pipe, your phone rings, no one picks up. In 60 seconds your customer calls the next plumber on the list. 5 missed calls a week can add up to thousands of euros in lost revenue a year.',
     scenarioFr:
       "Chaudière qui lâche un dimanche soir. Qwillio décroche, prend l'adresse, propose un créneau d'urgence, vous envoie le rendez-vous par SMS et pose la ligne dans votre agenda.",
     scenarioEn:
@@ -189,9 +190,9 @@ const SECTORS: Record<string, Sector> = {
     headlineFr: 'La réceptionniste IA qui prend les RDV atelier pendant que vous réparez',
     headlineEn: 'The AI receptionist that books workshop slots while you are under a car',
     painFr:
-      "Vous êtes sous un capot, le téléphone sonne, personne ne décroche. Le client appelle le garage d'à côté. 4 appels ratés par semaine, c'est des dizaines de milliers d'euros de révisions et pneus perdus par an.",
+      "Vous êtes sous un capot, le téléphone sonne, personne ne décroche. Le client appelle le garage d'à côté. 4 appels ratés par semaine peuvent coûter des milliers d'euros de révisions et pneus perdus chaque année.",
     painEn:
-      'You are under a hood, the phone rings, no one answers. The customer calls the garage next door. 4 missed calls a week is tens of thousands in lost services and tyres a year.',
+      'You are under a hood, the phone rings, no one answers. The customer calls the garage next door. 4 missed calls a week can cost thousands in lost services and tyres a year.',
     scenarioFr:
       "Un client veut un devis freins. Qwillio prend la marque, le modèle, le kilométrage, propose un créneau atelier, envoie la confirmation par SMS et pose le RDV dans votre planning.",
     scenarioEn:
@@ -400,10 +401,13 @@ const SECTORS: Record<string, Sector> = {
   },
 };
 
+/* Recopiés de `PLAN_MONTHLY_EUR` (`pricing-plans.ts`), la source unique des
+   prix: garder une copie locale par page est le défaut qui a fait dériver la
+   page Partenaires (149 € / 470 € annoncés au lieu des vrais tarifs). */
 const PLAN_PRICES: Record<Sector['plan'], { eur: number; usd?: number; labelFr: string; labelEn: string }> = {
-  solo: { eur: 99, labelFr: 'Solo', labelEn: 'Solo' },
-  starter: { eur: 249, labelFr: 'Starter', labelEn: 'Starter' },
-  pro: { eur: 599, labelFr: 'Pro', labelEn: 'Pro' },
+  solo: { eur: PLAN_MONTHLY_EUR.solo, labelFr: 'Solo', labelEn: 'Solo' },
+  starter: { eur: PLAN_MONTHLY_EUR.starter, labelFr: 'Starter', labelEn: 'Starter' },
+  pro: { eur: PLAN_MONTHLY_EUR.pro, labelFr: 'Pro', labelEn: 'Pro' },
 };
 
 /* Reprises telles quelles de la FAQ produit, aucune promesse nouvelle. */
@@ -418,7 +422,7 @@ const OBJECTIONS_FR: FaqEntry[] = [
   },
   {
     q: 'Puis-je résilier facilement\u00A0?',
-    a: "Oui. Tous les plans sont sans engagement, résiliables au mois en un clic depuis votre tableau de bord.",
+    a: "Oui. En mensuel, aucun engagement : résiliez en un clic depuis votre tableau de bord. En annuel, vous vous engagez sur 12 mois en échange de la remise de 20 %.",
   },
 ];
 
@@ -433,7 +437,7 @@ const OBJECTIONS_EN: FaqEntry[] = [
   },
   {
     q: 'Can I cancel easily?',
-    a: 'Yes. All plans are commitment-free, cancellable monthly in one click from your dashboard.',
+    a: 'Yes. On monthly billing, no commitment: cancel in one click from your dashboard. On annual, you commit for 12 months in exchange for the 20% discount.',
   },
 ];
 
@@ -664,8 +668,8 @@ export default function Vertical({ secteur: secteurProp }: { secteur?: string } 
           <RevealV2 index={1} className="flex flex-col items-start gap-5 lg:items-end pb-1">
             <p className="text-q2-fog text-[15px] leading-relaxed max-w-[320px] lg:text-right q2-body-text">
               {isFr
-                ? '15 minutes de setup. Résiliable en un clic. Aucun engagement.'
-                : '15 minutes to set up. Cancel in one click. No commitment.'}
+                ? '15 minutes de setup. Sans engagement en mensuel, annulez en un clic.'
+                : '15 minutes to set up. No commitment on monthly, cancel in one click.'}
             </p>
             <div className="flex flex-wrap gap-3 lg:justify-end">
               <PillLink to="/register" variant="chromatic" size="lg">

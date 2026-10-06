@@ -5,6 +5,7 @@ import { useAuthStore } from '../../../stores/authStore';
 import { useSEO } from '../../../hooks/useSEO';
 import api from '../../../services/api';
 import { captureBillingPeriod } from '../../../lib/billingPeriod';
+import { captureSignupPlan } from '../../../lib/signupSelection';
 import AuthShell, {
   AuthDivider,
   GoogleAuthV2,
@@ -27,10 +28,14 @@ type Step = 'form' | 'activation';
 export default function Register() {
   useSEO({ title: 'Créer un compte · Qwillio', noindex: true });
 
-  /* La page tarifs arrive ici avec ?billing=annual. On la range tout de suite:
-     la confirmation d'adresse passe entre cet écran et le paiement, et l'URL
-     ne survit pas au trajet. */
-  useEffect(() => captureBillingPeriod(window.location.search), []);
+  /* La page tarifs arrive ici avec ?billing=annual&plan=starter. On range
+     tout de suite les deux: la confirmation d'adresse passe entre cet écran
+     et le paiement, et l'URL ne survit pas au trajet. Le `sessionStorage`
+     survit, lui, y compris au retour du flux Google dans le même onglet. */
+  useEffect(() => {
+    captureBillingPeriod(window.location.search);
+    captureSignupPlan(window.location.search);
+  }, []);
 
   const [step, setStep] = useState<Step>('form');
   const [email, setEmail] = useState('');

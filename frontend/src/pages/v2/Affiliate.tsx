@@ -54,45 +54,45 @@ export default function Affiliate() {
       num: '03',
       tone: 'indigo',
       icon: Wallet,
-      title: isFr ? 'Encaissez' : 'Cash in',
+      title: isFr ? 'Gagnez' : 'Earn',
+      /* Le backend n'automatise aucun versement (Prisma: les commissions sont
+         ENREGISTRÉES, « no payout is automated »): dire « encaissez chaque
+         mois » promettait un paiement mensuel qui n'existe pas. Ce qui est
+         vrai : les commissions se cumulent à chaque facture payée, et le
+         versement se fait par virement, sur demande. */
       desc: isFr
-        ? '30 % de chaque facture payée par vos filleuls, à vie, comptabilisé automatiquement.'
-        : 'Monthly payout. 30% of recurring revenue from every referred customer, for life.',
+        ? '30 % de chaque facture payée par vos filleuls, à vie, cumulé automatiquement. Versement par virement, sur demande.'
+        : '30% of every invoice your referrals pay, for life, accrued automatically. Payout by bank transfer, on request.',
     },
   ];
 
   const faqs: FaqEntry[] = isFr
     ? [
-        { q: 'Quel est le taux de commission ?', a: '30% du MRR de chaque client recommandé, versé chaque mois tant que le client reste actif. Pas de plafond, pas de dégressivité.' },
+        { q: 'Quel est le taux de commission ?', a: '30% du MRR de chaque client recommandé, cumulé chaque mois tant que le client reste actif. Pas de plafond, pas de dégressivité.' },
         { q: 'Comment suis-je payé ?', a: 'Vos commissions s\'accumulent automatiquement dès qu\'un filleul paie une facture, et sont visibles en temps réel dans votre espace affilié. Le versement se fait par virement, sur demande.' },
         { q: 'Y a-t-il un cookie de tracking ?', a: 'Oui, 90 jours. Si un prospect clique sur votre lien puis souscrit dans les 90 jours, la commission vous revient.' },
         { q: 'Puis-je faire de l\'affiliation et être client ?', a: 'Bien sûr. Beaucoup de nos meilleurs affiliés sont des clients qui recommandent l\'outil qu\'ils utilisent eux-mêmes.' },
       ]
     : [
-        { q: 'What is the commission rate?', a: '30% of recurring revenue from each referred customer, paid monthly for as long as they stay active. No cap, no decay.' },
+        { q: 'What is the commission rate?', a: '30% of recurring revenue from each referred customer, accrued every month for as long as they stay active. No cap, no decay.' },
         { q: 'How am I paid?', a: 'Commissions accrue automatically as soon as a referral pays an invoice, and show live in your affiliate dashboard. Payout is by bank transfer, on request.' },
         { q: 'Is there a tracking cookie?', a: 'Yes, 90 days. If a prospect clicks your link and subscribes within 90 days, the commission goes to you.' },
         { q: 'Can I be both an affiliate and a customer?', a: 'Of course. Many of our best affiliates are customers who recommend the tool they use themselves.' },
       ];
 
+  /* Un taux unique. Le backend ne connaît aucun palier : chaque affilié a un
+     `commissionPct` (0,30 par défaut, « the code and the rate are not »
+     modifiables via l'API) et aucune logique Gold/Platinum n'existe côté
+     serveur. Afficher 35 % / 40 % promettait un taux qui n'aurait jamais été
+     versé — le même défaut que la page Partenaires corrigé le 02/10. */
   const tiers = [
     {
-      name: isFr ? 'Standard' : 'Standard',
-      desc: isFr ? '1 à 9 clients actifs' : '1 to 9 active customers',
+      name: isFr ? 'Tous les affiliés' : 'Every affiliate',
+      desc: isFr
+        ? 'Dès le premier client actif. Pas de palier, pas de minimum de volume.'
+        : 'From the very first active customer. No tier, no volume minimum.',
       rate: '30%',
-      popular: false,
-    },
-    {
-      name: 'Gold',
-      desc: isFr ? '10 à 49 clients actifs' : '10 to 49 active customers',
-      rate: '35%',
       popular: true,
-    },
-    {
-      name: 'Platinum',
-      desc: isFr ? '50+ clients actifs' : '50+ active customers',
-      rate: '40%',
-      popular: false,
     },
   ];
 
@@ -124,8 +124,8 @@ export default function Affiliate() {
           <RevealV2 index={1}>
             <Lead className="max-w-[460px] pb-3 q2-body-text">
               {isFr
-                ? 'Pas de plafond. Pas de dégressivité. Pas de minimum mensuel. Recommandez Qwillio, encaissez chaque mois.'
-                : 'No cap. No decay. No monthly minimum. Recommend Qwillio, get paid every month.'}
+                ? 'Pas de plafond. Pas de dégressivité. Pas de minimum mensuel. Recommandez Qwillio, vos commissions s\'accumulent chaque mois.'
+                : 'No cap. No decay. No monthly minimum. Recommend Qwillio, your commissions accrue every month.'}
             </Lead>
           </RevealV2>
         </Container>
@@ -186,11 +186,11 @@ export default function Affiliate() {
             <H2 id="tiers-heading" onDark className="max-w-[640px]">
               {isFr ? (
                 <>
-                  Plus vous recommandez, <SerifWord>plus vous touchez.</SerifWord>
+                  Un taux unique. <SerifWord>Sans palier.</SerifWord>
                 </>
               ) : (
                 <>
-                  The more you refer, <SerifWord>the more you earn.</SerifWord>
+                  One flat rate. <SerifWord>No tiers.</SerifWord>
                 </>
               )}
             </H2>
@@ -239,15 +239,15 @@ export default function Affiliate() {
             <Display as="h2" onDark>
               {isFr ? (
                 <>
-                  Prêt à toucher
+                  Prêt à recommander
                   <br />
-                  <SerifWord>chaque mois&nbsp;?</SerifWord>
+                  <SerifWord>Qwillio&nbsp;?</SerifWord>
                 </>
               ) : (
                 <>
-                  Ready to get paid
+                  Ready to refer
                   <br />
-                  <SerifWord>every month?</SerifWord>
+                  <SerifWord>Qwillio?</SerifWord>
                 </>
               )}
             </Display>

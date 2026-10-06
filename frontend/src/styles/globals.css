@@ -130,17 +130,22 @@ body {
 
 /* ─── Dashboard Components ─── */
 @layer components {
+  /* L'action principale V1 suit la décision 2026-10: pas de fond mauve,
+     contour mauve + texte mauve clair (#8a6fff, AA sur fond sombre), et
+     gélule comme toutes les commandes. Le survol lave en neutre, jamais
+     en mauve. */
   .btn-primary {
-    @apply px-6 py-2.5 rounded-lg font-semibold;
-    background: #7349fe;
-    color: oklch(98% 0 0);
+    @apply px-6 py-2.5 rounded-full font-semibold;
+    background: transparent;
+    border: 1px solid #8a6fff;
+    color: #8a6fff;
     transition: background-color 160ms var(--ease-out), transform 120ms var(--ease-out);
   }
-  .btn-primary:hover  { background: #8a6fff; }
+  .btn-primary:hover  { background: rgba(255, 255, 255, 0.06); }
   .btn-primary:active { transform: scale(0.97); }
 
   .btn-secondary {
-    @apply px-6 py-2.5 rounded-lg font-semibold;
+    @apply px-6 py-2.5 rounded-full font-semibold;
     background: oklch(15% 0 0);
     color: oklch(95% 0 0);
     border: 1px solid oklch(22% 0 0 / 0.55);
@@ -149,7 +154,7 @@ body {
   .btn-secondary:active { transform: scale(0.97); }
 
   .btn-danger {
-    @apply px-6 py-2.5 rounded-lg font-semibold;
+    @apply px-6 py-2.5 rounded-full font-semibold;
     background: oklch(65% 0.22 25);
     color: oklch(98% 0 0);
     transition: background-color 160ms var(--ease-out), transform 120ms var(--ease-out);
@@ -157,7 +162,7 @@ body {
   .btn-danger:active { transform: scale(0.97); }
 
   .btn-success {
-    @apply px-6 py-2.5 rounded-lg font-semibold;
+    @apply px-6 py-2.5 rounded-full font-semibold;
     background: oklch(72% 0.18 145);
     color: oklch(8% 0 0);
     transition: background-color 160ms var(--ease-out), transform 120ms var(--ease-out);

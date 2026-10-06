@@ -103,8 +103,9 @@ export default function CrmActivities() {
         <button
           type="button"
           onClick={() => setTypeFilter('')}
+          aria-pressed={typeFilter === ''}
           className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors ${
-            typeFilter === '' ? 'bg-[#7349fe] text-white border-[#7349fe]' : 'bg-white/[0.04] border-white/[0.07] text-[#A1A1A8] hover:bg-white/[0.08]'
+            typeFilter === '' ? 'bg-white/[0.08] text-[#F5F5F7] border-[#8a6fff]' : 'bg-white/[0.04] border-white/[0.07] text-[#A1A1A8] hover:bg-white/[0.08]'
           }`}
         >
           Tout ({activities.length})
@@ -117,6 +118,7 @@ export default function CrmActivities() {
               key={t}
               type="button"
               onClick={() => setTypeFilter(t)}
+              aria-pressed={typeFilter === t}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium border transition-colors ${
                 typeFilter === t ? `${cfg.bg} ${cfg.text} border-current` : 'bg-white/[0.04] border-white/[0.07] text-[#A1A1A8] hover:bg-white/[0.08]'
               }`}

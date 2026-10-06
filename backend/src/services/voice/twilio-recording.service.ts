@@ -56,18 +56,22 @@ function hoteMedia(): string {
 /**
  * Les identifiants qui ouvrent une URL de média, en Basic.
  *
- * La clé API régionale d'abord: c'est elle qui a créé l'enregistrement, donc
- * elle qui y a droit sans question de région. Le jeton du compte reste en
- * repli pour une installation sans région.
+ * A2: le média est servi par `api.twilio.com`, l'hôte du compte — c'est ce
+ * que dit `hoteMedia()` et c'est ce que fait `twilioAccountClient`. L'auth
+ * qui y a droit est donc celle du COMPTE (sid + token), exactement comme le
+ * client qui crée et relit l'enregistrement. La clé API régionale reste en
+ * repli pour une installation où le compte ne serait pas configuré: elle
+ * répond 403 sur l'hôte du compte, et ce 403 se lisait au portail comme un
+ * 502 « enregistrement indisponible ».
  */
 export function enteteAuthTwilio(): string | null {
+  if (env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN) {
+    return 'Basic ' + Buffer.from(`${env.TWILIO_ACCOUNT_SID}:${env.TWILIO_AUTH_TOKEN}`).toString('base64');
+  }
   const keySid = env.TWILIO_TRUNK_KEY_SID.trim();
   const keySecret = env.TWILIO_TRUNK_KEY_SECRET.trim();
   if (keySid && keySecret) {
     return 'Basic ' + Buffer.from(`${keySid}:${keySecret}`).toString('base64');
-  }
-  if (env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN) {
-    return 'Basic ' + Buffer.from(`${env.TWILIO_ACCOUNT_SID}:${env.TWILIO_AUTH_TOKEN}`).toString('base64');
   }
   return null;
 }

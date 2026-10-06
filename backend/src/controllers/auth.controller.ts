@@ -440,6 +440,22 @@ export class AuthController {
          le forfait l'inclut déjà ou qu'elle n'est pas vendable, et c'est ce
          qu'il a MIS dans la caisse qui décide du droit, pas cette case. */
       const withSuperagent = req.body?.superagent === true;
+      /* Le pays est un CHOIX du formulaire de souscription (Belgique ou
+         France, les deux marchés vendus). Règle du contrat: absent → repli
+         EXPLICITE sur 'BE' pour les sessions ouvertes avant ce champ; présent
+         mais invalide → 400, la caisse ne s'ouvre pas sur un marché inventé.
+         La langue du site ne devine JAMAIS le pays (A5). */
+      const countryRaw = req.body?.country;
+      let country: 'BE' | 'FR';
+      if (countryRaw === undefined || countryRaw === null || countryRaw === '') {
+        country = 'BE';
+      } else {
+        const normalizedCountry = String(countryRaw).trim().toUpperCase();
+        if (normalizedCountry !== 'BE' && normalizedCountry !== 'FR') {
+          return res.status(400).json({ error: 'invalid_country' });
+        }
+        country = normalizedCountry;
+      }
       const checkoutUrl = await stripeService.createSelfOnboardingCheckout(
         { id: user.id, email: user.email },
         plan.id,
@@ -448,6 +464,7 @@ export class AuthController {
         billingPeriod,
         language,
         withSuperagent,
+        country,
       );
       if (!checkoutUrl) return res.status(502).json({ error: 'checkout_unavailable' });
 

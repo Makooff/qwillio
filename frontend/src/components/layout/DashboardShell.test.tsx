@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, cleanup } from '@testing-library/react';
+import { render, cleanup, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { MemoryRouter } from 'react-router-dom';
 import { LayoutDashboard } from '../icons';
@@ -118,6 +118,26 @@ describe('l’entête mobile en vignette', () => {
     const ia = container.querySelector('a[href*="receptionist"]')!;
     // Actif = pleine opacité; inactif = 40 %.
     expect((ia as HTMLElement).style.color).toContain('255, 255, 255');
+  });
+
+  /* Un lecteur d'écran annonçait un « bouton » sans nom, et l'état
+     ouvert/fermé du panneau n'était exposé nulle part. */
+  it('donne un nom accessible au bouton menu et expose son état', () => {
+    const { container } = mount();
+    const burger = header(container).querySelector('button')!;
+    expect(burger).toHaveAttribute('aria-label', 'Ouvrir le menu');
+    expect(burger).toHaveAttribute('aria-expanded', 'false');
+    expect(burger).toHaveAttribute('aria-controls', 'dashboard-mobile-sidebar');
+  });
+
+  it('basculle nom et état quand le panneau s’ouvre', async () => {
+    const { container } = mount();
+    const burger = header(container).querySelector('button')!;
+    await fireEvent.click(burger);
+    expect(burger).toHaveAttribute('aria-expanded', 'true');
+    expect(burger).toHaveAttribute('aria-label', 'Fermer le menu');
+    const panel = container.querySelector('#dashboard-mobile-sidebar');
+    expect(panel).not.toBeNull();
   });
 
   /* Le voile est un élément positionné: il se peint au-dessus du contenu en

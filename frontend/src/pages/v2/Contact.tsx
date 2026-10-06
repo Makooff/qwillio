@@ -107,7 +107,7 @@ export default function Contact() {
 
   const labelCls = 'block text-[13px] font-medium text-q2-graphite mb-2';
   const inputCls =
-    'w-full rounded-xl border border-q2-plate bg-q2-plate/50 px-4 py-3 text-[15px] text-q2-ink placeholder-q2-faint outline-none transition-colors duration-150 focus:border-q2-indigo focus:ring-2 focus:ring-q2-indigo/25';
+    'w-full rounded-full border border-q2-plate bg-q2-plate/50 px-4 py-3 text-[15px] text-q2-ink placeholder-q2-faint outline-none transition-colors duration-150 focus:border-q2-indigo focus:ring-2 focus:ring-q2-indigo/25';
 
   return (
     <PublicShell>
@@ -157,7 +157,7 @@ export default function Contact() {
                   {m.href ? (
                     <a
                       href={m.href}
-                      className="text-lg font-light tracking-tight text-q2-ink hover:text-q2-graphite transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 rounded-md"
+                      className="text-lg font-light tracking-tight text-q2-ink hover:text-q2-graphite transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40 rounded-full"
                     >
                       {m.value}
                     </a>

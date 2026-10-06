@@ -5,6 +5,9 @@ import {
   Search, BookOpen, Phone, Settings, CreditCard,
 } from '../../components/icons';
 import api from '../../services/api';
+import Button from '../../components/ui/Button';
+import { inputCls as dsInputCls } from '../../styles/design-system';
+import { t } from '../../styles/admin-theme';
 
 const CATEGORIES = [
   { id: 'general',   icon: HelpCircle, label: 'Général' },
@@ -56,7 +59,24 @@ const FAQ_ITEMS = [
   },
 ];
 
-const inputCls = 'w-full px-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-q2-carbon text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-q2-smoke-d transition-colors';
+/* Saisies : style canonique du design system (settings aesthetic). */
+const inputCls = dsInputCls;
+
+/* Tuile de catégorie active — décision 2026-10: plus de fond mauve (même
+   lavé 10 %), juste le contour mauve; texte en `t.brandHi` (#8a6fff, ~5,4:1
+   sur le fond sombre, AA) et non `t.brand` (~3,9:1, insuffisant). */
+const categoryTileActive = {
+  border: `1px solid ${t.brand}`,
+  background: 'transparent',
+  color: t.brandHi,
+} as const;
+
+/* Puce de filtre FAQ active — même règle: contour mauve, pas de remplissage. */
+const filterChipActive = {
+  border: `1px solid ${t.brand}`,
+  background: 'transparent',
+  color: t.brandHi,
+} as const;
 
 export default function ClientSupport() {
   const [subject, setSubject] = useState('');
@@ -81,11 +101,16 @@ export default function ClientSupport() {
       setMessage('');
     } catch (err: unknown) {
       const errData = (err as { response?: { data?: { error?: string | { message?: string } } } })?.response?.data?.error;
+      /* Le backend renvoie un CODE stable (502 `email_send_failed`), jamais le
+         message brut du fournisseur. L'écran le traduit; la saisie est
+         conservée plus haut, donc corriger et renvoyer coûte un clic. */
+      const brut = typeof errData === 'string'
+        ? errData
+        : (errData as { message?: string } | undefined)?.message;
       setError(
-        typeof errData === 'string'
-          ? errData
-          : (errData as { message?: string } | undefined)?.message
-            ?? (err instanceof Error ? err.message : "Échec de l'envoi"),
+        brut === 'email_send_failed'
+          ? "L'envoi a échoué de notre côté. Votre message est conservé : réessayez dans un instant."
+          : brut ?? (err instanceof Error ? err.message : "Échec de l'envoi"),
       );
     } finally {
       setSending(false);
@@ -132,9 +157,11 @@ export default function ClientSupport() {
               <button
                 type="button"
                 onClick={() => setFaqCategory('all')}
-                className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors ${
-                  faqCategory === 'all' ? 'bg-[#7349fe] text-white' : 'bg-white/[0.04] text-[#A1A1A8] hover:text-[#F5F5F7]'
+                aria-pressed={faqCategory === 'all'}
+                className={`px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors ${
+                  faqCategory === 'all' ? 'border' : 'bg-white/[0.04] text-[#A1A1A8] hover:text-[#F5F5F7]'
                 }`}
+                style={faqCategory === 'all' ? filterChipActive : undefined}
               >
                 Tous
               </button>
@@ -143,9 +170,11 @@ export default function ClientSupport() {
                   key={c.id}
                   type="button"
                   onClick={() => setFaqCategory(c.id)}
-                  className={`px-3 py-1.5 text-xs font-medium rounded-lg whitespace-nowrap transition-colors flex items-center gap-1.5 ${
-                    faqCategory === c.id ? 'bg-[#7349fe] text-white' : 'bg-white/[0.04] text-[#A1A1A8] hover:text-[#F5F5F7]'
+                  aria-pressed={faqCategory === c.id}
+                  className={`px-3 py-1.5 text-xs font-medium rounded-full whitespace-nowrap transition-colors flex items-center gap-1.5 ${
+                    faqCategory === c.id ? 'border' : 'bg-white/[0.04] text-[#A1A1A8] hover:text-[#F5F5F7]'
                   }`}
+                  style={faqCategory === c.id ? filterChipActive : undefined}
                 >
                   <c.icon size={11} />
                   {c.label}
@@ -211,11 +240,11 @@ export default function ClientSupport() {
                   <div className="grid grid-cols-2 gap-2">
                     {CATEGORIES.map(c => (
                       <button key={c.id} type="button" onClick={() => setCategory(c.id)}
-                        className={`flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-xl border transition-colors ${
-                          category === c.id
-                            ? 'border-[#7349fe] bg-[#7349fe]/10 text-[#7349fe]'
-                            : 'border-white/[0.07] text-[#A1A1A8] hover:bg-white/[0.04]'
+                        aria-pressed={category === c.id}
+                        className={`flex items-center gap-2 px-3 py-2 text-xs font-medium rounded-full border transition-colors ${
+                          category === c.id ? '' : 'border-white/[0.07] text-[#A1A1A8] hover:bg-white/[0.04]'
                         }`}
+                        style={category === c.id ? categoryTileActive : undefined}
                       >
                         <c.icon size={13} />
                         {c.label}
@@ -238,13 +267,17 @@ export default function ClientSupport() {
                     className={inputCls + ' resize-none'}
                   />
                 </div>
-                {error && <p className="text-sm text-red-400">{error}</p>}
-                <button type="submit" disabled={sending}
-                  className="w-full py-2.5 text-sm font-medium text-white bg-[#7349fe] rounded-xl hover:bg-[#6a4ee0] disabled:opacity-50 transition-colors flex items-center justify-center gap-2"
+                {error && (
+                  <p role="alert" className="text-sm" style={{ color: t.danger }}>{error}</p>
+                )}
+                <Button
+                  type="submit"
+                  loading={sending}
+                  icon={<Send size={14} />}
+                  style={{ width: '100%' }}
                 >
-                  <Send size={14} />
                   {sending ? 'Envoi...' : 'Envoyer le message'}
-                </button>
+                </Button>
               </form>
             )}
           </div>

@@ -316,7 +316,7 @@ export default function ClientIntegrations() {
                           <button
                             onClick={() => connect(entry)}
                             disabled={saving || !secret.trim()}
-                            className="shrink-0 rounded-lg bg-[#7349fe] px-3.5 py-2 text-[13px] font-medium text-white disabled:opacity-40 hover:bg-[#8f6dff] transition-colors"
+                            className="shrink-0 rounded-lg border border-[#8a6fff] bg-transparent px-3.5 py-2 text-[13px] font-medium text-[#8a6fff] disabled:opacity-40 hover:bg-white/[0.06] transition-colors"
                           >
                             {saving ? 'Connexion' : 'Connecter'}
                           </button>

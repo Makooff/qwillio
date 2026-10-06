@@ -57,9 +57,11 @@ export default function TryVoiceButton({
   /* Le fond du bouton est celui de la CARTE (`q2-canvas`), pas un blanc
      littéral: c'est ce qui rend l'agrandissement continu, et ça reste juste en
      thème sombre, où la carte n'est pas blanche. */
+  /* Décision utilisateur (2026-10): plus de fond mauve — le chromatic devient
+     canvas bordé de mauve, comme les PillLink chromatic du site. */
   const surface =
     variant === 'chromatic'
-      ? 'bg-q2-indigo'
+      ? 'bg-q2-canvas border border-q2-indigo'
       : variant === 'onDark'
         ? 'bg-white'
         : 'bg-q2-canvas border border-q2-plate';
@@ -96,11 +98,9 @@ export default function TryVoiceButton({
      donnait sinon du noir sur du noir, invisible dans les deux cas. */
   const text = !showSurface || glass
     ? (variant === 'onDark' ? 'text-white' : 'text-q2-ink')
-    : variant === 'chromatic'
-      ? 'text-white'
-      : variant === 'onDark'
-        ? 'text-q2-void'
-        : 'text-q2-ink';
+    : variant === 'onDark'
+      ? 'text-q2-void'
+      : 'text-q2-ink';
 
   const box =
     shape === 'round'

@@ -61,7 +61,7 @@ export default function TabLogs({ active }: { active: boolean }) {
     <div className="space-y-4">
       <div className="flex items-center gap-2">
         <ProSectionHead title={`Logs (${filtered.length})`} />
-        <button type="button" onClick={load} className="p-1.5 rounded-lg hover:bg-white/[0.06] transition-colors ml-2" style={{ color: pro.textSec }}>
+        <button type="button" onClick={load} className="p-1.5 rounded-full hover:bg-white/[0.06] transition-colors ml-2" style={{ color: pro.textSec }}>
           <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
         </button>
         <div className="flex gap-1 ml-auto">

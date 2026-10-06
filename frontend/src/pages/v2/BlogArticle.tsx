@@ -125,8 +125,8 @@ export default function BlogArticle() {
           <RevealV2 index={1} className="flex flex-col items-start gap-5 lg:items-end pb-1">
             <p className="text-q2-fog text-[15px] leading-relaxed max-w-[320px] lg:text-right q2-body-text">
               {isFr
-                ? 'Testez Qwillio gratuitement pendant 7 jours. Sans engagement, configuration en 15 minutes.'
-                : 'Try Qwillio free for 7 days. No commitment, set up in 15 minutes.'}
+                ? 'Testez Qwillio gratuitement pendant 7 jours. Sans engagement en mensuel, configuration en 15 minutes.'
+                : 'Try Qwillio free for 7 days. No commitment on monthly, set up in 15 minutes.'}
             </p>
             <PillLink to="/register" variant="chromatic" size="lg">
               {isFr ? 'Créer un compte' : 'Create account'}

@@ -80,7 +80,7 @@ export default function TabSysteme({ active }: { active: boolean }) {
     <div className="space-y-5">
       <div className="flex items-center justify-between">
         <ProSectionHead title="Services & santé" />
-        <button type="button" onClick={reload} className="p-1.5 rounded-lg hover:bg-white/[0.06] transition-colors" style={{ color: pro.textSec }}>
+        <button type="button" onClick={reload} className="p-1.5 rounded-full hover:bg-white/[0.06] transition-colors" style={{ color: pro.textSec }}>
           <RefreshCw className="w-3.5 h-3.5" />
         </button>
       </div>

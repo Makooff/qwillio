@@ -111,9 +111,13 @@ export const cx = {
   caption: 'text-[11px]',
   mono: 'font-mono text-[11px] tabular-nums',
 
-  btnPrimary: 'px-4 py-2 rounded-[10px] text-[13px] font-medium transition-colors duration-150',
-  btnGhost: 'px-3 py-1.5 rounded-[10px] text-[13px] font-medium transition-colors duration-150 hover:bg-white/[0.06]',
-  btnIcon: 'p-2 rounded-[10px] transition-colors duration-150 hover:bg-white/[0.05]',
+  // Les classes de commandes (boutons) prennent la gélule: la référence est
+  // le bouton « Connexion » du menu mobile du site (NavV2, `rounded-full`).
+  // Décision utilisateur (2026-10): « tout les bouton et menu deroulant etc:
+  // le meme arrondi que le bouton se connecter sur home ».
+  btnPrimary: 'px-4 py-2 rounded-full text-[13px] font-medium transition-colors duration-150',
+  btnGhost: 'px-3 py-1.5 rounded-full text-[13px] font-medium transition-colors duration-150 hover:bg-white/[0.06]',
+  btnIcon: 'p-2 rounded-full transition-colors duration-150 hover:bg-white/[0.05]',
 
   th: 'px-4 py-3 text-left text-[10px] font-medium uppercase tracking-wider',
   td: 'px-4 py-3 text-[13px]',

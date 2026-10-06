@@ -7,6 +7,7 @@ import { useAuthStore } from '../../../stores/authStore';
 import api from '../../../services/api';
 import { captureBillingPeriod, clearBillingPeriod, readBillingPeriod } from '../../../lib/billingPeriod';
 import type { BillingPeriod } from '../../../lib/billingPeriod';
+import { captureSignupPlan, clearSignupPlan, readSignupPlan } from '../../../lib/signupSelection';
 import { annualTotalEur, annualMonthlyEquivalentEur, superagentOptionPriceEur } from '../../../lib/pricing';
 import AuthShell, { AUTH_ALERT, AUTH_FIELD, AUTH_LABEL, AUTH_SUBMIT } from './AuthShell';
 
@@ -42,7 +43,13 @@ export default function Subscribe() {
 
   const [businessName, setBusinessName] = useState('');
   const [industry, setIndustry] = useState('');
-  const [selectedPlan, setSelectedPlan] = useState('pro');
+  const [selectedPlan, setSelectedPlan] = useState<string>('pro');
+  /* Le pays de facturation du client: posé sur le Client par le webhook et
+     utilisé par tout ce qui dépend du marché (destinations, présomptions).
+     Choix EXPLICITE Belgique/France — l'offre ne vend que ces deux marchés,
+     et deviner le pays depuis la langue du site a déjà créé des comptes
+     français enregistrés en Belgique (A5). */
+  const [country, setCountry] = useState<'BE' | 'FR'>('BE');
   /* Le choix fait sur la page tarifs sert de DÉFAUT, pas de verdict: on arrive
      aussi ici par « Essayer » dans la nav, sans être passé par les tarifs. Sans
      ce sélecteur, cette page affichait des prix mensuels tout en pouvant
@@ -62,10 +69,14 @@ export default function Subscribe() {
 
   /* On peut aussi atterrir directement ici depuis un lien tarifaire. La
      capture d'abord, la lecture ensuite: l'ordre décide si `?billing=annual`
-     est vu ou perdu. */
+     et `?plan=starter` sont vus ou perdus. Un plan inconnu dans l'URL est
+     rejeté par la capture: le défaut Pro reste une décision de l'écran. */
   useEffect(() => {
     captureBillingPeriod(window.location.search);
+    captureSignupPlan(window.location.search);
     setBilling(readBillingPeriod());
+    const planFromPricing = readSignupPlan();
+    if (planFromPricing) setSelectedPlan(planFromPricing);
   }, []);
 
   useEffect(() => {
@@ -93,6 +104,11 @@ export default function Subscribe() {
         /* La langue du site à la caisse: c'est elle que l'agent parlera au
            premier appel. Le client peut la changer ensuite dans Paramètres. */
         language: lang,
+        /* Le pays choisi ci-dessous, porté jusqu'au webhook: c'est la
+           métadonnée de session qui décide du `country` posé sur le Client,
+           pas une supposition faite après coup. Le serveur refait le
+           contrôle (BE/FR uniquement). */
+        country,
         /* Jamais sur un forfait qui l'inclut: `optionPrice` est alors `null` et
            la case n'existe pas, mais un changement de forfait après avoir coché
            laisserait l'état à vrai sans que l'écran ne le montre. */
@@ -100,8 +116,9 @@ export default function Subscribe() {
       });
       if (data?.checkoutUrl) {
         /* Le choix a servi: le laisser traîner ferait basculer en annuel une
-           seconde souscription faite dans le même onglet. */
+           seconde souscription faite dans le même onglet. Le forfait aussi. */
         clearBillingPeriod();
+        clearSignupPlan();
         window.location.href = data.checkoutUrl;
         return;
       }
@@ -186,6 +203,19 @@ export default function Subscribe() {
           {INDUSTRIES.map(key => (
             <option key={key} value={key}>{key}</option>
           ))}
+        </select>
+      </label>
+
+      <label className="block mb-8">
+        <span className={AUTH_LABEL}>{isFr ? 'Pays' : 'Country'}</span>
+        <select
+          aria-label={isFr ? 'Pays' : 'Country'}
+          value={country}
+          onChange={e => setCountry(e.target.value as 'BE' | 'FR')}
+          className={AUTH_FIELD}
+        >
+          <option value="BE">{isFr ? 'Belgique' : 'Belgium'}</option>
+          <option value="FR">France</option>
         </select>
       </label>
 
