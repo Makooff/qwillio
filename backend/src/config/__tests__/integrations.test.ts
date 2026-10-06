@@ -21,7 +21,11 @@ describe('honnêteté du catalogue', () => {
        gestionnaire serait un « connecté » qui ne synchronise rien, et le client
        ne s'en apercevrait qu'en cherchant ses leads chez lui. */
     const natifs = INTEGRATIONS.filter(i => i.transport === 'native');
-    const traites = new Set<string>([...NATIVE_SYNC_PROVIDERS, 'google-calendar']);
+    /* Les deux agendas sont ajoutés à la main : leur jeton vit sur la fiche
+       client (`googleCalendarRefreshToken` / `outlookRefreshToken`) et non dans
+       `crmIntegration`, donc `NATIVE_SYNC_PROVIDERS` — qui décrit les
+       fournisseurs traités par `crm-sync.service.ts` — ne peut pas les lister. */
+    const traites = new Set<string>([...NATIVE_SYNC_PROVIDERS, 'google-calendar', 'outlook-calendar']);
 
     for (const entry of natifs) {
       expect(traites.has(entry.id), `${entry.id} annoncé natif sans gestionnaire`).toBe(true);

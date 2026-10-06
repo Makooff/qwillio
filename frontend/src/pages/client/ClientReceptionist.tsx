@@ -207,8 +207,8 @@ function WebhookIntegration({
         ) : (
           <button
             type="button" onClick={() => setOpen(o => !o)}
-            className="flex-shrink-0 rounded-lg px-3 py-1.5 text-[11px] font-semibold"
-            style={{ background: 'rgba(122,95,255,0.16)', color: '#b9a8ff' }}
+            aria-pressed={open}
+            className="flex-shrink-0 rounded-full border border-[#7a5fff]/50 px-3 py-1.5 text-[11px] font-semibold text-[#b9a8ff] transition-colors hover:bg-white/[0.06]"
           >
             {open ? 'Annuler' : 'Connecter'}
           </button>
@@ -428,18 +428,28 @@ export default function ClientReceptionist() {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
     const state = params.get('state');
-    if (!code || !state || !state.startsWith('qwillio-gcal')) return;
+    if (!code || !state) return;
+
+    /* Les deux agendas reviennent sur CETTE page, parce que c'est l'adresse
+       déclarée dans les deux consoles et qu'on ne veut pas en maintenir une
+       seconde. Le préfixe du state dit lequel a la parole : présenter un code
+       Outlook au contrôleur Google donnerait un refus incompréhensible, ou pire
+       un échange contre le mauvais annuaire. */
+    const estGoogle = state.startsWith('qwillio-gcal');
+    const estOutlook = state.startsWith('qwillio-outlook');
+    if (!estGoogle && !estOutlook) return;
     window.history.replaceState({}, '', window.location.pathname);
     setGcalBusy(true);
-    api.post('/my-dashboard/integrations/google-calendar/callback', { code, state })
+    const route = estOutlook ? 'outlook-calendar' : 'google-calendar';
+    api.post(`/my-dashboard/integrations/${route}/callback`, { code, state })
       .then(() => {
-        /* Google ne revient QUE sur l'adresse déclarée dans sa console, et
-           c'est celle-ci. Un client parti depuis « Intégrations » atterrissait
+        /* Le fournisseur ne revient QUE sur l'adresse déclarée dans sa console,
+           et c'est celle-ci. Un client parti depuis « Intégrations » atterrissait
            donc sur la réceptionniste, agenda branché, sans rien qui le dise:
            il repartait chercher son bouton là où il l'avait laissé, et le
            trouvait inchangé. La page de départ est retenue avant le saut et
-           rendue ici, plutôt que d'ajouter une seconde adresse de retour dans
-           la console Google, qui suppose un geste hors du dépôt. */
+           rendue ici, plutôt que d'ajouter une seconde adresse de retour qui
+           suppose un geste hors du dépôt. */
         const back = sessionStorage.getItem('gcalReturnTo');
         sessionStorage.removeItem('gcalReturnTo');
         if (back && back.startsWith('/dashboard/') && back !== window.location.pathname) {
@@ -448,7 +458,9 @@ export default function ClientReceptionist() {
         }
         return load();
       })
-      .catch(() => setError('Échec de la connexion Google Calendar'))
+      .catch(() => setError(estOutlook
+        ? 'Échec de la connexion Outlook / Microsoft 365'
+        : 'Échec de la connexion Google Calendar'))
       .finally(() => setGcalBusy(false));
   }, [load]);
 

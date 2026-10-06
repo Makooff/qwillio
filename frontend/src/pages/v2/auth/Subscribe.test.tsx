@@ -43,6 +43,7 @@ vi.mock('./AuthShell', () => ({
   AUTH_ALERT: 'alert',
   AUTH_FIELD: 'field',
   AUTH_LABEL: 'label',
+  AUTH_SELECT: 'select',
   AUTH_SUBMIT: 'submit',
 }));
 

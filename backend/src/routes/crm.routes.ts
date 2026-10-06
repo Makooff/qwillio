@@ -458,7 +458,7 @@ router.get('/integrations/catalog', async (req: Request, res: Response) => {
     const [client, connected] = await Promise.all([
       prisma.client.findUnique({
         where: { id: clientId },
-        select: { businessType: true, googleCalendarRefreshToken: true },
+        select: { businessType: true, googleCalendarRefreshToken: true, outlookRefreshToken: true },
       }),
       prisma.crmIntegration.findMany({
         where: { clientId },
@@ -477,6 +477,11 @@ router.get('/integrations/catalog', async (req: Request, res: Response) => {
      * aucun état de cette page ne pouvait devenir « connecté ». Deux magasins
      * pour un même fait, et l'écran lisait le mauvais. */
     if (client?.googleCalendarRefreshToken) connectedIds.add('google-calendar');
+    /* Outlook suit exactement la même règle, et pour la même raison : son jeton
+       vit sur la fiche client. L'oublier ici afficherait « disponible » à un
+       client dont l'agenda Microsoft est branché, et cette page lui proposerait
+       de le rebrancher. */
+    if (client?.outlookRefreshToken) connectedIds.add('outlook-calendar');
 
     const catalogue = catalogueForBusinessType(client?.businessType).map(entry => ({
       ...entry,

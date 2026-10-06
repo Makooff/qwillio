@@ -1,8 +1,10 @@
-import { dayWindow, parseWeekHours } from '../../utils/opening-hours';
+import { dayWindow, parseWeekHours, minutesOf } from '../../utils/opening-hours';
 import { prisma } from '../../config/database';
-import { ymdOf, businessTimezone } from '../../utils/zoned-time';
+import { ymdOf, businessTimezone, zonedInstant } from '../../utils/zoned-time';
 import { logger } from '../../config/logger';
 import { googleCalendarService } from '../google-calendar.service';
+import { outlookCalendarService } from '../outlook-calendar.service';
+import { resolveCalendar } from '../calendar-provider.service';
 import { normalizeUtterance } from './intent-router';
 import type { VoiceLanguage } from './speech-plans';
 
@@ -198,9 +200,19 @@ class AvailabilitySpeculator {
   private async lookup(clientId: string, date: Date, key: string): Promise<string[]> {
     const client = await prisma.client.findUnique({
       where: { id: clientId },
-      select: { googleCalendarRefreshToken: true, googleCalendarId: true, onboardingData: true, country: true, city: true, agentLanguage: true },
+      /* `calendarProvider` et les colonnes Outlook sont lus aussi : sans eux,
+         `resolveCalendar` ne peut pas savoir vers quel agenda aller, et le
+         garde ci-dessous fermerait la porte à tout client Outlook. */
+      select: {
+        googleCalendarRefreshToken: true, googleCalendarId: true,
+        outlookRefreshToken: true, outlookCalendarId: true, calendarProvider: true,
+        onboardingData: true, country: true, city: true, agentLanguage: true,
+      },
     });
-    if (!client?.googleCalendarRefreshToken) throw new Error('calendar not connected');
+    /* Plus d'agenda du tout, et la lecture n'a rien à lire. Le message reste
+       le même: l'appelant au-dessus l'interprète comme « pas d'agenda », ce qui
+       est exactement le cas. */
+    if (!client || !resolveCalendar(client)) throw new Error('calendar not connected');
 
     /* Un jour FERMÉ n'a aucun créneau, et ne coûte pas une lecture d'agenda. */
     const timezone = businessTimezone(client);
@@ -210,15 +222,14 @@ class AvailabilitySpeculator {
       return [];
     }
 
-    const accessToken = await googleCalendarService.getAccessTokenFromRefresh(client.googleCalendarRefreshToken);
-    const slots = await googleCalendarService.getAvailability(
-      accessToken,
-      client.googleCalendarId || 'primary',
-      date,
-      // Les créneaux dans le fuseau de l'entreprise, jamais celui du serveur.
-      timezone,
-      { from: window.from, to: window.to },
-    );
+    /* L'agenda ACTIF. Lire Google en direct faisait lire un agenda vide à un
+       client dont le calendrier est Outlook : l'agent proposait des créneaux
+       déjà pris chez lui, et il n'y voyait jamais les rendez-vous confirmés.
+       `resolveCalendar` porte le repli Google des comptes créés avant Outlook. */
+    const target = resolveCalendar(client);
+    const slots = target
+      ? await this.readProviderAvailability(target, date, timezone, { from: window.from, to: window.to })
+      : [];
 
     /* ── LA BASE AUSSI, ET C'ÉTAIT LE DÉFAUT ──────────────────────────────
      *
@@ -291,6 +302,59 @@ class AvailabilitySpeculator {
     }
 
     this.cache.set(key, { slots: libres, expiresAt: Date.now() + CACHE_TTL_MS });
+    return libres;
+  }
+
+  /**
+   * Les créneaux libres chez le fournisseur résolu, au format commun.
+   *
+   * Google est lu par `getAvailability`, qui rend déjà la liste des « HH:MM »
+   * ouverts du jour. Outlook n'a pas d'équivalent, alors on lit `calendarView`
+   * et on applique EXACTEMENT le même découpage : une heure par créneau, entre
+   * l'ouverture et la fermeture lues des horaires du portail, dans le fuseau de
+   * l'ENTREPRISE.
+   *
+   * Le format de sortie (`"09:00"`, `"10:00"`, …) n'est pas un détail : tout ce
+   * qui suit — la comparaison avec la base, le filtrage des créneaux déjà pris,
+   * ce que l'agent annonce à voix haute — lit cette liste. Rendre autre chose
+   * pour Outlook ferait diverger les deux agendas à l'oral, exactement là où
+   * l'appelant ne peut pas vérifier.
+   */
+  private async readProviderAvailability(
+    target: { provider: 'google' | 'outlook'; refreshToken: string; calendarId: string | null },
+    date: Date,
+    timezone: string,
+    window: { from: string; to: string },
+  ): Promise<string[]> {
+    if (target.provider === 'google') {
+      const accessToken = await googleCalendarService.getAccessTokenFromRefresh(target.refreshToken);
+      return googleCalendarService.getAvailability(
+        accessToken,
+        target.calendarId || 'primary',
+        date,
+        timezone,
+        window,
+      );
+    }
+
+    const busy = await outlookCalendarService.getBusySlots(
+      target.refreshToken,
+      target.calendarId || 'primary',
+      date,
+      timezone,
+    );
+
+    const openAt = minutesOf(window.from) ?? 9 * 60;
+    const closeAt = minutesOf(window.to) ?? 17 * 60;
+    const ymd = ymdOf(date);
+    const libres: string[] = [];
+    for (let start = openAt; start + 60 <= closeAt; start += 60) {
+      const hhmm = `${String(Math.floor(start / 60)).padStart(2, '0')}:${String(start % 60).padStart(2, '0')}`;
+      const slotStart = zonedInstant(ymd, hhmm, timezone);
+      const slotEnd = new Date(slotStart.getTime() + 60 * 60 * 1000);
+      const isBusy = busy.some(b => slotStart < b.end && slotEnd > b.start);
+      if (!isBusy) libres.push(hhmm);
+    }
     return libres;
   }
 

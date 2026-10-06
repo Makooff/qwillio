@@ -269,6 +269,62 @@ export class OutlookCalendarService {
     return { email: me.mail || me.userPrincipalName || null, name: me.displayName || null };
   }
 
+  /**
+   * Les périodes occupées d'un jour, dans le fuseau de l'ENTREPRISE.
+   *
+   * Google rend cela par `freeBusy`, qui sait déjà découper une journée locale.
+   * Graph offre `getSchedule`, mais il faut lui passer les bornes en UTC et un
+   * `availabilityViewInterval` — autant de réglages dont chacun peut décaler la
+   * fenêtre d'une heure. On lit donc `calendarView`, qui rend les évènements du
+   * jour avec leur fuseau, et on convertit ici.
+   *
+   * `calendarView` rend aussi les évènements refusés et « libre » si on ne
+   * filtre pas : un rendez-vous décliné occuperait le créneau et l'agent
+   * refuserait une heure qui est en réalité libre. On ne garde donc que ce qui
+   * occupe vraiment.
+   */
+  async getBusySlots(
+    refreshToken: string,
+    calendarId: string | null,
+    date: Date,
+    timeZone: string,
+  ): Promise<Array<{ start: Date; end: Date }>> {
+    const accessToken = await this.getAccessTokenFromRefresh(refreshToken);
+    const ymd = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
+    /* Bornes larges d'une journée entière, en UTC : on filtre ensuite sur les
+       vrais instants, donc une marge d'un jour de chaque côté ne coûte qu'un
+       peu de données et évite de rater un rendez-vous à cheval sur minuit. */
+    const start = new Date(`${ymd}T00:00:00Z`).getTime() - 24 * 3600_000;
+    const end = new Date(`${ymd}T00:00:00Z`).getTime() + 48 * 3600_000;
+
+    const params = new URLSearchParams({
+      startDateTime: new Date(start).toISOString(),
+      endDateTime: new Date(end).toISOString(),
+      $select: 'start,end,showAs,isCancelled',
+      $top: '100',
+    });
+    const res = await fetch(`${GRAPH_BASE}${this.calendarPath(calendarId)}/calendarView?${params}`, {
+      headers: { Authorization: `Bearer ${accessToken}`, Prefer: `outlook.timezone="${timeZone}"` },
+    });
+    if (!res.ok) throw new OutlookCalendarError(`Graph calendarView failed (${res.status})`, res.status, await res.text());
+    const data = await res.json() as any;
+
+    return (data.value || [])
+      .filter((ev: any) => {
+        if (ev.isCancelled) return false;
+        /* `showAs` dit ce que l'évènement occupe : `free` et `workingElsewhere`
+           ne bloquent rien, et `tentative` non plus — un rendez-vous proposé
+           n'est pas un rendez-vous pris. */
+        const showAs = String(ev.showAs || 'busy').toLowerCase();
+        return showAs !== 'free' && showAs !== 'workingelsewhere' && showAs !== 'tentative';
+      })
+      .map((ev: any) => ({
+        start: new Date(ev.start?.dateTime?.endsWith('Z') ? ev.start.dateTime : `${ev.start?.dateTime}Z`),
+        end: new Date(ev.end?.dateTime?.endsWith('Z') ? ev.end.dateTime : `${ev.end?.dateTime}Z`),
+      }))
+      .filter((s: { start: Date; end: Date }) => !isNaN(s.start.getTime()) && !isNaN(s.end.getTime()));
+  }
+
   /** Next upcoming events — proves read access and feeds the UI preview. */
   async listUpcomingEvents(refreshToken: string, calendarId = 'primary', maxResults = 3): Promise<OutlookEvent[]> {
     const accessToken = await this.getAccessTokenFromRefresh(refreshToken);

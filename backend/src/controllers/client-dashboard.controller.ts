@@ -5,6 +5,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { clientDashboardService, phoneForms } from '../services/client-dashboard.service';
 import { googleCalendarService } from '../services/google-calendar.service';
+import { outlookCalendarService } from '../services/outlook-calendar.service';
 import { prisma } from '../config/database';
 import { cancelBooking } from '../services/booking-cancel';
 import { env } from '../config/env';
@@ -97,6 +98,10 @@ export function mergeVapiConfig(current: unknown, incoming: unknown): Record<str
 // OAuth state: per-user, signed, short-lived — the callback verifies it was
 // minted for the same client that finishes the flow (CSRF protection).
 const GCAL_STATE_PREFIX = 'qwillio-gcal.';
+/* Préfixe distinct de celui de Google : les deux retours OAuth atterrissent sur
+   la MÊME page du portail, et sans marqueur propre le code Outlook serait
+   présenté au contrôleur Google — qui le refuserait, ou pire, l'accepterait. */
+const OUTLOOK_STATE_PREFIX = 'qwillio-outlook.';
 
 export class ClientDashboardController {
 
@@ -2993,6 +2998,148 @@ export class ClientDashboardController {
       res.json({ connected: false, agentUpdated });
     } catch (error: any) {
       logger.error('GCal disconnect error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // ═══ Outlook / Microsoft 365 integration (OAuth) ═══════════════════
+  // Quatre gestes en miroir de ceux de Google. Ce qui change n'est pas la
+  // forme mais le fournisseur : Microsoft tourne son refresh token, et le
+  // nouveau doit être réécrit AVANT que l'ancien ne soit plus accepté.
+
+  // GET /api/my-dashboard/integrations/outlook-calendar/auth-url
+  async getOutlookCalendarAuthUrl(req: any, res: Response) {
+    try {
+      if (!outlookCalendarService.isConfigured()) {
+        return res.status(503).json({ error: 'Microsoft OAuth non configuré côté serveur' });
+      }
+      const state = OUTLOOK_STATE_PREFIX + jwt.sign({ outlook: req.clientId }, env.JWT_SECRET, { expiresIn: '15m' });
+      const url = outlookCalendarService.getConnectUrl(state);
+      /* On renvoie AUSSI l'adresse de retour, pour la même raison que côté
+         Google : « redirect_uri_mismatch » ne dit jamais QUELLE adresse a été
+         envoyée, seulement qu'elle n'est pas déclarée. Microsoft est aussi
+         tatillon que Google, et la comparaison est caractère par caractère. */
+      res.json({ url, redirectUri: outlookCalendarService.getRedirectUri() });
+    } catch (error: any) {
+      logger.error('Outlook auth-url error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // POST /api/my-dashboard/integrations/outlook-calendar/callback  { code, state }
+  async connectOutlookCalendar(req: any, res: Response) {
+    try {
+      const { code, state } = req.body as { code?: string; state?: string };
+      if (!code) return res.status(400).json({ error: 'Code OAuth manquant' });
+      if (!state || !state.startsWith(OUTLOOK_STATE_PREFIX)) {
+        return res.status(400).json({ error: 'State OAuth invalide' });
+      }
+      let statePayload: any;
+      try {
+        statePayload = jwt.verify(state.slice(OUTLOOK_STATE_PREFIX.length), env.JWT_SECRET);
+      } catch {
+        return res.status(400).json({ error: 'State OAuth invalide ou expiré' });
+      }
+      if (statePayload?.outlook !== req.clientId) {
+        return res.status(400).json({ error: 'State OAuth invalide' });
+      }
+
+      const tokens = await outlookCalendarService.exchangeCode(code);
+      if (!tokens.refreshToken) {
+        /* Sans refresh token, l'agenda marche une heure puis se déconnecte tout
+           seul — et le client ne comprendra pas pourquoi son rendez-vous de
+           demain n'est plus là. C'est presque toujours une permission
+           `offline_access` manquante dans l'application Microsoft : on le dit
+           clairement plutôt que d'enregistrer une intégration qui va mourir. */
+        return res.status(400).json({
+          error: "Microsoft n'a pas rendu de jeton durable : vérifiez que la permission « offline_access » est accordée à l'application.",
+        });
+      }
+
+      await prisma.client.update({
+        where: { id: req.clientId },
+        data: {
+          outlookRefreshToken: tokens.refreshToken,
+          outlookCalendarId: 'primary',
+          /* Le choix explicite. Un client qui branche Outlook en le possédant
+             déjà chez Google veut manifestement Outlook : sans cette ligne, la
+             règle de repli continuerait de viser Google et il aurait branché
+             l'intégration pour rien. */
+          calendarProvider: 'outlook',
+        },
+      });
+      logger.info(`Outlook Calendar connected for client ${req.clientId}`);
+      /* Sans ceci, l'agenda est branché et l'agent ne sait toujours pas
+         réserver : les outils d'agenda ne s'attachent qu'à la construction de
+         l'assistant. */
+      const agentUpdated = await resyncAfterIntegrationChange(req.clientId);
+      res.json({ connected: true, agentUpdated });
+    } catch (error: any) {
+      logger.error('Outlook connect error:', error);
+      res.status(500).json({ error: 'Échec de la connexion Outlook / Microsoft 365' });
+    }
+  }
+
+  // GET /api/my-dashboard/integrations/outlook-calendar/status
+  async outlookCalendarStatus(req: any, res: Response) {
+    try {
+      const client = await prisma.client.findUnique({
+        where: { id: req.clientId },
+        select: { outlookRefreshToken: true, outlookCalendarId: true },
+      });
+      if (!client?.outlookRefreshToken) {
+        return res.json({ connected: false });
+      }
+      try {
+        const upcoming = await outlookCalendarService.listUpcomingEvents(
+          client.outlookRefreshToken,
+          client.outlookCalendarId || 'primary',
+          3,
+        );
+        res.json({ connected: true, calendarId: client.outlookCalendarId || 'primary', upcoming });
+      } catch (err: any) {
+        // Comme côté Google : seul un refus d'authentification vaut
+        // déconnexion. Une panne passagère garde l'intégration branchée.
+        const authFailure = /invalid_grant|invalid_rapt|unauthorized|\b40[13]\b/i.test(String(err?.message || ''));
+        if (authFailure) {
+          res.json({ connected: false, revoked: true });
+        } else {
+          res.json({ connected: true, calendarId: client.outlookCalendarId || 'primary', upcoming: [], previewUnavailable: true });
+        }
+      }
+    } catch (error: any) {
+      logger.error('Outlook status error:', error);
+      res.status(500).json({ error: error.message });
+    }
+  }
+
+  // DELETE /api/my-dashboard/integrations/outlook-calendar
+  async disconnectOutlookCalendar(req: any, res: Response) {
+    try {
+      const client = await prisma.client.findUnique({
+        where: { id: req.clientId },
+        select: { outlookRefreshToken: true, googleCalendarRefreshToken: true },
+      });
+      if (client?.outlookRefreshToken) {
+        await outlookCalendarService.revokeToken(client.outlookRefreshToken);
+      }
+      await prisma.client.update({
+        where: { id: req.clientId },
+        data: {
+          outlookRefreshToken: null,
+          outlookCalendarId: null,
+          /* On ne laisse pas un client sans agenda alors qu'il en a encore un :
+             débrancher Outlook quand Google est là rebascule le choix dessus,
+             au lieu de rendre l'agent aveugle à ses créneaux. */
+          calendarProvider: client?.googleCalendarRefreshToken ? 'google' : null,
+        },
+      });
+      /* Le débranchement doit RETIRER les outils, sinon l'agent propose des
+         créneaux avec un jeton révoqué. */
+      const agentUpdated = await resyncAfterIntegrationChange(req.clientId);
+      res.json({ connected: false, agentUpdated });
+    } catch (error: any) {
+      logger.error('Outlook disconnect error:', error);
       res.status(500).json({ error: error.message });
     }
   }

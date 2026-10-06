@@ -220,7 +220,7 @@ export const INTEGRATIONS: IntegrationEntry[] = [
     id: 'outlook-calendar',
     name: 'Outlook / Microsoft 365',
     verbs: ['read_live', 'write_after'],
-    transport: 'planned',
+    transport: 'native',
     setup: 'oauth',
     benefit: "L'agenda Microsoft lu pendant l'appel, comme celui de Google.",
   },

@@ -2,6 +2,14 @@ import { prisma } from '../../config/database';
 import { spokenDate, spokenDateAloud, todayIso } from './clock';
 import { logger } from '../../config/logger';
 import { googleCalendarService } from '../google-calendar.service';
+import { outlookCalendarService } from '../outlook-calendar.service';
+import {
+  resolveCalendar,
+  deleteBookingEvent,
+  bookingInstants,
+  bookingSubject,
+  bookingDescription,
+} from '../calendar-provider.service';
 import { realtimeContextService, type ClientVoiceProfile } from './realtime-context.service';
 import { isKnownTool } from './voice-tools';
 import { callSessionStore } from './call-session.store';
@@ -976,17 +984,22 @@ class ToolRuntimeService {
     try {
       const client = await prisma.client.findUnique({
         where: { id: clientId },
-        select: { googleCalendarRefreshToken: true, googleCalendarId: true },
       });
-      if (!client?.googleCalendarRefreshToken) {
+      /* L'agenda ACTIF, quel qu'il soit. Lire `googleCalendarRefreshToken` en
+         direct faisait sortir par le chemin « pas de calendrier lié » tout
+         client dont l'agenda est Outlook : le rendez-vous se posait en base,
+         l'appelant l'entendait confirmer, et il n'apparaissait dans aucun
+         agenda à lui. Le repli sur Google est conservé pour les comptes créés
+         avant Outlook (voir calendar-provider.service.ts). */
+      const target = resolveCalendar(client);
+      if (!target) {
         /* Pas de calendrier lié: il n'y a rien à synchroniser, et ce n'est pas
            un échec. On marque la ligne comme réglée, sinon le job la
            reprendrait indéfiniment. */
         await this.markCalendarSynced(bookingId);
         return true;
       }
-      const accessToken = await googleCalendarService.getAccessTokenFromRefresh(client.googleCalendarRefreshToken);
-      await googleCalendarService.createEventFromBooking(bookingId, accessToken, client.googleCalendarId || 'primary');
+      await this.syncBookingToResolvedCalendar(bookingId, target);
       await this.markCalendarSynced(bookingId);
       return true;
     } catch (error) {
@@ -996,6 +1009,60 @@ class ToolRuntimeService {
         .catch(() => { /* la trace ne doit pas masquer l'erreur d'origine */ });
       return false;
     }
+  }
+
+  /**
+   * Pose le rendez-vous chez le fournisseur résolu.
+   *
+   * Google garde son implémentation d'origine (`createEventFromBooking`), qui
+   * relit la réservation en base, écrit `googleEventId` et sait déjà gérer le
+   * fuseau de l'entreprise. On ne la double pas : deux écritures pour un même
+   * rendez-vous seraient deux occasions de divergence.
+   *
+   * Outlook n'a pas d'équivalent « depuis la base », donc on lui passe l'objet
+   * réservation directement, et c'est NOUS qui rangeons l'identifiant rendu.
+   */
+  private async syncBookingToResolvedCalendar(
+    bookingId: string,
+    target: { provider: 'google' | 'outlook'; refreshToken: string; calendarId: string | null },
+  ): Promise<void> {
+    if (target.provider === 'google') {
+      const accessToken = await googleCalendarService.getAccessTokenFromRefresh(target.refreshToken);
+      await googleCalendarService.createEventFromBooking(bookingId, accessToken, target.calendarId || 'primary');
+      return;
+    }
+
+    const booking = await prisma.clientBooking.findUnique({
+      where: { id: bookingId },
+      include: { client: true },
+    });
+    if (!booking) throw new Error(`Booking not found: ${bookingId}`);
+
+    const { startIso, endIso, timeZone } = bookingInstants(booking, booking.client);
+    const accessToken = await outlookCalendarService.getAccessTokenFromRefresh(
+      target.refreshToken,
+      /* Microsoft fait tourner son refresh token : sans cette réécriture, on
+         garderait un jeton déjà révoqué de son côté, et l'agenda du client se
+         débrancherait tout seul au bout d'une heure. */
+      async (next) => {
+        await prisma.client.update({
+          where: { id: booking.clientId },
+          data: { outlookRefreshToken: next },
+        });
+      },
+    );
+    const eventId = await outlookCalendarService.createEvent(accessToken, {
+      subject: bookingSubject(booking),
+      bodyText: bookingDescription(booking),
+      startIso,
+      endIso,
+      timeZone,
+      attendees: booking.customerEmail ? [booking.customerEmail] : [],
+    }, target.calendarId);
+    await prisma.clientBooking.update({
+      where: { id: bookingId },
+      data: { googleEventId: eventId },
+    });
   }
 
   private async markCalendarSynced(bookingId: string): Promise<void> {
@@ -1336,20 +1403,20 @@ class ToolRuntimeService {
       + ' Ask if they need anything else.';
   }
 
-  /** L'ancien événement Google part, le nouveau est créé par la synchronisation ordinaire. */
+  /** L'ancien événement part, le nouveau est créé par la synchronisation ordinaire. */
   private async moveCalendarEvent(clientId: string, bookingId: string, oldEventId: string | null): Promise<void> {
     if (oldEventId) {
       try {
-        const client = await prisma.client.findUnique({
-          where: { id: clientId },
-          select: { googleCalendarRefreshToken: true, googleCalendarId: true },
-        });
-        if (client?.googleCalendarRefreshToken) {
-          const accessToken = await googleCalendarService.getAccessTokenFromRefresh(client.googleCalendarRefreshToken);
-          await googleCalendarService.deleteEvent(oldEventId, accessToken, client.googleCalendarId || 'primary');
+        const client = await prisma.client.findUnique({ where: { id: clientId } });
+        /* `deleteBookingEvent` vise l'agenda qui a POSÉ l'évènement, pas
+           l'agenda actif. Un client qui a basculé sur Outlook puis déplace un
+           rendez-vous pris sous Google aurait sinon un 404 silencieux, et
+           l'ancien créneau resterait occupé chez Google. */
+        if (client) {
+          await deleteBookingEvent(client, { eventId: oldEventId });
         }
       } catch (error) {
-        logger.warn(`[VoiceTools] ancien événement Google non supprimé (${bookingId}): ${(error as Error).message}`);
+        logger.warn(`[VoiceTools] ancien événement d'agenda non supprimé (${bookingId}): ${(error as Error).message}`);
       }
     }
     await this.syncBookingToCalendar(clientId, bookingId);

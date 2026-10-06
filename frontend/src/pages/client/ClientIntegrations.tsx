@@ -63,6 +63,7 @@ const SECTIONS: { verb: Verb; icon: typeof PhoneCall; title: string; blurb: stri
  * quatre endroits de cette page doivent le savoir.
  */
 const GCAL = 'google-calendar';
+const OUTLOOK = 'outlook-calendar';
 
 /** L'état réel, dit en un mot. Aucun n'est décoratif. */
 function badge(entry: Entry): { label: string; cls: string; icon: typeof Check } {
@@ -142,8 +143,29 @@ export default function ClientIntegrations() {
     }
   };
 
+  /**
+   * Outlook suit exactement le même chemin, et la clé `gcalReturnTo` est
+   * réutilisée à dessein : c'est la page qui traite le retour qui la lit, et
+   * elle ne sait pas quel fournisseur a parlé. Deux clés distinctes
+   * laisseraient un client revenir sur la réceptionniste au lieu d'ici.
+   */
+  const connectOutlookCalendar = async () => {
+    setSaving(true);
+    setProblem(null);
+    try {
+      const { data } = await api.get('/my-dashboard/integrations/outlook-calendar/auth-url');
+      sessionStorage.setItem('gcalReturnTo', window.location.pathname);
+      if (data.redirectUri) sessionStorage.setItem('gcalRedirectUri', data.redirectUri);
+      window.location.href = data.url;
+    } catch (e: unknown) {
+      setProblem({ id: OUTLOOK, text: serverSaid(e, "La connexion à Microsoft n'a pas abouti.") });
+      setSaving(false);
+    }
+  };
+
   const connect = async (entry: Entry) => {
     if (entry.id === GCAL) return connectGoogleCalendar();
+    if (entry.id === OUTLOOK) return connectOutlookCalendar();
 
     setSaving(true);
     setProblem(null);
@@ -173,6 +195,7 @@ export default function ClientIntegrations() {
     setEntries(list => list.map(e => (e.id === entry.id ? { ...e, connected: false } : e)));
     try {
       if (entry.id === GCAL) await api.delete('/my-dashboard/integrations/google-calendar');
+      else if (entry.id === OUTLOOK) await api.delete('/my-dashboard/integrations/outlook-calendar');
       else await api.post(`/crm/integrations/${entry.id}/disconnect`);
     } catch {
       // Remettre l'état vrai plutôt que laisser croire à une déconnexion.
