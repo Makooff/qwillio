@@ -247,7 +247,7 @@ export default function ClientOverview() {
   // --- Loading skeleton ---
   if (loading) {
     return (
-      <main className="space-y-6 max-w-[1320px] mx-auto" aria-busy="true">
+      <main className="space-y-6" aria-busy="true">
         {paymentPending && (
           <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] px-5 py-3">
             <p className="text-sm text-white/70">Activation de votre compte en cours…</p>
@@ -286,7 +286,7 @@ export default function ClientOverview() {
   }
 
   return (
-    <main className="space-y-6 max-w-[1320px] mx-auto">
+    <main className="space-y-6">
       {/* Header */}
       <Reveal i={0}>
         <section className="flex items-start justify-between gap-4">

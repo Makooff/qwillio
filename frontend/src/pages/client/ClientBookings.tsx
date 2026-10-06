@@ -398,7 +398,7 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
   const railed = !searchMode && view === 'grid';
 
   return (
-    <main className="max-w-[1600px] mx-auto space-y-6">
+    <main className="space-y-6">
       <motion.header
         initial={reduced ? { opacity: 0 } : { opacity: 0, y: -8 }}
         animate={{ opacity: 1, y: 0 }}
