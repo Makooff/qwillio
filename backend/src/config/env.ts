@@ -917,6 +917,18 @@ export const env = {
   TWILIO_API_KEY_SID: process.env.TWILIO_API_KEY_SID || '',
   TWILIO_API_KEY_SECRET: process.env.TWILIO_API_KEY_SECRET || '',
   TWILIO_PHONE_NUMBER: process.env.TWILIO_PHONE_NUMBER || '',
+  /**
+   * Le service de messagerie (`MG…`) par lequel les SMS partent.
+   *
+   * Sans lui, on envoie avec un `from` nu, et un numéro mobile belge refuse
+   * alors chaque envoi : « 'From' phone number routing configuration is
+   * incorrect [Twilio 21663] ». C'est ce qui a fait échouer 15 SMS entre le
+   * 30/09 et le 05/10, y compris pendant des appels par ailleurs réussis.
+   *
+   * Vide par défaut : le comportement d'avant est conservé tant que la
+   * variable n'est pas posée, donc rien ne casse si on la retire.
+   */
+  TWILIO_MESSAGING_SERVICE_SID: process.env.TWILIO_MESSAGING_SERVICE_SID || '',
   TWILIO_WHATSAPP_NUMBER: process.env.TWILIO_WHATSAPP_NUMBER,
   /**
    * Les MODÈLES WhatsApp approuvés, par type de message.

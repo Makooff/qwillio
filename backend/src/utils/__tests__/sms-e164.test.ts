@@ -44,4 +44,30 @@ describe('toE164', () => {
     // Un appelant français sur une ligne belge: son « +33 » fait foi.
     expect(toE164('+33612345678', 'BE')).toBe('+33612345678');
   });
+
+
+  it('un pays présent mais hors table retombe, il ne refuse plus', () => {
+    /* `country` est un VarChar(10) avec « BE » pour défaut, mais rien ne garantit
+       ce qu'il contient : un pays où Qwillio n'a pas de ligne, une casse
+       inattendue, une valeur d'import. L'ancien code rendait `null`, donc le SMS
+       de confirmation ne partait nulle part — sur une réservation qui EXISTAIT,
+       et sans rien dire à l'appelant qui avait entendu « vous recevrez un SMS ».
+
+       Le repli existait déjà pour un pays ABSENT. Traiter plus durement un pays
+       PRÉSENT mais illisible n'avait pas de sens : le marché de Qwillio est
+       belge, et la confirmation part vers quelqu'un qui vient d'appeler une
+       ligne belge. */
+    expect(toE164('0483620980', 'ZZ')).toBe('+32483620980');
+    expect(toE164('0483620980', 'be')).toBe('+32483620980');
+    expect(toE164('0483620980', '')).toBe('+32483620980');
+  });
+
+  it('« XX » reste le SEUL refus : on ne devine toujours pas', () => {
+    /* La règle « on ne devine pas un indicatif, on le reçoit » doit rester
+       vérifiable. `XX` est le pays explicitement inconnu ; desserrer jusque-là
+       aurait rendu un « 0 » de tête belge préfixé en +1, c'est-à-dire un numéro
+       américain valide qui n'existe pas. */
+    expect(toE164('0483620980', 'XX')).toBeNull();
+  });
+
 });

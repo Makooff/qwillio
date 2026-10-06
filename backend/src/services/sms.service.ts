@@ -178,17 +178,40 @@ export class SmsService {
       return { success: false, error: msg };
     }
     const from = await this.senderFor(metadata?.clientId);
-    if (!from) {
+    /* ── PAR LE SERVICE DE MESSAGERIE QUAND IL EXISTE (05/10/2026) ──────────
+     *
+     * Le motif d'échec, répété 15 fois entre le 30/09 et le 05/10, toujours le
+     * même, y compris sur des appels par ailleurs réussis :
+     *
+     *   SMS send failed: 'From' phone number routing configuration is incorrect
+     *   [Twilio 21663]
+     *
+     * Ce n'est pas le DESTINATAIRE qui gênait, c'est l'EXPÉDITEUR : un numéro
+     * mobile belge (04xx) passé en `from` nu n'a pas de route d'envoi chez
+     * Twilio. Le numéro existe, il porte la voix, et il refuse le SMS tant
+     * qu'aucun service de messagerie ne le déclare comme expéditeur.
+     *
+     * Un Messaging Service (`MG…`) est exactement la pièce qui manquait : il
+     * regroupe des expéditeurs et porte la route. Quand son SID est configuré,
+     * on envoie PAR LUI et on ne passe plus `from` du tout — Twilio choisit
+     * l'expéditeur dans le pool.
+     *
+     * `from` reste en repli, et pas par élégance : les clients qui ont leur
+     * propre ligne mobile doivent pouvoir envoyer depuis LEUR numéro, et un
+     * envoi via service imposerait celui du pool. On ne dégrade donc rien de ce
+     * qui marchait : tant que `TWILIO_MESSAGING_SERVICE_SID` est vide, le
+     * comportement d'avant est intégralement conservé.
+     */
+    const serviceSid = env.TWILIO_MESSAGING_SERVICE_SID || '';
+    if (!serviceSid && !from) {
       logger.warn('[SMS] aucun expéditeur: ni ligne mobile du client, ni TWILIO_PHONE_NUMBER');
       return { success: false, error: 'no SMS sender' };
     }
 
     try {
-      const message = await client.messages.create({
-        body,
-        from,
-        to,
-      });
+      const message = await client.messages.create(
+        serviceSid ? { body, to, messagingServiceSid: serviceSid } : { body, to, from: from as string },
+      );
 
       logger.info(`SMS sent to ${to}: ${message.sid}`);
 
