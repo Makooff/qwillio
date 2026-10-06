@@ -398,18 +398,27 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
   const railed = !searchMode && view === 'grid';
 
   return (
-    <main className="max-w-[1600px] space-y-6">
-      <header>
+    <main className="max-w-[1600px] mx-auto space-y-6">
+      <motion.header
+        initial={reduced ? { opacity: 0 } : { opacity: 0, y: -8 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.28, ease: EASE }}
+      >
         <h1 className="text-[22px] font-semibold tracking-tight text-white/90">Rendez-vous</h1>
         <p className="mt-1 text-[12.5px] text-white/50" aria-live="polite">{subtitle}</p>
-      </header>
+      </motion.header>
 
       {/* Tout sur UNE ligne, et cette ligne fait la largeur de l'agenda: le
           conteneur porte la MÊME grille que le contenu, donc la barre occupe la
           colonne du calendrier et s'arrête avant « À venir ». La recherche prend
           ce qui reste (`flex-1`), donc le sélecteur de vue touche le bord droit
           de l'agenda. */}
-      <div className={railed ? RAIL : undefined}>
+      <motion.div
+        initial={reduced ? { opacity: 0 } : { opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: EASE, delay: 0.06 }}
+        className={railed ? RAIL : undefined}
+      >
         <div className="flex flex-wrap items-center gap-2 sm:gap-3">
           <div className="relative min-w-[240px] flex-1">
             <Search size={15} className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" aria-hidden="true" />
@@ -473,7 +482,7 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
             </div>
           </>}
         </div>
-      </div>
+      </motion.div>
 
       {error && (
         <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] px-5 py-4">
@@ -513,18 +522,21 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
               ))}
             </div>
             <div className="grid grid-cols-7 gap-1.5 sm:gap-2" role="grid">
-              {cells.map(cell => {
+              {cells.map((cell, idx) => {
                 const dayBookings = byDay.get(cell.iso) ?? [];
                 const count = dayBookings.length;
                 const selected = selectedDay === cell.iso;
                 return (
-                  <button
+                  <motion.button
                     key={cell.iso}
                     type="button"
                     role="gridcell"
                     aria-selected={selected}
                     aria-label={`${dayLabel(cell.iso)}${count ? `, ${count} rendez-vous` : ''}`}
                     onClick={() => { setSelectedDay(selected ? null : cell.iso); setExpanded(null); }}
+                    initial={reduced ? { opacity: 0 } : { opacity: 0, y: 8, x: 6 }}
+                    animate={{ opacity: 1, y: 0, x: 0 }}
+                    transition={{ duration: 0.24, ease: EASE, delay: reduced ? 0 : 0.1 + Math.min(idx, 42) * 0.015 }}
                     className={`relative flex h-24 flex-col items-stretch overflow-hidden rounded-2xl p-2 text-left transition-colors xl:h-28
                       ${cell.inMonth ? 'bg-white/[0.04] hover:bg-white/[0.07]' : 'bg-white/[0.015] text-white/30'}
                       ${selected ? 'ring-1 ring-[#7349fe]/60 bg-[#7349fe]/[0.12]' : ''}
@@ -549,7 +561,7 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
                         )}
                       </span>
                     )}
-                  </button>
+                  </motion.button>
                 );
               })}
             </div>

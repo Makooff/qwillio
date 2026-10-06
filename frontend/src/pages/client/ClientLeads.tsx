@@ -256,7 +256,7 @@ export default function ClientLeads() {
             {filteredLeads.map((r, idx) => {
               const sc = leadStatusStyle(r.status);
               return (
-                <motion.div key={r.id} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: Math.min(idx * 0.02, 0.3), ease: [0.16, 1, 0.3, 1] }}
+                <motion.div key={r.id} initial={{ opacity: 0, y: 6, x: 4 }} animate={{ opacity: 1, y: 0, x: 0 }} transition={{ delay: Math.min(idx * 0.02, 0.3), ease: [0.16, 1, 0.3, 1] }}
                   className="border-b border-white/[0.04] last:border-b-0 hover:bg-white/[0.02] cursor-pointer group transition-colors rounded-lg"
                   /* Un appel ouvre son panneau (notes, statut, résumé). Une
                      fiche sans appel ouvre le détail CRM, qui est le seul

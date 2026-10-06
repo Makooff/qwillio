@@ -15,7 +15,6 @@ import SlideOver from '../../components/client-dashboard/SlideOver';
 import Pagination from '../../components/client-dashboard/Pagination';
 import EmptyState from '../../components/client-dashboard/EmptyState';
 import LiveCalls from '../../components/client-dashboard/LiveCalls';
-import AbandonByTurn from '../../components/client-dashboard/AbandonByTurn';
 import TransferFunnel from '../../components/client-dashboard/TransferFunnel';
 import RecordingPlayer from '../../components/client-dashboard/RecordingPlayer';
 import { formatDuration, formatDateTime, exportToCSV } from '../../utils/format';
@@ -399,7 +398,6 @@ export default function ClientCalls() {
           maintenant, non. */}
       <LiveCalls />
 
-      <AbandonByTurn />
       <TransferFunnel />
 
       {/* Content */}
@@ -469,8 +467,8 @@ export default function ClientCalls() {
               <motion.div
                 key={call.id}
                 role="listitem"
-                initial={{ opacity: 0, y: 6 }}
-                animate={{ opacity: 1, y: 0 }}
+                initial={{ opacity: 0, y: 6, x: 4 }}
+                animate={{ opacity: 1, y: 0, x: 0 }}
                 transition={{ delay: Math.min(idx * 0.02, 0.3), ease: [0.16, 1, 0.3, 1] }}
                 className="border-b border-white/[0.04] last:border-b-0 hover:bg-white/[0.02] cursor-pointer transition-colors group rounded-lg"
                 onClick={() => setSelectedCall(call)}
@@ -511,9 +509,11 @@ export default function ClientCalls() {
                       ? <span className="text-[#A78BFA]">en direct</span>
                       : formatDuration(call.durationSeconds)}
                   </span>
-                  <SentimentBadge
-                    sentiment={call.status === 'in-progress' ? 'in-progress' : call.sentiment}
-                  />
+                  <span className="flex items-center">
+                    <SentimentBadge
+                      sentiment={call.status === 'in-progress' ? 'in-progress' : call.sentiment}
+                    />
+                  </span>
                   <span className="text-xs text-[#A1A1A8]">{formatDateTime(call.createdAt)}</span>
                   <ChevronRight size={14} className="text-white/20 group-hover:text-[#7349fe] transition-colors" aria-hidden="true" />
                 </div>

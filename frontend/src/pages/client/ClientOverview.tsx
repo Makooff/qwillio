@@ -1,6 +1,7 @@
 // === FILE: ClientOverview.tsx ===
 import { useEffect, useState, useCallback, useRef } from 'react';
 import { Link, useSearchParams } from 'react-router-dom';
+import { motion, useReducedMotion } from 'framer-motion';
 import {
   Phone, Bot, Settings, ChevronRight, AlertCircle,
   Headphones, Sparkles, PhoneForwarded,
@@ -43,6 +44,25 @@ function outcomePill(outcome: string): string {
 // Skeleton block
 function Bone({ className }: { className?: string }) {
   return <div className={`animate-pulse rounded-lg bg-white/[0.06] ${className ?? ''}`} />;
+}
+
+/* Entrée en escalier, du haut-gauche vers le bas-droit: chaque section de la
+   page apparaît dans l'ordre de lecture. `useReducedMotion` coupe le trajet
+   (seul le fondu reste, immédiat). Même courbe que l'entête commune. */
+const EASE = [0.16, 1, 0.3, 1] as const;
+
+function Reveal({ i, className, children }: { i: number; className?: string; children: React.ReactNode }) {
+  const reduced = useReducedMotion();
+  return (
+    <motion.div
+      initial={reduced ? { opacity: 0 } : { opacity: 0, y: 12, x: 6 }}
+      animate={{ opacity: 1, y: 0, x: 0 }}
+      transition={{ duration: 0.3, ease: EASE, delay: 0.04 + i * 0.06 }}
+      className={className}
+    >
+      {children}
+    </motion.div>
+  );
 }
 
 export default function ClientOverview() {
@@ -227,7 +247,7 @@ export default function ClientOverview() {
   // --- Loading skeleton ---
   if (loading) {
     return (
-      <main className="space-y-6 max-w-[1320px]" aria-busy="true">
+      <main className="space-y-6 max-w-[1320px] mx-auto" aria-busy="true">
         {paymentPending && (
           <div className="rounded-2xl border border-white/[0.08] bg-white/[0.03] px-5 py-3">
             <p className="text-sm text-white/70">Activation de votre compte en cours…</p>
@@ -266,47 +286,56 @@ export default function ClientOverview() {
   }
 
   return (
-    <main className="space-y-6 max-w-[1320px]">
+    <main className="space-y-6 max-w-[1320px] mx-auto">
       {/* Header */}
-      <section className="flex items-start justify-between gap-4">
-        <div>
-          <h1 className="text-[22px] font-semibold tracking-tight text-white/90">
-            {greeting(user?.name || 'Utilisateur')}
-          </h1>
-          <p className="text-[12.5px] mt-1 text-white/50">
-            {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+      <Reveal i={0}>
+        <section className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-[22px] font-semibold tracking-tight text-white/90">
+              {greeting(user?.name || 'Utilisateur')}
+            </h1>
+            <p className="text-[12.5px] mt-1 text-white/50">
+              {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
+              <span className="mx-1.5 text-white/20">·</span>
+              <span className={isActive ? 'text-emerald-400' : isPaused ? 'text-amber-400' : 'text-red-400'}>
+                {isActive ? 'Service actif' : isPaused ? 'En pause' : 'Inactif'}
+              </span>
+            </p>
+          </div>
+          {/* Trois boutons vivaient ici: un sélecteur « 30 derniers jours », une
+              plage de dates et « Personnaliser ». Aucun n'avait de `onClick`: on
+              cliquait, rien ne se passait. Trois boutons morts en haut de la
+              première page du portail, c'est-à-dire au premier écran d'une
+              démonstration. La période est fixe (l'aperçu serveur renvoie trente
+              jours), alors elle est écrite, pas offerte au clic. */}
+          <p className="hidden md:block text-[12.5px] tabular-nums text-white/45">
+            {new Date(Date.now() - 29 * 864e5).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
+            {' – '}
+            {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
             <span className="mx-1.5 text-white/20">·</span>
-            <span className={isActive ? 'text-emerald-400' : isPaused ? 'text-amber-400' : 'text-red-400'}>
-              {isActive ? 'Service actif' : isPaused ? 'En pause' : 'Inactif'}
-            </span>
+            30 derniers jours
           </p>
-        </div>
-        {/* Trois boutons vivaient ici: un sélecteur « 30 derniers jours », une
-            plage de dates et « Personnaliser ». Aucun n'avait de `onClick`: on
-            cliquait, rien ne se passait. Trois boutons morts en haut de la
-            première page du portail, c'est-à-dire au premier écran d'une
-            démonstration. La période est fixe (l'aperçu serveur renvoie trente
-            jours), alors elle est écrite, pas offerte au clic. */}
-        <p className="hidden md:block text-[12.5px] tabular-nums text-white/45">
-          {new Date(Date.now() - 29 * 864e5).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' })}
-          {' – '}
-          {new Date().toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' })}
-          <span className="mx-1.5 text-white/20">·</span>
-          30 derniers jours
-        </p>
-      </section>
+        </section>
+      </Reveal>
 
       {/* Onboarding, score de complétude compris (13/09/2026) */}
-      {!onboardingDone && <OnboardingChecklist client={onboardingClient} setup={setup} />}
+      {!onboardingDone && (
+        <Reveal i={1}>
+          <OnboardingChecklist client={onboardingClient} setup={setup} />
+        </Reveal>
+      )}
 
       {/* KPI split row — borderless figures with a hairline under */}
-      <section aria-label="Indicateurs clés" className="pb-6 border-b border-white/[0.06]">
-        <KpiSplit items={kpis} />
-      </section>
+      <Reveal i={2}>
+        <section aria-label="Indicateurs clés" className="pb-6 border-b border-white/[0.06]">
+          <KpiSplit items={kpis} />
+        </section>
+      </Reveal>
 
 
       {/* Main grid — content + right rail, separated by a vertical hairline */}
-      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] xl:divide-x divide-white/[0.06]">
+      <Reveal i={3}>
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] xl:divide-x divide-white/[0.06]">
         {/* Left column */}
         <div className="min-w-0 divide-y divide-white/[0.06] xl:pr-6">
           <HeroTrendPanel
@@ -488,23 +517,26 @@ export default function ClientOverview() {
 
         </div>
       </div>
+      </Reveal>
 
 
       {/* Support — frameless strip */}
-      <section className="pt-5 border-t border-white/[0.06]">
-        <div className="flex items-center gap-3">
-          <Headphones size={15} className="text-white/40 flex-shrink-0" />
-          <p className="text-[12.5px] text-white/70 flex-1">
-            Besoin d'aide ? Notre équipe répond en moins d'une heure.
-          </p>
-          <Link
-            to="/dashboard/support"
-            className="text-[12px] font-medium text-white/70 hover:text-white whitespace-nowrap transition-colors flex items-center gap-1 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/30 rounded"
-          >
-            Contacter le support <ChevronRight size={12} />
-          </Link>
-        </div>
-      </section>
+      <Reveal i={4}>
+        <section className="pt-5 border-t border-white/[0.06]">
+          <div className="flex items-center gap-3">
+            <Headphones size={15} className="text-white/40 flex-shrink-0" />
+            <p className="text-[12.5px] text-white/70 flex-1">
+              Besoin d'aide ? Notre équipe répond en moins d'une heure.
+            </p>
+            <Link
+              to="/dashboard/support"
+              className="text-[12px] font-medium text-white/70 hover:text-white whitespace-nowrap transition-colors flex items-center gap-1 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/30 rounded"
+            >
+              Contacter le support <ChevronRight size={12} />
+            </Link>
+          </div>
+        </section>
+      </Reveal>
 
       <p className="text-center text-[10px] text-white/20 pb-2">
         Qwillio · Plan {planLabel}

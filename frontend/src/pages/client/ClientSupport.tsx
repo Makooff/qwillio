@@ -149,7 +149,7 @@ export default function ClientSupport() {
                 placeholder="Rechercher dans la FAQ..."
                 value={faqSearch}
                 onChange={e => setFaqSearch(e.target.value)}
-                className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] placeholder-[#8B8BA7] focus:outline-none focus:border-q2-smoke-d transition-colors"
+                className="w-full pl-9 pr-4 py-2.5 text-sm rounded-xl border border-white/[0.07] bg-white/[0.02] text-[#F5F5F7] placeholder:text-white/35 focus:outline-none focus:border-q2-smoke-d transition-colors"
               />
             </div>
 
