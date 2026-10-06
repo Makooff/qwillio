@@ -9,6 +9,33 @@ import { findIntegration } from '../config/integrations';
 // ═══════════════════════════════════════════════════════════
 
 export class CrmSyncService {
+  /**
+   * Depuis quand une intégration NEUVE synchronise.
+   *
+   * `lastSync` est nul tant que rien n'a jamais été envoyé, et le remplacer par
+   * `new Date(0)` faisait partir TOUT l'historique du client : ses contacts,
+   * ses appels et ses affaires depuis toujours. Le cron envoyant par paquets de
+   * 200, un client avec 500 contacts déclenchait une première salve, puis une
+   * seconde quinze minutes plus tard, sans rien pour dire que c'était un
+   * rattrapage.
+   *
+   * Le jour où un client branche Zapier, il reçoit donc dans son CRM des appels
+   * d'il y a des mois, et il conclut que Qwillio envoie n'importe quoi. Le vrai
+   * reproche n'est pas le volume : c'est qu'aucun des deux côtés ne peut dire
+   * « ceci est le passé, ceci est le direct ».
+   *
+   * On démarre donc à la mise en place de l'intégration. Ce qui compte pour un
+   * CRM branché sur une réceptionniste, c'est ce que l'agent produit À PARTIR DE
+   * MAINTENANT ; l'historique, lui, se rattrape à la demande — c'est un geste
+   * explicite, pas un effet de bord de la première minute.
+   *
+   * Le repli reste `now()` et non `now() - 15 min` : un export manuel peut
+   * arriver juste après la création, et une fenêtre en arrière ferait rater ce
+   * qui vient d'être capté. Rater un appel coûte plus cher que d'en envoyer un
+   * de trop.
+   */
+  private static readonly DEPART_SANS_HISTORIQUE = true;
+
   async syncIntegration(integration: {
     id: string;
     clientId: string;
@@ -16,8 +43,16 @@ export class CrmSyncService {
     accessToken: string | null;
     config: unknown;
     lastSync: Date | null;
+    createdAt?: Date | null;
   }): Promise<void> {
-    const since = integration.lastSync ?? new Date(0);
+    /* `createdAt` quand il est fourni : c'est l'instant où le client a branché
+       l'intégration, donc le premier moment où il pouvait attendre quelque
+       chose. `now()` en dernier recours — jamais `new Date(0)`. */
+    const since =
+      integration.lastSync ??
+      (CrmSyncService.DEPART_SANS_HISTORIQUE
+        ? (integration.createdAt ?? new Date())
+        : new Date(0));
 
     switch (integration.provider) {
       /* Zapier, Make et n8n ne sont pas trois intégrations: ce sont trois noms
