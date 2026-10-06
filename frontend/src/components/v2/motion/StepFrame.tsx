@@ -195,29 +195,6 @@ export default function StepFrame({
       className={`pointer-events-none absolute left-0 top-0 z-0 ${className}`}
     >
       <defs>
-        {/* ARRONDIR LES ANGLES CRÉÉS PAR LE MASQUE, par la recette du « goo » :
-            flouter, puis remonter l'alpha à la verticale. Le flou émousse tous
-            les sommets (convexes comme concaves), et le seuil rend la silhouette
-            à nouveau franche. Ce n'est pas un dégradé : la sortie est un aplat à
-            bord net, avec des coins ronds. L'ordre compte : le filtre est porté
-            par le GROUPE et le masque par le tracé, sinon la coupe redeviendrait
-            anguleuse. */}
-        <filter
-          id={`${maskId}-round`}
-          x={-400}
-          y={-400}
-          width={size.w + 800}
-          height={size.h + 800}
-          filterUnits="userSpaceOnUse"
-          colorInterpolationFilters="sRGB"
-        >
-          <feGaussianBlur stdDeviation={11} result="soft" />
-          <feColorMatrix
-            in="soft"
-            type="matrix"
-            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 26 -13"
-          />
-        </filter>
         <mask
           id={maskId}
           maskUnits="userSpaceOnUse"
@@ -227,7 +204,9 @@ export default function StepFrame({
           height={size.h + 800}
         >
           <rect x={-400} y={-400} width={size.w + 800} height={size.h + 800} fill="#fff" />
-          {/* Coupe NETTE (le goo arrondit les angles ailleurs, pas ici). */}
+          {/* Coupe NETTE (retour utilisateur : pas de texture « usée »). Les
+              angles de la découpe sont arrondis par le seul `rx` du trou, sans
+              flou ni seuil. */}
           {holes.map(h => (
             <rect
               key={`${h.x},${h.y}`}
@@ -241,17 +220,15 @@ export default function StepFrame({
           ))}
         </mask>
       </defs>
-      <g filter={`url(#${maskId}-round)`}>
-        <path
-          mask={`url(#${maskId})`}
-          ref={pathRef}
-          data-frame-path
-          d={boxesRef.current[0] ? framePath(boxesRef.current[0], radius) : ''}
-          /* Même matière que le panneau d'en face, un `CardV2` en `bg-q2-band`.
-             PLEINE, sans contour : la découpe vient du seul masque. */
-          fill="rgb(var(--q2-band))"
-        />
-      </g>
+      <path
+        mask={`url(#${maskId})`}
+        ref={pathRef}
+        data-frame-path
+        d={boxesRef.current[0] ? framePath(boxesRef.current[0], radius) : ''}
+        /* Même matière que le panneau d'en face, un `CardV2` en `bg-q2-band`.
+           Aplat net, sans flou : la découpe vient du seul masque. */
+        fill="rgb(var(--q2-band))"
+      />
     </svg>
   );
 }
