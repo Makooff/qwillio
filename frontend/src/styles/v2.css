@@ -235,9 +235,9 @@ html {
 @media (hover: hover) {
   .q2-card-hover:hover {
     transform: translateY(-2px);
-    /* Le liseré mauve de 1px double l'ombre diffuse: la surface s'allume
-       au lieu de simplement décoller. */
-    box-shadow: var(--q2-shadow-hover), 0 0 0 1px rgba(122, 95, 255, 0.13);
+    /* Le liseré mauve de 1px a été retiré (demande utilisateur): la surface
+       décolle avec sa seule ombre, sans anneau de couleur au survol. */
+    box-shadow: var(--q2-shadow-hover);
   }
 }
 
