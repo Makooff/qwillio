@@ -372,10 +372,13 @@ export default function Receptionist() {
               <Eyebrow tone="indigo" className="mb-4 sm:mb-6">
                 {isFr ? 'Réceptionniste IA' : 'AI receptionist'}
               </Eyebrow>
-              <Display className="mb-5 sm:mb-7">
+              <Display className="mb-5 sm:mb-7 !text-[clamp(2rem,4.6vw,3.9rem)]">
                 {isFr ? (
                   <>
-                    Il ne prend pas le message. <SerifWord>Il prend le rendez-vous.</SerifWord>
+                    Il ne prend pas<br />
+                    le message<br />
+                    il prend le<br />
+                    <SerifWord>rendez-vous</SerifWord>
                   </>
                 ) : (
                   <>
@@ -512,10 +515,7 @@ export default function Receptionist() {
                         {pillar.body}
                       </p>
                     </div>
-                    {/* `data-step-mask`: le cadre s'efface dans une bande autour
-                        de ce panneau au lieu de le frôler en travers de la
-                        scène (demande utilisateur). */}
-                    <div data-step-mask className={flip ? 'lg:order-1' : ''}>
+                    <div className={flip ? 'lg:order-1' : ''}>
                       <Panel label={pillar.panelLabel}>
                         <ul className="divide-y divide-q2-plate" role="list">
                           {pillar.panelRows.map((row) => (
