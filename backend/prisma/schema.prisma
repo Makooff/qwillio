@@ -387,6 +387,18 @@ model Client {
   userId                     String?                   @unique @map("user_id") @db.Uuid
   googleCalendarId           String?                   @map("google_calendar_id") @db.VarChar(255)
   googleCalendarRefreshToken String?                   @map("google_calendar_refresh_token")
+  /// ── Le second agenda : Outlook / Microsoft 365 ────────────────────────────
+  /// La majorité des PME belges vivent dans Microsoft 365, pas dans Google.
+  /// Sans ces colonnes, un client qui travaille sous Outlook voyait l'agent
+  /// confirmer un rendez-vous qui n'apparaissait dans aucun agenda à lui.
+  /// Les deux jeux de colonnes coexistent : `calendarProvider` dit lequel fait
+  /// foi quand les deux sont remplis (calendar-provider.service.ts).
+  outlookCalendarId           String?                   @map("outlook_calendar_id") @db.VarChar(255)
+  outlookRefreshToken         String?                   @map("outlook_refresh_token")
+  /// `google` | `outlook` | null. Posé à la connexion d'un agenda, remis à null
+  /// à la déconnexion. Stocké plutôt que déduit : un client peut avoir les deux
+  /// jetons et vouloir l'un ou l'autre, et deviner à sa place serait l'écraser.
+  calendarProvider            String?                   @map("calendar_provider") @db.VarChar(20)
   agentLanguage              String                    @default("en") @map("agent_language") @db.VarChar(10)
   agentName                  String?                   @map("agent_name") @db.VarChar(100)
   /// Durée de conservation des données d'appel (transcripts, enregistrements,
