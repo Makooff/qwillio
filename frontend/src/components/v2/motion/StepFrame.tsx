@@ -1,25 +1,33 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { framePath, type FrameBox } from './frameJourney';
+import { frameJourney, framePath, type FrameBox } from './frameJourney';
 import { prefersReducedMotion } from './reducedMotion';
 import { onScrollFrame, sceneAt, sceneStarted } from './sceneProgress';
 
 /**
- * Un cadre arrondi posé derrière les étapes.
+ * Un cadre arrondi posé derrière les étapes, qui passe de l'une à l'autre au
+ * scroll en rapetissant par son coin de sortie puis en regrandissant depuis le
+ * coin d'entrée de la suivante. Cette déformation par les coins est le cœur de
+ * l'animation : on la conserve intégralement.
  *
- * Comportement (revert, retour utilisateur) :
- * - Le cadre est **plein** : plus de masque qui découpe un trou devant le
- *   panneau d'en face. Avant, on voyait la bulle trouée en pleine surface, ce
- *   qui se lisait comme un artefact.
- * - Il est **épinglé sur l'étape courante** : pendant qu'on scrolle dans une
- *   étape il ne bouge pas, et il glisse (lissé) vers la suivante uniquement au
- *   franchissement du seuil. Plus de scrub continu qui le faisait suivre le
- *   scroll millimètre par millimètre.
+ * Les boîtes sont MESURÉES dans le DOM (`[data-step-frame]`), jamais écrites en
+ * dur : les étapes n'ont pas la même hauteur selon la langue et la largeur de
+ * l'écran. Un `ResizeObserver` reprend les mesures quand la mise en page bouge.
  *
- * Les boîtes restent MESURÉES dans le DOM (`[data-step-frame]`), jamais écrites
- * en dur : les étapes n'ont pas la même hauteur selon la langue et la largeur.
- * Un `ResizeObserver` reprend les mesures quand la mise en page bouge.
+ * Le trajet vit dans l'attribut `d` et non dans un `transform`, parce que la
+ * TAILLE change en chemin et qu'un `scale` sur un tracé étirerait aussi son
+ * filet. Le tracé est recalculé, donc le filet garde son épaisseur du début à
+ * la fin.
  *
- * En reduced-motion le composant disparaît : c'est du décor.
+ * L'avancée vient de `sceneProgress`, la même règle que celle qui allume
+ * l'étape courante : un scrub autonome donnerait un cadre en avance sur le
+ * texte.
+ *
+ * La bulle est PLEINE (retour utilisateur) : plus de masque qui découpait un
+ * trou devant le panneau d'en face — on voyait la surface trouée, ce qui se
+ * lisait comme un artefact. Le cadre traverse donc la scène sans s'effacer.
+ *
+ * En reduced-motion le composant disparaît : c'est du décor, il n'a rien à dire
+ * à qui coupe les animations.
  */
 export default function StepFrame({
   /** Sélecteur des éléments à encadrer, dans le conteneur parent. */
@@ -46,10 +54,6 @@ export default function StepFrame({
   const [size, setSize] = useState<{ w: number; h: number } | null>(null);
   const [ready, setReady] = useState(false);
   const boxesRef = useRef<FrameBox[]>([]);
-  /** Étape sur laquelle le cadre est posé, et avancement du tween vers elle. */
-  const currentStep = useRef(0);
-  const targetStep = useRef(0);
-  const rafId = useRef(0);
 
   const measure = useCallback(() => {
     const root = scope.current;
@@ -95,64 +99,23 @@ export default function StepFrame({
     const aside = root.querySelector<HTMLElement>('[data-scene-aside]');
     const last = boxes.length - 1;
 
-    /* Tween lissé entre deux positions de bulle. Easing smoothstep : démarrage
-       et arrêt amortis, pas de secousse au franchissement du seuil. */
-    const ease = (t: number) => t * t * (3 - 2 * t);
-
-    const drawAt = (step: number) => {
-      path.setAttribute('d', framePath(boxes[step], radius));
-    };
-
-    /* Anime le `d` de la bulle vers l'étape cible en douceur, indépendamment du
-       scroll. Une seule boucle raf à la fois. */
-    const tweenTo = (target: number) => {
-      if (targetStep.current === target) return;
-      targetStep.current = target;
-      const fromStep = currentStep.current;
-      const start = performance.now();
-      const DURATION = 420;
-
-      const tick = (now: number) => {
-        const t = Math.max(0, Math.min(1, (now - start) / DURATION));
-        /* Interpole les boîtes entières, pas seulement `d` : on garde un
-           rectangle arrondi pendant tout le trajet, comme avant. */
-        const a = boxes[fromStep];
-        const b = boxes[target];
-        const box: FrameBox = {
-          x: a.x + (b.x - a.x) * ease(t),
-          y: a.y + (b.y - a.y) * ease(t),
-          w: a.w + (b.w - a.w) * ease(t),
-          h: a.h + (b.h - a.h) * ease(t),
-        };
-        path.setAttribute('d', framePath(box, radius));
-        if (t < 1) {
-          rafId.current = requestAnimationFrame(tick);
-        } else {
-          currentStep.current = target;
-          drawAt(target);
-        }
-      };
-      cancelAnimationFrame(rafId.current);
-      rafId.current = requestAnimationFrame(tick);
-    };
-
-    const unsub = onScrollFrame(() => {
+    return onScrollFrame(() => {
+      /* Tant que la colonne de titre descend encore, le cadre reste posé sur
+         la première étape : il ne part pas avant que la scène commence. */
       const raw = sceneStarted(aside) ? sceneAt(nodes) : 0;
       const at = Math.max(0, Math.min(last, raw));
-      /* Épinglé : on ne garde que la partie entière. Le cadre ne bouge qu'au
-         franchissement de l'étape, puis glisse vers la suivante. */
-      const step = Math.floor(at);
-      if (step !== currentStep.current) tweenTo(step);
+      const i = Math.min(last - 1, Math.floor(at));
+      /* La déformation par les coins, intégralement conservée : le cadre
+         rapetisse par son coin de sortie, traverse, regrandit depuis le coin
+         d'entrée de la suivante. */
+      const { path: d } = frameJourney({
+        from: boxes[i],
+        to: boxes[i + 1],
+        radius,
+        progress: at - i,
+      });
+      path.setAttribute('d', d);
     });
-
-    /* Position de départ au premier rendu. */
-    currentStep.current = 0;
-    drawAt(0);
-
-    return () => {
-      unsub();
-      cancelAnimationFrame(rafId.current);
-    };
   }, [radius, reduced, size, scope]);
 
   if (reduced || !size) return null;
@@ -172,7 +135,8 @@ export default function StepFrame({
         data-frame-path
         d={boxesRef.current[0] ? framePath(boxesRef.current[0], radius) : ''}
         /* Même matière que le panneau d'en face, un `CardV2` en `bg-q2-band`.
-           Aucun contour, aucun masque : un aplat plein, opaque, bien centré. */
+           PLEINE, sans masque ni contour : un aplat opaque. La déformation par
+           les coins est le tracé lui-même, calculé par `frameJourney`. */
         fill="rgb(var(--q2-band))"
       />
     </svg>
