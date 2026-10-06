@@ -234,6 +234,7 @@ export default function ClientAccount() {
   const [notifWeekly, setNotifWeekly] = useState(true);
   const [notifLeads, setNotifLeads] = useState(true);
   const [notifQuota, setNotifQuota] = useState(true);
+  const [notifSms, setNotifSms] = useState(true);
 
   /**
    * L'entreprise et ses coordonnées.
@@ -460,12 +461,14 @@ export default function ClientAccount() {
         notifWeekly?: boolean;
         notifLeads?: boolean;
         notifQuota?: boolean;
+        notifSms?: boolean;
       } | undefined;
       if (notif) {
         if (typeof notif.notifEmail  === 'boolean') setNotifEmail(notif.notifEmail);
         if (typeof notif.notifWeekly === 'boolean') setNotifWeekly(notif.notifWeekly);
         if (typeof notif.notifLeads  === 'boolean') setNotifLeads(notif.notifLeads);
         if (typeof notif.notifQuota  === 'boolean') setNotifQuota(notif.notifQuota);
+        if (typeof notif.notifSms    === 'boolean') setNotifSms(notif.notifSms);
       }
       if (['all', 'urgent', 'none'].includes(data?.leadAlert)) setLeadAlert(data.leadAlert);
       if (data?.notificationChannel === 'whatsapp' || data?.notificationChannel === 'sms') {
@@ -521,7 +524,7 @@ export default function ClientAccount() {
   };
 
   const saveNotifications = useCallback((vals: {
-    notifEmail: boolean; notifWeekly: boolean; notifLeads: boolean; notifQuota: boolean;
+    notifEmail: boolean; notifWeekly: boolean; notifLeads: boolean; notifQuota: boolean; notifSms: boolean;
   }) => {
     api.put('/my-dashboard/notifications', vals).catch(() => { /* best-effort */ });
   }, []);
@@ -993,10 +996,11 @@ export default function ClientAccount() {
                     </div>
                   </div>
                   {([
-                    { label: 'Notifications email',  desc: 'Évènements importants',   checked: notifEmail,  set: (v: boolean) => { setNotifEmail(v);  saveNotifications({ notifEmail: v, notifWeekly, notifLeads, notifQuota }); } },
-                    { label: 'Rapport hebdomadaire', desc: 'Résumé chaque lundi',     checked: notifWeekly, set: (v: boolean) => { setNotifWeekly(v); saveNotifications({ notifEmail, notifWeekly: v, notifLeads, notifQuota }); } },
-                    { label: 'Nouveaux leads',       desc: 'Alerte à chaque capture', checked: notifLeads,  set: (v: boolean) => { setNotifLeads(v);  saveNotifications({ notifEmail, notifWeekly, notifLeads: v, notifQuota }); } },
-                    { label: 'Alertes quota',        desc: 'Seuil 80% et 100%',       checked: notifQuota,  set: (v: boolean) => { setNotifQuota(v);  saveNotifications({ notifEmail, notifWeekly, notifLeads, notifQuota: v }); } },
+                    { label: 'Notifications email',  desc: 'Évènements importants',   checked: notifEmail,  set: (v: boolean) => { setNotifEmail(v);  saveNotifications({ notifEmail: v, notifWeekly, notifLeads, notifQuota, notifSms }); } },
+                    { label: 'Notifications SMS',    desc: 'Alerte sur votre mobile', checked: notifSms,    set: (v: boolean) => { setNotifSms(v);    saveNotifications({ notifEmail, notifWeekly, notifLeads, notifQuota, notifSms: v }); } },
+                    { label: 'Rapport hebdomadaire', desc: 'Résumé chaque lundi',     checked: notifWeekly, set: (v: boolean) => { setNotifWeekly(v); saveNotifications({ notifEmail, notifWeekly: v, notifLeads, notifQuota, notifSms }); } },
+                    { label: 'Nouveaux leads',       desc: 'Alerte à chaque capture', checked: notifLeads,  set: (v: boolean) => { setNotifLeads(v);  saveNotifications({ notifEmail, notifWeekly, notifLeads: v, notifQuota, notifSms }); } },
+                    { label: 'Alertes quota',        desc: 'Seuil 80% et 100%',       checked: notifQuota,  set: (v: boolean) => { setNotifQuota(v);  saveNotifications({ notifEmail, notifWeekly, notifLeads, notifQuota: v, notifSms }); } },
                   ] as const).map((n, i, arr) => (
                     <div key={i} className="flex items-center justify-between py-2.5"
                          style={{ borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : undefined }}>

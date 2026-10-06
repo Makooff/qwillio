@@ -78,7 +78,7 @@ interface NotifiableClient {
 export function readPrefs(client: NotifiableClient): CallNotifyPrefs {
   const cfg = client.vapiConfig as {
     callNotify?: Partial<CallNotifyPrefs>;
-    notifications?: { notifEmail?: boolean; notifLeads?: boolean };
+    notifications?: { notifEmail?: boolean; notifLeads?: boolean; notifSms?: boolean };
   } | null | undefined;
   const raw = cfg?.callNotify;
 
@@ -92,14 +92,33 @@ export function readPrefs(client: NotifiableClient): CallNotifyPrefs {
      (canal, plafond quotidien) et qu'il sert aux réglages posés à la main. */
   if (!raw) {
     const ui = cfg?.notifications;
-    if (ui && (ui.notifEmail !== undefined || ui.notifLeads !== undefined)) {
+    if (ui && (ui.notifEmail !== undefined || ui.notifLeads !== undefined || ui.notifSms !== undefined)) {
+      /* ── LES DEUX CANAUX SE DÉCIDENT SÉPARÉMENT (06/10/2026) ──────────────
+       *
+       * Avant, seul l'email avait un interrupteur, et couper l'email laissait
+       * le SMS. C'était un choix, mais il rendait impossible ce qu'un client
+       * demande légitimement : « ne me texte pas, écrivez-moi ». Le SMS est
+       * facturé à la pièce chez Twilio, donc c'est aussi le canal qu'on veut
+       * pouvoir couper quand on en reçoit trop.
+       *
+       * Les deux cases se lisent donc pour elles-mêmes, et le canal est la
+       * combinaison des deux. Une case ABSENTE (jamais enregistrée) vaut
+       * « actif » : c'est le défaut, et c'est ce qui garde le comportement des
+       * clients existants qui n'ont que `notifEmail` en base.
+       *
+       *   email  sms   -> canal
+       *   on     on    -> both
+       *   on     off   -> email
+       *   off    on    -> sms
+       *   off    off   -> off      (les deux coupés : plus rien)
+       */
+      const email = ui.notifEmail !== false;
+      const sms = ui.notifSms !== false;
+      const canal: CallNotifyChannel =
+        email && sms ? 'both' : email ? 'email' : sms ? 'sms' : 'off';
       return {
         ...DEFAULT_PREFS,
-        /* Pas d'interrupteur SMS dans cette page: couper l'email ne doit donc
-           pas couper le SMS, qui est le canal de l'urgence. */
-        channel: ui.notifEmail === false
-          ? (DEFAULT_PREFS.channel === 'both' ? 'sms' : DEFAULT_PREFS.channel === 'email' ? 'off' : DEFAULT_PREFS.channel)
-          : DEFAULT_PREFS.channel,
+        channel: canal,
         /* « Nouveaux leads » décoché veut dire « ne me préviens que pour ce qui
            compte », pas « ne me préviens jamais »: le filtre reste sur les
            leads et les rendez-vous. */

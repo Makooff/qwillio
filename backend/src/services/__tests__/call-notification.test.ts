@@ -186,6 +186,49 @@ describe('les réglages de la page Compte', () => {
     expect(prefs.leadsAndBookingsOnly).toBe(true);
   });
 
+  /* ── LES DEUX CANAUX SE DÉCIDENT SÉPARÉMENT (06/10/2026) ────────────────
+     Avant, seul l'email avait un interrupteur. Un client ne pouvait donc pas
+     demander « ne me texte pas, écrivez-moi » — et le SMS, facturé à la pièce
+     chez Twilio, était le canal qu'on ne pouvait pas couper. */
+  it('coupe le SMS quand « Notifications SMS » est décoché, et garde l\'email', () => {
+    const prefs = readPrefs({ ...base, vapiConfig: { notifications: { notifSms: false } } } as never);
+    expect(prefs.channel).toBe('email');
+  });
+
+  it('coupe l\'email et garde le SMS — l\'inverse exact', () => {
+    const prefs = readPrefs({ ...base, vapiConfig: { notifications: { notifEmail: false } } } as never);
+    expect(prefs.channel).toBe('sms');
+  });
+
+  it('les deux décochés coupent tout, plutôt que de laisser un canal par défaut', () => {
+    /* Le piège : une logique « si email alors… sinon… » laisserait toujours un
+       canal vivant, et le client qui a tout coupé recevrait quand même quelque
+       chose — le défaut le plus agaçant, parce qu'il croit avoir agi. */
+    const prefs = readPrefs({
+      ...base,
+      vapiConfig: { notifications: { notifEmail: false, notifSms: false } },
+    } as never);
+    expect(prefs.channel).toBe('off');
+  });
+
+  it('les deux cochés rendent « both »', () => {
+    const prefs = readPrefs({
+      ...base,
+      vapiConfig: { notifications: { notifEmail: true, notifSms: true } },
+    } as never);
+    expect(prefs.channel).toBe('both');
+  });
+
+  it('un client existant sans notifSms en base garde les deux canaux', () => {
+    /* La compatibilité, et c'est ce qui compte le plus ici : les clients
+       enregistrés avant l'interrupteur n'ont que `notifEmail` (ou rien). Une
+       case ABSENTE doit valoir « actif », pas « coupé » — sinon la mise en
+       production du réglage couperait le SMS de tout le monde le même jour. */
+    const prefs = readPrefs({ ...base, vapiConfig: { notifications: { notifLeads: true } } } as never);
+    expect(prefs.channel).toBe('both');
+  });
+
+
   it('laisse la priorité à callNotify quand il existe', () => {
     const prefs = readPrefs({
       ...base,

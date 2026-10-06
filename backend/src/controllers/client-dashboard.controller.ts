@@ -2037,10 +2037,13 @@ export class ClientDashboardController {
         })),
       });
     } catch (error: any) {
-      /* Le direct n'est jamais load-bearing : un échec ici ne doit pas faire
-         clignoter une erreur rouge sur une page qui, par ailleurs, marche. */
+      /* A8: un 200 { data: [] } sur une panne se confondait avec « aucun
+         appel en cours » et faisait disparaître un appel RÉEL de l'écran,
+         sans rien dire. Le direct n'est toujours pas load-bearing (le
+         composant garde son dernier état connu), mais l'échec se dit: 502 et
+         un code stable. */
       logger.error(`[live] appels en cours illisibles: ${error.message}`);
-      res.json({ data: [] });
+      res.status(502).json({ error: 'live_unavailable' });
     }
   }
 
@@ -2768,17 +2771,44 @@ export class ClientDashboardController {
   // PUT /my-dashboard/notifications
   async updateNotifications(req: any, res: Response) {
     try {
-      const { notifEmail, notifWeekly, notifLeads, notifQuota } = req.body;
+      const { notifEmail, notifWeekly, notifLeads, notifQuota, notifSms } = req.body;
       const client = await prisma.client.findUnique({ where: { id: req.clientId } });
       if (!client) return res.status(404).json({ error: 'Client not found' });
 
       const current = (client.vapiConfig as Record<string, unknown>) ?? {};
+      /* ── ON FUSIONNE, ON N'ÉCRASE PLUS (06/10/2026) ──────────────────────
+       *
+       * Cette ligne remplaçait `notifications` EN ENTIER par les quatre champs
+       * du corps. Ajouter un interrupteur à l'écran sans le lister ici l'aurait
+       * fait disparaître en silence au premier enregistrement d'un AUTRE
+       * interrupteur : la page poste les quatre qu'elle connaît, et la clé
+       * nouvelle s'évaporait.
+       *
+       * Le défaut n'était pas visible tant que les deux côtés avaient la même
+       * liste. Il le devient dès qu'un côté en a un de plus.
+       *
+       * On part donc de ce qui est en base et on ne pose que ce qui a été
+       * RÉELLEMENT envoyé : `undefined` (champ absent du corps) ne doit pas
+       * remettre un réglage existant à `false`.
+       */
+      const precedentes = ((current as any).notifications ?? {}) as Record<string, unknown>;
+      const suivantes: Record<string, boolean> = {};
+      /* On recopie ce qui est en base en ne gardant que les booléens : c'est la
+         seule forme que ces clés ont jamais eue, et le typage de Prisma refuse
+         un objet aux valeurs inconnues. */
+      for (const [cle, valeur] of Object.entries(precedentes)) {
+        if (typeof valeur === 'boolean') suivantes[cle] = valeur;
+      }
+      for (const [cle, valeur] of Object.entries({ notifEmail, notifWeekly, notifLeads, notifQuota, notifSms })) {
+        if (typeof valeur === 'boolean') suivantes[cle] = valeur;
+      }
+
       await prisma.client.update({
         where: { id: req.clientId },
         data: {
           vapiConfig: {
             ...current,
-            notifications: { notifEmail, notifWeekly, notifLeads, notifQuota },
+            notifications: suivantes,
           },
         },
       });
@@ -2806,6 +2836,11 @@ export class ClientDashboardController {
       logger.info(`[SUPPORT] From ${user?.email} (${client?.businessName}): ${subject}`);
 
       // Try to send email via Resend
+      /* A1: plus de succès fictif. Avant, l'échec Resend était avalé et la
+         réponse disait success: true — la demande ne partait jamais et le
+         client l'ignorait. L'échec se dit maintenant en 502 avec un code
+         stable, sans le message brut du fournisseur (il peut nommer la clé
+         API). Le formulaire garde la saisie: renvoyer coûte un clic. */
       try {
         const { emailService } = await import('../services/email.service');
         /* `send`, pas `sendRaw`: cette dernière n'existe pas sur le service.
@@ -2832,8 +2867,8 @@ export class ClientDashboardController {
           `,
         });
       } catch {
-        // Email sending is best-effort; the request is logged above
-        logger.warn('[SUPPORT] Email sending failed — support request still logged');
+        logger.error('[SUPPORT] envoi impossible — la demande est journalisée mais NON transmise');
+        return res.status(502).json({ error: 'email_send_failed' });
       }
 
       res.json({ success: true });
