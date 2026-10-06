@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { readFileSync } from 'node:fs';
+import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 /**
@@ -30,9 +30,16 @@ import { join } from 'node:path';
 // supposé. Trois crans pour retrouver `src/`, puis six pour sortir du dépôt du
 // pont et entrer dans celui du worker (frères sous Documents).
 const race = (p: string) => readFileSync(join(__dirname, '..', '..', '..', p), 'utf8');
-const worker = (p: string) =>
-  readFileSync(join(__dirname, '..', '..', '..', '..', '..', '..',
-                     'qwillio-voice-core', 'src', 'voice_core', p), 'utf8');
+
+// Le dépôt du worker (`qwillio-voice-core`) est un FRÈRE du pont, présent sur
+// une machine de développement mais PAS dans l'environnement CI, qui ne
+// checkout que ce dépôt. Les trois tests qui le lisent valent pour le
+// développeur; les faire planter en CI reviendrait à interdire tout push tant
+// que le frère n'est pas cloné, alors que le code du pont est, lui, correct.
+const WORKER_ROOT = join(__dirname, '..', '..', '..', '..', '..', '..',
+                         'qwillio-voice-core', 'src', 'voice_core');
+const workerDisponible = existsSync(join(WORKER_ROOT, 'storage.py'));
+const worker = (p: string) => readFileSync(join(WORKER_ROOT, p), 'utf8');
 
 describe('les préférences et l\'email de l\'appelant', () => {
   it('sont lus en base, et pas seulement écrits', () => {
@@ -48,8 +55,13 @@ describe('les préférences et l\'email de l\'appelant', () => {
     expect(bloc).toContain('preferences: memoire?.preferences');
     expect(bloc).toContain('email: memoire?.email');
   });
+});
 
-  it('survivent au dictionnaire reconstruit du worker', () => {
+// Ces trois-là lisent le code du WORKER, qui n'est pas cloné en CI. Le bloc est
+// ignoré quand le frère est absent : la lecture qu'ils font n'a alors pas de
+// sens, et échouer ne signalerait pas non plus une vraie régression du pont.
+describe.skipIf(!workerDisponible)('les préférences et l\'email atteignent le worker', () => {
+  it('surviennent au dictionnaire reconstruit du worker', () => {
     // L'étape la plus silencieuse : `historique_appelant` réénumère les champs
     // un par un. Une clé absente de cette liste est perdue, sans erreur, alors
     // que le pont l'a bien envoyée.

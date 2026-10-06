@@ -67,6 +67,7 @@ export default function ClientLeads() {
   const [view, setView] = useState<ViewMode>('table');
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<LeadStatus>('');
+  const [showFilters, setShowFilters] = useState(false);
   const [contacts, setContacts] = useState<ContactLike[]>([]);
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [noteText, setNoteText] = useState('');
@@ -232,6 +233,43 @@ export default function ClientLeads() {
           onChange: setSearch,
           placeholder: 'Rechercher un lead par nom, téléphone…',
           label: 'Rechercher dans les leads',
+        }}
+        filters={{
+          open: showFilters,
+          onToggle: () => setShowFilters(!showFilters),
+          count: statusFilter ? 1 : 0,
+          children: (
+            <div className="space-y-4">
+              <fieldset>
+                <legend className="text-xs text-[#A1A1A8] mb-1.5">Statut pipeline</legend>
+                <div className="flex flex-wrap gap-1.5">
+                  {(['', 'new', 'contacted', 'converted', 'lost'] as const).map((f) => {
+                    const label = f === '' ? 'Tous' : leadStatusStyle(f).label;
+                    const sc = f === '' ? null : leadStatusStyle(f);
+                    const active = statusFilter === f;
+                    return (
+                      <button
+                        key={f}
+                        type="button"
+                        onClick={() => setStatusFilter(f)}
+                        aria-pressed={active}
+                        className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-colors ${
+                          active
+                            ? 'bg-[#7349fe] text-white'
+                            : 'bg-white/[0.04] text-[#A1A1A8] hover:bg-white/[0.08]'
+                        }`}
+                      >
+                        {sc && !active && (
+                          <span className="mr-1.5 inline-block h-1.5 w-1.5 rounded-full align-middle" style={{ background: sc.color }} />
+                        )}
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </fieldset>
+            </div>
+          ),
         }}
       />
 
