@@ -515,7 +515,10 @@ export default function Receptionist() {
                         {pillar.body}
                       </p>
                     </div>
-                    <div className={flip ? 'lg:order-1' : ''}>
+                    {/* `data-step-mask`: le cadre s'efface dans une bande autour
+                        de ce panneau au lieu de le frôler en travers de la
+                        scène. C'est ce qui évite les coins des cartes. */}
+                    <div data-step-mask className={flip ? 'lg:order-1' : ''}>
                       <Panel label={pillar.panelLabel}>
                         <ul className="divide-y divide-q2-plate" role="list">
                           {pillar.panelRows.map((row) => (
