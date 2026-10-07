@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
-import { framePath, frameJourney, type FrameBox } from './frameJourney';
+import { framePath, type FrameBox } from './frameJourney';
 import { prefersReducedMotion } from './reducedMotion';
 import { onScrollFrame, sceneAt, sceneStarted } from './sceneProgress';
 
@@ -79,6 +79,10 @@ export default function StepFrame({
   const [ready, setReady] = useState(false);
   const boxesRef = useRef<FrameBox[]>([]);
   const maskId = useId();
+  /* Étape sur laquelle le cadre est posé, pour la transition lissée. */
+  const currentStep = useRef(0);
+  const targetStep = useRef(0);
+  const rafId = useRef(0);
 
   /* Les boîtes sont relatives au conteneur, pas à la fenêtre: le cadre est
      posé dedans en `absolute`, il doit parler le même repère. */
@@ -159,20 +163,60 @@ export default function StepFrame({
     const aside = root.querySelector<HTMLElement>('[data-scene-aside]');
     const last = boxes.length - 1;
 
-    return onScrollFrame(() => {
-      /* Tant que la colonne de titre descend encore, le cadre reste posé sur
-         la première étape: il ne part pas avant que la scène commence. */
+    const ease = (t: number) => t * t * (3 - 2 * t);
+
+    const drawAt = (step: number) => {
+      path.setAttribute('d', framePath(boxes[step], radius));
+    };
+
+    /* Transition lissée d'une étape à l'autre (retour utilisateur : le cadre ne
+       suit pas le scroll, il glisse de l'étape courante vers la suivante au
+       franchissement du seuil, en une seule boucle raf). */
+    const tweenTo = (target: number) => {
+      if (targetStep.current === target) return;
+      targetStep.current = target;
+      const fromStep = currentStep.current;
+      const start = performance.now();
+      const DURATION = 420;
+
+      const tick = (now: number) => {
+        const t = Math.max(0, Math.min(1, (now - start) / DURATION));
+        const a = boxes[fromStep];
+        const b = boxes[target];
+        const box: FrameBox = {
+          x: a.x + (b.x - a.x) * ease(t),
+          y: a.y + (b.y - a.y) * ease(t),
+          w: a.w + (b.w - a.w) * ease(t),
+          h: a.h + (b.h - a.h) * ease(t),
+        };
+        path.setAttribute('d', framePath(box, radius));
+        if (t < 1) {
+          rafId.current = requestAnimationFrame(tick);
+        } else {
+          currentStep.current = target;
+          drawAt(target);
+        }
+      };
+      cancelAnimationFrame(rafId.current);
+      rafId.current = requestAnimationFrame(tick);
+    };
+
+    const unsub = onScrollFrame(() => {
       const raw = sceneStarted(aside) ? sceneAt(nodes) : 0;
       const at = Math.max(0, Math.min(last, raw));
-      const i = Math.min(last - 1, Math.floor(at));
-      const { path: d } = frameJourney({
-        from: boxes[i],
-        to: boxes[i + 1],
-        radius,
-        progress: at - i,
-      });
-      path.setAttribute('d', d);
+      /* Partie entière seulement : le cadre ne bouge pas pendant le scroll,
+         il ne transitionne qu'au franchissement d'une étape. */
+      const step = Math.floor(at);
+      if (step !== currentStep.current) tweenTo(step);
     });
+
+    currentStep.current = 0;
+    drawAt(0);
+
+    return () => {
+      unsub();
+      cancelAnimationFrame(rafId.current);
+    };
   }, [radius, reduced, size, scope]);
 
   if (reduced || !size) return null;
