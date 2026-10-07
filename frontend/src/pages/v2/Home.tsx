@@ -136,9 +136,12 @@ const MOCKUP = {
      Affiliation — une progression qui monte (la commission récurrente)
    Quatre géométries, pas quatre teintes: des dégradés identiques feraient la
    grille de cartes jumelles que la charte interdit. Ils ne basculent pas avec
-   le thème, comme tout le registre drenched, et restent FRANCHEMENT éclairés:
-   en quasi-noir, les trois panneaux repliés passaient SOUS le fond de la bande
-   en thème sombre (#111111) et se lisaient comme des trous. */
+   le thème, comme tout le registre drenched.
+   MAUVE SOMBRE (retour utilisateur: « pas de rose ni de mauve clair »): la
+   lumière de chaque panneau reste mauve mais profonde (#453486 / #4E2E7E,
+   jamais le #CD6BFB rosé), sur une base #161718 qui reste AU-DESSUS du fond
+   de la bande en thème sombre (#111111) — en quasi-noir, les trois panneaux
+   repliés se lisaient comme des trous plutôt que comme des cartes. */
 const svgLayer = (svg: string, position: string, size: string) =>
   `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${position} / ${size} no-repeat`;
 
@@ -166,10 +169,10 @@ const EXPLORE_MOTIFS = [
 ];
 
 const EXPLORE_BACKS = [
-  'radial-gradient(125% 145% at 18% 118%, #7A5FFF 0%, #4720B0 40%, #161718 80%)',
-  'linear-gradient(112deg, #161718 0%, #2E1478 52%, #7349FE 108%)',
-  'radial-gradient(115% 135% at 86% -12%, #CD6BFB 0%, #7349FE 44%, #161718 84%)',
-  'radial-gradient(80% 100% at 4% 4%, #7A5FFF 0%, rgba(122,95,255,0) 60%), radial-gradient(80% 100% at 96% 96%, #CD6BFB 0%, rgba(205,107,251,0) 60%), #2E1478',
+  'radial-gradient(125% 145% at 18% 118%, #453486 0%, #221845 42%, #161718 82%)',
+  'linear-gradient(112deg, #161718 0%, #221645 52%, #453486 108%)',
+  'radial-gradient(115% 135% at 86% -12%, #4E2E7E 0%, #2C1D52 46%, #161718 84%)',
+  'radial-gradient(80% 100% at 4% 4%, #453486 0%, rgba(69,52,134,0) 60%), radial-gradient(80% 100% at 96% 96%, #4E2E7E 0%, rgba(78,46,126,0) 60%), #221845',
 ];
 
 

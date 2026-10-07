@@ -40,10 +40,12 @@ interface Feature {
 
 /* Les deux dégradés du registre drenched, un par rangée: la lumière vient
    d'en bas à gauche pour l'indigo, d'en haut à droite pour le violet — deux
-   géométries, jamais deux fois la même. */
+   géométries, jamais deux fois la même.
+   MAUVE SOMBRE (retour utilisateur: « pas de rose ni de mauve clair »): la
+   lumière reste mauve mais profonde, et le panneau tombe vite au quasi-noir. */
 const DRENCHED = {
-  indigo: 'radial-gradient(130% 150% at 18% 115%, #7A5FFF 0%, #4720B0 45%, #141316 85%)',
-  violet: 'radial-gradient(125% 145% at 85% -12%, #CD6BFB 0%, #7349FE 42%, #141316 84%)',
+  indigo: 'radial-gradient(130% 150% at 18% 115%, #453486 0%, #221842 48%, #100F13 85%)',
+  violet: 'radial-gradient(125% 145% at 85% -12%, #4E2E7E 0%, #251741 48%, #100F13 85%)',
 } as const;
 
 const FEATURES: Feature[] = [
