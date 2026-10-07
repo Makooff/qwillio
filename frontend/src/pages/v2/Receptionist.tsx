@@ -535,14 +535,13 @@ export default function Receptionist() {
             {/* Le chat de configuration, en CAPTURE DU VRAI PORTAIL (demande
                 utilisateur). La conversation qu'on y lit a réellement eu lieu
                 contre le composant livré, réponses comprises: voir
-                capture-screens.mjs. Ce fut un temps du balisage redessiné,
-                parce qu'une capture réduite à 350 px se lisait comme une
-                grille de gris; le cadrage sur le haut de l'image règle ce
-                point sans avoir à redessiner l'écran. */}
+                capture-screens.mjs. */}
             <figure className="relative">
-              {/* Même traitement que la Home: la nappe indigo a sauté (demande
-                  utilisateur). La capture tient sur sa propre bordure. */}
-              <div className="relative q2-lit rounded-xl overflow-hidden border border-q2-graphite-d bg-q2-carbon">
+              {/* La capture FLOTTE sur le drenched (référence utilisateur:
+                  les sections Codex d'OpenAI): plus de cadre carbon ni de
+                  filet graphite, une ombre profonde et un léger filet clair
+                  suffisent à la décoller du fond indigo. */}
+              <div className="relative rounded-xl overflow-hidden border border-white/15 shadow-[0_32px_90px_-24px_rgba(0,0,0,0.65)]">
                 <ScreenShot
                   name="chat-config"
                   alt={isFr

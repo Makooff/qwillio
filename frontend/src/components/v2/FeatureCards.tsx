@@ -1,28 +1,20 @@
 import RevealV2 from './RevealV2';
 import ScreenShot from './ScreenShot';
 
-/* Rangées « produit » du registre clair: plus de grille de deux cartes
-   étroites côte à côte. Chaque rangée occupe toute la largeur, le texte tient
+/* Rangées « produit »: chaque rangée occupe toute la largeur, le texte tient
    sur environ 40 pour cent et la capture sur environ 60, le côté de
    l'illustration s'inverse d'une rangée à l'autre.
 
-   L'illustration se pose sur une plate douce (radius 28) dont le cadre déborde
-   par le côté extérieur au-delà de lg: le visuel sort de son conteneur au lieu
-   d'y être enfermé. Il débordait aussi PAR LE HAUT; ce débordement-là est
-   retiré, parce qu'il mangeait les quarante premiers pixels de l'image,
-   c'est-à-dire le titre de la carte photographiée (« Volume d'appels »). Un
-   geste graphique ne vaut pas la perte de ce que le visuel doit montrer.
+   La capture FLOTTE sur la section, sans plate ni boîte autour (référence
+   utilisateur: les sections Codex d'OpenAI). Ce qui la décolle de la bande
+   est son ombre portée et son filet clair, pas un fond de carte. Elle déborde
+   par le côté extérieur au-delà de lg: le visuel sort de son conteneur au
+   lieu d'y être enfermé.
 
    Le visuel est une CAPTURE DU VRAI PORTAIL (demande utilisateur: « met le
-   vrai design quand tu utilises des écrans »). Il a été un temps du balisage
-   redessiné, parce que les anciennes captures étaient périmées et illisibles
-   une fois réduites; ce n'est plus le bon compromis depuis que les captures
-   sont RÉGÉNÉRÉES depuis le portail livré et cadrées sur leur haut (voir
-   ScreenShot.tsx et capture-screens.mjs). Un dessin, même fidèle, dérive du
-   produit à la première évolution; une capture, non.
-
-   La section d'accueil est déjà une bande taupe: la plate prend donc le ton
-   au-dessus (bg-q2-plate), sinon elle disparaîtrait dans le fond.
+   vrai design quand tu utilises des écrans »), RÉGÉNÉRÉE depuis le portail
+   livré (voir ScreenShot.tsx et capture-screens.mjs). Un dessin, même fidèle,
+   dérive du produit à la première évolution; une capture, non.
 
    Mobile: texte puis image empilés, image pleine largeur. */
 
@@ -107,41 +99,33 @@ export default function FeatureCards({ isFr }: { isFr: boolean }) {
                 </p>
               </div>
 
-              {/* La plate, et le cadre qui en sort par le haut */}
-              {/* La plate d'une capture PORTRAIT se resserre sur elle: sinon
-                  elle reste une boîte pleine largeur autour d'un visuel étroit
-                  et centré, et ce sont ses marges qu'on voit, pas le visuel
-                  (retour utilisateur: « les bords de la carte sont trop
-                  larges »). Le rembourrage, lui, reste CELUI DE L'AUTRE RANGÉE
-                  (`p-4 sm:p-8 lg:p-10`): c'est la largeur de la plate qui était
-                  en cause, pas sa marge, et deux rangées voisines qui
-                  respirent différemment se voient (demande utilisateur: « mets
-                  la même taille de marge que celle-ci »). */}
+              {/* La plate est RETIRÉE (référence utilisateur: les sections
+                  Codex d'OpenAI, où la capture flotte directement sur la
+                  section). La capture porte ses coins arrondis, un filet
+                  clair et une vraie ombre portée, sans boîte autour: c'est
+                  l'ombre, pas un fond de carte, qui la décolle de la bande.
+                  Le débordement latéral au-delà de lg reste: le visuel sort
+                  de sa colonne au lieu d'y être enfermé. */}
               <div
-                className={`q2-card-hover min-w-0 rounded-[24px] sm:rounded-[28px] bg-q2-plate p-4 sm:p-8 lg:p-10 ${
-                  f.portrait ? 'mx-auto max-w-[420px]' : ''
-                } ${flipped ? 'lg:order-1' : ''}`}
+                className={`min-w-0 ${f.portrait ? 'mx-auto max-w-[420px]' : ''} ${flipped ? 'lg:order-1' : ''}`}
               >
                 {/* Une capture en PORTRAIT est bridée en largeur et centrée.
                     La fiche d'appel fait 896 x 1280: étalée sur toute la
-                    colonne large, elle sortait à plus de 800 px de haut, et un
-                    panneau de cette taille flottant dans une carte ne se lit
-                    plus comme une copie d'écran mais comme une maquette
-                    fabriquée (retour utilisateur: « trop IA et trop grand »).
-                    À sa taille réelle, elle redevient ce qu'elle est.
+                    colonne large, elle sortait à plus de 800 px de haut
+                    (retour utilisateur: « trop IA et trop grand »).
                     Elle ne déborde pas non plus par le côté: le débordement
                     sert à faire sortir un visuel LARGE de son conteneur, il
                     n'a aucun sens sur un visuel centré plus étroit que lui. */}
-                {/* Le liseré de la capture portrait est CLAIR et non couleur
-                    plate: le panneau photographié est à #171717 et la plate à
-                    #1a1a1a, donc un liseré de la plate sur le panneau ne
-                    séparait rien du tout et les deux se confondaient en une
-                    seule tache noire. */}
+                {/* Filet CLAIR dans les deux cas: le panneau photographié est
+                    à #171717 et la bande est sombre en thème sombre, un filet
+                    de la couleur de la page ne séparerait rien. L'ombre est
+                    profonde et douce: c'est elle qui fait flotter la capture
+                    (référence Codex). */}
                 <div
-                  className={`rounded-[16px] overflow-hidden shadow-[var(--q2-shadow-whisper)] ${
+                  className={`rounded-[16px] overflow-hidden border border-white/10 shadow-[0_24px_70px_-18px_rgba(0,0,0,0.45)] ${
                     f.portrait
-                      ? 'mx-auto w-full border border-white/10'
-                      : `border border-q2-plate bg-q2-carbon ${flipped ? 'lg:-ml-6' : 'lg:-mr-6'}`
+                      ? 'mx-auto w-full'
+                      : `${flipped ? 'lg:-ml-6' : 'lg:-mr-6'}`
                   }`}
                 >
                   <ScreenShot name={f.key} alt={isFr ? f.altFr : f.altEn} />
