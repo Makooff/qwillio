@@ -47,6 +47,10 @@ Thumbs.db
 # Temp extract scripts
 extract*.mjs
 find_*.mjs
+verify*.tmp.mjs
+
+# Knowledge graph (généré localement par graphify, jamais commité)
+graphify-out/
 
 # Backups
 frontend_backup/
