@@ -137,9 +137,11 @@ export default function FeatureCards({ isFr }: { isFr: boolean }) {
                     />
                   </div>
                 ) : (
-                  /* La fenêtre flotte: pas de coque, juste ses coins, un filet
-                     clair et une ombre profonde qui la décolle du dégradé. */
-                  <div className="rounded-[16px] overflow-hidden border border-white/15 shadow-[0_28px_80px_-20px_rgba(0,0,0,0.6)]">
+                  /* La fenêtre flotte: pas de coque, juste ses coins et une
+                     ombre profonde qui la décolle du dégradé. Pas de filet:
+                     `border-white/15` en semi-transparent sur le panneau violet
+                     tournait au mauve (retour utilisateur), on l'enlève. */
+                  <div className="rounded-[16px] overflow-hidden shadow-[0_28px_80px_-20px_rgba(0,0,0,0.6)]">
                     <ScreenShot name={f.key} alt={isFr ? f.altFr : f.altEn} />
                   </div>
                 )}
