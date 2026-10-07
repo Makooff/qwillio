@@ -493,7 +493,6 @@ export default function Receptionist() {
       {/* overflow-hidden: le halo de la capture déborde de 24px sur petit
           écran, il doit être coupé par la section et non pousser la page */}
       <Section variant="drenched-indigo" aria-labelledby="config-heading" className="relative overflow-hidden">
-        <div aria-hidden="true" className="q2-hairline-lit absolute inset-x-0 top-0" />
         <Container className="grid lg:grid-cols-[1fr_1.05fr] gap-9 sm:gap-12 lg:gap-20 items-center">
           <RevealV2>
             <Eyebrow tone="indigo" onDark className="mb-3 sm:mb-4">
@@ -540,9 +539,11 @@ export default function Receptionist() {
                 grille de gris; le cadrage sur le haut de l'image règle ce
                 point sans avoir à redessiner l'écran. */}
             <figure className="relative">
-              {/* Même traitement que la Home: la nappe indigo a sauté (demande
-                  utilisateur). La capture tient sur sa propre bordure. */}
-              <div className="relative q2-lit rounded-xl overflow-hidden border border-q2-graphite-d bg-q2-carbon">
+              {/* La fenêtre flotte sur la section, comme la carte Analytique
+                  de la Home (référence Codex): plus de cadre carbon ni de
+                  CONTOUR MAUVE AU SURVOL (`q2-lit` retiré, retour
+                  utilisateur) — un filet clair fin et une ombre profonde. */}
+              <div className="relative rounded-[16px] overflow-hidden border border-white/15 shadow-[0_28px_80px_-20px_rgba(0,0,0,0.6)]">
                 <ScreenShot
                   name="chat-config"
                   alt={isFr
@@ -731,8 +732,8 @@ export default function Receptionist() {
         aria-label={isFr ? 'Démarrer avec Qwillio' : 'Get started with Qwillio'}
         className="relative overflow-hidden border-t border-q2-graphite-d"
       >
-        <div aria-hidden="true" className="q2-hairline-lit absolute inset-x-0 top-0" />
-        {/* Plus de lueur mauve en clôture, comme sur la Home. */}
+        {/* Plus de lueur mauve en clôture ni de filet lumineux entre sections
+            (demande utilisateur), comme sur la Home. */}
         <Container className="relative grid lg:grid-cols-[1.5fr_1fr] gap-8 sm:gap-10 items-end">
           <RevealV2>
             <Display as="h2" onDark>

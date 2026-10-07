@@ -1235,12 +1235,10 @@ export default function Home() {
         aria-label={isFr ? 'Commencer avec Qwillio' : 'Get started with Qwillio'}
         className="relative overflow-hidden"
       >
-        <div aria-hidden="true" className="q2-hairline-lit absolute inset-x-0 top-0" />
-        {/* Plus de lueur d'assise (demande utilisateur: « enlève la lueur mauve
-            en bas de la page »). Elle voulait finir la page sur une lumière;
-            vue en plein écran, c'était une tache mauve sous le dernier bouton.
-            Le filet lumineux du haut de section reste: il sépare, il n'éclaire
-            pas. */}
+        {/* Plus de lueur d'assise ni de filet lumineux mauve entre sections
+            (demande utilisateur: « enlève les lignes mauves entre sections »).
+            La lueur d'assise voulait finir la page sur une lumière; vue en
+            plein écran, c'était une tache mauve sous le dernier bouton. */}
         <Container className="relative z-10">
           <RevealV2 className="max-w-[720px] mb-10 sm:mb-16">
             <Eyebrow tone="violet" className="mb-4 sm:mb-6">

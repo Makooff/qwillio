@@ -361,19 +361,6 @@ html {
   }
 }
 
-/* Hairline qui s'éclaire vers son milieu, pour ouvrir une section
-   drenched sans y poser une arête franche. */
-.q2-hairline-lit {
-  border: 0;
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    rgba(35, 37, 42, 0) 0%,
-    rgba(122, 95, 255, 0.34) 50%,
-    rgba(35, 37, 42, 0) 100%
-  );
-}
-
 /* ============================================================
    Registre PRODUIT (dashboard client), « instrument » Linear.
    Surfaces void/carbon/obsidian + bordures hairline, zéro ombre.
