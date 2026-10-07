@@ -358,6 +358,22 @@ await shoot({ name: 'iphone-apercu', path: '/dashboard', ...phone });
 await shoot({ name: 'iphone-appels', path: '/dashboard/calls', ...phone });
 await shoot({ name: 'iphone-leads', path: '/dashboard/leads', ...phone });
 await shoot({ name: 'iphone-receptionniste', path: '/dashboard/receptionist', ...phone });
+/* La fiche d'appel OUVERTE sur iPhone: c'est elle qui part dans le cadre
+   téléphone de la Home (« Chaque appel documenté »), référence Codex —
+   l'écran du produit dans un device, sur un fond drenched. */
+await shoot({
+  name: 'iphone-fiche-appel', path: '/dashboard/calls', ...phone,
+  prepare: async page => {
+    /* Sur mobile il y a DEUX « Camille Dubois »: la ligne du tableau desktop
+       (cachée) et la carte mobile. `.first()` visait la cachée et le clic
+       n'aboutissait jamais; `visible=true` prend celle qui s'affiche. */
+    await page.locator('text=Camille Dubois >> visible=true').first().click();
+    const drawer = page.locator('[role="dialog"][aria-modal="true"]').first();
+    await drawer.waitFor({ state: 'visible', timeout: 10_000 });
+    await page.waitForTimeout(600);
+  },
+  webp: { name: 'fiche-appel-phone', width: 780 },
+});
 await shoot({ name: 'mac-apercu', path: '/dashboard', ...mac });
 await shoot({ name: 'mac-appels', path: '/dashboard/calls', ...mac });
 

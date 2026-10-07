@@ -1,36 +1,35 @@
 import RevealV2 from './RevealV2';
 import ScreenShot from './ScreenShot';
 
-/* Rangées « produit » du registre clair: plus de grille de deux cartes
-   étroites côte à côte. Chaque rangée occupe toute la largeur, le texte tient
-   sur environ 40 pour cent et la capture sur environ 60, le côté de
+/* Rangées « produit »: chaque rangée occupe toute la largeur, le texte tient
+   sur environ 40 pour cent et l'illustration sur environ 60, le côté de
    l'illustration s'inverse d'une rangée à l'autre.
 
-   L'illustration se pose sur une plate douce (radius 28) dont le cadre déborde
-   par le côté extérieur au-delà de lg: le visuel sort de son conteneur au lieu
-   d'y être enfermé. Il débordait aussi PAR LE HAUT; ce débordement-là est
-   retiré, parce qu'il mangeait les quarante premiers pixels de l'image,
-   c'est-à-dire le titre de la carte photographiée (« Volume d'appels »). Un
-   geste graphique ne vaut pas la perte de ce que le visuel doit montrer.
-
    Le visuel est une CAPTURE DU VRAI PORTAIL (demande utilisateur: « met le
-   vrai design quand tu utilises des écrans »). Il a été un temps du balisage
-   redessiné, parce que les anciennes captures étaient périmées et illisibles
-   une fois réduites; ce n'est plus le bon compromis depuis que les captures
-   sont RÉGÉNÉRÉES depuis le portail livré et cadrées sur leur haut (voir
-   ScreenShot.tsx et capture-screens.mjs). Un dessin, même fidèle, dérive du
-   produit à la première évolution; une capture, non.
+   vrai design quand tu utilises des écrans »), RÉGÉNÉRÉE depuis le portail
+   livré (voir ScreenShot.tsx et capture-screens.mjs). Un dessin, même fidèle,
+   dérive du produit à la première évolution; une capture, non.
 
-   La section d'accueil est déjà une bande taupe: la plate prend donc le ton
-   au-dessus (bg-q2-plate), sinon elle disparaîtrait dans le fond.
+   La présentation suit la référence utilisateur (les sections Codex d'OpenAI):
+   l'écran du produit dans un DEVICE ou en fenêtre flottante, au centre d'un
+   panneau DRENCHED — dégradé indigo d'un côté, violet de l'autre, comme les
+   deux cercles du logo. Le registre drenched ne bascule pas avec le thème:
+   le panneau reste saturé en clair comme en sombre, c'est lui qui porte la
+   couleur de la rangée.
 
-   Mobile: texte puis image empilés, image pleine largeur. */
+   Rangée 1: la fiche d'appel dans un cadre iPhone (la capture est prise sur
+   un vrai viewport iPhone 15 Pro, barre de statut comprise).
+   Rangée 2: la carte « Volume d'appels » en fenêtre flottante sur le violet.
+
+   Mobile: texte puis illustration empilés, pleine largeur. */
 
 interface Feature {
   /** Nom du fichier dans `public/screens`, sans extension. */
   key: string;
-  /** La capture est en PORTRAIT et doit être bridée en largeur. Voir plus bas. */
-  portrait?: boolean;
+  /** La capture est un écran d'IPHONE et part dans le cadre téléphone. */
+  phone?: boolean;
+  /** La couleur drenched du panneau: indigo côté Q, violet côté W. */
+  tone: 'indigo' | 'violet';
   altFr: string;
   altEn: string;
   titleFr: string;
@@ -39,15 +38,25 @@ interface Feature {
   descEn: string;
 }
 
+/* Les deux dégradés du registre drenched, un par rangée: la lumière vient
+   d'en bas à gauche pour l'indigo, d'en haut à droite pour le violet — deux
+   géométries, jamais deux fois la même. */
+const DRENCHED = {
+  indigo: 'radial-gradient(130% 150% at 18% 115%, #7A5FFF 0%, #4720B0 45%, #141316 85%)',
+  violet: 'radial-gradient(125% 145% at 85% -12%, #CD6BFB 0%, #7349FE 42%, #141316 84%)',
+} as const;
+
 const FEATURES: Feature[] = [
   {
     /* La fiche d'appel, pas la liste: c'est elle qui porte le résumé, le
-       transcript et le lecteur d'enregistrement dont parle le texte. La liste
-       ne montrait qu'appelant, durée et sentiment (retour utilisateur). */
-    key: 'fiche-appel',
-    portrait: true,
-    altFr: 'La fiche d’un appel dans le portail: résumé, score du lead, coordonnées.',
-    altEn: 'A call record in the portal: summary, lead score, contact details.',
+       transcript et le lecteur d'enregistrement dont parle le texte. Prise
+       sur iPhone: la promesse « tout arrive dans votre dashboard » tient dans
+       la poche, et le device le dit sans une ligne de texte. */
+    key: 'fiche-appel-phone',
+    phone: true,
+    tone: 'indigo',
+    altFr: 'La fiche d’un appel dans le portail, sur téléphone: résumé, score du lead, enregistrement et transcript.',
+    altEn: 'A call record in the portal, on a phone: summary, lead score, recording and transcript.',
     titleFr: 'Chaque appel documenté',
     titleEn: 'Every call documented',
     descFr:
@@ -57,15 +66,13 @@ const FEATURES: Feature[] = [
   },
   {
     key: 'analytique',
+    tone: 'violet',
     altFr: 'La page Analytique du portail: volume d’appels, sentiment, heures de pointe.',
     altEn: 'The portal analytics page: call volume, sentiment, peak hours.',
     /* La page Analytique, parce que c'est LÀ que se lisent les constats dont
-       parle le texte: volume, sentiment, heures de pointe. Le visuel a montré
-       un temps la fenêtre de configuration, c'est-à-dire le sujet d'une autre
-       section (retour utilisateur: « sélectionne bien le contenu qui
-       correspond au texte »). Le constat hebdomadaire lui-même part par
-       courriel et par SMS: il n'a pas d'écran, et en inventer un serait
-       montrer une chose qui n'existe pas. */
+       parle le texte: volume, sentiment, heures de pointe. Le constat
+       hebdomadaire lui-même part par courriel et par SMS: il n'a pas d'écran,
+       et en inventer un serait montrer une chose qui n'existe pas. */
     /* Le titre ne parle plus de « corriger en parlant »: la section « Mise en
        route » de la Home dit déjà exactement ça, et les deux se répondaient en
        écho (retour utilisateur). Ici, le sujet est le CONSTAT qui vous arrive
@@ -107,45 +114,33 @@ export default function FeatureCards({ isFr }: { isFr: boolean }) {
                 </p>
               </div>
 
-              {/* La plate, et le cadre qui en sort par le haut */}
-              {/* La plate d'une capture PORTRAIT se resserre sur elle: sinon
-                  elle reste une boîte pleine largeur autour d'un visuel étroit
-                  et centré, et ce sont ses marges qu'on voit, pas le visuel
-                  (retour utilisateur: « les bords de la carte sont trop
-                  larges »). Le rembourrage, lui, reste CELUI DE L'AUTRE RANGÉE
-                  (`p-4 sm:p-8 lg:p-10`): c'est la largeur de la plate qui était
-                  en cause, pas sa marge, et deux rangées voisines qui
-                  respirent différemment se voient (demande utilisateur: « mets
-                  la même taille de marge que celle-ci »). */}
+              {/* Le panneau drenched: même géométrie et même respiration sur
+                  les deux rangées, seule la couleur alterne. */}
               <div
-                className={`q2-card-hover min-w-0 rounded-[24px] sm:rounded-[28px] bg-q2-plate p-4 sm:p-8 lg:p-10 ${
-                  f.portrait ? 'mx-auto max-w-[420px]' : ''
-                } ${flipped ? 'lg:order-1' : ''}`}
+                className={`min-w-0 rounded-[24px] sm:rounded-[28px] p-6 sm:p-10 lg:p-14 ${
+                  flipped ? 'lg:order-1' : ''
+                }`}
+                style={{ background: DRENCHED[f.tone] }}
               >
-                {/* Une capture en PORTRAIT est bridée en largeur et centrée.
-                    La fiche d'appel fait 896 x 1280: étalée sur toute la
-                    colonne large, elle sortait à plus de 800 px de haut, et un
-                    panneau de cette taille flottant dans une carte ne se lit
-                    plus comme une copie d'écran mais comme une maquette
-                    fabriquée (retour utilisateur: « trop IA et trop grand »).
-                    À sa taille réelle, elle redevient ce qu'elle est.
-                    Elle ne déborde pas non plus par le côté: le débordement
-                    sert à faire sortir un visuel LARGE de son conteneur, il
-                    n'a aucun sens sur un visuel centré plus étroit que lui. */}
-                {/* Le liseré de la capture portrait est CLAIR et non couleur
-                    plate: le panneau photographié est à #171717 et la plate à
-                    #1a1a1a, donc un liseré de la plate sur le panneau ne
-                    séparait rien du tout et les deux se confondaient en une
-                    seule tache noire. */}
-                <div
-                  className={`rounded-[16px] overflow-hidden shadow-[var(--q2-shadow-whisper)] ${
-                    f.portrait
-                      ? 'mx-auto w-full border border-white/10'
-                      : `border border-q2-plate bg-q2-carbon ${flipped ? 'lg:-ml-6' : 'lg:-mr-6'}`
-                  }`}
-                >
-                  <ScreenShot name={f.key} alt={isFr ? f.altFr : f.altEn} />
-                </div>
+                {f.phone ? (
+                  /* Le cadre iPhone: coque quasi-noire, 10 px de bezel, coins
+                     à 44/34 px — les cotes de l'iPhone 15 Pro ramenées à la
+                     capture, qui porte déjà sa bande de statut. L'ombre fait
+                     flotter le device au-dessus du dégradé. */
+                  <div className="mx-auto w-full max-w-[280px] sm:max-w-[300px] rounded-[44px] border border-white/15 bg-[#0B0B0D] p-[10px] shadow-[0_36px_90px_-24px_rgba(0,0,0,0.7)]">
+                    <ScreenShot
+                      name={f.key}
+                      alt={isFr ? f.altFr : f.altEn}
+                      className="rounded-[34px]"
+                    />
+                  </div>
+                ) : (
+                  /* La fenêtre flotte: pas de coque, juste ses coins, un filet
+                     clair et une ombre profonde qui la décolle du dégradé. */
+                  <div className="rounded-[16px] overflow-hidden border border-white/15 shadow-[0_28px_80px_-20px_rgba(0,0,0,0.6)]">
+                    <ScreenShot name={f.key} alt={isFr ? f.altFr : f.altEn} />
+                  </div>
+                )}
               </div>
             </article>
           </RevealV2>
