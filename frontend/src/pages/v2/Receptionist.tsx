@@ -539,22 +539,27 @@ export default function Receptionist() {
                 grille de gris; le cadrage sur le haut de l'image règle ce
                 point sans avoir à redessiner l'écran. */}
             <figure>
-              {/* L'ombre est DÉPORTÉE (retour utilisateur): un second cadre
-                  posé derrière, décalé en bas à droite. Il vit dans un
-                  conteneur qui n'enferme QUE la fenêtre: ancré au `figure`
-                  entier, il englobait aussi la légende, et le décalage du
-                  bas n'égalait plus celui de droite. Gris secondaire
-                  (`q2-fog`), pas de blanc ni de mauve. Cadre avant identique
-                  aux illustrations de l'accueil (filet white/15, arrondi 16). */}
-              <div className="relative">
-                <div aria-hidden="true" className="absolute inset-0 translate-x-3 translate-y-3 rounded-[16px] border border-q2-fog/50" />
-                <div className="relative rounded-[16px] overflow-hidden border border-white/15">
-                  <ScreenShot
-                    name="chat-config"
-                    alt={isFr
-                      ? 'La conversation de configuration dans le portail: on lui dit de fermer le mercredi après-midi, elle confirme le nouvel horaire.'
-                      : 'The setup conversation in the portal: told to close Wednesday afternoons, she confirms the new hours.'}
-                  />
+              {/* Le PANNEAU DÉGRADÉ des illustrations de l'accueil (retour
+                  utilisateur: « les cadres avec dégradé »): même géométrie
+                  mauve sombre que la rangée Fiche d'appel, fenêtre posée
+                  dedans, et derrière elle le cadre de déco décalé en gris
+                  secondaire (`q2-fog`), 12px égaux bas et droite. */}
+              <div
+                className="rounded-[28px] p-5 sm:p-8 lg:p-10"
+                style={{ background: 'radial-gradient(130% 150% at 18% 115%, #453486 0%, #221842 48%, #100F13 85%)' }}
+              >
+                <div className="relative">
+                  <div aria-hidden="true" className="absolute inset-0 translate-x-3 translate-y-3 rounded-[16px] border border-q2-fog/50" />
+                  {/* Ombre GRISE, de la couleur du cadre de déco (retour
+                      utilisateur), jamais noire ni mauve. */}
+                  <div className="relative rounded-[16px] overflow-hidden border border-white/15 shadow-[0_24px_60px_-16px_rgba(138,143,152,0.35)]">
+                    <ScreenShot
+                      name="chat-config"
+                      alt={isFr
+                        ? 'La conversation de configuration dans le portail: on lui dit de fermer le mercredi après-midi, elle confirme le nouvel horaire.'
+                        : 'The setup conversation in the portal: told to close Wednesday afternoons, she confirms the new hours.'}
+                    />
+                  </div>
                 </div>
               </div>
               <figcaption className="mt-6 px-1 text-[12.5px] text-q2-fog q2-body-text">
