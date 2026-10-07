@@ -549,10 +549,13 @@ export default function Receptionist() {
                 style={{ background: 'radial-gradient(130% 150% at 18% 115%, #453486 0%, #221842 48%, #100F13 85%)' }}
               >
                 <div className="relative">
-                  <div aria-hidden="true" className="absolute inset-0 translate-x-3 translate-y-3 rounded-[16px] border border-q2-fog/50" />
-                  {/* Ombre GRISE, de la couleur du cadre de déco (retour
-                      utilisateur), jamais noire ni mauve. */}
-                  <div className="relative rounded-[16px] overflow-hidden border border-white/15 shadow-[0_24px_60px_-16px_rgba(138,143,152,0.35)]">
+                  {/* Le cadre de déco est PLEIN, du gris du fond de la bande
+                      « Après l'appel » (`bg-q2-band`, le même que la carte de
+                      Lucas — retour utilisateur: « l'ombre est transparente »).
+                      Le token suit le thème; un filet fog garde l'arête lisible
+                      en sombre, où le gris rejoint presque le noir du panneau. */}
+                  <div aria-hidden="true" className="absolute inset-0 translate-x-3 translate-y-3 rounded-[16px] bg-q2-band border border-q2-fog/30" />
+                  <div className="relative rounded-[16px] overflow-hidden border border-white/15">
                     <ScreenShot
                       name="chat-config"
                       alt={isFr
