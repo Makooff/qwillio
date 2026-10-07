@@ -204,9 +204,12 @@ export default function StepFrame({
     const unsub = onScrollFrame(() => {
       const raw = sceneStarted(aside) ? sceneAt(nodes) : 0;
       const at = Math.max(0, Math.min(last, raw));
-      /* Partie entière seulement : le cadre ne bouge pas pendant le scroll,
-         il ne transitionne qu'au franchissement d'une étape. */
-      const step = Math.floor(at);
+      /* `round` et non `floor` : la bulle démarre à mi-étape, donc légèrement
+         EN AVANCE sur le scroll au lieu de traîner derrière le compteur. Le
+         compteur (PinnedScene) garde `floor`, il s'illumine à l'arrivée ;
+         la bulle, elle, part avant pour être déjà posée quand l'étape est
+         franchie (retour utilisateur : « l'anim se faisait trop tard »). */
+      const step = Math.round(at);
       if (step !== currentStep.current) tweenTo(step);
     });
 
