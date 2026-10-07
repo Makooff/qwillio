@@ -1,4 +1,4 @@
-import { resolveCharacter } from '../../config/voice-characters';
+import { resolveCharacter, voiceForLanguage } from '../../config/voice-characters';
 import {
   assistantModelBlock,
   buildVoice,
@@ -77,10 +77,12 @@ export function voiceForProfile(profile: ClientVoiceProfile): ProfileVoice {
     customVoice: profile.customVoice,
   });
 
+  const voice = voiceForLanguage(character, profile.language);
+
   const inputs = {
-    voiceId: character.voiceId,
+    voiceId: voice.voiceId,
     cloned: character.voiceCloned,
-    voiceProvider: character.voiceProvider,
+    voiceProvider: voice.voiceProvider,
     ttsProvider: profile.ttsProvider,
   };
 

@@ -6,7 +6,8 @@ import { logger } from '../config/logger';
 import { env } from '../config/env';
 import { emailService } from './email.service';
 import { discordService } from './discord.service';
-import { resolveCharacter } from '../config/voice-characters';
+import { resolveCharacter, voiceForLanguage } from '../config/voice-characters';
+import { defaultCharacterForNiche } from '../config/niche-personas';
 import { assistantSpeechForProfile, voiceForProfile, type ProfileVoice } from './voice/profile-voice';
 import { getPersonaPrompt, PERSONALITY_PROMPTS } from '../config/personalities';
 import {
@@ -62,7 +63,7 @@ export class OnboardingService {
       // ── STEP 1: Create VAPI assistant with retry ──
       const cfg = (client.vapiConfig as any) || {};
       const character = resolveCharacter({
-        characterId: cfg.characterId,
+        characterId: cfg.characterId ?? defaultCharacterForNiche(resolveNiche(client.businessType)),
         isFrench: this.isFrenchClient(client),
         country: client.country,
       });
@@ -81,6 +82,10 @@ export class OnboardingService {
       const speech = await this.speechProfile(client.id);
       const lang: VoiceLanguage = speech?.language
         ?? (client?.agentLanguage === 'nl' ? 'nl' : isFrClient ? 'fr' : 'en');
+      /* La voix suit la langue: en anglais, la voix anglaise native du
+         personnage (toujours Cartesia), sinon sa voix multilingue. Posé ici
+         pour que l'ancien chemin de repli plus bas puisse s'en servir. */
+      const voice = voiceForLanguage(character, lang);
       /* Après la purge, pour la même raison que les outils: bâti avant, le
          prompt décrirait la configuration d'avant l'enregistrement, et le
          client devrait sauver deux fois pour que sa réponse prenne effet. */
@@ -108,11 +113,12 @@ export class OnboardingService {
               temperature: 0.7,
             }),
             voice: buildVoice({
-              voiceId: character.voiceId,
+              voiceId: voice.voiceId,
               stability: character.stability,
               similarityBoost: character.similarityBoost,
               style: character.style,
               lang,
+              ...(voice.voiceProvider ? { voiceProvider: voice.voiceProvider } : {}),
             }),
             speechToSpeech: false,
           };
@@ -550,7 +556,7 @@ export class OnboardingService {
     // Precedence: explicit personalityPreset override, else the selected
     // character's persona, else warm. Tone presets live in config/personalities.
     const character = resolveCharacter({
-      characterId: cfg.characterId,
+      characterId: cfg.characterId ?? defaultCharacterForNiche(resolveNiche(client.businessType)),
       isFrench: this.isFrenchClient(client),
       country: client.country,
     });
@@ -1051,7 +1057,7 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
 
     const cfg = (client.vapiConfig as any) || {};
     const character = resolveCharacter({
-      characterId: cfg.characterId,
+      characterId: cfg.characterId ?? defaultCharacterForNiche(resolveNiche(client.businessType)),
       isFrench: this.isFrenchClient(client),
       country: client.country,
     });
@@ -1062,6 +1068,8 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
     const syncTools = await this.buildAssistantTools(client.id);
     const syncSpeech = await this.speechProfile(client.id);
     const syncLang: VoiceLanguage = syncSpeech?.language ?? (this.isFrenchClient(client) ? 'fr' : 'en');
+    /* Même règle que la création: la voix suit la langue. */
+    const syncVoice = voiceForLanguage(character, syncLang);
     const systemPrompt = await this.assistantPrompt(client.id, client);
     /* L'accueil est refait AVANT d'être lu, et attendu. Fait après, comme
        auparavant, l'URL épinglée pointerait quelques instants vers une ligne
@@ -1091,11 +1099,12 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
             temperature: 0.7,
           }),
           voice: buildVoice({
-            voiceId: character.voiceId,
+            voiceId: syncVoice.voiceId,
             stability: character.stability,
             similarityBoost: character.similarityBoost,
             style: character.style,
             lang: syncLang,
+            ...(syncVoice.voiceProvider ? { voiceProvider: syncVoice.voiceProvider } : {}),
           }),
           speechToSpeech: false,
         };

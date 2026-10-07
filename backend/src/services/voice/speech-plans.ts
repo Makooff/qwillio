@@ -1213,6 +1213,8 @@ export function buildSpeech(opts: {
     stability?: number;
     similarityBoost?: number;
     style?: number;
+    /** La voix anglaise native, quand le site est en anglais. Voir `voiceForLanguage`. */
+    voiceIdEn?: string;
     /** Posé quand la voix vient du catalogue Cartesia. Voir `useCartesia`. */
     voiceProvider?: 'cartesia';
     /** Posé pour un vrai clone. Voir `useCartesia`. */
@@ -1260,7 +1262,9 @@ export function buildSpeech(opts: {
       fallbacks: opts.fallbacks,
     }),
     voice: buildVoice({
-      voiceId: opts.character.voiceId,
+      voiceId: opts.lang === 'en' && opts.character.voiceIdEn
+        ? opts.character.voiceIdEn
+        : opts.character.voiceId,
       stability: opts.character.stability,
       similarityBoost: opts.character.similarityBoost,
       style: opts.character.style,
@@ -1272,7 +1276,9 @@ export function buildSpeech(opts: {
          ElevenLabs une voix de bibliothèque n'aurait aucun sens: ce qui ne peut
          pas déménager, c'est l'enregistrement du client. */
       cloned: opts.character.voiceCloned,
-      voiceProvider: opts.character.voiceProvider,
+      voiceProvider: opts.lang === 'en' && opts.character.voiceIdEn
+        ? 'cartesia'
+        : opts.character.voiceProvider,
       ttsProvider: opts.ttsProvider,
       tuning: opts.tuning,
     }),

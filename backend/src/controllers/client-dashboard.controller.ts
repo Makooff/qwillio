@@ -10,9 +10,11 @@ import { prisma } from '../config/database';
 import { cancelBooking } from '../services/booking-cancel';
 import { env } from '../config/env';
 import { logger } from '../config/logger';
-import { listCharacters, resolveCharacter, CHARACTERS, isValidCharacterId, DEFAULT_CHARACTER_FR, DEFAULT_CHARACTER_EN, CUSTOM_CHARACTER_ID } from '../config/voice-characters';
+import { listCharacters, resolveCharacter, CHARACTERS, isValidCharacterId, DEFAULT_CHARACTER_FR, DEFAULT_CHARACTER_EN, CUSTOM_CHARACTER_ID, voiceForLanguage } from '../config/voice-characters';
 import { buildVapiConfigPatch, parseFaq } from '../services/client-config.service';
 import { knowledgePreset } from '../config/knowledge-presets';
+import { resolveNiche } from '../config/niches';
+import { defaultCharacterForNiche } from '../config/niche-personas';
 import { setupCompleteness } from '../services/setup-completeness';
 import { realtimeContextService, shouldRecord } from '../services/voice/realtime-context.service';
 import { knowledgeGapService } from '../services/voice/knowledge-gap.service';
@@ -568,7 +570,10 @@ export class ClientDashboardController {
         // Les presets de son metier, resolus par la meme lecture que le reste
         // du backend, pour que la page n'ait pas a porter sa propre liste.
         knowledgePresets:  knowledgePreset(client.businessType),
-        characterId:       cfg.characterId ?? (isFrench ? DEFAULT_CHARACTER_FR : DEFAULT_CHARACTER_EN),
+        /* Le personnage suit le MÉTIER par défaut (un dentiste reçoit une voix
+           douce, un restaurant une voix chaleureuse), avant de retomber sur le
+           défaut de langue. Le client peut toujours en choisir un autre. */
+        characterId:       cfg.characterId ?? defaultCharacterForNiche(resolveNiche(client.businessType)) ?? (isFrench ? DEFAULT_CHARACTER_FR : DEFAULT_CHARACTER_EN),
         // Null rather than absent: the UI shows either the recorder or the
         // cloned-voice card, and "not loaded yet" must not look like "none".
         customVoice:       cfg.customVoice?.voiceId ? cfg.customVoice : null,
@@ -1359,6 +1364,8 @@ export class ClientDashboardController {
         character = {
           ...base,
           voiceId,
+          // Une voix personnelle parle les deux langues: pas de voix EN dédiée.
+          voiceIdEn: undefined,
           ...(custom?.provider === 'cartesia' ? { voiceProvider: 'cartesia' as const } : {}),
           style: 0,
           similarityBoost: 0.85,
@@ -1384,6 +1391,8 @@ export class ClientDashboardController {
         character = {
           ...character,
           voiceId: match.voiceId,
+          // Une voix explicitement choisie parle les deux langues.
+          voiceIdEn: undefined,
           ...(match.provider ? { voiceProvider: match.provider } : {}),
           ...(match.cloned ? { style: 0, similarityBoost: 0.85 } : {}),
         };
@@ -1397,8 +1406,11 @@ export class ClientDashboardController {
       // and it was the delay before the sound, and the silence once the account
       // hit its rate limit.
       const { previewAudioService } = await import('../services/voice/preview-audio.service');
+      /* La voix suit la langue, comme l'appel: un client anglais auditionne la
+         voix anglaise native du personnage, pas sa voix française. */
+      const previewVoice = voiceForLanguage(character, previewFrench ? 'fr' : 'en');
       const { audio, key } = await previewAudioService.get({
-        voiceId: character.voiceId,
+        voiceId: previewVoice.voiceId,
         text,
         stability: character.stability,
         similarityBoost: character.similarityBoost,
@@ -1409,7 +1421,7 @@ export class ClientDashboardController {
            dans la table de correspondance, ne l'y trouverait pas, et jouerait
            la voix par défaut: on auditionnerait autre chose que ce qu'on
            croit choisir. */
-        voiceProvider: character.voiceProvider,
+        voiceProvider: previewVoice.voiceProvider,
         ttsProvider: (previewClient?.vapiConfig as any)?.ttsProvider,
       });
 

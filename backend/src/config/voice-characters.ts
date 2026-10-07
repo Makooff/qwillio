@@ -26,6 +26,14 @@ export interface Character {
   accent: 'FR' | 'BE' | 'US';
   gender: 'f' | 'm';
   voiceId: string;
+  /**
+   * La voix anglaise native du personnage, quand le site est en anglais.
+   *
+   * Absente, le personnage garde sa voix `voiceId` (multilingue) en anglais.
+   * Toujours un identifiant Cartesia: les voix anglaises natives servies ici
+   * viennent du catalogue Cartesia, pas d'ElevenLabs. Voir `voiceForLanguage`.
+   */
+  voiceIdEn?: string;
   model: string;
   stability: number;
   similarityBoost: number;
@@ -153,6 +161,18 @@ function voiceProviderOf(id: string): 'cartesia' | undefined {
 }
 
 /**
+ * La voix anglaise native d'un personnage, ou chaîne vide quand il n'en a pas.
+ *
+ * Une épingle d'environnement (`VAPI_VOICE_ID_EN_<ID>`) l'emporte, puis le
+ * défaut du catalogue. Toujours Cartesia: la provenance n'est pas devinée ici,
+ * elle est posée par `voiceForLanguage`. Vide = pas de voix anglaise dédiée, le
+ * personnage garde sa voix multilingue.
+ */
+function voiceEn(id: string): string {
+  return process.env[`VAPI_VOICE_ID_EN_${id.toUpperCase()}`] || EN[id as keyof typeof EN] || '';
+}
+
+/**
  * ElevenLabs voice ids.
  *
  * Only the first five were auditioned. The five characters added afterwards
@@ -168,6 +188,32 @@ const EL = {
   frCamille: 'd3AXX0BlgJHYFCuH9X88',
   frLea:     'CYR0HqHoZAUmoZsLWPob',
   frSofia:   'FvmvwvObRqIHojkEGh5N',
+} as const;
+
+/**
+ * Les voix anglaises NATIVES par personnage, servies quand le site est en
+ * anglais (le drapeau). Identifiants Cartesia, tirés de la documentation
+ * publique de Cartesia (voix « voice agents » recommandées) et du catalogue
+ * partenaire.
+ *
+ * Ce sont des DÉFAUTS, pas des choix définitifs: comme pour les voix
+ * françaises, une voix se choisit à l'oreille, et chaque personnage peut être
+ * épinglé par `VAPI_VOICE_ID_EN_<ID>`. La provenance est toujours Cartesia,
+ * posée par `voiceForLanguage`, jamais devinée ici.
+ */
+const EN = {
+  // Femmes — chaleur, luxe, énergie, décontraction, douceur.
+  marie:   'db6b0ed5-d5d3-463d-ae85-518a07d3c2b4', // Skylar, en-US, naturelle et chaleureuse
+  camille: '62ae83ad-4f6a-430b-af41-a9bede9286ca', // Gemma, en-GB, raffinée
+  lea:     'f786b574-daa5-4673-aa0c-cbe3e8534c02', // Katie, en-US, dynamique
+  sofia:   '9626c31c-bec5-4cca-baa8-f8ba9e84c8bc', // Jacqueline, en-US, conversationnelle
+  nour:    '00a77add-48d5-4ef6-8157-71e5437b282d', // Calm Lady, douce et posée
+  // Hommes — professionnel, chaleur, décontraction, énergie, distinction.
+  lucas:   'a167e0f3-df7e-4d52-a9c3-f949145efdab', // Customer Support Man, posé et direct
+  adrien:  'ef191366-f52f-447a-a398-ed8c0f2943a1', // Archie, en-GB, chaleureux
+  hugo:    'a5136bf9-224c-4d76-b823-52bd5efcffcc', // Jameson, en-US, naturel
+  theo:    '47c38ca4-5f35-497b-b1a3-415245fb35e1', // Daniel, en-US, énergique
+  julien:  'd46abd1d-2d02-43e8-819f-51fb652c1c61', // Newsman, distingué
 } as const;
 
 const BASE_CHARACTERS: Record<string, Character> = {
@@ -363,7 +409,13 @@ export const CHARACTERS: Record<string, Character> = new Proxy(BASE_CHARACTERS, 
        son étiquette partait se faire traduire comme de l'ElevenLabs, ne
        trouvait rien, et tout le monde retombait sur la voix par défaut. */
     const provider = voiceProviderOf(base.id);
-    return { ...base, voiceId: voice(base.id, base.voiceId), ...(provider ? { voiceProvider: provider } : {}) };
+    const voiceIdEn = voiceEn(base.id);
+    return {
+      ...base,
+      voiceId: voice(base.id, base.voiceId),
+      ...(voiceIdEn ? { voiceIdEn } : {}),
+      ...(provider ? { voiceProvider: provider } : {}),
+    };
   },
 });
 
@@ -374,6 +426,28 @@ export const DEFAULT_CHARACTER_FR = 'marie';
  * splitting the catalog in two.
  */
 export const DEFAULT_CHARACTER_EN = 'marie';
+
+/**
+ * La voix d'un personnage pour une langue donnée, avec sa provenance.
+ *
+ * Point unique où la langue choisit le timbre: en anglais, la voix anglaise
+ * native (`voiceIdEn`, toujours Cartesia) ; partout ailleurs, la voix du
+ * personnage (`voiceId`) avec la provenance que le catalogue a déjà résolue.
+ * Tous les chemins qui connaissent la langue (appel, prévisualisation, accueil)
+ * passent par ici plutôt que de lire `character.voiceId` en direct.
+ */
+export function voiceForLanguage(
+  character: Character,
+  lang: 'fr' | 'en' | 'nl',
+): { voiceId: string; voiceProvider?: 'cartesia' } {
+  if (lang === 'en' && character.voiceIdEn) {
+    return { voiceId: character.voiceIdEn, voiceProvider: 'cartesia' };
+  }
+  return {
+    voiceId: character.voiceId,
+    ...(character.voiceProvider ? { voiceProvider: character.voiceProvider } : {}),
+  };
+}
 
 /**
  * A voice the client chose for themselves: cloned from their own recording, or
@@ -444,6 +518,10 @@ export function resolveCharacter(params: {
     return {
       ...character,
       voiceId: customVoice.voiceId,
+      /* Une voix choisie (clone ou bibliothèque) parle les DEUX langues: c'est
+         la voix du client, pas un timbre par langue. Effacer `voiceIdEn` évite
+         que `voiceForLanguage` lui substitue la voix anglaise du personnage. */
+      voiceIdEn: undefined,
       // Le catalogue voyage avec l'identifiant: `buildVoice` doit savoir à qui
       // il parle, et il ne peut plus le déduire du seul réglage global.
       ...(customVoice.provider ? { voiceProvider: customVoice.provider } : {}),

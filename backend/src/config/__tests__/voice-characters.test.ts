@@ -5,6 +5,8 @@ import {
   getCartesiaVoices,
   getAssignedVoices,
   listCharacters,
+  resolveCharacter,
+  voiceForLanguage,
 } from '../voice-characters';
 
 /**
@@ -87,5 +89,42 @@ describe('voix — les deux fournisseurs sont séparés', () => {
     expect(personnages).toHaveLength(10);
     expect(personnages.filter(c => c.gender === 'f')).toHaveLength(5);
     expect(personnages.filter(c => c.gender === 'm')).toHaveLength(5);
+  });
+});
+
+describe('voix — la langue choisit le timbre', () => {
+  it('en anglais, un personnage sert sa voix anglaise native (Cartesia)', () => {
+    const marie = listCharacters().find(c => c.id === 'marie')!;
+    const v = voiceForLanguage(marie, 'en');
+    // Distincte de la voix française, et étiquetée Cartesia.
+    expect(v.voiceId).toBeTruthy();
+    expect(v.voiceId).not.toBe(marie.voiceId);
+    expect(v.voiceProvider).toBe('cartesia');
+  });
+
+  it('en français, la voix reste celle du personnage, avec sa provenance', () => {
+    const marie = listCharacters().find(c => c.id === 'marie')!;
+    const v = voiceForLanguage(marie, 'fr');
+    expect(v.voiceId).toBe(marie.voiceId);
+    expect(v.voiceProvider).toBe(marie.voiceProvider);
+  });
+
+  it('les dix personnages ont une voix anglaise dédiée, deux à deux distinctes', () => {
+    // Pas de repli silencieux sur une seule voix anglaise pour tout le monde.
+    const enIds = listCharacters().map(c => voiceForLanguage(c, 'en').voiceId);
+    expect(enIds.every(Boolean)).toBe(true);
+    expect(new Set(enIds).size).toBe(10);
+  });
+
+  it('une voix personnelle (clone) garde le même timbre dans les deux langues', () => {
+    // resolveCharacter efface `voiceIdEn` pour une voix choisie: elle parle
+    // les deux langues, on ne lui substitue pas la voix anglaise du personnage.
+    const character = resolveCharacter({
+      characterId: 'marie',
+      isFrench: true,
+      customVoice: { voiceId: 'clone_xxx', provider: 'cartesia', cloned: true },
+    });
+    expect(voiceForLanguage(character, 'fr').voiceId).toBe('clone_xxx');
+    expect(voiceForLanguage(character, 'en').voiceId).toBe('clone_xxx');
   });
 });

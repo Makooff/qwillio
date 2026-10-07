@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import type { Response } from 'express';
 import rateLimit from 'express-rate-limit';
-import { CHARACTERS, isValidCharacterId, listCharacters } from '../config/voice-characters';
+import { CHARACTERS, isValidCharacterId, listCharacters, voiceForLanguage } from '../config/voice-characters';
 import { env } from '../config/env';
 import { logger } from '../config/logger';
 
@@ -57,13 +57,21 @@ router.get('/characters/:id/preview', previewLimiter, async (req: any, res: Resp
     if (!env.ELEVENLABS_API_KEY) return res.status(503).json({ error: 'elevenlabs_key_missing' });
 
     const character = CHARACTERS[id];
-    const isFrench = String(req.query.lang || 'fr').toLowerCase() !== 'en';
+    const lang = String(req.query.lang || 'fr').toLowerCase() === 'en' ? 'en' : 'fr';
+    const isFrench = lang === 'fr';
     const text = isFrench ? character.previewFr : character.previewEn;
+    /* La voix suit la langue, ET sa provenance est transmise. L'omettre était
+       exactement la panne: un identifiant Cartesia partait se faire lire comme
+       de l'ElevenLabs, ne trouvait rien, et l'aperçu retombait sur la voix par
+       défaut. */
+    const voice = voiceForLanguage(character, lang);
 
     const { previewAudioService } = await import('../services/voice/preview-audio.service');
     const { audio, key } = await previewAudioService.get({
-      voiceId: character.voiceId,
+      voiceId: voice.voiceId,
+      voiceProvider: voice.voiceProvider,
       text,
+      lang,
       stability: character.stability,
       similarityBoost: character.similarityBoost,
       style: character.style,
