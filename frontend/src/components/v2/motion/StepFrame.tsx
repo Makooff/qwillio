@@ -177,7 +177,7 @@ export default function StepFrame({
       targetStep.current = target;
       const fromStep = currentStep.current;
       const start = performance.now();
-      const DURATION = 420;
+      const DURATION = 220;
 
       const tick = (now: number) => {
         const t = Math.max(0, Math.min(1, (now - start) / DURATION));
