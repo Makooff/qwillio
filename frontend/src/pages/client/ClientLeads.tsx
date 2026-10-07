@@ -332,40 +332,48 @@ export default function ClientLeads() {
         <>
           {/* En-tête de tri, même grammaire que la page Appels: une colonne
               triée porte sa flèche (mauve), les autres leur double-flèche
-              grise, et le clic change de colonne ou inverse le sens. */}
+              grise, et le clic change de colonne ou inverse le sens.
+              L'en-tête et les lignes partagent LA MÊME GRILLE à colonnes
+              fixes (avatar, nom, statut, score, tonalité, date, chevron):
+              en flex avec des largeurs différentes (gap-6 contre gap-3, pas
+              d'avatar dans l'en-tête), « Statut », « Score » et « Date » ne
+              tombaient jamais au-dessus de leur contenu (retour utilisateur).
+              « Tonalité » n'est pas triable, donc pas un bouton. */}
           <div
-            className="hidden md:flex items-center gap-6 px-5 py-2.5 text-xs text-[#A1A1A8] font-medium border-b border-white/[0.07] mb-1"
+            className="hidden md:grid grid-cols-[36px_minmax(0,1fr)_110px_76px_88px_150px_16px] items-center gap-3 px-5 py-2.5 text-xs text-[#A1A1A8] font-medium border-b border-white/[0.07] mb-1"
             role="row"
           >
+            <span aria-hidden="true" />
             <button
               type="button"
               onClick={() => toggleSort('name')}
-              className="flex items-center gap-1 min-w-0 flex-1 hover:text-[#F5F5F7] text-left"
+              className="flex items-center gap-1 min-w-0 hover:text-[#F5F5F7] text-left"
             >
               Nom <SortIcon k="name" />
             </button>
             <button
               type="button"
               onClick={() => toggleSort('status')}
-              className="flex items-center gap-1 w-28 hover:text-[#F5F5F7]"
+              className="flex items-center gap-1 hover:text-[#F5F5F7] text-left"
             >
               Statut <SortIcon k="status" />
             </button>
             <button
               type="button"
               onClick={() => toggleSort('score')}
-              className="flex items-center gap-1 w-20 hover:text-[#F5F5F7]"
+              className="flex items-center gap-1 hover:text-[#F5F5F7] text-left"
             >
               Score <SortIcon k="score" />
             </button>
+            <span>Tonalité</span>
             <button
               type="button"
               onClick={() => toggleSort('createdAt')}
-              className="flex items-center gap-1 w-40 hover:text-[#F5F5F7]"
+              className="flex items-center gap-1 hover:text-[#F5F5F7] text-left"
             >
               Date <SortIcon k="createdAt" />
             </button>
-            <div aria-hidden="true" className="w-4" />
+            <span aria-hidden="true" />
           </div>
 
           <div>
@@ -382,40 +390,48 @@ export default function ClientLeads() {
                     else if (r.contactId) navigate(`/dashboard/crm/${r.contactId}`);
                   }}
                 >
-                  <div className="flex items-center gap-3 px-5 py-3.5">
+                  {/* Même grille que l'en-tête à partir de md (flex dessous):
+                      les pastilles tombent exactement sous « Statut », « Score »,
+                      « Tonalité » et « Date ». Les tags vivent dans la colonne
+                      du nom, la seule élastique. */}
+                  <div className="flex items-center gap-3 px-5 py-3.5 md:grid md:grid-cols-[36px_minmax(0,1fr)_110px_76px_88px_150px_16px]">
                     <div
                       className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0"
                       style={{ background: `${sc.color}1a` }}
                     >
                       <Users size={16} style={{ color: sc.color }} aria-hidden="true" />
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-[#F5F5F7] truncate">{r.name}</p>
-                      <p className="text-[11px] text-[#A1A1A8] truncate">
-                        {r.phone}
-                        {r.email && ` · ${r.email}`}
-                        {/* D'où vient la ligne: sans ça, une fiche saisie à la
-                            main se lit comme un appel qu'on n'a jamais reçu. */}
-                        {!r.lead && ' · fiche'}
-                      </p>
-                    </div>
-                    <div className="flex items-center gap-3 flex-shrink-0">
+                    <div className="flex-1 min-w-0 md:flex md:items-center md:gap-2">
+                      <div className="min-w-0">
+                        <p className="text-sm font-semibold text-[#F5F5F7] truncate">{r.name}</p>
+                        <p className="text-[11px] text-[#A1A1A8] truncate">
+                          {r.phone}
+                          {r.email && ` · ${r.email}`}
+                          {/* D'où vient la ligne: sans ça, une fiche saisie à la
+                              main se lit comme un appel qu'on n'a jamais reçu. */}
+                          {!r.lead && ' · fiche'}
+                        </p>
+                      </div>
                       {r.tags.slice(0, 2).map(t => (
-                        <span key={t} className="hidden lg:inline text-[10px] px-2 py-0.5 rounded-md bg-white/[0.06] text-[#A1A1A8] font-medium">{t}</span>
+                        <span key={t} className="hidden lg:inline flex-shrink-0 text-[10px] px-2 py-0.5 rounded-md bg-white/[0.06] text-[#A1A1A8] font-medium">{t}</span>
                       ))}
-                      <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${sc.pill}`}>
-                        {sc.label.toUpperCase()}
-                      </span>
-                      {r.score != null && (
-                        <div className="hidden sm:flex items-center gap-1">
-                          <Star size={12} className="text-[#7349fe]" aria-hidden="true" />
-                          <span className="text-xs font-bold text-[#7349fe]">{r.score}/10</span>
-                        </div>
-                      )}
-                      {r.lead && <SentimentBadge sentiment={r.lead.sentiment} />}
-                      {r.createdAt && <span className="text-[10px] text-[#A1A1A8] hidden lg:inline">{formatDateTime(r.createdAt)}</span>}
-                      <ChevronRight size={14} className="text-white/20 group-hover:text-[#7349fe] transition-colors" />
                     </div>
+                    <span className={`justify-self-start text-[10px] font-semibold px-2 py-0.5 rounded-full ${sc.pill}`}>
+                      {sc.label.toUpperCase()}
+                    </span>
+                    {r.score != null ? (
+                      <div className="hidden sm:flex items-center gap-1">
+                        <Star size={12} className="text-[#7349fe]" aria-hidden="true" />
+                        <span className="text-xs font-bold text-[#7349fe]">{r.score}/10</span>
+                      </div>
+                    ) : <span aria-hidden="true" className="hidden sm:block" />}
+                    <div className="justify-self-start">
+                      {r.lead && <SentimentBadge sentiment={r.lead.sentiment} />}
+                    </div>
+                    {r.createdAt ? (
+                      <span className="text-[10px] text-[#A1A1A8] hidden md:inline">{formatDateTime(r.createdAt)}</span>
+                    ) : <span aria-hidden="true" className="hidden md:block" />}
+                    <ChevronRight size={14} className="text-white/20 group-hover:text-[#7349fe] transition-colors" />
                   </div>
                 </motion.div>
               );

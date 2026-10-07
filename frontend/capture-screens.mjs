@@ -356,6 +356,12 @@ const mac = { width: 1512, height: 982, scale: 2, statusBar: 0 };
 
 await shoot({ name: 'iphone-apercu', path: '/dashboard', ...phone });
 await shoot({ name: 'iphone-appels', path: '/dashboard/calls', ...phone });
+/* Vérification de l'alignement tableau (retour utilisateur: « les infos ne
+   sont pas alignées avec les tris »): une capture desktop de la page Leads,
+   en-tête de tri comprise. Elle ne part pas dans public/screens (webp null),
+   elle sert au contrôle visuel dans OUT. */
+await shoot({ name: 'check-leads-align', path: '/dashboard/leads', width: 1440, height: 1000, webp: null });
+
 await shoot({ name: 'iphone-leads', path: '/dashboard/leads', ...phone });
 await shoot({ name: 'iphone-receptionniste', path: '/dashboard/receptionist', ...phone });
 /* La fiche d'appel OUVERTE sur iPhone: c'est elle qui part dans le cadre

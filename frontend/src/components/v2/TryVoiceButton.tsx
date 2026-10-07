@@ -43,7 +43,7 @@ export default function TryVoiceButton({
 }: {
   children: ReactNode;
   className?: string;
-  variant?: 'outline' | 'onDark' | 'chromatic';
+  variant?: 'outline' | 'onDark' | 'chromatic' | 'primary';
   shape?: 'pill' | 'round';
   /** Obligatoire en `round`, où il n'y a pas de texte à lire. */
   label?: string;
@@ -58,13 +58,18 @@ export default function TryVoiceButton({
      littéral: c'est ce qui rend l'agrandissement continu, et ça reste juste en
      thème sombre, où la carte n'est pas blanche. */
   /* Décision utilisateur (2026-10): plus de fond mauve — le chromatic devient
-     canvas bordé de mauve, comme les PillLink chromatic du site. */
+     canvas bordé de mauve, comme les PillLink chromatic du site.
+     `primary` (2026-10, retour utilisateur sur /receptionist): le rendu du
+     PillLink primary de l'accueil, encre sur canvas — blanc en thème sombre,
+     presque noir en thème clair. */
   const surface =
-    variant === 'chromatic'
-      ? 'bg-q2-canvas border border-q2-indigo'
-      : variant === 'onDark'
-        ? 'bg-white'
-        : 'bg-q2-canvas border border-q2-plate';
+    variant === 'primary'
+      ? 'bg-q2-ink'
+      : variant === 'chromatic'
+        ? 'bg-q2-canvas border border-q2-indigo'
+        : variant === 'onDark'
+          ? 'bg-white'
+          : 'bg-q2-canvas border border-q2-plate';
 
   /* En `round`, le rond ne se peint pas: il floute (demande utilisateur).
      Un disque blanc opaque posé sur la barre en verre était la seule surface
@@ -98,9 +103,11 @@ export default function TryVoiceButton({
      donnait sinon du noir sur du noir, invisible dans les deux cas. */
   const text = !showSurface || glass
     ? (variant === 'onDark' ? 'text-white' : 'text-q2-ink')
-    : variant === 'onDark'
-      ? 'text-q2-void'
-      : 'text-q2-ink';
+    : variant === 'primary'
+      ? 'text-q2-canvas'
+      : variant === 'onDark'
+        ? 'text-q2-void'
+        : 'text-q2-ink';
 
   const box =
     shape === 'round'

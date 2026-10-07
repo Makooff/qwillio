@@ -332,7 +332,7 @@ export default function Receptionist() {
               </Lead>
 
               <div className="flex flex-wrap items-center gap-3 mb-8 sm:mb-12">
-                <TryVoiceButton variant="chromatic">
+                <TryVoiceButton variant="primary">
                   <Play size={13} fill="currentColor" aria-hidden="true" />
                   {isFr ? 'Écouter une démo' : 'Hear a demo'}
                 </TryVoiceButton>
@@ -539,11 +539,11 @@ export default function Receptionist() {
                 grille de gris; le cadrage sur le haut de l'image règle ce
                 point sans avoir à redessiner l'écran. */}
             <figure className="relative">
-              {/* La fenêtre flotte sur la section, comme la carte Analytique
-                  de la Home (référence Codex): plus de cadre carbon ni de
-                  CONTOUR MAUVE AU SURVOL (`q2-lit` retiré, retour
-                  utilisateur) — un filet clair fin et une ombre profonde. */}
-              <div className="relative rounded-[16px] overflow-hidden border border-white/15 shadow-[0_28px_80px_-20px_rgba(0,0,0,0.6)]">
+              {/* L'ombre est DÉPORTÉE (retour utilisateur): plus d'ombre
+                  diffuse ni de contour mauve au survol, mais un second cadre
+                  identique posé derrière, décalé en bas à droite. */}
+              <div aria-hidden="true" className="absolute inset-0 translate-x-3 translate-y-3 rounded-[16px] border border-white/25" />
+              <div className="relative rounded-[16px] overflow-hidden border border-white/15">
                 <ScreenShot
                   name="chat-config"
                   alt={isFr
