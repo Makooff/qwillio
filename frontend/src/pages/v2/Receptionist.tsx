@@ -538,20 +538,26 @@ export default function Receptionist() {
                 parce qu'une capture réduite à 350 px se lisait comme une
                 grille de gris; le cadrage sur le haut de l'image règle ce
                 point sans avoir à redessiner l'écran. */}
-            <figure className="relative">
-              {/* L'ombre est DÉPORTÉE (retour utilisateur): plus d'ombre
-                  diffuse ni de contour mauve au survol, mais un second cadre
-                  identique posé derrière, décalé en bas à droite. */}
-              <div aria-hidden="true" className="absolute inset-0 translate-x-3 translate-y-3 rounded-[16px] border border-white/25" />
-              <div className="relative rounded-[16px] overflow-hidden border border-white/15">
-                <ScreenShot
-                  name="chat-config"
-                  alt={isFr
-                    ? 'La conversation de configuration dans le portail: on lui dit de fermer le mercredi après-midi, elle confirme le nouvel horaire.'
-                    : 'The setup conversation in the portal: told to close Wednesday afternoons, she confirms the new hours.'}
-                />
+            <figure>
+              {/* L'ombre est DÉPORTÉE (retour utilisateur): un second cadre
+                  posé derrière, décalé en bas à droite. Il vit dans un
+                  conteneur qui n'enferme QUE la fenêtre: ancré au `figure`
+                  entier, il englobait aussi la légende, et le décalage du
+                  bas n'égalait plus celui de droite. Gris secondaire
+                  (`q2-fog`), pas de blanc ni de mauve. Cadre avant identique
+                  aux illustrations de l'accueil (filet white/15, arrondi 16). */}
+              <div className="relative">
+                <div aria-hidden="true" className="absolute inset-0 translate-x-3 translate-y-3 rounded-[16px] border border-q2-fog/50" />
+                <div className="relative rounded-[16px] overflow-hidden border border-white/15">
+                  <ScreenShot
+                    name="chat-config"
+                    alt={isFr
+                      ? 'La conversation de configuration dans le portail: on lui dit de fermer le mercredi après-midi, elle confirme le nouvel horaire.'
+                      : 'The setup conversation in the portal: told to close Wednesday afternoons, she confirms the new hours.'}
+                  />
+                </div>
               </div>
-              <figcaption className="relative mt-3 px-1 text-[12.5px] text-q2-fog q2-body-text">
+              <figcaption className="mt-6 px-1 text-[12.5px] text-q2-fog q2-body-text">
                 {isFr
                   ? 'Le chat de configuration du dashboard, compte de démonstration.'
                   : 'The dashboard configuration chat, demo account.'}
