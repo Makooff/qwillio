@@ -11,11 +11,14 @@
  */
 import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 const BASE = process.env.BASE || 'http://localhost:4188';
 const OUT = process.env.OUT || '/tmp/screens';
-/* Les visuels servis par le site, versionnés avec lui. */
-const SITE = new URL('./public/screens/', import.meta.url).pathname;
+/* Les visuels servis par le site, versionnés avec lui.
+   `fileURLToPath`, pas `.pathname`: sous Windows, celui-ci rend
+   `/C:/Users/...`, que `mkdirSync` lit comme un chemin relatif à C:\. */
+const SITE = fileURLToPath(new URL('./public/screens/', import.meta.url));
 mkdirSync(OUT, { recursive: true });
 mkdirSync(SITE, { recursive: true });
 
@@ -157,6 +160,16 @@ function mockFor(pathname, search) {
      renvoie sur la page de connexion. */
   if (p === '/auth/me') return USER;
   if (p === '/my-dashboard/overview') return OVERVIEW;
+  /* AVANT le préfixe `/my-dashboard/calls`: le direct répond un autre modèle
+     (des appels EN COURS, avec `lines`), et la liste historique servie à la
+     place fait planter LiveCalls (`appel.lines` indéfini). Vide est l'état
+     honnête pour une capture: aucun appel n'est en cours. */
+  if (p.startsWith('/my-dashboard/calls/live')) return { data: [] };
+  /* TransferFunnel (REL-7), monté au-dessus de la liste: sans `causes`, le
+     composant plante et emporte la page entière derrière l'ErrorBoundary. */
+  if (p.startsWith('/my-dashboard/transfers')) {
+    return { days: 30, attempted: 6, completed: 5, failed: 1, pending: 0, causes: [{ label: 'Occupé', count: 1 }] };
+  }
   if (p.startsWith('/my-dashboard/calls')) {
     const limit = Number(new URLSearchParams(search).get('limit') || 20);
     return { data: CALLS.slice(0, limit), pagination: { total: CALLS.length, page: 1, limit, totalPages: 1 } };

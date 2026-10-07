@@ -16,7 +16,8 @@ import RevealV2 from '../../components/v2/RevealV2';
 import ScreenShot from '../../components/v2/ScreenShot';
 import CardV2 from '../../components/v2/CardV2';
 import HeroPhone3D from '../../components/ui/HeroPhone3D';
-import VoiceCard, { type VoiceData } from '../../components/landing/VoiceCard';
+import CircularReceptionists from '../../components/v2/CircularReceptionists';
+import TextReveal from '../../components/v2/motion/TextReveal';
 import TryVoiceButton from '../../components/v2/TryVoiceButton';
 import StepFrame from '../../components/v2/motion/StepFrame';
 
@@ -57,72 +58,10 @@ export default function Receptionist() {
       ? 'Prise de rendez-vous pendant l’appel'
       : 'Appointment booking during the call',
     description: isFr
-      ? 'Qwillio répond, lit votre agenda Google en direct, inscrit le rendez-vous pendant l’appel, vous résume l’appelant avant de vous le passer et reconnaît vos habitués. Français et anglais, conforme RGPD, à partir de 99 € par mois.'
-      : 'Qwillio answers, reads your Google calendar live, books the appointment during the call, briefs you before handing the caller over and recognises your regulars. French and English, GDPR compliant, from €99 a month.',
+      ? 'Qwillio répond, lit votre agenda Google ou Outlook en direct, inscrit le rendez-vous pendant l’appel, vous résume l’appelant avant de vous le passer et reconnaît vos habitués. Français et anglais, conforme RGPD, à partir de 99 € par mois.'
+      : 'Qwillio answers, reads your Google or Outlook calendar live, books the appointment during the call, briefs you before handing the caller over and recognises your regulars. French and English, GDPR compliant, from €99 a month.',
     canonical: 'https://qwillio.com/receptionist',
   });
-
-  const voices: VoiceData[] = [
-    {
-      id: 'marie',
-      name: 'Marie',
-      accent: isFr ? 'Français · France et Belgique' : 'French · France and Belgium',
-      vibe: isFr
-        ? 'Chaleureuse et accueillante, sourire dans la voix.'
-        : 'Warm and welcoming, a smile in her voice.',
-      swatch: '#7a5fff',
-      ring: 'rgba(122,95,255,0.45)',
-      initials: 'MA',
-      lang: isFr ? 'fr-FR' : 'en-US',
-      sample: isFr
-        ? 'Bonjour, merci d’appeler ! Comment puis-je vous aider aujourd’hui ?'
-        : 'Hello, thanks for calling! How can I help you today?',
-    },
-    {
-      id: 'lucas',
-      name: 'Lucas',
-      accent: isFr ? 'Français · France et Belgique' : 'French · France and Belgium',
-      vibe: isFr
-        ? 'Posé et professionnel, direct et rassurant.'
-        : 'Composed and professional, direct and reassuring.',
-      swatch: '#cd6bfb',
-      ring: 'rgba(205,107,251,0.45)',
-      initials: 'LU',
-      lang: isFr ? 'fr-FR' : 'en-US',
-      sample: isFr
-        ? `Bonjour, vous êtes bien au secrétariat. Que puis-je faire pour vous${NB}?`
-        : 'Hello, you’ve reached the front desk. What can I do for you?',
-    },
-  ];
-
-  // Les huit autres personnages du catalogue (voice-characters.ts). Chacun a
-  // son portrait et sa voix ; le tag dit l'accent porté par la voix, pas la
-  // langue: tous répondent en français comme en anglais.
-  const otherVoices = isFr
-    ? [
-        { id: 'camille', name: 'Camille', note: 'Soignée et raffinée, pour une image premium.', tag: 'FR' },
-        { id: 'lea', name: 'Léa', note: 'Dynamique et enthousiaste, pleine d’énergie.', tag: 'FR' },
-        { id: 'sofia', name: 'Sofia', note: 'Naturelle et décontractée, ton conversationnel.', tag: 'FR' },
-        { id: 'nour', name: 'Nour', note: 'Douce et rassurante, idéale pour la santé.', tag: 'FR' },
-        { id: 'adrien', name: 'Adrien', note: 'Chaleureux et avenant, met à l’aise tout de suite.', tag: 'FR' },
-        { id: 'hugo', name: 'Hugo', note: 'Détendu et direct, comme un collègue au comptoir.', tag: 'FR' },
-        { id: 'theo', name: 'Théo', note: 'Énergique et motivé, ça s’entend au téléphone.', tag: 'FR' },
-        { id: 'julien', name: 'Julien', note: 'Distingué et posé, pour une maison haut de gamme.', tag: 'FR' },
-      ]
-    : [
-        { id: 'camille', name: 'Camille', note: 'Polished and refined, for a premium brand.', tag: 'FR' },
-        { id: 'lea', name: 'Léa', note: 'Dynamic and upbeat, full of energy.', tag: 'FR' },
-        { id: 'sofia', name: 'Sofia', note: 'Natural and easy-going, conversational tone.', tag: 'FR' },
-        { id: 'nour', name: 'Nour', note: 'Soft and reassuring, ideal for healthcare.', tag: 'FR' },
-        { id: 'adrien', name: 'Adrien', note: 'Warm and approachable, puts callers at ease.', tag: 'FR' },
-        { id: 'hugo', name: 'Hugo', note: 'Relaxed and direct, like a colleague at the desk.', tag: 'FR' },
-        { id: 'theo', name: 'Théo', note: 'Energetic and driven, you can hear it on the line.', tag: 'FR' },
-        { id: 'julien', name: 'Julien', note: 'Distinguished and composed, for a high-end house.', tag: 'FR' },
-      ];
-
-  const tones = isFr
-    ? ['Chaleureux', 'Professionnel', 'Décontracté', 'Énergique', 'Haut de gamme', 'Rassurant']
-    : ['Warm', 'Professional', 'Casual', 'Energetic', 'Premium', 'Reassuring'];
 
   const trades: { label: string; href: string }[] = isFr
     ? [
@@ -156,14 +95,14 @@ export default function Receptionist() {
           icon: CalendarCheck,
           num: '01',
           title: 'Le rendez-vous est inscrit avant qu’il raccroche',
-          body: 'Dès qu’un jour est prononcé, la disponibilité part en avance vers votre agenda Google. Le créneau retenu est écrit confirmé, pas mis de côté pour plus tard. Deux appels au même moment ne peuvent pas repartir avec le même créneau.',
+          body: 'Dès qu’un jour est prononcé, la disponibilité part en avance vers votre agenda, Google ou Outlook. Le créneau retenu est écrit confirmé, pas mis de côté pour plus tard. Deux appels au même moment ne peuvent pas repartir avec le même créneau.',
           panelLabel: 'Ce qui se passe pendant la phrase',
           panelRows: [
             { label: 'Un jour est prononcé, l’agenda est interrogé', meta: 'en avance' },
             { label: 'Le créneau choisi est écrit, confirmé' },
             { label: 'Un créneau retenu disparaît des autres appels' },
           ],
-          panelNote: `Fonctionne si votre agenda Google est connecté${NB}: sinon il note la demande et vous rappelez.`,
+          panelNote: `Fonctionne si votre agenda Google ou Outlook est connecté${NB}: sinon il note la demande et vous rappelez.`,
         },
         {
           icon: PhoneForwarded,
@@ -210,14 +149,14 @@ export default function Receptionist() {
           icon: CalendarCheck,
           num: '01',
           title: 'The appointment is written before it hangs up',
-          body: 'The moment a day is named, availability is fetched ahead of the request from your Google calendar. The chosen slot is written confirmed, not parked for later. Two calls at the same moment cannot walk away with the same slot.',
+          body: 'The moment a day is named, availability is fetched ahead of the request from your Google or Outlook calendar. The chosen slot is written confirmed, not parked for later. Two calls at the same moment cannot walk away with the same slot.',
           panelLabel: 'What happens mid-sentence',
           panelRows: [
             { label: 'A day is named, the calendar is queried', meta: 'ahead' },
             { label: 'The chosen slot is written, confirmed' },
             { label: 'A held slot disappears from other calls' },
           ],
-          panelNote: 'Requires a connected Google calendar: otherwise it takes the request and you call back.',
+          panelNote: 'Requires a connected Google or Outlook calendar: otherwise it takes the request and you call back.',
         },
         {
           icon: PhoneForwarded,
@@ -308,7 +247,7 @@ export default function Receptionist() {
         },
         {
           title: 'Chaque appel repart avec son analyse',
-          body: 'Résumé, sentiment, lead scoré. Le client final reçoit son SMS de confirmation, et un rappel 24 h avant le rendez-vous sur les plans Pro et Enterprise.',
+          body: 'Le client final reçoit son SMS de confirmation, un rappel la veille du rendez-vous et une relance s’il ne se présente pas.',
         },
         {
           title: 'Chaque semaine, il vous dit ce qui cloche',
@@ -326,7 +265,7 @@ export default function Receptionist() {
         },
         {
           title: 'Every call comes back analysed',
-          body: 'Summary, sentiment, scored lead. The customer gets their confirmation text, plus a reminder 24 h before the appointment on Pro and Enterprise plans.',
+          body: 'Summary, sentiment, scored lead. The customer gets their confirmation text, a reminder the day before the appointment, and a follow-up if they do not show.',
         },
         {
           title: 'Every week it tells you what is off',
@@ -388,8 +327,8 @@ export default function Receptionist() {
               </Display>
               <Lead className="max-w-[500px] mb-7 sm:mb-10 q2-body-text">
                 {isFr
-                  ? `Il répond, lit votre agenda Google en direct et inscrit le créneau avant la fin de la conversation. Il vous résume l’appelant avant de vous le passer, et reconnaît ceux qui rappellent. Français et anglais sur le même appel, à partir de 99${NB}€ par mois.`
-                  : 'It answers, reads your Google calendar live and writes the slot in before the conversation ends. It briefs you on the caller before handing over, and recognises the ones who call back. French and English on the same call, from €99 a month.'}
+                  ? `Il répond, lit votre agenda Google ou Outlook en direct et inscrit le créneau avant la fin de la conversation. Il vous résume l’appelant avant de vous le passer, et reconnaît ceux qui rappellent. Français et anglais sur le même appel, à partir de 99${NB}€ par mois.`
+                  : 'It answers, reads your Google or Outlook calendar live and writes the slot in before the conversation ends. It briefs you on the caller before handing over, and recognises the ones who call back. French and English on the same call, from €99 a month.'}
               </Lead>
 
               <div className="flex flex-wrap items-center gap-3 mb-8 sm:mb-12">
@@ -621,159 +560,37 @@ export default function Receptionist() {
         </Container>
       </Section>
 
-      {/* VOIX ET TON, bande taupe: deux aperçus jouables puis la liste hairline */}
-      <Section variant="band" hairline aria-labelledby="voices-heading">
-        <Container>
-          <RevealV2 className="mb-8 sm:mb-12 md:mb-16">
-            <div className="flex items-end justify-between gap-6 sm:gap-8 flex-wrap">
-              <div>
-                <Eyebrow tone="indigo" className="mb-3 sm:mb-4">
-                  {isFr ? 'Voix et ton' : 'Voice and tone'}
-                </Eyebrow>
-                <H2 id="voices-heading" className="max-w-[640px]">
-                  {isFr ? (
-                    <>
-                      Dix réceptionnistes. <SerifWord>Six façons de les porter.</SerifWord>
-                    </>
-                  ) : (
-                    <>
-                      Ten receptionists. <SerifWord>Six ways to carry them.</SerifWord>
-                    </>
-                  )}
-                </H2>
-              </div>
-              <p className="text-q2-body text-sm max-w-[320px] leading-relaxed q2-body-text">
-                {isFr
-                  ? 'Dix personnages, chacun parle français et anglais. Vous les écoutez avant de choisir, le ton se règle séparément. Et si aucun n’est le bon, clonez votre voix.'
-                  : 'Ten characters, each speaks French and English. You listen before you pick, the tone is set separately. And if none is the right one, clone your own voice.'}
-              </p>
-            </div>
+      {/* ── VOS RÉCEPTIONNISTES, galerie de presets: le même carrousel
+          circulaire que la Home (demande utilisateur: « remplace la section
+          des voix par celle qui est sur home »). Dix presets, aperçus des
+          vraies voix, note de clonage comprise dans le composant. */}
+      <Section aria-labelledby="team-heading" className="relative">
+        <Container className="relative z-10">
+          <RevealV2 className="mb-8 sm:mb-12 max-w-[640px]">
+            <Eyebrow tone="indigo" className="mb-3 sm:mb-4">
+              {isFr ? 'Vos réceptionnistes' : 'Your receptionists'}
+            </Eyebrow>
+            <H2 id="team-heading">
+              <TextReveal>
+                {isFr ? (
+                  <>
+                    Choisissez qui <SerifWord>décroche.</SerifWord>
+                  </>
+                ) : (
+                  <>
+                    Choose who <SerifWord>answers.</SerifWord>
+                  </>
+                )}
+              </TextReveal>
+            </H2>
+            <p className="text-q2-body text-base leading-relaxed mt-4 q2-body-text">
+              {isFr
+                ? 'Chaque réceptionniste a un visage, une personnalité et sa façon de tenir un appel. Choisissez la vôtre, ou prêtez-lui votre propre voix.'
+                : 'Each receptionist has a face, a personality and a way of holding a call. Pick yours, or lend her your own voice.'}
+            </p>
           </RevealV2>
-
-          <RevealV2 className="mb-8 sm:mb-12">
-            <div className="flex items-center gap-x-5 gap-y-3 flex-wrap border-y border-q2-plate py-5 sm:py-6">
-              <span className="q2-eyebrow text-q2-body">{isFr ? 'Langues' : 'Languages'}</span>
-              <ul className="flex flex-wrap gap-2" role="list">
-                {[
-                  isFr ? 'Français' : 'French',
-                  'English',
-                  isFr ? 'Les deux sur le même appel' : 'Both on the same call',
-                ].map((item) => (
-                  <li key={item}>
-                    <span className="inline-flex items-center text-xs px-3.5 py-2 rounded-full bg-q2-canvas border border-q2-plate text-q2-graphite font-medium">
-                      {item}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          </RevealV2>
-
-          <div className="grid md:grid-cols-2 gap-5 mb-5">
-            <RevealV2>
-              <VoiceCard v={voices[0]} large />
-            </RevealV2>
-            <RevealV2 index={1}>
-              <VoiceCard v={voices[1]} large />
-            </RevealV2>
-          </div>
-
-          <RevealV2 index={2}>
-            <CardV2 variant="canvas" large>
-              <div className="grid md:grid-cols-[1fr_1.4fr] gap-7 sm:gap-8 md:gap-12">
-                <div>
-                  <p className="q2-eyebrow text-q2-body mb-4">{isFr ? 'Les huit autres' : 'The other eight'}</p>
-                  <p className="text-q2-body text-sm leading-relaxed q2-body-text max-w-[260px]">
-                    {isFr
-                      ? 'Chacun arrive avec un ton par défaut, que vous pouvez remplacer par n’importe lequel des six.'
-                      : 'Each comes with a default tone, which you can swap for any of the six.'}
-                  </p>
-                  <ul className="mt-6 flex flex-wrap gap-2" role="list">
-                    {tones.map((tone) => (
-                      <li
-                        key={tone}
-                        className="inline-flex items-center rounded-full bg-q2-band px-3.5 py-1.5 text-[12.5px] font-medium text-q2-graphite"
-                      >
-                        {tone}
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-                {/* Sous 640px la note passe sous le nom au lieu de se
-                    comprimer en colonne de trente pixels */}
-                <ul className="border-t border-q2-plate" role="list">
-                  {otherVoices.map((voice) => (
-                    <li
-                      key={voice.name}
-                      className="grid grid-cols-[32px_1fr_auto] sm:grid-cols-[32px_72px_1fr_auto] gap-x-3 sm:gap-x-4 gap-y-0.5 items-center border-b border-q2-plate py-3"
-                    >
-                      <img
-                        src={`/characters/${voice.id}.webp`}
-                        alt=""
-                        loading="lazy"
-                        width={32}
-                        height={32}
-                        className="row-span-2 sm:row-span-1 w-8 h-8 rounded-full object-cover"
-                      />
-                      <span className="text-q2-ink text-[15px]">{voice.name}</span>
-                      <span className="col-start-2 sm:col-start-3 row-start-2 sm:row-start-1 text-q2-body text-[13.5px] leading-snug q2-body-text">
-                        {voice.note}
-                      </span>
-                      <span className="col-start-3 sm:col-start-4 row-start-1 q2-eyebrow text-q2-body">
-                        {voice.tag}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </CardV2>
-          </RevealV2>
-
-          {/* Clonage de voix: fonction reelle du dashboard (VoiceCloner),
-              conditions honnetes: consentement, 20-90 s, remplacable,
-              supprimable. On ne promet pas l'appel test avec la voix clonee. */}
-          <RevealV2 index={3} className="mt-5">
-            <CardV2 variant="canvas" large>
-              <div className="grid md:grid-cols-[1fr_1.4fr] gap-6 sm:gap-8 md:gap-12 items-start">
-                <div>
-                  <p className="q2-eyebrow text-q2-indigo mb-4">{isFr ? 'Ou la vôtre' : 'Or your own'}</p>
-                  <p className="text-[22px] font-light tracking-tight text-q2-ink leading-snug max-w-[300px]">
-                    {isFr ? (
-                      <>
-                        Clonez votre voix, elle répond avec votre <SerifWord>timbre.</SerifWord>
-                      </>
-                    ) : (
-                      <>
-                        Clone your voice, she answers with your <SerifWord>timbre.</SerifWord>
-                      </>
-                    )}
-                  </p>
-                </div>
-                <ul className="border-t border-q2-plate" role="list">
-                  {(isFr
-                    ? [
-                        'De 20 à 90 secondes d’enregistrement suffisent, au micro ou depuis un fichier audio.',
-                        'Consentement explicite exigé : la voix doit être la vôtre, ou enregistrée avec un accord écrit.',
-                        'Utilisable seconde après seconde : pas d’entraînement de plusieurs heures.',
-                        'Vous la remplacez ou la supprimez quand vous voulez, l’ancienne est effacée.',
-                      ]
-                    : [
-                        '20 to 90 seconds of recording are enough, from the mic or an audio file.',
-                        'Explicit consent required: the voice must be yours, or recorded with written permission.',
-                        'Usable within seconds: no hours-long training.',
-                        'Replace or delete it whenever you want, the previous one is erased.',
-                      ]
-                  ).map((line) => (
-                    <li
-                      key={line}
-                      className="border-b border-q2-plate py-3.5 text-[14px] text-q2-body leading-relaxed q2-body-text"
-                    >
-                      {line}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            </CardV2>
+          <RevealV2 index={1}>
+            <CircularReceptionists isFr={isFr} />
           </RevealV2>
         </Container>
       </Section>
@@ -900,8 +717,8 @@ export default function Receptionist() {
               </ul>
               <p className="mt-6 pt-5 border-t border-q2-plate text-q2-body text-[13px] leading-relaxed q2-body-text">
                 {isFr
-                  ? 'La prise de rendez-vous en direct suppose un agenda Google connecté. Sans agenda, il prend la demande et vous rappelez.'
-                  : 'Live booking assumes a connected Google calendar. Without one, it takes the request and you call back.'}
+                  ? 'La prise de rendez-vous en direct suppose un agenda Google ou Outlook connecté. Sans agenda, il prend la demande et vous rappelez.'
+                  : 'Live booking assumes a connected Google or Outlook calendar. Without one, it takes the request and you call back.'}
               </p>
             </CardV2>
           </RevealV2>
