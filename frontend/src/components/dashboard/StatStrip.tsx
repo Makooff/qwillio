@@ -112,7 +112,7 @@ export default function StatStrip({ items, label }: { items: StatCell[]; label?:
           </>
         );
 
-        const box = 'px-2 sm:px-6 py-1 text-left first:pl-0 last:pr-0';
+        const box = 'px-2 sm:px-6 py-1 text-left first:pl-0';
 
         return k.onClick ? (
           <button
