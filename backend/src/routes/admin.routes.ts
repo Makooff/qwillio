@@ -442,6 +442,43 @@ router.post('/voices/french', async (_req: Request, res: Response) => {
   }
 });
 
+/* ── LES VOIX CARTESIA ────────────────────────────────────────────────────────
+ *
+ * Le pendant des deux routes ci-dessus, pour le fournisseur qui sert
+ * réellement les appels. Sans elles, la seule table qui compte —
+ * la correspondance vers Cartesia — restait vide, et tous les personnages
+ * du site tombaient sur la voix par défaut : un seul timbre, masculin, pour
+ * dix personnages dont cinq femmes.
+ *
+ * GET  — ce que le catalogue français offre, sans rien changer.
+ * POST — associer, ranger, appliquer.
+ */
+
+// GET /api/admin/voices/cartesia — what the French catalogue offers, changing nothing.
+router.get('/voices/cartesia', async (_req: Request, res: Response) => {
+  try {
+    const { cartesiaVoicesService } = await import('../services/voice/cartesia-voices.service');
+    const { getAssignedVoices } = await import('../config/voice-characters');
+    const { female, male } = await cartesiaVoicesService.preview();
+    res.json({ assigned: getAssignedVoices(), female: female.slice(0, 20), male: male.slice(0, 20) });
+  } catch (err: any) {
+    const missing = err?.message === 'cartesia_key_missing';
+    res.status(missing ? 503 : 502).json({ error: err?.message || 'cartesia_voices_failed' });
+  }
+});
+
+// POST /api/admin/voices/cartesia — pick and assign, one per character, right gender.
+router.post('/voices/cartesia', async (_req: Request, res: Response) => {
+  try {
+    const { cartesiaVoicesService } = await import('../services/voice/cartesia-voices.service');
+    const assigned = await cartesiaVoicesService.assign();
+    res.json({ success: true, assigned });
+  } catch (err: any) {
+    const missing = err?.message === 'cartesia_key_missing';
+    res.status(missing ? 503 : 502).json({ error: err?.message || 'cartesia_voices_failed' });
+  }
+});
+
 // ─── Bot config (used by AdminSettings page) ─────────────
 // GET  /api/admin/bot-config  — returns AdminConfig + BotStatus + env defaults
 router.get('/bot-config', async (_req: Request, res: Response) => {
