@@ -125,23 +125,44 @@ const MOCKUP = {
    par un aplat. */
 
 
-/* Les quatre panneaux du carrousel du bas. Aucune photographie: il n'existe
-   pas d'image honnête pour « Contact » ou « Affiliation », et en fabriquer une
-   reviendrait à illustrer une page avec ce qu'elle ne contient pas. Ce sont
-   donc quatre fonds du registre drenched, tous différents par leur géométrie
-   (d'où la lumière vient) et non par une simple variation de teinte: quatre
-   dégradés identiques feraient exactement la grille de cartes jumelles que la
-   charte interdit. Ils ne basculent pas avec le thème, comme tout le registre
-   drenched.
-   Ils sont FRANCHEMENT éclairés, et c'est un correctif: en quasi-noir, les trois
-   panneaux repliés passaient SOUS le fond de la bande en thème sombre (#111111),
-   et se lisaient comme des trous plutôt que comme des cartes. Un panneau doit
-   être plus clair que la page qui le porte, pas plus sombre. */
-const EXPLORE_IMAGES = [
-  '/carousel/a-propos.webp',
-  '/carousel/blog.webp',
-  '/carousel/contact.webp',
-  '/carousel/affiliation.webp',
+/* Les quatre panneaux du carrousel du bas. Aucune photographie: les photos
+   aériennes (montagnes, routes, rivières) ne disaient rien des pages qu'elles
+   ouvraient (retour utilisateur: « reprendre le bon contenu pour chaque »).
+   Chaque panneau porte donc un MOTIF DESSINÉ qui évoque sa page, posé en
+   couche SVG au-dessus d'un fond du registre drenched:
+     À propos    — les deux cercles du logo (Q et W), qui se rejoignent
+     Blog        — des lignes d'article
+     Contact     — des arcs concentriques, un signal qui part du coin
+     Affiliation — une progression qui monte (la commission récurrente)
+   Quatre géométries, pas quatre teintes: des dégradés identiques feraient la
+   grille de cartes jumelles que la charte interdit. Ils ne basculent pas avec
+   le thème, comme tout le registre drenched, et restent FRANCHEMENT éclairés:
+   en quasi-noir, les trois panneaux repliés passaient SOUS le fond de la bande
+   en thème sombre (#111111) et se lisaient comme des trous. */
+const svgLayer = (svg: string, position: string, size: string) =>
+  `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${position} / ${size} no-repeat`;
+
+const EXPLORE_MOTIFS = [
+  /* À propos: les deux cercles du logo, à droite. */
+  svgLayer(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><circle cx="80" cy="100" r="60" fill="none" stroke="#9d86ff" stroke-opacity=".8" stroke-width="1.25"/><circle cx="122" cy="100" r="60" fill="none" stroke="#e3a9fd" stroke-opacity=".8" stroke-width="1.25"/></svg>`,
+    'right 8% center', '62% auto',
+  ),
+  /* Blog: quatre lignes d'article, à gauche. */
+  svgLayer(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><g stroke="#ffffff" stroke-opacity=".28" stroke-width="4" stroke-linecap="round"><line x1="28" y1="66" x2="172" y2="66"/><line x1="28" y1="90" x2="148" y2="90"/><line x1="28" y1="114" x2="166" y2="114"/><line x1="28" y1="138" x2="118" y2="138"/></g></svg>`,
+    'left 8% center', '58% auto',
+  ),
+  /* Contact: un signal qui part du coin bas-gauche. */
+  svgLayer(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><g fill="none" stroke="#ffffff" stroke-width="1.25"><circle cx="0" cy="200" r="64" stroke-opacity=".30"/><circle cx="0" cy="200" r="108" stroke-opacity=".22"/><circle cx="0" cy="200" r="152" stroke-opacity=".15"/></g><circle cx="0" cy="200" r="6" fill="#e3a9fd"/></svg>`,
+    'left bottom', '82% auto',
+  ),
+  /* Affiliation: la progression, au bas à droite. */
+  svgLayer(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><g><rect x="46" y="128" width="20" height="44" rx="5" fill="#ffffff" fill-opacity=".22"/><rect x="78" y="102" width="20" height="70" rx="5" fill="#ffffff" fill-opacity=".30"/><rect x="110" y="76" width="20" height="96" rx="5" fill="#ffffff" fill-opacity=".38"/><rect x="142" y="50" width="20" height="122" rx="5" fill="#e3a9fd" fill-opacity=".85"/></g></svg>`,
+    'right 10% bottom', '56% auto',
+  ),
 ];
 
 const EXPLORE_BACKS = [
@@ -353,30 +374,25 @@ export default function Home() {
   const exploreSlides = useMemo<SqueezeSlide[]>(() => {
     const rows = isFr
       ? [
-          { to: '/about', name: 'À propos', title: 'À propos.', desc: 'Qui construit Qwillio, et depuis où.', action: 'Faire connaissance', alt: 'Des crêtes boisées émergeant d’une mer de nuages, au petit jour' },
-          { to: '/blog', name: 'Blog', title: 'Blog.', desc: 'Ce qu’on apprend en faisant décrocher une IA.', action: 'Lire le blog', alt: 'Une route de montagne serpentant dans une forêt de conifères, vue du ciel' },
-          { to: '/contact', name: 'Contact', title: 'Contact.', desc: 'Une question, une démo, un devis.', action: 'Nous écrire', alt: 'Un échangeur autoroutier de nuit, vu à la verticale, traversé de traînées lumineuses' },
-          { to: '/affiliate', name: 'Affiliation', title: 'Affiliation.', desc: 'Recommandez Qwillio, touchez une commission récurrente.', action: 'Devenir affilié', alt: 'Deux rivières glaciaires qui se rejoignent, vues du ciel, sur du sable noir' },
+          { to: '/about', name: 'À propos', title: 'À propos.', desc: 'Qui construit Qwillio, et depuis où.', action: 'Faire connaissance' },
+          { to: '/blog', name: 'Blog', title: 'Blog.', desc: 'Ce qu’on apprend en faisant décrocher une IA.', action: 'Lire le blog' },
+          { to: '/contact', name: 'Contact', title: 'Contact.', desc: 'Une question, une démo, un devis.', action: 'Nous écrire' },
+          { to: '/affiliate', name: 'Affiliation', title: 'Affiliation.', desc: 'Recommandez Qwillio, touchez une commission récurrente.', action: 'Devenir affilié' },
         ]
       : [
-          { to: '/about', name: 'About', title: 'About.', desc: 'Who builds Qwillio, and from where.', action: 'Get acquainted', alt: 'Forested ridges emerging from a sea of cloud at first light' },
-          { to: '/blog', name: 'Blog', title: 'Blog.', desc: 'What we learn making an AI pick up the phone.', action: 'Read the blog', alt: 'A mountain road winding through conifer forest, seen from above' },
-          { to: '/contact', name: 'Contact', title: 'Contact.', desc: 'A question, a demo, a quote.', action: 'Write to us', alt: 'A motorway interchange at night from directly above, traced by light trails' },
-          { to: '/affiliate', name: 'Affiliate', title: 'Affiliate.', desc: 'Recommend Qwillio, earn a recurring commission.', action: 'Become an affiliate', alt: 'Two glacial rivers converging over black sand, seen from above' },
+          { to: '/about', name: 'About', title: 'About.', desc: 'Who builds Qwillio, and from where.', action: 'Get acquainted' },
+          { to: '/blog', name: 'Blog', title: 'Blog.', desc: 'What we learn making an AI pick up the phone.', action: 'Read the blog' },
+          { to: '/contact', name: 'Contact', title: 'Contact.', desc: 'A question, a demo, a quote.', action: 'Write to us' },
+          { to: '/affiliate', name: 'Affiliate', title: 'Affiliate.', desc: 'Recommend Qwillio, earn a recurring commission.', action: 'Become an affiliate' },
         ];
 
     return rows.map((row, i) => ({
       id: row.to,
       title: row.title,
       description: row.desc,
-      /* Les fichiers n'existent pas encore: les recettes pour les produire
-         sont dans `docs/IMAGES-CARROUSEL.md`. Tant qu'ils manquent, le
-         composant retombe sur le dégradé (voir son `Picture`), donc désigner
-         le chemin d'avance ne casse rien et le panneau se peuple tout seul le
-         jour où le fichier est déposé. */
-      image: EXPLORE_IMAGES[i],
-      imageAlt: row.alt,
-      background: EXPLORE_BACKS[i],
+      /* Le motif de la page en couche DEVANT le dégradé drenched: deux couches
+         d'un même `background`, le composant n'a plus d'image à charger. */
+      background: `${EXPLORE_MOTIFS[i]}, ${EXPLORE_BACKS[i]}`,
       overlay: (
         <span className="text-sm font-medium tracking-tight text-white">{row.name}</span>
       ),
@@ -395,8 +411,8 @@ export default function Home() {
       ? 'Qwillio, réceptionniste IA pour les PME belges et françaises'
       : 'Qwillio, AI receptionist for Belgian and French businesses',
     description: isFr
-      ? 'Qwillio décroche 24/7, vérifie votre agenda Google pendant l’appel, inscrit le rendez-vous et vous briefe avant chaque transfert. Français et anglais. À partir de 99 € par mois, 7 jours d’essai.'
-      : 'Qwillio answers 24/7, checks your Google Calendar during the call, books the appointment and briefs you before every transfer. French and English. From €99 a month, 7-day trial.',
+      ? 'Qwillio décroche 24/7, vérifie votre agenda Google ou Outlook pendant l’appel, inscrit le rendez-vous et vous briefe avant chaque transfert. Français et anglais. À partir de 99 € par mois, 7 jours d’essai.'
+      : 'Qwillio answers 24/7, checks your Google or Outlook calendar during the call, books the appointment and briefs you before every transfer. French and English. From €99 a month, 7-day trial.',
     canonical: 'https://qwillio.com/',
   });
 
@@ -407,8 +423,8 @@ export default function Home() {
       icon: CalendarCheck,
       title: isFr ? 'Elle vérifie le créneau' : 'She checks the slot',
       desc: isFr
-        ? 'Agenda Google connecté, elle lit vos disponibilités pendant que votre client parle. Deux appels en même temps ne peuvent pas réserver la même heure.'
-        : 'With Google Calendar connected, she reads your availability while your customer is talking. Two simultaneous calls can never book the same hour.',
+        ? 'Agenda Google ou Outlook connecté, elle lit vos disponibilités pendant que votre client parle. Deux appels en même temps ne peuvent pas réserver la même heure.'
+        : 'With your Google or Outlook calendar connected, she reads your availability while your customer is talking. Two simultaneous calls can never book the same hour.',
     },
     {
       icon: Sparkles,

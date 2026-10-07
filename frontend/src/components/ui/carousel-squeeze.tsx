@@ -492,11 +492,10 @@ export function SqueezeCarousel({
  * qu'on en voit.
  */
 function Picture({ slide }: { slide: SqueezeSlide }) {
-  /* Une image absente REVIENT au fond, elle ne laisse pas une icône cassée.
-     C'est ce qui permet de désigner les fichiers avant de les avoir: tant que
-     `public/carousel/*.webp` n'existe pas, le panneau garde son dégradé, et il
-     se peuple de lui-même à mesure que les images arrivent. Sans ce repli, il
-     faudrait modifier le code à chaque fichier déposé. */
+  /* Une image absente REVIENT au fond, elle ne laisse pas une icône cassée:
+     un slide peut désigner un fichier avant de l'avoir, le panneau garde son
+     fond dessiné en attendant. Sans ce repli, il faudrait modifier le code à
+     chaque fichier déposé. */
   const [failed, setFailed] = useState(false);
 
   // Changer d'image doit redonner sa chance au nouveau fichier.
