@@ -196,37 +196,6 @@ export default function StepFrame({
           masque se cale sur la boîte de son utilisateur avec 10 % de marge, ce
           qui couperait le cadre quand il déborde du conteneur mesuré (`pad`). */}
       <defs>
-        {/* ARRONDIR LES ANGLES QUE LE MASQUE CRÉE.
-            Ces angles ne sont pas les coins du trou, ce sont les JONCTIONS
-            entre le bord droit de la forme et la courbe du trou: deux tracés
-            qui se croisent font un sommet, et aucun rayon posé sur l'un ou sur
-            l'autre ne l'arrondit. Il faut donc arrondir la forme APRÈS la
-            découpe.
-            La recette est celle du « goo »: flouter, puis remonter l'alpha à
-            la verticale. Le flou émousse tous les sommets, convexes comme
-            concaves, et le seuil rend la silhouette à nouveau franche. Ce n'est
-            pas un dégradé: la sortie est un aplat à bord net, avec des coins
-            ronds. Le rayon obtenu vaut à peu près 2,5 fois l'écart-type, d'où
-            11 pour retomber sur les 28 px de la carte.
-            L'ordre compte: le filtre est porté par le GROUPE et le masque par
-            le tracé. Sur un même élément, SVG applique le filtre d'abord et le
-            masque ensuite, ce qui rendrait la coupe anguleuse à nouveau. */}
-        <filter
-          id={`${maskId}-round`}
-          x={-400}
-          y={-400}
-          width={size.w + 800}
-          height={size.h + 800}
-          filterUnits="userSpaceOnUse"
-          colorInterpolationFilters="sRGB"
-        >
-          <feGaussianBlur stdDeviation={11} result="soft" />
-          <feColorMatrix
-            in="soft"
-            type="matrix"
-            values="1 0 0 0 0  0 1 0 0 0  0 0 1 0 0  0 0 0 26 -13"
-          />
-        </filter>
         <mask
           id={maskId}
           maskUnits="userSpaceOnUse"
@@ -236,9 +205,10 @@ export default function StepFrame({
           height={size.h + 800}
         >
           <rect x={-400} y={-400} width={size.w + 800} height={size.h + 800} fill="#fff" />
-          {/* Coupe NETTE, et volontairement (retour utilisateur: « je ne veux
-              pas de dégradé »). Les angles que la coupe crée sont arrondis
-              ailleurs, par le filtre ci-dessous, et non ici. */}
+          {/* Coupe NETTE (retour utilisateur : pas de flou, pas de texture
+              « usée », pas de résidu). Les coins des trous sont arrondis par le
+              seul `rx`, sans filtre goo : le flou + seuil réintroduisait des
+              artefacts et une bave de bord. */}
           {holes.map(h => (
             <rect
               key={`${h.x},${h.y}`}
@@ -252,28 +222,20 @@ export default function StepFrame({
           ))}
         </mask>
       </defs>
-      <g filter={`url(#${maskId}-round)`}>
       <path
         mask={`url(#${maskId})`}
         ref={pathRef}
         data-frame-path
         d={boxesRef.current[0] ? framePath(boxesRef.current[0], radius) : ''}
-        /* MÊME matière que le panneau d'en face, qui est un `CardV2` en
-           `bg-q2-band` cerné de `q2-plate`. Le cadre était en voile mauve, si
-           bien que les deux colonnes d'une même ligne n'avaient pas le même
-           fond (retour utilisateur). Il ne désigne plus l'étape par sa couleur
-           mais par sa seule présence. */
+        /* Même matière que le panneau d'en face, un `CardV2` en `bg-q2-band`.
+           Aplat net, sans filtre. */
         fill="rgb(var(--q2-band))"
-        /* Pas de contour VISIBLE (demande utilisateur), mais un trait de 1px de
-           même couleur pour combler les fentes d'anti-aliasing entre les
-           segments du contour : sans lui, pendant la déformation, les joints
-           des arcs du rectangle arrondi laissaient des traits diagonaux clairs
-           (retour utilisateur). Même couleur que le fill = invisible, il ne
-           dessine aucun filet. */
+        /* Trait de 1px de même couleur pour combler les fentes d'anti-aliasing
+           entre les segments du contour (les traits diagonaux). Même couleur
+           que le fill = invisible, aucun filet. */
         stroke="rgb(var(--q2-band))"
         strokeWidth={1}
       />
-      </g>
     </svg>
   );
 }
