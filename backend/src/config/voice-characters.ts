@@ -61,8 +61,49 @@ const MODEL = 'eleven_turbo_v2_5';
  */
 let assigned: Record<string, string> = {};
 
+/**
+ * ── DEUX TABLES, PAS UNE ────────────────────────────────────────────────────
+ *
+ * `assigned` porte les identifiants ElevenLabs — c'est ce qu'y écrit
+ * `french-voices.service`, et ce que lisent les seize champs de personnage.
+ *
+ * `cartesiaAssigned` porte les identifiants Cartesia. Il existe SÉPARÉMENT
+ * parce que les deux fournisseurs ne désignent pas la même chose : un
+ * identifiant Cartesia ne vaut RIEN chez ElevenLabs et réciproquement. Les
+ * mélanger dans une seule table, c'est devoir deviner l'origine de chaque
+ * valeur — et une devinette ratée envoie une voix à un service qui ne la
+ * connaît pas, qui répond alors par sa voix par défaut.
+ *
+ * C'est exactement ce qui s'est produit : les personnages recevaient un
+ * identifiant Cartesia, `buildVoice` le croyait ElevenLabs, le cherchait dans
+ * une table de traduction où il n'existait pas, et servait une voix unique à
+ * tout le monde.
+ */
+let cartesiaAssigned: Record<string, string> = {};
+
 export function applyAssignedVoices(map: Record<string, string>): void {
   assigned = { ...map };
+}
+
+/**
+ * Range les voix Cartesia assignées, et les fait porter à la fiche des
+ * personnages — identifiant ET provenance, indissociablement.
+ *
+ * Les deux sont posés dans la même fonction à dessein : les séparer est
+ * précisément l'erreur qu'on répare, et rien ne doit plus pouvoir écrire l'un
+ * sans l'autre.
+ */
+export function applyCartesiaVoices(map: Record<string, string>): void {
+  /* On ne touche PAS aux fiches de `CHARACTERS` : `listCharacters` rend le
+     résultat de `resolveCharacter`, qui fabrique un objet neuf à chaque appel.
+     Écrire dans `CHARACTERS` reviendrait à écrire dans un brouillon que
+     personne ne relit — la valeur serait posée, et l'appel n'en saurait rien.
+     L'identifiant est donc lu à la résolution, comme la provenance. */
+  cartesiaAssigned = { ...map };
+}
+
+export function getCartesiaVoices(): Record<string, string> {
+  return { ...cartesiaAssigned };
 }
 
 export function getAssignedVoices(): Record<string, string> {
@@ -75,7 +116,40 @@ export function getAssignedVoices(): Record<string, string> {
  * hand without disabling the rest.
  */
 function voice(id: string, fallback: string): string {
-  return process.env[`VAPI_VOICE_ID_${id.toUpperCase()}`] || assigned[id] || fallback;
+  /* Les DEUX tables sont lues, la Cartesia d'abord : c'est elle qui sert
+     réellement les appels depuis que le TTS est passé chez Cartesia, et un
+     identifiant assigné par le portail doit battre une valeur par défaut. */
+  return process.env[`VAPI_VOICE_ID_${id.toUpperCase()}`]
+    || cartesiaAssigned[id]
+    || assigned[id]
+    || fallback;
+}
+
+/**
+ * D'OÙ VIENT LA VOIX ASSIGNÉE, et pourquoi il fallait le dire.
+ *
+ * `voiceCartesia` et `voiceEleven` portent les deux tables parallèles. Tant
+ * qu'une seule existait, la provenance se déduisait du réglage global ; depuis
+ * que les deux cohabitent, elle ne se déduit plus du tout.
+ *
+ * L'oubli a coûté cher et s'est vu à l'oreille : les personnages du site
+ * recevaient bien un identifiant Cartesia de `voice()`, mais le personnage
+ * gardait `voiceProvider` vide. `buildVoice` le renvoyait donc traduire par
+ * `cartesiaVoiceFor` — une table qui convertit de l'ELEVENLABS, où un
+ * identifiant Cartesia ne peut rien trouver — et tout le monde retombait sur
+ * `CARTESIA_DEFAULT_VOICE_ID`. Une seule voix, masculine, pour dix
+ * personnages dont cinq femmes. Le catalogue était juste ; c'est l'étiquette
+ * qui manquait.
+ *
+ * `voice()` continue de rendre l'identifiant seul : c'est ce qu'attendent les
+ * seize champs qui l'appellent. La provenance est rendue à part, pour que
+ * seuls les endroits qui en ont besoin la lisent.
+ */
+function voiceProviderOf(id: string): 'cartesia' | undefined {
+  /* Une épingle d'environnement est un identifiant ElevenLabs : elle passe
+     avant l'assignation, donc elle décide aussi de la provenance. */
+  if (process.env[`VAPI_VOICE_ID_${id.toUpperCase()}`]) return undefined;
+  return cartesiaAssigned[id] ? 'cartesia' : undefined;
 }
 
 /**
@@ -283,7 +357,13 @@ const BASE_CHARACTERS: Record<string, Character> = {
 export const CHARACTERS: Record<string, Character> = new Proxy(BASE_CHARACTERS, {
   get(target, prop: string) {
     const base = target[prop];
-    return base ? { ...base, voiceId: voice(base.id, base.voiceId) } : base;
+    if (!base) return base;
+    /* Identifiant ET provenance, posés au même endroit et au même moment.
+       Les dissocier était exactement la panne : un identifiant Cartesia sans
+       son étiquette partait se faire traduire comme de l'ElevenLabs, ne
+       trouvait rien, et tout le monde retombait sur la voix par défaut. */
+    const provider = voiceProviderOf(base.id);
+    return { ...base, voiceId: voice(base.id, base.voiceId), ...(provider ? { voiceProvider: provider } : {}) };
   },
 });
 

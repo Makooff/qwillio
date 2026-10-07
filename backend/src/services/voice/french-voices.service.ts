@@ -1,7 +1,7 @@
 import { env } from '../../config/env';
 import { logger } from '../../config/logger';
 import { prisma } from '../../config/database';
-import { applyAssignedVoices, listCharacters } from '../../config/voice-characters';
+import { applyAssignedVoices, applyCartesiaVoices, listCharacters } from '../../config/voice-characters';
 
 /**
  * Assign a real French voice to every character, from ElevenLabs' own library.
@@ -202,26 +202,57 @@ class FrenchVoicesService {
    * who needs this runs the product from a phone.
    */
   async loadOrBootstrap(): Promise<void> {
-    try {
-      const config = await prisma.adminConfig.findFirst();
-      const stored = (config?.characterVoices ?? null) as Record<string, unknown> | null;
+      try {
+        const config = await prisma.adminConfig.findFirst();
+        const stored = (config?.characterVoices ?? null) as Record<string, unknown> | null;
 
-      if (stored && typeof stored === 'object') {
-        const map: Record<string, string> = {};
-        for (const [id, value] of Object.entries(stored)) {
-          if (typeof value === 'string' && value) map[id] = value;
-        }
-        if (Object.keys(map).length) {
-          applyAssignedVoices(map);
-          logger.info(`[FrenchVoices] loaded ${Object.keys(map).length} assigned voices`);
-          return;
-        }
-      }
+        if (stored && typeof stored === 'object') {
+          const cartesia: Record<string, string> = {};
+          const autres: Record<string, string> = {};
 
-      if (!env.ELEVENLABS_API_KEY) return;
-      logger.info('[FrenchVoices] no assignment yet — picking French voices from the library');
-      await this.assign();
-    } catch (error: any) {
+          /* ── LES DEUX FAMILLES SONT SÉPARÉES ICI, ET C'EST LE POINT ──────────
+           *
+           * La colonne porte les identifiants des DEUX fournisseurs. Les verser
+           * tous dans `applyAssignedVoices` — la table ElevenLabs — remettait un
+           * identifiant Cartesia dans une table où `buildVoice` va le traduire
+           * comme de l'ElevenLabs : il ne le trouve pas, et sert la voix par
+           * défaut. Une seule, pour tout le monde. C'est la panne d'origine, et
+           * elle revenait à CHAQUE redémarrage — ce qui explique qu'un
+           * redéploiement n'ait jamais rien changé.
+           *
+           * L'UUID des deux catalogues ne se recoupe pas, donc le préfixe tranche
+           * sans ambiguïté : `voice_` et les identifiants `EL.` sont ElevenLabs,
+           * un UUID nu est Cartesia.
+           */
+          for (const [id, value] of Object.entries(stored)) {
+            if (typeof value !== 'string' || !value) continue;
+            if (value.startsWith('EL.') || value.startsWith('voice_')) autres[id] = value;
+            else cartesia[id] = value;
+          }
+
+          /* Les ElevenLabs d'abord, les Cartesia ensuite : la provenance Cartesia
+             doit être posée EN DERNIER, parce que c'est elle qui écrit l'étiquette
+             sur la fiche, et qu'une passe ElevenLabs après elle l'effacerait. */
+          let charges = 0;
+          if (Object.keys(autres).length) {
+            applyAssignedVoices(autres);
+            charges += Object.keys(autres).length;
+          }
+          if (Object.keys(cartesia).length) {
+            applyCartesiaVoices(cartesia);
+            charges += Object.keys(cartesia).length;
+          }
+
+          if (charges) {
+            logger.info(`[Voices] loaded ${charges} voices (${Object.keys(cartesia).length} cartesia)`);
+            return;
+          }
+        }
+
+        if (!env.ELEVENLABS_API_KEY) return;
+        logger.info('[FrenchVoices] no assignment yet — picking French voices from the library');
+        await this.assign();
+      } catch (error: any) {
       // A failure here must never stop the server: the characters keep their
       // previous ids, which is the situation this replaces, not a worse one.
       logger.warn(`[FrenchVoices] bootstrap skipped: ${error?.message}`);

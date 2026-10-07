@@ -1,7 +1,7 @@
 import { env } from '../../config/env';
 import { logger } from '../../config/logger';
 import { prisma } from '../../config/database';
-import { applyAssignedVoices, listCharacters } from '../../config/voice-characters';
+import { applyCartesiaVoices, listCharacters } from '../../config/voice-characters';
 import { listCartesiaVoices, CartesiaCatalogVoice } from './cartesia.service';
 
 /**
@@ -127,7 +127,11 @@ class CartesiaVoicesService {
 
     if (Object.keys(assigned).length) {
       await this.persist(assigned);
-      applyAssignedVoices(assigned);
+      /* Identifiant ET provenance, posés ensemble. `applyCartesiaVoices`
+         écrit dans la table Cartesia — pas dans celle d'ElevenLabs — et pose
+         `voiceProvider` sur chaque fiche. C'est ce qui manquait : sans cette
+         étiquette, `buildVoice` croyait lire un identifiant ElevenLabs. */
+      applyCartesiaVoices(assigned);
       logger.info(`[CartesiaVoices] assigned ${Object.keys(assigned).length} voices`);
     }
     if (sansVoix.length) {
