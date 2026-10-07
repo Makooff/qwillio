@@ -264,10 +264,14 @@ export default function StepFrame({
            fond (retour utilisateur). Il ne désigne plus l'étape par sa couleur
            mais par sa seule présence. */
         fill="rgb(var(--q2-band))"
-        /* Aucun contour (demande utilisateur). Le filet dessinait la silhouette
-           en mouvement, y compris là où le masque la coupe: on lisait le tracé
-           de l'animation au lieu d'une surface qui se déplace. La forme n'est
-           plus qu'un aplat, de la même matière que le panneau d'en face. */
+        /* Pas de contour VISIBLE (demande utilisateur), mais un trait de 1px de
+           même couleur pour combler les fentes d'anti-aliasing entre les
+           segments du contour : sans lui, pendant la déformation, les joints
+           des arcs du rectangle arrondi laissaient des traits diagonaux clairs
+           (retour utilisateur). Même couleur que le fill = invisible, il ne
+           dessine aucun filet. */
+        stroke="rgb(var(--q2-band))"
+        strokeWidth={1}
       />
       </g>
     </svg>
