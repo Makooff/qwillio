@@ -19,14 +19,37 @@ import { discordService } from '../services/discord.service';
 const router = Router();
 
 // ─── Token middleware (for Claude-side endpoints) ─────────────────────────
-function requireAutofixToken(req: Request, res: Response, next: NextFunction): void {
-  const token = req.header('X-Autofix-Token');
-  const expected = process.env.AUTOFIX_TOKEN;
+/**
+ * Le jeton est comparé APRÈS suppression des blancs qui l'entourent.
+ *
+ * Payé le 08/10/2026, et ça a coûté une heure. Un jeton collé dans Render depuis
+ * un fichier `.env` en CRLF arrive avec un retour chariot final que l'interface
+ * de Render n'affiche pas : le service portait donc un `AUTOFIX_TOKEN` qui
+ * AVAIT L'AIR juste, et la seule réponse était un `401` sans un mot. Trois
+ * valeurs candidates testées, quatre variantes d'espaces, avant que
+ * `jeton + '\r'` rende enfin 200.
+ *
+ * Un blanc autour d'un secret n'élève personne : la valeur reste connue d'un
+ * seul côté, et personne ne devine un jeton. Ce n'est donc pas une tolérance de
+ * sécurité, c'est le retrait d'un caractère INVISIBLE que l'écran ne montre pas.
+ * Le refus est désormais journalisé avec les LONGUEURS — jamais les valeurs —
+ * pour que la prochaine configuration se diagnostique toute seule.
+ */
+function normaliseJeton(value: string | undefined | null): string {
+  return (value ?? '').trim();
+}
+
+export function requireAutofixToken(req: Request, res: Response, next: NextFunction): void {
+  const token = normaliseJeton(req.header('X-Autofix-Token'));
+  const expected = normaliseJeton(process.env.AUTOFIX_TOKEN);
   if (!expected) {
     res.status(503).json({ error: 'AUTOFIX_TOKEN not configured on server' });
     return;
   }
   if (token !== expected) {
+    logger.warn(
+      `[autofix] jeton refusé — reçu ${token.length} caractère(s), attendu ${expected.length}`,
+    );
     res.status(401).json({ error: 'invalid token' });
     return;
   }
