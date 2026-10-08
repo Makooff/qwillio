@@ -3,7 +3,8 @@ import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight, Play, Phone, CalendarCheck, PhoneForwarded, UserCheck,
-  MessagesSquare, Mic, Camera, PhoneCall, Shield,
+  MessagesSquare, Mic, Camera, PhoneCall, Shield, Check, Bell, ShieldCheck,
+  BookOpen, Clock, Lock,
   type LucideIcon,
 } from '../../components/icons';
 import { useSEO } from '../../hooks/useSEO';
@@ -14,7 +15,6 @@ import { Container, Section, Eyebrow, Display, H2, Lead, SerifWord } from '../..
 import { PillLink } from '../../components/v2/Button';
 import RevealV2 from '../../components/v2/RevealV2';
 import ScreenShot from '../../components/v2/ScreenShot';
-import CardV2 from '../../components/v2/CardV2';
 import HeroPhone3D from '../../components/ui/HeroPhone3D';
 import CircularReceptionists from '../../components/v2/CircularReceptionists';
 import TextReveal from '../../components/v2/motion/TextReveal';
@@ -39,12 +39,174 @@ interface Pillar {
   panelNote?: string;
 }
 
-function Panel({ label, children }: { label: string; children: ReactNode }) {
+function Panel({ label, num, children }: { label: string; num: string; children: ReactNode }) {
   return (
-    <CardV2 variant="band" large className="h-full">
-      <p className="q2-eyebrow text-q2-body mb-6">{label}</p>
+    <div className="h-full rounded-[24px] sm:rounded-[28px] p-6 sm:p-8" style={{ background: DRENCHED }}>
+      <PillarVisual num={num} />
+      <p className="q2-eyebrow text-q2-mist mt-6 mb-6">{label}</p>
       {children}
-    </CardV2>
+    </div>
+  );
+}
+
+/* Le dégradé drenched des illustrations (le même que la section Configuration,
+   et que la rangée Fiche d'appel de la Home). Les cartes de « Pendant l'appel »,
+   « Vos réponses » et « Après l'appel » le reprennent pour devenir des
+   illustrations et non plus des listes de texte sur fond plat (retour
+   utilisateur : « refais les illustrations des cards »). */
+const DRENCHED = 'radial-gradient(130% 150% at 18% 115%, #453486 0%, #221842 48%, #100F13 85%)';
+
+/* Les petites maquettes en tête de panneau. Ce sont des mises en scène du
+   produit, pas des captures : elles illustrent le mécanisme décrit à côté,
+   avec la même matière (void, carbon, graphite-d) que le reste du registre
+   drenched. */
+function VisualShell({ children }: { children: ReactNode }) {
+  return (
+    <div className="rounded-2xl border border-q2-graphite-d bg-q2-void/60 p-4 sm:p-5">
+      {children}
+    </div>
+  );
+}
+
+function BookingVisual() {
+  return (
+    <VisualShell>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-3">
+          <span className="w-9 h-9 rounded-xl bg-q2-indigo/20 flex items-center justify-center shrink-0">
+            <CalendarCheck size={16} className="text-q2-lift" aria-hidden="true" />
+          </span>
+          <div>
+            <p className="text-q2-mist text-[13.5px] font-medium leading-tight">Jeudi 14 h 30</p>
+            <p className="text-q2-fog text-[12px] leading-tight mt-0.5">Détartrage · 45 min</p>
+          </div>
+        </div>
+        <span className="inline-flex items-center gap-1 rounded-full bg-q2-indigo/15 text-q2-lift text-[11px] font-medium px-2.5 py-1 shrink-0">
+          <Check size={11} aria-hidden="true" />
+          Confirmé
+        </span>
+      </div>
+      <div className="mt-4 border-t border-q2-graphite-d pt-3 flex items-center justify-between text-[12px]">
+        <span className="text-q2-fog">Écrit dans l'agenda</span>
+        <span className="text-q2-mist">SMS envoyé</span>
+      </div>
+    </VisualShell>
+  );
+}
+
+function SmsBriefVisual() {
+  return (
+    <VisualShell>
+      <div className="flex items-center gap-2 text-q2-fog text-[11.5px] mb-3">
+        <Bell size={13} className="text-q2-lift" aria-hidden="true" />
+        <span>SMS · il y a 2 min</span>
+      </div>
+      <div className="rounded-xl rounded-tl-sm bg-q2-carbon border border-q2-graphite-d p-3.5">
+        <p className="text-q2-mist text-[13px] font-medium leading-snug">Camille Dubois</p>
+        <p className="text-q2-fog text-[12.5px] leading-snug mt-1">Détartrage · pressée, veut un créneau cette semaine</p>
+      </div>
+      <div className="mt-3 flex items-center gap-2 text-q2-fog text-[11.5px]">
+        <Phone size={12} aria-hidden="true" />
+        <span>+32 471 12 34 56</span>
+      </div>
+    </VisualShell>
+  );
+}
+
+function RegularsVisual() {
+  return (
+    <VisualShell>
+      <div className="flex items-center gap-3">
+        <span className="w-9 h-9 rounded-full bg-q2-violet/25 flex items-center justify-center text-q2-lift text-[13px] font-medium shrink-0">
+          CD
+        </span>
+        <div>
+          <p className="text-q2-mist text-[13.5px] font-medium leading-tight">Bonjour Camille</p>
+          <p className="text-q2-fog text-[12px] leading-tight mt-0.5">Déjà venue en janvier</p>
+        </div>
+      </div>
+      <div className="mt-4 border-t border-q2-graphite-d pt-3">
+        <p className="text-q2-fog text-[12px] leading-snug">
+          Dernier appel : détartrage, <span className="text-q2-mist">jeudi 14 h 30</span>
+        </p>
+      </div>
+    </VisualShell>
+  );
+}
+
+function ConversationVisual() {
+  return (
+    <VisualShell>
+      <div className="flex items-start gap-2">
+        <span className="w-7 h-7 rounded-full bg-q2-indigo/20 flex items-center justify-center shrink-0">
+          <Phone size={13} className="text-q2-lift" aria-hidden="true" />
+        </span>
+        <div className="space-y-2">
+          <p className="rounded-lg rounded-tl-sm bg-q2-indigo/15 text-q2-mist text-[12.5px] leading-snug px-3 py-2">« mhm »</p>
+          <p className="rounded-lg rounded-tl-sm bg-q2-carbon border border-q2-graphite-d text-q2-mist text-[12.5px] leading-snug px-3 py-2">« Vous êtes toujours là ? »</p>
+        </div>
+      </div>
+      <div className="mt-3 flex items-center gap-2 text-q2-fog text-[11.5px]">
+        <MessagesSquare size={12} aria-hidden="true" />
+        <span>Un blanc trop long, et il demande si vous êtes là</span>
+      </div>
+    </VisualShell>
+  );
+}
+
+function PillarVisual({ num }: { num: string }) {
+  if (num === '01') return <BookingVisual />;
+  if (num === '02') return <SmsBriefVisual />;
+  if (num === '03') return <RegularsVisual />;
+  return <ConversationVisual />;
+}
+
+function KnowledgeVisual() {
+  return (
+    <VisualShell>
+      <div className="space-y-2.5">
+        <div className="rounded-xl bg-q2-carbon border border-q2-graphite-d p-3 flex items-center gap-2.5">
+          <BookOpen size={15} className="text-q2-lift shrink-0" aria-hidden="true" />
+          <div>
+            <p className="text-q2-mist text-[13px] font-medium leading-tight">Toujours en tête</p>
+            <p className="text-q2-fog text-[11.5px] leading-tight mt-0.5">Règles de maison, réponses prioritaires</p>
+          </div>
+        </div>
+        <div className="rounded-xl bg-q2-void/60 border border-q2-graphite-d p-3 flex items-center gap-2.5">
+          <Clock size={15} className="text-q2-fog shrink-0" aria-hidden="true" />
+          <div>
+            <p className="text-q2-mist text-[13px] font-medium leading-tight">À la demande</p>
+            <p className="text-q2-fog text-[11.5px] leading-tight mt-0.5">Le reste de la base, consulté au besoin</p>
+          </div>
+        </div>
+      </div>
+    </VisualShell>
+  );
+}
+
+function GuaranteeVisual() {
+  return (
+    <VisualShell>
+      <div className="flex items-center gap-3 mb-4">
+        <span className="w-9 h-9 rounded-xl bg-q2-indigo/20 flex items-center justify-center shrink-0">
+          <ShieldCheck size={16} className="text-q2-lift" aria-hidden="true" />
+        </span>
+        <div>
+          <p className="text-q2-mist text-[13.5px] font-medium leading-tight">Conforme RGPD</p>
+          <p className="text-q2-fog text-[12px] leading-tight mt-0.5">Annonce d'enregistrement au décrochage</p>
+        </div>
+      </div>
+      <div className="border-t border-q2-graphite-d pt-3 space-y-2">
+        <p className="flex items-center gap-2 text-q2-fog text-[12px]">
+          <Lock size={12} className="text-q2-lift shrink-0" aria-hidden="true" />
+          Effaçable sur demande
+        </p>
+        <p className="flex items-center gap-2 text-q2-fog text-[12px]">
+          <Check size={12} className="text-q2-lift shrink-0" aria-hidden="true" />
+          Sans engagement, annulable en un clic
+        </p>
+      </div>
+    </VisualShell>
   );
 }
 
@@ -458,24 +620,24 @@ export default function Receptionist() {
                         de ce panneau au lieu de le frôler en travers de la
                         scène. C'est ce qui évite les coins des cartes. */}
                     <div data-step-mask className={flip ? 'lg:order-1' : ''}>
-                      <Panel label={pillar.panelLabel}>
-                        <ul className="divide-y divide-q2-plate" role="list">
+                      <Panel label={pillar.panelLabel} num={pillar.num}>
+                        <ul className="divide-y divide-q2-graphite-d" role="list">
                           {pillar.panelRows.map((row) => (
                             <li
                               key={row.label}
                               className="flex items-baseline justify-between gap-5 py-4 first:pt-0"
                             >
-                              <span className="text-q2-graphite text-[15px] leading-snug q2-body-text">
+                              <span className="text-q2-mist text-[15px] leading-snug q2-body-text">
                                 {row.label}
                               </span>
                               {row.meta ? (
-                                <span className="text-q2-body text-[13px] whitespace-nowrap">{row.meta}</span>
+                                <span className="text-q2-fog text-[13px] whitespace-nowrap">{row.meta}</span>
                               ) : null}
                             </li>
                           ))}
                         </ul>
                         {pillar.panelNote ? (
-                          <p className="mt-5 pt-5 border-t border-q2-plate text-q2-body text-[13px] leading-relaxed q2-body-text">
+                          <p className="mt-5 pt-5 border-t border-q2-graphite-d text-q2-fog text-[13px] leading-relaxed q2-body-text">
                             {pillar.panelNote}
                           </p>
                         ) : null}
@@ -638,9 +800,10 @@ export default function Receptionist() {
           </RevealV2>
 
           <RevealV2 index={1}>
-            <CardV2 variant="band" large>
-              <p className="q2-eyebrow text-q2-body mb-6">{isFr ? 'Deux mémoires' : 'Two memories'}</p>
-              <ul className="divide-y divide-q2-plate" role="list">
+            <div className="rounded-[24px] sm:rounded-[28px] p-6 sm:p-8" style={{ background: DRENCHED }}>
+              <KnowledgeVisual />
+              <p className="q2-eyebrow text-q2-mist mt-6 mb-6">{isFr ? 'Deux mémoires' : 'Two memories'}</p>
+              <ul className="divide-y divide-q2-graphite-d" role="list">
                 {(isFr
                   ? [
                       { label: 'Règles de maison et réponses prioritaires', meta: 'toujours en tête' },
@@ -654,13 +817,13 @@ export default function Receptionist() {
                     ]
                 ).map((row) => (
                   <li key={row.label} className="flex items-baseline justify-between gap-5 py-4 first:pt-0">
-                    <span className="text-q2-graphite text-[15px] leading-snug q2-body-text">{row.label}</span>
-                    <span className="text-q2-body text-[13px] whitespace-nowrap">{row.meta}</span>
+                    <span className="text-q2-mist text-[15px] leading-snug q2-body-text">{row.label}</span>
+                    <span className="text-q2-fog text-[13px] whitespace-nowrap">{row.meta}</span>
                   </li>
                 ))}
               </ul>
 
-              <p className="mt-7 pt-6 border-t border-q2-plate q2-eyebrow text-q2-body mb-4">
+              <p className="mt-7 pt-6 border-t border-q2-graphite-d q2-eyebrow text-q2-mist mb-4">
                 {isFr ? 'Métiers couverts' : 'Trades covered'}
               </p>
               <nav aria-label={isFr ? 'Métiers couverts' : 'Trades covered'} className="flex flex-wrap gap-2.5">
@@ -668,13 +831,13 @@ export default function Receptionist() {
                   <Link
                     key={trade.href}
                     to={trade.href}
-                    className="inline-flex items-center min-h-[44px] rounded-full bg-q2-canvas border border-q2-plate px-4 py-2 text-[13px] font-medium text-q2-ink hover:border-q2-indigo hover:text-q2-indigo transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40"
+                    className="inline-flex items-center min-h-[44px] rounded-full bg-q2-void/60 border border-q2-graphite-d px-4 py-2 text-[13px] font-medium text-q2-mist hover:border-q2-indigo hover:text-q2-lift transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40"
                   >
                     {trade.label}
                   </Link>
                 ))}
               </nav>
-            </CardV2>
+            </div>
           </RevealV2>
         </Container>
       </Section>
@@ -717,27 +880,28 @@ export default function Receptionist() {
           </RevealV2>
 
           <RevealV2 index={1}>
-            <CardV2 variant="canvas" large className="lg:sticky lg:top-24">
-              <p className="flex items-center gap-2.5 q2-eyebrow text-q2-body mb-6">
+            <div className="rounded-[24px] sm:rounded-[28px] p-6 sm:p-8 lg:sticky lg:top-24" style={{ background: DRENCHED }}>
+              <GuaranteeVisual />
+              <p className="flex items-center gap-2.5 q2-eyebrow text-q2-mist mt-6 mb-6">
                 <Shield size={13} className="text-q2-indigo" aria-hidden="true" />
                 {isFr ? 'Ce qui ne bouge pas' : 'What does not move'}
               </p>
-              <ul className="divide-y divide-q2-plate" role="list">
+              <ul className="divide-y divide-q2-graphite-d" role="list">
                 {guarantees.map((line) => (
                   <li
                     key={line}
-                    className="text-q2-graphite text-[14.5px] leading-relaxed q2-body-text py-4 first:pt-0 last:pb-0"
+                    className="text-q2-mist text-[14.5px] leading-relaxed q2-body-text py-4 first:pt-0 last:pb-0"
                   >
                     {line}
                   </li>
                 ))}
               </ul>
-              <p className="mt-6 pt-5 border-t border-q2-plate text-q2-body text-[13px] leading-relaxed q2-body-text">
+              <p className="mt-6 pt-5 border-t border-q2-graphite-d text-q2-fog text-[13px] leading-relaxed q2-body-text">
                 {isFr
                   ? 'La prise de rendez-vous en direct suppose un agenda Google ou Outlook connecté. Sans agenda, il prend la demande et vous rappelez.'
                   : 'Live booking assumes a connected Google or Outlook calendar. Without one, it takes the request and you call back.'}
               </p>
-            </CardV2>
+            </div>
           </RevealV2>
         </Container>
       </Section>
