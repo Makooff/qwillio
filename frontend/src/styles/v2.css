@@ -15,15 +15,15 @@
    thème: une marque qui change de couleur selon l'heure n'est plus une
    marque. */
 :root {
-  /* Registre clair. Les surfaces ne blanchissent plus au même ton que le fond:
-     band et plate restent un GRIS NEUTRE visible (demande utilisateur: « les
-     cards grises en sombre deviennent blanches en clair, garde le gris » —
-     puis « en beige je la veux en gris comme en sombre » : neutre, sans pointe
-     chaude). Seul le fond (canvas) bascule vers le blanc, les cartes gardent
-     leur relief gris pour ne pas se fondre dans la page. */
+  /* Registre clair. Le fond de page (canvas) bascule vers le blanc, mais les
+     SURFACES (band, plate) restent au gris SOMBRE du registre drenched
+     (#111111 / #1a1a1a) : demande utilisateur « le gris est trop clair, je le
+     veux comme en mode sombre ». Cartes et bandes gardent donc le même rendu
+     sombre dans les deux thèmes ; le texte posé dessus est rebasculé en clair
+     par la règle `.bg-q2-band, .bg-q2-plate` plus bas. */
   --q2-canvas: 253 252 252;
-  --q2-band: 222 222 222;
-  --q2-plate: 207 207 207;
+  --q2-band: 17 17 17;
+  --q2-plate: 26 26 26;
   --q2-ink: 29 29 31;
   --q2-graphite: 68 64 59;
   --q2-body: 119 113 105;
@@ -86,6 +86,19 @@
      decor rapproche les deux bouts de la rampe, donc la rampe disparait
      (retour utilisateur: « les degrades se voient trop »). */
   --q2-hero-media: 0.26;
+}
+
+/* Sur les surfaces sombres (band, plate), le texte repasse en clair dans les
+   deux thèmes : en mode clair l'encre sombre serait illisible sur le gris
+   #111111. En mode sombre ces valeurs sont déjà celles de `:root`, la règle
+   est donc sans effet (les surfaces sombres portent toujours de l'encre
+   claire, comme sur les sections drenched). */
+.bg-q2-band,
+.bg-q2-plate {
+  --q2-ink: 245 244 242;
+  --q2-graphite: 201 198 193;
+  --q2-body: 152 148 142;
+  --q2-faint: 107 104 98;
 }
 
 /* ============================================================
