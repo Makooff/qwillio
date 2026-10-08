@@ -220,6 +220,12 @@ async function main() {
 
   const fixes = await fetchApproved();
   if (!fixes.length) {
+    /* Silence quand il n'y a rien à faire.
+       Ce script tourne en tâche planifiée toutes les quinze minutes : une ligne
+       « rien à faire » toutes les quinze minutes est une notification qui
+       apprend à ignorer les notifications. Ce qui compte pour Mathieu, c'est
+       le jour où quelque chose a été réparé. */
+    if (!DRY) return;
     console.log('✓ rien à faire');
     return;
   }
