@@ -27,6 +27,7 @@ import { abTestingService } from '../services/ab-testing.service';
 import { bestTimeLearningService } from '../services/best-time-learning.service';
 import { scriptLearningService } from '../services/script-learning.service';
 import { receptionistLearningService } from '../services/voice/receptionist-learning.service';
+import { callPostmortemService } from '../services/voice/call-postmortem.service';
 import { callIntelligenceService } from '../services/call-intelligence.service';
 import { followUpSequencesService } from '../services/follow-up-sequences.service';
 import { prospectScoringService } from '../services/prospect-scoring.service';
@@ -70,6 +71,7 @@ class BotLoop {
   private abTestingJob: cron.ScheduledTask | null = null;
   private bestTimeJob: cron.ScheduledTask | null = null;
   private receptionistLearningJob: cron.ScheduledTask | null = null;
+  private callPostmortemJob: cron.ScheduledTask | null = null;
   private scriptLearningJob: cron.ScheduledTask | null = null;
   private callIntelligenceJob: cron.ScheduledTask | null = null;
   private followUpJob: cron.ScheduledTask | null = null;
@@ -750,6 +752,23 @@ class BotLoop {
     }), { timezone: 'UTC' });
 
     // ═══════════════════════════════════════════════════════════
+    // CALL POST-MORTEM — every 5 minutes
+    //
+    // Le maillon qui manquait : la boucle hebdomadaire ci-dessus ne conclut
+    // rien sous huit appels, et rien du tout sur le chemin voice-core. Ici
+    // chaque appel reçoit son verdict en quelques minutes, et un défaut
+    // réparable devient une proposition relue au lieu d'attendre dimanche.
+    // Voir `services/voice/call-postmortem.ts` pour la doctrine.
+    // ═══════════════════════════════════════════════════════════
+    this.callPostmortemJob = cron.schedule('*/5 * * * *', () => jobGuard.run('call-postmortem', async () => {
+      try {
+        await callPostmortemService.run();
+      } catch (error) {
+        logger.error('[CRON] Call post-mortem failed:', error);
+      }
+    }), { timezone: 'UTC' });
+
+    // ═══════════════════════════════════════════════════════════
     // PROSPECTING ENGINE — CRON P5c: Agent Evolution — Sunday 3am UTC
     // Evolves AI agent strategies from last week's action/outcome data
     // ═══════════════════════════════════════════════════════════
@@ -1064,6 +1083,7 @@ class BotLoop {
     this.bestTimeJob?.stop(); this.bestTimeJob = null;
     this.scriptLearningJob?.stop(); this.scriptLearningJob = null;
     this.receptionistLearningJob?.stop(); this.receptionistLearningJob = null;
+    this.callPostmortemJob?.stop(); this.callPostmortemJob = null;
     this.callIntelligenceJob?.stop(); this.callIntelligenceJob = null;
     this.followUpJob?.stop(); this.followUpJob = null;
     this.rescoreJob?.stop(); this.rescoreJob = null;
@@ -1146,6 +1166,7 @@ class BotLoop {
         bestTimeLearning: cronState(this.bestTimeJob),
         scriptLearning: cronState(this.scriptLearningJob),
         receptionistLearning: cronState(this.receptionistLearningJob),
+        callPostmortem: cronState(this.callPostmortemJob),
         callIntelligence: cronState(this.callIntelligenceJob),
         followUpSequences: cronState(this.followUpJob),
         rescoreProspects: cronState(this.rescoreJob),
@@ -1237,6 +1258,7 @@ class BotLoop {
       bestTime: () => bestTimeLearningService.analyzeAll(),
       scriptLearning: () => scriptLearningService.runWeeklyAnalysis(),
       receptionistLearning: () => receptionistLearningService.runWeekly(),
+      callPostmortem: () => callPostmortemService.run(),
       followUp: () => followUpSequencesService.processDue(),
       rescore: () => prospectScoringService.rescoreUnscored(1000),
     };
