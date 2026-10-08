@@ -1426,9 +1426,11 @@ export class ClientDashboardController {
       });
 
       res.setHeader('Content-Type', 'audio/mpeg');
-      // A week, and an ETag: the clip is immutable for a given voice and line,
-      // so a second press should not leave the device at all.
-      res.setHeader('Cache-Control', 'public, max-age=604800');
+      /* Même règle que la route publique: immuable pour un couple
+         (voix, ligne), mais la voix change — une semaine sans revalidation
+         servirait l'ancien timbre après un changement. ETag + must-revalidate:
+         inchangé → 304, changé → 200 immédiat. */
+      res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
       res.setHeader('ETag', `"${key}"`);
       if (req.headers['if-none-match'] === `"${key}"`) return res.status(304).end();
       res.send(audio);

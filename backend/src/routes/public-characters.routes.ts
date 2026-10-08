@@ -78,7 +78,13 @@ router.get('/characters/:id/preview', previewLimiter, async (req: any, res: Resp
     });
 
     res.setHeader('Content-Type', 'audio/mpeg');
-    res.setHeader('Cache-Control', 'public, max-age=604800');
+    /* Le clip est immuable pour un couple (voix, ligne) — MAIS la voix d'un
+       personnage change (voix FR distinctes, réassignation portail). Une
+       semaine sans revalidation servait l'ancienne voix pendant 7 jours après
+       un changement, soit exactement « j'entends encore la même voix ». On
+       force donc la revalidation par ETag: inchangé → 304 (rapide, rien n'est
+       re-synthétisé), changé → 200 (le nouveau timbre arrive tout de suite). */
+    res.setHeader('Cache-Control', 'public, max-age=0, must-revalidate');
     res.setHeader('ETag', `"${key}"`);
     if (req.headers['if-none-match'] === `"${key}"`) return res.status(304).end();
     res.send(audio);
