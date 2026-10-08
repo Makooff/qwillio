@@ -15,10 +15,14 @@
    thème: une marque qui change de couleur selon l'heure n'est plus une
    marque. */
 :root {
-  /* Registre clair */
+  /* Registre clair. Les surfaces ne blanchissent plus au même ton que le fond:
+     band et plate restent un GRIS chaud visible (demande utilisateur: « les
+     cards grises en sombre deviennent blanches en clair, garde le gris ») —
+     seul le fond (canvas) bascule vers le blanc, les cartes gardent leur
+     relief gris pour ne pas se fondre dans la page. */
   --q2-canvas: 253 252 252;
-  --q2-band: 245 243 241;
-  --q2-plate: 235 232 228;
+  --q2-band: 226 222 216;
+  --q2-plate: 212 208 201;
   --q2-ink: 29 29 31;
   --q2-graphite: 68 64 59;
   --q2-body: 119 113 105;
