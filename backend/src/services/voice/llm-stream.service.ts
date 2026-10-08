@@ -379,9 +379,29 @@ class LlmStreamService {
     timezone: string = 'Europe/Brussels',
     /** Le numéro de l'appelant, lu sur la requête de Vapi: tient après un redémarrage. */
     callerNumber: string | null = null,
+    /** 'receptionist' (défaut) ou 'config': l'assistant de config n'est pas un appelant. */
+    mode: 'receptionist' | 'config' = 'receptionist',
   ): Promise<void> {
     const started = Date.now();
     callSessionStore.markLatency(vapiCallId, 'llmStart');
+
+    if (mode === 'config') {
+      /* L'assistant de CONFIG vocale partage le core LLM maison mais pas le
+         routage d'intention: « ok » n'est pas un backchannel à déflecter,
+         « je veux un humain » n'est pas un transfert. On va droit au modèle
+         complet, sans les blocs d'appel (mémoire, humeur, reprise), qui n'ont
+         pas de sens face au gérant. */
+      try {
+        await this.proxy(request, TIER.full(), stream, vapiCallId, clientId, lang, false);
+        callSessionStore.markLatency(vapiCallId, 'llmEnd');
+      } catch (error) {
+        logger.error(`[VoiceLLM] config proxy failed for ${clientId}: ${(error as Error).message}`);
+        emitLocal(stream, this.fallbackLine(lang), TIER.full());
+        callSessionStore.markLatency(vapiCallId, 'llmEnd');
+      }
+      return;
+    }
+
     const plan = this.plan(request, lang);
 
     if (plan.mode === 'local') {

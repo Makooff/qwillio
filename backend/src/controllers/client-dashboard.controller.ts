@@ -1056,7 +1056,7 @@ export class ClientDashboardController {
       const { realtimeContextService } = await import('../services/voice/realtime-context.service');
       const { businessMemoryService } = await import('../services/voice/business-memory.service');
       const { buildSystemPrompt, firstMessageVariants } = await import('../services/voice/system-prompt');
-      const { buildRealtimePlans, buildSpeech } = await import('../services/voice/speech-plans');
+      const { buildRealtimePlans, buildSpeech, customLlmUrlFor } = await import('../services/voice/speech-plans');
       const { buildVoiceTools } = await import('../services/voice/voice-tools');
 
       const profile = await realtimeContextService.getClientProfile(req.clientId);
@@ -1097,6 +1097,11 @@ export class ClientDashboardController {
         systemPrompt: buildSystemPrompt(profile, caller, knowledgeBlock) + testNotice,
         tools,
         character,
+        /* Le test doit sonner comme l'appel RÉEL, core compris: le chemin LLM
+           maison, pas un `provider: 'openai'` tenu par Vapi. Sans lui, le gérant
+           teste une version appauvrie de sa réceptionniste et la sent différente
+           de la ligne réelle. */
+        customLlmUrl: customLlmUrlFor(req.clientId),
         hasCustomVoice: !!profile.customVoice,
         // L'appel test suit le mode du client, sinon il teste autre chose que
         // ce que l'appelant entendra.
@@ -1242,7 +1247,7 @@ export class ClientDashboardController {
       if (!env.VAPI_PUBLIC_KEY) return res.status(503).json({ error: 'Vapi public key not configured' });
 
       const { realtimeContextService } = await import('../services/voice/realtime-context.service');
-      const { buildRealtimePlans, buildVoice } = await import('../services/voice/speech-plans');
+      const { buildRealtimePlans, buildVoice, customLlmUrlFor } = await import('../services/voice/speech-plans');
       const { assistantChatService } = await import('../services/assistant-chat.service');
 
       const profile = await realtimeContextService.getClientProfile(req.clientId);
@@ -1285,7 +1290,10 @@ export class ClientDashboardController {
         assistant: {
           name: `Config — ${profile.businessName}`,
           model: {
-            provider: 'openai',
+            /* Même core LLM maison que la réceptionniste (`config-<id>`): même
+               clé OpenAI, même modèle, pas un `openai` tenu par Vapi. */
+            provider: 'custom-llm',
+            url: customLlmUrlFor('config-' + req.clientId),
             model: env.VAPI_MODEL,
             temperature: 0.6,
             maxTokens: env.VOICE_MAX_COMPLETION_TOKENS,

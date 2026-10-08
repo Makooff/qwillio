@@ -17,13 +17,13 @@ import { isCustomLlmAuthorized } from '../utils/vapi-webhook-auth';
 
 export class VoiceLlmController {
   async chatCompletions(req: Request, res: Response) {
-    const clientId = req.params.clientId as string;
-    if (!isCustomLlmAuthorized(req, clientId)) {
+    const rawClientId = req.params.clientId as string;
+    if (!isCustomLlmAuthorized(req, rawClientId)) {
       /* Un 401 ici ne se voit nulle part ailleurs: Vapi raccroche après
          l'accueil et l'appelant n'entend rien. La ligne dit CE qui manque. */
       const header = req.headers['x-vapi-secret'];
       logger.warn(
-        `[VoiceLLM] 401 pour ${clientId}: en-tête x-vapi-secret ${header ? 'présent mais différent' : 'ABSENT'}, jeton de chemin ${req.params.token ? 'présent mais différent' : 'absent'}. Resynchroniser l'assistant pose l'URL avec jeton.`,
+        `[VoiceLLM] 401 pour ${rawClientId}: en-tête x-vapi-secret ${header ? 'présent mais différent' : 'ABSENT'}, jeton de chemin ${req.params.token ? 'présent mais différent' : 'absent'}. Resynchroniser l'assistant pose l'URL avec jeton.`,
       );
       return res.status(401).json({ error: 'Invalid webhook secret' });
     }
@@ -33,6 +33,15 @@ export class VoiceLlmController {
     if (!body || !Array.isArray(body.messages)) {
       return res.status(400).json({ error: 'messages[] required' });
     }
+
+    /* Deux pseudo-clients traversent ce chemin sans exister en base:
+       - `demo-fr`/`demo-en`: la démo publique du site, dont la langue est
+         portée par l'identifiant;
+       - `config-<id>`: l'assistant de CONFIG vocale du gérant, qui partage le
+         même core LLM mais pas le routage d'intention d'un appelant.
+       Le vrai clientId est celui sans le préfixe. */
+    const configMode = rawClientId.startsWith('config-');
+    const clientId = configMode ? rawClientId.slice('config-'.length) : rawClientId;
 
     // Vapi passes the call id through so we can attribute deflection stats.
     const vapiCallId =
@@ -46,7 +55,10 @@ export class VoiceLlmController {
     /* Le profil est mis en cache par `realtimeContextService`: le relire ici
        pour le fuseau ne coûte pas de lecture en base à chaque tour. */
     const profile = await realtimeContextService.getClientProfile(clientId);
-    const lang = session?.language ?? profile?.language ?? 'en';
+    const lang =
+      session?.language ??
+      profile?.language ??
+      (rawClientId === 'demo-fr' ? 'fr' : 'en');
     const timezone = profile?.timezone ?? 'Europe/Brussels';
     /* Le numéro de l'appelant, sur la requête de Vapi d'abord: la session en
        mémoire ne survit pas à un redémarrage, la requête, si. Même forme que
@@ -83,7 +95,7 @@ export class VoiceLlmController {
     });
 
     try {
-      await llmStreamService.handle(clientId, vapiCallId, lang, body, stream, timezone, callerNumber);
+      await llmStreamService.handle(clientId, vapiCallId, lang, body, stream, timezone, callerNumber, configMode ? 'config' : 'receptionist');
     } catch (error) {
       logger.error(`[VoiceLLM] unhandled error for ${clientId}: ${(error as Error).message}`);
     } finally {
