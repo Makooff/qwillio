@@ -55,11 +55,13 @@ describe('voix — les deux fournisseurs sont séparés', () => {
     expect(marie?.voiceProvider).toBe('cartesia');
   });
 
-  it('laisse les autres personnages sans provenance Cartesia', () => {
-    // Une assignation partielle ne doit pas étiqueter tout le catalogue.
+  it('une assignation partielle ne change pas la voix des autres personnages', () => {
+    // Assigner marie ne doit pas réassigner lucas, qui garde SA voix française
+    // par défaut (Cartesia, désormais), pas celle de marie.
     applyCartesiaVoices({ marie: CARTESIA });
     const lucas = listCharacters().find(c => c.id === 'lucas');
-    expect(lucas?.voiceProvider).toBeUndefined();
+    expect(lucas?.voiceId).not.toBe(CARTESIA);
+    expect(lucas?.voiceProvider).toBe('cartesia');
   });
 
   it('ignore un identifiant qui ne correspond à aucun personnage', () => {
@@ -93,6 +95,11 @@ describe('voix — les deux fournisseurs sont séparés', () => {
 });
 
 describe('voix — la langue choisit le timbre', () => {
+  beforeEach(() => {
+    applyAssignedVoices({});
+    applyCartesiaVoices({});
+  });
+
   it('en anglais, un personnage sert sa voix anglaise native (Cartesia)', () => {
     const marie = listCharacters().find(c => c.id === 'marie')!;
     const v = voiceForLanguage(marie, 'en');
@@ -114,6 +121,16 @@ describe('voix — la langue choisit le timbre', () => {
     const enIds = listCharacters().map(c => voiceForLanguage(c, 'en').voiceId);
     expect(enIds.every(Boolean)).toBe(true);
     expect(new Set(enIds).size).toBe(10);
+  });
+
+  it('les dix personnages ont une voix FRANÇAISE dédiée, deux à deux distinctes', () => {
+    // Le défaut d'origine : cinq hommes sur un seul timbre, nour partageant
+    // Camille. Chacun porte désormais SA voix Cartesia, étiquetée comme telle.
+    const fr = listCharacters();
+    const ids = fr.map(c => c.voiceId);
+    expect(ids.every(Boolean)).toBe(true);
+    expect(new Set(ids).size).toBe(10);
+    expect(fr.every(c => c.voiceProvider === 'cartesia')).toBe(true);
   });
 
   it('une voix personnelle (clone) garde le même timbre dans les deux langues', () => {

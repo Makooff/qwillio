@@ -62,7 +62,11 @@ export const env = {
   VAPI_BASE_URL: process.env.VAPI_BASE_URL || 'https://api.vapi.ai',
   VAPI_MODEL: process.env.VAPI_MODEL || 'gpt-4o',
   VAPI_VOICE_ID: process.env.VAPI_VOICE_ID || '21m00Tcm4TlvDq8ikWAM', // Rachel (ElevenLabs)
-  VAPI_VOICE_ID_FR: process.env.VAPI_VOICE_ID_FR || 'pMsXgVXv3BLzUgSXRplE', // Amélie — French ElevenLabs voice
+  /* L'ancienne voix française par défaut (Amélie, ElevenLabs) est devenue
+     superflue : les dix personnages portent désormais chacun leur voix
+     Cartesia (`voice-characters.ts`, table `FR`), et Marie y retombe quand ce
+     réglage est vide. Il ne sert plus que d'épingle ElevenLabs d'appoint. */
+  VAPI_VOICE_ID_FR: process.env.VAPI_VOICE_ID_FR || '',
   // Optional Belgian-accent voice for BE prospects. Empty = fall back to the FR voice.
   VAPI_VOICE_ID_BE: process.env.VAPI_VOICE_ID_BE || '',
   // Optional: direct ElevenLabs key for in-dashboard voice previews (real voice

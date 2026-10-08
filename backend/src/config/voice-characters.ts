@@ -126,11 +126,14 @@ export function getAssignedVoices(): Record<string, string> {
 function voice(id: string, fallback: string): string {
   /* Les DEUX tables sont lues, la Cartesia d'abord : c'est elle qui sert
      réellement les appels depuis que le TTS est passé chez Cartesia, et un
-     identifiant assigné par le portail doit battre une valeur par défaut. */
+     identifiant assigné par le portail doit battre une valeur par défaut.
+     Le fallback vient ENSUITE, avant l'ancienne table ElevenLabs (`assigned`) :
+     le fallback est désormais une voix Cartesia (`FR.<id>`), et il doit battre
+     le vestige ElevenLabs d'avant le passage à Cartesia. */
   return process.env[`VAPI_VOICE_ID_${id.toUpperCase()}`]
     || cartesiaAssigned[id]
-    || assigned[id]
-    || fallback;
+    || fallback
+    || assigned[id];
 }
 
 /**
@@ -151,13 +154,21 @@ function voice(id: string, fallback: string): string {
  *
  * `voice()` continue de rendre l'identifiant seul : c'est ce qu'attendent les
  * seize champs qui l'appellent. La provenance est rendue à part, pour que
- * seuls les endroits qui en ont besoin la lisent.
+ * seuls les endroits qui en ont besoin la lisent. Elle compare l'identifiant
+ * RÉSOLU (passé par le Proxy) aux catalogues Cartesia, plutôt que de deviner
+ * d'après les clés : un `VAPI_VOICE_ID_FR` ElevenLabs sur Marie doit garder
+ * l'étiquette ElevenLabs, même si la fiche porte une voix Cartesia par défaut.
  */
-function voiceProviderOf(id: string): 'cartesia' | undefined {
+function voiceProviderOf(id: string, voiceId: string): 'cartesia' | undefined {
   /* Une épingle d'environnement est un identifiant ElevenLabs : elle passe
      avant l'assignation, donc elle décide aussi de la provenance. */
   if (process.env[`VAPI_VOICE_ID_${id.toUpperCase()}`]) return undefined;
-  return cartesiaAssigned[id] ? 'cartesia' : undefined;
+  if (voiceId && (voiceId === cartesiaAssigned[id]
+    || voiceId === FR[id as keyof typeof FR]
+    || voiceId === EN[id as keyof typeof EN])) {
+    return 'cartesia';
+  }
+  return undefined;
 }
 
 /**
@@ -171,24 +182,6 @@ function voiceProviderOf(id: string): 'cartesia' | undefined {
 function voiceEn(id: string): string {
   return process.env[`VAPI_VOICE_ID_EN_${id.toUpperCase()}`] || EN[id as keyof typeof EN] || '';
 }
-
-/**
- * ElevenLabs voice ids.
- *
- * Only the first five were auditioned. The five characters added afterwards
- * reuse them deliberately rather than carrying an id nobody has listened to:
- * a duplicate voice is a cosmetic flaw, an unverified id is how a male
- * character ends up speaking with a woman's voice. Each has its own env
- * override so they diverge as soon as someone assigns them by ear.
- */
-const EL = {
-  rachel: '21m00Tcm4TlvDq8ikWAM', // EN female, calm
-  antoni: 'ErXwobaYiN019PkySvjV', // male, warm — documented premade voice
-  frMarie:   'BilXxxvRLrA8YTteM2sl',
-  frCamille: 'd3AXX0BlgJHYFCuH9X88',
-  frLea:     'CYR0HqHoZAUmoZsLWPob',
-  frSofia:   'FvmvwvObRqIHojkEGh5N',
-} as const;
 
 /**
  * Les voix anglaises NATIVES par personnage, servies quand le site est en
@@ -216,13 +209,41 @@ const EN = {
   julien:  'd46abd1d-2d02-43e8-819f-51fb652c1c61', // Newsman, distingué
 } as const;
 
+/**
+ * Les voix FRANÇAISES par personnage, une distincte pour chacun.
+ *
+ * Toutes sortent de la liste que le propriétaire a triée sur cartesia.ai
+ * (`cartesia-curated.ts`), jamais d'un nom d'écran : chaque identifiant est
+ * celui de l'API. Le timbre est assorti à la personnalité du personnage
+ * (chaleureux, raffiné, énergique, doux, posé…), pas attribué dans l'ordre du
+ * catalogue. Ce sont des DÉFAUTS auditionnables : `VAPI_VOICE_ID_<ID>`
+ * l'emporte, et l'assignation Cartesia en base (`cartesiaAssigned`) aussi.
+ *
+ * Pourquoi Cartesia et plus ElevenLabs : le TTS est passé chez Cartesia, et
+ * l'ancien fallback ElevenLabs faisait parler cinq hommes avec un seul timbre.
+ */
+const FR = {
+  // Femmes — chaleur, luxe, énergie, décontraction, douceur.
+  marie:   '65b25c5d-ff07-4687-a04c-da2f43ef6fa9', // Pauline - Helpful Companion, serviable
+  camille: '8832a0b5-47b2-4751-bb22-6a8e2149303d', // French Narrator Lady, raffinée
+  lea:     '0d09e991-5763-406e-b637-02bc431ef72d', // Valérie - Vibrant Voice, énergique
+  sofia:   '2f8e82c4-cb94-4e6d-8b6a-29bf58ceb60a', // Manon - Bright Belle, vive et naturelle
+  nour:    '6c64b57a-bc65-48e4-bff4-12dbe85606cd', // Eloise - Dialogue Anchor, douce et posée
+  // Hommes — professionnel, chaleur, décontraction, énergie, distinction.
+  lucas:   '7345dfa5-ee04-44d2-abf4-29262b880ab4', // Laurent - Dependable Anchor, posé
+  adrien:  'ab7c61f5-3daa-47dd-a23b-4ac0aac5f5c3', // Friendly French Man, chaleureux
+  hugo:    'ab636c8b-9960-4fb3-bb0c-b7b655fb9745', // Erwan - Everyday Speaker, décontracté
+  theo:    'd9f4af15-c402-4f50-bbda-d8823d028d6a', // Henri - Express Host, énergique
+  julien:  '0418348a-0ca2-4e90-9986-800fb8b3bbc0', // Antoine - Stern Man, distingué
+} as const;
+
 const BASE_CHARACTERS: Record<string, Character> = {
   marie: {
     id: 'marie',
     name: 'Marie',
     accent: 'FR',
     gender: 'f',
-    voiceId: voice('marie', env.VAPI_VOICE_ID_FR || EL.frMarie),
+    voiceId: voice('marie', env.VAPI_VOICE_ID_FR || FR.marie),
     model: MODEL,
     stability: 0.38,
     similarityBoost: 0.78,
@@ -239,7 +260,7 @@ const BASE_CHARACTERS: Record<string, Character> = {
     name: 'Camille',
     accent: 'FR',
     gender: 'f',
-    voiceId: voice('camille', EL.frCamille),
+    voiceId: voice('camille', FR.camille),
     model: MODEL,
     stability: 0.5,
     similarityBoost: 0.8,
@@ -256,7 +277,7 @@ const BASE_CHARACTERS: Record<string, Character> = {
     name: 'Léa',
     accent: 'FR',
     gender: 'f',
-    voiceId: voice('lea', EL.frLea),
+    voiceId: voice('lea', FR.lea),
     model: MODEL,
     stability: 0.3,
     similarityBoost: 0.75,
@@ -273,7 +294,7 @@ const BASE_CHARACTERS: Record<string, Character> = {
     name: 'Sofia',
     accent: 'FR',
     gender: 'f',
-    voiceId: voice('sofia', EL.frSofia),
+    voiceId: voice('sofia', FR.sofia),
     model: MODEL,
     stability: 0.4,
     similarityBoost: 0.78,
@@ -290,9 +311,7 @@ const BASE_CHARACTERS: Record<string, Character> = {
     name: 'Nour',
     accent: 'FR',
     gender: 'f',
-    // Shares Camille's voice until a calmer one is auditioned: `caring` wants a
-    // slower, softer delivery, which is tuning as much as timbre.
-    voiceId: voice('nour', EL.frCamille),
+    voiceId: voice('nour', FR.nour),
     model: MODEL,
     stability: 0.62,
     similarityBoost: 0.8,
@@ -309,7 +328,7 @@ const BASE_CHARACTERS: Record<string, Character> = {
     name: 'Lucas',
     accent: 'FR',
     gender: 'm',
-    voiceId: voice('lucas', EL.antoni),
+    voiceId: voice('lucas', FR.lucas),
     model: MODEL,
     stability: 0.45,
     similarityBoost: 0.8,
@@ -326,7 +345,7 @@ const BASE_CHARACTERS: Record<string, Character> = {
     name: 'Adrien',
     accent: 'FR',
     gender: 'm',
-    voiceId: voice('adrien', EL.antoni),
+    voiceId: voice('adrien', FR.adrien),
     model: MODEL,
     stability: 0.4,
     similarityBoost: 0.78,
@@ -343,7 +362,7 @@ const BASE_CHARACTERS: Record<string, Character> = {
     name: 'Hugo',
     accent: 'FR',
     gender: 'm',
-    voiceId: voice('hugo', EL.antoni),
+    voiceId: voice('hugo', FR.hugo),
     model: MODEL,
     stability: 0.35,
     similarityBoost: 0.76,
@@ -360,7 +379,7 @@ const BASE_CHARACTERS: Record<string, Character> = {
     name: 'Théo',
     accent: 'FR',
     gender: 'm',
-    voiceId: voice('theo', EL.antoni),
+    voiceId: voice('theo', FR.theo),
     model: MODEL,
     stability: 0.3,
     similarityBoost: 0.75,
@@ -377,7 +396,7 @@ const BASE_CHARACTERS: Record<string, Character> = {
     name: 'Julien',
     accent: 'FR',
     gender: 'm',
-    voiceId: voice('julien', EL.antoni),
+    voiceId: voice('julien', FR.julien),
     model: MODEL,
     stability: 0.55,
     similarityBoost: 0.82,
@@ -408,11 +427,12 @@ export const CHARACTERS: Record<string, Character> = new Proxy(BASE_CHARACTERS, 
        Les dissocier était exactement la panne : un identifiant Cartesia sans
        son étiquette partait se faire traduire comme de l'ElevenLabs, ne
        trouvait rien, et tout le monde retombait sur la voix par défaut. */
-    const provider = voiceProviderOf(base.id);
+    const voiceId = voice(base.id, base.voiceId);
+    const provider = voiceProviderOf(base.id, voiceId);
     const voiceIdEn = voiceEn(base.id);
     return {
       ...base,
-      voiceId: voice(base.id, base.voiceId),
+      voiceId,
       ...(voiceIdEn ? { voiceIdEn } : {}),
       ...(provider ? { voiceProvider: provider } : {}),
     };
@@ -522,9 +542,10 @@ export function resolveCharacter(params: {
          la voix du client, pas un timbre par langue. Effacer `voiceIdEn` évite
          que `voiceForLanguage` lui substitue la voix anglaise du personnage. */
       voiceIdEn: undefined,
-      // Le catalogue voyage avec l'identifiant: `buildVoice` doit savoir à qui
-      // il parle, et il ne peut plus le déduire du seul réglage global.
-      ...(customVoice.provider ? { voiceProvider: customVoice.provider } : {}),
+      /* La provenance suit la voix CHOISIE, pas le personnage. Un clone sans
+         `provider` est ElevenLabs (l'ancien défaut) : il ne doit pas hériter du
+         'cartesia' que la fiche porte désormais par défaut. */
+      voiceProvider: customVoice.provider,
       /* Et le fait d'être un CLONE voyage avec, séparément de « le client a
          choisi une voix ». Les deux se confondaient jusqu'ici, ce qui n'avait
          pas de conséquence tant qu'un seul fournisseur existait; maintenant si:

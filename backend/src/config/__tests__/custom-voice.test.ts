@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { resolveCharacter, CHARACTERS, DEFAULT_CHARACTER_FR, applyAssignedVoices, listCharacters } from '../voice-characters';
+import { resolveCharacter, CHARACTERS, DEFAULT_CHARACTER_FR, applyCartesiaVoices, listCharacters } from '../voice-characters';
 import { readCustomVoice } from '../../services/voice/realtime-context.service';
 
 const clone = { voiceId: 'v_cloned', name: 'Ma voix', createdAt: '2026-08-03T00:00:00.000Z', cloned: true };
@@ -95,20 +95,20 @@ describe('voices assigned at runtime', () => {
     // The assignment arrives after this module is imported, and every consumer
     // already holds CHARACTERS. A copy taken at import time would keep the old
     // voices for the life of the process.
-    applyAssignedVoices({ lucas: 'v_assigned_lucas' });
+    applyCartesiaVoices({ lucas: 'v_assigned_lucas' });
     expect(CHARACTERS.lucas.voiceId).toBe('v_assigned_lucas');
     expect(listCharacters().find(c => c.id === 'lucas')?.voiceId).toBe('v_assigned_lucas');
     expect(resolveCharacter({ characterId: 'lucas', isFrench: true }).voiceId).toBe('v_assigned_lucas');
     // Untouched characters keep theirs.
     expect(CHARACTERS.marie.voiceId).not.toBe('v_assigned_lucas');
-    applyAssignedVoices({});
+    applyCartesiaVoices({});
   });
 
   it('still loses to an explicit env pin', () => {
     process.env.VAPI_VOICE_ID_HUGO = 'v_pinned';
-    applyAssignedVoices({ hugo: 'v_assigned' });
+    applyCartesiaVoices({ hugo: 'v_assigned' });
     expect(CHARACTERS.hugo.voiceId).toBe('v_pinned');
     delete process.env.VAPI_VOICE_ID_HUGO;
-    applyAssignedVoices({});
+    applyCartesiaVoices({});
   });
 });
