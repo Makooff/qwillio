@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { X } from '../icons';
@@ -85,10 +85,36 @@ export default function TryVoiceCard({
   const [speaking, setSpeaking] = useState(false);
 
   /* Tiré à l'ouverture, pas au montage: deux essais de suite ne doivent pas
-     rejouer la même scène. */
-  const [scenario, setScenario] = useState<Scenario>(() => SCENARIOS[0]);
+     rejouer la même scène.
+
+     ── LE DÉFAUT (07/10/2026) ───────────────────────────────────────────────
+     Un essai a affiché « Vous appelez un plombier » et la réceptionniste a
+     répondu en cabinet dentaire. Le tirage vivait dans un `useEffect`, donc
+     APRÈS le premier rendu : la carte s'affichait une première fois avec
+     `SCENARIOS[0]` (le cabinet dentaire) avant que le tirage ne la remplace.
+     Qui lançait l'appel dans cet intervalle partait avec le scénario par
+     défaut, sous les yeux d'un texte qui disait déjà autre chose.
+
+     Le tirage initial est donc fait DANS le `useState`, où il s'applique avant
+     que quoi que ce soit ne soit peint. L'effet ne sert plus qu'aux ouvertures
+     SUIVANTES — la première est déjà tirée, et la retirer à l'ouverture ferait
+     changer le texte sous les yeux du visiteur qui vient de le lire. */
+  const [scenario, setScenario] = useState<Scenario>(
+    () => SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)],
+  );
+  /* Une carte FERMÉE retirera au prochain passage : le visiteur ne l'a pas
+     encore vue, donc rien ne change sous ses yeux. */
+  const premiereOuverture = useRef(true);
   useEffect(() => {
-    if (open) setScenario(SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)]);
+    if (!open) return;
+    /* La PREMIÈRE ouverture ne retire pas : le scénario a déjà été tiré avant
+       le premier rendu, et le replacer ici ferait justement changer le texte
+       sous les yeux du visiteur. Ce sont les réouvertures qu'on veut neuves. */
+    if (premiereOuverture.current) {
+      premiereOuverture.current = false;
+      return;
+    }
+    setScenario(SCENARIOS[Math.floor(Math.random() * SCENARIOS.length)]);
   }, [open]);
 
   const onLevel = useCallback((l: number, s: boolean) => { setLevel(l); setSpeaking(s); }, []);
