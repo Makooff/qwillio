@@ -44,7 +44,10 @@ const PRESETS: Preset[] = [
 /* URL du clip public (mêmes voix que le dashboard, cache serveur + ETag) et
    phrase de repli pour la voix du navigateur si l'audio réel échoue. */
 function previewUrl(id: string, isFr: boolean) {
-  return `/public/characters/${id}/preview?lang=${isFr ? 'fr' : 'en'}`;
+  // v=2 : casse le cache navigateur des anciennes previews (une seule voix
+  // homme), servies 7 jours avant `must-revalidate` ; l'URL neuve force un
+  // re-téléchargement immédiat.
+  return `/public/characters/${id}/preview?lang=${isFr ? 'fr' : 'en'}&v=2`;
 }
 
 /* Les phrases RÉELLEMENT enregistrées, reprises telles quelles de

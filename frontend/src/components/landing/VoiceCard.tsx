@@ -28,7 +28,7 @@ export interface VoiceData {
 export default function VoiceCard({ v, large = false }: { v: VoiceData; large?: boolean }) {
   const isFr = v.lang.startsWith('fr');
   const { playing, notice, toggle, prefetch } = useVoicePreview(isFr);
-  const url = `/public/characters/${v.id}/preview?lang=${isFr ? 'fr' : 'en'}`;
+  const url = `/public/characters/${v.id}/preview?lang=${isFr ? 'fr' : 'en'}&v=2`;
   const isPlaying = playing === v.id;
 
   return (
