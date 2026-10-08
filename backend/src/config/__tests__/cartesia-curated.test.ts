@@ -13,7 +13,7 @@ describe('CARTESIA_CURATED', () => {
 
   it('porte la liste française choisie, sous forme d\'identifiants API', () => {
     const fr = CARTESIA_CURATED.fr ?? [];
-    expect(fr.length).toBe(25);
+    expect(fr.length).toBe(23);
     for (const v of fr) expect(v.voiceId).toMatch(UUID);
   });
 
@@ -27,6 +27,6 @@ describe('CARTESIA_CURATED', () => {
     /* Le vide n'est pas un tri: un oubli ne doit pas éteindre un écran. */
     expect(curatedCartesiaIds('en')).toBeNull();
     expect(curatedCartesiaIds('nl')).toBeNull();
-    expect(curatedCartesiaIds('fr')?.size).toBe(25);
+    expect(curatedCartesiaIds('fr')?.size).toBe(23);
   });
 });
