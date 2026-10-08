@@ -3,8 +3,8 @@ import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight, Play, Phone, CalendarCheck, PhoneForwarded, UserCheck,
-  MessagesSquare, Mic, Camera, PhoneCall, Shield, Check, Bell, ShieldCheck,
-  BookOpen, Clock, Lock,
+  MessagesSquare, Mic, Camera, PhoneCall, Shield, Check, ShieldCheck,
+  BookOpen, Lock,
   type LucideIcon,
 } from '../../components/icons';
 import { useSEO } from '../../hooks/useSEO';
@@ -41,7 +41,7 @@ interface Pillar {
 
 function Panel({ label, num, children }: { label: string; num: string; children: ReactNode }) {
   return (
-    <div className="h-full rounded-[24px] sm:rounded-[28px] p-6 sm:p-8" style={{ background: DRENCHED }}>
+    <div className="h-full rounded-[24px] sm:rounded-[28px] p-6 sm:p-8 overflow-hidden" style={{ background: GRADS[num] ?? GRADS['01'] }}>
       <PillarVisual num={num} />
       <p className="q2-eyebrow text-q2-mist mt-6 mb-6">{label}</p>
       {children}
@@ -49,108 +49,107 @@ function Panel({ label, num, children }: { label: string; num: string; children:
   );
 }
 
-/* Le dégradé drenched des illustrations (le même que la section Configuration,
-   et que la rangée Fiche d'appel de la Home). Les cartes de « Pendant l'appel »,
-   « Vos réponses » et « Après l'appel » le reprennent pour devenir des
-   illustrations et non plus des listes de texte sur fond plat (retour
-   utilisateur : « refais les illustrations des cards »). */
-const DRENCHED = 'radial-gradient(130% 150% at 18% 115%, #453486 0%, #221842 48%, #100F13 85%)';
+/* Six dégradés distincts — un par carte — pour casser l'effet copier-coller
+   (retour utilisateur : « trop copier-collé, même disposition, même gradient »).
+   Chacun a sa propre origine, sa propre direction et sa teinte dominante, mais
+   tous restent dans le registre drenched indigo/violet de la marque. */
+const GRADS: Record<string, string> = {
+  '01': 'radial-gradient(120% 130% at 18% 0%, #453486 0%, #1e1638 52%, #100f13 100%)',
+  '02': 'linear-gradient(155deg, #2a1b5c 0%, #100f13 55%, #1e1638 100%)',
+  '03': 'radial-gradient(140% 140% at 85% 12%, #7a5fff 0%, #1b1438 55%, #100f13 100%)',
+  '04': 'linear-gradient(180deg, #100f13 0%, #1e1638 75%, #241a45 100%)',
+  '05': 'radial-gradient(125% 125% at 50% 115%, #453486 0%, #181225 55%, #100f13 100%)',
+  '06': 'linear-gradient(200deg, #100f13 0%, #221842 55%, #453486 125%)',
+};
 
-/* Les petites maquettes en tête de panneau. Ce sont des mises en scène du
-   produit, pas des captures : elles illustrent le mécanisme décrit à côté,
-   avec la même matière (void, carbon, graphite-d) que le reste du registre
-   drenched. */
-function VisualShell({ children }: { children: ReactNode }) {
-  return (
-    <div className="rounded-2xl border border-q2-graphite-d bg-q2-void/60 p-4 sm:p-5">
-      {children}
-    </div>
-  );
-}
-
+/* Les illustrations des cartes. Chacune a sa propre matière et sa propre
+   composition (papier clair, notification flottante, avatar centré, fenêtre de
+   chat, cartes en éventail, bouclier centré) : ce sont des mises en scène du
+   produit, pas des captures, et aucune ne reprend la même disposition. */
 function BookingVisual() {
   return (
-    <VisualShell>
-      <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-3">
-          <span className="w-9 h-9 rounded-xl bg-q2-indigo/20 flex items-center justify-center shrink-0">
-            <CalendarCheck size={16} className="text-q2-lift" aria-hidden="true" />
-          </span>
-          <div>
-            <p className="text-q2-mist text-[13.5px] font-medium leading-tight">Jeudi 14 h 30</p>
-            <p className="text-q2-fog text-[12px] leading-tight mt-0.5">Détartrage · 45 min</p>
-          </div>
-        </div>
-        <span className="inline-flex items-center gap-1 rounded-full bg-q2-indigo/15 text-q2-lift text-[11px] font-medium px-2.5 py-1 shrink-0">
+    <div className="rounded-2xl bg-[#f6f2ec] p-4 text-q2-ink shadow-[0_18px_40px_-18px_rgba(0,0,0,0.7)]">
+      <div className="flex items-center justify-between gap-2">
+        <p className="text-[11px] font-semibold tracking-wide uppercase text-[#8a847b]">Jeudi 12 février</p>
+        <span className="inline-flex items-center gap-1 rounded-full bg-[#e4f2ec] text-[#0f6b47] text-[11px] font-semibold px-2 py-0.5 shrink-0">
           <Check size={11} aria-hidden="true" />
           Confirmé
         </span>
       </div>
-      <div className="mt-4 border-t border-q2-graphite-d pt-3 flex items-center justify-between text-[12px]">
-        <span className="text-q2-fog">Écrit dans l'agenda</span>
-        <span className="text-q2-mist">SMS envoyé</span>
+      <div className="mt-3 rounded-xl bg-q2-indigo p-3 text-white">
+        <p className="text-[13px] font-semibold leading-tight">14 h 30 — Détartrage</p>
+        <p className="text-[12px] opacity-80 leading-tight mt-0.5">45 min · pris en direct pendant l'appel</p>
       </div>
-    </VisualShell>
+      <div className="mt-3 flex items-center gap-2 text-[12px] text-[#8a847b]">
+        <CalendarCheck size={13} className="text-q2-indigo shrink-0" aria-hidden="true" />
+        <span>Écrit dans l'agenda + SMS de confirmation</span>
+      </div>
+    </div>
   );
 }
 
 function SmsBriefVisual() {
   return (
-    <VisualShell>
-      <div className="flex items-center gap-2 text-q2-fog text-[11.5px] mb-3">
-        <Bell size={13} className="text-q2-lift" aria-hidden="true" />
-        <span>SMS · il y a 2 min</span>
+    <div className="flex justify-end">
+      <div className="rounded-2xl bg-q2-carbon/90 border border-q2-graphite-d shadow-[0_20px_50px_-20px_rgba(0,0,0,0.8)] p-3.5 max-w-[264px]">
+        <div className="flex items-center gap-2.5">
+          <span className="w-8 h-8 rounded-lg bg-q2-indigo flex items-center justify-center shrink-0">
+            <Phone size={14} className="text-white" aria-hidden="true" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-q2-mist text-[12px] font-medium leading-tight">Appel manqué · Camille Dubois</p>
+            <p className="text-q2-fog text-[11px] leading-tight mt-0.5">à l'instant</p>
+          </div>
+        </div>
+        <div className="mt-2.5 rounded-xl bg-q2-void/70 border border-q2-graphite-d p-2.5">
+          <p className="text-q2-mist text-[12px] leading-snug">Détartrage · pressée, veut un créneau cette semaine.</p>
+        </div>
+        <p className="mt-2 text-q2-fog text-[11px]">+32 471 12 34 56</p>
       </div>
-      <div className="rounded-xl rounded-tl-sm bg-q2-carbon border border-q2-graphite-d p-3.5">
-        <p className="text-q2-mist text-[13px] font-medium leading-snug">Camille Dubois</p>
-        <p className="text-q2-fog text-[12.5px] leading-snug mt-1">Détartrage · pressée, veut un créneau cette semaine</p>
-      </div>
-      <div className="mt-3 flex items-center gap-2 text-q2-fog text-[11.5px]">
-        <Phone size={12} aria-hidden="true" />
-        <span>+32 471 12 34 56</span>
-      </div>
-    </VisualShell>
+    </div>
   );
 }
 
 function RegularsVisual() {
   return (
-    <VisualShell>
-      <div className="flex items-center gap-3">
-        <span className="w-9 h-9 rounded-full bg-q2-violet/25 flex items-center justify-center text-q2-lift text-[13px] font-medium shrink-0">
+    <div className="flex flex-col items-center text-center py-1">
+      <span className="relative">
+        <span className="absolute -inset-2 rounded-full bg-q2-violet/35 blur-xl" aria-hidden="true" />
+        <span className="relative w-14 h-14 rounded-full bg-gradient-to-br from-q2-violet to-q2-indigo flex items-center justify-center text-q2-mist text-[17px] font-semibold ring-2 ring-q2-lift/30">
           CD
         </span>
-        <div>
-          <p className="text-q2-mist text-[13.5px] font-medium leading-tight">Bonjour Camille</p>
-          <p className="text-q2-fog text-[12px] leading-tight mt-0.5">Déjà venue en janvier</p>
-        </div>
-      </div>
-      <div className="mt-4 border-t border-q2-graphite-d pt-3">
-        <p className="text-q2-fog text-[12px] leading-snug">
-          Dernier appel : détartrage, <span className="text-q2-mist">jeudi 14 h 30</span>
-        </p>
-      </div>
-    </VisualShell>
+      </span>
+      <p className="mt-3 text-q2-mist text-[14px] font-medium">Bonjour Camille</p>
+      <p className="mt-1 text-q2-fog text-[12px]">Déjà venue en janvier</p>
+      <span className="mt-2.5 inline-flex items-center gap-1 rounded-full bg-q2-violet/15 text-q2-lift text-[11px] font-medium px-2.5 py-1">
+        <UserCheck size={12} aria-hidden="true" />
+        Reconnue
+      </span>
+    </div>
   );
 }
 
 function ConversationVisual() {
   return (
-    <VisualShell>
-      <div className="flex items-start gap-2">
-        <span className="w-7 h-7 rounded-full bg-q2-indigo/20 flex items-center justify-center shrink-0">
-          <Phone size={13} className="text-q2-lift" aria-hidden="true" />
-        </span>
-        <div className="space-y-2">
-          <p className="rounded-lg rounded-tl-sm bg-q2-indigo/15 text-q2-mist text-[12.5px] leading-snug px-3 py-2">« mhm »</p>
-          <p className="rounded-lg rounded-tl-sm bg-q2-carbon border border-q2-graphite-d text-q2-mist text-[12.5px] leading-snug px-3 py-2">« Vous êtes toujours là ? »</p>
+    <div className="rounded-2xl overflow-hidden border border-q2-graphite-d bg-q2-void/70">
+      <div className="flex items-center gap-1.5 px-3 py-2 border-b border-q2-graphite-d bg-q2-carbon/60">
+        <span className="w-2 h-2 rounded-full bg-q2-fog/60" aria-hidden="true" />
+        <span className="w-2 h-2 rounded-full bg-q2-fog/60" aria-hidden="true" />
+        <span className="w-2 h-2 rounded-full bg-q2-fog/60" aria-hidden="true" />
+        <span className="ml-auto text-q2-fog text-[11px]">Appel en cours</span>
+      </div>
+      <div className="p-3 space-y-2">
+        <div className="flex justify-end">
+          <p className="rounded-xl rounded-tr-sm bg-q2-indigo/20 text-q2-mist text-[12px] px-3 py-1.5">« mhm »</p>
+        </div>
+        <div className="flex justify-start">
+          <p className="rounded-xl rounded-tl-sm bg-q2-carbon border border-q2-graphite-d text-q2-mist text-[12px] px-3 py-1.5">« Vous êtes toujours là ? »</p>
+        </div>
+        <div className="flex justify-end">
+          <p className="rounded-xl rounded-tr-sm bg-q2-indigo/20 text-q2-mist text-[12px] px-3 py-1.5">« Oui, je vous écoute. »</p>
         </div>
       </div>
-      <div className="mt-3 flex items-center gap-2 text-q2-fog text-[11.5px]">
-        <MessagesSquare size={12} aria-hidden="true" />
-        <span>Un blanc trop long, et il demande si vous êtes là</span>
-      </div>
-    </VisualShell>
+    </div>
   );
 }
 
@@ -163,50 +162,46 @@ function PillarVisual({ num }: { num: string }) {
 
 function KnowledgeVisual() {
   return (
-    <VisualShell>
-      <div className="space-y-2.5">
-        <div className="rounded-xl bg-q2-carbon border border-q2-graphite-d p-3 flex items-center gap-2.5">
-          <BookOpen size={15} className="text-q2-lift shrink-0" aria-hidden="true" />
-          <div>
-            <p className="text-q2-mist text-[13px] font-medium leading-tight">Toujours en tête</p>
-            <p className="text-q2-fog text-[11.5px] leading-tight mt-0.5">Règles de maison, réponses prioritaires</p>
-          </div>
-        </div>
-        <div className="rounded-xl bg-q2-void/60 border border-q2-graphite-d p-3 flex items-center gap-2.5">
-          <Clock size={15} className="text-q2-fog shrink-0" aria-hidden="true" />
-          <div>
-            <p className="text-q2-mist text-[13px] font-medium leading-tight">À la demande</p>
-            <p className="text-q2-fog text-[11.5px] leading-tight mt-0.5">Le reste de la base, consulté au besoin</p>
-          </div>
-        </div>
+    <div className="relative h-[128px]">
+      <div className="absolute left-3 top-3 right-1 bottom-0 rounded-2xl bg-q2-void/80 border border-q2-graphite-d rotate-[3deg]" aria-hidden="true">
+        <p className="absolute left-3 bottom-2.5 text-q2-fog text-[11px]">À la demande</p>
       </div>
-    </VisualShell>
+      <div className="absolute left-1.5 top-1.5 right-2.5 bottom-0 rounded-2xl bg-q2-carbon border border-q2-graphite-d rotate-[-2deg]" aria-hidden="true">
+        <p className="absolute left-3 bottom-2.5 text-q2-fog text-[11px]">Le reste de la base</p>
+      </div>
+      <div className="absolute left-0 top-0 right-4 bottom-1 rounded-2xl bg-gradient-to-br from-q2-indigo/35 to-q2-void border border-q2-indigo/30 p-3.5">
+        <div className="flex items-center gap-2">
+          <BookOpen size={14} className="text-q2-lift shrink-0" aria-hidden="true" />
+          <span className="text-q2-mist text-[13px] font-medium">Toujours en tête</span>
+        </div>
+        <p className="mt-1 text-q2-fog text-[11.5px] leading-snug">Règles de maison, réponses prioritaires</p>
+      </div>
+    </div>
   );
 }
 
 function GuaranteeVisual() {
   return (
-    <VisualShell>
-      <div className="flex items-center gap-3 mb-4">
-        <span className="w-9 h-9 rounded-xl bg-q2-indigo/20 flex items-center justify-center shrink-0">
-          <ShieldCheck size={16} className="text-q2-lift" aria-hidden="true" />
+    <div className="flex flex-col items-center text-center py-1">
+      <span className="relative">
+        <span className="absolute -inset-3 rounded-full bg-q2-indigo/40 blur-xl" aria-hidden="true" />
+        <span className="relative w-14 h-14 rounded-2xl bg-q2-indigo/20 border border-q2-indigo/30 flex items-center justify-center">
+          <ShieldCheck size={22} className="text-q2-lift" aria-hidden="true" />
         </span>
-        <div>
-          <p className="text-q2-mist text-[13.5px] font-medium leading-tight">Conforme RGPD</p>
-          <p className="text-q2-fog text-[12px] leading-tight mt-0.5">Annonce d'enregistrement au décrochage</p>
-        </div>
+      </span>
+      <p className="mt-3 text-q2-mist text-[14px] font-medium">Conforme RGPD</p>
+      <p className="mt-1 text-q2-fog text-[12px]">Annonce d'enregistrement au décrochage</p>
+      <div className="mt-3 grid grid-cols-2 gap-2 w-full max-w-[240px]">
+        <span className="flex items-center gap-1.5 rounded-lg bg-q2-void/60 border border-q2-graphite-d px-2.5 py-1.5 text-q2-mist text-[11px]">
+          <Lock size={11} className="text-q2-lift shrink-0" aria-hidden="true" />
+          Effaçable
+        </span>
+        <span className="flex items-center gap-1.5 rounded-lg bg-q2-void/60 border border-q2-graphite-d px-2.5 py-1.5 text-q2-mist text-[11px]">
+          <Check size={11} className="text-q2-lift shrink-0" aria-hidden="true" />
+          Sans engagement
+        </span>
       </div>
-      <div className="border-t border-q2-graphite-d pt-3 space-y-2">
-        <p className="flex items-center gap-2 text-q2-fog text-[12px]">
-          <Lock size={12} className="text-q2-lift shrink-0" aria-hidden="true" />
-          Effaçable sur demande
-        </p>
-        <p className="flex items-center gap-2 text-q2-fog text-[12px]">
-          <Check size={12} className="text-q2-lift shrink-0" aria-hidden="true" />
-          Sans engagement, annulable en un clic
-        </p>
-      </div>
-    </VisualShell>
+    </div>
   );
 }
 
@@ -800,7 +795,7 @@ export default function Receptionist() {
           </RevealV2>
 
           <RevealV2 index={1}>
-            <div className="rounded-[24px] sm:rounded-[28px] p-6 sm:p-8" style={{ background: DRENCHED }}>
+            <div className="rounded-[24px] sm:rounded-[28px] p-6 sm:p-8" style={{ background: GRADS['05'] }}>
               <KnowledgeVisual />
               <p className="q2-eyebrow text-q2-mist mt-6 mb-6">{isFr ? 'Deux mémoires' : 'Two memories'}</p>
               <ul className="divide-y divide-q2-graphite-d" role="list">
@@ -880,7 +875,7 @@ export default function Receptionist() {
           </RevealV2>
 
           <RevealV2 index={1}>
-            <div className="rounded-[24px] sm:rounded-[28px] p-6 sm:p-8 lg:sticky lg:top-24" style={{ background: DRENCHED }}>
+            <div className="rounded-[24px] sm:rounded-[28px] p-6 sm:p-8 lg:sticky lg:top-24" style={{ background: GRADS['06'] }}>
               <GuaranteeVisual />
               <p className="flex items-center gap-2.5 q2-eyebrow text-q2-mist mt-6 mb-6">
                 <Shield size={13} className="text-q2-indigo" aria-hidden="true" />
