@@ -71,6 +71,15 @@ const PROVIDER = flag('provider');
 const MODEL = flag('model');
 const TIMEOUT_MIN = Number(flag('timeout', '25'));
 
+/**
+ * Le binaire `hermes` en absolu.
+ *
+ * Une tâche planifiée tourne dans un shell dont le PATH n'est pas celui de la
+ * session interactive : `spawn('hermes', ...)` y échoue sans rien dire
+ * d'utile. Le chemin est donc surchargeable, et le lanceur planifié le fixe.
+ */
+const HERMES_BIN = process.env.QWILLIO_HERMES_BIN ?? 'hermes';
+
 function die(message) {
   console.error(`✖ ${message}`);
   process.exit(1);
@@ -116,7 +125,7 @@ async function preflight() {
     const untracked = await sh('git', ['-C', repo, 'status', '--porcelain', '--untracked-files=all']);
     if (untracked.out.trim()) {
       const names = untracked.out.trim().split('\n').map(l => l.trim()).join(', ');
-      console.log(`   ⓘ ${repo.split('/').pop()} : non suivis → ${names}`);
+      console.error(`   ⓘ ${repo.split('/').pop()} : non suivis → ${names}`);
     }
   }
 }
@@ -208,14 +217,23 @@ async function markApplied(id, note) {
 }
 
 async function main() {
+  /* DISCIPLINE DE SORTIE, et elle n'est pas cosmétique.
+     Ce script tourne en tâche planifiée qui notifie sur sa SORTIE STANDARD :
+     `stdout` est ce que Mathieu reçoit. Donc tout ce qui est du déroulement —
+     l'adresse interrogée, les dépôts propres, la proposition en cours —
+     part sur `stderr`, qui n'est jamais notifié. `stdout` ne porte que ce qui
+     mérite une notification : un correctif appliqué, ou une panne.
+     Sans cette séparation, « → propositions approuvées : … » arrivait toutes
+     les quinze minutes, et une notification qui parle pour ne rien dire est
+     une notification qu'on apprend à ignorer. */
   if (!TOKEN && !DRY) die('AUTOFIX_TOKEN manquant (variable d\'environnement ou --token).');
 
-  console.log(`→ propositions approuvées : ${API}`);
+  console.error(`→ propositions approuvées : ${API}`);
   await preflight();
-  console.log('✓ les deux dépôts sont propres');
+  console.error('✓ les deux dépôts sont propres');
 
   if (DRY && !TOKEN) {
-    console.log('(mode --dry-run sans jeton : la lecture des propositions passe, l\'appel ne part pas)');
+    console.error('(mode --dry-run sans jeton : la lecture des propositions passe, l\'appel ne part pas)');
   }
 
   const fixes = await fetchApproved();
@@ -225,21 +243,20 @@ async function main() {
        « rien à faire » toutes les quinze minutes est une notification qui
        apprend à ignorer les notifications. Ce qui compte pour Mathieu, c'est
        le jour où quelque chose a été réparé. */
-    if (!DRY) return;
-    console.log('✓ rien à faire');
+    if (DRY) console.log('✓ rien à faire');
     return;
   }
 
-  console.log(`${fixes.length} proposition(s) à appliquer`);
+  console.error(`${fixes.length} proposition(s) à appliquer`);
 
   for (const fix of fixes) {
-    console.log(`\n── ${fix.title} (${fix.riskLevel})`);
+    console.error(`\n── ${fix.title} (${fix.riskLevel})`);
 
     const dir = mkdtempSync(join(process.env.TMPDIR ?? tmpdir(), 'qwillio-fix-'));
     const promptFile = join(dir, 'task.md');
     writeFileSync(promptFile, buildPrompt(fix), 'utf8');
 
-    const command = ['hermes', ...hermesArgs(promptFile)];
+    const command = [HERMES_BIN, ...hermesArgs(promptFile)];
     if (DRY) {
       // Le seul mode vérifiable sans dépenser un appel de modèle : on montre
       // exactement ce qui partirait. Le prompt, lui, est déjà écrit sur le
@@ -250,7 +267,7 @@ async function main() {
     }
 
     console.log(`   session Hermes jetable (${TIMEOUT_MIN} min max)…`);
-    const { code, out } = await sh('hermes', hermesArgs(promptFile), {
+    const { code, out } = await sh(HERMES_BIN, hermesArgs(promptFile), {
       cwd: REPO,
       timeout: TIMEOUT_MIN * 60 * 1000,
     });
