@@ -102,4 +102,23 @@ router.get('/characters/:id/preview', previewLimiter, async (req: any, res: Resp
   }
 });
 
+/* ── TEMP DEBUG (à retirer) : pays + accent de chaque voix Cartesia fr, pour
+   trancher québécois / métropolitain sans deviner. ── */
+router.get('/debug-voices', async (_req, res: Response) => {
+  try {
+    const { listCartesiaVoices } = await import('../services/voice/cartesia.service');
+    const voices = await listCartesiaVoices('fr');
+    res.json(voices.map(v => ({
+      voiceId: v.voiceId,
+      name: v.name,
+      gender: v.gender,
+      country: v.country,
+      accent: v.accent,
+      accentsRaw: v.accentsRaw,
+    })));
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 export default router;

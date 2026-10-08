@@ -146,6 +146,12 @@ export interface CartesiaCatalogVoice {
   name: string;
   description: string | null;
   language: string | null;
+  /** Pays ISO 3166-1 (`FR`, `CA`) — distingue l'accent québécois du métropolitain. */
+  country: string | null;
+  /** L'accent déclaré, brut (ex. `parisian`, `canadian-french`). */
+  accent: string | null;
+  /** Le bloc `accents` brut, en JSON (ex. `[{"locale":"fr-CA"}]`). */
+  accentsRaw: string | null;
   /**
    * `male` / `female`, ou `null`.
    *
@@ -180,6 +186,9 @@ export function toCartesiaVoice(raw: unknown): CartesiaCatalogVoice | null {
     name: str(v.name) ?? 'Sans nom',
     description: str(v.description),
     language: str(v.language),
+    country: str(v.country) ?? str(labels.country),
+    accent: str(v.accent) ?? str(labels.accent),
+    accentsRaw: v.accents !== undefined ? JSON.stringify(v.accents) : null,
     gender: normaliseGender(v.gender) ?? normaliseGender(labels.gender),
   };
 }
