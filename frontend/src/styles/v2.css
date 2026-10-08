@@ -16,12 +16,13 @@
    marque. */
 :root {
   /* Registre clair. Le fond de page (canvas) bascule vers le blanc, les
-     surfaces (band, plate) restent un GRIS NEUTRE médian — ni le blanc du fond,
-     ni le gris sombre #111111 (jugé « trop foncé »), ni le gris clair (jugé
-     « trop clair »). Le texte reste en encre sombre, lisible sur ce gris. */
+     surfaces (band, plate) restent un GRIS neutre clair-médian — plus foncé que
+     le blanc pour rester visibles, mais nettement plus clair que le gris médian
+     #999 (jugé « trop foncé ») et que le gris sombre #111111. Texte en encre
+     sombre, lisible dessus. */
   --q2-canvas: 253 252 252;
-  --q2-band: 153 153 153;
-  --q2-plate: 140 140 140;
+  --q2-band: 186 186 186;
+  --q2-plate: 174 174 174;
   --q2-ink: 29 29 31;
   --q2-graphite: 68 64 59;
   --q2-body: 119 113 105;
