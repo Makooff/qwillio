@@ -655,7 +655,7 @@ export default function Receptionist() {
       {/* overflow-hidden: le halo de la capture déborde de 24px sur petit
           écran, il doit être coupé par la section et non pousser la page */}
       <Section variant="drenched-indigo" aria-labelledby="config-heading" className="relative overflow-hidden">
-        <Container className="grid lg:grid-cols-[1fr_1.05fr] gap-9 sm:gap-12 lg:gap-20 items-center">
+        <Container className="grid lg:grid-cols-[1fr_1.35fr] gap-9 sm:gap-12 lg:gap-20 items-center">
           <RevealV2>
             <Eyebrow tone="indigo" onDark className="mb-3 sm:mb-4">
               {isFr ? 'Configuration' : 'Setup'}
