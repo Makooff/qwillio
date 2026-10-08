@@ -549,13 +549,14 @@ export default function Receptionist() {
                 style={{ background: 'radial-gradient(130% 150% at 18% 115%, #453486 0%, #221842 48%, #100F13 85%)' }}
               >
                 <div className="relative">
-                  {/* Le cadre de déco est PLEIN, en gris secondaire fixe
-                      (`bg-q2-fog`, #8A8F98): le même dans les deux thèmes.
-                      Retour utilisateur: « l'ombre est transparente », puis
-                      « garde l'ombre grise même en mode clair » — le token
-                      `q2-band` basculait au presque blanc en clair, donc on
-                      fige le gris. */}
-                  <div aria-hidden="true" className="absolute inset-0 translate-x-3 translate-y-3 rounded-[16px] bg-q2-fog" />
+                  {/* Le cadre de déco est PLEIN, du gris sombre figé
+                      (valeur `q2-band` du thème sombre: #111111) — identique
+                      dans les deux thèmes. Retour utilisateur: « garde l'ombre
+                      grise même en mode clair », « c'était le gris avant en
+                      mode sombre ». Le token basculait au presque blanc en
+                      clair; on fige donc la valeur sombre, et le filet fog
+                      garde l'arête lisible contre le panneau. */}
+                  <div aria-hidden="true" className="absolute inset-0 translate-x-3 translate-y-3 rounded-[16px] bg-[#111111] border border-q2-fog/30" />
                   <div className="relative rounded-[16px] overflow-hidden border border-white/15">
                     <ScreenShot
                       name="chat-config"
