@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { framePath, type FrameBox } from './frameJourney';
 import { prefersReducedMotion } from './reducedMotion';
-import { onScrollFrame, sceneAt, sceneStarted } from './sceneProgress';
+import { onScrollFrame, sceneAt, sceneStarted, staggeredAt } from './sceneProgress';
 
 /**
  * Un cadre arrondi posé derrière les étapes, qui passe de l'une à l'autre au
@@ -79,10 +79,6 @@ export default function StepFrame({
   const [ready, setReady] = useState(false);
   const boxesRef = useRef<FrameBox[]>([]);
   const maskId = useId();
-  /* Étape sur laquelle le cadre est posé, pour la transition lissée. */
-  const currentStep = useRef(0);
-  const targetStep = useRef(0);
-  const rafId = useRef(0);
 
   /* Les boîtes sont relatives au conteneur, pas à la fenêtre: le cadre est
      posé dedans en `absolute`, il doit parler le même repère. */
@@ -161,64 +157,39 @@ export default function StepFrame({
 
     const nodes = Array.from(root.querySelectorAll<HTMLElement>('[data-step-frame]'));
     const aside = root.querySelector<HTMLElement>('[data-scene-aside]');
-    const last = boxes.length - 1;
 
-    const ease = (t: number) => t * t * (3 - 2 * t);
-
-    const drawAt = (step: number) => {
-      path.setAttribute('d', framePath(boxes[step], radius));
-    };
-
-    /* Transition lissée d'une étape à l'autre (retour utilisateur : le cadre ne
-       suit pas le scroll, il glisse de l'étape courante vers la suivante au
-       franchissement du seuil, en une seule boucle raf). */
-    const tweenTo = (target: number) => {
-      if (targetStep.current === target) return;
-      targetStep.current = target;
-      const fromStep = currentStep.current;
-      const start = performance.now();
-      const DURATION = 320;
-
-      const tick = (now: number) => {
-        const t = Math.max(0, Math.min(1, (now - start) / DURATION));
-        const a = boxes[fromStep];
-        const b = boxes[target];
-        const box: FrameBox = {
-          x: a.x + (b.x - a.x) * ease(t),
-          y: a.y + (b.y - a.y) * ease(t),
-          w: a.w + (b.w - a.w) * ease(t),
-          h: a.h + (b.h - a.h) * ease(t),
-        };
-        path.setAttribute('d', framePath(box, radius));
-        if (t < 1) {
-          rafId.current = requestAnimationFrame(tick);
-        } else {
-          currentStep.current = target;
-          drawAt(target);
-        }
+    /* Cadre posé à la position continue `pos` ∈ [0, n-1], entre deux étapes.
+       Interpolation LINÉAIRE, sans easing et sans tween à durée fixe : c'est
+       le scroll qui donne la vitesse, le cadre ne traîne ni ne court après
+       (retour utilisateur : « elle doit se déplacer à la vitesse du scroll »). */
+    const drawAtPosition = (pos: number) => {
+      const i = Math.max(0, Math.min(boxes.length - 1, Math.floor(pos)));
+      const f = pos - i;
+      const a = boxes[i];
+      const b = boxes[Math.min(i + 1, boxes.length - 1)];
+      const box: FrameBox = {
+        x: a.x + (b.x - a.x) * f,
+        y: a.y + (b.y - a.y) * f,
+        w: a.w + (b.w - a.w) * f,
+        h: a.h + (b.h - a.h) * f,
       };
-      cancelAnimationFrame(rafId.current);
-      rafId.current = requestAnimationFrame(tick);
+      path.setAttribute('d', framePath(box, radius));
     };
 
     const unsub = onScrollFrame(() => {
       const raw = sceneStarted(aside) ? sceneAt(nodes) : 0;
-      const at = Math.max(0, Math.min(last, raw));
-      /* `round` et non `floor` : la bulle démarre à mi-étape, donc légèrement
-         EN AVANCE sur le scroll au lieu de traîner derrière le compteur. Le
-         compteur (PinnedScene) garde `floor`, il s'illumine à l'arrivée ;
-         la bulle, elle, part avant pour être déjà posée quand l'étape est
-         franchie (retour utilisateur : « l'anim se faisait trop tard »). */
-      const step = Math.round(at);
-      if (step !== currentStep.current) tweenTo(step);
+      /* `staggeredAt` pose un palier sur chaque étape : le scroll « ne fait
+         rien » le temps du palier, puis le cadre rattrape la suivante. Comme
+         la position reste une fonction continue du scroll, un scroll rapide ne
+         saute plus d'étape : il traverse chaque palier dans l'ordre, sans
+         envol vers le dernier (retour utilisateur). */
+      drawAtPosition(staggeredAt(raw, boxes.length));
     });
 
-    currentStep.current = 0;
-    drawAt(0);
+    drawAtPosition(0);
 
     return () => {
       unsub();
-      cancelAnimationFrame(rafId.current);
     };
   }, [radius, reduced, size, scope]);
 

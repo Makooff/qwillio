@@ -98,3 +98,28 @@ export function onScrollFrame(read: () => void): () => void {
     window.removeEventListener('resize', schedule);
   };
 }
+
+/**
+ * Remappe la position continue de la scène en « escalier à paliers » : le
+ * cadre marque un temps d'arrêt sur chaque étape au lieu de glisser sans
+ * repère (retour utilisateur : « le scroll ne doit rien faire pendant
+ * quelques crans pour marquer un temps entre chaque »).
+ *
+ * `raw` ∈ [0, steps-1] vient de `sceneAt`. La valeur rendue reste dans le même
+ * intervalle mais PALLIE : elle reste figée sur chaque entier pendant une
+ * fraction `dwell` du trajet, puis rattrape la suivante sur le reste. Le cadre
+ * est donc posé (palier), se déplace à la vitesse du scroll (la sortie suit
+ * `raw` un pour un), et ne saute jamais une étape : même en scroll rapide, la
+ * position est une fonction continue du scroll, donc chaque palier est
+ * traversé dans l'ordre.
+ */
+export function staggeredAt(raw: number, steps: number, dwell = 0.4): number {
+  if (steps <= 1) return 0;
+  const n = steps - 1;
+  const i = Math.floor(raw);
+  if (i < 0) return 0;
+  if (i >= n) return n;
+  const f = raw - i;
+  if (f < dwell) return i;
+  return i + (f - dwell) / (1 - dwell);
+}
