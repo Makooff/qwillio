@@ -228,7 +228,7 @@ const FR = {
   camille: '8832a0b5-47b2-4751-bb22-6a8e2149303d', // French Narrator Lady, raffinée
   lea:     '0d09e991-5763-406e-b637-02bc431ef72d', // Valérie - Vibrant Voice, énergique
   sofia:   '2f8e82c4-cb94-4e6d-8b6a-29bf58ceb60a', // Manon - Bright Belle, vive et naturelle
-  nour:    'a8a1eb38-5f15-4c1d-8722-7ac0f329727d', // Calm French Woman, douce et posée
+  nour:    '7c58f4a4-a72c-42fa-a503-41b9408820f3', // Inès - Poised Communicator, douce et posée
   // Hommes — professionnel, chaleur, décontraction, énergie, distinction.
   lucas:   '5c3c89e5-535f-43ef-b14d-f8ffe148c1f0', // French Narrator Man, posé
   adrien:  'ab7c61f5-3daa-47dd-a23b-4ac0aac5f5c3', // Friendly French Man, chaleureux
