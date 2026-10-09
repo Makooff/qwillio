@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { EASE_OUT_EXPO } from './motion/reducedMotion';
 import { WEEKDAYS_FR, monthGrid, monthLabel, isoDay } from '../../utils/month-grid';
 import { parseTranscript } from '../../utils/transcript';
 import SentimentBadge from '../client-dashboard/SentimentBadge';
@@ -39,32 +38,30 @@ const C = {
 const brandWash = 'rgba(115,73,254,0.14)';
 const brandWashSoft = 'rgba(115,73,254,0.10)';
 
+/* ── Une boucle d'apparition, réutilisée par les rendez-vous et le
+   transcript : fondu + léger grossissement, pose, sortie, et ça recommence.
+   `idx` décale chaque élément pour former une vague, pas un clignotement
+   synchronisé. */
+function appearLoop(idx: number, reduced: boolean | null) {
+  if (reduced) return {};
+  return {
+    animate: { opacity: [0, 1, 1, 0], scale: [0.9, 1, 1, 0.9] },
+    transition: {
+      duration: 5.5,
+      times: [0, 0.07, 0.66, 0.73],
+      ease: 'easeInOut' as const,
+      repeat: Infinity,
+      delay: idx * 0.55,
+    },
+  };
+}
+
 /* Le cadre commun : une ombre déportée — un panneau #111111 décalé de 8 px en
    bas à droite, comme le cadre de déco qu'on posait derrière les captures —
-   puis la surface #0a0a0a par-dessus.
-
-   L'animation est CELLE DU SITE (RevealV2) rejouée en boucle : le fondu + la
-   remontée d'arrivée (opacity 0→1, y 20→0, courbe expo), un temps de pose,
-   puis la sortie, et ça recommence — comme une démo qui tourne. */
+   puis la surface #0a0a0a par-dessus. */
 function Card({ children }: { children: ReactNode }) {
-  const reduced = useReducedMotion();
   return (
-    <motion.div
-      className="relative"
-      initial={reduced ? { opacity: 1, y: 0 } : { opacity: 0, y: 20 }}
-      animate={reduced ? { opacity: 1, y: 0 } : { opacity: [0, 1, 1, 0], y: [20, 0, 0, 20] }}
-      transition={
-        reduced
-          ? { duration: 0 }
-          : {
-              duration: 4,
-              times: [0, 0.125, 0.625, 0.75],
-              ease: [EASE_OUT_EXPO, 'linear', 'easeIn'],
-              repeat: Infinity,
-              repeatDelay: 1.2,
-            }
-      }
-    >
+    <div className="relative">
       <div
         aria-hidden="true"
         className="absolute inset-0 translate-x-2 translate-y-2 rounded-2xl"
@@ -76,13 +73,14 @@ function Card({ children }: { children: ReactNode }) {
       >
         {children}
       </div>
-    </motion.div>
+    </div>
   );
 }
 
 /* Le petit en-tête de carte : un titre et un sous-titre, comme un écran du
    portail. */
 function CardHead({ title, sub, accent }: { title: string; sub?: string; accent?: boolean }) {
+  const reduced = useReducedMotion();
   return (
     <div
       className="flex items-center justify-between gap-3 px-4 sm:px-5 pt-4 pb-3"
@@ -97,7 +95,13 @@ function CardHead({ title, sub, accent }: { title: string; sub?: string; accent?
           className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2 py-0.5 text-[10px] font-medium"
           style={{ background: brandWashSoft, color: C.brandHi, border: `1px solid ${C.borderHi}` }}
         >
-          <span className="h-1 w-1 rounded-full" style={{ background: C.brand }} aria-hidden="true" />
+          <motion.span
+            className="h-1 w-1 rounded-full"
+            style={{ background: C.brand }}
+            animate={reduced ? undefined : { opacity: [1, 0.25, 1] }}
+            transition={reduced ? undefined : { duration: 1.4, repeat: Infinity, ease: 'easeInOut' }}
+            aria-hidden="true"
+          />
           Live
         </span>
       ) : null}
@@ -122,6 +126,17 @@ function AgendaCard({ isFr }: { isFr: boolean }) {
   const month = new Date();
   const cells = monthGrid(month);
   const today = isoDay(new Date());
+  const reduced = useReducedMotion();
+
+  /* Rendez-vous à plat avec un index global, pour la vague d'apparition. */
+  let gi = 0;
+  const bookings: { day: number; time: string; name: string; idx: number }[] = [];
+  for (const [day, list] of Object.entries(SAMPLE_DAYS)) {
+    for (const b of list.slice(0, 2)) {
+      bookings.push({ day: Number(day), time: b.time, name: b.name, idx: gi++ });
+    }
+  }
+
   return (
     <Card>
       <CardHead
@@ -138,7 +153,7 @@ function AgendaCard({ isFr }: { isFr: boolean }) {
         </div>
         <div className="grid grid-cols-7 gap-1.5" role="grid">
           {cells.map((cell) => {
-            const dayBookings = cell.inMonth ? (SAMPLE_DAYS[cell.day] ?? []) : [];
+            const dayBookings = bookings.filter((b) => b.day === cell.day);
             const isToday = cell.iso === today;
             return (
               <div
@@ -159,15 +174,16 @@ function AgendaCard({ isFr }: { isFr: boolean }) {
                 >
                   {cell.day}
                 </span>
-                {dayBookings.slice(0, 2).map((b) => (
-                  <span
+                {dayBookings.map((b) => (
+                  <motion.span
                     key={b.time + b.name}
                     className="mt-0.5 flex items-baseline gap-1 rounded px-1 py-[2px] text-[9.5px] leading-tight"
                     style={{ background: brandWash }}
+                    {...appearLoop(b.idx, reduced)}
                   >
                     <span className="shrink-0 font-semibold tabular-nums" style={{ color: C.brandHi }}>{b.time}</span>
                     <span className="truncate" style={{ color: C.text }}>{b.name}</span>
-                  </span>
+                  </motion.span>
                 ))}
               </div>
             );
@@ -182,13 +198,21 @@ function AgendaCard({ isFr }: { isFr: boolean }) {
    La fiche d'appel que le gérant reçoit : qui appelle, le résumé, le
    sentiment et le rendez-vous pris. */
 function BriefCard({ isFr }: { isFr: boolean }) {
+  const reduced = useReducedMotion();
   return (
     <Card>
       <CardHead title={isFr ? 'Fiche d’appel' : 'Call record'} sub={isFr ? 'Il y a 2 min' : '2 min ago'} />
       <div className="space-y-4 p-4 sm:p-5">
         <div className="flex items-center gap-3">
-          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: brandWashSoft }}>
+          <span className="relative flex h-9 w-9 shrink-0 items-center justify-center rounded-lg" style={{ background: brandWashSoft }}>
             <Phone size={15} style={{ color: C.brandHi }} aria-hidden="true" />
+            <motion.span
+              aria-hidden="true"
+              className="absolute inset-0 rounded-lg"
+              style={{ border: `1px solid ${C.brandHi}` }}
+              animate={reduced ? undefined : { scale: [1, 1.35], opacity: [0.55, 0] }}
+              transition={reduced ? undefined : { duration: 1.6, repeat: Infinity, ease: 'easeOut' }}
+            />
           </span>
           <div className="min-w-0 flex-1">
             <p className="truncate text-[13px] font-medium" style={{ color: C.text }}>Mme Lefèvre</p>
@@ -230,6 +254,7 @@ const LEADS = [
 ];
 
 function RegularsCard({ isFr }: { isFr: boolean }) {
+  const reduced = useReducedMotion();
   return (
     <Card>
       <CardHead title={isFr ? 'Leads' : 'Leads'} sub={isFr ? 'Habitués reconnus' : 'Recognised regulars'} />
@@ -250,12 +275,14 @@ function RegularsCard({ isFr }: { isFr: boolean }) {
               <p className="flex items-center gap-2 text-[13px] font-medium" style={{ color: C.text }}>
                 <span className="truncate">{l.name}</span>
                 {l.lead ? (
-                  <span
+                  <motion.span
                     className="shrink-0 rounded-full px-1.5 py-0.5 text-[9px] font-semibold"
                     style={{ background: 'rgba(255,193,7,0.10)', color: C.warn }}
+                    animate={reduced ? undefined : { opacity: [1, 0.45, 1] }}
+                    transition={reduced ? undefined : { duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
                   >
                     LEAD
-                  </span>
+                  </motion.span>
                 ) : null}
               </p>
               <p className="text-[11px]" style={{ color: C.sec }}>
@@ -285,13 +312,14 @@ const SAMPLE_TRANSCRIPT = [
 
 function TranscriptCard({ isFr }: { isFr: boolean }) {
   const lines = parseTranscript(SAMPLE_TRANSCRIPT.join('\n'));
+  const reduced = useReducedMotion();
   return (
     <Card>
       <CardHead title={isFr ? 'Transcript' : 'Transcript'} sub={isFr ? 'Appel en cours' : 'Live call'} accent />
       <div className="p-4 sm:p-5">
         <div className="space-y-2.5 rounded-xl p-4" style={{ background: C.well, border: `1px solid ${C.border}` }}>
           {lines.map((line, i) => (
-            <p key={i} className="text-[12.5px] leading-relaxed">
+            <motion.p key={i} className="text-[12.5px] leading-relaxed" {...appearLoop(i, reduced)}>
               {line.who && (
                 <span
                   className="mr-1.5 text-[10.5px] font-semibold uppercase tracking-wide"
@@ -301,7 +329,7 @@ function TranscriptCard({ isFr }: { isFr: boolean }) {
                 </span>
               )}
               <span style={{ color: C.text }}>{line.text}</span>
-            </p>
+            </motion.p>
           ))}
         </div>
       </div>
@@ -319,19 +347,21 @@ const KNOWLEDGE = [
 ];
 
 function KnowledgeCard({ isFr }: { isFr: boolean }) {
+  const reduced = useReducedMotion();
   return (
     <Card>
       <CardHead title={isFr ? 'Base de connaissances' : 'Knowledge base'} sub={isFr ? '128 entrées' : '128 entries'} />
       <ul>
-        {KNOWLEDGE.map((k) => (
-          <li
+        {KNOWLEDGE.map((k, i) => (
+          <motion.li
             key={k.title}
             className="flex items-baseline gap-3 px-4 py-3 sm:px-5"
             style={{ borderBottom: `1px solid ${C.border}` }}
+            {...appearLoop(i, reduced)}
           >
             <span className="shrink-0 text-[11px] font-medium" style={{ color: C.brandHi }}>{k.title}</span>
             <span className="min-w-0 text-[12.5px]" style={{ color: C.text }}>{k.value}</span>
-          </li>
+          </motion.li>
         ))}
       </ul>
     </Card>
@@ -341,6 +371,7 @@ function KnowledgeCard({ isFr }: { isFr: boolean }) {
 /* ── 06 · Ce qui ne bouge pas ─────────────────────────────────────────────
    Le forfait (ClientBilling) : le prix, l'engagement, ce qui est inclus. */
 function GuaranteeCard({ isFr }: { isFr: boolean }) {
+  const reduced = useReducedMotion();
   const rows = isFr
     ? [
         'Enregistrement annoncé au décrochage, conforme RGPD',
@@ -363,13 +394,15 @@ function GuaranteeCard({ isFr }: { isFr: boolean }) {
             {isFr ? '99 €' : '€99'}
           </span>
           <span className="text-[12px]" style={{ color: C.sec }}>/ {isFr ? 'mois' : 'month'}</span>
-          <span
+          <motion.span
             className="ml-auto inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-medium"
             style={{ background: 'rgba(120,220,120,0.10)', color: C.ok, border: `1px solid ${C.border}` }}
+            animate={reduced ? undefined : { opacity: [1, 0.6, 1] }}
+            transition={reduced ? undefined : { duration: 2.6, repeat: Infinity, ease: 'easeInOut' }}
           >
             <Clock size={11} aria-hidden="true" />
             {isFr ? 'Sans engagement' : 'No commitment'}
-          </span>
+          </motion.span>
         </div>
         <ul className="space-y-2">
           {rows.map((r) => (
