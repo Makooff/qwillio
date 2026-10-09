@@ -1,9 +1,7 @@
-import type { CSSProperties, ReactNode } from 'react';
 import { useRef } from 'react';
-import { Link } from 'react-router-dom';
 import {
   ArrowRight, Play, Phone, CalendarCheck, PhoneForwarded, UserCheck,
-  MessagesSquare, Mic, Camera, PhoneCall, Shield,
+  MessagesSquare, Mic, Camera, PhoneCall,
   type LucideIcon,
 } from '../../components/icons';
 import { useSEO } from '../../hooks/useSEO';
@@ -38,26 +36,13 @@ interface Pillar {
   panelNote?: string;
 }
 
-/* Les deux dégradés drenched de la Home (rangée Fiche d'appel), alternés d'une
-   carte à l'autre : indigo d'un côté, violet de l'autre — deux géométries,
-   comme les deux cercles du logo. */
-const DRENCHED = {
-  indigo: 'radial-gradient(130% 150% at 18% 115%, #453486 0%, #221842 48%, #100F13 85%)',
-  violet: 'radial-gradient(125% 145% at 85% -12%, #4E2E7E 0%, #251741 48%, #100F13 85%)',
-} as const;
-
-/* Une capture du VRAI portail, pas un dessin inventé (demande utilisateur:
-   « reprends des cards qu'on a sur le dashboard, invente pas des trucs IA »).
-   La capture est posée sur le panneau drenched, avec derrière elle le cadre de
-   déco décalé en gris sombre figé — le même motif que la section Configuration
-   de cette page. */
+/* Une capture du VRAI portail, posée telle quelle — sans panneau drenched ni
+   cadre de déco autour (demande utilisateur: « enlève les cards gradient et
+   l'info, garde juste les illustrations »). */
 function ShotVisual({ name, alt }: { name: string; alt: string }) {
   return (
-    <div className="relative">
-      <div aria-hidden="true" className="absolute inset-0 translate-x-3 translate-y-3 rounded-[16px] bg-[#111111] border border-q2-fog/30" />
-      <div className="relative rounded-[16px] overflow-hidden border border-white/15">
-        <ScreenShot name={name} alt={alt} />
-      </div>
+    <div className="rounded-[16px] overflow-hidden border border-q2-plate shadow-[0_24px_60px_-24px_rgba(17,17,23,0.35)]">
+      <ScreenShot name={name} alt={alt} />
     </div>
   );
 }
@@ -104,15 +89,9 @@ const SHOTS: Record<string, { name: string; altFr: string; altEn: string; tone: 
   },
 };
 
-function Panel({ label, num, isFr, children }: { label: string; num: string; isFr: boolean; children: ReactNode }) {
+function Panel({ num, isFr }: { num: string; isFr: boolean }) {
   const shot = SHOTS[num] ?? SHOTS['01'];
-  return (
-    <div className="h-full rounded-[24px] sm:rounded-[28px] p-8 sm:p-10" style={{ background: DRENCHED[shot.tone] }}>
-      <ShotVisual name={shot.name} alt={isFr ? shot.altFr : shot.altEn} />
-      <p className="q2-eyebrow text-q2-mist mt-8 mb-7">{label}</p>
-      {children}
-    </div>
-  );
+  return <ShotVisual name={shot.name} alt={isFr ? shot.altFr : shot.altEn} />;
 }
 
 export default function Receptionist() {
@@ -129,32 +108,6 @@ export default function Receptionist() {
       : 'Qwillio answers, reads your Google or Outlook calendar live, books the appointment during the call, briefs you before handing the caller over and recognises your regulars. French and English, GDPR compliant, from €99 a month.',
     canonical: 'https://qwillio.com/receptionist',
   });
-
-  const trades: { label: string; href: string }[] = isFr
-    ? [
-        { label: 'Dentiste', href: '/dentiste' },
-        { label: 'Avocat', href: '/avocat' },
-        { label: 'Notaire', href: '/notaire' },
-        { label: 'Plombier', href: '/plombier' },
-        { label: 'Garagiste', href: '/garagiste' },
-        { label: 'Kiné', href: '/kine' },
-        { label: 'Restaurant', href: '/restaurant' },
-        { label: 'Immobilier', href: '/immobilier' },
-        { label: 'Coiffeur', href: '/coiffeur' },
-        { label: 'Fiduciaire', href: '/fiduciaire' },
-      ]
-    : [
-        { label: 'Dental', href: '/dentiste' },
-        { label: 'Legal', href: '/avocat' },
-        { label: 'Notary', href: '/notaire' },
-        { label: 'Plumbing', href: '/plombier' },
-        { label: 'Garage', href: '/garagiste' },
-        { label: 'Physio', href: '/kine' },
-        { label: 'Restaurant', href: '/restaurant' },
-        { label: 'Real estate', href: '/immobilier' },
-        { label: 'Hair salon', href: '/coiffeur' },
-        { label: 'Accounting', href: '/fiduciaire' },
-      ];
 
   const pillars: Pillar[] = isFr
     ? [
@@ -340,22 +293,6 @@ export default function Receptionist() {
         },
       ];
 
-  const guarantees = isFr
-    ? [
-        'Annonce d’enregistrement au décrochage, conforme RGPD',
-        'Vos données ne sont ni vendues ni utilisées pour entraîner un modèle externe sans votre accord',
-        'Les appels spam sont écartés et ne comptent pas dans vos minutes',
-        'Disponible 24/7, français et anglais sur le même appel',
-        `À partir de 99${NB}€ par mois, sans engagement en mensuel`,
-      ]
-    : [
-        'Recording announced at pickup, GDPR compliant',
-        'Your data is never sold, never used to train an external model without your consent',
-        'Spam calls are filtered out and never counted against your minutes',
-        'Available 24/7, French and English on the same call',
-        'From €99 a month, no commitment on monthly billing',
-      ];
-
   return (
     <PublicShell>
       {/* HERO, asymétrique: titre whisper à gauche, le dashboard dans l'iPhone à droite */}
@@ -525,28 +462,7 @@ export default function Receptionist() {
                         de ce panneau au lieu de le frôler en travers de la
                         scène. C'est ce qui évite les coins des cartes. */}
                     <div data-step-mask className={flip ? 'lg:order-1' : ''}>
-                      <Panel label={pillar.panelLabel} num={pillar.num} isFr={isFr}>
-                        <ul className="divide-y divide-q2-graphite-d" role="list">
-                          {pillar.panelRows.map((row) => (
-                            <li
-                              key={row.label}
-                              className="flex items-baseline justify-between gap-5 py-4 first:pt-0"
-                            >
-                              <span className="text-q2-mist text-[15px] leading-snug q2-body-text">
-                                {row.label}
-                              </span>
-                              {row.meta ? (
-                                <span className="text-q2-fog text-[13px] whitespace-nowrap">{row.meta}</span>
-                              ) : null}
-                            </li>
-                          ))}
-                        </ul>
-                        {pillar.panelNote ? (
-                          <p className="mt-5 pt-5 border-t border-q2-graphite-d text-q2-fog text-[13px] leading-relaxed q2-body-text">
-                            {pillar.panelNote}
-                          </p>
-                        ) : null}
-                      </Panel>
+                      <Panel num={pillar.num} isFr={isFr} />
                     </div>
                   </div>
                 </RevealV2>
@@ -705,44 +621,7 @@ export default function Receptionist() {
           </RevealV2>
 
           <RevealV2 index={1}>
-            <div className="rounded-[24px] sm:rounded-[28px] p-8 sm:p-10" style={{ background: DRENCHED.indigo }}>
-              <ShotVisual name={SHOTS['05'].name} alt={isFr ? SHOTS['05'].altFr : SHOTS['05'].altEn} />
-              <p className="q2-eyebrow text-q2-mist mt-8 mb-7">{isFr ? 'Deux mémoires' : 'Two memories'}</p>
-              <ul className="divide-y divide-q2-graphite-d" role="list">
-                {(isFr
-                  ? [
-                      { label: 'Règles de maison et réponses prioritaires', meta: 'toujours en tête' },
-                      { label: 'Le reste de votre base de connaissances', meta: 'à la demande' },
-                      { label: 'Scripts spécialisés par métier', meta: 'inclus' },
-                    ]
-                  : [
-                      { label: 'House rules and priority answers', meta: 'always in mind' },
-                      { label: 'The rest of your knowledge base', meta: 'on demand' },
-                      { label: 'Trade-specific scripts', meta: 'included' },
-                    ]
-                ).map((row) => (
-                  <li key={row.label} className="flex items-baseline justify-between gap-5 py-4 first:pt-0">
-                    <span className="text-q2-mist text-[15px] leading-snug q2-body-text">{row.label}</span>
-                    <span className="text-q2-fog text-[13px] whitespace-nowrap">{row.meta}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <p className="mt-7 pt-6 border-t border-q2-graphite-d q2-eyebrow text-q2-mist mb-4">
-                {isFr ? 'Métiers couverts' : 'Trades covered'}
-              </p>
-              <nav aria-label={isFr ? 'Métiers couverts' : 'Trades covered'} className="flex flex-wrap gap-2.5">
-                {trades.map((trade) => (
-                  <Link
-                    key={trade.href}
-                    to={trade.href}
-                    className="inline-flex items-center min-h-[44px] rounded-full bg-q2-void/60 border border-q2-graphite-d px-4 py-2 text-[13px] font-medium text-q2-mist hover:border-q2-indigo hover:text-q2-lift transition-colors duration-150 focus:outline-none focus-visible:ring-2 focus-visible:ring-q2-indigo/40"
-                  >
-                    {trade.label}
-                  </Link>
-                ))}
-              </nav>
-            </div>
+            <ShotVisual name={SHOTS['05'].name} alt={isFr ? SHOTS['05'].altFr : SHOTS['05'].altEn} />
           </RevealV2>
         </Container>
       </Section>
@@ -785,27 +664,8 @@ export default function Receptionist() {
           </RevealV2>
 
           <RevealV2 index={1}>
-            <div className="rounded-[24px] sm:rounded-[28px] p-8 sm:p-10 lg:sticky lg:top-24" style={{ background: DRENCHED.violet }}>
+            <div className="lg:sticky lg:top-24">
               <ShotVisual name={SHOTS['06'].name} alt={isFr ? SHOTS['06'].altFr : SHOTS['06'].altEn} />
-              <p className="flex items-center gap-2.5 q2-eyebrow text-q2-mist mt-8 mb-7">
-                <Shield size={13} className="text-q2-indigo" aria-hidden="true" />
-                {isFr ? 'Ce qui ne bouge pas' : 'What does not move'}
-              </p>
-              <ul className="divide-y divide-q2-graphite-d" role="list">
-                {guarantees.map((line) => (
-                  <li
-                    key={line}
-                    className="text-q2-mist text-[14.5px] leading-relaxed q2-body-text py-4 first:pt-0 last:pb-0"
-                  >
-                    {line}
-                  </li>
-                ))}
-              </ul>
-              <p className="mt-6 pt-5 border-t border-q2-graphite-d text-q2-fog text-[13px] leading-relaxed q2-body-text">
-                {isFr
-                  ? 'La prise de rendez-vous en direct suppose un agenda Google ou Outlook connecté. Sans agenda, il prend la demande et vous rappelez.'
-                  : 'Live booking assumes a connected Google or Outlook calendar. Without one, it takes the request and you call back.'}
-              </p>
             </div>
           </RevealV2>
         </Container>
