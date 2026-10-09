@@ -64,6 +64,7 @@ class CallPostmortemService {
         vapiCallId: true,
         transcript: true,
         outcome: true,
+        sentiment: true,
         callerName: true,
         isLead: true,
         bookingRequested: true,

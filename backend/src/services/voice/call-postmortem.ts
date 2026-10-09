@@ -43,7 +43,9 @@ export type MortemCode =
   /** La fin de tour a fait attendre l'appelant. */
   | 'slow_turns'
   /** L'agent a dû chercher une réponse : elle manquait dans le prompt. */
-  | 'knowledge_lookup';
+  | 'knowledge_lookup'
+  /** L'appelant n'était pas satisfait — lu dans l'analyse du transcript. */
+  | 'caller_unhappy';
 
 export type Verdict = 'ok' | 'watch' | 'broken';
 
@@ -62,6 +64,8 @@ export interface CallPostMortem {
 export interface CallSignals {
   transcript: string | null;
   outcome: string | null;
+  /** Le sentiment rendu par l'analyse du transcript : l'appelant était-il satisfait. */
+  sentiment: string | null;
   callerName: string | null;
   isLead: boolean;
   bookingRequested: boolean;
@@ -205,6 +209,36 @@ export function postMortemOf(call: CallSignals): CallPostMortem {
     codes.push('knowledge_lookup');
     evidence.push('l\'agent a dû chercher une réponse en cours d\'appel');
     clientAction ??= 'Une question a nécessité une recherche : la déplacer dans le prompt la rendra instantanée.';
+  }
+
+  /* ── Ce que l'appelant a ressenti ─────────────────────────────────────────
+     La seule lecture du CONTENU de l'appel dans ce module, et elle ne coûte
+     rien : `sentiment` et `outcome` sortent déjà de l'analyse du transcript
+     qui tourne sur CHAQUE appel (`client-call.service`, un modèle par appel).
+     On relit donc un verdict de modèle déjà rangé sur la ligne, on n'en
+     demande pas un second — c'est le seul modèle qu'on a le droit de lire
+     gratuitement.
+
+     Payé le 08/10/2026, et c'est un défaut de conception de ce module :
+     `complaint` n'est ni `missed` ni `other`, donc l'appel le plus mécontent
+     de la journée ressortait `ok`, et `sentiment` n'était même pas lu. Un
+     voyant vert posé précisément sur l'appel qu'il fallait aller écouter.
+
+     Volontairement SANS condition sur les tours d'appelant : `callerTurns`
+     n'existe pas sur le chemin voice-core (il n'est jamais inventé, voir
+     `readSignals`), et une condition qui ne peut être vraie que d'un côté est
+     un voyant vert de l'autre côté.
+
+     `watch` et jamais `broken` : un restaurant reçoit de vraies réclamations.
+     En faire des propositions de correctif noierait le salon et apprendrait à
+     ignorer les alertes. Ici l'action utile est celle du gérant — écouter. */
+  const complained = call.outcome === 'complaint';
+  const unhappy = String(call.sentiment ?? '').toLowerCase() === 'negative';
+  if (complained || unhappy) {
+    codes.push('caller_unhappy');
+    evidence.push(complained ? 'issue « réclamation »' : 'appelant mécontent (sentiment négatif)');
+    clientAction ??=
+      'L\'appelant n\'était pas satisfait. Écouter ce transcript, et le rappeler si l\'appel le justifie.';
   }
 
   const needsDeveloper = codes.some(c =>

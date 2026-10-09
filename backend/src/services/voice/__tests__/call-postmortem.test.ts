@@ -6,6 +6,7 @@ function call(over: Partial<CallSignals> = {}): CallSignals {
   return {
     transcript: 'Bonjour, je voudrais un rendez-vous jeudi.\nAgent: Bien sûr, à quelle heure ?',
     outcome: 'completed',
+    sentiment: 'neutral',
     callerName: 'Marie Dupont',
     isLead: true,
     bookingRequested: true,
@@ -128,5 +129,47 @@ describe('readSignals — les deux formes de métriques', () => {
     expect(s.callerTurns).toBeUndefined();
     expect(s.hardBargeIns).toBeUndefined();
     expect(s.totalP95).toBeUndefined();
+  });
+});
+
+describe('postMortemOf — ce que l\'appelant a ressenti', () => {
+  it('signale une réclamation — l\'appel le plus mécontent portait un voyant vert', () => {
+    const m = postMortemOf(call({ outcome: 'complaint' }));
+    expect(m.codes).toContain('caller_unhappy');
+    expect(m.verdict).toBe('watch');
+    expect(m.clientAction).toMatch(/satisfait/i);
+    expect(m.evidence.join(' ')).toContain('réclamation');
+  });
+
+  it('signale un appelant mécontent même quand l\'issue dit que l\'appel a servi', () => {
+    const m = postMortemOf(call({ outcome: 'info_provided', sentiment: 'negative' }));
+    expect(m.codes).toContain('caller_unhappy');
+    expect(m.evidence.join(' ')).toContain('sentiment négatif');
+  });
+
+  it('le lit aussi sur le chemin voice-core, sans tours d\'appelant à sa disposition', () => {
+    // `callerTurns` n'existe pas sur ce chemin : une condition posée dessus
+    // aurait rendu ce code muet sur tous les appels voice-core.
+    const m = postMortemOf(voiceCore({ total_p95: 400 }, { outcome: 'complaint' }));
+    expect(m.codes).toContain('caller_unhappy');
+  });
+
+  it('ne transforme jamais un client mécontent en correctif de code', () => {
+    const m = postMortemOf(call({ outcome: 'complaint' }));
+    expect(m.needsDeveloper).toBe(false);
+    expect(m.verdict).not.toBe('broken');
+  });
+
+  it('laisse un appel satisfait tranquille', () => {
+    expect(postMortemOf(call({ sentiment: 'positive' })).codes).toEqual([]);
+  });
+
+  it('ne masque pas un vrai défaut : le code de développeur reste prioritaire', () => {
+    const m = postMortemOf(
+      vapi({ toolCalls: [{ name: 'createBooking:error', ms: 90 }] }, { outcome: 'complaint' }),
+    );
+    expect(m.verdict).toBe('broken');
+    expect(m.codes).toEqual(expect.arrayContaining(['tool_failed', 'caller_unhappy']));
+    expect(m.needsDeveloper).toBe(true);
   });
 });
