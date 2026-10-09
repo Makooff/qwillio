@@ -423,7 +423,7 @@ export default function Receptionist() {
       {/* overflow-hidden: le halo de la capture déborde de 24px sur petit
           écran, il doit être coupé par la section et non pousser la page */}
       <Section variant="drenched-indigo" aria-labelledby="config-heading" className="relative overflow-hidden">
-        <Container className="grid lg:grid-cols-[1fr_1.35fr] gap-9 sm:gap-12 lg:gap-20 items-center">
+        <Container className="grid lg:grid-cols-[1fr_1.55fr] gap-9 sm:gap-12 lg:gap-20 items-center">
           <RevealV2>
             <Eyebrow tone="indigo" onDark className="mb-3 sm:mb-4">
               {isFr ? 'Configuration' : 'Setup'}
@@ -475,7 +475,7 @@ export default function Receptionist() {
                   dedans, et derrière elle le cadre de déco décalé en gris
                   secondaire (`q2-fog`), 12px égaux bas et droite. */}
               <div
-                className="rounded-[28px] p-5 sm:p-8 lg:p-10"
+                className="rounded-[28px] p-6 sm:p-10 lg:p-14"
                 style={{ background: 'radial-gradient(130% 150% at 18% 115%, #453486 0%, #221842 48%, #100F13 85%)' }}
               >
                 <div className="relative">
