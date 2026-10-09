@@ -28,6 +28,7 @@ import { bestTimeLearningService } from '../services/best-time-learning.service'
 import { scriptLearningService } from '../services/script-learning.service';
 import { receptionistLearningService } from '../services/voice/receptionist-learning.service';
 import { callPostmortemService } from '../services/voice/call-postmortem.service';
+import { callPatternsService } from '../services/voice/call-patterns.service';
 import { callIntelligenceService } from '../services/call-intelligence.service';
 import { followUpSequencesService } from '../services/follow-up-sequences.service';
 import { prospectScoringService } from '../services/prospect-scoring.service';
@@ -72,6 +73,7 @@ class BotLoop {
   private bestTimeJob: cron.ScheduledTask | null = null;
   private receptionistLearningJob: cron.ScheduledTask | null = null;
   private callPostmortemJob: cron.ScheduledTask | null = null;
+  private callPatternsJob: cron.ScheduledTask | null = null;
   private scriptLearningJob: cron.ScheduledTask | null = null;
   private callIntelligenceJob: cron.ScheduledTask | null = null;
   private followUpJob: cron.ScheduledTask | null = null;
@@ -769,6 +771,23 @@ class BotLoop {
     }), { timezone: 'UTC' });
 
     // ═══════════════════════════════════════════════════════════
+    // CALL PATTERNS — every 5 minutes, après le post-mortem
+    //
+    // Le post-mortem juge avec des règles ; ce balayage LIT les transcripts
+    // des appels perfectibles et agrège ce qu'ils enseignent dans
+    // `learning_pattern`. Un pattern vu trois fois devient un signal
+    // Discord, et le synthétiseur local en fait une règle prompts.py en PR
+    // brouillon. C'est le maillon « le core apprend de chaque appel ».
+    // ═══════════════════════════════════════════════════════════
+    this.callPatternsJob = cron.schedule('*/5 * * * *', () => jobGuard.run('call-patterns', async () => {
+      try {
+        await callPatternsService.run();
+      } catch (error) {
+        logger.error('[CRON] Call patterns failed:', error);
+      }
+    }), { timezone: 'UTC' });
+
+    // ═══════════════════════════════════════════════════════════
     // PROSPECTING ENGINE — CRON P5c: Agent Evolution — Sunday 3am UTC
     // Evolves AI agent strategies from last week's action/outcome data
     // ═══════════════════════════════════════════════════════════
@@ -1084,6 +1103,7 @@ class BotLoop {
     this.scriptLearningJob?.stop(); this.scriptLearningJob = null;
     this.receptionistLearningJob?.stop(); this.receptionistLearningJob = null;
     this.callPostmortemJob?.stop(); this.callPostmortemJob = null;
+    this.callPatternsJob?.stop(); this.callPatternsJob = null;
     this.callIntelligenceJob?.stop(); this.callIntelligenceJob = null;
     this.followUpJob?.stop(); this.followUpJob = null;
     this.rescoreJob?.stop(); this.rescoreJob = null;
@@ -1167,6 +1187,7 @@ class BotLoop {
         scriptLearning: cronState(this.scriptLearningJob),
         receptionistLearning: cronState(this.receptionistLearningJob),
         callPostmortem: cronState(this.callPostmortemJob),
+        callPatterns: cronState(this.callPatternsJob),
         callIntelligence: cronState(this.callIntelligenceJob),
         followUpSequences: cronState(this.followUpJob),
         rescoreProspects: cronState(this.rescoreJob),
@@ -1259,6 +1280,7 @@ class BotLoop {
       scriptLearning: () => scriptLearningService.runWeeklyAnalysis(),
       receptionistLearning: () => receptionistLearningService.runWeekly(),
       callPostmortem: () => callPostmortemService.run(),
+      callPatterns: () => callPatternsService.run(),
       followUp: () => followUpSequencesService.processDue(),
       rescore: () => prospectScoringService.rescoreUnscored(1000),
     };

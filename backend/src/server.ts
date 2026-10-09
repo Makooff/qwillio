@@ -54,6 +54,7 @@ import adminAgentsRoutes from './routes/admin-agents.routes';
 import clientApiRoutes from './routes/client-api.routes';
 import voiceCoreRoutes from './routes/voice-core.routes';
 import autofixRoutes from './routes/autofix.routes';
+import learningRoutes from './routes/learning.routes';
 import closerRoutes from './routes/closer.routes';
 import aiAgentsRoutes from './routes/ai-agents.routes';
 import agencyRoutes from './routes/agency.routes';
@@ -167,6 +168,7 @@ app.use('/api/client', clientApiRoutes);
    s'execute tant qu'un numero ne pointe pas vers voice-core chez Twilio. */
 app.use('/api/voice-core', voiceCoreRoutes);
 app.use('/api/autofix', autofixRoutes);
+app.use('/api/learning', learningRoutes);
 app.use('/api/closer', closerRoutes);
 app.use('/api/ai-agents', aiAgentsRoutes);
 app.use('/api/agency', agencyRoutes);

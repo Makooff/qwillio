@@ -2240,3 +2240,39 @@ model GreetingAudio {
   @@index([clientId])
   @@map("greeting_audio")
 }
+
+/// Un défaut de CONVERSATION appris des appels réels, agrégé par empreinte.
+///
+/// `call-postmortem` juge un appel à la fois avec des règles ; ce que les
+/// règles ne voient pas — le malentendu de vocabulaire, l'annonce prématurée,
+/// la formulation qui perd l'appelant — demande de LIRE le transcript. Le
+/// balayage `call-patterns` le fait, et range chaque enseignement ici, une
+/// ligne par PHÉNOMÈNE : le même slug revu sur trois appels est un signal,
+/// pas trois bruits.
+///
+/// `status` : observing → signal (seuil atteint) → proposed (PR brouillon
+/// ouverte par le synthétiseur local) → merged | rejected. Aucun statut ne
+/// s'écrit tout seul au-delà de `signal` : l'application d'un correctif reste
+/// une décision humaine, c'est la règle du dépôt.
+model LearningPattern {
+  id          String   @id @default(uuid()) @db.Uuid
+  /// `<kind>:<slug>` — le slug est demandé STABLE au modèle pour que le même
+  /// phénomène relu sur un autre appel retombe sur cette ligne.
+  fingerprint String   @unique @db.VarChar(140)
+  /// `conversation` (règle de prompt) ou `threshold` (réglage proposé).
+  kind        String   @default("conversation") @db.VarChar(20)
+  title       String   @db.VarChar(200)
+  /// Ce qui s'est passé et la règle qui l'aurait empêché, en une phrase.
+  summary     String
+  /// [{ callId, clientId, quote, at }] — la preuve, plafonnée côté service.
+  evidence    Json
+  callCount   Int      @default(0) @map("call_count")
+  clientIds   String[] @default([]) @map("client_ids")
+  status      String   @default("observing") @db.VarChar(20)
+  proposalUrl String?  @map("proposal_url") @db.VarChar(500)
+  firstSeenAt DateTime @default(now()) @map("first_seen_at")
+  lastSeenAt  DateTime @default(now()) @map("last_seen_at")
+
+  @@index([status])
+  @@map("learning_pattern")
+}
