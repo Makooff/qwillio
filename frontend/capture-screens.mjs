@@ -473,4 +473,72 @@ await shoot({
   webp: { name: 'chat-config', width: 1180 },
 });
 
+/* ── Six écrans DÉDIÉS pour la page Réceptionniste ────────────────────────
+   Chaque carte de la page Réceptionniste illustre son mécanisme par la VRAIE
+   page du portail où il se lit — pas par un écran déjà montré sur la Home ou
+   dans la section Configuration (retour utilisateur : « tu reprends des
+   screens qui n'ont rien à voir et qui sont déjà utilisés »). */
+
+/* 01 — « Le rendez-vous est inscrit » : la vue calendrier de l'agenda. */
+await shoot({
+  name: 'site-booking', path: '/dashboard/bookings', ...site,
+  clipTo: 'main section[aria-label^="Calendrier"]',
+  webp: { name: 'booking', width: 1180 },
+});
+
+/* 02 — « Le SMS de brief » (qui appelle, motif, état) : la fiche d'appel en
+   HAUT, là où se lisent le nom, le numéro, le sentiment et le résumé. */
+await shoot({
+  name: 'site-brief', path: '/dashboard/calls', ...panelShot,
+  prepare: async page => {
+    await page.getByText('Camille Dubois').first().click();
+    await page.locator('[role="dialog"][aria-modal="true"]').first().waitFor({ state: 'visible', timeout: 10_000 });
+    await page.waitForTimeout(500);
+  },
+  clipTo: '[role="dialog"][aria-modal="true"]',
+  webp: { name: 'brief', width: 896 },
+});
+
+/* 03 — « Les habitués sont reconnus » : la page Leads, le contact avec son
+   historique. */
+await shoot({
+  name: 'site-regulars', path: '/dashboard/leads', ...site,
+  clipTo: 'main',
+  webp: { name: 'regulars', width: 1320 },
+});
+
+/* 04 — « Une conversation, pas un serveur vocal » : le transcript de la fiche
+   d'appel, déroulé jusqu'aux répliques. */
+await shoot({
+  name: 'site-conversation', path: '/dashboard/calls', ...panelShot,
+  prepare: async page => {
+    await page.getByText('Camille Dubois').first().click();
+    const drawer = page.locator('[role="dialog"][aria-modal="true"]').first();
+    await drawer.waitFor({ state: 'visible', timeout: 10_000 });
+    await drawer.evaluate(el => { el.scrollTop = el.scrollHeight; });
+    await page.waitForTimeout(400);
+  },
+  clipTo: '[role="dialog"] div:has(> p:text-is("Transcript"))',
+  webp: { name: 'conversation', width: 896 },
+});
+
+/* 05 — « Deux mémoires » : la base de connaissances du réceptionniste. */
+await shoot({
+  name: 'site-connaissances', path: '/dashboard/receptionist', ...site,
+  prepare: async page => {
+    await page.getByRole('button', { name: /Base de connaissances/ }).first().click();
+    await page.locator('[role="dialog"][aria-label="Base de connaissances"]').first().waitFor({ state: 'visible', timeout: 10_000 });
+    await page.waitForTimeout(500);
+  },
+  clipTo: '[role="dialog"][aria-label="Base de connaissances"]',
+  webp: { name: 'connaissances', width: 1180 },
+});
+
+/* 06 — « Ce qui ne bouge pas » : la facturation, le forfait sans engagement. */
+await shoot({
+  name: 'site-garanties', path: '/dashboard/billing', ...site,
+  clipTo: 'main',
+  webp: { name: 'garanties', width: 1320 },
+});
+
 await browser.close();

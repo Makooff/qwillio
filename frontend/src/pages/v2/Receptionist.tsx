@@ -3,8 +3,7 @@ import { useRef } from 'react';
 import { Link } from 'react-router-dom';
 import {
   ArrowRight, Play, Phone, CalendarCheck, PhoneForwarded, UserCheck,
-  MessagesSquare, Mic, Camera, PhoneCall, Shield, Check, ShieldCheck,
-  BookOpen, Lock,
+  MessagesSquare, Mic, Camera, PhoneCall, Shield,
   type LucideIcon,
 } from '../../components/icons';
 import { useSEO } from '../../hooks/useSEO';
@@ -39,168 +38,79 @@ interface Pillar {
   panelNote?: string;
 }
 
-function Panel({ label, num, children }: { label: string; num: string; children: ReactNode }) {
+/* Les deux dégradés drenched de la Home (rangée Fiche d'appel), alternés d'une
+   carte à l'autre : indigo d'un côté, violet de l'autre — deux géométries,
+   comme les deux cercles du logo. */
+const DRENCHED = {
+  indigo: 'radial-gradient(130% 150% at 18% 115%, #453486 0%, #221842 48%, #100F13 85%)',
+  violet: 'radial-gradient(125% 145% at 85% -12%, #4E2E7E 0%, #251741 48%, #100F13 85%)',
+} as const;
+
+/* Une capture du VRAI portail, pas un dessin inventé (demande utilisateur:
+   « reprends des cards qu'on a sur le dashboard, invente pas des trucs IA »).
+   La capture est posée sur le panneau drenched, avec derrière elle le cadre de
+   déco décalé en gris sombre figé — le même motif que la section Configuration
+   de cette page. */
+function ShotVisual({ name, alt }: { name: string; alt: string }) {
   return (
-    <div className="h-full rounded-[24px] sm:rounded-[28px] p-6 sm:p-8 overflow-hidden" style={{ background: GRADS[num] ?? GRADS['01'] }}>
-      <PillarVisual num={num} />
-      <p className="q2-eyebrow text-q2-mist mt-6 mb-6">{label}</p>
-      {children}
+    <div className="relative">
+      <div aria-hidden="true" className="absolute inset-0 translate-x-3 translate-y-3 rounded-[16px] bg-[#111111] border border-q2-fog/30" />
+      <div className="relative rounded-[16px] overflow-hidden border border-white/15">
+        <ScreenShot name={name} alt={alt} />
+      </div>
     </div>
   );
 }
 
-/* Six dégradés distincts — un par carte — pour casser l'effet copier-coller
-   (retour utilisateur : « trop copier-collé, même disposition, même gradient »).
-   Chacun a sa propre origine, sa propre direction et sa teinte dominante, mais
-   tous restent dans le registre drenched indigo/violet de la marque. */
-const GRADS: Record<string, string> = {
-  '01': 'radial-gradient(120% 130% at 18% 0%, #453486 0%, #1e1638 52%, #100f13 100%)',
-  '02': 'linear-gradient(155deg, #2a1b5c 0%, #100f13 55%, #1e1638 100%)',
-  '03': 'radial-gradient(140% 140% at 85% 12%, #7a5fff 0%, #1b1438 55%, #100f13 100%)',
-  '04': 'linear-gradient(180deg, #100f13 0%, #1e1638 75%, #241a45 100%)',
-  '05': 'radial-gradient(125% 125% at 50% 115%, #453486 0%, #181225 55%, #100f13 100%)',
-  '06': 'linear-gradient(200deg, #100f13 0%, #221842 55%, #453486 125%)',
+/* Six écrans du dashboard, un par carte : chaque carte illustre son mécanisme
+   par la VRAIE page du portail où il se lit (captures dédiées, pas d'écrans
+   repris de la Home ni de la section Configuration). */
+const SHOTS: Record<string, { name: string; altFr: string; altEn: string; tone: 'indigo' | 'violet' }> = {
+  '01': {
+    name: 'booking',
+    tone: 'indigo',
+    altFr: 'L’agenda du portail : les rendez-vous pris au téléphone, inscrits dans le calendrier.',
+    altEn: 'The portal agenda: appointments taken over the phone, written into the calendar.',
+  },
+  '02': {
+    name: 'brief',
+    tone: 'violet',
+    altFr: 'La fiche d’un appel : qui appelle, le motif, l’état d’esprit.',
+    altEn: 'A call record: who is calling, the reason, the state of mind.',
+  },
+  '03': {
+    name: 'regulars',
+    tone: 'indigo',
+    altFr: 'Les leads du portail : les habitués reconnus, avec leur dernier appel et leur rendez-vous.',
+    altEn: 'The portal leads: recognised regulars, with their last call and appointment.',
+  },
+  '04': {
+    name: 'conversation',
+    tone: 'violet',
+    altFr: 'Le transcript d’un appel : la conversation mot pour mot.',
+    altEn: 'A call transcript: the conversation word for word.',
+  },
+  '05': {
+    name: 'connaissances',
+    tone: 'indigo',
+    altFr: 'La base de connaissances : services, tarifs, horaires et FAQ.',
+    altEn: 'The knowledge base: services, prices, hours and FAQ.',
+  },
+  '06': {
+    name: 'garanties',
+    tone: 'violet',
+    altFr: 'La facturation du portail : le forfait, sans engagement en mensuel.',
+    altEn: 'The portal billing: the plan, no monthly commitment.',
+  },
 };
 
-/* Les illustrations des cartes. Chacune a sa propre matière et sa propre
-   composition (papier clair, notification flottante, avatar centré, fenêtre de
-   chat, cartes en éventail, bouclier centré) : ce sont des mises en scène du
-   produit, pas des captures, et aucune ne reprend la même disposition. */
-function BookingVisual() {
+function Panel({ label, num, isFr, children }: { label: string; num: string; isFr: boolean; children: ReactNode }) {
+  const shot = SHOTS[num] ?? SHOTS['01'];
   return (
-    <div className="rounded-2xl bg-[#f6f2ec] p-4 text-q2-ink shadow-[0_18px_40px_-18px_rgba(0,0,0,0.7)]">
-      <div className="flex items-center justify-between gap-2">
-        <p className="text-[11px] font-semibold tracking-wide uppercase text-[#8a847b]">Jeudi 12 février</p>
-        <span className="inline-flex items-center gap-1 rounded-full bg-[#e4f2ec] text-[#0f6b47] text-[11px] font-semibold px-2 py-0.5 shrink-0">
-          <Check size={11} aria-hidden="true" />
-          Confirmé
-        </span>
-      </div>
-      <div className="mt-3 rounded-xl bg-q2-indigo p-3 text-white">
-        <p className="text-[13px] font-semibold leading-tight">14 h 30 — Détartrage</p>
-        <p className="text-[12px] opacity-80 leading-tight mt-0.5">45 min · pris en direct pendant l'appel</p>
-      </div>
-      <div className="mt-3 flex items-center gap-2 text-[12px] text-[#8a847b]">
-        <CalendarCheck size={13} className="text-q2-indigo shrink-0" aria-hidden="true" />
-        <span>Écrit dans l'agenda + SMS de confirmation</span>
-      </div>
-    </div>
-  );
-}
-
-function SmsBriefVisual() {
-  return (
-    <div className="flex justify-end">
-      <div className="rounded-2xl bg-q2-carbon/90 border border-q2-graphite-d shadow-[0_20px_50px_-20px_rgba(0,0,0,0.8)] p-3.5 max-w-[264px]">
-        <div className="flex items-center gap-2.5">
-          <span className="w-8 h-8 rounded-lg bg-q2-indigo flex items-center justify-center shrink-0">
-            <Phone size={14} className="text-white" aria-hidden="true" />
-          </span>
-          <div className="min-w-0">
-            <p className="text-q2-mist text-[12px] font-medium leading-tight">Appel manqué · Camille Dubois</p>
-            <p className="text-q2-fog text-[11px] leading-tight mt-0.5">à l'instant</p>
-          </div>
-        </div>
-        <div className="mt-2.5 rounded-xl bg-q2-void/70 border border-q2-graphite-d p-2.5">
-          <p className="text-q2-mist text-[12px] leading-snug">Détartrage · pressée, veut un créneau cette semaine.</p>
-        </div>
-        <p className="mt-2 text-q2-fog text-[11px]">+32 471 12 34 56</p>
-      </div>
-    </div>
-  );
-}
-
-function RegularsVisual() {
-  return (
-    <div className="flex flex-col items-center text-center py-1">
-      <span className="relative">
-        <span className="absolute -inset-2 rounded-full bg-q2-violet/35 blur-xl" aria-hidden="true" />
-        <span className="relative w-14 h-14 rounded-full bg-gradient-to-br from-q2-violet to-q2-indigo flex items-center justify-center text-q2-mist text-[17px] font-semibold ring-2 ring-q2-lift/30">
-          CD
-        </span>
-      </span>
-      <p className="mt-3 text-q2-mist text-[14px] font-medium">Bonjour Camille</p>
-      <p className="mt-1 text-q2-fog text-[12px]">Déjà venue en janvier</p>
-      <span className="mt-2.5 inline-flex items-center gap-1 rounded-full bg-q2-violet/15 text-q2-lift text-[11px] font-medium px-2.5 py-1">
-        <UserCheck size={12} aria-hidden="true" />
-        Reconnue
-      </span>
-    </div>
-  );
-}
-
-function ConversationVisual() {
-  return (
-    <div className="rounded-2xl overflow-hidden border border-q2-graphite-d bg-q2-void/70">
-      <div className="flex items-center gap-1.5 px-3 py-2 border-b border-q2-graphite-d bg-q2-carbon/60">
-        <span className="w-2 h-2 rounded-full bg-q2-fog/60" aria-hidden="true" />
-        <span className="w-2 h-2 rounded-full bg-q2-fog/60" aria-hidden="true" />
-        <span className="w-2 h-2 rounded-full bg-q2-fog/60" aria-hidden="true" />
-        <span className="ml-auto text-q2-fog text-[11px]">Appel en cours</span>
-      </div>
-      <div className="p-3 space-y-2">
-        <div className="flex justify-end">
-          <p className="rounded-xl rounded-tr-sm bg-q2-indigo/20 text-q2-mist text-[12px] px-3 py-1.5">« mhm »</p>
-        </div>
-        <div className="flex justify-start">
-          <p className="rounded-xl rounded-tl-sm bg-q2-carbon border border-q2-graphite-d text-q2-mist text-[12px] px-3 py-1.5">« Vous êtes toujours là ? »</p>
-        </div>
-        <div className="flex justify-end">
-          <p className="rounded-xl rounded-tr-sm bg-q2-indigo/20 text-q2-mist text-[12px] px-3 py-1.5">« Oui, je vous écoute. »</p>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function PillarVisual({ num }: { num: string }) {
-  if (num === '01') return <BookingVisual />;
-  if (num === '02') return <SmsBriefVisual />;
-  if (num === '03') return <RegularsVisual />;
-  return <ConversationVisual />;
-}
-
-function KnowledgeVisual() {
-  return (
-    <div className="relative h-[128px]">
-      <div className="absolute left-3 top-3 right-1 bottom-0 rounded-2xl bg-q2-void/80 border border-q2-graphite-d rotate-[3deg]" aria-hidden="true">
-        <p className="absolute left-3 bottom-2.5 text-q2-fog text-[11px]">À la demande</p>
-      </div>
-      <div className="absolute left-1.5 top-1.5 right-2.5 bottom-0 rounded-2xl bg-q2-carbon border border-q2-graphite-d rotate-[-2deg]" aria-hidden="true">
-        <p className="absolute left-3 bottom-2.5 text-q2-fog text-[11px]">Le reste de la base</p>
-      </div>
-      <div className="absolute left-0 top-0 right-4 bottom-1 rounded-2xl bg-gradient-to-br from-q2-indigo/35 to-q2-void border border-q2-indigo/30 p-3.5">
-        <div className="flex items-center gap-2">
-          <BookOpen size={14} className="text-q2-lift shrink-0" aria-hidden="true" />
-          <span className="text-q2-mist text-[13px] font-medium">Toujours en tête</span>
-        </div>
-        <p className="mt-1 text-q2-fog text-[11.5px] leading-snug">Règles de maison, réponses prioritaires</p>
-      </div>
-    </div>
-  );
-}
-
-function GuaranteeVisual() {
-  return (
-    <div className="flex flex-col items-center text-center py-1">
-      <span className="relative">
-        <span className="absolute -inset-3 rounded-full bg-q2-indigo/40 blur-xl" aria-hidden="true" />
-        <span className="relative w-14 h-14 rounded-2xl bg-q2-indigo/20 border border-q2-indigo/30 flex items-center justify-center">
-          <ShieldCheck size={22} className="text-q2-lift" aria-hidden="true" />
-        </span>
-      </span>
-      <p className="mt-3 text-q2-mist text-[14px] font-medium">Conforme RGPD</p>
-      <p className="mt-1 text-q2-fog text-[12px]">Annonce d'enregistrement au décrochage</p>
-      <div className="mt-3 grid grid-cols-2 gap-2 w-full max-w-[240px]">
-        <span className="flex items-center gap-1.5 rounded-lg bg-q2-void/60 border border-q2-graphite-d px-2.5 py-1.5 text-q2-mist text-[11px]">
-          <Lock size={11} className="text-q2-lift shrink-0" aria-hidden="true" />
-          Effaçable
-        </span>
-        <span className="flex items-center gap-1.5 rounded-lg bg-q2-void/60 border border-q2-graphite-d px-2.5 py-1.5 text-q2-mist text-[11px]">
-          <Check size={11} className="text-q2-lift shrink-0" aria-hidden="true" />
-          Sans engagement
-        </span>
-      </div>
+    <div className="h-full rounded-[24px] sm:rounded-[28px] p-8 sm:p-10" style={{ background: DRENCHED[shot.tone] }}>
+      <ShotVisual name={shot.name} alt={isFr ? shot.altFr : shot.altEn} />
+      <p className="q2-eyebrow text-q2-mist mt-8 mb-7">{label}</p>
+      {children}
     </div>
   );
 }
@@ -615,7 +525,7 @@ export default function Receptionist() {
                         de ce panneau au lieu de le frôler en travers de la
                         scène. C'est ce qui évite les coins des cartes. */}
                     <div data-step-mask className={flip ? 'lg:order-1' : ''}>
-                      <Panel label={pillar.panelLabel} num={pillar.num}>
+                      <Panel label={pillar.panelLabel} num={pillar.num} isFr={isFr}>
                         <ul className="divide-y divide-q2-graphite-d" role="list">
                           {pillar.panelRows.map((row) => (
                             <li
@@ -795,9 +705,9 @@ export default function Receptionist() {
           </RevealV2>
 
           <RevealV2 index={1}>
-            <div className="rounded-[24px] sm:rounded-[28px] p-6 sm:p-8" style={{ background: GRADS['05'] }}>
-              <KnowledgeVisual />
-              <p className="q2-eyebrow text-q2-mist mt-6 mb-6">{isFr ? 'Deux mémoires' : 'Two memories'}</p>
+            <div className="rounded-[24px] sm:rounded-[28px] p-8 sm:p-10" style={{ background: DRENCHED.indigo }}>
+              <ShotVisual name={SHOTS['05'].name} alt={isFr ? SHOTS['05'].altFr : SHOTS['05'].altEn} />
+              <p className="q2-eyebrow text-q2-mist mt-8 mb-7">{isFr ? 'Deux mémoires' : 'Two memories'}</p>
               <ul className="divide-y divide-q2-graphite-d" role="list">
                 {(isFr
                   ? [
@@ -875,9 +785,9 @@ export default function Receptionist() {
           </RevealV2>
 
           <RevealV2 index={1}>
-            <div className="rounded-[24px] sm:rounded-[28px] p-6 sm:p-8 lg:sticky lg:top-24" style={{ background: GRADS['06'] }}>
-              <GuaranteeVisual />
-              <p className="flex items-center gap-2.5 q2-eyebrow text-q2-mist mt-6 mb-6">
+            <div className="rounded-[24px] sm:rounded-[28px] p-8 sm:p-10 lg:sticky lg:top-24" style={{ background: DRENCHED.violet }}>
+              <ShotVisual name={SHOTS['06'].name} alt={isFr ? SHOTS['06'].altFr : SHOTS['06'].altEn} />
+              <p className="flex items-center gap-2.5 q2-eyebrow text-q2-mist mt-8 mb-7">
                 <Shield size={13} className="text-q2-indigo" aria-hidden="true" />
                 {isFr ? 'Ce qui ne bouge pas' : 'What does not move'}
               </p>
