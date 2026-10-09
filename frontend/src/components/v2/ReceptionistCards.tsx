@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
 import { motion, useReducedMotion } from 'framer-motion';
-import { EASE_OUT_EXPO } from './motion/reducedMotion';
 import { WEEKDAYS_FR, monthGrid, monthLabel, isoDay } from '../../utils/month-grid';
 import { parseTranscript } from '../../utils/transcript';
 import SentimentBadge from '../client-dashboard/SentimentBadge';
@@ -41,17 +40,20 @@ const brandWashSoft = 'rgba(115,73,254,0.10)';
 
 /* Le cadre commun : une ombre déportée — un panneau #111111 décalé de 8 px en
    bas à droite, comme le cadre de déco qu'on posait derrière les captures —
-   puis la surface #0a0a0a par-dessus. L'entrée est animée comme le reste du
-   site (RevealV2) : fondu + remontée à l'arrivée dans le viewport. */
+   puis la surface #0a0a0a par-dessus. L'arrivée (fondu + remontée) est rejouée
+   EN BOUCLE, comme les entrées du site, pour que l'illustration reste vivante. */
 function Card({ children }: { children: ReactNode }) {
   const reduced = useReducedMotion();
   return (
     <motion.div
       className="relative"
-      initial={reduced ? false : { opacity: 0, y: 24 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true, margin: '-64px' }}
-      transition={{ duration: 0.55, ease: EASE_OUT_EXPO }}
+      initial={reduced ? { opacity: 1, y: 0 } : { opacity: 0.45, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={
+        reduced
+          ? { duration: 0 }
+          : { duration: 1.5, ease: 'easeInOut', repeat: Infinity, repeatType: 'mirror' }
+      }
     >
       <div
         aria-hidden="true"
