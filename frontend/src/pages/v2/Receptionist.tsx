@@ -12,6 +12,7 @@ import { Container, Section, Eyebrow, Display, H2, Lead, SerifWord } from '../..
 import { PillLink } from '../../components/v2/Button';
 import RevealV2 from '../../components/v2/RevealV2';
 import ScreenShot from '../../components/v2/ScreenShot';
+import ReceptionistCard from '../../components/v2/ReceptionistCards';
 import HeroPhone3D from '../../components/ui/HeroPhone3D';
 import CircularReceptionists from '../../components/v2/CircularReceptionists';
 import TextReveal from '../../components/v2/motion/TextReveal';
@@ -36,62 +37,8 @@ interface Pillar {
   panelNote?: string;
 }
 
-/* Une capture du VRAI portail, posée telle quelle — sans panneau drenched ni
-   cadre de déco autour (demande utilisateur: « enlève les cards gradient et
-   l'info, garde juste les illustrations »). */
-function ShotVisual({ name, alt }: { name: string; alt: string }) {
-  return (
-    <div className="rounded-[16px] overflow-hidden border border-q2-plate shadow-[0_24px_60px_-24px_rgba(17,17,23,0.35)]">
-      <ScreenShot name={name} alt={alt} />
-    </div>
-  );
-}
-
-/* Six écrans du dashboard, un par carte : chaque carte illustre son mécanisme
-   par la VRAIE page du portail où il se lit (captures dédiées, pas d'écrans
-   repris de la Home ni de la section Configuration). */
-const SHOTS: Record<string, { name: string; altFr: string; altEn: string; tone: 'indigo' | 'violet' }> = {
-  '01': {
-    name: 'booking',
-    tone: 'indigo',
-    altFr: 'L’agenda du portail : les rendez-vous pris au téléphone, inscrits dans le calendrier.',
-    altEn: 'The portal agenda: appointments taken over the phone, written into the calendar.',
-  },
-  '02': {
-    name: 'brief',
-    tone: 'violet',
-    altFr: 'La fiche d’un appel : qui appelle, le motif, l’état d’esprit.',
-    altEn: 'A call record: who is calling, the reason, the state of mind.',
-  },
-  '03': {
-    name: 'regulars',
-    tone: 'indigo',
-    altFr: 'Les leads du portail : les habitués reconnus, avec leur dernier appel et leur rendez-vous.',
-    altEn: 'The portal leads: recognised regulars, with their last call and appointment.',
-  },
-  '04': {
-    name: 'conversation',
-    tone: 'violet',
-    altFr: 'Le transcript d’un appel : la conversation mot pour mot.',
-    altEn: 'A call transcript: the conversation word for word.',
-  },
-  '05': {
-    name: 'connaissances',
-    tone: 'indigo',
-    altFr: 'La base de connaissances : services, tarifs, horaires et FAQ.',
-    altEn: 'The knowledge base: services, prices, hours and FAQ.',
-  },
-  '06': {
-    name: 'garanties',
-    tone: 'violet',
-    altFr: 'La facturation du portail : le forfait, sans engagement en mensuel.',
-    altEn: 'The portal billing: the plan, no monthly commitment.',
-  },
-};
-
 function Panel({ num, isFr }: { num: string; isFr: boolean }) {
-  const shot = SHOTS[num] ?? SHOTS['01'];
-  return <ShotVisual name={shot.name} alt={isFr ? shot.altFr : shot.altEn} />;
+  return <ReceptionistCard num={num} isFr={isFr} />;
 }
 
 export default function Receptionist() {
@@ -621,7 +568,7 @@ export default function Receptionist() {
           </RevealV2>
 
           <RevealV2 index={1}>
-            <ShotVisual name={SHOTS['05'].name} alt={isFr ? SHOTS['05'].altFr : SHOTS['05'].altEn} />
+            <ReceptionistCard num="05" isFr={isFr} />
           </RevealV2>
         </Container>
       </Section>
@@ -665,7 +612,7 @@ export default function Receptionist() {
 
           <RevealV2 index={1}>
             <div className="lg:sticky lg:top-24">
-              <ShotVisual name={SHOTS['06'].name} alt={isFr ? SHOTS['06'].altFr : SHOTS['06'].altEn} />
+              <ReceptionistCard num="06" isFr={isFr} />
             </div>
           </RevealV2>
         </Container>
