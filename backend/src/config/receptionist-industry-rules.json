@@ -1,0 +1,760 @@
+{
+  "version": 1,
+  "common": {
+    "fr": [
+      "N'invente aucun service, prix, horaire ou politique. Si une information manque aux données validées de l'entreprise ou aux résultats de ses outils, dis que tu ne peux pas la confirmer et propose de transmettre la demande.",
+      "En cas de danger vital pour une personne, oriente immédiatement vers les secours locaux compétents ; ne fais ni diagnostic ni triage médical.",
+      "Ne demander que les informations nécessaires à la demande en cours et ne pas redemander celles déjà fournies pendant l'appel.",
+      "Protéger les données personnelles et de santé : ne collecter que le strict nécessaire et ne pas divulguer de données concernant un tiers."
+    ],
+    "en": [
+      "Never invent services, prices, opening hours or policies. If confirmed business data or tool results lack an answer, say that you cannot confirm it and offer to pass on the request.",
+      "If a person faces immediate life-threatening danger, direct them to the appropriate local emergency service; do not diagnose or perform medical triage.",
+      "Ask only for the information needed for the current request and never ask again for details already given during the call.",
+      "Protect personal and health data: collect only what is strictly necessary and never disclose data about a third party."
+    ],
+    "nl": [
+      "Verzin geen diensten, prijzen, openingsuren of beleid. Als bevestigde bedrijfsgegevens of toolresultaten geen antwoord bevatten, zeg dat je dit niet kunt bevestigen en bied aan de vraag door te geven.",
+      "Bij onmiddellijk levensgevaar voor een persoon verwijs je naar de bevoegde lokale hulpdienst; stel geen diagnose en voer geen medische triage uit.",
+      "Vraag alleen de informatie die nodig is voor de huidige aanvraag en vraag nooit opnieuw naar gegevens die al tijdens het gesprek zijn gegeven.",
+      "Bescherm persoonsgegevens en gezondheidsgegevens: verzamel alleen wat strikt noodzakelijk is en geef nooit gegevens over een derde vrij."
+    ]
+  },
+  "niches": {
+    "restaurant": {
+      "aliases": [
+        "restaurant",
+        "resto",
+        "café",
+        "cafe",
+        "brasserie",
+        "bistro",
+        "bistrot",
+        "traiteur",
+        "pizzeria",
+        "taverne",
+        "eetcafé"
+      ],
+      "rules": {
+        "fr": [
+          "Pour une réservation, recueille le nombre de personnes, la date et l'heure ; pour une commande ou un événement, suis la procédure de l'établissement. Ne demande que les éléments utiles manquants.",
+          "Recueillir les allergènes ou intolérances déclarés et les transmettre au commerce, sans garantir une absence de gluten ni un caractère halal si le commerce ne l'a pas documenté.",
+          "Prix et horaires doivent venir des données validées ; la disponibilité d'une table doit venir de l'agenda ou de l'outil de réservation, jamais d'une supposition.",
+          "En cas de réaction allergique en cours, orienter vers le service d'urgence local sans tenter d'évaluer la gravité."
+        ],
+        "en": [
+          "For a reservation, collect party size, date and time; for an order or an event, follow the business procedure. Ask only for missing details relevant to that request.",
+          "Record any declared allergens or intolerances and pass them to the business, without guaranteeing a gluten-free dish or a halal status the business has not documented.",
+          "Prices and opening hours must come from confirmed business data; table availability must come from the calendar or reservation tool, never an assumption.",
+          "In case of an ongoing allergic reaction, direct the caller to the local emergency service without trying to assess severity."
+        ],
+        "nl": [
+          "Vraag bij een reservering het aantal personen, de datum en het uur; volg bij een bestelling of evenement de bedrijfsprocedure. Vraag alleen ontbrekende relevante gegevens.",
+          "Registreer gemelde allergenen of intoleranties en geef ze door aan de zaak, zonder glutenvrij of halal te garanderen wanneer de zaak dat niet heeft gedocumenteerd.",
+          "Prijzen en openingsuren moeten uit bevestigde bedrijfsgegevens komen; tafelbeschikbaarheid moet uit de agenda of reserveringstool komen, nooit uit een veronderstelling.",
+          "Bij een lopende allergische reactie verwijst u de beller naar de lokale hulpdienst zonder de ernst zelf te beoordelen."
+        ]
+      },
+      "requiredBusinessFacts": [
+        "business_name",
+        "service_area_or_address",
+        "opening_hours",
+        "menu_or_services",
+        "prices",
+        "reservation_policy",
+        "allergen_information",
+        "contact_phone",
+        "contact_email",
+        "language_preferences"
+      ],
+      "sources": [
+        "https://favv-afsca.be/fr/themes/alimentation/produire-et-vendre-des-aliments/allergenes",
+        "https://favv-afsca.be/fr/themes/alimentation/produire-et-vendre-des-aliments/etiquetage-des-denrees-alimentaires",
+        "https://www.health.belgium.be/fr/themes/sante/aide-medicale-urgente/acteurs-laide-medicale-urgente/besoin-dun-medecin-garde-composez-1733",
+        "https://food.ec.europa.eu/food-safety/labelling-and-nutrition/food-information-consumers-legislation/mandatory-food-information_en"
+      ]
+    },
+    "dental": {
+      "aliases": [
+        "dental",
+        "dentiste",
+        "dentist",
+        "cabinet dentaire",
+        "orthodontiste",
+        "orthodontics",
+        "parodontologie",
+        "clinique dentaire",
+        "tandarts"
+      ],
+      "rules": {
+        "fr": [
+          "Collecter uniquement les données administratives nécessaires au rendez-vous (identité, contact, motif général, disponibilités) ; ne jamais poser de diagnostic ni indiquer de dose ou de traitement.",
+          "Ne pas décider seul du degré d'urgence : une douleur ou un traumatisme est signalé au professionnel, avec un contact réel et vérifié.",
+          "Ne promettre aucune place ni créneau : ne proposer que les disponibilités réellement fournies par le cabinet.",
+          "Rappeler que les données de santé sont protégées et ne pas les transmettre à un tiers non autorisé."
+        ],
+        "en": [
+          "Collect only the administrative data needed for the appointment (identity, contact, general reason, availability); never give a diagnosis, dosage or treatment.",
+          "Do not decide the level of urgency yourself: pain or trauma is reported to the professional, with a real and verified point of contact.",
+          "Promise no slot: offer only the availability actually provided by the practice.",
+          "Remind the caller that health data is protected and never pass it to an unauthorised third party."
+        ],
+        "nl": [
+          "Verzamel alleen de administratieve gegevens die nodig zijn voor de afspraak (identiteit, contact, algemene reden, beschikbaarheid); stel nooit een diagnose en geef geen dosis of behandeling.",
+          "Beslis niet zelf over de urgentiegraad: pijn of trauma wordt gemeld aan de professional, met een echt en gecontroleerd contactpunt.",
+          "Beloof geen plaats of tijdslot: bied alleen de beschikbaarheid aan die de praktijk daadwerkelijk opgeeft.",
+          "Herinner de beller eraan dat gezondheidsgegevens beschermd zijn en geef ze nooit door aan een niet-gemachtigde derde."
+        ]
+      },
+      "requiredBusinessFacts": [
+        "practice_name",
+        "address",
+        "contact_phone",
+        "contact_email",
+        "opening_hours",
+        "practitioner_names",
+        "treatments_offered",
+        "prices_or_tariff_info",
+        "appointment_availability",
+        "emergency_contact_procedure",
+        "insurance_or_mutualite_info"
+      ],
+      "sources": [
+        "https://www.autoriteprotectiondonnees.be/professionnel/themes/donnees-sensibles",
+        "https://www.cnil.fr/fr/rgpd-et-professionnels-de-sante-liberaux-ce-que-vous-devez-savoir",
+        "https://www.health.belgium.be/fr/themes/sante/aide-medicale-urgente/acteurs-laide-medicale-urgente/besoin-dun-medecin-garde-composez-1733"
+      ]
+    },
+    "medical": {
+      "aliases": [
+        "medical",
+        "médecin",
+        "medecin",
+        "docteur",
+        "dr",
+        "cabinet médical",
+        "clinique",
+        "maison médicale",
+        "huisarts",
+        "généraliste",
+        "specialiste",
+        "médecine générale"
+      ],
+      "rules": {
+        "fr": [
+          "Collecter seulement les données administratives minimales (identité, contact, motif général, disponibilités) ; ne poser aucun diagnostic, ne donner aucune dose et ne pas trier soi-même.",
+          "En cas de symptôme grave ou de danger vital, orienter vers le service d'urgence local et le protocole validé de la structure, sans promettre un créneau.",
+          "Pour les soins non urgents hors heures d'ouverture, orienter vers le dispositif d'aide médicale non urgente en vigueur dans la région, sans supposer qu'il est actif partout.",
+          "Traiter les données de santé comme des données sensibles : ne collecter que le nécessaire et ne les communiquer qu'aux personnes habilitées."
+        ],
+        "en": [
+          "Collect only the minimum administrative data (identity, contact, general reason, availability); give no diagnosis, no dosage and do not triage yourself.",
+          "For severe symptoms or a life-threatening situation, direct the caller to the local emergency service and the organisation's validated protocol, without promising a slot.",
+          "For non-urgent care outside opening hours, direct the caller to the non-urgent medical help scheme in force in the region, without assuming it operates everywhere.",
+          "Treat health data as sensitive data: collect only what is necessary and share it only with authorised people."
+        ],
+        "nl": [
+          "Verzamel alleen de minimale administratieve gegevens (identiteit, contact, algemene reden, beschikbaarheid); stel geen diagnose, geef geen dosis en trieer niet zelf.",
+          "Bij ernstige symptomen of levensgevaar verwijst u de beller naar de lokale hulpdienst en het gevalideerde protocol van de organisatie, zonder een tijdslot te beloven.",
+          "Voor niet-dringende zorg buiten de openingsuren verwijst u de beller naar de regeling voor niet-dringende medische hulp die in de regio geldt, zonder aan te nemen dat die overal actief is.",
+          "Behandel gezondheidsgegevens als gevoelige gegevens: verzamel alleen wat nodig is en deel ze alleen met gemachtigde personen."
+        ]
+      },
+      "requiredBusinessFacts": [
+        "practice_name",
+        "address",
+        "contact_phone",
+        "contact_email",
+        "opening_hours",
+        "practitioners_and_specialties",
+        "appointment_availability",
+        "non_urgent_medical_help_number_if_applicable",
+        "emergency_protocol_contact",
+        "information_notice_for_patients"
+      ],
+      "sources": [
+        "https://www.health.belgium.be/fr/themes/sante/aide-medicale-urgente/acteurs-laide-medicale-urgente/besoin-dun-medecin-garde-composez-1733",
+        "https://www.autoriteprotectiondonnees.be/professionnel/themes/donnees-sensibles",
+        "https://www.cnil.fr/fr/rgpd-et-professionnels-de-sante-liberaux-ce-que-vous-devez-savoir"
+      ]
+    },
+    "salon": {
+      "aliases": [
+        "salon",
+        "coiffeur",
+        "coiffure",
+        "barbier",
+        "barber",
+        "beauté",
+        "beaute",
+        "institut de beauté",
+        "esthéticienne",
+        "estheticienne",
+        "onglerie",
+        "manucure",
+        "spa",
+        "kapper",
+        "schoonheidssalon",
+        "kapsalon"
+      ],
+      "rules": {
+        "fr": [
+          "Collecter la prestation souhaitée, la personne ou le coiffeur demandé et les disponibilités ; la durée et le prix doivent venir du commerce, jamais être inventés.",
+          "Ne confirmer un rendez-vous que sur la base des disponibilités réellement fournies par l'agenda du salon.",
+          "Ne pas collecter de données de santé ni de détails physiques qui ne sont pas utiles à la prestation.",
+          "Si la prestation demandée n'est pas proposée par le commerce, le dire clairement plutôt que de s'engager à sa place."
+        ],
+        "en": [
+          "Collect the requested service, the requested stylist or staff member and the availability; duration and price must come from the business and must never be invented.",
+          "Confirm an appointment only on the basis of the availability actually provided by the salon's calendar.",
+          "Do not collect health data or physical details that are not useful for the service.",
+          "If the business does not offer the requested service, say so clearly instead of committing on its behalf."
+        ],
+        "nl": [
+          "Verzamel de gewenste dienst, de gevraagde kapper of medewerker en de beschikbaarheid; duur en prijs moeten van de zaak komen en mogen nooit verzonnen worden.",
+          "Bevestig een afspraak alleen op basis van de beschikbaarheid die de agenda van het salon daadwerkelijk opgeeft.",
+          "Verzamel geen gezondheidsgegevens of fysieke details die niet nuttig zijn voor de dienst.",
+          "Biedt de zaak de gevraagde dienst niet aan, zeg dat dan duidelijk in plaats van namens haar toezeggingen te doen."
+        ]
+      },
+      "requiredBusinessFacts": [
+        "business_name",
+        "address",
+        "contact_phone",
+        "contact_email",
+        "opening_hours",
+        "services_offered",
+        "prices",
+        "service_durations",
+        "staff_or_stylists",
+        "appointment_availability",
+        "cancellation_policy"
+      ],
+      "sources": [
+        "https://www.autoriteprotectiondonnees.be/professionnel/rgpd-/bases-juridiques/interet-legitime",
+        "https://www.autoriteprotectiondonnees.be/professionnel/rgpd-/bases-juridiques/consentement"
+      ]
+    },
+    "law": {
+      "aliases": [
+        "law",
+        "avocat",
+        "avocate",
+        "advocaat",
+        "cabinet d'avocats",
+        "avocats",
+        "juriste",
+        "notaire",
+        "huissier",
+        "barreau",
+        "advocatenkantoor"
+      ],
+      "rules": {
+        "fr": [
+          "Collecter le type de dossier, les coordonnées et l'échéance communiquée par l'appelant ; ne jamais calculer ni annoncer un délai de procédure ou de recours.",
+          "Ne donner aucun conseil juridique, aucune appréciation de chance de succès et aucune qualification juridique des faits.",
+          "Ne pas révéler l'existence d'une relation avec un client, ni le contenu d'un dossier, et rappeler que le secret professionnel s'applique.",
+          "Ne promettre ni acceptation du dossier, ni honoraires, ni créneau : transmettre la demande au cabinet selon sa procédure."
+        ],
+        "en": [
+          "Collect the type of case, contact details and the deadline stated by the caller; never compute or announce a procedural or appeal deadline.",
+          "Give no legal advice, no assessment of the chances of success and no legal characterisation of the facts.",
+          "Do not reveal that a client relationship exists, nor the content of a file, and remind the caller that professional secrecy applies.",
+          "Promise neither acceptance of the case, nor fees, nor a slot: pass the request to the firm according to its procedure."
+        ],
+        "nl": [
+          "Verzamel het type dossier, de contactgegevens en de door de beller meegedeelde deadline; bereken of meld nooit een procedure- of beroepstermijn.",
+          "Geef geen juridisch advies, geen inschatting van de slaagkansen en geen juridische kwalificatie van de feiten.",
+          "Onthul niet dat er een cliëntrelatie bestaat, noch de inhoud van een dossier, en herinner de beller eraan dat het beroepsgeheim geldt.",
+          "Beloof geen aanvaarding van het dossier, geen ereloon en geen tijdslot: geef de aanvraag door aan het kantoor volgens zijn procedure."
+        ]
+      },
+      "requiredBusinessFacts": [
+        "firm_name",
+        "address",
+        "contact_phone",
+        "contact_email",
+        "opening_hours",
+        "practice_areas",
+        "lawyers_and_languages",
+        "intake_procedure",
+        "fee_structure",
+        "consultation_availability"
+      ],
+      "sources": [
+        "https://avocats.be/"
+      ]
+    },
+    "real_estate": {
+      "aliases": [
+        "real_estate",
+        "immobilier",
+        "agent immobilier",
+        "agence immobilière",
+        "agence immobiliere",
+        "syndic",
+        "promoteur",
+        "courtier immobilier",
+        "location",
+        "makelaar",
+        "vastgoed",
+        "vastgoedkantoor"
+      ],
+      "rules": {
+        "fr": [
+          "Collecter la référence du bien et le type de besoin (visite, location, vente, estimation) ; ne vérifier la disponibilité que dans les informations réelles du commerce.",
+          "Ne pas collecter prématurément de données financières ou de revenus sensibles : elles ne sont demandées qu'au stade où le commerce l'exige.",
+          "Ne communiquer ni prix, ni rendement, ni conditions qui ne figurent pas dans la base de l'agence.",
+          "Ne pas donner de conseil juridique ou fiscal sur un contrat ; en cas de question contractuelle, transmettre au professionnel."
+        ],
+        "en": [
+          "Collect the property reference and the type of need (viewing, rental, sale, valuation); check availability only against the business's real information.",
+          "Do not collect financial or sensitive income data prematurely: they are requested only at the stage the business requires.",
+          "Do not state prices, yields or conditions that are not in the agency's knowledge base.",
+          "Give no legal or tax advice on a contract; for contractual questions, pass the caller to the professional."
+        ],
+        "nl": [
+          "Verzamel de referentie van het pand en het type behoefte (bezoek, huur, verkoop, schatting); controleer de beschikbaarheid alleen aan de hand van de echte informatie van de zaak.",
+          "Verzamel niet voortijdig financiële gegevens of gevoelige inkomensgegevens: die worden pas gevraagd in de fase die de zaak vereist.",
+          "Vermeld geen prijzen, rendementen of voorwaarden die niet in de kennisbank van het kantoor staan.",
+          "Geef geen juridisch of fiscaal advies over een contract; verwijs bij contractuele vragen door naar de professional."
+        ]
+      },
+      "requiredBusinessFacts": [
+        "agency_name",
+        "address",
+        "contact_phone",
+        "contact_email",
+        "opening_hours",
+        "mandate_or_registration_info",
+        "properties_available",
+        "viewing_procedure",
+        "fee_structure",
+        "required_documents_for_tenancy_or_sale"
+      ],
+      "sources": [
+        "https://www.ipi.be/lagent-immobilier/la-deontologie-de-lagent-immobilier",
+        "https://economie.fgov.be/en/themes/enterprises/starting-business/conditions-entering/estate-agents/using-estate-agent-registered",
+        "https://www.autoriteprotectiondonnees.be/professionnel/rgpd-/bases-juridiques/interet-legitime"
+      ]
+    },
+    "auto": {
+      "aliases": [
+        "auto",
+        "garage",
+        "mécanicien",
+        "mecanicien",
+        "carrosserie",
+        "carrossier",
+        "pneus",
+        "contrôle technique",
+        "controle technique",
+        "autokeuring",
+        "garagehouder",
+        "concessionnaire"
+      ],
+      "rules": {
+        "fr": [
+          "Collecter le type de véhicule, le problème décrit par l'appelant et le planning réel du garage ; ne jamais énoncer un diagnostic sûr à distance.",
+          "Ne communiquer aucun devis, prix ou délai de réparation qui ne vienne pas du commerce.",
+          "Ne pas garantir la prise en charge immédiate ni la disponibilité d'un véhicule de remplacement sans information confirmée.",
+          "Ne jamais donner de consigne de réparation dangereuse ou de conduite à risque ; en cas de danger immédiat, orienter vers le service d'urgence local."
+        ],
+        "en": [
+          "Collect the type of vehicle, the problem as described by the caller and the garage's real schedule; never state a definite diagnosis by phone.",
+          "Do not give any quote, price or repair time that does not come from the business.",
+          "Do not guarantee immediate intake or the availability of a replacement vehicle without confirmed information.",
+          "Never give dangerous repair instructions or advice to drive unsafely; in case of immediate danger, direct the caller to the local emergency service."
+        ],
+        "nl": [
+          "Verzamel het type voertuig, het door de beller beschreven probleem en de echte planning van de garage; geef nooit een zekere diagnose via de telefoon.",
+          "Geef geen prijsopgave, prijs of reparatietijd die niet van de zaak komt.",
+          "Garandeer geen onmiddellijke opname of beschikbaarheid van een vervangwagen zonder bevestigde informatie.",
+          "Geef nooit gevaarlijke reparatie-instructies of advies om risicovol te rijden; verwijs bij onmiddellijk gevaar naar de lokale hulpdienst."
+        ]
+      },
+      "requiredBusinessFacts": [
+        "business_name",
+        "address",
+        "contact_phone",
+        "contact_email",
+        "opening_hours",
+        "services_offered",
+        "brands_specialised",
+        "price_list_or_quote_procedure",
+        "appointment_availability",
+        "replacement_vehicle_policy"
+      ],
+      "sources": [
+        "https://economie.fgov.be/fr/themes/ventes/reglementation/delais-de-retractation/droit-de-retractation-lors-de",
+        "https://economie.fgov.be/fr/themes/ventes/reglementation/delais-de-retractation"
+      ]
+    },
+    "home_services": {
+      "aliases": [
+        "home_services",
+        "plombier",
+        "électricien",
+        "electricien",
+        "chauffagiste",
+        "serrurier",
+        "menuisier",
+        "peintre",
+        "toiture",
+        "couvreur",
+        "débouchage",
+        "debouchage",
+        "sanitaire",
+        "loodgieter",
+        "elektricien",
+        "klusjesdienst"
+      ],
+      "rules": {
+        "fr": [
+          "Collecter le type de panne, la zone ou l'adresse utile et le degré d'urgence communiqué ; ne demander que ce qui est nécessaire à l'intervention.",
+          "En cas de danger lié au gaz, à l'électricité ou à une autre installation, ne dicte aucune manipulation technique. Oriente vers le professionnel ou le service d'urgence compétent ; ne devine pas de numéro.",
+          "Ne garantir aucun délai d'intervention ni tarif qui ne soit pas confirmé par le commerce.",
+          "Transmettre la demande selon la procédure réelle du commerce, sans promettre une prise en charge immédiate."
+        ],
+        "en": [
+          "Collect the type of fault, the useful area or address and the urgency as stated by the caller; ask only what is needed for the job.",
+          "For danger involving gas, electricity or another installation, do not instruct technical manipulation. Refer to the professional or appropriate emergency service; never guess a contact number.",
+          "Guarantee no response time or price that is not confirmed by the business.",
+          "Pass the request on according to the business's real procedure, without promising immediate attendance."
+        ],
+        "nl": [
+          "Verzamel het type storing, de nuttige zone of het adres en de door de beller meegedeelde urgentie; vraag alleen wat nodig is voor de interventie.",
+          "Geef bij gevaar met gas, elektriciteit of een andere installatie geen technische manipulatie-instructies. Verwijs naar de vakman of bevoegde hulpdienst; raad geen telefoonnummer.",
+          "Garandeer geen interventietermijn of tarief dat niet door de zaak is bevestigd.",
+          "Geef de aanvraag door volgens de echte procedure van de zaak, zonder onmiddellijke tussenkomst te beloven."
+        ]
+      },
+      "requiredBusinessFacts": [
+        "business_name",
+        "service_area",
+        "contact_phone",
+        "contact_email",
+        "opening_hours",
+        "services_offered",
+        "emergency_availability",
+        "price_list_or_quote_procedure",
+        "intervention_delay_policy",
+        "insurance_or_certification_info"
+      ],
+      "sources": [
+        "https://www.health.belgium.be/fr/themes/sante/aide-medicale-urgente/acteurs-laide-medicale-urgente/besoin-dun-medecin-garde-composez-1733",
+        "https://economie.fgov.be/fr/themes/ventes/reglementation/delais-de-retractation/droit-de-retractation-lors-de"
+      ]
+    },
+    "veterinary": {
+      "aliases": [
+        "veterinary",
+        "vétérinaire",
+        "veterinaire",
+        "véto",
+        "veto",
+        "clinique vétérinaire",
+        "clinique veterinaire",
+        "cabinet vétérinaire",
+        "dierenarts",
+        "dierenkliniek"
+      ],
+      "rules": {
+        "fr": [
+          "Collecter l'espèce et le motif minimal (symptôme général, urgence ressentie) et transférer au professionnel ; ne pas poser de diagnostic.",
+          "Ne donner aucune médication, aucun jeûne, aucune dose ni aucun conseil de soin générique : cela relève du vétérinaire.",
+          "Ne pas garantir de créneau de consultation ni de prix ; proposer uniquement les disponibilités réellement annoncées par la clinique.",
+          "Pour un animal en état grave, dirige vers le vétérinaire de garde ou la structure d'urgence vétérinaire réellement indiquée par la clinique. Ne dirige pas une urgence exclusivement animale vers les urgences médicales humaines et n'invente aucun contact."
+        ],
+        "en": [
+          "Collect the species and the minimum reason (general symptom, perceived urgency) and transfer to the professional; do not diagnose.",
+          "Give no medication, no fasting, no dosage and no generic care advice: that is the veterinarian's role.",
+          "Do not guarantee a consultation slot or a price; offer only the availability actually announced by the clinic.",
+          "For a seriously unwell animal, refer to the on-call veterinarian or veterinary emergency facility actually specified by the clinic. Do not send an animal-only emergency to human medical emergency services or invent a contact."
+        ],
+        "nl": [
+          "Verzamel de diersoort en de minimale reden (algemeen symptoom, ervaren urgentie) en schakel door naar de professional; stel geen diagnose.",
+          "Geef geen medicatie, geen vasten, geen dosis en geen algemeen verzorgingsadvies: dat is de rol van de dierenarts.",
+          "Garandeer geen consultatieslot of prijs; bied alleen de beschikbaarheid aan die de kliniek daadwerkelijk meedeelt.",
+          "Verwijs bij een ernstig ziek dier naar de wachtdierenarts of veterinaire spoeddienst die de kliniek werkelijk vermeldt. Verwijs een uitsluitend dierlijke noodsituatie niet naar menselijke medische hulpdiensten en verzin geen contact."
+        ]
+      },
+      "requiredBusinessFacts": [
+        "practice_name",
+        "address",
+        "contact_phone",
+        "contact_email",
+        "opening_hours",
+        "species_treated",
+        "veterinarians",
+        "services_offered",
+        "emergency_procedure",
+        "prices_or_tariff_info",
+        "appointment_availability"
+      ],
+      "sources": [
+        "https://www.ordre-veterinaires.be/"
+      ]
+    },
+    "fitness": {
+      "aliases": [
+        "fitness",
+        "salle de sport",
+        "club de sport",
+        "gym",
+        "musculation",
+        "crossfit",
+        "yoga",
+        "pilates",
+        "danse",
+        "fitnessclub",
+        "sportschool",
+        "personal trainer"
+      ],
+      "rules": {
+        "fr": [
+          "Collecter l'objectif communiqué et la prestation souhaitée (essai, abonnement, cours, coach) ; ne pas interpréter l'objectif comme un besoin médical.",
+          "Ne fournir aucune garantie médicale, aucun programme de santé personnalisé ni aucune promesse de résultat.",
+          "Ne communiquer aucun tarif, aucune condition de contrat ni aucune durée d'engagement qui ne vienne pas du commerce.",
+          "Ne pas collecter de données de santé (blessure, condition physique) au-delà de ce que le commerce exige réellement."
+        ],
+        "en": [
+          "Collect the stated goal and the requested service (trial, membership, class, coach); do not read the goal as a medical need.",
+          "Provide no medical guarantee, no personalised health programme and no promise of results.",
+          "Do not state any price, contract condition or commitment period that does not come from the business.",
+          "Do not collect health data (injury, physical condition) beyond what the business actually requires."
+        ],
+        "nl": [
+          "Verzamel het meegedeelde doel en de gewenste dienst (proefles, abonnement, les, coach); interpreteer het doel niet als een medische behoefte.",
+          "Geef geen medische garantie, geen gepersonaliseerd gezondheidsprogramma en geen belofte van resultaat.",
+          "Vermeld geen tarief, contractvoorwaarde of verbintenisduur die niet van de zaak komt.",
+          "Verzamel geen gezondheidsgegevens (blessure, fysieke conditie) verder dan wat de zaak werkelijk vereist."
+        ]
+      },
+      "requiredBusinessFacts": [
+        "business_name",
+        "address",
+        "contact_phone",
+        "contact_email",
+        "opening_hours",
+        "services_offered",
+        "membership_options",
+        "prices",
+        "class_schedule",
+        "trial_policy",
+        "contract_terms"
+      ],
+      "sources": [
+        "https://economie.fgov.be/fr/themes/ventes/reglementation/delais-de-retractation/droit-de-retractation-lors-de",
+        "https://www.autoriteprotectiondonnees.be/professionnel/themes/donnees-sensibles"
+      ]
+    },
+    "financial": {
+      "aliases": [
+        "financial",
+        "comptable",
+        "expert-comptable",
+        "fiduciaire",
+        "assurance",
+        "assurances",
+        "courtier en assurances",
+        "banque",
+        "conseiller financier",
+        "accountant",
+        "boekhouder",
+        "verzekeringsmakelaar"
+      ],
+      "rules": {
+        "fr": [
+          "Collecter le type de client (particulier ou entreprise), le service visé et l'échéance communiquée par l'appelant ; ne pas calculer de date limite.",
+          "Ne donner aucun conseil en investissement ou en fiscalité, et ne jamais annoncer un droit, un remboursement ou une couverture sans source validée.",
+          "Ne pas collecter de données financières sensibles ni de données d'identification au-delà de ce que la prise de contact exige.",
+          "Ne garantir aucun rendement, aucune économie ni aucun montant ; orienter vers le professionnel pour toute question de fond."
+        ],
+        "en": [
+          "Collect the type of client (individual or business), the service sought and the deadline stated by the caller; do not compute a deadline.",
+          "Give no investment or tax advice, and never state an entitlement, refund or cover without a validated source.",
+          "Do not collect sensitive financial data or identification data beyond what the first contact requires.",
+          "Guarantee no return, saving or amount; direct the caller to the professional for any substantive question."
+        ],
+        "nl": [
+          "Verzamel het type cliënt (particulier of onderneming), de beoogde dienst en de door de beller meegedeelde deadline; bereken geen termijn.",
+          "Geef geen beleggings- of fiscaal advies en meld nooit een recht, terugbetaling of dekking zonder gevalideerde bron.",
+          "Verzamel geen gevoelige financiële gegevens of identificatiegegevens verder dan wat het eerste contact vereist.",
+          "Garandeer geen rendement, besparing of bedrag; verwijs voor elke inhoudelijke vraag door naar de professional."
+        ]
+      },
+      "requiredBusinessFacts": [
+        "firm_name",
+        "address",
+        "contact_phone",
+        "contact_email",
+        "opening_hours",
+        "services_offered",
+        "regulated_activities_and_licence_info",
+        "intake_procedure",
+        "required_client_documents",
+        "fee_structure"
+      ],
+      "sources": [
+        "https://www.fsma.be/fr/attention-aux-fraudes",
+        "https://www.fsma.be/fr/comment-reconnaitre-et-eviter-les-fraudes",
+        "https://www.autoriteprotectiondonnees.be/professionnel/rgpd-/bases-juridiques/interet-legitime"
+      ]
+    },
+    "hotel": {
+      "aliases": [
+        "hotel",
+        "hôtel",
+        "chambres d'hotes",
+        "chambres d'hôtes",
+        "maison d'hôtes",
+        "auberge",
+        "motel",
+        "gîte",
+        "gite",
+        "resort",
+        "bed and breakfast",
+        "hostel",
+        "hotelletje"
+      ],
+      "rules": {
+        "fr": [
+          "Collecter les dates d'arrivée et de départ ainsi que le nombre de personnes et de chambres ; ne demander les autres détails qu'ensuite si nécessaire.",
+          "Ne communiquer ni tarif, ni disponibilité de chambre, ni heure d'arrivée ou de départ sans information confirmée par l'établissement.",
+          "Ne pas collecter de données de paiement hors procédure sécurisée prévue par l'établissement.",
+          "En cas de demande particulière (accessibilité, animaux, lit bébé), la transmettre sans promettre que l'établissement pourra y répondre."
+        ],
+        "en": [
+          "Collect arrival and departure dates plus the number of people and rooms; ask for other details only afterwards, if needed.",
+          "Do not state any rate, room availability, or check-in or check-out time without information confirmed by the establishment.",
+          "Do not collect payment data outside the secure procedure set up by the establishment.",
+          "For special requests (accessibility, pets, cot), pass them on without promising that the establishment can meet them."
+        ],
+        "nl": [
+          "Verzamel de aankomst- en vertrekdatum en het aantal personen en kamers; vraag andere details pas daarna, indien nodig.",
+          "Vermeld geen tarief, kamerbeschikbaarheid of in- of uitchecktijd zonder door de vestiging bevestigde informatie.",
+          "Verzamel geen betaalgegevens buiten de beveiligde procedure die de vestiging heeft ingesteld.",
+          "Geef bijzondere verzoeken (toegankelijkheid, huisdieren, babybed) door zonder te beloven dat de vestiging eraan kan voldoen."
+        ]
+      },
+      "requiredBusinessFacts": [
+        "establishment_name",
+        "address",
+        "contact_phone",
+        "contact_email",
+        "check_in_check_out_times",
+        "room_types",
+        "rates",
+        "availability_calendar",
+        "booking_and_cancellation_policy",
+        "services_amenities",
+        "language_preferences"
+      ],
+      "sources": [
+        "https://economie.fgov.be/fr/themes/ventes/reglementation/delais-de-retractation/droit-de-retractation-lors-de",
+        "https://www.autoriteprotectiondonnees.be/professionnel/rgpd-/bases-juridiques/consentement"
+      ]
+    },
+    "ecommerce": {
+      "aliases": [
+        "ecommerce",
+        "e-commerce",
+        "boutique en ligne",
+        "webshop",
+        "magasin en ligne",
+        "vente en ligne",
+        "shop",
+        "boutique",
+        "webwinkel",
+        "onlineshop"
+      ],
+      "rules": {
+        "fr": [
+          "Recueille la référence de commande et le contact nécessaire. Avant de divulguer des données de commande, suis la procédure de vérification d'identité du commerce ; une référence seule n'autorise pas la divulgation.",
+          "Ne communiquer le statut, les conditions de retour ou le stock que via une source validée du commerce, jamais de mémoire.",
+          "Ne promettre aucun remboursement, échange ou geste commercial : indiquer la procédure réelle et le délai légal applicable lorsque le commerce l'a documenté.",
+          "Ne collecter aucune donnée de paiement et ne jamais faire répéter un numéro de carte au téléphone."
+        ],
+        "en": [
+          "Collect the order reference and necessary contact details. Before disclosing order data, follow the business identity-verification procedure; an order reference alone does not authorize disclosure.",
+          "State status, return conditions or stock only from a validated business source, never from memory.",
+          "Promise no refund, exchange or goodwill gesture: state the actual procedure and the applicable legal deadline when the business has documented it.",
+          "Collect no payment data and never ask a caller to repeat a card number over the phone."
+        ],
+        "nl": [
+          "Vraag de bestelreferentie en nodige contactgegevens. Volg voor het vrijgeven van bestelgegevens de identiteitscontrole van de winkel; een referentie alleen geeft geen toestemming tot openbaarmaking.",
+          "Meld status, retourvoorwaarden of voorraad alleen via een gevalideerde bron van de zaak, nooit uit het geheugen.",
+          "Beloof geen terugbetaling, omruiling of commerciële geste: meld de werkelijke procedure en de toepasselijke wettelijke termijn wanneer de zaak die heeft gedocumenteerd.",
+          "Verzamel geen betaalgegevens en vraag een beller nooit een kaartnummer via de telefoon te herhalen."
+        ]
+      },
+      "requiredBusinessFacts": [
+        "shop_name",
+        "contact_phone",
+        "contact_email",
+        "opening_hours_support",
+        "product_catalogue",
+        "prices",
+        "delivery_options_and_times",
+        "return_and_withdrawal_policy",
+        "order_status_lookup_procedure",
+        "terms_and_conditions"
+      ],
+      "sources": [
+        "https://economie.fgov.be/fr/themes/ventes/reglementation/delais-de-retractation/droit-de-retractation-lors-de",
+        "https://economie.fgov.be/fr/themes/ventes/reglementation/delais-de-retractation",
+        "https://economie.fgov.be/fr/nouveautes/achats-en-ligne-voici-vos-1"
+      ]
+    },
+    "default": {
+      "aliases": [
+        "default",
+        "generique",
+        "general",
+        "autre",
+        "other",
+        "overig",
+        "divers"
+      ],
+      "rules": {
+        "fr": [
+          "Collecter le motif de l'appel et un moyen de contact utile, puis transmettre à la bonne personne ou au bon service du commerce.",
+          "Ne jamais inventer une information sur le commerce : la vérifier dans la base du client ou la faire confirmer.",
+          "Ne réaliser aucun acte réservé à un professionnel (médical, juridique, financier) et ne donner aucune garantie.",
+          "Si une personne décrit un danger immédiat pour sa vie, oriente vers les secours locaux compétents. Ne confonds pas une demande commercialement urgente avec une urgence médicale."
+        ],
+        "en": [
+          "Collect the reason for the call and a useful contact method, then pass it to the right person or department of the business.",
+          "Never invent information about the business: check it in the client's knowledge base or have it confirmed.",
+          "Perform no act reserved to a professional (medical, legal, financial) and give no guarantee.",
+          "If a person describes an immediate threat to their life, refer to the appropriate local emergency service. Do not confuse an urgent business request with a medical emergency."
+        ],
+        "nl": [
+          "Verzamel de reden van het gesprek en een nuttig contactmiddel en geef dit door aan de juiste persoon of dienst van de zaak.",
+          "Verzin nooit informatie over de zaak: controleer ze in de kennisbank van de klant of laat ze bevestigen.",
+          "Voer geen handeling uit die aan een professional is voorbehouden (medisch, juridisch, financieel) en geef geen garantie.",
+          "Als iemand een onmiddellijk levensgevaar beschrijft, verwijs naar de bevoegde lokale hulpdienst. Verwar een dringende zakelijke vraag niet met een medisch noodgeval."
+        ]
+      },
+      "requiredBusinessFacts": [
+        "business_name",
+        "industry_or_sector",
+        "address",
+        "contact_phone",
+        "contact_email",
+        "opening_hours",
+        "services_offered",
+        "prices_or_rates",
+        "appointment_or_availability_info",
+        "escalation_contact",
+        "language_preferences"
+      ],
+      "sources": [
+        "https://www.health.belgium.be/fr/themes/sante/aide-medicale-urgente/acteurs-laide-medicale-urgente/besoin-dun-medecin-garde-composez-1733",
+        "https://www.autoriteprotectiondonnees.be/professionnel/rgpd-/bases-juridiques/interet-legitime"
+      ]
+    }
+  },
+  "sourceNote": "Operational safeguards and intake defaults, not a legal or clinical compliance certification. Source list includes indexed references; client-specific facts and professional protocols must be confirmed separately."
+}
