@@ -65,4 +65,24 @@ describe('abandonHistogram — où l\'appelant s\'arrête', () => {
     expect(h.rate).toBe(0);
     expect(h.worst).toBeNull();
   });
+
+  it('ne range pas un appel dont on ne sait pas où l\'appelant s\'est arrêté', () => {
+    // Avant, un appel voice-core sans mesure tombait dans « tour 1 » à cause
+    // d'un `?? 0` : accuser l'accueil sur un chiffre qui n'existait pas.
+    const h = abandonHistogram([{ callerTurns: undefined, outcome: 'missed' }, ending(3, 'missed')]);
+    expect(h.buckets.map(b => b.count)).toEqual([0, 0, 1, 0, 0]);
+    expect(h.unplaced).toBe(1);
+    expect(h.placeable).toBe(1);
+    /* L'abandon, lui, reste compté : c'est le découpage qui ne sait pas le
+       placer, pas le taux qui doit mentir. */
+    expect(h.abandoned).toBe(2);
+    expect(h.rate).toBe(1);
+  });
+
+  it('n\'accuse aucun tour quand aucun abandon n\'est plaçable', () => {
+    const h = abandonHistogram([{ callerTurns: undefined, outcome: 'missed' }]);
+    expect(h.worst).toBeNull();
+    expect(h.unplaced).toBe(1);
+    expect(h.buckets.every(b => b.count === 0)).toBe(true);
+  });
 });

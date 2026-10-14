@@ -146,6 +146,41 @@ export function readSignals(metadata: Record<string, any> | null): Normalised {
 }
 
 /**
+ * Les étiquettes qui désignent l'APPELANT, dans un transcript étiqueté.
+ *
+ * Le chemin voice-core écrit un transcript d'une ligne par prise de parole,
+ * préfixée `AI:` ou `User:` (vérifié sur un appel réel : 39 lignes, 20 `User:`).
+ * `Appelant`/`Caller`/`Client` sont acceptés parce que trois producteurs
+ * différents ont déjà écrit ce champ dans ce dépôt.
+ */
+const CALLER_LABEL_RE = /^\s*(user|appelant|caller|client)\s*:/i;
+
+/** Une ligne qui porte une étiquette de locuteur, quelle qu'elle soit. */
+const ANY_LABEL_RE = /^\s*[A-Za-zÀ-ÿ_ ]{1,12}\s*:/;
+
+/**
+ * Le nombre de tours de l'appelant, LU dans le transcript.
+ *
+ * Existe parce que `metadata.realtime.callerTurns` n'est écrit que par le chemin
+ * Vapi : sur le chemin voice-core, le chiffre n'existe pas, donc tout ce qui en
+ * dépend est muet — et aujourd'hui 100 % des appels passent par voice-core.
+ *
+ * Rend `undefined` plutôt que zéro dès que le transcript n'est pas étiqueté :
+ * compter les lignes d'un texte inconnu fabriquerait un chiffre, et un chiffre
+ * faux vaut moins qu'un chiffre absent. Un transcript vide rend aussi
+ * `undefined` — c'est `dead_line` qui parle, pas ce compteur.
+ */
+export function callerTurnsFromTranscript(transcript: string | null | undefined): number | undefined {
+  const texte = String(transcript ?? '');
+  if (!texte.trim()) return undefined;
+  const lignes = texte.split('\n');
+  /* Au moins deux lignes étiquetées : une seule étiquette est plus sûrement une
+     phrase avec deux-points (« Question : … ») qu'un dialogue. */
+  if (lignes.filter(l => ANY_LABEL_RE.test(l)).length < 2) return undefined;
+  return lignes.filter(l => CALLER_LABEL_RE.test(l)).length;
+}
+
+/**
  * Le verdict. Les codes de DEVELOPPEUR passent avant : réparer un outil cassé
  * change plus d'appels que raccourcir une réponse.
  */
@@ -154,6 +189,11 @@ export function postMortemOf(call: CallSignals): CallPostMortem {
   const codes: MortemCode[] = [];
   const evidence: string[] = [];
   let clientAction: string | null = null;
+
+  /* Le chiffre mesuré d'abord ; à défaut, celui qu'on peut LIRE dans le
+     transcript. Le second n'est pas une mesure, mais il vaut mieux qu'un zéro
+     qui fait passer tout le monde pour un appelant reparti au premier tour. */
+  const callerTurns = s.callerTurns ?? callerTurnsFromTranscript(call.transcript);
 
   // ── Ce qui appartient au code ────────────────────────────────────────────
 
@@ -189,9 +229,12 @@ export function postMortemOf(call: CallSignals): CallPostMortem {
 
   // ── Ce qui se règle chez le client, ou se surveille ──────────────────────
 
-  if (call.outcome && NOTHING_PRODUCED.has(call.outcome) && (s.callerTurns ?? 0) >= ENGAGED_TURNS) {
+  if (call.outcome && NOTHING_PRODUCED.has(call.outcome) && (callerTurns ?? 0) >= ENGAGED_TURNS) {
     codes.push('engaged_then_lost');
-    evidence.push(`rien produit après ${s.callerTurns} tours d'appelant (issue « ${call.outcome} »)`);
+    evidence.push(
+      `rien produit après ${callerTurns} tours d'appelant (issue « ${call.outcome} »)` +
+        `${s.callerTurns === undefined ? ', tours lus dans le transcript' : ''}`,
+    );
     clientAction = 'L\'appelant était engagé et l\'appel n\'a rien donné. Écouter ce transcript et compléter la base de connaissances.';
   }
 

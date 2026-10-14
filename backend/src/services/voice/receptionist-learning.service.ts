@@ -3,6 +3,7 @@ import { fillerFor } from './voice-tools';
 import { logger } from '../../config/logger';
 import { knowledgeEmbeddingsService } from './knowledge-embeddings.service';
 import { receptionistDigestService } from './receptionist-digest.service';
+import { callerTurnsFromTranscript } from './call-postmortem';
 
 /**
  * Learning loop over the receptionist's real-time signals (chantier 11).
@@ -39,11 +40,19 @@ export interface RealtimeMetrics {
   llmFailures?: string[];
 }
 
+/**
+ * A measured distribution, with what it does not know left absent.
+ *
+ * The two paths do not publish the same thing: the Vapi path measures all four
+ * fields, the voice-core path publishes `total_p50` and `total_p95` and nothing
+ * else. A field nobody measured stays missing — filling it in would make a
+ * reader believe in a median that was never computed.
+ */
 interface Stat {
-  count: number;
-  median: number;
-  p95: number;
-  max: number;
+  count?: number;
+  median?: number;
+  p95?: number;
+  max?: number;
 }
 
 export interface Finding {
@@ -112,7 +121,8 @@ const ABANDONED_OUTCOMES = new Set(['missed', 'other']);
 
 /** Un appel, réduit à ce qui dit OÙ l'appelant s'est arrêté. */
 interface CallEnding {
-  callerTurns: number;
+  /** Absent quand le compte n'a pas pu être lu — voir `fromVoiceCore`. */
+  callerTurns?: number;
   outcome: string | null;
 }
 
@@ -152,13 +162,18 @@ export function abandonHistogram(endings: CallEnding[]) {
     ['tours 7+', t => t >= 7],
   ];
   const abandoned = endings.filter(e => e.outcome === null || ABANDONED_OUTCOMES.has(e.outcome));
+  /* Seuls les appels dont le compte de tours a vraiment été lu (ou mesuré)
+     peuvent être rangés. Les autres sont comptés à part au lieu d'être poussés
+     dans « tour 1 », ce que faisait un `?? 0` : un appel abandonné n'est pas un
+     appel abandonné au premier tour. */
+  const placeable = abandoned.filter((e): e is CallEnding & { callerTurns: number } => typeof e.callerTurns === 'number');
   const counted = buckets.map(([label, hit]) => ({
     label,
-    count: abandoned.filter(e => hit(e.callerTurns)).length,
+    count: placeable.filter(e => hit(e.callerTurns)).length,
   }));
   /* `null` et non le premier seau quand personne n'abandonne: nommer un « pire
      tour » sur zéro abandon désignerait un coupable qui n'existe pas. */
-  const worst = abandoned.length ? [...counted].sort((a, b) => b.count - a.count)[0] : null;
+  const worst = placeable.length ? [...counted].sort((a, b) => b.count - a.count)[0] : null;
 
   return {
     total: endings.length,
@@ -166,11 +181,61 @@ export function abandonHistogram(endings: CallEnding[]) {
     rate: ratio(abandoned.length, endings.length),
     buckets: counted,
     worst,
+    /* Ce que le découpage ne sait pas dire. Rendu explicitement pour que
+       l'écran puisse l'écrire au lieu de laisser croire que la somme des seaux
+       réconcilie tous les abandons. */
+    unplaced: abandoned.length - placeable.length,
+    placeable: placeable.length,
   };
 }
 
 const LOOKBACK_DAYS = 7;
 const MAX_CALLS = 200;
+
+/**
+ * Les mêmes mesures, quelle que soit la plateforme qui a écrit l'appel.
+ *
+ * Le chemin Vapi écrit `realtime`. Le chemin voice-core écrit
+ * `latency.{tours,total_p50,total_p95,…}` et **aucun `realtime`** — donc tout
+ * lecteur de `realtime`, ce rapport compris, n'y voyait zéro métrique. C'est le
+ * chemin où passe aujourd'hui l'intégralité des appels : le rapport hebdomadaire
+ * ne pouvait rien trouver, jamais, pour aucun client.
+ *
+ * On ne mappe que ce qui est réellement mesuré : `total_p50`→médiane,
+ * `total_p95`→p95. Les valeurs par étape n'existent pas sur ce chemin — il
+ * publie `llm_ttft_p50`/`tts_ttfb_p50`, qui sont des temps de PREMIER OCTET et
+ * non des durées d'étape — donc elles restent absentes au lieu d'être
+ * approximées, et les constats qui en dépendent restent muets plutôt que faux.
+ *
+ * `tours` est le nombre de tours de l'AGENT et n'est délibérément pas utilisé
+ * comme compte de l'appelant : c'est le transcript qui le dit, et seulement
+ * quand il est étiqueté.
+ */
+export function fromVoiceCore(
+  metadata: Record<string, any> | null | undefined,
+  transcript?: string | null,
+): RealtimeMetrics | undefined {
+  const realtime = metadata?.realtime as RealtimeMetrics | undefined;
+  if (realtime) return realtime;
+
+  /* Pas de sortie hâtive si `latency` manque : un transcript lisible reste une
+     information, même sans latence, et c'est lui seul qui dit où l'appelant
+     s'est arrêté. */
+  const lat = (metadata?.latency ?? undefined) as Record<string, unknown> | undefined;
+
+  const p95 = typeof lat?.total_p95 === 'number' ? lat.total_p95 : undefined;
+  const median = typeof lat?.total_p50 === 'number' ? lat.total_p50 : undefined;
+  const callerTurns = callerTurnsFromTranscript(transcript);
+
+  /* Rien de mesuré ni de lisible : on le dit, au lieu de rendre un objet vide
+     qui compterait comme un appel analysé. */
+  if (p95 === undefined && callerTurns === undefined) return undefined;
+
+  return {
+    ...(callerTurns === undefined ? {} : { callerTurns }),
+    ...(p95 === undefined ? {} : { latency: { total: { ...(median === undefined ? {} : { median }), p95 } } }),
+  };
+}
 
 class ReceptionistLearningService {
   /**
@@ -181,23 +246,24 @@ class ReceptionistLearningService {
     const since = new Date(Date.now() - LOOKBACK_DAYS * 24 * 60 * 60 * 1000);
     const calls = await prisma.clientCall.findMany({
       where: { clientId, isSpam: false, createdAt: { gte: since } },
-      select: { metadata: true, outcome: true },
+      select: { metadata: true, outcome: true, transcript: true },
       orderBy: { createdAt: 'desc' },
       take: MAX_CALLS,
     });
 
-    const metrics = calls
-      .map(c => (c.metadata as Record<string, any> | null)?.realtime as RealtimeMetrics | undefined)
-      .filter((m): m is RealtimeMetrics => Boolean(m));
+    /* Une seule lecture par appel, pour les deux sorties ci-dessous. */
+    const read = calls.map(c => ({
+      metrics: fromVoiceCore(c.metadata as Record<string, any> | null, c.transcript),
+      outcome: c.outcome,
+    }));
+
+    const metrics = read.map(r => r.metrics).filter((m): m is RealtimeMetrics => Boolean(m));
 
     /* L'issue est portée par la LIGNE, pas par les métriques temps réel: pour
        savoir où un appelant s'arrête, il faut croiser les deux. */
-    const endings: CallEnding[] = calls
-      .map(c => ({
-        callerTurns: ((c.metadata as Record<string, any> | null)?.realtime as RealtimeMetrics | undefined)?.callerTurns,
-        outcome: c.outcome,
-      }))
-      .filter((e): e is CallEnding => typeof e.callerTurns === 'number');
+    const endings: CallEnding[] = read
+      .map(r => ({ callerTurns: r.metrics?.callerTurns, outcome: r.outcome }))
+      .filter((e): e is { callerTurns: number; outcome: string | null } => typeof e.callerTurns === 'number');
 
     if (metrics.length < MIN_CALLS) {
       return { clientId, callsAnalysed: metrics.length, findings: [] };
@@ -323,13 +389,16 @@ class ReceptionistLearningService {
     const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
     const calls = await prisma.clientCall.findMany({
       where: { clientId, isSpam: false, createdAt: { gte: since } },
-      select: { metadata: true, outcome: true },
+      select: { metadata: true, outcome: true, transcript: true },
       orderBy: { createdAt: 'desc' },
       take: MAX_CALLS,
     });
 
+    /* Pas de `?? 0` : un appel dont on ne sait pas où l'appelant s'est arrêté
+       n'est pas un appel arrêté au premier tour. Il sort du découpage et se
+       compte dans `unplaced`. */
     const endings: CallEnding[] = calls.map(c => ({
-      callerTurns: ((c.metadata as Record<string, any> | null)?.realtime?.callerTurns ?? 0) as number,
+      callerTurns: fromVoiceCore(c.metadata as Record<string, any> | null, c.transcript)?.callerTurns,
       outcome: c.outcome,
     }));
 

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { postMortemOf, readSignals, type CallSignals } from '../call-postmortem';
+import { postMortemOf, readSignals, callerTurnsFromTranscript, type CallSignals } from '../call-postmortem';
 
 /** Un appel qui s'est bien passé, sauf ce que le test remplace. */
 function call(over: Partial<CallSignals> = {}): CallSignals {
@@ -171,5 +171,55 @@ describe('postMortemOf — ce que l\'appelant a ressenti', () => {
     expect(m.verdict).toBe('broken');
     expect(m.codes).toEqual(expect.arrayContaining(['tool_failed', 'caller_unhappy']));
     expect(m.needsDeveloper).toBe(true);
+  });
+});
+
+/** Un dialogue voice-core, tel qu'il est réellement écrit : une ligne par prise de parole. */
+function dialogue(toursAppelant: number): string {
+  const lignes: string[] = [];
+  for (let i = 0; i < toursAppelant; i++) {
+    lignes.push('AI: Que puis-je faire pour vous ?', `User: demande ${i + 1}`);
+  }
+  return lignes.join('\n');
+}
+
+describe('postMortemOf — lire les tours dans le transcript, quand ils ne sont pas mesurés', () => {
+  it('signale un appelant engagé puis perdu sur le chemin voice-core', () => {
+    // `metadata.realtime.callerTurns` n'existe pas sur ce chemin : sans lecture
+    // du transcript, ce code ne pouvait JAMAIS se déclencher là où passent tous
+    // les appels d'aujourd'hui.
+    const m = postMortemOf(voiceCore({ tours: 12 }, { outcome: 'missed', transcript: dialogue(6) }));
+    expect(m.codes).toContain('engaged_then_lost');
+    expect(m.verdict).toBe('watch');
+    expect(m.evidence.join(' ')).toContain('tours lus dans le transcript');
+  });
+
+  it('n\'invente aucun tour quand le transcript n\'est pas étiqueté', () => {
+    const m = postMortemOf(call({ outcome: 'missed', transcript: 'Bonjour, je voudrais un rendez-vous jeudi. Merci.' }));
+    expect(m.codes).not.toContain('engaged_then_lost');
+  });
+
+  it('préfère le chiffre MESURÉ quand il existe', () => {
+    // Vapi mesure 2 tours, le transcript en montre 6 : c'est la mesure qui fait foi.
+    const m = postMortemOf(vapi({ callerTurns: 2 }, { outcome: 'missed', transcript: dialogue(6) }));
+    expect(m.codes).not.toContain('engaged_then_lost');
+    expect(m.evidence.join(' ')).not.toContain('tours lus dans le transcript');
+  });
+
+  it('ne compte que les répliques de l\'appelant, pas celles de l\'agent', () => {
+    expect(callerTurnsFromTranscript(dialogue(6))).toBe(6);
+  });
+
+  it('rend undefined plutôt qu\'un zéro fabriqué', () => {
+    expect(callerTurnsFromTranscript('Une phrase avec deux points : oui.')).toBeUndefined();
+    expect(callerTurnsFromTranscript('')).toBeUndefined();
+    expect(callerTurnsFromTranscript(null)).toBeUndefined();
+    /* Deux lignes étiquetées mais aucune de l'appelant : le compte est zéro, et
+       c'est un vrai zéro — l'agent a parlé seul. */
+    expect(callerTurnsFromTranscript('AI: bonjour\nAI: vous êtes là ?')).toBe(0);
+  });
+
+  it('accepte les autres étiquettes d\'appelant déjà écrites dans ce dépôt', () => {
+    expect(callerTurnsFromTranscript('AI: bonjour\nAppelant: bonjour\nAI: oui ?\nAppelant: oui')).toBe(2);
   });
 });

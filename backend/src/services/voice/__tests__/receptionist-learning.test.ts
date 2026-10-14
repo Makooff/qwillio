@@ -8,7 +8,7 @@ vi.mock('../knowledge-embeddings.service', () => ({
   knowledgeEmbeddingsService: { generateMissing: vi.fn().mockResolvedValue(0) },
 }));
 
-const { receptionistLearningService } = await import('../receptionist-learning.service');
+const { receptionistLearningService, fromVoiceCore } = await import('../receptionist-learning.service');
 
 /** N calls carrying the given real-time metrics. */
 function calls(n: number, realtime: Record<string, unknown>) {
@@ -206,5 +206,73 @@ describe('analyseClient — l\'abandon par index de tour', () => {
   it('se tait en dessous du plancher de bruit', async () => {
     findMany.mockResolvedValue(lost(3, 1));
     expect((await receptionistLearningService.analyseClient('c')).findings).toEqual([]);
+  });
+});
+
+/**
+ * Un appel tel que voice-core l'écrit réellement : aucun `realtime`, une
+ * `latency` en `_p50`/`_p95`, et un transcript étiqueté `AI:`/`User:`.
+ */
+function voiceCoreCall(totalP95: number, toursAppelant: number) {
+  const lignes = Array.from(
+    { length: toursAppelant },
+    (_, i) => `AI: question ${i + 1}\nUser: réponse ${i + 1}`,
+  );
+  return {
+    metadata: {
+      source: 'voice-core',
+      /* `tours` compte les tours de l'AGENT : le double, ici, pour que le test
+         échoue si quelqu'un s'en sert comme compte de l'appelant. */
+      latency: { tours: toursAppelant * 2, total_p50: Math.round(totalP95 / 2), total_p95: totalP95 },
+    },
+    outcome: 'completed',
+    transcript: lignes.join('\n'),
+  };
+}
+
+describe('analyseClient — les appels voice-core comptent enfin', () => {
+  beforeEach(() => vi.clearAllMocks());
+
+  it('lit les métriques d\'un client dont TOUS les appels passent par voice-core', async () => {
+    findMany.mockResolvedValue(Array.from({ length: 11 }, () => voiceCoreCall(2600, 5)));
+    const report = await receptionistLearningService.analyseClient('c');
+    /* Avant : `realtime` absent ⇒ zéro métrique ⇒ sous le plancher ⇒ aucun
+       constat, jamais, pour aucun client. */
+    expect(report.callsAnalysed).toBe(11);
+    expect(report.findings.map(f => f.code)).toContain('slow_turns');
+  });
+
+  it('place enfin les abandons au bon tour, au lieu de les perdre tous', async () => {
+    findMany.mockResolvedValue(
+      Array.from({ length: 11 }, () => ({ ...voiceCoreCall(1200, 5), outcome: 'missed' })),
+    );
+    const f = (await receptionistLearningService.analyseClient('c')).findings.find(
+      x => x.code === 'abandon_by_turn',
+    );
+    expect(f?.subject).toBe('tours 4-6');
+  });
+});
+
+describe('fromVoiceCore — les deux plateformes racontent la même chose', () => {
+  it('laisse intact ce que Vapi a mesuré', () => {
+    const realtime = { callerTurns: 4 };
+    expect(fromVoiceCore({ realtime }, 'AI: a\nUser: b')).toBe(realtime);
+  });
+
+  it('lit la latence voice-core, qui n\'écrit pas `realtime`', () => {
+    const m = fromVoiceCore({ latency: { total_p50: 1400, total_p95: 2200 } }, null);
+    expect(m?.latency?.total).toEqual({ median: 1400, p95: 2200 });
+  });
+
+  it('n\'utilise jamais les tours de l\'AGENT comme ceux de l\'appelant', () => {
+    // `tours` = tours de l'agent. S'en servir ici ferait passer un appelant muet
+    // pour un appelant engagé, et déclencherait de fausses alertes.
+    const m = fromVoiceCore({ latency: { tours: 12, total_p95: 2000 } }, 'AI: bonjour\nAI: vous êtes là ?');
+    expect(m?.callerTurns).toBe(0);
+  });
+
+  it('ne rend rien quand rien n\'est mesuré ni lisible', () => {
+    expect(fromVoiceCore({ latency: {} }, 'du texte sans étiquette')).toBeUndefined();
+    expect(fromVoiceCore(null, null)).toBeUndefined();
   });
 });
