@@ -57,6 +57,31 @@ function attr(span: ReceivedSpan, key: string): unknown {
   return Object.values(found.value)[0];
 }
 
+/**
+ * Le span attendu, ou une erreur qui DIT ce qui manque.
+ *
+ * Ces tests s'enchaînent sur la charge reçue par le collecteur, donc un échec en
+ * amont les faisait tous tomber sur un `TypeError: cannot read properties of
+ * undefined` — sept échecs qui n'en racontaient qu'un, et le vrai message noyé
+ * dans les six autres.
+ */
+function spanNamed(name: string): ReceivedSpan {
+  const found = collected.find(s => s.name === name);
+  if (!found) throw new Error(`aucun span « ${name} » reçu (${collected.length} span(s) au total)`);
+  return found;
+}
+
+/**
+ * Le budget d'un test d'intégration, pas d'un test unitaire.
+ *
+ * Ce fichier importe pour de vrai le SDK OTel et fait un aller-retour HTTP vers
+ * un collecteur local. Sous la charge de la suite complète, le premier import à
+ * froid dépasse les cinq secondes par défaut: le test expirait alors pendant
+ * `init()`, l'exportateur ne s'activait jamais, et ce n'est pas ce que le test
+ * vérifie. Le délai est donc porté par les seuls tests qui touchent au réseau.
+ */
+const NET_TIMEOUT_MS = 30_000;
+
 /** Un tour complet, joué sur le vrai tracker plutôt que fabriqué à la main. */
 function playTurn(tracker: CallLatencyTracker, base: number) {
   tracker.markCallerSpeechEnd(base);
@@ -70,7 +95,7 @@ describe('voice-tracing — export OTLP', () => {
   afterAll(async () => {
     await voiceTracing.shutdown();
     await new Promise<void>(resolve => collector?.close(() => resolve()));
-  });
+  }, NET_TIMEOUT_MS);
 
   it('exporte un span racine, un span par tour et un span par étage mesuré', async () => {
     const endpoint = await startCollector();
@@ -96,18 +121,18 @@ describe('voice-tracing — export OTLP', () => {
     expect(names).toContain('qwillio.voice.ttfa');
     expect(names).toContain('qwillio.voice.turn.total');
     expect(names).toContain('execute_tool checkAvailability');
-  });
+  }, NET_TIMEOUT_MS);
 
   it('rattache les étages au tour, et le tour à l\'appel', () => {
-    const call = collected.find(s => s.name === 'qwillio.voice.call')!;
-    const turn = collected.find(s => s.name === 'qwillio.voice.turn')!;
-    const stt = collected.find(s => s.name === 'qwillio.voice.stt')!;
+    const call = spanNamed('qwillio.voice.call');
+    const turn = spanNamed('qwillio.voice.turn');
+    const stt = spanNamed('qwillio.voice.stt');
     expect(turn.parentSpanId).toBe(call.spanId);
     expect(stt.parentSpanId).toBe(turn.spanId);
   });
 
   it('date les spans sur les marques du tracker, pas sur l\'heure de création', () => {
-    const stt = collected.find(s => s.name === 'qwillio.voice.stt')!;
+    const stt = spanNamed('qwillio.voice.stt');
     const durationMs = (Number(stt.endTimeUnixNano) - Number(stt.startTimeUnixNano)) / 1e6;
     /* Le span est créé bien après coup: si la durée est la bonne, c'est que
        les horodatages explicites ont été suivis. */
@@ -115,13 +140,13 @@ describe('voice-tracing — export OTLP', () => {
   });
 
   it('porte la convention GenAI sur l\'étage LLM, et le préfixe maison ailleurs', () => {
-    const llm = collected.find(s => s.name === 'chat')!;
+    const llm = spanNamed('chat');
     expect(attr(llm, 'gen_ai.operation.name')).toBe('chat');
     expect(attr(llm, 'gen_ai.request.model')).toBe('gpt-4o-mini');
     expect(Number(attr(llm, 'gen_ai.usage.input_tokens'))).toBe(800);
     expect(Number(attr(llm, 'qwillio.voice.tokens.cached'))).toBe(600);
 
-    const stt = collected.find(s => s.name === 'qwillio.voice.stt')!;
+    const stt = spanNamed('qwillio.voice.stt');
     expect(attr(stt, 'qwillio.voice.stage')).toBe('stt');
     /* Aucun attribut `gen_ai.*` hors de l'étage que la convention couvre: c'est
        ce qui rendra la bascule mécanique quand une convention voix sortira. */
@@ -129,7 +154,7 @@ describe('voice-tracing — export OTLP', () => {
   });
 
   it('marque l\'outil sous la convention GenAI', () => {
-    const tool = collected.find(s => s.name === 'execute_tool checkAvailability')!;
+    const tool = spanNamed('execute_tool checkAvailability');
     expect(attr(tool, 'gen_ai.operation.name')).toBe('execute_tool');
     expect(attr(tool, 'gen_ai.tool.name')).toBe('checkAvailability');
   });
@@ -160,7 +185,7 @@ describe('voice-tracing — export OTLP', () => {
     expect(turns.map(t => Number(attr(t, 'qwillio.voice.turn.index'))).sort()).toEqual([1, 2]);
     const call = collected.find(s => s.name === 'qwillio.voice.call' && attr(s, 'qwillio.voice.call_id') === 'call-2')!;
     expect(Number(attr(call, 'qwillio.voice.turns'))).toBe(2);
-  });
+  }, NET_TIMEOUT_MS);
 
   it('un `flush` ne ferme pas l\'exportateur, seul `shutdown` le fait', () => {
     /* Le test précédent a flushé deux fois et a quand même reçu ses spans:
@@ -173,7 +198,7 @@ describe('voice-tracing — export OTLP', () => {
     voiceTracing.recordTurn('call-2', null);
     await voiceTracing.flush();
     expect(collected.length).toBe(before);
-  });
+  }, NET_TIMEOUT_MS);
 });
 
 describe('parseHeaders', () => {
