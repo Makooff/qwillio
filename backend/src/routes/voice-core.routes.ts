@@ -31,6 +31,7 @@ import { entreesDepuisVapiConfig } from '../services/voice/portal-knowledge.serv
 
 const router = Router();
 import {persistCompletedVoiceMetadata} from '../services/voice/voice-core-metadata';
+import { signRuntimeScope } from '../services/voice/learning-runtime-scope';
 router.use(voiceCoreAuth);
 
 /**
@@ -107,7 +108,14 @@ router.get('/context/by-number/:trunkNumber', async (req, res) => {
       ...(profil.inboundLines || []).map((l: { number: string }) => l.number),
     ].filter((n): n is string => Boolean(n));
 
+    // Scope comes from the authoritative client row selected by the called line.
+    // It is NOT copied from line instructions, a caller marker or profile fallback.
+    const learningClient = await prisma.client.findFirst({
+      where: { id: client.id }, select: { id: true, businessType: true, country: true, agentLanguage: true },
+    });
     return res.json({
+      learningAssertion: learningClient ? signRuntimeScope(learningClient, appele,
+        process.env.VOICE_CORE_API_KEY || '', process.env.LEARNING_RUNTIME_ENABLED === 'true') : null,
       clientId: profil.clientId,
       /* L'ENREGISTREMENT SE DIT PAR CLIENT, PAS PAR WORKER.
          `voice-core` avait son propre VC_RECORDING, un booléen d'environnement
