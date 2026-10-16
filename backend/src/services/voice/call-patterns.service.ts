@@ -23,17 +23,17 @@ import { prisma } from '../../config/database';
 import { Prisma } from '@prisma/client';
 import { logger } from '../../config/logger';
 import { discordService } from '../discord.service';
+import { industryRulesForReview, resolveReceptionistNiche, scopedFingerprint } from '../../config/receptionist-industry-rules';
+import { entreesDepuisVapiConfig } from './portal-knowledge.service';
 import {
   ANALYSIS_SYSTEM_PROMPT,
   buildAnalysisUserMessage,
   parsePatterns,
   type ConversationPattern,
+  type BusinessReviewContext,
 } from './call-patterns';
 
-/** Même fenêtre que le post-mortem : réparer le jour même, pas rattraper un passé. */
-const LOOKBACK_MINUTES = 180;
-
-/** Appels lus par passage — le coût du modèle borne la fenêtre, pas l'envie. */
+/** Un lot borné par passage, sans expiration du backlog. */
 const MAX_CALLS = 50;
 
 /** En dessous, c'est un appel, pas un phénomène. */
@@ -76,42 +76,43 @@ class CallPatternsService {
       return sweep;
     }
 
-    const since = new Date(Date.now() - LOOKBACK_MINUTES * 60 * 1000);
-    const rows = await prisma.clientCall.findMany({
-      where: { status: 'completed', isSpam: false, endedAt: { gte: since } },
-      orderBy: { endedAt: 'desc' },
-      take: MAX_CALLS,
-      select: { id: true, clientId: true, transcript: true, metadata: true },
-    });
+    // Prisma JSON filters cannot express key absence reliably (SQL NULL, JSON
+    // null and a present patterns:null are different). Parameterized SQL keeps
+    // the LIMIT AFTER the pending predicate, never after filtering in JS.
+    const rows = await prisma.$queryRaw<Array<{
+      id: string; clientId: string; transcript: string; metadata: Prisma.JsonValue | null;
+    }>>`
+      SELECT id, client_id AS "clientId", transcript, metadata
+      FROM client_calls
+      WHERE status = 'completed' AND is_spam = false
+        AND transcript IS NOT NULL AND transcript ~ '[^[:space:]]'
+        AND NOT (COALESCE(metadata, '{}'::jsonb) ? 'patterns')
+      ORDER BY COALESCE(ended_at, created_at) ASC, id ASC
+      LIMIT ${MAX_CALLS}
+    `;
 
     for (const row of rows) {
       const metadata = (row.metadata as Record<string, any> | null) ?? null;
       const mortem = metadata?.mortem as { verdict?: string; codes?: string[]; evidence?: string[] } | undefined;
-      /* Pas jugé, jugé sain, ou déjà lu : dans les trois cas il n'y a rien à
-         faire. `metadata.patterns` est la seule chose qui empêche de payer le
-         même transcript à chaque passage. */
-      if (!mortem?.verdict || mortem.verdict === 'ok' || metadata?.patterns) continue;
+      // Défense supplémentaire pour un résultat ancien/injecté, pas le filtre du lot.
+      if (metadata && Object.prototype.hasOwnProperty.call(metadata, 'patterns')) continue;
       if (!row.transcript?.trim()) continue;
 
       sweep.scanned += 1;
 
-      let patterns: ConversationPattern[];
       try {
-        patterns = await this.analyse(apiKey, row.transcript, mortem);
+        const business = await this.businessContext(row.clientId);
+        const patterns = await this.analyse(apiKey, row.transcript, mortem ?? {}, business);
+        sweep.analysed += 1;
+        sweep.patterns += patterns.length;
+        for (const pattern of patterns) {
+          if (await this.aggregate(row.id, row.clientId, pattern, business.niche)) sweep.signalled += 1;
+        }
+        await this.markRead(row.id, patterns, business.niche);
       } catch (error) {
+        // Modèle, JSON, preuve, lecture client ou écriture ratée : aucun marker.
         logger.warn(`[CallPatterns] lecture impossible pour ${row.id}: ${(error as Error).message}`);
-        continue;
       }
-      sweep.analysed += 1;
-      sweep.patterns += patterns.length;
-
-      for (const pattern of patterns) {
-        if (await this.aggregate(row.id, row.clientId, pattern)) sweep.signalled += 1;
-      }
-
-      await this.markRead(row.id, metadata, patterns).catch(error =>
-        logger.warn(`[CallPatterns] marqueur non rangé pour ${row.id}: ${(error as Error).message}`),
-      );
     }
 
     if (sweep.scanned) {
@@ -123,11 +124,35 @@ class CallPatternsService {
     return sweep;
   }
 
-  /** L'appel au modèle, isolé pour que le test n'ait pas de réseau à mocker en profondeur. */
+  private async businessContext(clientId: string): Promise<BusinessReviewContext> {
+    const client = await prisma.client.findUnique({
+      where: { id: clientId },
+      select: {
+        businessName: true, businessType: true, country: true, vapiConfig: true,
+        businessKnowledge: { where: { isActive: true }, orderBy: [{ priority: 'desc' }, { id: 'asc' }],
+          take: 20, select: { title: true, content: true } },
+      },
+    });
+    if (!client) throw new Error('Client authentique introuvable');
+    const review = industryRulesForReview(client.businessType);
+    return {
+      ...review,
+      niche: resolveReceptionistNiche(client.businessType),
+      businessName: client.businessName, country: client.country,
+      knowledge: [
+        ...entreesDepuisVapiConfig(client.vapiConfig as Record<string, unknown> | null, client.businessType)
+          .map(entry => `${entry.title}: ${entry.content}`),
+        ...client.businessKnowledge.map(entry => `${entry.title}: ${entry.content}`),
+      ],
+    };
+  }
+
+  /** L'appel au modèle hors du chemin audio. */
   private async analyse(
     apiKey: string,
     transcript: string,
     mortem: { verdict?: string; codes?: string[]; evidence?: string[] },
+    business: BusinessReviewContext,
   ): Promise<ConversationPattern[]> {
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), TIMEOUT_MS);
@@ -144,9 +169,10 @@ class CallPatternsService {
               role: 'user',
               content: buildAnalysisUserMessage({
                 transcript,
-                verdict: mortem.verdict ?? 'watch',
+                verdict: mortem.verdict ?? 'non jugé',
                 codes: mortem.codes ?? [],
                 evidence: mortem.evidence ?? [],
+                business,
               }),
             },
           ],
@@ -155,8 +181,8 @@ class CallPatternsService {
         }),
       });
       const data = (await response.json()) as any;
-      if (!response.ok) throw new Error(`OpenAI ${response.status}: ${JSON.stringify(data).slice(0, 200)}`);
-      return parsePatterns(data.choices?.[0]?.message?.content ?? '');
+      if (!response.ok) throw new Error(`OpenAI ${response.status}`);
+      return parsePatterns(data.choices?.[0]?.message?.content ?? '', transcript);
     } finally {
       clearTimeout(timer);
     }
@@ -167,8 +193,8 @@ class CallPatternsService {
    * c'est ce qui fait qu'un signal est un événement et pas un rappel
    * toutes les cinq minutes.
    */
-  private async aggregate(callId: string, clientId: string, pattern: ConversationPattern): Promise<boolean> {
-    const fingerprint = `${pattern.kind}:${pattern.slug}`;
+  private async aggregate(callId: string, clientId: string, pattern: ConversationPattern, niche: string): Promise<boolean> {
+    const fingerprint = scopedFingerprint(pattern, niche);
     const item: EvidenceItem = { callId, clientId, quote: pattern.quote, at: new Date().toISOString() };
 
     const existing = await prisma.learningPattern.findUnique({ where: { fingerprint } });
@@ -218,8 +244,10 @@ class CallPatternsService {
             `Vu sur ${callCount} appels (${clientIds.length} client(s)). ` +
             `Extrait le plus récent :\n« ${item.quote} »\n\n` +
             (pattern.kind === 'conversation'
-              ? `Le synthétiseur local peut en faire une règle prompts.py + test, en PR brouillon.`
-              : `Réglage chiffré proposé — relecture manuelle, pas de règle automatique.`),
+              ? `Conversation (${niche}) : proposition de règle de cette niche en PR brouillon, relecture humaine obligatoire.`
+              : pattern.kind === 'knowledge'
+                ? `Connaissance client (${niche}) : compléter la base des clients concernés (${clientIds.join(', ')}), jamais une règle globale ni un fait partagé.`
+                : `Seuil (${niche}) : réglage chiffré proposé, relecture manuelle, pas de règle automatique.`),
           'alerts',
         )
         .catch(error => logger.warn(`[CallPatterns] signal non envoyé: ${(error as Error).message}`));
@@ -227,21 +255,19 @@ class CallPatternsService {
     return crossed;
   }
 
-  /** Même écriture EN FUSION que le post-mortem, pour la même raison. */
-  private async markRead(
-    id: string,
-    metadata: Record<string, any> | null,
-    patterns: ConversationPattern[],
-  ): Promise<void> {
-    await prisma.clientCall.update({
-      where: { id },
-      data: {
-        metadata: {
-          ...(metadata ?? {}),
-          patterns: { at: new Date().toISOString(), found: patterns.map(p => `${p.kind}:${p.slug}`) },
-        } as unknown as Prisma.InputJsonObject,
-      },
+  /** Ne touche que patterns sur la valeur EN BASE, jamais sur le snapshot lu. */
+  private async markRead(id: string, patterns: ConversationPattern[], niche: string): Promise<void> {
+    const marker = JSON.stringify({
+      at: new Date().toISOString(), found: patterns.map(p => scopedFingerprint(p, niche)),
     });
+    await prisma.$executeRaw`
+      UPDATE client_calls
+      SET metadata = jsonb_set(
+        CASE WHEN jsonb_typeof(metadata) = 'object' THEN metadata ELSE '{}'::jsonb END,
+        '{patterns}', ${marker}::jsonb, true
+      )
+      WHERE id = ${id}::uuid AND NOT (COALESCE(metadata, '{}'::jsonb) ? 'patterns')
+    `;
   }
 }
 

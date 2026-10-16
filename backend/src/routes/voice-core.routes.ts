@@ -30,6 +30,7 @@ import { entreesDepuisVapiConfig } from '../services/voice/portal-knowledge.serv
  */
 
 const router = Router();
+import {persistCompletedVoiceMetadata} from '../services/voice/voice-core-metadata';
 router.use(voiceCoreAuth);
 
 /**
@@ -399,19 +400,11 @@ router.post('/calls', async (req, res) => {
        décale l'appel du temps qu'a mis cette requête. `voice-core` a l'heure
        exacte, autant s'en servir. */
     const debutReel = startedAt ? new Date(String(startedAt)) : null;
-    await prisma.clientCall.update({
-      where: { vapiCallId: salle },
-      data: {
-        ...(debutReel && !Number.isNaN(debutReel.getTime()) ? { startedAt: debutReel } : {}),
-        metadata: {
-          source: 'voice-core',
-          room: salle,
-          brain: brain ?? null,
-          trunkNumber: trunkNumber ?? null,
-          latency: latency ?? null,
-        },
-      },
-    });
+    await persistCompletedVoiceMetadata(
+      prisma, salle, String(clientId),
+      debutReel && !Number.isNaN(debutReel.getTime()) ? debutReel : null,
+      {brain:brain ?? null,trunkNumber:trunkNumber ?? null,latency:latency ?? null},
+    );
 
     /* LA MÉMOIRE DE L'APPELANT, écrite à la fin de CHAQUE appel.
 

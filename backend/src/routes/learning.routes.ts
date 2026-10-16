@@ -13,6 +13,7 @@ import { Router, Request, Response } from 'express';
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { requireAutofixToken } from './autofix.routes';
+import { learningScopeFromFingerprint, withLearningScopes } from '../config/receptionist-industry-rules';
 
 const router = Router();
 
@@ -29,7 +30,12 @@ router.get('/patterns', requireAutofixToken, async (req: Request, res: Response)
     orderBy: [{ callCount: 'desc' }, { lastSeenAt: 'desc' }],
     take: 100,
   });
-  res.json({ patterns });
+  const ids=[...new Set(patterns.filter(p=>!learningScopeFromFingerprint(p.fingerprint).scoped)
+    .flatMap(p=>p.clientIds))];
+  const clients=ids.length ? await prisma.client.findMany({
+    where:{id:{in:ids}},select:{id:true,businessType:true},
+  }):[];
+  res.json({ patterns:withLearningScopes(patterns,clients) });
 });
 
 router.post('/patterns/:id/status', requireAutofixToken, async (req: Request, res: Response) => {
