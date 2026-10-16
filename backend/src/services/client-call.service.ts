@@ -20,6 +20,8 @@ import { businessTimezone } from '../utils/zoned-time';
 import { rescuePromise, type PromiseFacts } from './voice/promise-rescue';
 import type { LeadForAlert } from './voice/lead-alert.service';
 import { analysisDateRule, parseAnalysisDate } from '../utils/analysis-date';
+import { BEHAVIOUR_ANALYSIS_INSTRUCTION, evidenceForAnalysis } from './voice/learning-evidence';
+import { canonicalCountry, canonicalNiche } from './voice/learning-observations.service';
 
 export class ClientCallService {
 
@@ -151,6 +153,13 @@ export class ClientCallService {
         status: 'completed',
         voiceMode: voiceMode ?? null,
         transcript,
+        metadata: (() => {
+          const learningEvidence = evidenceForAnalysis(analysis.learningBehaviour, {
+            tenant_id: client.id, niche: canonicalNiche(client.businessType),
+            country: canonicalCountry(client.country), language: client.agentLanguage,
+          });
+          return learningEvidence ? { learningEvidence } : {};
+        })(),
         summary: analysis.summary,
         sentiment: analysis.sentiment,
         outcome: spam.isSpam ? 'spam' : analysis.outcome,
@@ -537,6 +546,7 @@ export class ClientCallService {
 Write every free-text field (summary, serviceType, specialRequests, unansweredQuestions) in ${ANALYSIS_LANGUAGE[clientLocale(client)]}, the language of the business, whatever language the transcript is in.
 
 Return a JSON object with:
+- ${BEHAVIOUR_ANALYSIS_INSTRUCTION}
 - callerName: caller's name if mentioned (string or null). If the caller SPELLS their family name letter by letter anywhere in the transcript, that spelling IS the name, even when it is shorter or different from the name heard earlier: the earlier mention is what the transcriber guessed, the spelling is what the caller actually said. Join the letters into one word ("B A R" or "BAR" -> "Bar").
 - emailCollected: email if the caller provided one (string or null)
 - sentiment: "positive", "neutral", or "negative"
@@ -764,6 +774,7 @@ interface ClientCallAnalysis {
    * plus à apprendre, n'aurait jamais rien appris. L'analyse tourne de toute
    * façon sur chaque appel; ce champ ne coûte que quelques mots de réponse.
    */
+  learningBehaviour?: unknown;
   unansweredQuestions?: string[];
 }
 
