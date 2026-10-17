@@ -312,14 +312,13 @@ const SAMPLE_TRANSCRIPT = [
 
 function TranscriptCard({ isFr }: { isFr: boolean }) {
   const lines = parseTranscript(SAMPLE_TRANSCRIPT.join('\n'));
-  const reduced = useReducedMotion();
   return (
     <Card>
       <CardHead title={isFr ? 'Transcript' : 'Transcript'} sub={isFr ? 'Appel en cours' : 'Live call'} accent />
       <div className="p-4 sm:p-5">
         <div className="space-y-2.5 rounded-xl p-4" style={{ background: C.well, border: `1px solid ${C.border}` }}>
           {lines.map((line, i) => (
-            <motion.p key={i} className="text-[12.5px] leading-relaxed" {...appearLoop(i, reduced)}>
+            <p key={i} className="text-[12.5px] leading-relaxed">
               {line.who && (
                 <span
                   className="mr-1.5 text-[10.5px] font-semibold uppercase tracking-wide"
@@ -329,7 +328,7 @@ function TranscriptCard({ isFr }: { isFr: boolean }) {
                 </span>
               )}
               <span style={{ color: C.text }}>{line.text}</span>
-            </motion.p>
+            </p>
           ))}
         </div>
       </div>
@@ -347,21 +346,19 @@ const KNOWLEDGE = [
 ];
 
 function KnowledgeCard({ isFr }: { isFr: boolean }) {
-  const reduced = useReducedMotion();
   return (
     <Card>
       <CardHead title={isFr ? 'Base de connaissances' : 'Knowledge base'} sub={isFr ? '128 entrées' : '128 entries'} />
       <ul>
-        {KNOWLEDGE.map((k, i) => (
-          <motion.li
+        {KNOWLEDGE.map((k) => (
+          <li
             key={k.title}
             className="flex items-baseline gap-3 px-4 py-3 sm:px-5"
             style={{ borderBottom: `1px solid ${C.border}` }}
-            {...appearLoop(i, reduced)}
           >
             <span className="shrink-0 text-[11px] font-medium" style={{ color: C.brandHi }}>{k.title}</span>
             <span className="min-w-0 text-[12.5px]" style={{ color: C.text }}>{k.value}</span>
-          </motion.li>
+          </li>
         ))}
       </ul>
     </Card>

@@ -368,65 +368,50 @@ export default function Receptionist() {
             <StepFrame scope={pillarsRef} radius={28} pad={0} className="hidden lg:block" />
             {pillars.map((pillar, i) => {
               const flip = i % 2 === 1;
-              /* Le dernier pilier (« Une conversation ») n'a plus d'illustration :
-                 il est rendu en texte pleine largeur, hors du cadre qui voyage —
-                 le cadre ne compte donc plus que les trois premières étapes. */
-              const plain = i === pillars.length - 1;
-              const text = (
-                <>
-                  <div className="flex items-center gap-3 mb-4 sm:mb-6">
-                    <span className="w-11 h-11 rounded-full bg-q2-plate flex items-center justify-center">
-                      <pillar.icon size={18} className="text-q2-indigo" aria-hidden="true" />
-                    </span>
-                    <span className="q2-eyebrow text-q2-body tabular-nums">{pillar.num}</span>
-                  </div>
-                  <h3 className="q2-h3 text-q2-ink mb-3 max-w-[420px]">{pillar.title}</h3>
-                  <p className="text-q2-body text-[15px] leading-relaxed max-w-[440px] q2-body-text">
-                    {pillar.body}
-                  </p>
-                </>
-              );
               return (
                 /* `relative z-10`: le cadre est un FOND. Il est en `absolute`,
                    donc sans cette couche il passait par-dessus le texte et,
                    depuis qu'il est opaque comme le panneau d'en face, il le
                    masquait entierement. */
                 <RevealV2 key={pillar.num} as="article" className="relative z-10 border-b border-q2-plate">
-                  {plain ? (
-                    <div className="py-8 sm:py-12 md:py-20">
-                      {text}
-                    </div>
-                  ) : (
-                    /* `items-stretch` (le défaut) et non `items-center`: c'est
-                        lui qui donne aux deux colonnes la même hauteur, donc au
-                        cadre la même boîte que le panneau. En `items-center`, le
-                        `h-full` du panneau ne s'appliquait à rien. */
-                    <div className="grid lg:grid-cols-2 gap-7 sm:gap-10 lg:gap-20 py-8 sm:py-12 md:py-20">
-                      {/* Le cadre encadre le TEXTE, pas le panneau: le texte
-                          change de côté d'un pilier à l'autre, donc le cadre
-                          traverse la scène en diagonale et se déforme sur tout
-                          le trajet. Autour du panneau il n'aurait fait que
-                          descendre. */}
-                      {/* Même respiration qu'un `CardV2 large` (`p-6 sm:p-8`), et
-                          le texte centré: le cadre a ainsi le même écart au-dessus
-                          et au-dessous de son contenu que le panneau d'en face.
-                          Sous `lg` le cadre n'est pas rendu, la marge y est donc
-                          retirée pour ne pas décaler un texte qui n'a plus de
-                          cadre autour de lui. */}
-                      <div
-                        data-step-frame
-                        className={`lg:p-8 flex flex-col justify-center ${flip ? 'lg:order-2' : ''}`}
-                      >
-                        {text}
+                  {/* `items-stretch` (le défaut) et non `items-center`: c'est
+                      lui qui donne aux deux colonnes la même hauteur, donc au
+                      cadre la même boîte que le panneau. En `items-center`, le
+                      `h-full` du panneau ne s'appliquait à rien. */}
+                  <div className="grid lg:grid-cols-2 gap-7 sm:gap-10 lg:gap-20 py-8 sm:py-12 md:py-20">
+                    {/* Le cadre encadre le TEXTE, pas le panneau: le texte
+                        change de côté d'un pilier à l'autre, donc le cadre
+                        traverse la scène en diagonale et se déforme sur tout
+                        le trajet. Autour du panneau il n'aurait fait que
+                        descendre. */}
+                    {/* Même respiration qu'un `CardV2 large` (`p-6 sm:p-8`), et
+                        le texte centré: le cadre a ainsi le même écart au-dessus
+                        et au-dessous de son contenu que le panneau d'en face.
+                        Sous `lg` le cadre n'est pas rendu, la marge y est donc
+                        retirée pour ne pas décaler un texte qui n'a plus de
+                        cadre autour de lui. */}
+                    <div
+                      data-step-frame
+                      className={`lg:p-8 flex flex-col justify-center ${flip ? 'lg:order-2' : ''}`}
+                    >
+                      <div className="flex items-center gap-3 mb-4 sm:mb-6">
+                        <span className="w-11 h-11 rounded-full bg-q2-plate flex items-center justify-center">
+                          <pillar.icon size={18} className="text-q2-indigo" aria-hidden="true" />
+                        </span>
+                        <span className="q2-eyebrow text-q2-body tabular-nums">{pillar.num}</span>
                       </div>
-                      {/* `data-step-mask`: le cadre s'efface dans une bande autour
-                          de ce panneau au lieu de le frôler en travers de la
-                          scène. C'est ce qui évite les coins des cartes. */}
-                      <div data-step-mask className={flip ? 'lg:order-1' : ''}>
-                        <Panel num={pillar.num} isFr={isFr} />
-                      </div>
+                      <h3 className="q2-h3 text-q2-ink mb-3 max-w-[420px]">{pillar.title}</h3>
+                      <p className="text-q2-body text-[15px] leading-relaxed max-w-[440px] q2-body-text">
+                        {pillar.body}
+                      </p>
                     </div>
-                  )}
+                    {/* `data-step-mask`: le cadre s'efface dans une bande autour
+                        de ce panneau au lieu de le frôler en travers de la
+                        scène. C'est ce qui évite les coins des cartes. */}
+                    <div data-step-mask className={flip ? 'lg:order-1' : ''}>
+                      <Panel num={pillar.num} isFr={isFr} />
+                    </div>
+                  </div>
                 </RevealV2>
               );
             })}
@@ -559,7 +544,7 @@ export default function Receptionist() {
 
       {/* PILIER 6, canvas: connaissances prioritaires et scripts par métier */}
       <Section aria-labelledby="knowledge-heading">
-        <Container>
+        <Container className="grid lg:grid-cols-[1fr_1.1fr] gap-9 sm:gap-12 lg:gap-20 items-start">
           <RevealV2>
             <Eyebrow tone="indigo" className="mb-3 sm:mb-4">
               {isFr ? 'Vos réponses' : 'Your answers'}
@@ -580,6 +565,10 @@ export default function Receptionist() {
                 ? 'Vos règles de maison et vos réponses les plus utilisées sont dans sa tête en permanence. Le reste, il va le chercher quand la question tombe, et il retrouve la bonne réponse même formulée autrement. Vous pouvez donc en avoir des centaines sans alourdir chaque appel.'
                 : 'Your house rules and your most-used answers sit in its head permanently. The rest it looks up when the question lands, and it finds the right answer even when the wording differs. So you can keep hundreds of entries without weighing down every call.'}
             </p>
+          </RevealV2>
+
+          <RevealV2 index={1}>
+            <ReceptionistCard num="05" isFr={isFr} />
           </RevealV2>
         </Container>
       </Section>
