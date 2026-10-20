@@ -900,6 +900,8 @@ export const env = {
   STRIPE_PRICE_ALL_AGENTS_BUNDLE: process.env.STRIPE_PRICE_ALL_AGENTS_BUNDLE || '',
 
   RESEND_API_KEY: process.env.RESEND_API_KEY || '',
+  // Endpoint signing secret (whsec_...), not the API key. Missing = webhook 503.
+  RESEND_WEBHOOK_SECRET: process.env.RESEND_WEBHOOK_SECRET || '',
   /* Soupape de secours: fait redescendre en avertissements les manques qui
      refusent normalement le démarrage en production, pour qu'un oubli ne puisse
      pas bloquer un déploiement d'urgence. À ne pas laisser posée. */
@@ -966,8 +968,8 @@ export const env = {
     }
   })(),
   SMS_ENABLED: process.env.SMS_ENABLED === 'true',
-  // Opt-in signature verification for inbound Twilio webhooks. Leave false
-  // until the public callback URL is confirmed, then set to 'true' on Render.
+  // Production ALWAYS verifies inbound Twilio signatures. This flag only enables
+  // the same enforcement locally in development/test; false never disables production checks.
   TWILIO_VALIDATE_WEBHOOKS: process.env.TWILIO_VALIDATE_WEBHOOKS === 'true',
 
   // Master switch for the outbound prospection machinery (Google Places / Apify /

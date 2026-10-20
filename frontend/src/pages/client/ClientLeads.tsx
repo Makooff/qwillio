@@ -1,11 +1,14 @@
-﻿import { useEffect, useState, useCallback, useMemo } from 'react';
+﻿import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, Phone, Mail, X, ChevronRight, StickyNote, Star, List, Columns3,
   UserPlus, PhoneCall, CheckCircle2, XCircle, ArrowUpDown, ArrowUp, ArrowDown,
 } from '../../components/icons';
-import { fetchLive, peekLive } from '../../services/liveData';
+import { fetchLive } from '../../services/liveData';
+import { loadLeadDirectory } from '../../services/leadDirectory';
+import { useToast } from '../../hooks/useToast';
+import ToastContainer from '../../components/ui/Toast';
 import api from '../../services/api';
 import SentimentBadge from '../../components/client-dashboard/SentimentBadge';
 import Pagination from '../../components/client-dashboard/Pagination';
@@ -16,7 +19,8 @@ import SlideOver from '../../components/client-dashboard/SlideOver';
 import Button from '../../components/ui/Button';
 import { ds } from '../../styles/design-system';
 import { LEAD_STATUS_ORDER, leadStatusStyle, type LeadStatusKey } from '../../components/dashboard/leadStatus';
-import { mergeLeadsAndContacts, leadStatusOf, type ContactLike, type LeadRow } from '../../components/dashboard/leadRows';
+import { mergeLeadsAndContacts, leadStatusOf, phoneMatches, type ContactLike, type LeadRow } from '../../components/dashboard/leadRows';
+import { invalidateLive } from '../../services/liveData';
 
 type ViewMode = 'table' | 'kanban';
 type LeadStatus = '' | 'new' | 'contacted' | 'converted' | 'lost';
@@ -52,6 +56,10 @@ interface Lead {
   notes: string;
   tags: string[];
   createdAt: string;
+  identityKey?: string;
+  contactId?: string | null;
+  callIds?: string[];
+  callCount?: number;
 }
 
 interface PaginationState {
@@ -76,78 +84,65 @@ export default function ClientLeads() {
   const [selectedLead, setSelectedLead] = useState<Lead | null>(null);
   const [noteText, setNoteText] = useState('');
   const [savingNote, setSavingNote] = useState(false);
+  const [loadError, setLoadError] = useState('');
+  const [contactsUnavailable, setContactsUnavailable] = useState(false);
+  const requestId = useRef(0);
+  const toast = useToast();
 
   /* `?phone=`: le lead d'UN numéro, filtré par le serveur (lien posé par le
      calendrier des rendez-vous, 15/09/2026). */
   const [searchParams, setSearchParams] = useSearchParams();
   const phoneParam = (searchParams.get('phone') ?? '').trim();
 
-  const fetchLeads = useCallback(async (page = 1) => {
-    const key = `/my-dashboard/leads?page=${page}&limit=50${phoneParam ? `&phone=${encodeURIComponent(phoneParam)}` : ''}`;
-
-    // The cached page goes up first, then the fresh one replaces it. Returning
-    // to this tab should not blank a list that was correct a moment ago.
-    const held = peekLive<{ data?: Lead[]; pagination?: PaginationState }>(key);
-    if (held) {
-      setLeads(held.data || []);
-      if (held.pagination) setPagination(held.pagination);
-    }
-    setLoading(!held);
-
+  const fetchLeads = useCallback(async () => {
+    const current = ++requestId.current;
+    setLoading(true);
+    setLoadError('');
     try {
-      const data = await fetchLive<{ data?: Lead[]; pagination?: PaginationState }>(key);
-      setLeads(data.data || []);
-      setPagination(data.pagination || { total: 0, page: 1, limit: 50, totalPages: 0 });
+      const directory = await loadLeadDirectory<Lead>(async path => path.startsWith('/crm/')
+        ? (await api.get(path)).data
+        : fetchLive(path, { force: true }), phoneParam);
+      if (current !== requestId.current) return;
+      setLeads(directory.leads);
+      setContacts(directory.contacts);
+      setContactsUnavailable(directory.contactsUnavailable);
+      setSelectedLead(selected => selected
+        ? directory.leads.find(l => l.id === selected.id || l.callIds?.includes(selected.id)) ?? selected
+        : null);
     } catch {
-      // leads unavailable — the cached list, if any, stays on screen
+      if (current === requestId.current) setLoadError('Impossible de charger les leads. Réessayez.');
     } finally {
-      setLoading(false);
+      if (current === requestId.current) setLoading(false);
     }
   }, [phoneParam]);
 
-  useEffect(() => { fetchLeads(1); }, [fetchLeads]);
-
-  /* Les contacts du CRM, rapatriés ici.
-   *
-   * « Contacts » et « Leads » listaient les MÊMES personnes: un lead est un
-   * appel qualifié, et le contact est créé depuis ce même appel. Deux entrées
-   * de menu, deux vocabulaires d'état, une seule réalité. Le CRM n'est donc
-   * plus une page: il est cette liste-ci, et sa fiche reste le détail.
-   *
-   * L'appariement se fait sur le TÉLÉPHONE réduit à ses chiffres. C'est la clé
-   * que le dédoublonnage backend emploie déjà; le nom ne marcherait pas
-   * (« M. Dupont » et « Dupont ») et l'e-mail manque une fois sur deux.
-   */
-  useEffect(() => {
-    let alive = true;
-    api.get('/crm/contacts', { params: { limit: 200 } })
-      .then(({ data }) => { if (alive) setContacts(Array.isArray(data?.data) ? data.data : []); })
-      /* Silencieux: le CRM est un PLUS sur cette page. S'il tombe, la liste
-         des leads reste juste, et une bannière d'erreur ne dirait rien
-         d'actionnable au client. */
-      .catch(() => undefined);
-    return () => { alive = false; };
-  }, []);
+  useEffect(() => { fetchLeads(); return () => { requestId.current++; }; }, [fetchLeads]);
+  useEffect(() => { setNoteText(selectedLead?.notes ?? ''); }, [selectedLead?.id, selectedLead?.notes]);
 
   const handleStatusChange = async (leadId: string, status: string) => {
     try {
       await api.put(`/my-dashboard/leads/${leadId}/status`, { status });
       setLeads((prev) => prev.map((l) => l.id === leadId ? { ...l, leadStatus: status } : l));
       if (selectedLead?.id === leadId) setSelectedLead((p) => p ? { ...p, leadStatus: status } : p);
+      /* Le cache tient une copie des leads: l'invalider pour que les autres
+         pages (et le retour ici) relisent le statut qu'on vient d'écrire. */
+      invalidateLive('/my-dashboard/leads');
+      await fetchLeads();
     } catch {
-      // status change failed — ignore
+      toast.add('Le changement de statut n’a pas été enregistré.', 'error');
     }
   };
 
   const handleSaveNote = async (leadId: string) => {
-    if (!noteText.trim()) return;
     setSavingNote(true);
     try {
       await api.put(`/my-dashboard/leads/${leadId}/notes`, { notes: noteText });
       setLeads((prev) => prev.map((l) => l.id === leadId ? { ...l, notes: noteText } : l));
       if (selectedLead?.id === leadId) setSelectedLead((p) => p ? { ...p, notes: noteText } : p);
+      invalidateLive('/my-dashboard/leads');
+      await fetchLeads();
     } catch {
-      // note save failed — ignore
+      toast.add('La note n’a pas été enregistrée.', 'error');
     } finally {
       setSavingNote(false);
     }
@@ -157,7 +152,15 @@ export default function ClientLeads() {
   /* La liste unique: les leads, enrichis de leur contact, PUIS les contacts
      qui n'ont pas d'appel à eux (saisis à la main, importés). Sans ce second
      paquet, fermer la page Contacts les ferait simplement disparaître. */
-  const rows: LeadRow<Lead>[] = useMemo(() => mergeLeadsAndContacts(leads, contacts), [leads, contacts]);
+  const rows: LeadRow<Lead>[] = useMemo(() => {
+    /* Avec ?phone=, le serveur filtre les appels mais renvoie toutes les
+       fiches: sans ce filtre, la fusion injecterait des contacts orphelins
+       sans rapport avec le numéro demandé. */
+    const relevant = phoneParam
+      ? contacts.filter(c => phoneMatches(c.phone, phoneParam))
+      : contacts;
+    return mergeLeadsAndContacts(leads, relevant);
+  }, [leads, contacts, phoneParam]);
 
   const filteredLeads = useMemo(() => {
     const filtered = rows.filter(r => {
@@ -184,6 +187,8 @@ export default function ClientLeads() {
       } else if (sortKey === 'status') {
         cmp = (statusRank[a.status] ?? 99) - (statusRank[b.status] ?? 99);
       } else if (sortKey === 'score') {
+        if (a.score == null && b.score != null) return 1;
+        if (a.score != null && b.score == null) return -1;
         const sa = a.score ?? -1;
         const sb = b.score ?? -1;
         cmp = sa - sb;
@@ -194,6 +199,11 @@ export default function ClientLeads() {
     });
     return filtered;
   }, [rows, search, statusFilter, sortKey, sortDir]);
+
+  const totalPages = Math.ceil(filteredLeads.length / pagination.limit);
+  const currentPage = Math.min(pagination.page, Math.max(totalPages, 1));
+  const pagedLeads = filteredLeads.slice((currentPage - 1) * pagination.limit, currentPage * pagination.limit);
+  useEffect(() => { setPagination(p => ({ ...p, page: 1 })); }, [search, statusFilter, sortKey, sortDir, phoneParam]);
 
   const toggleSort = (key: SortKey) => {
     if (sortKey === key) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
@@ -313,6 +323,8 @@ export default function ClientLeads() {
         }}
       />
 
+      {loadError && <div role="alert" className="mb-4 text-sm text-red-400">{loadError} <button onClick={() => fetchLeads()}>Réessayer</button></div>}
+      {contactsUnavailable && <div role="alert" className="mb-4 text-sm text-amber-400">Les contacts CRM sont temporairement indisponibles. Seuls les leads d’appels sont affichés.</div>}
       {loading ? (
         <div role="status" aria-label="Chargement" aria-busy="true">
           {Array.from({ length: 6 }).map((_, i) => (
@@ -377,7 +389,7 @@ export default function ClientLeads() {
           </div>
 
           <div>
-            {filteredLeads.map((r, idx) => {
+            {pagedLeads.map((r, idx) => {
               const sc = leadStatusStyle(r.status);
               return (
                 <motion.div key={r.id} initial={{ opacity: 0, y: 6, x: 4 }} animate={{ opacity: 1, y: 0, x: 0 }} transition={{ delay: Math.min(idx * 0.02, 0.3), ease: [0.16, 1, 0.3, 1] }}
@@ -410,6 +422,7 @@ export default function ClientLeads() {
                           {/* D'où vient la ligne: sans ça, une fiche saisie à la
                               main se lit comme un appel qu'on n'a jamais reçu. */}
                           {!r.lead && ' · fiche'}
+                          {(r.callCount ?? 0) > 1 && <span className="ml-2">{r.callCount} appels</span>}
                         </p>
                       </div>
                       {r.tags.slice(0, 2).map(t => (
@@ -438,8 +451,8 @@ export default function ClientLeads() {
             })}
           </div>
           <div className="mt-4">
-            <Pagination page={pagination.page} totalPages={pagination.totalPages} total={pagination.total}
-              onPageChange={p => fetchLeads(p)} label="leads"
+            <Pagination page={currentPage} totalPages={totalPages} total={filteredLeads.length}
+              onPageChange={page => setPagination(p => ({ ...p, page }))} label="leads"
             />
           </div>
         </>
@@ -501,11 +514,18 @@ export default function ClientLeads() {
                   </div>
                 </div>
 
+                <div className="flex gap-2">
+                  {(selectedLead.callerNumber || selectedLead.phoneCollected) && <Button variant="subtle" size="sm" onClick={() => navigate(`/dashboard/calls?phone=${encodeURIComponent(selectedLead.callerNumber || selectedLead.phoneCollected)}`)}>
+                    Historique des {selectedLead.callCount ?? 1} appels
+                  </Button>}
+                  {selectedLead.contactId && <Button variant="subtle" size="sm" onClick={() => navigate(`/dashboard/crm/${selectedLead.contactId}`)}>Fiche CRM</Button>}
+                </div>
+
                 <div className="space-y-2">
                   {(selectedLead.callerNumber || selectedLead.phoneCollected) && (
                     <div className="flex items-center gap-3 rounded-xl bg-white/[0.04] border border-white/[0.07] px-4 py-3">
                       <Phone size={14} className="text-[#A1A1A8]" />
-                      <span className="text-sm text-[#F5F5F7]">{selectedLead.callerNumber || selectedLead.phoneCollected}</span>
+                      <span className="text-sm text-[#F5F5F7]">{selectedLead.phoneCollected || selectedLead.callerNumber}</span>
                     </div>
                   )}
                   {selectedLead.emailCollected && (
@@ -573,6 +593,7 @@ export default function ClientLeads() {
                     value={noteText}
                     onChange={e => setNoteText(e.target.value)}
                     placeholder="Ajouter des notes sur ce lead..."
+                    maxLength={5000}
                     rows={3}
                     /* `ds.inputCls`: la classe de champ canonique du portail
                        (settings), au lieu d'un hex codé en dur. */
@@ -582,7 +603,7 @@ export default function ClientLeads() {
                     size="sm"
                     className="mt-2"
                     onClick={() => handleSaveNote(selectedLead.id)}
-                    disabled={savingNote || !noteText.trim()}
+                    disabled={savingNote}
                   >
                     {savingNote ? 'Enregistrement...' : 'Sauvegarder'}
                   </Button>
@@ -591,6 +612,7 @@ export default function ClientLeads() {
           </SlideOver>
         )}
       </AnimatePresence>
+      <ToastContainer toasts={toast.toasts} remove={toast.remove} />
     </div>
   );
 }

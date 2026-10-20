@@ -53,6 +53,9 @@ services:
         sync: false
       - key: RESEND_API_KEY
         sync: false
+      # Signing secret from the Resend webhook endpoint (fail-closed without it).
+      - key: RESEND_WEBHOOK_SECRET
+        sync: false
       - key: TWILIO_ACCOUNT_SID
         sync: false
       - key: TWILIO_AUTH_TOKEN
@@ -108,6 +111,9 @@ services:
       - key: ELEVENLABS_API_KEY
         sync: false
       - key: RESEND_API_KEY
+        sync: false
+      # Signing secret from the Resend webhook endpoint (fail-closed without it).
+      - key: RESEND_WEBHOOK_SECRET
         sync: false
       - key: TWILIO_ACCOUNT_SID
         sync: false

@@ -66,16 +66,20 @@ describe.skipIf(!workerDisponible)('les préférences et l\'email atteignent le 
     // un par un. Une clé absente de cette liste est perdue, sans erreur, alors
     // que le pont l'a bien envoyée.
     const src = worker('storage.py');
-    const bloc = src.slice(src.indexOf('async def historique_appelant'),
-                           src.indexOf('async def historique_appelant') + 1400);
-    expect(bloc).toContain('"preferences"');
-    expect(bloc).toContain('"email"');
+    const normalisation = src.slice(src.indexOf('def normaliser_historique'), src.indexOf('async def historique_appelant'));
+    const lecture = src.slice(src.indexOf('async def historique_appelant'), src.indexOf('async def historique_appelant') + 1400);
+    expect(lecture).toContain('normaliser_historique(d)');
+    expect(normalisation).toContain('"preferences"');
+    expect(normalisation).toContain('"email"');
   });
 
   it('atteignent l\'objet Appelant du prompt', () => {
     const src = worker('agent.py');
-    expect(src).toContain('preferences=tuple(h.get("preferences")');
-    expect(src).toContain('courriel_connu=h.get("email")');
+    expect(src).toContain('prompts.Appelant.depuis_historique(h)');
+    const prompt = worker('prompts.py');
+    const converter = prompt.slice(prompt.indexOf('def depuis_historique'), prompt.indexOf('def _l'));
+    expect(converter).toContain('preferences=tuple(h["preferences"])');
+    expect(converter).toContain('courriel_connu=h["email"]');
   });
 
   it('sont affichés dans le bloc d\'historique, dans les trois langues', () => {

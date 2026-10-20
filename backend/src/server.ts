@@ -12,6 +12,7 @@ import { getPlan } from './config/plans';
 import { logger } from './config/logger';
 import { prisma, basePrisma } from './config/database';
 import { errorMiddleware } from './middleware/error.middleware';
+import { resendRawBody } from './middleware/resend.middleware';
 import { botLoop } from './jobs/bot-loop';
 import { initSocket } from './config/socket';
 
@@ -52,7 +53,7 @@ import prospectingRoutes from './routes/prospecting.routes';
 import adminRoutes from './routes/admin.routes';
 import adminAgentsRoutes from './routes/admin-agents.routes';
 import clientApiRoutes from './routes/client-api.routes';
-import voiceCoreRoutes from './routes/voice-core.routes';
+import voiceCoreRoutes, { assurerRepriseInbox } from './routes/voice-core.routes';
 import autofixRoutes from './routes/autofix.routes';
 import learningRoutes from './routes/learning.routes';
 import closerRoutes from './routes/closer.routes';
@@ -123,6 +124,8 @@ const contactLimiter = rateLimit({
 // ─── Body Parsing ────────────────────────────────────────
 // Stripe webhook needs raw body
 app.use('/api/webhooks/stripe', express.raw({ type: 'application/json' }));
+// Resend must verify the original bytes before JSON parsing (same as Stripe).
+app.use('/api/webhooks/resend/events', resendRawBody);
 // Everything else uses JSON
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
@@ -419,6 +422,7 @@ async function runBootstrap() {
 
   // Bring the schema up to date before anything reads or writes through it.
   await applyPendingMigrations();
+  assurerRepriseInbox();
 
   /* Reprendre la fenêtre de latence là où le déploiement précédent l'a laissée.
      La mesure de chaque appel est en base; seul l'agrégat vivait en mémoire, et

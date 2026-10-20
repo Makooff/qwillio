@@ -3,6 +3,7 @@ import { webhooksController } from '../controllers/webhooks.controller';
 import { voiceWebhookController } from '../controllers/voice-webhook.controller';
 import { voiceLlmController } from '../controllers/voice-llm.controller';
 import { validateTwilioSignature } from '../middleware/twilio.middleware';
+import { validateResendSignature } from '../middleware/resend.middleware';
 
 const router = Router();
 
@@ -44,6 +45,8 @@ router.post('/twilio/voice', validateTwilioSignature, (req, res) => webhooksCont
 router.post('/twilio/status', validateTwilioSignature, (req, res) => webhooksController.twilioVoiceStatus(req, res));
 
 // Resend email bounce/delivery webhook — triggers SMS fallback on bounce
-router.post('/resend/events', (req, res) => webhooksController.resendEmailEvent(req, res));
+router.post('/resend/events', validateResendSignature, (req, res, next) => {
+  void webhooksController.resendEmailEvent(req, res).catch(next);
+});
 
 export default router;
