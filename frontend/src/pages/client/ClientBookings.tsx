@@ -537,28 +537,35 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
                     initial={reduced ? { opacity: 0 } : { opacity: 0, y: 8, x: 6 }}
                     animate={{ opacity: 1, y: 0, x: 0 }}
                     transition={{ duration: 0.24, ease: EASE, delay: reduced ? 0 : 0.1 + Math.min(idx, 42) * 0.015 }}
-                    className={`relative flex h-24 flex-col items-stretch overflow-hidden rounded-2xl p-2 text-left transition-colors xl:h-28
+                    /* Hauteur: 96 px sur TOUS les écrans avant, pour une case
+                       de 42 px de large sur téléphone, donc une case deux fois
+                       plus haute que large et un mois de 620 px. `h-14` en
+                       mobile ramène le mois à ~370 px. Sur poste, la case
+                       garde sa largeur (90 px) et n'a plus que deux lignes à
+                       porter, d'où 80/96 px au lieu de 96/112: une case vide
+                       deux fois plus haute que large ne se lit pas mieux. */
+                    className={`relative flex h-14 flex-col overflow-hidden rounded-2xl p-1.5 text-left transition-colors sm:h-20 sm:p-2 xl:h-24
                       ${cell.inMonth ? 'bg-white/[0.04] hover:bg-white/[0.07]' : 'bg-white/[0.015] text-white/30'}
                       ${selected ? 'ring-1 ring-[#7349fe]/60 bg-[#7349fe]/[0.12]' : ''}
                       active:scale-[0.98]`}
                     style={{ borderRadius: 16 }}
                   >
-                    <span className={`px-0.5 text-[12.5px] tabular-nums ${cell.isToday ? 'font-semibold text-[#7349fe]' : cell.inMonth ? 'text-white/85' : 'text-white/30'}`}>
+                    <span className={`px-0.5 text-[12.5px] leading-none tabular-nums ${cell.isToday ? 'font-semibold text-[#7349fe]' : cell.inMonth ? 'text-white/85' : 'text-white/30'}`}>
                       {cell.day}
                     </span>
-                    {/* Le CONTENU du jour, pas son compte: deux rendez-vous
-                        lisibles valent mieux qu'une pastille à ouvrir. */}
+                    {/* Le NOMBRE, dans un rond centré sur la case (demande
+                        utilisateur). Avant, la case portait l'heure et le nom
+                        des deux premiers rendez-vous: illisible à 42 px de
+                        large, et le détail du jour est déjà dans la colonne
+                        « À venir », qui s'ouvre au clic.
+                        Le rond est `aria-hidden`: le compte est déjà dans
+                        l'`aria-label` du bouton, le lire deux fois n'aide
+                        personne. */}
                     {count > 0 && (
-                      <span className="mt-1 flex min-w-0 flex-col gap-1" aria-hidden="true">
-                        {dayBookings.slice(0, 2).map(b => (
-                          <span key={b.id} className="flex min-w-0 items-baseline gap-1 rounded-md bg-[#7349fe]/[0.16] px-1.5 py-[3px] text-[10.5px] leading-tight">
-                            <span className="shrink-0 font-semibold tabular-nums text-[#b9a6ff]">{b.bookingTime ?? '—'}</span>
-                            <span className="truncate text-white/85">{b.customerName}</span>
-                          </span>
-                        ))}
-                        {count > 2 && (
-                          <span className="pl-1 text-[10.5px] text-white/45">+{count - 2} autre{count - 2 > 1 ? 's' : ''}</span>
-                        )}
+                      <span className="flex flex-1 items-center justify-center" aria-hidden="true">
+                        <span className="flex h-[26px] w-[26px] items-center justify-center rounded-full bg-[#7349fe] text-[11.5px] font-semibold tabular-nums leading-none text-white sm:h-8 sm:w-8 sm:text-[12.5px]">
+                          {count}
+                        </span>
                       </span>
                     )}
                   </motion.button>

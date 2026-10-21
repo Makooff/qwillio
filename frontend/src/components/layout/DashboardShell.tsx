@@ -26,6 +26,8 @@ export interface NavItem {
   icon: LucideIcon;
   label: string;
   exact?: boolean;
+  /** Chemins supplémentaires qui rendent cette entrée active (pages rattachées). */
+  match?: string[];
 }
 
 export interface DashboardShellProps {
@@ -177,7 +179,75 @@ export default function DashboardShell(props: DashboardShellProps) {
     );
   };
 
-  const SidebarContent = () => (
+  /* Bloc « Réglages » — rendu à DEUX endroits, jamais les deux à la fois:
+     dans le flux du menu sur poste (il suit les entrées, comme avant), et
+     ÉPINGLÉ au-dessus de l'aide dans le tiroir mobile.
+     Pourquoi épinglé sur téléphone: la zone de menu y mesurait 209 px pour
+     407 px de contenu, et « Paramètres » tombait sous la ligne de flottaison
+     (bouton à 448 px dans un cadre finissant à 297 px, mesuré en 360x640),
+     sans qu'aucun indice ne dise qu'il fallait faire défiler. Un réglage qu'on
+     ne voit pas est un réglage qui n'existe pas.
+     Déplié, il ne pousse rien dehors: le `<nav>` voisin est en `flex-1
+     min-h-0`, donc il rétrécit. */
+  const SettingsGroup = () => (
+    <div className="flex-shrink-0 pt-1">
+      <button
+        onClick={() => { if (!collapsed) setSettingsOpen(v => !v); }}
+        title={collapsed ? settingsLabel : undefined}
+        aria-expanded={settingsOpen}
+        className={`w-full relative flex items-center gap-3 rounded-[10px] transition-colors duration-150 group
+          ${collapsed ? 'px-0 py-3 justify-center' : 'px-3 py-2.5'}`}
+        style={settingsActive ? {
+          background: 'oklch(100% 0 0 / 0.05)',
+          color: t.text,
+        } : {
+          color: t.textSec,
+        }}
+      >
+        {settingsActive && (
+          <span
+            className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-r-full"
+            style={{ background: t.brand }}
+          />
+        )}
+        <SettingsIcon className="w-[18px] h-[18px] flex-shrink-0" style={settingsActive ? { color: t.brandHi } : undefined} />
+        {!collapsed && <span className="text-sm font-medium flex-1 text-left">{settingsLabel}</span>}
+        {!collapsed && (
+          <ChevronDown
+            className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${settingsOpen ? 'rotate-0' : '-rotate-90'}`}
+            style={{ color: t.textTer }}
+          />
+        )}
+        {collapsed && (
+          <span
+            className="absolute left-full ml-3 px-2 py-1 text-xs rounded-lg
+              opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl backdrop-blur-xl"
+            style={{ background: t.elevated, color: t.text, border: `1px solid ${t.borderHi}` }}
+          >
+            {settingsLabel}
+          </span>
+        )}
+      </button>
+
+      <AnimatePresence initial={false}>
+        {!collapsed && settingsOpen && (
+          <motion.div
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="overflow-hidden"
+          >
+            <div className="space-y-0.5 py-0.5 max-h-[38vh] overflow-y-auto scrollbar-hide">
+              {(settingsSub || []).map(item => <SubLink key={item.path} item={item} />)}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+
+  const SidebarContent = ({ inlineSettings = false }: { inlineSettings?: boolean } = {}) => (
     <div className="flex flex-col h-full min-h-0" style={{ position: 'relative', zIndex: 1 }}>
       {/* Logo */}
       <div
@@ -213,65 +283,13 @@ export default function DashboardShell(props: DashboardShellProps) {
         )}
         <div className="space-y-0.5">
           {primaryNav.map(item => <SidebarLink key={item.path} item={item} />)}
-
-          {settingsSub && settingsSub.length > 0 && (
-            <>
-              <button
-                onClick={() => { if (!collapsed) setSettingsOpen(v => !v); }}
-                title={collapsed ? settingsLabel : undefined}
-                className={`w-full relative flex items-center gap-3 rounded-[10px] transition-colors duration-150 group
-                  ${collapsed ? 'px-0 py-3 justify-center' : 'px-3 py-2.5'}`}
-                style={settingsActive ? {
-                  background: 'oklch(100% 0 0 / 0.05)',
-                  color: t.text,
-                } : {
-                  color: t.textSec,
-                }}
-              >
-                {settingsActive && (
-                  <span
-                    className="absolute left-0 top-1/2 -translate-y-1/2 w-[2px] h-4 rounded-r-full"
-                    style={{ background: t.brand }}
-                  />
-                )}
-                <SettingsIcon className="w-[18px] h-[18px] flex-shrink-0" style={settingsActive ? { color: t.brandHi } : undefined} />
-                {!collapsed && <span className="text-sm font-medium flex-1 text-left">{settingsLabel}</span>}
-                {!collapsed && (
-                  <ChevronDown
-                    className={`w-4 h-4 flex-shrink-0 transition-transform duration-200 ${settingsOpen ? 'rotate-0' : '-rotate-90'}`}
-                    style={{ color: t.textTer }}
-                  />
-                )}
-                {collapsed && (
-                  <span
-                    className="absolute left-full ml-3 px-2 py-1 text-xs rounded-lg
-                      opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50 shadow-xl backdrop-blur-xl"
-                    style={{ background: t.elevated, color: t.text, border: `1px solid ${t.borderHi}` }}
-                  >
-                    {settingsLabel}
-                  </span>
-                )}
-              </button>
-
-              <AnimatePresence initial={false}>
-                {!collapsed && settingsOpen && (
-                  <motion.div
-                    initial={{ height: 0, opacity: 0 }}
-                    animate={{ height: 'auto', opacity: 1 }}
-                    exit={{ height: 0, opacity: 0 }}
-                    transition={{ duration: 0.18 }}
-                    className="overflow-hidden"
-                  >
-                    <div className="space-y-0.5 py-0.5">
-                      {settingsSub.map(item => <SubLink key={item.path} item={item} />)}
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </>
-          )}
         </div>
+        {/* Sur poste: à la suite des entrées, comme autrefois. */}
+        {inlineSettings && settingsSub && settingsSub.length > 0 && <SettingsGroup />}
       </nav>
+
+      {/* Tiroir mobile: épinglé ici, donc visible à toutes les hauteurs. */}
+      {!inlineSettings && settingsSub && settingsSub.length > 0 && <SettingsGroup />}
 
       {/* Help + Docs */}
       {showHelp && !collapsed && (
@@ -370,7 +388,7 @@ export default function DashboardShell(props: DashboardShellProps) {
             zIndex: 0,
           }}
         />
-        <SidebarContent />
+        <SidebarContent inlineSettings />
       </aside>
 
       {/* Mobile Sidebar Overlay */}
@@ -554,8 +572,11 @@ function MobileBottomNav({
      rendait l'onglet inactif et la bulle disparaissait alors qu'on est bien
      dessus. */
   const activeIdx = items.findIndex(item => {
-    const base = item.path.split('#')[0];
-    return item.exact ? pathname === base : pathname.startsWith(base);
+    const paths = [item.path, ...(item.match ?? [])];
+    return paths.some(p => {
+      const base = p.split('#')[0];
+      return item.exact ? pathname === base : pathname.startsWith(base);
+    });
   });
   const itemPct = 100 / items.length;
   const showBubble = activeIdx >= 0;
@@ -633,11 +654,24 @@ function MobileBottomNav({
               className="relative z-10 flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-h-[52px] transition-transform active:scale-[0.97]"
               style={{ color: active ? '#fff' : 'rgba(255,255,255,0.40)' }}
             >
-              {/* Active item: just the icon, centred inside the water bubble */}
+              {/* Icône seule pour tout le monde, le NOM seulement pour l'onglet
+                  actif (demande utilisateur, et c'est l'inverse d'avant).
+                  La place du nom est réservée sur les cinq onglets
+                  (`opacity-0`, pas de `hidden`): sans elle, l'icône de
+                  l'onglet actif remonterait de 7 px par rapport aux autres et
+                  la barre tressauterait à chaque changement de page.
+                  `aria-hidden` sur le texte: le nom du lien est déjà porté par
+                  `aria-label`, le répéter ferait dire deux fois la même chose
+                  au lecteur d'écran. */}
               <item.icon className="relative z-10 w-[22px] h-[22px]" />
-              {!active && (
-                <span className="relative z-10 text-[9px] font-medium mt-0.5">{item.label}</span>
-              )}
+              <span
+                aria-hidden="true"
+                className={`relative z-10 text-[9px] font-medium mt-0.5 transition-opacity duration-150 ${
+                  active ? 'opacity-100' : 'opacity-0'
+                }`}
+              >
+                {item.label}
+              </span>
             </Link>
           );
         })}

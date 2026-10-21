@@ -118,15 +118,22 @@ describe('ClientBookings, le calendrier', () => {
     await waitFor(() => expect(get.mock.calls.length).toBe(calls + 1));
   });
 
-  it('une case du mois montre l\'heure et le nom, pas seulement un compte', async () => {
+  /* La case ne porte plus l'heure et le nom: à 42 px de large sur téléphone,
+     deux rendez-vous empilés étaient illisibles, et c'est le NOMBRE que le
+     client cherche en balayant le mois (demande utilisateur). Le détail d'un
+     jour reste à un clic, dans la colonne « À venir ». */
+  it('une case du mois montre le NOMBRE de rendez-vous dans un rond', async () => {
     mount();
     const cell = await screen.findByRole('gridcell', { name: /Mardi 15 septembre, 2 rendez-vous/ });
-    expect(within(cell).getByText('16:00')).toBeInTheDocument();
-    expect(within(cell).getByText('Jean-Luc de la Forge')).toBeInTheDocument();
-    expect(within(cell).getByText('17:00')).toBeInTheDocument();
+    const badge = within(cell).getByText('2');
+    expect(badge.className).toContain('rounded-full');
+    expect(badge.className).toContain('justify-center');
+    // Le nom et l'heure ne sont plus dans la case, mais dans le panneau.
+    expect(within(cell).queryByText('Jean-Luc de la Forge')).toBeNull();
+    expect(within(cell).queryByText('16:00')).toBeNull();
   });
 
-  it('au-delà de deux rendez-vous, la case dit combien il en reste', async () => {
+  it('donne le compte exact, sans « +N autres » à déchiffrer', async () => {
     get.mockImplementation(async () => ({ data: { data: [
       ...rows,
       { id: 'b4', customerName: 'Ana Costa', customerPhone: null, bookingDate: '2026-09-15T10:00:00.000Z', bookingTime: '18:00', serviceType: null, status: 'confirmed' },
@@ -134,7 +141,7 @@ describe('ClientBookings, le calendrier', () => {
     ] } }));
     mount();
     const cell = await screen.findByRole('gridcell', { name: /Mardi 15 septembre, 4 rendez-vous/ });
-    expect(within(cell).getByText('+2 autres')).toBeInTheDocument();
+    expect(within(cell).getByText('4')).toBeInTheDocument();
   });
 
   it('la recherche interroge le SERVEUR et traverse les mois', async () => {
