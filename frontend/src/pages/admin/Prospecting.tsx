@@ -1,3 +1,4 @@
+import ValidationWorkbench from './ValidationWorkbench';
 ﻿import { useEffect, useState } from 'react';
 import api from '../../services/api';
 import {
@@ -212,6 +213,8 @@ export default function AdminProspecting() {
           </IconBtn>
         }
       />
+
+      <ValidationWorkbench />
 
       {/* KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
