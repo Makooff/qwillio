@@ -4,12 +4,19 @@ const findUnique = vi.fn();
 const upsert = vi.fn();
 const invalidateCaller = vi.fn();
 
+// The service writes inside prisma.$transaction; run the callback against a
+// tx object exposing the same callerMemory stubs so legacy assertions on the
+// upsert/findUnique calls still observe the write path.
+const tx = {
+  callerMemory: { findUnique, upsert },
+  $queryRaw: vi.fn(async () => [{ locked: '' }]),
+};
+const transaction = vi.fn(async (fn: unknown) => (fn as (t: unknown) => unknown)(tx));
+
 vi.mock('../../../config/database', () => ({
   prisma: {
-    callerMemory: {
-      findUnique: (...a: unknown[]) => findUnique(...a),
-      upsert: (...a: unknown[]) => upsert(...a),
-    },
+    callerMemory: { findUnique, upsert },
+    $transaction: transaction,
   },
 }));
 
@@ -36,32 +43,32 @@ describe('callerMemoryService.remember', () => {
   });
 
   it('creates a first memory with a call count of one', async () => {
-    await callerMemoryService.remember({ clientId: 'c1', callerNumber: '+33600', name: 'Julien', summary: 'Wanted a table' });
+    await callerMemoryService.remember({ clientId: 'c1', callerNumber: '+33600112233', name: 'Julien', summary: 'Wanted a table' });
     expect(createArg()).toMatchObject({ knownName: 'Julien', totalCalls: 1, lastSummary: 'Wanted a table' });
   });
 
   it('never erases a known name with a null from a call where it was not restated', async () => {
     findUnique.mockResolvedValue({ knownName: 'Julien', email: 'j@x.com', profileSummary: null, preferences: [] });
-    await callerMemoryService.remember({ clientId: 'c1', callerNumber: '+33600', name: null, email: null });
+    await callerMemoryService.remember({ clientId: 'c1', callerNumber: '+33600112233', name: null, email: null });
     expect(updateArg().knownName).toBe('Julien');
     expect(updateArg().email).toBe('j@x.com');
   });
 
   it('prefers the newly captured name over the stored one', async () => {
     findUnique.mockResolvedValue({ knownName: 'J.', email: null, profileSummary: null, preferences: [] });
-    await callerMemoryService.remember({ clientId: 'c1', callerNumber: '+33600', name: 'Julien Martin' });
+    await callerMemoryService.remember({ clientId: 'c1', callerNumber: '+33600112233', name: 'Julien Martin' });
     expect(updateArg().knownName).toBe('Julien Martin');
   });
 
   it('prepends the newest call to the rolling summary', async () => {
     findUnique.mockResolvedValue({ knownName: null, email: null, profileSummary: 'Older context', preferences: [] });
-    await callerMemoryService.remember({ clientId: 'c1', callerNumber: '+33600', summary: 'Newest call' });
+    await callerMemoryService.remember({ clientId: 'c1', callerNumber: '+33600112233', summary: 'Newest call' });
     expect(updateArg().profileSummary).toBe('Newest call | Older context');
   });
 
   it('keeps the summary bounded — it is injected into every future prompt', async () => {
     findUnique.mockResolvedValue({ knownName: null, email: null, profileSummary: 'x'.repeat(900), preferences: [] });
-    await callerMemoryService.remember({ clientId: 'c1', callerNumber: '+33600', summary: 'Newest' });
+    await callerMemoryService.remember({ clientId: 'c1', callerNumber: '+33600112233', summary: 'Newest' });
     expect(updateArg().profileSummary.length).toBeLessThanOrEqual(400);
     // The newest call survives the trim; the oldest context is what is dropped.
     expect(updateArg().profileSummary.startsWith('Newest')).toBe(true);
@@ -69,7 +76,7 @@ describe('callerMemoryService.remember', () => {
 
   it('increments the call count rather than overwriting it', async () => {
     findUnique.mockResolvedValue({ knownName: null, email: null, profileSummary: null, preferences: [] });
-    await callerMemoryService.remember({ clientId: 'c1', callerNumber: '+33600' });
+    await callerMemoryService.remember({ clientId: 'c1', callerNumber: '+33600112233' });
     expect(updateArg().totalCalls).toEqual({ increment: 1 });
   });
 
@@ -77,21 +84,21 @@ describe('callerMemoryService.remember', () => {
     findUnique.mockResolvedValue({ knownName: null, email: null, profileSummary: null, preferences: ['Window seat', 'No nuts'] });
     await callerMemoryService.remember({
       clientId: 'c1',
-      callerNumber: '+33600',
+      callerNumber: '+33600112233',
       preferences: ['window seat', 'Early morning'],
     });
     expect(updateArg().preferences).toEqual(['window seat', 'Early morning', 'No nuts']);
   });
 
   it('invalidates the cached history so the next call sees the update', async () => {
-    await callerMemoryService.remember({ clientId: 'c1', callerNumber: '+33600', name: 'Julien' });
-    expect(invalidateCaller).toHaveBeenCalledWith('c1', '+33600');
+    await callerMemoryService.remember({ clientId: 'c1', callerNumber: '+33600112233', name: 'Julien' });
+    expect(invalidateCaller).toHaveBeenCalledWith('c1', '+33600112233');
   });
 
   it('swallows a write failure — memory must never break a finished call', async () => {
     upsert.mockRejectedValue(new Error('deadlock'));
     await expect(
-      callerMemoryService.remember({ clientId: 'c1', callerNumber: '+33600', name: 'Julien' })
+      callerMemoryService.remember({ clientId: 'c1', callerNumber: '+33600112233', name: 'Julien' })
     ).resolves.toBeUndefined();
   });
 });
@@ -105,7 +112,7 @@ describe('callerMemoryService.get', () => {
 
   it('returns null instead of throwing when the lookup fails', async () => {
     findUnique.mockRejectedValue(new Error('timeout'));
-    expect(await callerMemoryService.get('c1', '+33600')).toBeNull();
+    expect(await callerMemoryService.get('c1', '+33600112233')).toBeNull();
   });
 });
 
@@ -147,11 +154,11 @@ describe('callerMemoryService.remember — la clé', () => {
     expect(findUnique.mock.calls[0][0].where.clientId_callerNumber.callerNumber).toBe('32475123456');
   });
 
-  it('laisse tel quel ce qui ne porte aucun chiffre exploitable', async () => {
-    /* `normalizeNumber` rend null sous huit chiffres: on écrit alors ce qu'on a
-       reçu plutôt que de perdre la ligne. */
+  it('ignore ce qui ne porte aucun chiffre exploitable — la canonicalisation stricte filtre', async () => {
+    /* `canonicalCallerNumber` exige 8-15 chiffres: sans clé fiable, aucune
+       ligne n'est écrite plutôt qu'une ligne que rien ne relira. */
     await callerMemoryService.remember({ clientId: 'c1', callerNumber: 'anonymous', name: 'X' });
-    expect(createArg()).toMatchObject({ callerNumber: 'anonymous' });
+    expect(upsert).not.toHaveBeenCalled();
   });
 
   it('vide le cache sous les DEUX écritures quand elles diffèrent', async () => {
@@ -164,8 +171,13 @@ describe('callerMemoryService.remember — la clé', () => {
     expect(keys).toContain('+32475123456');
   });
 
-  it('ne vide qu\'une fois quand les deux écritures coïncident', async () => {
+  it('ne vide que les deux formes canoniques, dédupliquées', async () => {
+    /* La forme chiffres et la forme E.164 peuvent toutes deux avoir servi de
+       clé de cache; quand raw égale la forme chiffres, il ne reste que ces
+       deux formes distinctes — jamais deux invalidations pour la même. */
     await callerMemoryService.remember({ clientId: 'c1', callerNumber: '32475123456', name: 'X' });
-    expect(invalidateCaller).toHaveBeenCalledTimes(1);
+    expect(invalidateCaller).toHaveBeenCalledTimes(2);
+    const keys = invalidateCaller.mock.calls.map(c => c[1]);
+    expect(new Set(keys).size).toBe(keys.length);
   });
 });

@@ -4,6 +4,7 @@ import crypto from 'crypto';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { clientDashboardService, phoneForms } from '../services/client-dashboard.service';
+import { LEAD_STATUSES } from '../services/lead-identity';
 import { googleCalendarService } from '../services/google-calendar.service';
 import { outlookCalendarService } from '../services/outlook-calendar.service';
 import { prisma } from '../config/database';
@@ -358,29 +359,28 @@ export class ClientDashboardController {
   // ═══ Lead management ═══
 
   // PUT /my-dashboard/leads/:id/status
+  /* Délegué au service: le statut s'écrit sur toute l'identité groupée (pas le
+     seul appel cliqué), le metadata est fusionné, et le contact CRM exactement
+     rattaché est synchronisé sur son seul champ status. La validation de
+     l'énumération se fait AVANT toute écriture (400), et la portée tenant est
+     dans chaque écriture — un id hors scope retombe sur 404. */
   async updateLeadStatus(req: any, res: Response) {
     try {
       const { id } = req.params;
-      const { status } = req.body;
-      // Verify the call belongs to this client
-      const call = await prisma.clientCall.findFirst({
-        where: { id, clientId: req.clientId },
+      const { status } = req.body || {};
+      const result = await clientDashboardService.updateLeadStatus(req.clientId, id, status);
+      if (!result.ok) {
+        if (result.reason === 'invalid_status') {
+          return res.status(400).json({ error: 'Invalid status', allowed: [...LEAD_STATUSES] });
+        }
+        return res.status(404).json({ error: 'Lead not found' });
+      }
+      res.json({
+        success: true,
+        status: result.status,
+        updatedCalls: result.updatedCalls,
+        contactId: result.contactId,
       });
-      if (!call) return res.status(404).json({ error: 'Lead not found' });
-
-      const statusValues = ['new', 'contacted', 'converted', 'lost'];
-      /* `updateMany` avec le clientId, et pas `update` sur le seul id.
-         La vérification juste au-dessus suffit AUJOURD'HUI, mais elle est
-         séparée de l'écriture: la portée redevient alors une discipline, qu'un
-         réordonnancement ou un copier-coller vers une route sans garde perd en
-         silence. C'est exactement ainsi que sont nées les dix routes qui
-         agissaient sur un enregistrement par son seul identifiant.
-         Ici la portée est DANS l'écriture: elle ne peut plus être perdue. */
-      await prisma.clientCall.updateMany({
-        where: { id, clientId: req.clientId },
-        data: { tags: { set: [...(call.tags || []).filter((t: string) => !statusValues.includes(t)), status] } },
-      });
-      res.json({ success: true, status });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -483,25 +483,20 @@ export class ClientDashboardController {
   }
 
   // PUT /my-dashboard/leads/:id/notes
+  /* Service: la note écrit `metadata.clientNotes` en FUSIONNANT le metadata
+     existant (l'historique de l'appel n'est pas écrasé), seul un texte est
+     accepté (400 sinon), et la portée tenant retombe sur 404. */
   async updateLeadNotes(req: any, res: Response) {
     try {
       const { id } = req.params;
-      const { notes } = req.body;
-      const call = await prisma.clientCall.findFirst({
-        where: { id, clientId: req.clientId },
-      });
-      if (!call) return res.status(404).json({ error: 'Lead not found' });
-
-      // Même raison qu'au-dessus: la portée vit dans l'écriture, pas à côté.
-      await prisma.clientCall.updateMany({
-        where: { id, clientId: req.clientId },
-        data: {
-          metadata: {
-            ...(typeof call.metadata === 'object' && call.metadata !== null ? call.metadata as Record<string, unknown> : {}),
-            clientNotes: notes,
-          },
-        },
-      });
+      const { notes } = req.body || {};
+      const result = await clientDashboardService.updateLeadNotes(req.clientId, id, notes);
+      if (!result.ok) {
+        if (result.reason === 'invalid_notes') {
+          return res.status(400).json({ error: 'Invalid notes', expected: 'string' });
+        }
+        return res.status(404).json({ error: 'Lead not found' });
+      }
       res.json({ success: true });
     } catch (error: any) {
       res.status(500).json({ error: error.message });

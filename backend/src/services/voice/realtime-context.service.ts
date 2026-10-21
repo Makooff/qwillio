@@ -10,6 +10,7 @@ import { readTierId, type VoiceTierId } from './voice-tiers';
 import { superagentAllowed } from '../../config/plan-features';
 import type { CustomVoice } from '../../config/voice-characters';
 import { phoneForms } from '../../utils/phone-forms';
+import { callerMemoryView } from './caller-memory-policy';
 
 /**
  * The client's own voice as stored in `vapiConfig.customVoice` — cloned from
@@ -488,8 +489,8 @@ class RealtimeContextService {
          deux existent. */
       prisma.callerMemory.findFirst({
         where: { clientId, callerNumber: { in: phoneForms(callerNumber) } },
-        orderBy: { lastCallAt: 'desc' },
-        select: { knownName: true, profileSummary: true, lastSummary: true, lastCallAt: true, totalCalls: true,
+        orderBy: [{ isBlocked: 'desc' }, { lastCallAt: 'desc' }],
+        select: { isBlocked: true, facts: true, knownName: true, profileSummary: true, lastSummary: true, lastCallAt: true, totalCalls: true,
                   /* Lues enfin. `preferences` était écrite et jetée; `email`
                      aussi. Deux requêtes vers la même table, autant demander
                      les colonnes qu'on va afficher. */
@@ -527,6 +528,12 @@ class RealtimeContextService {
       }),
     ]);
 
+    const memoryView = callerMemoryView(memory);
+    if (memoryView.isBlocked) {
+      await this.set(key, empty, HISTORY_TTL_MS);
+      return empty;
+    }
+
     /* Un numéro peut réserver pour PLUSIEURS personnes (un parent pour ses
        enfants, un cabinet de test pour trois prénoms). Si les réservations à
        venir ne portent pas le même nom, aucune ne dit qui appelle: on ne
@@ -546,19 +553,20 @@ class RealtimeContextService {
     const history: CallerHistory = {
       previousCalls: memory?.totalCalls ?? calls.length,
       lastCallAt: (memory?.lastCallAt ?? calls[0]?.createdAt)?.toISOString() ?? null,
-      lastSummary: memory?.profileSummary ?? memory?.lastSummary ?? calls[0]?.summary ?? null,
+      lastSummary: memoryView.profileSummary ?? calls[0]?.summary ?? null,
       knownName:
-        bookingName
-        || memory?.knownName
-        || calls.find(c => c.nameCollected)?.nameCollected
-        || calls.find(c => c.callerName)?.callerName
+        (memoryView.identitySource === 'confirmed' ? memoryView.knownName : null)
+        || bookingName
+        || memoryView.knownName
+        || (!memory ? calls.find(c => c.nameCollected)?.nameCollected : null)
+        || (!memory ? calls.find(c => c.callerName)?.callerName : null)
         || null,
       hasUpcomingBooking: bookings.length > 0,
       /* Les préférences passent TELLES QUELLES, bornées à six — c'est déjà la
          limite d'écriture de `mergePreferences`, on ne la rejoue pas ici. Une
          préférence vide ou blanche n'apprend rien et encombrerait le prompt. */
-      preferences: (memory?.preferences ?? []).map(p => p.trim()).filter(Boolean).slice(0, 6),
-      knownEmail: memory?.email?.trim() || null,
+      preferences: memoryView.preferences,
+            knownEmail: memoryView.email,
       /* Une ligne sans date est écartée, jamais levée: cette lecture est sur le
          chemin de l'appel, et une exception ici coûterait TOUTE la
          reconnaissance de l'appelant pour une colonne bancale. */

@@ -324,6 +324,28 @@ textarea:focus-visible,
   outline: none;
 }
 
+/* ─── Le doigt ne pose aucun cadre ───
+ *
+ * Sur iOS, un appui sur un lien le focalise et `:focus-visible` y répond: le
+ * menu mobile du site s'encadrait d'un filet violet (`--q-accent-hi`) autour
+ * du lien touché, vu en production sur « Receptionist AI ». Ce contour est un
+ * repère de CLAVIER; au doigt il n'annonce rien, et sur la page crème du site
+ * il se lit comme un défaut d'affichage, pas comme un état.
+ *
+ * La règle ne vaut que pour un pointeur grossier: au clavier et à la souris,
+ * le contour reste, donc l'accessibilité ne perd rien. Les champs de saisie
+ * sont exclus: leur état de focus porte déjà leur propre bordure, et c'est
+ * celui-là que le doigt doit voir.
+ */
+@media (hover: none) and (pointer: coarse) {
+  a:focus-visible,
+  button:focus-visible,
+  [role="button"]:focus-visible,
+  [tabindex]:not(input):not(textarea):not(select):focus-visible {
+    outline: none;
+  }
+}
+
 /* ============================================================
    Les menus déroulants du portail.
 

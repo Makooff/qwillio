@@ -33,6 +33,7 @@ import { smsReadiness } from '../sms-ready';
    un SMS au prochain appel. Deux copies d'une meme decision divergent en
    moins d'un mois (6vicies). */
 import { cancelBooking as cancelBookingRecord } from '../booking-cancel';
+import { persistCapture, type LeadCaptureContent } from './lead-capture-store.service';
 
 /** Durée de validité de « ce client a un expéditeur SMS », lu en base sinon. */
 const SMS_SENDER_MEMO_MS = 5 * 60 * 1000;
@@ -1621,45 +1622,58 @@ class ToolRuntimeService {
        l'appelant en dicte un autre, c'est là qu'il veut être rappelé. */
     const phone = (dictated?.ok ? dictated.e164 : null) ?? session?.callerNumber ?? null;
 
-    /* APRÈS le numéro, pas avant: c'est tout l'objet du correctif. */
-    callSessionStore.recordLead(vapiCallId, { ...lead, phone });
+    /* APRÈS le numéro, pas avant: c'est tout l'objet du correctif.
+       Et APRÈS la persistance durable, pas avant: `recordLead`/`markLeadActivity`
+       ne posent en session que ce qui a réellement été écrit — une session
+       qui croit un lead durable qui n'existe pas est exactement ce qui
+       produisait des captures orphelines. */
+    const contenuCapture: LeadCaptureContent = {
+      source: 'ai_receptionist',
+      vapiCallId,
+      capturedAt: new Date().toISOString(),
+      contact: { name: lead.name, email: lead.email, phone, address },
+      reason: lead.reason,
+      urgency: lead.urgency,
+      /* Dans le CRM aussi: le SMS se perd, la fiche reste. */
+      forPerson: lead.forPerson,
+      callbackWhen: lead.callbackWhen,
+      language: profile.language,
+      businessName: profile.businessName,
+    };
 
-    // Durable first, and awaited: the whole point is that this survives the
-    // call. It is one indexed insert, well inside the tool budget.
-    const activity = await prisma.agentCrmActivity.create({
-      data: {
-        clientId: profile.clientId,
-        type: 'lead_capture',
-        status: 'pending',
-        content: {
-          source: 'ai_receptionist',
-          vapiCallId,
-          capturedAt: new Date().toISOString(),
-          contact: { name: lead.name, email: lead.email, phone, address },
-          reason: lead.reason,
-          urgency: lead.urgency,
-          /* Dans le CRM aussi: le SMS se perd, la fiche reste. */
-          forPerson: lead.forPerson,
-          callbackWhen: lead.callbackWhen,
-          language: profile.language,
-          businessName: profile.businessName,
-        },
-      },
-      select: { id: true },
+    /* Une correction relue dans le même appel (l'appelant change un chiffre,
+       épelle son nom) réutilise la ligne posée par le passage précédent via
+       `session.leadActivityId`: UNE capture logique par appel, les faits les
+       plus récents gagnant et l'ancien contenu partant en `revisions` — au
+       lieu d'empiler un lead par relecture pour un seul appelant. */
+    const activite = await persistCapture({
+      clientId: profile.clientId,
+      activityId: session?.leadActivityId ?? null,
+      content: contenuCapture,
     });
-    callSessionStore.markLeadActivity(vapiCallId, activity.id);
 
-    // Memory is an enhancement, so it must not be able to fail the tool.
-    void callerMemoryService
+    callSessionStore.recordLead(vapiCallId, { ...lead, phone });
+    callSessionStore.markLeadActivity(vapiCallId, activite.id);
+
+    // The transport line identifies the memory; a dictated callback is only a
+    // contact fact. Await best-effort persistence for an immediate next call.
+    await callerMemoryService
       .remember({
         clientId: profile.clientId,
-        callerNumber: phone,
+        callerNumber: session?.callerNumber ?? null,
+        callbackNumber: phone,
+        callId: vapiCallId ?? undefined,
+        phase: 'capture',
+        identitySource: 'capture',
         name: lead.name,
         email: lead.email,
         summary: lead.reason || null,
         outcome: 'lead',
+        request: lead.reason ? {
+          text: lead.reason, callbackWhen: lead.callbackWhen, forPerson: lead.forPerson,
+        } : undefined,
       })
-      .catch(err => logger.warn(`[VoiceTools] caller memory write failed: ${err.message}`));
+      .catch(() => logger.warn('[VoiceTools] caller memory write failed'));
 
     if (dictated && !dictated.ok && dictated.reason === 'invalid') {
       /* La consigne nomme le geste attendu, elle ne décrit pas l'erreur: un

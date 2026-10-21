@@ -9,13 +9,16 @@ const twilio = require('twilio');
 /**
  * Verifies the `X-Twilio-Signature` header on inbound Twilio webhooks.
  *
- * No-op unless BOTH `TWILIO_VALIDATE_WEBHOOKS=true` and `TWILIO_AUTH_TOKEN` are
- * set, so enabling enforcement is an explicit opt-in once the public callback
- * URL is confirmed on Render. This keeps existing behavior unchanged on deploy.
+ * Production always verifies, regardless of TWILIO_VALIDATE_WEBHOOKS.
+ * Development/test bypass only when the flag is false; set it true to exercise
+ * real signatures locally. Missing credentials under enforcement return 503.
  */
 export function validateTwilioSignature(req: Request, res: Response, next: NextFunction) {
-  if (!env.TWILIO_VALIDATE_WEBHOOKS || !env.TWILIO_AUTH_TOKEN) {
+  if (env.NODE_ENV !== 'production' && !env.TWILIO_VALIDATE_WEBHOOKS) {
     return next();
+  }
+  if (!env.TWILIO_AUTH_TOKEN) {
+    return res.status(503).json({ error: 'Webhook verification unavailable' });
   }
 
   const signature = req.headers['x-twilio-signature'] as string | undefined;

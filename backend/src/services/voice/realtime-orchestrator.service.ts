@@ -785,18 +785,26 @@ class RealtimeOrchestratorService {
   }): Promise<void> {
     try {
       const call = await prisma.clientCall.findUnique({
-        where: { vapiCallId: input.vapiCallId },
-        select: { id: true, summary: true, outcome: true, nameCollected: true, emailCollected: true },
+        where: { vapiCallId: input.vapiCallId, clientId: input.clientId },
+        select: { id: true, summary: true, outcome: true, nameCollected: true, emailCollected: true, endedAt: true, metadata: true },
       });
+      if (!call) return;
 
       await callerMemoryService.remember({
         clientId: input.clientId,
         callerNumber: input.callerNumber,
+        callId: input.vapiCallId,
+        phase: 'completed',
+        identitySource: 'analysis',
+        occurredAt: call.endedAt ?? undefined,
         /* `nameCollected` d'abord: il porte le nom CONFIRMÉ (réservation
            relue, mémoire), le lead capté en cours d'appel porte le nom
            ENTENDU. L'ordre inverse réécrivait « Jean Lucas » dans la mémoire
            à chaque appel, et l'agent le redisait à l'appel suivant (13/09). */
-        name: call?.nameCollected ?? input.metrics?.lead?.name ?? null,
+        // A historical name copied into the call is not a new identity observation.
+        name: (call.metadata as Record<string, unknown> | null)?.callerIdentityInherited === true
+          ? input.metrics?.lead?.name ?? null
+          : call.nameCollected ?? input.metrics?.lead?.name ?? null,
         email: input.metrics?.lead?.email ?? call?.emailCollected ?? null,
         summary: call?.summary ?? input.metrics?.lead?.reason ?? null,
         outcome: call?.outcome ?? null,

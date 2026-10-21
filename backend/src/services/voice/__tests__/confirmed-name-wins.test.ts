@@ -54,6 +54,26 @@ describe('getCallerHistory — la réservation confirmée nomme l\'appelant', ()
     expect((await realtimeContextService.getCallerHistory('c-name-3', '32483620982')).knownName).toBe('Marc');
   });
 
+  it('opposition neutralise aussi les appels et réservations historiques', async () => {
+    findMemory.mockResolvedValue({ isBlocked: true, knownName: 'Secret', totalCalls: 8,
+      email: 'secret@example.invalid', preferences: ['secret'], lastSummary: 'secret' });
+    findCalls.mockResolvedValue([{ callerName: 'Secret', summary: 'secret', createdAt: new Date() }]);
+    findBookings.mockResolvedValue([{ customerName: 'Secret', bookingDate: new Date('2027-03-22'), bookingTime: '17:00' }]);
+    const h = await realtimeContextService.getCallerHistory('c-blocked', '32483620980');
+    expect(findMemory.mock.calls[0][0].select).toMatchObject({ isBlocked: true, facts: true });
+    expect(findMemory.mock.calls[0][0].orderBy[0]).toEqual({ isBlocked: 'desc' });
+    expect(h).toMatchObject({ previousCalls: 0, knownName: null, knownEmail: null,
+      lastSummary: null, preferences: [], hasUpcomingBooking: false, upcomingBookings: [] });
+  });
+
+  it('une correction explicitement confirmée prime sur une ancienne réservation', async () => {
+    findMemory.mockResolvedValue({ knownName: 'Nom corrigé', totalCalls: 2,
+      facts: { version: 1, identity: { name: { value: 'Nom corrigé', source: 'confirmed',
+        at: new Date().toISOString(), callId: 'correction' } } } });
+    findBookings.mockResolvedValue([{ customerName: 'Ancien nom', bookingDate: new Date('2027-03-22'), bookingTime: '17:00' }]);
+    expect((await realtimeContextService.getCallerHistory('c-corrected', '32483620980')).knownName).toBe('Nom corrigé');
+  });
+
   /* Appel réel du 13/09 à 16:52 : sans tri, la base rendait une vieille
      réservation de test (« Paul Matthieu ») et l'agent a appelé Jean-Luc
      ainsi pendant tout l'appel, malgré quatre démentis. */

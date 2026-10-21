@@ -14,7 +14,14 @@ const { create, getProfile, getHistory, remember, needsNameReadBack, needsNameSp
   needsNameSpelling: vi.fn(),
 }));
 
-vi.mock('../../../config/database', () => ({ prisma: { agentCrmActivity: { create } } }));
+vi.mock('../../../config/database', () => {
+  const db: any = {
+    agentCrmActivity: { create, findFirst: vi.fn(async () => null) },
+    $queryRaw: vi.fn(async () => []),
+  };
+  db.$transaction = vi.fn(async (callback: any) => callback(db));
+  return { prisma: db };
+});
 vi.mock('../../../config/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
 vi.mock('../realtime-context.service', () => ({
   realtimeContextService: { getClientProfile: getProfile, getCallerHistory: getHistory },

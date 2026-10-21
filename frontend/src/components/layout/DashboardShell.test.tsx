@@ -120,6 +120,33 @@ describe('l’entête mobile en vignette', () => {
     expect((ia as HTMLElement).style.color).toContain('255, 255, 255');
   });
 
+  /* « Paramètres » de la barre du bas mène au compte, mais il doit rester
+     allumé sur les trois autres pages de réglages (facturation, intégrations,
+     support). Sans `match`, l'onglet s'éteignait dès qu'on quittait le compte,
+     et la barre paraissait ne plus savoir où l'on est. */
+  it('suit l’onglet actif sur les pages rattachées', () => {
+    const { container } = render(
+      <MemoryRouter initialEntries={['/dashboard/billing']}>
+        <DashboardShell
+          primaryNav={[{ path: '/dashboard', icon: LayoutDashboard, label: 'Accueil' }]}
+          pageTitles={{}}
+          mobileNav={[
+            { path: '/dashboard/calls', icon: LayoutDashboard, label: 'Appels' },
+            { path: '/dashboard/account', icon: LayoutDashboard, label: 'Paramètres',
+              match: ['/dashboard/billing', '/dashboard/integrations', '/dashboard/support'] },
+          ]}
+          scope="test"
+          userFallbackName="Client"
+          userFallbackInitials="CL"
+        />
+      </MemoryRouter>,
+    );
+    const settings = container.querySelector('a[href="/dashboard/account"]') as HTMLElement;
+    const calls = container.querySelector('a[href="/dashboard/calls"]') as HTMLElement;
+    expect(settings.style.color).toBe('rgb(255, 255, 255)');
+    expect(calls.style.color).toBe('rgba(255, 255, 255, 0.4)');
+  });
+
   /* Un lecteur d'écran annonçait un « bouton » sans nom, et l'état
      ouvert/fermé du panneau n'était exposé nulle part. */
   it('donne un nom accessible au bouton menu et expose son état', () => {

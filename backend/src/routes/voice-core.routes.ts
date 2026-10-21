@@ -10,6 +10,19 @@ import { callerMemoryService } from '../services/voice/caller-memory.service';
 import { liveTranscripts } from '../services/voice/live-transcript.store';
 import { knowledgePreset } from '../config/knowledge-presets';
 import { entreesDepuisVapiConfig } from '../services/voice/portal-knowledge.service';
+import {
+  getPendingCaptureForRoom,
+  linkCaptureToCall,
+  persistCapture,
+  persistRoomCapture,
+} from '../services/voice/lead-capture-store.service';
+import { normalizeLeadPhone } from '../services/lead-identity';
+import { isPlaceholderName } from '../utils/spelled-name';
+import { workerCalendarService } from '../services/voice/worker-calendar.service';
+import {
+  voiceCompletionInbox,
+  type VoiceCompletionPayload,
+} from '../services/voice/voice-completion-inbox.service';
 
 /**
  * Le pont vers `qwillio-voice-core` — /api/voice-core/*
@@ -294,164 +307,255 @@ router.post('/calls/transcript', (req, res) => {
 const enCours = new Set<string>();
 
 /**
- * POST /api/voice-core/calls — l'appel terminé.
- *
- * NE FAIT PAS l'écriture lui-même. Il passe l'appel à
- * `clientCallService.handleClientCallCompleted`, c'est-à-dire exactement le
- * chemin que prend déjà un appel Vapi en fin de course. C'est ce qui branche
- * `voice-core` sur ce qui existe : le bouclier anti-spam, l'analyse du
- * transcript, le nom confirmé de l'appelant, le score de lead, la fiche CRM,
- * la réservation de rattrapage, les alertes, le quota du forfait, et
- * l'échéance de conservation (LEG-4). Une écriture directe dans `ClientCall`
- * — ce que faisait la première version — remplissait le tableau de bord de
- * lignes vides : pas de résumé, pas de sentiment, pas de lead, pas de date
- * limite. Deux chemins d'écriture pour la même table finissent toujours par
- * diverger, et c'est le nouveau qui perd, parce que personne ne le regarde.
- *
- * RÉPOND AVANT DE TRAVAILLER. L'analyse appelle GPT-4 ; `voice-core` coupe sa
- * remontée à 10 s et l'émet depuis son `shutdown_callback`, donc une réponse
- * synchrone lui ferait journaliser « remontée perdue » sur un appel
- * parfaitement enregistré, et retarderait d'autant la fermeture du worker.
- * Le prix : si ce processus meurt dans l'intervalle, la fiche est perdue. Le
- * même prix qu'aujourd'hui quand la requête échoue, et `voice-core` écrit la
- * charge utile dans son log dans les deux cas.
+ * LE TRAITEMENT D'UN APPEL TERMINÉ — déplacé hors de la requête, rendu
+ * idempotent. C'est exactement le chemin que prenait l'ancien handler après
+ * son 202, avec une seule différence : les étapes NON réversibles (analyse
+ * GPT-4, fiche, alertes, quota via `handleClientCallCompleted`, qui fait un
+ * `create`) ne tournent QUE si la fiche n'existe pas encore. Un essai qui a
+ * créé la fiche puis échoué plus loin (métadonnées voix, mémoire, liaison de
+ * capture) se reprend donc sans jamais analyser deux fois le même appel ni
+ * créer deux fiches — la reprise de la boîte durable est sans double
+ * side-effects après écriture de la fiche. Une panne entre un effet externe
+ * et son enregistrement, ou un handler encore vivant après expiration du
+ * bail, peut toutefois répéter cet effet : aucune garantie exactly-once.
+ * Les étapes idempotentes retournent à chaque essai.
  */
-router.post('/calls', async (req, res) => {
-  const { room, caller, trunkNumber, clientId, brain, startedAt, durationSeconds, latency, transcript,
-          twilioCallSid } = req.body || {};
+async function traiterAppelTermine(payload: VoiceCompletionPayload): Promise<void> {
+  const salle = payload.room;
+  const clientId = payload.clientId;
+  const { transcript, caller, twilioCallSid, startedAt, brain, trunkNumber, latency } = payload;
+  const duree = Number.isFinite(Number(payload.durationSeconds))
+    ? Math.max(0, Math.trunc(Number(payload.durationSeconds)))
+    : 0;
 
-  if (!room || !clientId) {
-    return res.status(400).json({ error: 'missing_room_or_client' });
-  }
+  /* LE LEAD CAPTÉ PENDANT L'APPEL, lu dans la ligne durable que
+     `captureLead` (Vapi) ou `POST /leads` (ce pont) a écrite. Sans cette
+     lecture, le post-appel ne voit jamais les faits captés en direct : le
+     nom dicté, le numéro de rappel et l'urgence disparaissaient de la
+     fiche d'appel, et le filet des promesses reconstruisait un second
+     lead — deux lignes, deux alertes, pour un seul appelant. Relue à
+     chaque essai : un lien manqué à l'essai précédent se rattrape. */
+  const captureLive = await getPendingCaptureForRoom(clientId, salle);
 
-  const salle = String(room);
-
-  try {
-    if (enCours.has(salle)) return res.status(202).json({ room: salle, pending: true });
-
-    /* La room LiveKit est l'identifiant naturel : une room, un appel.
-       MAIS une fiche `in-progress` n'est PAS un appel déjà traité : c'est le
-       placeholder posé au décroché pour que le gérant voie l'appel en direct.
-       Le confondre avec un doublon ferait sauter tout le traitement de fin
-       d'appel — transcript, résumé, lead — sur CHAQUE appel. */
-    const deja = await prisma.clientCall.findUnique({
-      where: { vapiCallId: salle },
-      select: { id: true, status: true },
-    });
-    if (deja && deja.status !== 'in-progress') {
-      return res.status(200).json({ id: deja.id, already: true });
-    }
-
-    enCours.add(salle);
-    /* Le direct s'arrête ici : le transcript complet est dans cette requête,
-       et le garder en mémoire ferait afficher « en cours » un appel
-       raccroché. */
-    liveTranscripts.terminer(salle);
-    res.status(202).json({ room: salle, accepted: true });
-  } catch (error) {
-    logger.error('[voice-core] remontée refusée:', error);
-    return res.status(500).json({ error: 'record_failed' });
-  }
-
-  /* À partir d'ici la réponse est partie. Plus rien ne doit remonter à
-     l'appelant, et rien ne doit sortir de ce bloc : une exception non
-     rattrapée dans un handler déjà répondu tue le processus. */
-  try {
-    const duree = Number.isFinite(Number(durationSeconds))
-      ? Math.max(0, Math.trunc(Number(durationSeconds)))
-      : 0;
-
+  const deja = await prisma.clientCall.findUnique({
+    where: { vapiCallId: salle },
+    select: { id: true, status: true, clientId: true },
+  });
+  if (deja && deja.clientId !== clientId) throw new Error('Voice completion room tenant mismatch');
+  /* Une fiche `in-progress` est le placeholder du décroché, PAS un appel
+     déjà traité : la traiter comme un doublon sauterait transcript, résumé
+     et lead sur chaque appel. Tout autre statut, en revanche, signifie qu'un
+     essai précédent a déjà créé la fiche — on ne re-analyse pas. */
+  const dejaTraite = deja && deja.status !== 'in-progress';
+  if (!dejaTraite) {
     /* Le placeholder s'efface juste avant que le service écrive la vraie
        fiche. `handleClientCallCompleted` fait un `create`, pas un `upsert` —
        le laisser en place le ferait échouer sur la contrainte d'unicité de
        `vapiCallId`. La fenêtre est de quelques millisecondes et l'appel est
        terminé : personne ne regarde cette ligne à cet instant. */
     await prisma.clientCall.deleteMany({
-      where: { vapiCallId: salle, status: 'in-progress' },
+      where: { vapiCallId: salle, clientId, status: 'in-progress' },
     });
 
+    /* L'ENREGISTREMENT, demandé à Twilio : seule la fin d'appel sait si le
+       média s'est terminé. Une absence n'est PAS une anomalie — c'est
+       l'état normal d'un client qui a coupé l'enregistrement. */
     const enregistrement = twilioCallSid
-      ? await twilioRecordingService.delAppel(String(twilioCallSid))
+      ? await twilioRecordingService.delAppel(twilioCallSid)
       : null;
 
+    const liveLead = captureLive
+      ? {
+          name: captureLive.content.contact?.name ?? null,
+          email: captureLive.content.contact?.email ?? null,
+          phone: captureLive.content.contact?.phone ?? null,
+          reason: captureLive.content.reason ?? '',
+          urgency: captureLive.content.urgency ?? 'normal',
+          forPerson: captureLive.content.forPerson ?? null,
+          callbackWhen: captureLive.content.callbackWhen ?? null,
+        }
+      : undefined;
+
+    /* `voiceMode` RESTE NULL, volontairement. Le schéma dit « null =
+       inconnu, donc jamais facturé », et les deux valeurs qu'il accepte
+       ('realtime' | 'classic') décrivent le moteur Vapi, pas les cerveaux
+       de `voice-core`. Le cerveau réel est dans `metadata`. */
     await clientCallService.handleClientCallCompleted(
-      String(clientId),
+      clientId,
       salle,
       typeof transcript === 'string' ? transcript : '',
       duree,
-      caller ? String(caller) : undefined,
-      /* L'ENREGISTREMENT, s'il y en a eu un.
-
-         Demandé à Twilio plutôt que déduit du SID posé au décroché: seule la
-         fin d'appel sait si l'enregistrement s'est terminé, et une URL rendue
-         pour un média encore en traitement répondrait 404 au portail — pire
-         qu'une absence d'URL, qui elle au moins se dit. `delAppel` rend null
-         dans ce cas, et la ligne reste simplement sans audio.
-
-         Une absence ici n'est PAS une anomalie: c'est l'état normal d'un
-         client qui a coupé l'enregistrement. */
+      caller,
       enregistrement?.url,
-      /* `voiceMode` RESTE NULL, volontairement. Le schéma dit « null =
-         inconnu, donc jamais facturé », et les deux valeurs qu'il accepte
-         ('realtime' | 'classic') décrivent le moteur Vapi, pas les cerveaux
-         de `voice-core`. Écrire 'realtime' ici parce que `VC_BRAIN=realtime`
-         facturerait l'option Superagent à des clients qui ne l'ont pas
-         achetée. Le cerveau réel est dans `metadata` ; la règle de
-         facturation est une décision produit, elle se prendra en la voyant,
-         pas par effet de bord d'un nom qui se ressemble. */
       null,
+      /* Le lead durable lu plus haut : sa présence dit au filet des
+         promesses qu'il n'a rien à rattraper, et ses faits priment sur ce
+         que l'analyse du transcript a bien voulu en dire. */
+      { liveLead },
     );
+  } else {
+    // A completed row may precede a rolled-back counter/rescue transaction.
+    // Reuse the persisted analysis journal instead of declaring it processed.
+    await clientCallService.resumeClientCallCompletion(clientId, salle);
+  }
 
-    /* Ce que le service ne sait pas écrire, parce que ça n'existe pas chez
-       Vapi : d'où vient l'appel, quel cerveau a parlé, et ses latences.
-       `startedAt` aussi : le service le déduit de `Date.now() - durée`, ce qui
-       décale l'appel du temps qu'a mis cette requête. `voice-core` a l'heure
-       exacte, autant s'en servir. */
-    const debutReel = startedAt ? new Date(String(startedAt)) : null;
-    await persistCompletedVoiceMetadata(
-      prisma, salle, String(clientId),
-      debutReel && !Number.isNaN(debutReel.getTime()) ? debutReel : null,
-      {brain:brain ?? null,trunkNumber:trunkNumber ?? null,latency:latency ?? null},
-    );
+  /* La capture durable trouve enfin sa fiche d'appel : la fiche porte le
+     transcript, la capture le numéro de rappel. Idempotente : une capture
+     déjà liée ne se re-li pas. */
+  if (captureLive) {
+    try {
+      const appelCree = await prisma.clientCall.findUnique({
+        where: { vapiCallId: salle, clientId },
+        select: { id: true },
+      });
+      if (appelCree) {
+        await linkCaptureToCall({ clientId, activityId: captureLive.id, clientCallId: appelCree.id });
+      }
+    } catch (error) {
+      logger.warn(`[voice-core] capture live non reliée à l'appel ${salle}: ${(error as Error).message}`);
+    }
+  }
 
-    /* LA MÉMOIRE DE L'APPELANT, écrite à la fin de CHAQUE appel.
+  /* Ce que le service ne sait pas écrire, parce que ça n'existe pas chez
+     Vapi : d'où vient l'appel, quel cerveau a parlé, et ses latences.
+     `startedAt` aussi : le service le déduit de `Date.now() - durée`, ce qui
+     décale l'appel du temps qu'a mis cette requête. `voice-core` a l'heure
+     exacte, autant s'en servir. Idempotent : réécrit les mêmes faits. */
+  const debutReel = startedAt ? new Date(startedAt) : null;
+  await persistCompletedVoiceMetadata(
+    prisma, salle, clientId,
+    debutReel && !Number.isNaN(debutReel.getTime()) ? debutReel : null,
+    { brain: brain ?? null, trunkNumber: trunkNumber ?? null, latency: latency ?? null },
+  );
 
-       Elle vivait dans `realtime-orchestrator.persistMemory`, que `voice-core`
-       ne traverse plus. Résultat, jusqu'ici: seule la capture d'un lead en
-       laissait une trace. Un appelant qui réservait, ou qui posait une
-       question et raccrochait, repartait sans rien — et au rappel suivant
-       l'agent redemandait son nom et son motif comme au premier jour, alors
-       que `GET /caller` était là, prêt à les lui donner. Lire une mémoire que
-       presque personne n'alimente, c'est la même chose que ne pas en avoir.
+  /* LA MÉMOIRE DE L'APPELANT, écrite à la fin de CHAQUE appel. Jamais
+     bloquante : la mémoire est un confort, l'appel est déjà fini, et la
+     fiche est écrite. */
+  const fiche = await prisma.clientCall.findUnique({
+    where: { vapiCallId: salle, clientId },
+    select: { summary: true, outcome: true, nameCollected: true, emailCollected: true, endedAt: true, metadata: true },
+  });
+  await callerMemoryService
+    .remember({
+      clientId,
+      callerNumber: caller ?? null,
+      callId: salle,
+      phase: 'completed',
+      identitySource: 'analysis',
+      occurredAt: fiche?.endedAt ?? undefined,
+      name: (fiche?.metadata as Record<string, unknown> | null)?.callerIdentityInherited === true ? null : fiche?.nameCollected ?? null,
+      email: fiche?.emailCollected ?? null,
+      summary: fiche?.summary ?? null,
+      outcome: fiche?.outcome ?? null,
+    })
+    .catch((e: Error) => logger.warn(`[voice-core] mémoire d'appelant non écrite: ${e.message}`));
 
-       Ordre des champs repris tel quel de l'ancienne route, y compris son
-       correctif du 13/09: `nameCollected` porte le nom CONFIRMÉ (réservation
-       relue, mémoire), le lead capté en cours d'appel porte le nom ENTENDU.
-       L'ordre inverse réécrivait un nom approximatif à chaque appel.
+  logger.info(`[voice-core] appel enregistré : ${salle} (${duree}s, ${brain ?? 'cerveau inconnu'})`);
+}
 
-       Jamais bloquant: la mémoire est un confort, l'appel est déjà fini, et la
-       fiche est écrite. */
-    const fiche = await prisma.clientCall.findUnique({
-      where: { vapiCallId: salle },
-      select: { summary: true, outcome: true, nameCollected: true, emailCollected: true },
-    });
-    void callerMemoryService
-      .remember({
-        clientId: String(clientId),
-        callerNumber: caller ? String(caller) : null,
-        name: fiche?.nameCollected ?? null,
-        email: fiche?.emailCollected ?? null,
-        summary: fiche?.summary ?? null,
-        outcome: fiche?.outcome ?? null,
-      })
-      .catch((e: Error) => logger.warn(`[voice-core] mémoire d'appelant non écrite: ${e.message}`));
+/* LE BATTEMENT DE REPRISE, démarré paresseusement au premier appel
+   persisté : le drain immédiat rattrape les remontées laissées par un crash
+   antérieur, puis l'intervalle `unref`'d de 30 s garde la file vide sans
+   jamais retenir le processus ouvert. Deux drains ne se chevauchent pas. */
+let arretInbox: (() => void) | null = null;
+export function assurerRepriseInbox(): void {
+  if (!arretInbox) arretInbox = voiceCompletionInbox.start(traiterAppelTermine);
+}
 
-    logger.info(`[voice-core] appel enregistré : ${salle} (${duree}s, ${brain ?? 'cerveau inconnu'})`);
+/**
+ * POST /api/voice-core/calls — l'appel terminé.
+ *
+ * PERSISTE AVANT DE RÉPONDRE. `voice-core` coupe sa remontée à 10 s et
+ * l'émet depuis son `shutdown_callback` : répondre 202 avant d'avoir écrit,
+ * c'est répondre pour une fiche qui disparaît si ce processus meurt dans
+ * l'intervalle. La remontée validée entre D'ABORD dans la boîte durable
+ * (`agent_crm_activities`, identité (client, room), verrou d'advisory
+ * Postgres) ; le 202 signifie « conservé », pas seulement « reçu ».
+ *
+ * IDEMPOTENCE : une remontée déjà persistée rend 202 `pending` si le
+ * traitement tourne encore, et 200 `already` si la pierre tombale est posée
+ * — l'ancien contrat de rejeu, conservé. Le traitement lui-même passe par
+ * `clientCallService.handleClientCallCompleted`, donc par le bouclier
+ * anti-spam, l'analyse du transcript, le score de lead, la fiche CRM, le
+ * quota du forfait et l'échéance de conservation — exactement le chemin d'un
+ * appel Vapi. En cas d'échec, la charge utile survit dans la boîte et la
+ * reprise (bail de 5 minutes, 5 essais, recul borné) reprend SANS jamais
+ * ré-analyser un appel déjà fichié.
+ */
+router.post('/calls', async (req, res) => {
+  const { room, caller, trunkNumber, clientId, brain, startedAt, durationSeconds, latency, transcript,
+          twilioCallSid } = req.body || {};
+
+  if (typeof room !== 'string' || !room.trim() || typeof clientId !== 'string' || !clientId.trim()) {
+    return res.status(400).json({ error: 'missing_room_or_client' });
+  }
+
+  const salle = room;
+
+  /* LA DERNIÈRE FRONTIÈRE AVANT LA BASE. Une charge malformée est rejetée
+     ICI, sans avoir rien écrit — ni fiche, ni file. */
+  let job: { id: string; already: boolean };
+  try {
+    job = await voiceCompletionInbox.enqueue({
+      room: salle,
+      clientId: String(clientId),
+      caller, trunkNumber, brain, startedAt, durationSeconds, latency, transcript, twilioCallSid,
+    } as VoiceCompletionPayload);
+    assurerRepriseInbox();
   } catch (error) {
-    /* La réponse est déjà partie : `voice-core` croit la remontée passée, et
-       elle l'est — c'est le traitement qui a échoué. Ce log est la seule
-       trace, d'où le niveau et la charge utile complète. */
-    logger.error(`[voice-core] traitement de l'appel ${salle} échoué:`, error);
+    if (error instanceof Error && error.message.startsWith('Invalid voice completion payload')) {
+      return res.status(400).json({ error: 'invalid_completion_payload' });
+    }
+    logger.error('[voice-core] remontée non persistée:', error);
+    return res.status(500).json({ error: 'record_failed' });
+  }
+
+  if (job.already) {
+    try {
+      const ligne = await prisma.agentCrmActivity.findFirst({
+        where: { id: job.id, clientId, type: 'voice_completion' },
+        select: { status: true },
+      });
+      if (!ligne) return res.status(500).json({ error: 'record_failed' });
+      if (ligne.status === 'dead_letter') {
+        return res.status(409).json({ error: 'completion_dead_letter', room: salle });
+      }
+      if (ligne.status === 'completed') {
+        const appel = await prisma.clientCall.findUnique({
+          where: { vapiCallId: salle, clientId },
+          select: { id: true },
+        });
+        return res.status(200).json({ id: appel?.id ?? job.id, already: true });
+      }
+      return res.status(202).json({ room: salle, pending: true });
+    } catch {
+      logger.error('[voice-core] statut de reprise illisible');
+      return res.status(500).json({ error: 'record_failed' });
+    }
+  }
+
+  try {
+    if (enCours.has(salle)) return res.status(202).json({ room: salle, pending: true });
+    enCours.add(salle);
+    /* Le direct s'arrête ici : le transcript complet est dans la boîte, et
+       le garder en mémoire ferait afficher « en cours » un appel raccroché. */
+    liveTranscripts.terminer(salle);
+    res.status(202).json({ room: salle, accepted: true });
+  } catch (error) {
+    enCours.delete(salle);
+    logger.error('[voice-core] remontée refusée:', error);
+    return res.status(500).json({ error: 'record_failed' });
+  }
+
+  /* À partir d'ici la réponse est partie. Plus rien ne doit remonter à
+     l'appelant, et rien ne doit sortir de ce bloc : une exception non
+     rattrapée dans un handler déjà répondu tue le processus. Un échec ici
+     laisse la charge dans la boîte : le recul borné et le battement de
+     reprise s'en chargent. */
+  try {
+    await voiceCompletionInbox.runOne(job.id, traiterAppelTermine);
+  } catch (error) {
+    logger.error(`[voice-core] traitement de l'appel ${salle} échoué, reprise programmée:`, error);
   } finally {
     enCours.delete(salle);
   }
@@ -488,7 +592,7 @@ router.post('/calls', async (req, res) => {
 function jourEnDate(ymd: unknown): Date | null {
   if (typeof ymd !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(ymd.trim())) return null;
   const d = new Date(`${ymd.trim()}T12:00:00Z`);
-  return Number.isNaN(d.getTime()) ? null : d;
+  return Number.isNaN(d.getTime()) || d.toISOString().slice(0, 10) !== ymd.trim() ? null : d;
 }
 
 /** L'inverse, pour rendre à `voice-core` la forme qu'il manipule. */
@@ -540,11 +644,13 @@ router.get('/bookings/day', async (req, res) => {
   if (!clientId || !jour) return res.status(400).json({ error: 'bad_client_or_day' });
 
   try {
-    const pris = await prisma.clientBooking.findMany({
-      where: { clientId, bookingDate: jour, status: 'confirmed', bookingTime: { not: null } },
-      select: { bookingTime: true },
-    });
-    return res.json({ slots: pris.map((p) => p.bookingTime).filter(Boolean) });
+    /* L'AGENDA RÉEL DU WORKER, pas une lecture base seule : les réservations
+       confirmées ET les indisponibilités du calendrier connecté du client
+       (Google/Outlook), fusionnées dans son fuseau — une base seule
+       proposerait un créneau déjà pris, et l'index unique le refuserait à
+       l'appelant en ligne. */
+    const slots = await workerCalendarService.takenSlots(clientId, dateEnJour(jour));
+    return res.json({ slots });
   } catch (error) {
     logger.error('[voice-core] créneaux illisibles:', error);
     return res.status(500).json({ error: 'slots_failed' });
@@ -767,57 +873,102 @@ router.post('/bookings/:id/cancel', async (req, res) => {
  * la synchro CRM externe draine. Ecrire ailleurs aurait produit des leads que
  * le CRM ne voit pas — precisement l'ecart que ce pont existe pour fermer.
  *
- * La memoire d'appelant suit, en tache de fond : c'est un supplement, et un
+ * La capture est IDEMPOTENTE par room : chaque relecture corrigée
+ * (`voice-core` réémet la fiche quand l'appelant corrige un chiffre) met à
+ * jour la MÊME ligne `pending`, les faits les plus récents gagnant et
+ * l'ancien contenu partant en `revisions`. Sans room, chaque émission crée
+ * sa ligne : sans identité d'appel il n'y a rien à dédoublonner, et fusionner
+ * à l'aveugle fusionnerait des appelants différents.
+ *
+ * La mémoire d'appelant suit, en tache de fond : c'est un supplement, et un
  * supplement ne doit jamais faire echouer la fiche qu'il enrichit.
  */
 router.post('/leads', async (req, res) => {
-  const { clientId, caller, name, reason, email, adresse, pourQui, quand, urgence, room } =
+  const { clientId, caller, telephone: rappelDicte, name, reason, email, adresse, pourQui, quand, urgence, room } =
     req.body || {};
   if (!clientId) return res.status(400).json({ error: 'bad_client' });
 
   try {
     const profil = await realtimeContextService.getClientProfile(String(clientId));
-    const telephone = caller ? String(caller) : null;
+    // New workers distinguish the SIP caller from a dictated callback. Old
+    // workers put the callback in `caller`: only a scoped call row can recover
+    // their transport identity. Never create a caller profile under a callback.
+    const transportContract = Object.prototype.hasOwnProperty.call(req.body, 'telephone');
+    const normalisePhone = (value: unknown) => typeof value === 'string'
+      ? normalizeLeadPhone(value, profil?.country ?? null) : null;
+    const telephone = normalisePhone(transportContract ? rappelDicte : caller)
+      ?? (transportContract ? normalisePhone(caller) : null);
+    const ligne = transportContract ? null : room
+      ? await prisma.clientCall.findUnique({
+          where: { vapiCallId: String(room), clientId: String(clientId) },
+          select: { callerNumber: true },
+        })
+      : null;
+    const transport = normalisePhone(transportContract ? caller : ligne?.callerNumber);
+    const captureAt = new Date();
 
-    const activite = await prisma.agentCrmActivity.create({
-      data: {
-        clientId: String(clientId),
-        type: 'lead_capture',
-        status: 'pending',
-        content: {
-          source: 'voice-core',
-          vapiCallId: room ? String(room) : null,
-          capturedAt: new Date().toISOString(),
-          contact: {
-            name: name ? String(name) : null,
-            email: email ? String(email) : null,
-            phone: telephone,
-            address: adresse ? String(adresse) : null,
-          },
-          reason: reason ? String(reason) : '',
-          /* `voice-core` parle francais, le CRM attend low|normal|high. */
-          urgency: urgence === 'urgente' ? 'high' : urgence === 'faible' ? 'low' : 'normal',
-          forPerson: pourQui ? String(pourQui).slice(0, 40) : null,
-          callbackWhen: quand ? String(quand).slice(0, 40) : null,
-          language: profil?.language ?? 'fr',
-          businessName: profil?.businessName ?? null,
-        },
+    /* Le nom subit la MÊME garde que chez Vapi : « le client » ou le nom de
+       l'agent ou du commerce, entendus dans l'accueil, ne sont pas des noms
+       d'appelant — les laisser passer polluerait le CRM et la mémoire. */
+    const nom = typeof name === 'string' && name.trim()
+      && !isPlaceholderName(name, [profil?.agentName ?? '', profil?.businessName ?? ''])
+      ? name.trim().slice(0, 120)
+      : null;
+
+    const contenu = {
+      source: 'voice-core',
+      vapiCallId: room ? String(room) : null,
+      callerNumber: transport,
+      capturedAt: captureAt.toISOString(),
+      contact: {
+        name: nom,
+        email: typeof email === 'string' && email.trim()
+          ? email.trim().toLowerCase().slice(0, 255)
+          : null,
+        phone: telephone ? String(telephone).slice(0, 40) : null,
+        address: typeof adresse === 'string' && adresse.trim()
+          ? adresse.trim().slice(0, 255)
+          : null,
       },
-      select: { id: true },
-    });
+      reason: typeof reason === 'string' ? reason.trim().slice(0, 500) : '',
+      /* `voice-core` parle francais, le CRM attend low|normal|high. */
+      urgency: urgence === 'urgente' ? 'high' : urgence === 'faible' ? 'low' : 'normal',
+      forPerson: pourQui ? String(pourQui).slice(0, 40) : null,
+      callbackWhen: quand ? String(quand).slice(0, 40) : null,
+      language: profil?.language ?? 'fr',
+      businessName: profil?.businessName ?? null,
+    };
 
-    res.status(201).json({ id: activite.id });
+    const salle = room ? String(room) : null;
+    const resultat = salle
+      ? await persistRoomCapture({
+          clientId: String(clientId),
+          room: salle,
+          buildContent: () => contenu,
+        })
+      : await persistCapture({ clientId: String(clientId), content: contenu });
 
-    void callerMemoryService
+    // Finish this best-effort write before acknowledging the capture: a caller
+    // can hang up and ring back immediately. The durable lead already exists.
+    if (transport) await callerMemoryService
       .remember({
         clientId: String(clientId),
-        callerNumber: telephone,
-        name: name ? String(name) : null,
-        email: email ? String(email) : null,
-        summary: reason ? String(reason) : null,
+        callerNumber: transport,
+        callbackNumber: telephone,
+        callId: salle ?? undefined,
+        phase: 'capture',
+        identitySource: 'capture',
+        occurredAt: captureAt,
+        name: nom,
+        email: contenu.contact.email,
+        summary: contenu.reason || null,
         outcome: 'lead',
+        request: contenu.reason ? {
+          text: contenu.reason, callbackWhen: contenu.callbackWhen, forPerson: contenu.forPerson,
+        } : undefined,
       })
-      .catch((e: Error) => logger.warn(`[voice-core] memoire d'appelant non ecrite: ${e.message}`));
+      .catch(() => logger.warn('[voice-core] memoire d’appelant non ecrite'));
+    res.status(201).json({ id: resultat.id, updated: resultat.updated });
     return;
   } catch (error) {
     logger.error('[voice-core] lead refuse:', error);
@@ -1001,12 +1152,7 @@ router.get('/caller', async (req, res) => {
     const aujourd = new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00Z');
 
     const [memoire, appels, rdv] = await Promise.all([
-      prisma.callerMemory.findFirst({
-        where: { clientId, callerNumber: { in: formes } },
-        select: { knownName: true, totalCalls: true, lastSummary: true,
-                  /* Lues enfin: écrites depuis toujours, jamais servies. */
-                  preferences: true, email: true },
-      }),
+      callerMemoryService.get(clientId, caller),
       prisma.clientCall.count({ where: { clientId, callerNumber: { in: formes } } }),
       prisma.clientBooking.findFirst({
         where: {
@@ -1019,18 +1165,22 @@ router.get('/caller', async (req, res) => {
       }),
     ]);
 
+    if (memoire?.isBlocked) {
+      return res.json({ appels: 0, nom: null, dernier_motif: null, rdv: false,
+        preferences: [], email: null, profil: null, demandes: [],
+        telephone_rappel: null, bloque: true });
+    }
     return res.json({
       appels: Math.max(appels, memoire?.totalCalls ?? 0),
       nom: memoire?.knownName || rdv?.customerName || null,
       dernier_motif: memoire?.lastSummary || null,
       rdv: Boolean(rdv),
-      /* CE QU'ON SAIT ET QU'ON NE REDEMANDE PAS.
-         La colonne `preferences` était remplie à chaque appel et n'était
-         relue par personne : l'agent reposait les mêmes questions à un
-         habitué. `email` avait le même sort — réclamé de nouveau alors qu'il
-         était en base depuis l'appel précédent. */
       preferences: memoire?.preferences ?? [],
       email: memoire?.email ?? null,
+      profil: memoire?.profileSummary ?? null,
+      demandes: memoire?.openRequests ?? [],
+      telephone_rappel: memoire?.callbackNumber ?? null,
+      bloque: false,
     });
   } catch (error) {
     logger.error('[voice-core] historique appelant illisible:', error);

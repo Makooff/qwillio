@@ -1,4 +1,5 @@
 import { prisma } from '../config/database';
+import { callerMemoryView } from './voice/caller-memory-policy';
 import { clientLocale } from '../utils/client-locale';
 
 /* Les résumés arrivaient en anglais à un gérant francophone: le modèle
@@ -16,6 +17,7 @@ import { knowledgeGapService } from './voice/knowledge-gap.service';
 import { readEndedReason, transferFunnel } from './voice/call-outcome';
 import { todayIso } from './voice/clock';
 import { isPlaceholderName } from '../utils/spelled-name';
+import { sanitizeAnalysisOutput, type SanitizedCallAnalysis } from '../utils/analysis-output-guard';
 import { businessTimezone } from '../utils/zoned-time';
 import { rescuePromise, type PromiseFacts } from './voice/promise-rescue';
 import type { LeadForAlert } from './voice/lead-alert.service';
@@ -26,17 +28,25 @@ import { canonicalCountry, canonicalNiche } from './voice/learning-observations.
 export class ClientCallService {
 
   /**
-   * Le nom sous lequel l'appelant est DÉJÀ connu: la réservation prise ou
-   * déplacée pendant l'appel d'abord (nom relu et épelé), puis la dernière
-   * réservation de ce numéro, puis la mémoire d'appelant. `null` si rien:
-   * le nom entendu par l'analyse reste alors le seul disponible.
+   * Le nom sous lequel l'appelant est DÉJÀ connu, par ordre de fiabilité:
+   * la réservation prise ou déplacée pendant l'appel d'abord (nom relu et
+   * épelé), puis le nom dicté en direct à l'agent (`captureLead`) quand il
+   * identifie vraiment quelqu'un — une vieille orthographe en base ne doit
+   * pas écraser la correction que l'appelant vient de dicter —, puis la
+   * dernière réservation de ce numéro, puis la mémoire d'appelant. `null` si
+   * rien: le nom entendu par l'analyse reste alors le seul disponible.
    */
-  private async knownCallerName(clientId: string, callerNumber: string | undefined, liveBookingId: string | null): Promise<string | null> {
+  private async knownCallerName(clientId: string, callerNumber: string | undefined, liveBookingId: string | null, liveLeadName: string | null = null): Promise<string | null> {
     try {
       if (liveBookingId) {
         const live = await prisma.clientBooking.findFirst({ where: { id: liveBookingId, clientId }, select: { customerName: true } });
         if (live?.customerName?.trim()) return live.customerName.trim();
       }
+      /* Le nom dicté à l'agent pendant l'appel bat l'historique: l'appelant
+         vient de LUI-MÊME corriger son nom. Un remplissage (« client ») ou un
+         titre ne compte pas comme un nom dicté. */
+      const dictated = liveLeadName?.trim();
+      if (dictated && !isPlaceholderName(dictated)) return dictated;
       if (!callerNumber) return null;
       const booked = await prisma.clientBooking.findFirst({
         where: { clientId, customerPhone: callerNumber, status: 'confirmed' },
@@ -46,9 +56,9 @@ export class ClientCallService {
       if (booked?.customerName?.trim()) return booked.customerName.trim();
       const memory = await prisma.callerMemory.findUnique({
         where: { clientId_callerNumber: { clientId, callerNumber } },
-        select: { knownName: true },
+        select: { knownName: true, facts: true, isBlocked: true },
       });
-      return memory?.knownName?.trim() || null;
+      return callerMemoryView(memory).knownName;
     } catch (error) {
       logger.warn(`[ClientCall] nom connu illisible pour ${callerNumber ?? '?'}: ${(error as Error).message}`);
       return null;
@@ -78,6 +88,14 @@ export class ClientCallService {
       return { rescuedLead: null };
     }
 
+    // A persisted call is not proof that its internal completion steps committed.
+    const prior = await prisma.clientCall.findUnique({
+      where: { vapiCallId, clientId }, select: { id: true, status: true },
+    });
+    if (prior && prior.status !== 'in-progress') {
+      return this.resumeClientCallCompletion(clientId, vapiCallId);
+    }
+
     // Spam shield (all plans): score the call before we spend anything else on
     // it. Runs before the insert so repeat-frequency counts only prior calls.
     const spam = await spamDetectionService.classifyInboundCall({
@@ -87,13 +105,20 @@ export class ClientCallService {
       durationSeconds: duration,
     });
 
+    /* FAITS DURABLES dictés à l'agent pendant l'appel (`captureLead`).
+       Ils ne dépendent pas de ce que le modèle d'analyse a bien voulu dire:
+       si l'analyse rend `isLead: false` ou tombe en panne, le nom, le courriel
+       et le NUMÉRO DE RAPPEL dictés doivent quand même arriver en fiche et
+       au CRM — et l'appel compte comme un lead, puisque l'outil a capté. */
+    const liveLead = this.parseLiveLeadFacts(extra.liveLead);
+
     /* Le nom CONFIRMÉ pendant l'appel prime sur le nom ENTENDU par le
        modèle d'analyse: la réservation dit « Jean-Luc de la forge » (relu,
        épelé), le transcript dit « Jean Lucas », et le portail affichait le
        second (13/09). Même source pour la fiche d'appel et le contact CRM.
        Il est lu AVANT l'analyse et lui est dit: sinon le résumé (« Jean Lucas
        a appelé pour… ») garde le nom entendu alors que la fiche porte le bon. */
-    const known = spam.isSpam ? null : await this.knownCallerName(clientId, callerNumber, extra.liveBookingId ?? null);
+    const known = spam.isSpam ? null : await this.knownCallerName(clientId, callerNumber, extra.liveBookingId ?? null, liveLead?.name ?? null);
 
     // A spam call skips the GPT-4 transcript analysis entirely (cost saver).
     // A real call gets the full treatment as before.
@@ -101,6 +126,16 @@ export class ClientCallService {
       ? this.emptyAnalysis()
       : await this.analyzeClientCallTranscript(transcript, client, known);
     if (known) analysis.callerName = known;
+
+    /* Les faits dictés survivent à l'analyse: le courriel capté prime sur
+       celui lu (ou manqué) par le modèle, et la présence d'un lead capté
+       en direct affirme `isLead` même si le modèle a rendu false ou n'a pas
+       tourné. AUCUN score n'est inventé: ce que le modèle n'a pas produit
+       reste `null`. */
+    if (liveLead) {
+      if (liveLead.email) analysis.emailCollected = liveLead.email;
+      analysis.isLead = true;
+    }
 
     /* LE NOM DE L'AGENT N'EST PAS CELUI DE L'APPELANT (19/09/2026).
      *
@@ -158,7 +193,17 @@ export class ClientCallService {
             tenant_id: client.id, niche: canonicalNiche(client.businessType),
             country: canonicalCountry(client.country), language: client.agentLanguage,
           });
-          return learningEvidence ? { learningEvidence } : {};
+          return {
+            ...(learningEvidence ? { learningEvidence } : {}),
+            callerIdentityInherited: !!known && !liveLead?.name && !extra.liveBookingId,
+            completionLifecycle: {
+              version: 1, completed: false,
+              hasLiveLead: !!extra.liveLead, hasLiveBooking: !!extra.liveBookingId,
+              promise: { callbackPromised: analysis.callbackPromised === true,
+                callerName: analysis.callerName || null, emailCollected: analysis.emailCollected || null,
+                summary: analysis.summary || null, tags: analysis.tags || [] },
+            },
+          };
         })(),
         summary: analysis.summary,
         sentiment: analysis.sentiment,
@@ -166,7 +211,10 @@ export class ClientCallService {
         recordingUrl,
         emailCollected: analysis.emailCollected || null,
         nameCollected: analysis.callerName || null,
-        phoneCollected: callerNumber || null,
+        /* Le numéro pour RAPPELER l'appelant: celui qu'il a dicté pendant
+           l'appel (`captureLead`) quand il existe; sinon l'identité de la
+           ligne. `callerNumber` reste, lui, l'identité de transport. */
+        phoneCollected: liveLead?.phone ?? (callerNumber || null),
         bookingRequested: analysis.bookingRequested,
         bookingDate: bookingDay?.ok ? bookingDay.date : null,
         bookingDetails: analysis.bookingDetails || null,
@@ -243,7 +291,11 @@ export class ClientCallService {
         // différents. Le numéro et l'email restent des critères, eux.
         matchByName: !!analysis.callerName,
         email: analysis.emailCollected || undefined,
-        phone: callerNumber || undefined,
+        /* Le numéro de rappel dicté prime sur l'identité de la ligne: c'est
+           celui-ci que le gérant doit composer, et c'est lui qui déduplique
+           le contact dans le CRM. */
+        phone: liveLead?.phone ?? (callerNumber || undefined),
+        country: client.country,
         // Le métier du client, pas celui de l'appelant: c'est ce que la colonne
         // porte déjà pour les contacts créés à la main.
         niche: client.businessType || undefined,
@@ -400,14 +452,9 @@ export class ClientCallService {
       })
       .catch(err => logger.warn('[CallNotify] notification échouée:', err));
 
-    // Update client total calls
-    await prisma.client.update({
-      where: { id: clientId },
-      data: {
-        totalCallsMade: { increment: 1 },
-        lastCallDate: new Date(),
-      },
-    });
+    // Counter, promise rescue and completion marker commit together. A retry
+    // resumes these internal writes without repeating analysis or external I/O.
+    const { rescuedLead } = await this.resumeClientCallCompletion(clientId, vapiCallId);
 
     // Check minute quota (per-minute billing). Spam is excluded — it never
     // counts against the quota. The quota-alert cron owns the deduped 80/95/100
@@ -427,56 +474,51 @@ export class ClientCallService {
       );
     }
 
-    /* LE FILET DES PROMESSES (20/09/2026).
-       Si l'agent a promis un rappel sans appeler `captureLead`, personne ne
-       le saurait: `leadAlertService` sort sur `no_lead` et l'appelant
-       raccroche rassuré. On reconstruit le lead depuis l'analyse et on le
-       rend à l'appelant de cette fonction, qui porte l'alerte. */
-    const rescue = rescuePromise({
-      analysis: analysis as PromiseFacts,
-      callerNumber: callerNumber ?? null,
-      hasLiveLead: !!extra.liveLead,
-      hasBooking: bookingConfirmed,
-    });
-    let rescuedLead: LeadForAlert | null = null;
-    if (rescue.rescued) {
-      rescuedLead = rescue.lead;
-      /* Écrit dans le CRM comme un lead ordinaire: sans ça le gérant reçoit
-         une alerte et ne retrouve rien dans son portail, donc deux endroits
-         où chercher pour une seule promesse. */
-      await prisma.agentCrmActivity.create({
-        data: {
-          clientId,
-          type: 'lead_capture',
-          status: 'pending',
-          content: {
-            source: 'ai_receptionist_rescue',
-            vapiCallId,
-            clientCallId: clientCall.id,
-            capturedAt: new Date().toISOString(),
-            contact: { name: rescue.lead.name, email: rescue.lead.email, phone: rescue.lead.phone },
-            reason: rescue.lead.reason,
-            urgency: rescue.lead.urgency,
-            businessName: client.businessName,
-          },
-        },
-      }).catch(err => logger.warn(`[Promise] lead de rattrapage non écrit: ${err.message}`));
-      /* BRUYANT, parce que c'est une défaillance du modèle qu'il faut pouvoir
-         compter: si ce journal sort à chaque appel, c'est le prompt qu'il faut
-         reprendre, pas le filet qu'il faut élargir. */
-      logger.warn(
-        `[Promise] rappel PROMIS sans captureLead pour ${client.businessName} ` +
-          `(appel ${vapiCallId}): lead reconstruit depuis l'analyse.`,
-      );
-    } else if (rescue.why === 'unreachable') {
-      logger.warn(
-        `[Promise] rappel promis pour ${client.businessName} (appel ${vapiCallId}) ` +
-          `mais AUCUN moyen de rappeler: ni numéro (masqué ?) ni courriel.`,
-      );
-    }
 
     logger.info(`Client call processed: ${client.businessName} | ${analysis.sentiment} | Lead: ${analysis.isLead} | Booking: ${analysis.bookingRequested}`);
     return { rescuedLead };
+  }
+
+  /** Resume only durable internal steps; external notifications are not replayed here. */
+  async resumeClientCallCompletion(clientId: string, vapiCallId: string): Promise<{ rescuedLead: LeadForAlert | null }> {
+    return prisma.$transaction(async tx => {
+      const lock = `call-completion:${clientId}:${vapiCallId}`;
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lock}, 0))::text AS locked`;
+      const call = await tx.clientCall.findUnique({
+        where: { clientId, vapiCallId },
+        select: { id: true, metadata: true, callerNumber: true, isSpam: true, endedAt: true },
+      });
+      if (!call) throw new Error('Completion call unavailable');
+      const metadata = (call.metadata && typeof call.metadata === 'object' && !Array.isArray(call.metadata)
+        ? call.metadata : {}) as Record<string, unknown>;
+      const lifecycle = metadata.completionLifecycle as Record<string, unknown> | undefined;
+      // Legacy rows have no journal: never increment their historical counters again.
+      if (!lifecycle || lifecycle.version !== 1 || call.isSpam) return { rescuedLead: null };
+      const promise = (lifecycle.promise ?? {}) as PromiseFacts;
+      const booked = lifecycle.hasLiveBooking === true || !!await tx.clientBooking.findFirst({
+        where: { clientId, clientCallId: call.id, status: 'confirmed' }, select: { id: true },
+      });
+      const rescue = rescuePromise({ analysis: promise, callerNumber: call.callerNumber,
+        hasLiveLead: lifecycle.hasLiveLead === true, hasBooking: booked });
+      const rescuedLead = rescue.rescued ? rescue.lead : null;
+      if (lifecycle.completed === true) return { rescuedLead };
+      await tx.client.update({ where: { id: clientId }, data: {
+        totalCallsMade: { increment: 1 }, lastCallDate: call.endedAt ?? new Date(),
+      } });
+      if (rescuedLead) {
+        await tx.agentCrmActivity.create({ data: {
+          clientId, type: 'lead_capture', status: 'pending',
+          content: { source: 'ai_receptionist_rescue', vapiCallId, clientCallId: call.id,
+            capturedAt: new Date().toISOString(),
+            contact: { name: rescuedLead.name, email: rescuedLead.email, phone: rescuedLead.phone },
+            reason: rescuedLead.reason, urgency: rescuedLead.urgency },
+        } });
+      }
+      await tx.clientCall.update({ where: { id: call.id, clientId }, data: {
+        metadata: { ...metadata, completionLifecycle: { ...lifecycle, completed: true } } as import('@prisma/client').Prisma.InputJsonObject,
+      } });
+      return { rescuedLead };
+    }, { timeout: 5000, maxWait: 2000 });
   }
 
   // Neutral analysis used for spam calls, which skip the GPT-4 pass entirely.
@@ -583,12 +625,18 @@ Return a JSON object with:
         const why = data?.error?.message ?? JSON.stringify(data).slice(0, 300);
         throw new Error(`OpenAI ${response.status} sur l'analyse d'appel: ${why}`);
       }
-      return JSON.parse(data.choices[0].message.content);
+      /* LA SORTIE DU MODÈLE EST RELUE AVANT LA BASE. Le parse seul laissait
+         passer « isLead »: « true », un score de 42 ou un sentiment inconnu;
+         le garde borne chaque champ (booléens stricts, score 0..10 entier ou
+         null, enums par liste blanche, tableaux filtrés). */
+      return sanitizeAnalysisOutput(JSON.parse(data.choices[0].message.content));
     } catch (error) {
       logger.error('Error analyzing client call transcript:', error);
       return {
-        /* Analyse indisponible: on ne DEVINE pas de promesse. Un filet qui se
-           declenche sur une absence de donnee fabriquerait des leads vides. */
+        /* Analyse indisponible: on ne DEVINE ni promesse ni score. Un filet
+           qui se déclencherait sur une absence de donnée fabriquerait des
+           leads vides, et un score affirmerait une analyse qui n'a pas eu
+           lieu — `null`, que la base accepte. */
         callbackPromised: false,
         callerName: null,
         emailCollected: null,
@@ -603,11 +651,36 @@ Return a JSON object with:
         partySize: null,
         specialRequests: null,
         isLead: false,
-        leadScore: 3,
+        leadScore: null,
         tags: [],
         unansweredQuestions: [],
       };
     }
+  }
+
+  /**
+   * Les faits dictés à l'agent pendant l'appel (`captureLead`), relus une
+   * fois. Rien ne garantit la forme de `extra.liveLead`: chaque champ est
+   * validé, et un nom de remplissage (« client ») ne compte pas. `null`
+   * quand aucun fait utilisable n'existe.
+   */
+  private parseLiveLeadFacts(raw: unknown): { name: string | null; email: string | null; phone: string | null } | null {
+    if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) return null;
+    const record = raw as Record<string, unknown>;
+    const pick = (value: unknown): string | null => {
+      if (typeof value !== 'string') return null;
+      const trimmed = value.trim();
+      return trimmed || null;
+    };
+    const name = pick(record.name);
+    const email = pick(record.email);
+    const phone = pick(record.phone);
+    if (!name && !email && !phone) return null;
+    return {
+      name: name && !isPlaceholderName(name) ? name : null,
+      email,
+      phone,
+    };
   }
 
   // ═══════════════════════════════════════════════════════════
@@ -753,7 +826,10 @@ interface ClientCallAnalysis {
   partySize: number | null;
   specialRequests: string | null;
   isLead: boolean;
-  leadScore: number;
+  /** Score 0..10 entier, ou null quand le modèle n'en a pas rendu (échec,
+      champ absent, valeur hors échelle): la base accepte null et l'UI porte
+      l'échelle /10. */
+  leadScore: number | null;
   tags: string[];
   /**
    * Un rappel a-t-il été PROMIS à voix haute pendant l'appel.

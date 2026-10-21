@@ -1,5 +1,5 @@
 import { describe,it,expect,vi,afterEach } from 'vitest';
-const db=vi.hoisted(()=>({client:{findUnique:vi.fn()},clientCall:{create:vi.fn()}}));
+const db=vi.hoisted(()=>({client:{findUnique:vi.fn()},clientCall:{create:vi.fn(),findUnique:vi.fn(async()=>null)}}));
 vi.mock('../../config/database',()=>({prisma:db}));
 vi.mock('../../config/env',()=>({env:{}}));
 vi.mock('../../config/logger',()=>({logger:{info:vi.fn(),warn:vi.fn(),error:vi.fn(),debug:vi.fn()}}));

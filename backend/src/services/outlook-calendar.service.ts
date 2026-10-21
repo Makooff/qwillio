@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { zonedInstant } from '../utils/zoned-time';
 
 /**
  * ── LE SECOND AGENDA : OUTLOOK / MICROSOFT 365 ──────────────────────────────
@@ -70,6 +71,18 @@ export interface OutlookEvent {
   id: string;
   summary: string;
   start: string | null;
+}
+
+/** Graph dateTime without an offset is local to its returned timeZone. */
+function outlookInstant(value: { dateTime?: string; timeZone?: string } | undefined, fallbackZone: string): Date {
+  const raw = value?.dateTime;
+  if (!raw) return new Date(NaN);
+  if (/(?:Z|[+-]\d{2}:\d{2})$/i.test(raw)) return new Date(raw);
+  const match = /^(\d{4}-\d{2}-\d{2})T(\d{2}:\d{2}):(\d{2})(?:\.(\d{1,7}))?$/.exec(raw);
+  if (!match) return new Date(NaN);
+  const instant = zonedInstant(match[1], match[2], value?.timeZone || fallbackZone);
+  // Graph uses seven decimals; JavaScript Date retains milliseconds.
+  return new Date(instant.getTime() + Number(match[3]) * 1000 + Number((match[4] || '').padEnd(3, '0').slice(0, 3)));
 }
 
 export class OutlookCalendarService {
@@ -319,8 +332,8 @@ export class OutlookCalendarService {
         return showAs !== 'free' && showAs !== 'workingelsewhere' && showAs !== 'tentative';
       })
       .map((ev: any) => ({
-        start: new Date(ev.start?.dateTime?.endsWith('Z') ? ev.start.dateTime : `${ev.start?.dateTime}Z`),
-        end: new Date(ev.end?.dateTime?.endsWith('Z') ? ev.end.dateTime : `${ev.end?.dateTime}Z`),
+        start: outlookInstant(ev.start, timeZone),
+        end: outlookInstant(ev.end, timeZone),
       }))
       .filter((s: { start: Date; end: Date }) => !isNaN(s.start.getTime()) && !isNaN(s.end.getTime()));
   }

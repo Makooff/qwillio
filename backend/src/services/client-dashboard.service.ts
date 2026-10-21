@@ -7,6 +7,14 @@ import { superagentOffer } from '../config/superagent-option';
 import { setupCompleteness } from './setup-completeness';
 import { knowledgeGapService } from './voice/knowledge-gap.service';
 import { phoneForms } from '../utils/phone-forms';
+import {
+  LEAD_STATUSES,
+  clampLeadPage,
+  groupLeadCalls,
+  leadIdentityKey,
+  leadPhoneFilterMatches,
+  normalizeLeadPhone,
+} from './lead-identity';
 
 export class ClientDashboardService {
 
@@ -433,40 +441,218 @@ export class ClientDashboardService {
   // ═══════════════════════════════════════════════════════════
   // LEADS - People who showed interest during calls
   // ═══════════════════════════════════════════════════════════
+  /**
+   * La liste des leads, GROUPÉE par identité de numéro — pas une ligne par
+   * appel. Le symptôme rapporté: un même appelant qui épelle plusieurs noms
+   * de test apparaissait autant de fois qu'il avait appelé, et le frontend
+   * fusionnait côté client par les 9 derniers chiffres, confondant BE et FR.
+   *
+   * Le groupement se fait ICI, avant la pagination, sur la règle unique de
+   * `lead-identity`: `callerNumber` (identité transport) d'abord, E.164 au
+   * pays du tenant, `phoneCollected` seulement en l'absence de numéro
+   * transport, et les anonymes restent par appel. Les appels ne sont JAMAIS
+   * perdus: chaque ligne expose `callIds`/`callCount` et toutes les dates
+   * d'interaction. Le total de pagination compte les groupes, pas les appels.
+   */
   async getClientLeads(clientId: string, page = 1, limit = 20, phone?: string) {
-    const where: any = { clientId, isLead: true };
-    if (phone) where.callerNumber = { in: phoneForms(phone) };
+    const client = await prisma.client.findUnique({ where: { id: clientId }, select: { id: true, country: true } });
+    if (!client) throw new Error('Client not found');
+    /* Le pays du TENANT donne le contexte de normalisation. 'BE' n'est plus
+       qu'un repli legacy quand le client n'a pas de pays enregistré. */
+    const country = client.country || 'BE';
 
-    const [leads, total] = await Promise.all([
-      prisma.clientCall.findMany({
-        where,
-        orderBy: { createdAt: 'desc' },
-        skip: (page - 1) * limit,
-        take: limit,
-        select: {
-          id: true,
-          callerName: true,
-          callerNumber: true,
-          emailCollected: true,
-          nameCollected: true,
-          phoneCollected: true,
-          summary: true,
-          leadScore: true,
-          bookingRequested: true,
-          bookingDetails: true,
-          sentiment: true,
-          durationSeconds: true,
-          createdAt: true,
-          tags: true,
-        },
-      }),
-      prisma.clientCall.count({ where }),
-    ]);
+    const where: any = { clientId, isLead: true, isSpam: false, status: 'completed' };
+    const leads = await prisma.clientCall.findMany({
+      where,
+      orderBy: { createdAt: 'asc' },
+      select: {
+        id: true,
+        callerName: true,
+        callerNumber: true,
+        emailCollected: true,
+        nameCollected: true,
+        phoneCollected: true,
+        summary: true,
+        leadScore: true,
+        bookingRequested: true,
+        bookingDetails: true,
+        sentiment: true,
+        durationSeconds: true,
+        status: true,
+        createdAt: true,
+        tags: true,
+        metadata: true,
+      },
+    });
 
+    /* contactId uniquement sur égalité E.164 exacte après normalisation —
+       jamais de rapprochement flou. */
+    const contacts = await prisma.contact.findMany({
+      where: { clientId },
+      select: { id: true, phone: true },
+    });
+    const contactByPhone = new Map<string, string>();
+    for (const c of contacts) {
+      const normalized = normalizeLeadPhone(c.phone, country);
+      if (normalized && !contactByPhone.has(normalized)) contactByPhone.set(normalized, c.id);
+    }
+
+    const links = leads.length ? await prisma.activity.findMany({
+      where: { clientId, type: 'call', callId: { in: leads.map(c => c.id) } },
+      select: { callId: true, contactId: true },
+      orderBy: { createdAt: 'desc' },
+    }) : [];
+    const validContacts = new Set(contacts.map(c => c.id));
+    const contactByCall = new Map<string, string>();
+    for (const link of links) {
+      if (link.callId && validContacts.has(link.contactId) && !contactByCall.has(link.callId)) contactByCall.set(link.callId, link.contactId);
+    }
+    let groups = groupLeadCalls(leads, country, contactByPhone).map(g => ({
+      ...g,
+      contactId: [...g.callIds].reverse().map(id => contactByCall.get(id)).find(Boolean)
+        ?? (g.phoneCollected ? contactByPhone.get(g.phoneCollected) : undefined) ?? g.contactId,
+    }));
+    /* Le filtre numérique s'applique à l'identité du groupe, en écriture
+       nationale comme internationale, et les identités anonymes n'en sortent
+       jamais: un filtre ne peut pas faire fuiter des contacts non concernés. */
+    if (phone && phone.trim()) {
+      groups = groups.filter(g => leadPhoneFilterMatches(g.phone, phone, country));
+    }
+
+    const { page: p, limit: l } = clampLeadPage(page, limit);
+    const total = groups.length;
     return {
-      data: leads,
-      pagination: { total, page, limit, totalPages: Math.ceil(total / limit) },
+      /* `leadStatus` is the explicit contract for the frontend; `status` stays
+         for older consumers. Rows are canonical groups — the frontend must
+         NOT re-group: callIds/callCount/identityKey are already correct. */
+      data: groups
+        .slice((p - 1) * l, (p - 1) * l + l)
+        .map(g => ({
+          ...g,
+          leadStatus: g.status,
+          callerName: g.name,
+          nameCollected: g.name,
+          callerNumber: g.phone,
+          emailCollected: g.email,
+          createdAt: g.lastInteractionAt,
+        })),
+      pagination: { total, page: p, limit: l, totalPages: Math.ceil(total / l) },
     };
+  }
+
+  /**
+   * PUT /my-dashboard/leads/:id/status — écrit le statut manuel sur toute
+   * l'identité groupée, pas sur le seul appel cliqué.
+   *
+   * Le statut est décidé au niveau GROUPE (`resolveGroupStatus`): un appel
+   * plus récent qui ne porte rien ne réinitialise donc jamais une décision
+   * manuelle posée sur un appel plus ancien — c'était le défaut du statut
+   * stocké en tag par appel. Le contact CRM exactement rattaché (même E.164)
+   * est synchronisé sans toucher à ses notes ni à ses tags.
+   *
+   * L'énumération est validée AVANT toute écriture, et chaque écriture porte
+   * le clientId: la portée tenant ne dépend pas d'une vérification séparée.
+   */
+  async updateLeadStatus(clientId: string, callId: string, status: string) {
+    if (!(LEAD_STATUSES as readonly string[]).includes(status)) {
+      return { ok: false as const, reason: 'invalid_status' };
+    }
+    const seed = await prisma.clientCall.findFirst({ where: { id: callId, clientId } });
+    if (!seed) return { ok: false as const, reason: 'not_found' };
+
+    const client = await prisma.client.findUnique({ where: { id: clientId }, select: { country: true } });
+    const country = client?.country || 'BE';
+    const key = leadIdentityKey(seed, country);
+
+    /* Tous les appels leads du tenant; on groupe pour trouver les frères du
+       seed. Le where reste tenant-scoped: un identifiant deviné hors scope
+       retombe sur `not_found` ou ne rejoint aucun groupe. */
+    const siblings = await prisma.clientCall.findMany({
+      where: { clientId, isLead: true },
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true, callerNumber: true, phoneCollected: true,
+        tags: true, metadata: true, createdAt: true,
+      },
+    });
+    const group = siblings.filter(c => leadIdentityKey(c, country) === key);
+    const targets = group.length > 0 ? group : [{ id: seed.id, tags: seed.tags || [], metadata: seed.metadata } as any];
+
+    for (const target of targets) {
+      const meta = (typeof target.metadata === 'object' && target.metadata !== null
+        ? target.metadata
+        : {}) as Record<string, unknown>;
+      await prisma.clientCall.updateMany({
+        where: { id: target.id, clientId },
+        data: {
+          /* Les tags statut anciens sont retirés, le tag manuel est posé;
+             les autres tags (urgent, rappel…) sont conservés. */
+          tags: {
+            set: [
+              ...(target.tags || []).filter((t: string) => !(LEAD_STATUSES as readonly string[]).includes(t as any)),
+              status,
+            ],
+          },
+          metadata: {
+            ...meta,
+            manualStatus: { status, updatedAt: new Date().toISOString() },
+          },
+        },
+      });
+    }
+
+    /* Synchronisation CRM: uniquement le contact dont le numéro normalisé
+       est EXACTEMENT l'identité du groupe, et seul le champ status — les
+       notes, tags et métadonnées manuelles du contact ne sont pas touchés. */
+    let syncedContactId: string | null = null;
+    if (key.startsWith('phone:')) {
+      const identity = key.slice('phone:'.length);
+      const contacts = await prisma.contact.findMany({
+        where: { clientId },
+        select: { id: true, phone: true },
+      });
+      const links = await prisma.activity.findMany({
+        where: { clientId, type: 'call', callId: { in: targets.map(t => t.id) } },
+        select: { contactId: true },
+        orderBy: { createdAt: 'desc' },
+      });
+      const linked = links.map(link => contacts.find(c => c.id === link.contactId)).find(Boolean);
+      const callback = group.map(c => normalizeLeadPhone(c.phoneCollected, country)).find(Boolean) ?? identity;
+      const match = linked ?? contacts.find(c => normalizeLeadPhone(c.phone, country) === callback);
+      if (match) {
+        await prisma.contact.updateMany({
+          where: { id: match.id, clientId },
+          data: { status },
+        });
+        syncedContactId = match.id;
+      }
+    }
+
+    return { ok: true as const, status, updatedCalls: targets.length, contactId: syncedContactId };
+  }
+
+  /**
+   * PUT /my-dashboard/leads/:id/notes — note manuelle sur l'appel.
+   *
+   * Stockée dans `metadata.clientNotes` comme avant (le schéma ne change
+   * pas), mais la fusion préserve les autres clés du metadata: l'historique
+   * de l'appel n'est pas écrasé par une note. Seul un texte est accepté.
+   */
+  async updateLeadNotes(clientId: string, callId: string, notes: unknown) {
+    if (typeof notes !== 'string') return { ok: false as const, reason: 'invalid_notes' };
+    const call = await prisma.clientCall.findFirst({ where: { id: callId, clientId } });
+    if (!call) return { ok: false as const, reason: 'not_found' };
+
+    const meta = (typeof call.metadata === 'object' && call.metadata !== null
+      ? call.metadata
+      : {}) as Record<string, unknown>;
+    await prisma.clientCall.updateMany({
+      where: { id: callId, clientId },
+      data: {
+        metadata: { ...meta, clientNotes: notes.slice(0, 5000) },
+      },
+    });
+    return { ok: true as const };
   }
 
   // ═══════════════════════════════════════════════════════════
