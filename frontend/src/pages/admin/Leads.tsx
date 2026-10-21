@@ -81,6 +81,10 @@ interface Script {
   objectionHandlers: Record<string, string>; rawFull: string;
 }
 
+type ShortlistItem = { lead: Lead; rank: 'A' | 'B' | 'C'; stage: string; note: string; nextDate: string };
+const SHORTLIST_KEY = 'qwillio-prospect-shortlist-v1';
+const STAGES = ['À contacter', 'Appelé', 'Intéressé', 'Démo prévue', 'Essai', 'Client', 'Refus / ne plus contacter'];
+
 type PillColor = 'neutral' | 'ok' | 'warn' | 'bad' | 'info' | 'accent';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -197,6 +201,35 @@ export default function AdminLeads() {
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [favBusy, setFavBusy] = useState<string | null>(null);
+
+  // Selected prospects: persisted locally across searches and pagination.
+  const [shortlist, setShortlist] = useState<Record<string, ShortlistItem>>(() => {
+    try { return JSON.parse(localStorage.getItem(SHORTLIST_KEY) || '{}'); } catch { return {}; }
+  });
+  const [shortlistOpen, setShortlistOpen] = useState(false);
+  const [shortlistOrder, setShortlistOrder] = useState<'rank' | 'date'>('rank');
+  useEffect(() => {
+    try { localStorage.setItem(SHORTLIST_KEY, JSON.stringify(shortlist)); }
+    catch { /* local storage may be unavailable in private mode */ }
+  }, [shortlist]);
+  const selectLead = (lead: Lead) => setShortlist(prev => {
+    const next = { ...prev };
+    if (next[lead.id]) delete next[lead.id];
+    else next[lead.id] = { lead, rank: 'B', stage: 'À contacter', note: '', nextDate: '' };
+    return next;
+  });
+  const editSelected = (id: string, patch: Partial<ShortlistItem>) => setShortlist(prev =>
+    prev[id] ? { ...prev, [id]: { ...prev[id], ...patch } } : prev);
+  const exportShortlist = () => {
+    const headers = ['Entreprise','Téléphone','Ville','Secteur','Priorité','Statut','Relance','Notes'];
+    const rows = Object.values(shortlist).map(({ lead, rank, stage, nextDate, note }) =>
+      [lead.businessName,lead.phone || '',lead.city || '',lead.niche || lead.businessType || '',rank,stage,nextDate,note]);
+    const escape = (v: string) => '"' + String(v).replace(/"/g, '""') + '"';
+    const blob = new Blob(['\\uFEFF' + [headers, ...rows].map(row => row.map(escape).join(';')).join('\\r\\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = 'qwillio-prospects-selectionnes.csv'; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  };
 
   // Saved searches
   const [saved, setSaved] = useState<SavedSearch[]>([]);
@@ -492,6 +525,9 @@ export default function AdminLeads() {
         </select>
 
         <div className="ml-auto flex items-center gap-2">
+          <GhostBtn onClick={() => setShortlistOpen(v => !v)}>
+            <ClipboardList size={13} /> Ma liste ({Object.keys(shortlist).length})
+          </GhostBtn>
           <GhostBtn onClick={saveCurrentSearch} disabled={savingSearch}>
             <Bookmark size={13} /> Sauvegarder
           </GhostBtn>
@@ -541,6 +577,50 @@ export default function AdminLeads() {
         </Card>
       )}
 
+      {shortlistOpen && (
+        <Card>
+          <div className="p-4 space-y-3">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <p className="font-semibold text-[14px]" style={{ color: pro.text }}>Mes prospects sélectionnés ({Object.keys(shortlist).length})</p>
+                <p className="text-[11px]" style={{ color: pro.textTer }}>Liste conservée dans ce navigateur uniquement. Exporte-la pour la sauvegarder.</p>
+              </div>
+              <div className="flex gap-2">
+                <select aria-label="Trier ma liste" value={shortlistOrder} onChange={e => setShortlistOrder(e.target.value as 'rank' | 'date')} className={selectCls} style={selectStyle}>
+                  <option value="rank">Priorité A → C</option><option value="date">Relance la plus proche</option>
+                </select>
+                <GhostBtn onClick={exportShortlist}>Exporter CSV</GhostBtn>
+              </div>
+            </div>
+            {Object.values(shortlist).sort((a,b) => shortlistOrder === 'rank'
+              ? a.rank.localeCompare(b.rank)
+              : (a.nextDate || '9999').localeCompare(b.nextDate || '9999')).map(item => (
+              <div key={item.lead.id} className="rounded-xl p-3 space-y-2" style={{ border: `1px solid ${pro.border}` }}>
+                <div className="flex justify-between gap-2 items-center">
+                  <div><p className="text-[13px] font-medium" style={{ color: pro.text }}>{item.lead.businessName}</p>
+                    <p className="text-[11px]" style={{ color: pro.textTer }}>{item.lead.city} · {item.lead.phone}</p></div>
+                  <div className="flex gap-2">
+                    <button onClick={() => openScript(item.lead)} className="text-[12px]" style={{ color: pro.accent }}>Script</button>
+                    <button onClick={() => selectLead(item.lead)} aria-label="Retirer de ma liste" style={{ color: pro.textTer }}><X size={15}/></button>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <select aria-label={`Priorité ${item.lead.businessName}`} value={item.rank} onChange={e => editSelected(item.lead.id, { rank: e.target.value as 'A'|'B'|'C' })} className={selectCls} style={selectStyle}>
+                    <option value="A">A · Prioritaire</option><option value="B">B · À qualifier</option><option value="C">C · Plus tard</option>
+                  </select>
+                  <select aria-label={`Statut ${item.lead.businessName}`} value={item.stage} onChange={e => editSelected(item.lead.id, { stage: e.target.value })} className={selectCls} style={selectStyle}>
+                    {STAGES.map(v => <option key={v} value={v}>{v}</option>)}
+                  </select>
+                  <input aria-label={`Relance ${item.lead.businessName}`} type="date" value={item.nextDate} onChange={e => editSelected(item.lead.id, { nextDate: e.target.value })} className={selectCls} style={selectStyle}/>
+                </div>
+                <textarea aria-label={`Notes ${item.lead.businessName}`} value={item.note} onChange={e => editSelected(item.lead.id, { note: e.target.value })} placeholder="Besoins, objections, prochaine action…" rows={2} className="w-full p-2 rounded-xl text-[12px]" style={selectStyle}/>
+              </div>
+            ))}
+            {!Object.keys(shortlist).length && <p className="text-[12px]" style={{ color: pro.textSec }}>Sélectionne des entreprises avec le bouton + à côté des résultats.</p>}
+          </div>
+        </Card>
+      )}
+
       {/* Results */}
       <Card>
         {loading ? (
@@ -582,6 +662,14 @@ export default function AdminLeads() {
                   <Pill color={statusColor(lead.status)}>{statusLabel(lead.status)}</Pill>
 
                   <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <button
+                      onClick={() => selectLead(lead)}
+                      title={shortlist[lead.id] ? 'Retirer de ma liste' : 'Ajouter à ma liste'}
+                      aria-label={shortlist[lead.id] ? `Retirer ${lead.businessName} de ma liste` : `Sélectionner ${lead.businessName}`}
+                      className="h-9 px-2.5 rounded-xl text-[12px] font-semibold"
+                      style={{ background: shortlist[lead.id] ? pro.accent : pro.panel, border: `1px solid ${pro.border}`, color: shortlist[lead.id] ? '#000' : pro.text }}>
+                      {shortlist[lead.id] ? '✓ Liste' : '+ Liste'}
+                    </button>
                     {/* Opens the dialer on the founder's own phone. */}
                     {href ? (
                       <a
