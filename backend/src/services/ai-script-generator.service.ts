@@ -1,3 +1,4 @@
+import { PLANS, ANNUAL_DISCOUNT } from '../config/plans';
 /**
  * AI Script Generator — dynamically creates niche-specific call scripts
  * using OpenAI GPT-4o. Falls back to a generic template when the API is
