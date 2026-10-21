@@ -225,7 +225,7 @@ export default function AdminLeads() {
     const rows = Object.values(shortlist).map(({ lead, rank, stage, nextDate, note }) =>
       [lead.businessName,lead.phone || '',lead.city || '',lead.niche || lead.businessType || '',rank,stage,nextDate,note]);
     const escape = (v: string) => '"' + String(v).replace(/"/g, '""') + '"';
-    const blob = new Blob(['\\uFEFF' + [headers, ...rows].map(row => row.map(escape).join(';')).join('\\r\\n')], { type: 'text/csv;charset=utf-8' });
+    const blob = new Blob(['\uFEFF' + [headers, ...rows].map(row => row.map(escape).join(';')).join('\r\n')], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a'); a.href = url; a.download = 'qwillio-prospects-selectionnes.csv'; a.click();
     setTimeout(() => URL.revokeObjectURL(url), 1000);
