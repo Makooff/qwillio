@@ -20,6 +20,7 @@ const mocks = vi.hoisted(() => ({
   findBooking: vi.fn(),
   findMemory: vi.fn(),
   createCall: vi.fn(),
+  upsertCall: vi.fn(),
   readCall: vi.fn(),
   updateCall: vi.fn(),
   updateClient: vi.fn(),
@@ -37,7 +38,11 @@ vi.mock('../../config/database', () => {
     client: { findUnique: mocks.findClient, update: mocks.updateClient },
     clientBooking: { findFirst: mocks.findBooking, updateMany: vi.fn().mockResolvedValue({ count: 1 }) },
     callerMemory: { findUnique: mocks.findMemory },
-    clientCall: { create: mocks.createCall, aggregate: mocks.aggregate, findUnique: mocks.readCall, update: mocks.updateCall },
+    /* Le service convertit le placeholder EN PLACE (`upsert` sur vapiCallId) :
+       plus de create seul, plus de delete-then-create. Le mock applique la
+       branche create quand aucune fiche n'existe, la branche update sinon —
+       en sautant les champs `undefined`, comme Prisma. */
+    clientCall: { create: mocks.createCall, upsert: mocks.upsertCall, aggregate: mocks.aggregate, findUnique: mocks.readCall, update: mocks.updateCall },
     activity: { create: mocks.createActivity },
     agentCrmActivity: { create: mocks.createCrmActivity },
     $queryRaw: vi.fn(async () => []),
@@ -60,6 +65,16 @@ vi.mock('../crm-dedup.service', () => ({
 }));
 
 const { clientCallService } = await import('../client-call.service');
+
+describe('identity reset knownCallerName', () => {
+  it('does not use pre-reset bookings, including a live booking id; accepts new explicit spelling', async () => {
+    mocks.findMemory.mockResolvedValue({ facts: { version: 1, meta: { identityResetAt: '2026-10-20T00:00:00.000Z' } } });
+    mocks.findBooking.mockResolvedValue({ customerName: 'Old', createdAt: new Date('2026-10-19') });
+    const known = (clientCallService as any).knownCallerName.bind(clientCallService);
+    expect(await known('c1', '32483620980', 'old-booking')).toBeNull();
+    expect(await known('c1', '32483620980', null, 'Jean-Luc de la Forge')).toBe('Jean-Luc de la Forge');
+  });
+});
 
 const CLIENT = {
   id: 'c1', businessName: 'Demtalix', businessType: 'dentist', country: 'BE',
@@ -86,6 +101,12 @@ function prismaHappyPath() {
   mocks.findMemory.mockResolvedValue(null);
   persisted.call = null;
   mocks.createCall.mockImplementation(({ data }: any) => (persisted.call = { id: 'call-1', ...data }));
+  mocks.upsertCall.mockImplementation(({ create, update }: any) => {
+    if (!persisted.call) return mocks.createCall({ data: create });
+    const data = Object.fromEntries(Object.entries(update).filter(([, v]) => v !== undefined));
+    Object.assign(persisted.call, data);
+    return { ...persisted.call };
+  });
   mocks.readCall.mockImplementation(async () => persisted.call);
   mocks.updateCall.mockImplementation(async ({ data }: any) => Object.assign(persisted.call, data));
   mocks.updateClient.mockResolvedValue({});
@@ -144,8 +165,61 @@ describe('handleClientCallCompleted — les faits liveLead survivent à l\'analy
     modelSays({ ...NO_ANALYSIS_FIELDS, callerName: 'Anna Peeters' });
     await run({});
     const data = mocks.createCall.mock.calls[0][0].data;
-    expect(data.phoneCollected).toBe('+32470000000');
+    expect(data.phoneCollected).toBe(data.callerNumber);
     expect(data.isLead).toBe(false);
+  });
+
+  it('un rejeu utilise sa date de fin réelle et non la date du traitement pour la mémoire', async () => {
+    modelSays({ ...NO_ANALYSIS_FIELDS, callerName: null });
+    const completedAt = new Date('2026-10-21T15:25:15.147Z');
+    await (clientCallService as any).handleClientCallCompleted(
+      'c1', 'vapi-1', 'APPELANT: allo', 364, '+324****0000', undefined, null, { completedAt },
+    );
+    expect(persisted.call.endedAt).toEqual(completedAt);
+  });
+
+  it('un placeholder « ended » du décroché est converti EN PLACE: même id, tenant, metadata mergée', async () => {
+    modelSays({ ...NO_ANALYSIS_FIELDS, callerName: 'Anna Peeters' });
+    /* La fiche durable posée avant le 202 : statut ended, transcript, durée,
+       et la recordingSid apprise pendant l'appel. */
+    persisted.call = {
+      id: 'call-placeholder-9', clientId: 'c1', vapiCallId: 'vapi-1',
+      status: 'ended', callerNumber: '+324****0000',
+      metadata: { source: 'voice-core', room: 'vapi-1', recordingSid: 'RE123' },
+    };
+    await run({});
+    /* AUCUN create : la fiche existante porte l'analyse. */
+    expect(mocks.createCall).not.toHaveBeenCalled();
+    expect(persisted.call.id).toBe('call-placeholder-9');
+    expect(persisted.call.clientId).toBe('c1');
+    expect(persisted.call.status).toBe('completed');
+    // Provider call ids do not authorize a cross-tenant update.
+    expect(mocks.upsertCall).toHaveBeenCalledWith(expect.objectContaining({
+      where: { vapiCallId: 'vapi-1', clientId: 'c1' },
+    }));
+    /* L'identité de transport du placeholder (même numéro canonique, même
+       tenant) est conservée par la conversion en place. */
+    expect(persisted.call.callerNumber).toBeTruthy();
+    /* Les métadonnées apprises avant l'analyse survivent, les clés du cycle
+       de vie s'y ajoutent. */
+    expect(persisted.call.metadata.recordingSid).toBe('RE123');
+    expect(persisted.call.metadata.source).toBe('voice-core');
+    expect(persisted.call.metadata.completionLifecycle.version).toBe(1);
+  });
+
+  it('retry final sur le MÊME placeholder: id et tenant inchangés, statut completed', async () => {
+    /* Premier essai: échec simulé APRÈS écriture de la fiche (metadata posée). */
+    modelSays({ ...NO_ANALYSIS_FIELDS, callerName: null });
+    persisted.call = {
+      id: 'call-placeholder-9', clientId: 'c1', vapiCallId: 'vapi-1',
+      status: 'ended', callerNumber: '+324****0000',
+      metadata: { recordingSid: 'RE123', completionLifecycle: { version: 1, completed: false } },
+    };
+    await run({});
+    expect(persisted.call.id).toBe('call-placeholder-9');
+    expect(persisted.call.clientId).toBe('c1');
+    expect(persisted.call.status).toBe('completed');
+    expect(mocks.createCall).not.toHaveBeenCalled();
   });
 });
 

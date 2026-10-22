@@ -50,6 +50,20 @@ function table(rows: () => any[]) {
       const row = { id: `row-${rows().length}`, createdAt: new Date(), performedAt: null, ...structuredClone(data) };
       rows().push(row); return project(row, select);
     }),
+    upsert: vi.fn(async ({ where, create, update, select }: any) => {
+      const row = rows().find(r => matches(r, where));
+      if (row) {
+        // Prisma ignores undefined update fields; null explicitly clears them.
+        Object.assign(row, structuredClone(Object.fromEntries(
+          Object.entries(update).filter(([, value]) => value !== undefined),
+        )));
+        return project(row, select);
+      }
+      if (create.vapiCallId && rows().some(r => r.vapiCallId === create.vapiCallId)) throw new Error('unique vapiCallId');
+      const created = { id: `row-${rows().length}`, createdAt: new Date(), performedAt: null, ...structuredClone(create) };
+      rows().push(created);
+      return project(created, select);
+    }),
     update: vi.fn(async ({ where, data, select }: any) => {
       const row = rows().find(r => matches(r, where));
       if (!row) throw new Error('missing row');
@@ -132,6 +146,60 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 describe('P1 completion resume through real services', () => {
+  it.each(['in-progress', 'ended'])('completes the same %s row, retaining metadata and links through retry', async status => {
+    const startedAt = new Date(now.getTime() - 30_000);
+    calls.push({ id: 'stable-placeholder', clientId: 'tenant', vapiCallId: 'new', status,
+      callerNumber: phone, startedAt, createdAt: startedAt,
+      metadata: { recordingSid: 'RE-stable', liveMarker: { retained: true } } });
+    activities.push({ id: 'linked-live', clientId: 'tenant', type: 'live-marker', callId: 'stable-placeholder' });
+    model(null, true);
+    const s = await services();
+    failClientUpdate = true;
+    await expect(finish(s.calls)).rejects.toThrow('client.update unavailable');
+    expect(calls).toHaveLength(1);
+    expect(calls[0]).toMatchObject({ id: 'stable-placeholder', status: 'completed',
+      clientId: 'tenant', vapiCallId: 'new', callerNumber: phone,
+      transcript: 'APPELANT: Bonjour, je souhaite un renseignement.', durationSeconds: 30,
+      metadata: { recordingSid: 'RE-stable', liveMarker: { retained: true },
+        completionLifecycle: { completed: false } } });
+    expect(io.db.clientCall.create).not.toHaveBeenCalled();
+    expect(io.db.clientCall.deleteMany).not.toHaveBeenCalled();
+    expect(client.totalCallsMade).toBe(0);
+    expect(activities.filter(a => a.type === 'lead_capture')).toHaveLength(0);
+    const analyses = io.fetch.mock.calls.length;
+    vi.resetModules();
+    const next = await services();
+    await finish(next.calls);
+    await finish(next.calls);
+    expect(calls).toHaveLength(1);
+    expect(calls[0].id).toBe('stable-placeholder');
+    expect(calls[0].metadata).toMatchObject({ recordingSid: 'RE-stable', liveMarker: { retained: true },
+      completionLifecycle: { completed: true } });
+    expect(activities.find(a => a.id === 'linked-live').callId).toBe(calls[0].id);
+    expect(io.fetch).toHaveBeenCalledTimes(analyses);
+    expect(client.totalCallsMade).toBe(1);
+    expect(activities.filter(a => a.type === 'lead_capture')).toHaveLength(1);
+  });
+
+  it('rejects a foreign tenant call collision without mutating its stable row', async () => {
+    const foreign = { id: 'foreign-row', clientId: 'other-tenant', vapiCallId: 'new',
+      status: 'completed', transcript: 'foreign transcript', metadata: { recordingSid: 'RE-foreign' } };
+    calls.push(structuredClone(foreign));
+    const s = await services();
+    await expect(finish(s.calls)).rejects.toThrow('unique vapiCallId');
+    expect(calls).toEqual([foreign]);
+    expect(client.totalCallsMade).toBe(0);
+    expect(activities).toHaveLength(0);
+  });
+
+  it('models Prisma upsert update without inserting, ignores undefined, and applies explicit null', async () => {
+    calls.push({ id: 'stable', clientId: 'tenant', vapiCallId: 'new', callerNumber: phone, summary: 'old' });
+    const row = await io.db.clientCall.upsert({ where: { vapiCallId: 'new' },
+      create: { id: 'wrong-new-id', vapiCallId: 'new' },
+      update: { callerNumber: undefined, summary: null, status: 'ended' } });
+    expect(calls).toHaveLength(1);
+    expect(row).toMatchObject({ id: 'stable', clientId: 'tenant', callerNumber: phone, summary: null, status: 'ended' });
+  });
   it.each(['client', 'rescue', 'journal'])('rolls back %s failure and resumes without analysis, duplicate call, counter or lead', async failure => {
     model(null, true); const s = await services();
     if (failure === 'client') failClientUpdate = true;

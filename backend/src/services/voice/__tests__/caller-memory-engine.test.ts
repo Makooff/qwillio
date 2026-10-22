@@ -49,6 +49,24 @@ beforeEach(() => {
   db.rows.clear(); db.locks.clear();
 });
 
+describe('reset cutoff', () => {
+  it('rejects delayed capture/completion including equal cutoff and missing timestamp, then accepts confirmed spelling', async () => {
+    await remember({ name: 'Old', occurredAt: new Date('2026-10-18') });
+    const row = [...db.rows.values()][0];
+    row.knownName = null; row.email = null; row.profileSummary = null; row.lastSummary = null; row.preferences = [];
+    row.facts.identity = { name: null, email: null };
+    row.facts.meta.identityResetAt = '2026-10-20T00:00:00.000Z';
+    db.upsert.mockClear();
+    for (const phase of ['capture', 'completed']) for (const occurredAt of [undefined, new Date('2026-10-19'), new Date('2026-10-20')]) {
+      await remember({ name: 'Old', email: 'old@example.com', summary: 'Old', preferences: ['Old'], phase, occurredAt });
+    }
+    expect(db.upsert).not.toHaveBeenCalled();
+    expect(await service.get(base.clientId, phone)).toMatchObject({ knownName: null, email: null, profileSummary: null, preferences: [] });
+    await remember({ name: 'Jean-Luc de la Forge', phase: 'capture', identitySource: 'confirmed', occurredAt: new Date('2026-10-21') });
+    expect((await service.get(base.clientId, phone))?.knownName).toBe('Jean-Luc de la Forge');
+  });
+});
+
 describe('caller memory engine, offline', () => {
   it('keeps a live correction through a different end analysis and the next read', async () => {
     await remember({ name: 'Julien', phase: 'capture', identitySource: 'capture' });

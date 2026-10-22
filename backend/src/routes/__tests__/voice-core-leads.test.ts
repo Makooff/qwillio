@@ -31,7 +31,7 @@ vi.mock('../../services/client-call.service', () => ({
 }));
 
 const prismaMock = vi.hoisted(() => ({
-  clientCall: { findUnique: vi.fn(), deleteMany: vi.fn(), count: vi.fn() },
+  clientCall: { findUnique: vi.fn(), deleteMany: vi.fn(), updateMany: vi.fn(), count: vi.fn() },
   callerMemory: { findUnique: vi.fn() },
   clientBooking: { findFirst: vi.fn() },
   /* Frontière de la boîte durable (voice-completion-inbox) : implémentée en

@@ -73,13 +73,25 @@ export function validateVoiceCompletionPayload(raw: unknown): VoiceCompletionPay
   }
   if (p.startedAt !== undefined
     && (typeof p.startedAt !== 'string' || Number.isNaN(new Date(p.startedAt).getTime()))) invalid();
+  let latency: Record<string, number> | undefined;
   if (p.latency !== undefined) {
-    if (typeof p.latency !== 'object' || p.latency === null) invalid();
-    for (const value of Object.values(p.latency)) {
+    if (typeof p.latency !== 'object' || p.latency === null || Array.isArray(p.latency)) invalid();
+    latency = {};
+    // The deployed worker sends metrics.summary(), which also carries these
+    // four contextual strings. They are not latency measurements (room/caller
+    // already belong to the envelope). Reject malformed measures, but never
+    // reject the entire finished call for this established producer contract.
+    const contextKeys = new Set(['room', 'caller', 'cerveau', 'langue']);
+    for (const [key, value] of Object.entries(p.latency)) {
+      if (contextKeys.has(key)) {
+        if (typeof value !== 'string') invalid();
+        continue;
+      }
       if (typeof value !== 'number' || !Number.isFinite(value)) invalid();
+      Object.defineProperty(latency, key, { value, enumerable: true, writable: true, configurable: true });
     }
   }
-  return p as unknown as VoiceCompletionPayload;
+  return { ...p, ...(latency === undefined ? {} : { latency }) } as unknown as VoiceCompletionPayload;
 }
 
 function sansPayload(content: JobContent): JobContent {

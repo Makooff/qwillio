@@ -48,4 +48,14 @@ describe('SentimentBadge', () => {
     render(<SentimentBadge sentiment="in_progress" />);
     expect(screen.getByText('En cours')).toBeInTheDocument();
   });
+
+  /* La pastille « En cours » était violet vif comme l'ancienne carte live,
+     seule tache de cette teinte dans un thème sombre neutre. Gris du thème
+     désormais, le pouls animé reste le repère du direct. */
+  it('est aux teintes neutres, sans violet', () => {
+    const { container } = render(<SentimentBadge sentiment="in-progress" />);
+    expect(container.innerHTML).not.toContain('7349FE');
+    expect(container.innerHTML).not.toContain('7349fe');
+    expect(container.innerHTML).not.toContain('A78BFA');
+  });
 });

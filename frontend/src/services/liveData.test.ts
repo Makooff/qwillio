@@ -1,10 +1,10 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 
 const get = vi.fn();
 vi.mock('./api', () => ({ default: { get: (...args: unknown[]) => get(...args) } }));
 
 const {
-  fetchLive, peekLive, subscribeLive, primeLive, invalidateLive, refreshAllLive, isFresh, __resetLive,
+  fetchLive, peekLive, subscribeLive, subscribeLiveFast, FAST_POLL_MS, primeLive, invalidateLive, refreshAllLive, isFresh, __resetLive,
 } = await import('./liveData');
 
 beforeEach(() => {
@@ -146,5 +146,66 @@ describe('priming during the launch animation', () => {
       (url === '/a' ? Promise.reject(new Error('down')) : ok({ ok: 1 })));
     await expect(primeLive(['/a', '/b'])).resolves.toBeUndefined();
     expect(peekLive('/b')).toEqual({ ok: 1 });
+  });
+});
+
+describe('the fast loop for the page being watched', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('refreshes the fast key every 2 s while subscribed', async () => {
+    get.mockReturnValue(ok({ n: 1 }));
+    subscribeLiveFast('/my-dashboard/calls?page=1&limit=20', () => undefined);
+    await vi.advanceTimersByTimeAsync(0); // settle the subscription's own fetch
+    get.mockClear();
+
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(get).toHaveBeenCalledTimes(1);
+    await vi.advanceTimersByTimeAsync(2_000);
+    expect(get).toHaveBeenCalledTimes(2);
+  });
+
+  it('shares one in-flight request across ticks instead of stacking them', async () => {
+    let resolve!: (v: unknown) => void;
+    get.mockReturnValue(new Promise(r => { resolve = r; }));
+    subscribeLiveFast('/calls-live', () => undefined);
+    const first = fetchLive('/calls-live'); // warm the key so ticks force-refresh
+
+    await vi.advanceTimersByTimeAsync(2_000);
+    await vi.advanceTimersByTimeAsync(2_000); // tick while the request hangs
+    expect(get).toHaveBeenCalledTimes(1); // one request, shared by every tick
+
+    resolve({ data: { n: 1 } });
+    await first;
+  });
+
+  it('stops fast polling when only a slow subscriber remains on the same key', async () => {
+    get.mockReturnValue(ok({ n: 1 }));
+    subscribeLive('/shared', () => undefined);
+    const stop = subscribeLiveFast('/shared', () => undefined);
+    await vi.advanceTimersByTimeAsync(0);
+    get.mockClear();
+    stop();
+    await vi.advanceTimersByTimeAsync(FAST_POLL_MS * 2);
+    expect(get).not.toHaveBeenCalled();
+  });
+
+  it('stops polling a key once its page unmounts, and never polls other keys', async () => {
+    get.mockReturnValue(ok({ n: 1 }));
+    // An historical page visited earlier stays on the slow loop only.
+    subscribeLive('/history', () => undefined);
+    const stop = subscribeLiveFast('/now', () => undefined);
+    await vi.advanceTimersByTimeAsync(0);
+    get.mockClear();
+
+    stop();
+    await vi.advanceTimersByTimeAsync(10_000);
+    // Neither the unmounted fast key nor the slow-only key was hit by the fast
+    // loop; the slow loop is a separate 25 s cadence, untouched here.
+    expect(get).not.toHaveBeenCalled();
   });
 });

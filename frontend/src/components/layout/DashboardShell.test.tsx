@@ -177,3 +177,57 @@ describe('l’entête mobile en vignette', () => {
     expect(burger.className).toContain('relative');
   });
 });
+
+describe('la barre du bas — icônes seules, centrées', () => {
+  /* « Rendez-vous » débordait de la pastille quand l'onglet actif affichait
+     son nom. Désormais AUCUN onglet ne montre de libellé: la barre garde ses
+     cinq positions, l'icône est seule et centrée verticalement. Le nom reste
+     porté par `aria-label` (nom accessible du lien). */
+  function mountBar(pathname: string) {
+    return render(
+      <MemoryRouter initialEntries={[pathname]}>
+        <DashboardShell
+          primaryNav={[{ path: '/dashboard', icon: LayoutDashboard, label: 'Accueil' }]}
+          pageTitles={{}}
+          mobileNav={[
+            { path: '/dashboard', icon: LayoutDashboard, label: 'Accueil', exact: true },
+            { path: '/dashboard/bookings', icon: LayoutDashboard, label: 'Rendez-vous' },
+          ]}
+          scope="test"
+          userFallbackName="Client"
+          userFallbackInitials="CL"
+        />
+      </MemoryRouter>,
+    );
+  }
+
+  /* Le lien de la barre du bas, pas celui de la barre latérale (les deux
+     partagent le href dans jsdom, où `hidden md:flex` ne cache rien). */
+  const lien = (c: HTMLElement, href: string) => {
+    const links = [...c.querySelectorAll<HTMLElement>(`a[href="${href}"]`)];
+    const bar = links.find(l => l.className.includes('min-h-[52px]'));
+    expect(bar).toBeDefined();
+    return bar!;
+  };
+
+  it('ne rend aucun libellé visible, même sous l’onglet actif', () => {
+    const { container } = mountBar('/dashboard/bookings');
+    const actif = lien(container, '/dashboard/bookings');
+    // Seule l'icône (svg) habite le lien: aucun nœud texte, donc pas de
+    // débordement possible quel que soit le libellé.
+    expect(actif.textContent).toBe('');
+    expect(actif).toHaveAttribute('aria-label', 'Rendez-vous');
+    // L'onglet actif se reconnaît encore à sa couleur pleine.
+    expect(actif.style.color).toBe('rgb(255, 255, 255)');
+  });
+
+  it('centre verticalement l’icône de chaque onglet, actif ou non', () => {
+    const { container } = mountBar('/dashboard/bookings');
+    for (const href of ['/dashboard', '/dashboard/bookings']) {
+      const l = lien(container, href);
+      expect(l.className).toContain('items-center');
+      expect(l.className).toContain('justify-center');
+      expect(l.className).not.toContain('flex-col');
+    }
+  });
+});

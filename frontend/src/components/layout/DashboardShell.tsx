@@ -651,27 +651,17 @@ function MobileBottomNav({
               to={item.path}
               onClick={() => onTap?.()}
               aria-label={item.label}
-              className="relative z-10 flex-1 flex flex-col items-center justify-center gap-0.5 py-0.5 min-h-[52px] transition-transform active:scale-[0.97]"
+              className="relative z-10 flex-1 flex items-center justify-center min-h-[52px] transition-transform active:scale-[0.97]"
               style={{ color: active ? '#fff' : 'rgba(255,255,255,0.40)' }}
             >
-              {/* Icône seule pour tout le monde, le NOM seulement pour l'onglet
-                  actif (demande utilisateur, et c'est l'inverse d'avant).
-                  La place du nom est réservée sur les cinq onglets
-                  (`opacity-0`, pas de `hidden`): sans elle, l'icône de
-                  l'onglet actif remonterait de 7 px par rapport aux autres et
-                  la barre tressauterait à chaque changement de page.
-                  `aria-hidden` sur le texte: le nom du lien est déjà porté par
-                  `aria-label`, le répéter ferait dire deux fois la même chose
-                  au lecteur d'écran. */}
+              {/* Icône SEULE, sur les cinq onglets, active comprise. Le nom
+                 débordait de la pastille (« Rendez-vous ») quand l'onglet actif
+                 l'affichait; la place réservée qui évitait le tressautement
+                 n'est plus nécessaire puisque rien ne change de hauteur. Le
+                 libellé vit dans `aria-label`, le lien garde un nom accessible.
+                 La ligne est un centre unique: l'icône y est centrée en X ET
+                 en Y, quel que soit l'état actif. */}
               <item.icon className="relative z-10 w-[22px] h-[22px]" />
-              <span
-                aria-hidden="true"
-                className={`relative z-10 text-[9px] font-medium mt-0.5 transition-opacity duration-150 ${
-                  active ? 'opacity-100' : 'opacity-0'
-                }`}
-              >
-                {item.label}
-              </span>
             </Link>
           );
         })}

@@ -12,6 +12,10 @@ export interface CallerMemoryRecord {
   knownName: string | null; email: string | null; profileSummary: string | null;
   preferences: string[]; totalCalls: number; lastCallAt: Date | null;
   lastSummary: string | null; lastOutcome: string | null; isBlocked: boolean;
+  /* La source du nom servi ('analysis' | 'capture' | 'confirmed'), portée par
+     le spread de `callerMemoryView` : le GET /caller la transmet au worker. */
+  identitySource?: string | null;
+  identityResetAt?: string | null;
   facts?: unknown;
   openRequests?: Array<{ text: string; callbackWhen: string | null; forPerson: string | null }>;
   callbackNumber?: string | null;
@@ -33,7 +37,12 @@ async function readRows(db: Pick<Prisma.TransactionClient, 'callerMemory'>, clie
   const older = newer === legacy ? current : legacy;
   const facts = memoryEnvelope(newer.facts);
   const other = memoryEnvelope(older.facts);
+  facts.meta.identityResetAt = [facts.meta.identityResetAt, other.meta.identityResetAt].filter((v): v is string => !!v).sort().pop() ?? null;
   const strongest = (a: typeof facts.identity.name, b: typeof facts.identity.name) => {
+    if (facts.meta.identityResetAt) {
+      if (a && a.at <= facts.meta.identityResetAt) a = null;
+      if (b && b.at <= facts.meta.identityResetAt) b = null;
+    }
     if (!a) return b;
     if (!b) return a;
     const rank = { analysis: 0, capture: 1, confirmed: 2 };
@@ -54,7 +63,7 @@ class CallerMemoryService {
       const row = await readRows(prisma, clientId, callerNumber);
       if (!row) return null;
       const view = callerMemoryView(row);
-      return { ...row, ...view, facts: null, lastSummary: view.isBlocked ? null : memoryText(row.lastSummary, 400), lastOutcome: view.isBlocked ? null : row.lastOutcome };
+      return { ...row, ...view, facts: null, lastSummary: view.isBlocked || (view.identityResetAt && !view.profileSummary) ? null : memoryText(row.lastSummary, 400), lastOutcome: view.isBlocked ? null : row.lastOutcome };
     } catch {
       logger.warn('[CallerMemory] lookup unavailable');
       return null;
@@ -83,6 +92,8 @@ class CallerMemoryService {
         const existing = await readRows(tx, input.clientId, callerNumber);
         if (existing?.isBlocked) return;
         const facts = memoryEnvelope(existing?.facts);
+        // Delivery time must never promote a delayed event past a reset.
+        if (facts.meta.identityResetAt && (!input.occurredAt || at.getTime() <= Date.parse(facts.meta.identityResetAt))) return;
         const callId = memoryText(input.callId, 255);
         const duplicate = !!callId && facts.meta.completedCalls.includes(callId);
         const completed = input.phase !== 'capture';
@@ -97,6 +108,7 @@ class CallerMemoryService {
         const fresh = at.getTime() >= (existing?.lastCallAt?.getTime() ?? 0);
         const preferences = fresh ? this.mergePreferences(
           this.removePreferences(existing?.preferences ?? [], input.removePreferences ?? []), input.preferences ?? []) : existing?.preferences ?? [];
+        if (fresh && (input.preferences?.length || input.removePreferences?.length)) facts.meta.preferencesAt = at.toISOString();
         const summary = memoryText(input.summary, 400);
         const previous = memoryText(existing?.profileSummary, 400);
         const summaryFresh = at.getTime() >= (Date.parse(facts.meta.summaryAt ?? '') || existing?.lastCallAt?.getTime() || 0);

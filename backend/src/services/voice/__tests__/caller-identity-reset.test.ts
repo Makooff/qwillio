@@ -1,0 +1,22 @@
+import { beforeEach, expect, it, vi } from 'vitest';
+const m = vi.hoisted(() => ({ memory: vi.fn(), calls: vi.fn(), bookings: vi.fn() }));
+vi.mock('../../../config/database', () => ({ prisma: { callerMemory: { findFirst: m.memory }, clientCall: { findMany: m.calls }, clientBooking: { findMany: m.bookings } } }));
+vi.mock('../../../config/env', () => ({ env: { VOICE_CONTEXT_TTL_MS: 1000 } }));
+vi.mock('../../../config/logger', () => ({ logger: { warn: vi.fn(), info: vi.fn() } }));
+import { realtimeContextService as service } from '../realtime-context.service';
+import { memoryEnvelope } from '../caller-memory-policy';
+const cutoff = '2026-10-20T00:00:00.000Z';
+beforeEach(() => { vi.clearAllMocks(); service.resetLocal(); });
+it('actual history keeps booking context but never revives reset identity or summary', async () => {
+  const facts = memoryEnvelope(null); facts.meta.identityResetAt = cutoff;
+  m.memory.mockResolvedValue({ facts, knownName: null, totalCalls: 31, preferences: [], lastCallAt: new Date(cutoff) });
+  m.calls.mockResolvedValue([{ createdAt: new Date('2026-10-19'), summary: 'Dlforde wants mornings', callerName: 'Dlforde', nameCollected: 'Dlforde' }]);
+  m.bookings.mockResolvedValue([{ customerName: 'Dlforde', createdAt: new Date('2026-10-19'), bookingDate: new Date('2099-01-01'), bookingTime: '10:00', serviceType: 'test' }]);
+  expect(await service.getCallerHistory('tenant-a', '32483620980')).toMatchObject({ knownName: null, knownEmail: null, lastSummary: null, preferences: [], previousCalls: 31, hasUpcomingBooking: true, upcomingBookings: [{ name: 'Dlforde' }] });
+  m.memory.mockResolvedValue(null);
+  expect((await service.getCallerHistory('other-tenant', '32483620980')).knownName).toBe('Dlforde');
+  expect((await service.getCallerHistory('tenant-a', '32475123456')).knownName).toBe('Dlforde');
+  facts.identity.name = { value: 'Jean-Luc de la Forge', source: 'confirmed', at: '2026-10-21T00:00:00.000Z', callId: 'new' };
+  m.memory.mockResolvedValue({ facts }); service.resetLocal();
+  expect((await service.getCallerHistory('tenant-a', '32483620980')).knownName).toBe('Jean-Luc de la Forge');
+});

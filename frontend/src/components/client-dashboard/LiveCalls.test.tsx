@@ -96,4 +96,21 @@ describe('LiveCalls — stale vs vraie absence', () => {
     await avance(2000);
     expect(screen.getByText(/connection lost/i)).toBeInTheDocument();
   });
+
+  /* La carte « en cours » était violet vif (remplissage + contour #7349FE),
+     seule tache de cette teinte dans un thème sombre neutre. Elle porte
+     désormais les gris du thème, comme les autres cartes du portail. */
+  it('carte en cours aux teintes neutres, sans violet', async () => {
+    fetchLive.mockResolvedValueOnce({ data: [APPEL] });
+    const { container } = render(<LiveCalls lang="fr" />);
+    await avance(0);
+    const carte = screen.getByText('En cours').closest('div.rounded-2xl') as HTMLElement;
+    expect(carte).not.toBeNull();
+    expect(carte.className).not.toContain('7349FE');
+    expect(carte.className).not.toContain('7349fe');
+    expect(carte.className).toContain('border-white');
+    expect(carte.className).toContain('bg-white');
+    // Aucun descendant violet non plus (pointe de pulsation, étiquette IA).
+    expect(container.innerHTML).not.toContain('7349FE');
+  });
 });

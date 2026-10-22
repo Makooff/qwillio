@@ -1,4 +1,4 @@
-﻿import { useEffect, useState, useCallback, useMemo } from 'react';
+﻿import { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -9,7 +9,7 @@ import {
    qui sert la page depuis la mémoire pendant que l'animation joue. Les deux
    changements sont orthogonaux, on garde les deux. */
 } from '../../components/icons';
-import { fetchLive, peekLive, subscribeLive } from '../../services/liveData';
+import { fetchLive, peekLive, subscribeLive, subscribeLiveFast } from '../../services/liveData';
 import SentimentBadge from '../../components/client-dashboard/SentimentBadge';
 import SlideOver from '../../components/client-dashboard/SlideOver';
 import Pagination from '../../components/client-dashboard/Pagination';
@@ -48,7 +48,16 @@ interface Call {
      écran ne l'affichait: le site promettait « résumé, transcript et
      enregistrement », et le portail n'en montrait que deux sur trois. */
   transcript: string | null;
+  /* Exposé par la même réponse (la ligne est rendue entière). `id` peut être
+     un identifiant de remplacement posé par le backend pendant que l'appel
+     est en cours ; `vapiCallId` (salle LiveKit) est stable de bout en bout.
+     C'est lui qui identifie la ligne et la fiche: remplacer l'id serveur ne
+     ferme pas la fiche ouverte et ne fait pas « clignoter » la ligne. */
+  vapiCallId?: string | null;
 }
+
+/* Identité stable d'une ligne: la salle d'appel si connue, l'id sinon. */
+const rowKey = (call: Call): string => call.vapiCallId ?? call.id;
 
 interface Overview {
   calls?: { total: number; avgDuration: number };
@@ -124,7 +133,13 @@ export default function ClientCalls() {
 
   const [sortKey, setSortKey] = useState<SortKey>('createdAt');
   const [sortDir, setSortDir] = useState<SortDir>('desc');
-  const [selectedCall, setSelectedCall] = useState<Call | null>(null);
+  /* LA FICHE SUIT SA LIGNE. On ne stocke pas l'objet cliqué (une photographie
+     figée au moment du clic): on garde l'identifiant et on retrouve la ligne
+     dans la liste À JOUR. Quand l'appel en cours passe à « completed », la
+     boucle live réinjecte la page, et la fiche DÉJÀ OUVERTE révèle durée,
+     sentiment, résultat et résumé — sans la fermer ni actualiser à la main. */
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const selectedCall = selectedId ? calls.find(c => rowKey(c) === selectedId) ?? null : null;
 
   /* L'ADRESSE DE LA LISTE, calculée une fois pour toutes.
      Elle servait deux fois dans `fetchCalls` (lecture + cache), et elle sert
@@ -132,27 +147,33 @@ export default function ClientCalls() {
      sinon le rafraîchissement automatique écrirait dans un cache que personne
      ne lit et la liste resterait figée. La dériver ici rend la divergence
      impossible au lieu de la laisser à la vigilance. */
-  const listKey = `/my-dashboard/calls?${(() => {
-    const params = new URLSearchParams({ page: '1', limit: '20' });
+  const buildKey = (page: number) => `/my-dashboard/calls?${(() => {
+    const params = new URLSearchParams({ page: String(page), limit: '20' });
     if (sentimentFilter) params.set('sentiment', sentimentFilter);
     if (dateFrom) params.set('startDate', dateFrom);
     if (dateTo) params.set('endDate', dateTo);
     if (phoneParam) params.set('phone', phoneParam);
     return params;
   })()}`;
+  const listKey = buildKey(1);
 
-  const fetchCalls = useCallback(async (page = 1) => {
-    const params = new URLSearchParams({ page: String(page), limit: '20' });
-    if (sentimentFilter) params.set('sentiment', sentimentFilter);
-    if (dateFrom) params.set('startDate', dateFrom);
-    if (dateTo) params.set('endDate', dateTo);
-    if (phoneParam) params.set('phone', phoneParam);
-    /* La page 1 est la clé suivie par la boucle live ; les pages suivantes ont
-       leur propre adresse et ne sont pas rafraîchies en continu (on ne regarde
-       pas l'historique page 4 pendant qu'un appel sonne). `listKey` et ce calcul
-       donnent la même chaîne pour page 1 : c'est la même `URLSearchParams`
-       sérialisée dans le même ordre. */
-    const key = page === 1 ? listKey : `/my-dashboard/calls?${params}`;
+  /* LA PAGE AFFICHÉE. L'abonnement live doit suivre cette page-là: quand
+     l'utilisateur lit la page 2, un rafraîchissement de la page 1 (la clé que
+     la boucle de fond garde chaude) ne doit pas remplacer ce qu'il lit —
+     avant, `onUpdate` écrivait les données de la page 1 dans l'écran sans
+     se soucier de la page courante. */
+  const [page, setPage] = useState(1);
+  const activeKey = buildKey(page);
+  /* Le ref permet à une réponse qui arrive APRÈS un changement de filtre ou
+     de page de se regarder annuler: la requête partie pour l'ancienne clé se
+     termine, voit que ce n'est plus l'adresse affichée, et n'écrit rien.
+     Sans lui, un réseau lent remettait les anciens filtres à l'écran. */
+  const activeKeyRef = useRef(activeKey);
+  activeKeyRef.current = activeKey;
+
+  const fetchCalls = useCallback(async (p = 1) => {
+    setPage(p);
+    const key = buildKey(p);
     // Whatever is cached goes on screen first. Coming back to this tab with the
     // same filters should show the list, then quietly correct it — not blank it
     // and spin while the same answer comes back.
@@ -165,6 +186,11 @@ export default function ClientCalls() {
 
     try {
       const data = await fetchLive<{ data?: Call[]; pagination?: PaginationState }>(key);
+      // GARDE ANTI-STALE: entre l'envoi et la réponse, l'utilisateur a pu
+      // changer de page ou de filtre (donc de clé). Une réponse pour une
+      // adresse qui n'est plus affichée ne doit rien écrire — c'était la
+      // cause « les filtres semblent ne pas s'appliquer ».
+      if (activeKeyRef.current !== key) return;
       setCalls(data.data || []);
       setPagination(data.pagination || { total: 0, page: 1, limit: 20, totalPages: 0 });
     } catch {
@@ -174,23 +200,24 @@ export default function ClientCalls() {
     }
   }, [sentimentFilter, dateFrom, dateTo, phoneParam, listKey]);
 
-  /* LA LISTE SE MET À JOUR TOUTE SEULE, y compris pour un appel en cours.
-     La boucle live interroge déjà cette clé toutes les 25 s (elle est dans
-     CLIENT_KEYS), mais personne ne l'écoutait ici : la page chargeait une fois
-     à l'ouverture et ne bougeait plus. Le gérant voyait l'appel arriver au
-     tableau de bord et pas dans la liste, et devait actualiser à la main pour
-     voir son propre appel en cours.
+  /* LA LISTE SE MET À JOUR VITE, y compris pour un appel en cours.
+     L'abonnement RAPIDE (~2 s) ne couvre que la clé de la page AFFICHÉE et
+     pendant que la page est montée: l'utilisateur qui regarde un appel
+     vivant voit la fin de l'appel dans les deux secondes, pas après 25 s.
+     Les clés historiques (autres pages, autres filtres) restent sur la
+     cadence lente de la boucle de fond — aucune requête toutes les 2 s pour
+     une page qu'on ne regarde plus. À chaque tick, fetchLive partagé: une
+     requête en cours sert tout le monde, jamais deux requêtes empilées.
 
-     On s'abonne à `listKey`, la MÊME clé que celle qu'on lit, donc les filtres
-     suivent : changer de filtre change de clé, et l'abonnement suit le
-     changement sans qu'on ait à y penser. */
+     Les retours de focus/online restent gérés par la boucle de fond
+     (refreshAllLive), qui couvre cette clé aussi puisqu'elle est live. */
   useEffect(() => {
     const onUpdate = (fresh: { data?: Call[]; pagination?: PaginationState }) => {
       setCalls(fresh.data || []);
       if (fresh.pagination) setPagination(fresh.pagination);
     };
-    return subscribeLive<{ data?: Call[]; pagination?: PaginationState }>(listKey, onUpdate);
-  }, [listKey]);
+    return subscribeLiveFast<{ data?: Call[]; pagination?: PaginationState }>(activeKey, onUpdate);
+  }, [activeKey]);
 
   useEffect(() => { fetchCalls(1); }, [fetchCalls]);
 
@@ -465,14 +492,14 @@ export default function ClientCalls() {
           <div role="list" aria-label="Liste des appels">
             {sortedCalls.map((call, idx) => (
               <motion.div
-                key={call.id}
+                key={rowKey(call)}
                 role="listitem"
                 initial={{ opacity: 0, y: 6, x: 4 }}
                 animate={{ opacity: 1, y: 0, x: 0 }}
                 transition={{ delay: Math.min(idx * 0.02, 0.3), ease: [0.16, 1, 0.3, 1] }}
                 className="border-b border-white/[0.04] last:border-b-0 hover:bg-white/[0.02] cursor-pointer transition-colors group rounded-lg"
-                onClick={() => setSelectedCall(call)}
-                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedCall(call); }}
+                onClick={() => setSelectedId(rowKey(call))}
+                onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setSelectedId(rowKey(call)); }}
                 tabIndex={0}
                 aria-label={`Appel de ${call.callerName || call.callerNumber || 'Inconnu'}`}
               >
@@ -506,7 +533,7 @@ export default function ClientCalls() {
                   </div>
                   <span className="text-sm text-[#A1A1A8]">
                     {call.status === 'in-progress'
-                      ? <span className="text-[#A78BFA]">en direct</span>
+                      ? <span className="text-[#E8E8EC]">en direct</span>
                       : formatDuration(call.durationSeconds)}
                   </span>
                   <span className="flex items-center">
@@ -538,7 +565,7 @@ export default function ClientCalls() {
                       </p>
                       <p className="text-[11px] text-[#A1A1A8]">
                         {call.status === 'in-progress'
-                          ? <span className="text-[#A78BFA]">en direct</span>
+                          ? <span className="text-[#E8E8EC]">en direct</span>
                           : formatDuration(call.durationSeconds)}
                         {' · '}{formatDateTime(call.createdAt)}
                       </p>
@@ -572,7 +599,7 @@ export default function ClientCalls() {
           la fiche lead — un seul comportement clavier pour les deux. */}
       <AnimatePresence>
         {selectedCall && (
-          <SlideOver title="Détails de l'appel" onClose={() => setSelectedCall(null)}>
+          <SlideOver title="Détails de l'appel" onClose={() => setSelectedId(null)}>
             <div className="p-6 space-y-5">
                 <div className="flex items-center gap-4">
                   <div

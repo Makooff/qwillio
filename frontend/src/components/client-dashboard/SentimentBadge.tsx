@@ -31,11 +31,11 @@ export default function SentimentBadge({ sentiment, size = 'sm' }: SentimentBadg
   if (s === 'in-progress' || s === 'in_progress') {
     return (
       <span
-        className={`inline-flex items-center gap-1.5 rounded-full font-medium border border-[#7349FE]/30 bg-[#7349FE]/10 text-[#A78BFA] ${sizeClass}`}
+        className={`inline-flex items-center gap-1.5 rounded-full font-medium border border-white/[0.12] bg-white/[0.06] text-[#E8E8EC] ${sizeClass}`}
       >
         <span className="relative flex h-1.5 w-1.5" aria-hidden>
-          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#7349FE] opacity-75" />
-          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-[#7349FE]" />
+          <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-60" />
+          <span className="relative inline-flex h-1.5 w-1.5 rounded-full bg-white" />
         </span>
         En cours
       </span>

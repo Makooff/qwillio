@@ -38,9 +38,16 @@ export class ClientCallService {
    */
   private async knownCallerName(clientId: string, callerNumber: string | undefined, liveBookingId: string | null, liveLeadName: string | null = null): Promise<string | null> {
     try {
+      const memory = callerNumber ? await prisma.callerMemory.findUnique({
+        where: { clientId_callerNumber: { clientId, callerNumber: callerNumber.replace(/^\+/, '') } },
+        select: { knownName: true, facts: true, isBlocked: true },
+      }) : null;
+      const view = callerMemoryView(memory);
+      if (view.isBlocked) return null;
+      const eligible = (createdAt?: Date) => !view.identityResetAt || (!!createdAt && createdAt.toISOString() > view.identityResetAt);
       if (liveBookingId) {
-        const live = await prisma.clientBooking.findFirst({ where: { id: liveBookingId, clientId }, select: { customerName: true } });
-        if (live?.customerName?.trim()) return live.customerName.trim();
+        const live = await prisma.clientBooking.findFirst({ where: { id: liveBookingId, clientId }, select: { customerName: true, createdAt: true } });
+        if (eligible(live?.createdAt) && live?.customerName?.trim()) return live.customerName.trim();
       }
       /* Le nom dicté à l'agent pendant l'appel bat l'historique: l'appelant
          vient de LUI-MÊME corriger son nom. Un remplissage (« client ») ou un
@@ -51,14 +58,10 @@ export class ClientCallService {
       const booked = await prisma.clientBooking.findFirst({
         where: { clientId, customerPhone: callerNumber, status: 'confirmed' },
         orderBy: { updatedAt: 'desc' },
-        select: { customerName: true },
+        select: { customerName: true, createdAt: true },
       });
-      if (booked?.customerName?.trim()) return booked.customerName.trim();
-      const memory = await prisma.callerMemory.findUnique({
-        where: { clientId_callerNumber: { clientId, callerNumber } },
-        select: { knownName: true, facts: true, isBlocked: true },
-      });
-      return callerMemoryView(memory).knownName;
+      if (eligible(booked?.createdAt) && booked?.customerName?.trim()) return booked.customerName.trim();
+      return view.knownName;
     } catch (error) {
       logger.warn(`[ClientCall] nom connu illisible pour ${callerNumber ?? '?'}: ${(error as Error).message}`);
       return null;
@@ -80,7 +83,7 @@ export class ClientCallService {
        `undefined` reste `null` en base: un mode inventé serait un mode
        facturé. */
     voiceMode?: string | null,
-    extra: { liveBookingId?: string | null; liveCancelledBookingId?: string | null; liveLead?: unknown } = {},
+    extra: { liveBookingId?: string | null; liveCancelledBookingId?: string | null; liveLead?: unknown; completedAt?: Date } = {},
   ): Promise<{ rescuedLead: LeadForAlert | null }> {
     const client = await prisma.client.findUnique({ where: { id: clientId } });
     if (!client) {
@@ -89,10 +92,12 @@ export class ClientCallService {
     }
 
     // A persisted call is not proof that its internal completion steps committed.
+    // `ended` is the voice-core deterministic close: analysis has NOT run yet,
+    // so it must fall through to the create path like `in-progress`.
     const prior = await prisma.clientCall.findUnique({
-      where: { vapiCallId, clientId }, select: { id: true, status: true },
+      where: { vapiCallId, clientId }, select: { id: true, status: true, metadata: true },
     });
-    if (prior && prior.status !== 'in-progress') {
+    if (prior && prior.status !== 'in-progress' && prior.status !== 'ended') {
       return this.resumeClientCallCompletion(clientId, vapiCallId);
     }
 
@@ -174,64 +179,100 @@ export class ClientCallService {
       ? parseAnalysisDate(analysis.bookingDate, todayIso(businessTimezone(client)))
       : null;
 
-    // Create client call record
-    const clientCall = await prisma.clientCall.create({
-      data: {
-        clientId,
-        vapiCallId,
-        callerNumber: callerNumber || null,
-        callerName: analysis.callerName || null,
-        direction: 'inbound',
-        startedAt: new Date(Date.now() - duration * 1000),
-        endedAt: new Date(),
-        durationSeconds: duration,
-        status: 'completed',
-        voiceMode: voiceMode ?? null,
-        transcript,
-        metadata: (() => {
-          const learningEvidence = evidenceForAnalysis(analysis.learningBehaviour, {
-            tenant_id: client.id, niche: canonicalNiche(client.businessType),
-            country: canonicalCountry(client.country), language: client.agentLanguage,
-          });
-          return {
-            ...(learningEvidence ? { learningEvidence } : {}),
-            callerIdentityInherited: !!known && !liveLead?.name && !extra.liveBookingId,
-            completionLifecycle: {
-              version: 1, completed: false,
-              hasLiveLead: !!extra.liveLead, hasLiveBooking: !!extra.liveBookingId,
-              promise: { callbackPromised: analysis.callbackPromised === true,
-                callerName: analysis.callerName || null, emailCollected: analysis.emailCollected || null,
-                summary: analysis.summary || null, tags: analysis.tags || [] },
-            },
-          };
-        })(),
-        summary: analysis.summary,
-        sentiment: analysis.sentiment,
-        outcome: spam.isSpam ? 'spam' : analysis.outcome,
-        recordingUrl,
-        emailCollected: analysis.emailCollected || null,
-        nameCollected: analysis.callerName || null,
-        /* Le numéro pour RAPPELER l'appelant: celui qu'il a dicté pendant
-           l'appel (`captureLead`) quand il existe; sinon l'identité de la
-           ligne. `callerNumber` reste, lui, l'identité de transport. */
-        phoneCollected: liveLead?.phone ?? (callerNumber || null),
-        bookingRequested: analysis.bookingRequested,
-        bookingDate: bookingDay?.ok ? bookingDay.date : null,
-        bookingDetails: analysis.bookingDetails || null,
-        isLead: analysis.isLead,
-        leadScore: analysis.leadScore,
-        isSpam: spam.isSpam,
-        spamScore: spam.score,
-        spamReasons: spam.reasons,
-        tags: spam.isSpam ? ['spam', ...spam.reasons] : (analysis.tags || []),
-        /* L'échéance est posée MAINTENANT, pas recalculée à chaque purge
-           (LEG-4): sans elle, « jusqu'à quand gardez-vous cet appel » n'a pas
-           de réponse vérifiable, ce qui est précisément ce que la CNIL demande
-           de pouvoir montrer. Elle ne prolonge rien: la purge efface au premier
-           des deux termes échus, celui-ci ou le réglage courant. */
-        retainUntil: retainUntilFor(client.retentionDays),
-      },
-    });
+    /* La fiche écrite au décroché (même `vapiCallId`, statut
+       `in-progress`/`ended`) EST la fiche finale : on la convertit EN PLACE,
+       sans la supprimer. `upsert` sur `vapiCallId` : un appel dont le
+       placeholder a été fermé durablement avant l'analyse garde son id, son
+       historique live et ses métadonnées (recordingSid notamment) — l'ancien
+       delete-then-create faisait disparaître la fiche pendant l'analyse et
+       perdait l'appel si l'essai mourait entre les deux écritures. Un appel
+       sans placeholder (chemin Vapi) crée normalement. */
+    const nouvellesClesMetadata = (() => {
+      const learningEvidence = evidenceForAnalysis(analysis.learningBehaviour, {
+        tenant_id: client.id, niche: canonicalNiche(client.businessType),
+        country: canonicalCountry(client.country), language: client.agentLanguage,
+      });
+      return {
+        ...(learningEvidence ? { learningEvidence } : {}),
+        callerIdentityInherited: !!known && !liveLead?.name && !extra.liveBookingId,
+        completionLifecycle: {
+          version: 1, completed: false,
+          hasLiveLead: !!extra.liveLead, hasLiveBooking: !!extra.liveBookingId,
+          promise: { callbackPromised: analysis.callbackPromised === true,
+            callerName: analysis.callerName || null, emailCollected: analysis.emailCollected || null,
+            summary: analysis.summary || null, tags: analysis.tags || [] },
+        },
+      };
+    })();
+    const donneesAppel = {
+      callerNumber: callerNumber || null,
+      callerName: analysis.callerName || null,
+      startedAt: new Date((extra.completedAt?.getTime() ?? Date.now()) - duration * 1000),
+      endedAt: extra.completedAt ?? new Date(),
+      durationSeconds: duration,
+      status: 'completed',
+      voiceMode: voiceMode ?? null,
+      transcript,
+      metadata: nouvellesClesMetadata,
+      summary: analysis.summary,
+      sentiment: analysis.sentiment,
+      outcome: spam.isSpam ? 'spam' : analysis.outcome,
+      recordingUrl,
+      emailCollected: analysis.emailCollected || null,
+      nameCollected: analysis.callerName || null,
+      /* Le numéro pour RAPPELER l'appelant: celui qu'il a dicté pendant
+         l'appel (`captureLead`) quand il existe; sinon l'identité de la
+         ligne. `callerNumber` reste, lui, l'identité de transport. */
+      phoneCollected: liveLead?.phone ?? (callerNumber || null),
+      bookingRequested: analysis.bookingRequested,
+      bookingDate: bookingDay?.ok ? bookingDay.date : null,
+      bookingDetails: analysis.bookingDetails || null,
+      isLead: analysis.isLead,
+      leadScore: analysis.leadScore,
+      isSpam: spam.isSpam,
+      spamScore: spam.score,
+      spamReasons: spam.reasons,
+      tags: spam.isSpam ? ['spam', ...spam.reasons] : (analysis.tags || []),
+      /* L'échéance est posée MAINTENANT, pas recalculée à chaque purge
+         (LEG-4): sans elle, « jusqu'à quand gardez-vous cet appel » n'a pas
+         de réponse vérifiable, ce qui est précisément ce que la CNIL demande
+         de pouvoir montrer. Elle ne prolonge rien: la purge efface au premier
+         des deux termes échus, celui-ci ou le réglage courant. */
+      retainUntil: retainUntilFor(client.retentionDays),
+    };
+    const clientCall = await prisma.$transaction(async tx => {
+      const lock = `call-completion:${clientId}:${vapiCallId}`;
+      await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lock}, 0))::text AS locked`;
+      // Also exclude atomic JSON patches while reading/replacing metadata. The
+      // advisory lock alone only coordinates other completion transactions.
+      await tx.$queryRaw`SELECT id FROM client_calls
+        WHERE vapi_call_id = ${vapiCallId} AND client_id = ${clientId}::uuid FOR UPDATE`;
+      const current = await tx.clientCall.findUnique({
+        where: { vapiCallId, clientId }, select: { id: true, status: true, metadata: true },
+      });
+      // Both initial attempts may have analyzed, but only one owns persistence
+      // and downstream work. Never replace an already initialized journal.
+      if (current && current.status !== 'in-progress' && current.status !== 'ended') return null;
+      const metadata = (current?.metadata && typeof current.metadata === 'object' && !Array.isArray(current.metadata)
+        ? current.metadata : {}) as Record<string, unknown>;
+      const data = { ...donneesAppel, metadata: { ...metadata, ...nouvellesClesMetadata } };
+      // No row lock can protect an absent row. Use create-only here: if a
+      // delayed /calls/start inserts meanwhile, the unique conflict rolls this
+      // attempt back for retry rather than overwriting its fresh metadata.
+      if (!current) return tx.clientCall.create({
+        data: { clientId, vapiCallId, direction: 'inbound', ...data },
+      });
+      return tx.clientCall.upsert({
+        // A foreign tenant collision still fails the unique create, never updates.
+        where: { vapiCallId, clientId },
+        create: { clientId, vapiCallId, direction: 'inbound', ...data },
+        // Missing facts must not clear transport identity or recording fields.
+        update: Object.fromEntries(
+          Object.entries(data).map(([cle, valeur]) => [cle, valeur === null ? undefined : valeur]),
+        ) as Partial<typeof data>,
+      });
+    }, { timeout: 5000, maxWait: 2000 });
+    if (!clientCall) return this.resumeClientCallCompletion(clientId, vapiCallId);
 
     // Spam call: no booking, no SMS, no lead follow-up. Record the hit so the
     // number can be auto-blocklisted, notify, and stop here.
@@ -484,6 +525,9 @@ export class ClientCallService {
     return prisma.$transaction(async tx => {
       const lock = `call-completion:${clientId}:${vapiCallId}`;
       await tx.$queryRaw`SELECT pg_advisory_xact_lock(hashtextextended(${lock}, 0))::text AS locked`;
+      // Coordinate with current-value JSON patches as well as other resumes.
+      await tx.$queryRaw`SELECT id FROM client_calls
+        WHERE vapi_call_id = ${vapiCallId} AND client_id = ${clientId}::uuid FOR UPDATE`;
       const call = await tx.clientCall.findUnique({
         where: { clientId, vapiCallId },
         select: { id: true, metadata: true, callerNumber: true, isSpam: true, endedAt: true },

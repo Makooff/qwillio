@@ -137,12 +137,12 @@ export default function LiveCalls({ lang = 'fr' }: { lang?: 'fr' | 'en' }) {
       {appels.map(appel => (
         <div
           key={appel.id}
-          className="rounded-2xl border border-[#7349FE]/30 bg-[#7349FE]/[0.06] p-5"
+          className="rounded-2xl border border-white/[0.10] bg-white/[0.04] p-5"
         >
           <div className="flex items-center gap-3 mb-3">
             <span className="relative flex h-2.5 w-2.5" aria-hidden>
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#7349FE] opacity-60" />
-              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-[#7349FE]" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-white opacity-40" />
+              <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-white" />
             </span>
             <span className="text-[13px] font-semibold text-[#F2F2F2]">{t.enCours}</span>
             <span className="text-[13px] text-[#C8C8D0] tabular-nums">
@@ -162,7 +162,7 @@ export default function LiveCalls({ lang = 'fr' }: { lang?: 'fr' | 'en' }) {
             <div className="max-h-56 overflow-y-auto space-y-1.5 pr-1">
               {appel.lines.map((l, i) => (
                 <p key={i} className="text-[12px] leading-relaxed">
-                  <span className={l.role === 'user' ? 'text-[#9A9AA5]' : 'text-[#7349FE]'}>
+                  <span className={l.role === 'user' ? 'text-[#9A9AA5]' : 'text-[#E8E8EC]'}>
                     {l.role === 'user' ? t.appelant : t.ia}
                   </span>
                   <span className="text-[#C8C8D0]"> — {l.text}</span>

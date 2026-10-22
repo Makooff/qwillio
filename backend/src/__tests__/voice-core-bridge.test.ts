@@ -154,15 +154,25 @@ describe('la remontée d\'appel passe par le chemin existant', () => {
     expect(code).toMatch(/status: 'in-progress'/);
   });
 
-  it('efface le placeholder AVANT de laisser le service écrire', () => {
-    /* `handleClientCallCompleted` fait un `create`. Laisser le placeholder en
-       place le ferait échouer sur la contrainte d'unicité de `vapiCallId` —
-       sur CHAQUE appel, et seulement en production, puisqu'il faut un appel
-       réel pour qu'un placeholder existe. */
-    const efface = code.indexOf('clientCall.deleteMany');
-    const service = code.indexOf('clientCallService.handleClientCallCompleted(');
-    expect(efface).toBeGreaterThan(-1);
-    expect(efface).toBeLessThan(service);
+  it('conserve la fiche stable et persiste la fermeture avant le 202', () => {
+    // The real-service upsert behavior is covered in premium-lifecycle.test.ts;
+    // HTTP closure/retry behavior lives in voice-core-call-completion.test.ts.
+    const traitement = code.slice(code.indexOf('async function traiterAppelTermine('),
+      code.indexOf('let arretInbox:'));
+    expect(traitement).toContain('clientCallService.handleClientCallCompleted(');
+    expect(traitement).not.toMatch(/clientCall\.deleteMany\s*\(/);
+    const route = code.slice(code.indexOf("router.post('/calls',"),
+      code.indexOf("router.post('/bookings',"));
+    const fermeture = route.indexOf('await prisma.clientCall.updateMany(');
+    const accepte = route.indexOf('res.status(202).json({ room: salle, accepted: true })');
+    expect(fermeture).toBeGreaterThan(-1);
+    expect(accepte).toBeGreaterThan(fermeture);
+    const ecriture = route.slice(fermeture, accepte);
+    expect(ecriture).toContain("status: 'ended'");
+    expect(ecriture).toContain('endedAt: dateFinReelle(startedAt, durationSeconds) ?? new Date()');
+    expect(ecriture).toContain('durationSeconds:');
+    expect(ecriture).toContain("typeof transcript === 'string' ? { transcript } : {}");
+    expect(ecriture).toContain("clientId: String(clientId), status: 'in-progress'");
   });
 
   it('ne prend pas un appel en cours pour un doublon', () => {

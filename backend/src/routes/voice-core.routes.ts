@@ -199,7 +199,7 @@ router.post('/calls/start', async (req, res) => {
   try {
     const salle = String(room);
     const appel = await prisma.clientCall.upsert({
-      where: { vapiCallId: salle },
+      where: { vapiCallId: salle, clientId: String(clientId) },
       create: {
         clientId: String(clientId),
         vapiCallId: salle,
@@ -251,15 +251,17 @@ router.post('/calls/start', async (req, res) => {
              redemander à Twilio ce qu'on savait déjà — et pour qu'un appel
              dont la remontée se perd garde quand même la trace de son audio,
              seul moyen de le purger plus tard. */
-          await prisma.clientCall.update({
-            where: { id: appel.id },
-            data: {
-              metadata: {
-                ...((appel.metadata as Record<string, unknown> | null) ?? {}),
-                recordingSid: sid,
-              },
-            },
-          });
+          // Merge on the stored JSON, not the /start snapshot: completion may
+          // have committed its journal and metrics while Twilio was pending.
+          const patch = JSON.stringify({ recordingSid: sid });
+          const changed = await prisma.$executeRaw`
+            UPDATE client_calls
+            SET metadata = (CASE WHEN jsonb_typeof(metadata) = 'object'
+              THEN metadata ELSE '{}'::jsonb END) || ${patch}::jsonb
+            WHERE id = ${appel.id}::uuid AND client_id = ${String(clientId)}::uuid
+              AND vapi_call_id = ${salle}
+          `;
+          if (changed !== 1) throw new Error('Recording metadata: room ownership or row mismatch');
         } catch (e) {
           logger.error(`[voice-core] enregistrement non démarré pour ${salle}: ${(e as Error).message}`);
         }
@@ -320,10 +322,21 @@ const enCours = new Set<string>();
  * bail, peut toutefois répéter cet effet : aucune garantie exactly-once.
  * Les étapes idempotentes retournent à chaque essai.
  */
+// Retry time is not event time: old completions must stay behind identityResetAt.
+function dateFinReelle(startedAt: unknown, duration: unknown): Date | null {
+  if (typeof startedAt !== 'string' || !startedAt.trim()) return null;
+  const start = new Date(startedAt).getTime();
+  const seconds = Number(duration);
+  const end = start + Math.max(0, Math.trunc(seconds)) * 1000;
+  return Number.isFinite(start) && Number.isFinite(seconds) && Number.isFinite(end)
+    && end <= Date.now() ? new Date(end) : null;
+}
+
 async function traiterAppelTermine(payload: VoiceCompletionPayload): Promise<void> {
   const salle = payload.room;
   const clientId = payload.clientId;
   const { transcript, caller, twilioCallSid, startedAt, brain, trunkNumber, latency } = payload;
+  const finReelle = dateFinReelle(startedAt, payload.durationSeconds);
   const duree = Number.isFinite(Number(payload.durationSeconds))
     ? Math.max(0, Math.trunc(Number(payload.durationSeconds)))
     : 0;
@@ -335,8 +348,6 @@ async function traiterAppelTermine(payload: VoiceCompletionPayload): Promise<voi
      fiche d'appel, et le filet des promesses reconstruisait un second
      lead — deux lignes, deux alertes, pour un seul appelant. Relue à
      chaque essai : un lien manqué à l'essai précédent se rattrape. */
-  const captureLive = await getPendingCaptureForRoom(clientId, salle);
-
   const deja = await prisma.clientCall.findUnique({
     where: { vapiCallId: salle },
     select: { id: true, status: true, clientId: true },
@@ -344,18 +355,39 @@ async function traiterAppelTermine(payload: VoiceCompletionPayload): Promise<voi
   if (deja && deja.clientId !== clientId) throw new Error('Voice completion room tenant mismatch');
   /* Une fiche `in-progress` est le placeholder du décroché, PAS un appel
      déjà traité : la traiter comme un doublon sauterait transcript, résumé
-     et lead sur chaque appel. Tout autre statut, en revanche, signifie qu'un
-     essai précédent a déjà créé la fiche — on ne re-analyse pas. */
-  const dejaTraite = deja && deja.status !== 'in-progress';
-  if (!dejaTraite) {
-    /* Le placeholder s'efface juste avant que le service écrive la vraie
-       fiche. `handleClientCallCompleted` fait un `create`, pas un `upsert` —
-       le laisser en place le ferait échouer sur la contrainte d'unicité de
-       `vapiCallId`. La fenêtre est de quelques millisecondes et l'appel est
-       terminé : personne ne regarde cette ligne à cet instant. */
-    await prisma.clientCall.deleteMany({
+     et lead sur chaque appel. `ended`, c'est la fermeture déterministe
+     ci-dessous : la fiche a cessé d'être « en cours » mais l'analyse n'a
+     PAS encore tourné — ce n'est pas davantage un appel traité. Tout autre
+     statut signifie qu'un essai précédent a déjà créé la fiche — on ne
+     re-analyse pas. */
+  const dejaTraite = deja && deja.status !== 'in-progress' && deja.status !== 'ended';
+
+  /* LA FERMETURE DÉTERMINISTE, indépendante de l'analyse. Dès que la
+     remontée de fin est acceptée, la fiche « en cours » cesse de l'être AU
+     PREMIER ESSAI — avant la lecture de la capture, avant l'appel Twilio,
+     avant l'analyse GPT-4 qui met des secondes et peut échouer. Un appel
+     raccroché ne reste donc jamais « en cours » sur le tableau de bord parce
+     que l'analyse a dépassé un délai ou que la capture a levé : c'est le
+     statut `ended`, terminal côté direct (la route live ne lit que
+     `in-progress`), et la vraie fiche le remplace quelques lignes plus bas.
+     Rejouée à chaque essai : un placeholder recréé entre-temps par un
+     `/calls/start` retardataire est refermé, jamais laissé vivant. */
+  if (!dejaTraite && deja?.status === 'in-progress') {
+    await prisma.clientCall.updateMany({
       where: { vapiCallId: salle, clientId, status: 'in-progress' },
+      data: { status: 'ended', endedAt: finReelle ?? new Date() },
     });
+  }
+
+  const captureLive = await getPendingCaptureForRoom(clientId, salle);
+
+  if (!dejaTraite) {
+    /* PAS DE SUPPRESSION. La fiche placeholder (même id, écrite au
+       décroché) EST la fiche finale : le service la convertit en place via
+       `upsert` — `handleClientCallCompleted` partage ce contrat. L'ancien
+       delete-then-create faisait disparaître la fiche live pendant les
+       secondes de l'analyse et perdait l'appel si l'essai mourait ici.
+       La fenêtre de quelques millisecondes sans ligne n'existe plus. */
 
     /* L'ENREGISTREMENT, demandé à Twilio : seule la fin d'appel sait si le
        média s'est terminé. Une absence n'est PAS une anomalie — c'est
@@ -391,7 +423,7 @@ async function traiterAppelTermine(payload: VoiceCompletionPayload): Promise<voi
       /* Le lead durable lu plus haut : sa présence dit au filet des
          promesses qu'il n'a rien à rattraper, et ses faits priment sur ce
          que l'analyse du transcript a bien voulu en dire. */
-      { liveLead },
+      { liveLead, ...(finReelle ? { completedAt: finReelle } : {}) },
     );
   } else {
     // A completed row may precede a rolled-back counter/rescue transaction.
@@ -442,7 +474,7 @@ async function traiterAppelTermine(payload: VoiceCompletionPayload): Promise<voi
       callId: salle,
       phase: 'completed',
       identitySource: 'analysis',
-      occurredAt: fiche?.endedAt ?? undefined,
+      occurredAt: finReelle ?? fiche?.endedAt ?? undefined,
       name: (fiche?.metadata as Record<string, unknown> | null)?.callerIdentityInherited === true ? null : fiche?.nameCollected ?? null,
       email: fiche?.emailCollected ?? null,
       summary: fiche?.summary ?? null,
@@ -534,7 +566,26 @@ router.post('/calls', async (req, res) => {
     }
   }
 
+  /* LA FERMETURE DURABLE, AVANT LE 202. Transcript, durée et endedAt sont
+     écrits sur le placeholder MAINTENANT — pas après l'analyse, pas dans le
+     traitement asynchrone. Une fiche `ended` avec son transcript survit à un
+     crash du processus, reste visible en détail (la fiche n'est jamais
+     effacée, le service la convertit en place), et un `/calls/start`
+     retardataire ne peut pas la recréer en `in-progress` (l'upsert du
+     décroché ne touche qu'une ligne existante). `updateMany` borné au statut
+     `in-progress` : rejouée, elle ne réécrit rien. */
   try {
+    const dureeBrute = Number(durationSeconds);
+    await prisma.clientCall.updateMany({
+      where: { vapiCallId: salle, clientId: String(clientId), status: 'in-progress' },
+      data: {
+        status: 'ended',
+        endedAt: dateFinReelle(startedAt, durationSeconds) ?? new Date(),
+        durationSeconds: Number.isFinite(dureeBrute) ? Math.max(0, Math.trunc(dureeBrute)) : 0,
+        ...(typeof transcript === 'string' ? { transcript } : {}),
+      },
+    });
+
     if (enCours.has(salle)) return res.status(202).json({ room: salle, pending: true });
     enCours.add(salle);
     /* Le direct s'arrête ici : le transcript complet est dans la boîte, et
@@ -767,6 +818,27 @@ router.post('/bookings', async (req, res) => {
   /* Après la réponse. Rien ici ne doit pouvoir sortir : le handler a déjà
      répondu, et une exception non rattrapée tuerait le processus. */
   void (async () => {
+    /* Le nom relu et épelé par l'appelant PENDANT la réservation est la
+       meilleure preuve d'identité qui existe — mais UNIQUEMENT quand le
+       worker a transporté la preuve explicite (booléen + orthographe
+       cohérente). Sans elle, la réservation reste une simple écriture
+       d'agenda et n'écrit rien dans la mémoire d'appelant. */
+    const nomConfirme = orthographeConfirmee(
+      typeof name === 'string' && name.trim() ? name.trim() : null,
+      req.body?.nom_confirme, req.body?.orthographe);
+    if (nomConfirme && caller) {
+      try {
+        await callerMemoryService.remember({
+          clientId: String(clientId),
+          callerNumber: String(caller),
+          phase: 'capture',
+          identitySource: 'confirmed',
+          name: nomConfirme,
+        });
+      } catch (error) {
+        logger.warn(`[voice-core] mémoire de réservation confirmée non écrite: ${(error as Error).message}`);
+      }
+    }
     try {
       await toolRuntimeService.syncBookingToCalendar(String(clientId), cree.id);
     } catch (error) {
@@ -914,6 +986,10 @@ router.post('/leads', async (req, res) => {
       && !isPlaceholderName(name, [profil?.agentName ?? '', profil?.businessName ?? ''])
       ? name.trim().slice(0, 120)
       : null;
+    /* Calculé AVANT le contenu durable : la fiche de lead porte elle-même
+       l'orthographe confirmée quand la preuve tient, pour que le post-appel
+       n'ait jamais à la deviner ni à la dégrader. */
+    const epellee = orthographeConfirmee(nom, req.body?.nom_confirme, req.body?.orthographe);
 
     const contenu = {
       source: 'voice-core',
@@ -921,7 +997,7 @@ router.post('/leads', async (req, res) => {
       callerNumber: transport,
       capturedAt: captureAt.toISOString(),
       contact: {
-        name: nom,
+        name: epellee ?? nom,
         email: typeof email === 'string' && email.trim()
           ? email.trim().toLowerCase().slice(0, 255)
           : null,
@@ -950,6 +1026,9 @@ router.post('/leads', async (req, res) => {
 
     // Finish this best-effort write before acknowledging the capture: a caller
     // can hang up and ring back immediately. The durable lead already exists.
+    /* `confirmed` UNIQUEMENT sur preuve explicite (booléen + orthographe
+       cohérente) : toute autre capture reste `capture`, et rien d'autre ne
+       peut écrire la source `confirmed`. */
     if (transport) await callerMemoryService
       .remember({
         clientId: String(clientId),
@@ -957,9 +1036,9 @@ router.post('/leads', async (req, res) => {
         callbackNumber: telephone,
         callId: salle ?? undefined,
         phase: 'capture',
-        identitySource: 'capture',
+        identitySource: epellee ? 'confirmed' : 'capture',
         occurredAt: captureAt,
-        name: nom,
+        name: epellee ?? nom,
         email: contenu.contact.email,
         summary: contenu.reason || null,
         outcome: 'lead',
@@ -990,6 +1069,26 @@ interface EntreeVocal {
 }
 
 const UUID_RE = /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/;
+
+/**
+ * La PREUVE STRICTE d'une orthographe confirmée par l'appelant. Le worker
+ * (patch dédié, hors de ce dépôt) ne transporte aujourd'hui que le nom :
+ * cette exigence de deux champs cohérents — `nom_confirme === true` ET
+ * `orthographe` correspondant au nom dicté — empêche qu'une simple capture,
+ * une réservation ou une affirmation du modèle soit promue « confirmée ».
+ * Renvoie l'orthographe exacte quand la preuve tient, sinon `null`.
+ */
+export function orthographeConfirmee(
+  nomDicte: string | null,
+  nomConfirme: unknown,
+  orthographe: unknown,
+): string | null {
+  if (!nomDicte || nomConfirme !== true || typeof orthographe !== 'string') return null;
+  const epelle = orthographe.trim().slice(0, 120);
+  if (!epelle) return null;
+  const norm = (s: string) => s.toLowerCase().replace(/[\s\-'.]/g, '');
+  return norm(epelle) === norm(nomDicte) ? epelle : null;
+}
 
 /**
  * Les entrees du portail, au format que `voice-core` consomme.
@@ -1161,18 +1260,25 @@ router.get('/caller', async (req, res) => {
           status: 'confirmed',
           bookingDate: { gte: aujourd },
         },
-        select: { customerName: true },
+        select: { customerName: true, createdAt: true },
       }),
     ]);
 
     if (memoire?.isBlocked) {
-      return res.json({ appels: 0, nom: null, dernier_motif: null, rdv: false,
+      return res.json({ appels: 0, nom: null, nom_verifie: false, identitySource: null,
+        dernier_motif: null, rdv: false,
         preferences: [], email: null, profil: null, demandes: [],
         telephone_rappel: null, bloque: true });
     }
     return res.json({
       appels: Math.max(appels, memoire?.totalCalls ?? 0),
-      nom: memoire?.knownName || rdv?.customerName || null,
+      nom: memoire?.knownName || (memoire?.identityResetAt && (!rdv?.createdAt || rdv.createdAt.toISOString() <= memoire.identityResetAt) ? null : rdv?.customerName) || null,
+      /* Le nom relu et épelé par l'appelant (source `confirmed`) voyage avec
+         sa provenance : le worker sait s'il peut dire « bonjour Jean-Luc »
+         ou seulement « vous avez déjà appelé ». `nom_verifie` n'est vrai QUE
+         pour la source la plus fiable — jamais pour une simple analyse. */
+      nom_verifie: memoire?.identitySource === 'confirmed' && memoire?.knownName != null,
+      identitySource: memoire?.identitySource ?? null,
       dernier_motif: memoire?.lastSummary || null,
       rdv: Boolean(rdv),
       preferences: memoire?.preferences ?? [],

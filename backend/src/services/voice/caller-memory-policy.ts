@@ -11,7 +11,13 @@ export interface MemoryEnvelope {
   engagements: { openRequests: MemoryRequest[] };
   /** Le numéro de rappel dicté est un fait contact, jamais une clé d'écriture. */
   contact: { callbackNumber: MemoryFact | null };
-  meta: { lastCallId: string | null; completedCalls: string[]; preferencesAt: string | null; summaryAt: string | null; summaryCallId: string | null };
+  meta: { lastCallId: string | null; completedCalls: string[]; preferencesAt: string | null; summaryAt: string | null; summaryCallId: string | null;
+    /* Marqueur d'effacement de l'identité de test: tout fait capturé AVANT
+       cette borne n'est plus servi, même confirmé, et ne peut pas être
+       rafraîchi par un événement retardé arrivé après. Les appels et les
+       réservations ne sont pas touchés: seule la mémoire d'appelant porte
+       la borne. */
+    identityResetAt: string | null };
 }
 /** Un fait 'analysis' non confirmé périme: servir un nom d'il y a 6 mois fabule des erreurs. */
 export const MEMORY_FACT_TTL_DAYS = 90;
@@ -73,6 +79,7 @@ export function memoryEnvelope(value: unknown, now = new Date()): MemoryEnvelope
       completedCalls: Array.isArray(meta.completedCalls) ? [...new Set(meta.completedCalls.flatMap(v => memoryText(v, 255) ?? []))].slice(-128) : [],
       preferencesAt: memoryTimestamp(meta.preferencesAt, now), summaryAt: memoryTimestamp(meta.summaryAt, now),
       summaryCallId: memoryText(meta.summaryCallId, 255),
+      identityResetAt: memoryTimestamp(meta.identityResetAt, now),
     },
   };
 }
@@ -121,21 +128,24 @@ export function callerMemoryView(value: unknown, _now = new Date()) {
   const isBlocked = row.isBlocked === true;
   // Fait servi: null s'il n'existe pas OU s'il est périmé. Ne pas retomber
   // sur row.knownName dans ce dernier cas — c'en est la copie dénormalisée.
-  const nameFact = facts.identity.name;
+  const resetAt = facts.meta.identityResetAt;
+  const afterReset = (at: string | null | undefined) => !resetAt || (!!at && at > resetAt);
+  const nameFact = afterReset(facts.identity.name?.at) ? facts.identity.name : null;
   const servedName = isFactStale(nameFact, now) ? null : nameFact;
-  const emailFact = facts.identity.email;
+  const emailFact = afterReset(facts.identity.email?.at) ? facts.identity.email : null;
   const servedEmail = isFactStale(emailFact, now) ? null : emailFact;
-  const knownName = validMemoryName(servedName?.value ?? (rawIdentity.name == null ? row.knownName : null));
-  const email = validMemoryEmail(servedEmail?.value ?? (rawIdentity.email == null ? row.email : null));
-  const callbackFact = facts.contact.callbackNumber;
+  const knownName = validMemoryName(servedName?.value ?? (!resetAt && rawIdentity.name == null ? row.knownName : null));
+  const email = validMemoryEmail(servedEmail?.value ?? (!resetAt && rawIdentity.email == null ? row.email : null));
+  const callbackFact = afterReset(facts.contact.callbackNumber?.at) ? facts.contact.callbackNumber : null;
   const openRequests = facts.engagements.openRequests
-    .filter(r => !isRequestStale(r, now)).slice(0, 5)
+    .filter(r => afterReset(r.at) && !isRequestStale(r, now)).slice(0, 5)
     .map(({ text, callbackWhen, forPerson }) => ({ text, callbackWhen, forPerson }));
   return {
     knownName: isBlocked ? null : knownName,
     email: isBlocked ? null : email,
-    profileSummary: isBlocked ? null : memoryText(row.profileSummary ?? row.lastSummary, 600),
-    preferences: isBlocked ? [] : Array.isArray(row.preferences)
+    identityResetAt: resetAt,
+    profileSummary: isBlocked || !afterReset(facts.meta.summaryAt) ? null : memoryText(row.profileSummary ?? row.lastSummary, 600),
+    preferences: isBlocked || !afterReset(facts.meta.preferencesAt) ? [] : Array.isArray(row.preferences)
       ? row.preferences.slice(0, 100).flatMap(p => memoryText(p, 120) ?? []).slice(0, 6) : [],
     openRequests: isBlocked ? [] : openRequests,
     callbackNumber: isBlocked || isFactStale(callbackFact, now) ? null : callbackFact?.value ?? null,

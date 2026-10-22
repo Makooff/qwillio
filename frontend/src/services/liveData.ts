@@ -122,6 +122,56 @@ export function refreshAllLive(): void {
 }
 
 /**
+ * Keys polled on the fast loop (currently: the Call page the user is
+ * actually looking at). Everything else stays on POLL_MS — a historical
+ * page read for thirty seconds must not cost a request every two seconds.
+ */
+const fastKeys = new Map<string, number>();
+let fastLoop: ReturnType<typeof setInterval> | null = null;
+
+/** Fast cadence for the one visible, mounted list. 2 s: a call that just
+ *  ended shows its duration before the user has time to wonder. */
+export const FAST_POLL_MS = 2_000;
+
+function ensureFastLoop(): void {
+  if (fastLoop || typeof document === 'undefined') return;
+  fastLoop = setInterval(() => {
+    if (document.visibilityState !== 'visible') return;
+    for (const key of fastKeys.keys()) {
+      // fetchLive dedups: an in-flight request is shared, a completed one is
+      // force-refreshed. Two ticks never stack two requests for one key.
+      void fetchLive(key, { force: true }).catch(() => undefined);
+    }
+  }, FAST_POLL_MS);
+}
+
+/**
+ * Like subscribeLive, plus the key joins the ~2 s loop for as long as it has
+ * at least one fast subscriber and the page is mounted. Used by the Call
+ * page only: the user watching a live call sees it end within seconds, not
+ * after the 25 s background cadence.
+ */
+export function subscribeLiveFast<T = unknown>(key: string, onUpdate: (data: T) => void): () => void {
+  fastKeys.set(key, (fastKeys.get(key) ?? 0) + 1);
+  ensureFastLoop();
+  const unsubscribe = subscribeLive<T>(key, onUpdate);
+  let subscribed = true;
+  return () => {
+    if (!subscribed) return;
+    subscribed = false;
+    unsubscribe();
+    // Slow observers must never keep a fast subscription alive after unmount.
+    const remaining = (fastKeys.get(key) ?? 1) - 1;
+    if (remaining > 0) fastKeys.set(key, remaining);
+    else fastKeys.delete(key);
+    if (fastKeys.size === 0 && fastLoop) {
+      clearInterval(fastLoop);
+      fastLoop = null;
+    }
+  };
+}
+
+/**
  * Forget a key. Needed after a write: the settings page saves, and the copy the
  * dashboard is holding is wrong from that instant.
  */
@@ -160,5 +210,7 @@ export function startLiveLoop(): void {
 /** Test seam. */
 export function __resetLive(): void {
   store.clear();
+  fastKeys.clear();
   if (loop) { clearInterval(loop); loop = null; }
+  if (fastLoop) { clearInterval(fastLoop); fastLoop = null; }
 }
