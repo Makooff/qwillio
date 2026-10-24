@@ -62,7 +62,7 @@ export default function Modal({ open, onClose, title, subtitle, children, size =
         role="dialog"
         aria-modal="true"
         aria-labelledby={`${id}-title`}
-        className={`relative rounded-2xl w-full ${SIZES[size]} shadow-2xl flex flex-col max-h-[90vh] backdrop-blur-xl`}
+        className={`relative rounded-2xl w-full ${SIZES[size]} flex flex-col max-h-[90vh]`}
         style={{ background: t.panelSolid, border: `1px solid ${t.borderHi}` }}
       >
         {/* Header */}

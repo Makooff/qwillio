@@ -28,7 +28,7 @@ export default function ToastContainer({ toasts, remove }: Props) {
       {toasts.map(toast => (
         <div
           key={toast.id}
-          className="relative overflow-hidden rounded-xl shadow-2xl flex items-start gap-3 p-3.5 animate-fade-in backdrop-blur-xl"
+          className="relative overflow-hidden rounded-xl flex items-start gap-3 p-3.5 animate-fade-in"
           style={{ background: t.panelSolid, border: `1px solid ${t.borderHi}` }}
         >
           <div className="mt-0.5 flex-shrink-0">{ICONS[toast.type]}</div>

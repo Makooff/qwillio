@@ -63,7 +63,7 @@ export default function ConfirmDialog({
         aria-modal="true"
         aria-labelledby={`${id}-title`}
         aria-describedby={`${id}-message`}
-        className="relative rounded-2xl p-6 w-full max-w-sm shadow-2xl backdrop-blur-xl max-h-[calc(100dvh-32px)] overflow-y-auto"
+        className="relative rounded-2xl p-6 w-full max-w-sm max-h-[calc(100dvh-32px)] overflow-y-auto"
         style={{ background: t.panelSolid, border: `1px solid ${t.borderHi}` }}
       >
         <div className="w-10 h-10 rounded-xl flex items-center justify-center mb-4"
