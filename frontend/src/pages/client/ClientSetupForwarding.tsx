@@ -193,7 +193,7 @@ export default function ClientSetupForwarding() {
 
       {/* Step-by-step */}
       <div className="mb-6">
-        <p className="text-[11px] uppercase tracking-wider text-[#9A9AA5] mb-3">Étape par étape — {platform === 'android' ? 'Android' : 'iPhone'}</p>
+        <p className="text-[11px] uppercase tracking-wider text-[#9A9AA5] mb-3">Étape par étape : {platform === 'android' ? 'Android' : 'iPhone'}</p>
         <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] overflow-hidden">
           {steps.map((s, i) => (
             <motion.div key={i}

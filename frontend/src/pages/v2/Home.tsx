@@ -1269,8 +1269,8 @@ export default function Home() {
             <RevealV2 index={2} className="flex flex-col items-start gap-5 lg:items-end pb-2">
               <p className="text-q2-fog text-[15px] leading-relaxed max-w-[300px] lg:text-right q2-body-text">
                 {isFr
-                  ? '7 jours d’essai. En mensuel, sans engagement — résiliez en un clic.'
-                  : '7-day trial. No commitment on monthly — cancel in one click.'}
+                  ? '7 jours d’essai. En mensuel, sans engagement, résiliez en un clic.'
+                  : '7-day trial. No commitment on monthly, cancel in one click.'}
               </p>
               <PillLink to="/register" variant="chromatic" size="lg">
                 {isFr ? 'Mettre Qwillio en ligne' : 'Put Qwillio on the line'}

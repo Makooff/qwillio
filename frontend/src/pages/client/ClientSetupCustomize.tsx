@@ -177,7 +177,7 @@ export default function ClientSetupCustomize() {
       key: 'business',
       icon: Building2,
       title: 'Votre entreprise',
-      hint: 'Le nom et le type d\'activité — pour adapter le ton',
+      hint: 'Le nom et le type d\'activité, pour adapter le ton',
       isValid: () => !!businessName.trim(),
       render: () => (
         <div className="space-y-5">

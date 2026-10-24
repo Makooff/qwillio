@@ -153,8 +153,8 @@ export default function About() {
               </p>
               <p>
                 {isFr
-                  ? 'Les solutions existantes coûtaient trop cher — un réceptionniste humain coûte couramment plusieurs dizaines de milliers d\'euros par an une fois charges, congés et turnover compris — ou étaient trop primitives (répondeurs sans intelligence). Personne ne proposait l\'évidence : une IA vocale capable de tenir une vraie conversation, prendre un rendez-vous, et qualifier un lead.'
-                  : 'Existing solutions were either too expensive — a human receptionist commonly costs tens of thousands of euros a year once social charges, holidays and turnover are counted — or too primitive (dumb voicemail). Nobody offered the obvious: a voice AI that could hold a real conversation, book an appointment, and qualify a lead.'}
+                  ? 'Les solutions existantes coûtaient trop cher (un réceptionniste humain coûte couramment plusieurs dizaines de milliers d\'euros par an une fois charges, congés et turnover compris) ou étaient trop primitives (répondeurs sans intelligence). Personne ne proposait l\'évidence : une IA vocale capable de tenir une vraie conversation, prendre un rendez-vous, et qualifier un lead.'
+                  : 'Existing solutions were either too expensive (a human receptionist commonly costs tens of thousands of euros a year once social charges, holidays and turnover are counted) or too primitive (dumb voicemail). Nobody offered the obvious: a voice AI that could hold a real conversation, book an appointment, and qualify a lead.'}
               </p>
               <p>
                 {isFr

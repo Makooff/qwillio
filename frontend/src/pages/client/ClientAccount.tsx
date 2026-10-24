@@ -1547,7 +1547,7 @@ export default function ClientAccount() {
                to="/dashboard/billing" />
           <div style={{ borderTop: `1px solid ${C.border}` }} />
           <Row icon={Globe} label="Renvoi d'appel"
-               hint="iPhone ou Android — guide pas à pas"
+               hint="iPhone ou Android : guide pas à pas"
                to="/dashboard/setup/call-forwarding" />
         </Card>
       </section>

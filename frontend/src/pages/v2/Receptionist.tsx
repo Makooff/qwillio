@@ -637,8 +637,8 @@ export default function Receptionist() {
           <RevealV2 index={1} className="flex flex-col items-start gap-5 lg:items-end pb-2">
             <p className="text-q2-fog text-[15px] leading-relaxed max-w-[320px] lg:text-right q2-body-text">
               {isFr
-                ? '7 jours d’essai gratuit. En mensuel, sans engagement — annulez en un clic.'
-                : '7-day free trial. No commitment on monthly — cancel in one click.'}
+                ? '7 jours d’essai gratuit. En mensuel, sans engagement, annulez en un clic.'
+                : '7-day free trial. No commitment on monthly, cancel in one click.'}
             </p>
             <div className="flex flex-wrap gap-3 lg:justify-end">
               <PillLink to="/register" variant="chromatic" size="lg">
