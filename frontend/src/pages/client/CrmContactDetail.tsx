@@ -292,7 +292,7 @@ export default function CrmContactDetail() {
             <div className="rounded-2xl border border-[#7349fe]/20 bg-[#7349fe]/5 p-5">
               <div className="flex items-center gap-2 mb-2">
                 <Zap size={16} className="text-[#7349fe]" />
-                <span className="text-sm font-semibold text-[#7349fe]">Suggested Next Action</span>
+                <span className="text-sm font-semibold text-[#7349fe]">Prochaine action suggérée</span>
               </div>
               <p className="text-sm text-[#F5F5F7] leading-relaxed">{contact.suggestedAction}</p>
             </div>

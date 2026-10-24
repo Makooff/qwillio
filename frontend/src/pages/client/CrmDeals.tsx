@@ -526,10 +526,14 @@ export default function CrmDeals() {
       <AnimatePresence>
         {showAddModal && (
           <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4"
+            className="fixed inset-0 bg-black/60 z-50 flex items-center justify-center p-4"
             onClick={() => setShowAddModal(false)}>
-            <motion.div initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#141416] border border-white/[0.08] rounded-2xl shadow-2xl w-full max-w-md p-6"
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-label="Nouvelle affaire"
+              initial={{ scale: 0.95, opacity: 0 }} animate={{ scale: 1, opacity: 1 }} exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-[#141416] border border-white/[0.08] rounded-2xl w-full max-w-md p-6"
               onClick={e => e.stopPropagation()}>
               <div className="flex items-center justify-between mb-5">
                 <h2 className="text-lg font-semibold">Nouvelle affaire</h2>
