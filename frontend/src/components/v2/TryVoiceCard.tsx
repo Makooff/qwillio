@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { X } from '../icons';
 import VapiLiveCall from '../client/VapiLiveCall';
+import { apiBaseUrl } from '../../services/api';
 
 /* Essai en direct, en carte.
  *
@@ -42,8 +43,7 @@ interface Receptionniste {
   taglineEn: string;
 }
 
-/** Le même repli que partout ailleurs dans le portail. */
-const API_BASE = import.meta.env.VITE_API_URL || 'https://qwillio-eu.onrender.com';
+
 
 /* Un scénario différent à chaque ouverture.
  *
@@ -148,7 +148,7 @@ export default function TryVoiceCard({
 
   useEffect(() => {
     let vivant = true;
-    fetch(`${API_BASE}/api/public/characters`)
+    fetch(`${apiBaseUrl}/public/characters`)
       .then(r => (r.ok ? r.json() : Promise.reject(new Error(String(r.status)))))
       .then((liste: Receptionniste[]) => {
         if (!vivant || !Array.isArray(liste) || !liste.length) return;

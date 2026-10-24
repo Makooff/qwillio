@@ -19,7 +19,7 @@ import {
   type KpiCell, type AttnItem, type Tone, type Dir,
 } from '../components/dashboard/OverviewBlocks';
 
-const API = import.meta.env.VITE_API_URL || 'https://qwillio-eu.onrender.com';
+const API = (import.meta.env.VITE_API_URL || 'https://qwillio-eu.onrender.com').replace(/\/$/, '').replace(/\/api$/, '');
 
 function getHeaders(): Record<string, string> {
   const token = localStorage.getItem('token');
