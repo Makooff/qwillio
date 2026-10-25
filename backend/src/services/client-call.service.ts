@@ -36,7 +36,7 @@ export class ClientCallService {
    * dernière réservation de ce numéro, puis la mémoire d'appelant. `null` si
    * rien: le nom entendu par l'analyse reste alors le seul disponible.
    */
-  private async knownCallerName(clientId: string, callerNumber: string | undefined, liveBookingId: string | null, liveLeadName: string | null = null): Promise<string | null> {
+  private async knownCallerIdentity(clientId: string, callerNumber: string | undefined, liveBookingId: string | null, liveLeadName: string | null = null): Promise<{ name: string; inherited: boolean } | null> {
     try {
       const memory = callerNumber ? await prisma.callerMemory.findUnique({
         where: { clientId_callerNumber: { clientId, callerNumber: callerNumber.replace(/^\+/, '') } },
@@ -47,21 +47,21 @@ export class ClientCallService {
       const eligible = (createdAt?: Date) => !view.identityResetAt || (!!createdAt && createdAt.toISOString() > view.identityResetAt);
       if (liveBookingId) {
         const live = await prisma.clientBooking.findFirst({ where: { id: liveBookingId, clientId }, select: { customerName: true, createdAt: true } });
-        if (eligible(live?.createdAt) && live?.customerName?.trim()) return live.customerName.trim();
+        if (eligible(live?.createdAt) && live?.customerName?.trim()) return { name: live.customerName.trim(), inherited: false };
       }
       /* Le nom dicté à l'agent pendant l'appel bat l'historique: l'appelant
          vient de LUI-MÊME corriger son nom. Un remplissage (« client ») ou un
          titre ne compte pas comme un nom dicté. */
       const dictated = liveLeadName?.trim();
-      if (dictated && !isPlaceholderName(dictated)) return dictated;
+      if (dictated && !isPlaceholderName(dictated)) return { name: dictated, inherited: false };
       if (!callerNumber) return null;
       const booked = await prisma.clientBooking.findFirst({
         where: { clientId, customerPhone: callerNumber, status: 'confirmed' },
         orderBy: { updatedAt: 'desc' },
         select: { customerName: true, createdAt: true },
       });
-      if (eligible(booked?.createdAt) && booked?.customerName?.trim()) return booked.customerName.trim();
-      return view.knownName;
+      if (eligible(booked?.createdAt) && booked?.customerName?.trim()) return { name: booked.customerName.trim(), inherited: true };
+      return view.knownName ? { name: view.knownName, inherited: true } : null;
     } catch (error) {
       logger.warn(`[ClientCall] nom connu illisible pour ${callerNumber ?? '?'}: ${(error as Error).message}`);
       return null;
@@ -123,14 +123,16 @@ export class ClientCallService {
        second (13/09). Même source pour la fiche d'appel et le contact CRM.
        Il est lu AVANT l'analyse et lui est dit: sinon le résumé (« Jean Lucas
        a appelé pour… ») garde le nom entendu alors que la fiche porte le bon. */
-    const known = spam.isSpam ? null : await this.knownCallerName(clientId, callerNumber, extra.liveBookingId ?? null, liveLead?.name ?? null);
+    const identity = spam.isSpam ? null : await this.knownCallerIdentity(clientId, callerNumber, extra.liveBookingId ?? null, liveLead?.name ?? null);
+    const known = identity?.name ?? null;
 
     // A spam call skips the GPT-4 transcript analysis entirely (cost saver).
     // A real call gets the full treatment as before.
     const analysis = spam.isSpam
       ? this.emptyAnalysis()
-      : await this.analyzeClientCallTranscript(transcript, client, known);
-    if (known) analysis.callerName = known;
+      : await this.analyzeClientCallTranscript(transcript, client, known, identity?.inherited ?? false);
+    // History is context, not proof against an identity corrected on this call.
+    if (known && (!identity?.inherited || !analysis.callerName)) analysis.callerName = known;
 
     /* Les faits dictés survivent à l'analyse: le courriel capté prime sur
        celui lu (ou manqué) par le modèle, et la présence d'un lead capté
@@ -194,7 +196,7 @@ export class ClientCallService {
       });
       return {
         ...(learningEvidence ? { learningEvidence } : {}),
-        callerIdentityInherited: !!known && !liveLead?.name && !extra.liveBookingId,
+        callerIdentityInherited: identity?.inherited === true && analysis.callerName === known,
         completionLifecycle: {
           version: 1, completed: false,
           hasLiveLead: !!extra.liveLead, hasLiveBooking: !!extra.liveBookingId,
@@ -592,7 +594,7 @@ export class ClientCallService {
   // ═══════════════════════════════════════════════════════════
   // ANALYZE CLIENT CALL TRANSCRIPT - GPT-4 analysis
   // ═══════════════════════════════════════════════════════════
-  private async analyzeClientCallTranscript(transcript: string, client: any, knownName: string | null = null): Promise<ClientCallAnalysis> {
+  private async analyzeClientCallTranscript(transcript: string, client: any, knownName: string | null = null, inheritedName = false): Promise<ClientCallAnalysis> {
     /* AUJOURD'HUI, dans le fuseau de l'entreprise. Sans cette ligne le modèle
        lit « vendredi 18 septembre » dans le transcript et pose l'année qu'il
        veut: un compte réel portait une réservation datée 2023 pour une
@@ -612,7 +614,11 @@ export class ClientCallService {
        abouti, `knownCallerName` rend `null` et l'analyse est la SEULE source du
        nom. L'orthographe épelée est dans le transcript, personne ne lui disait
        de la préférer. */
-    const nameHint = knownName
+    // A historical record is only a hint; a current capture remains authoritative.
+    const historicalHint = knownName && inheritedName
+      ? `\n\nThe historical name for this phone number is "${knownName.replace(/["\n]/g, ' ').trim()}". It is NOT a name verified in this call. A self-identification or spelling/correction by the CALLER in this transcript takes precedence, including accents and final letters. Never truncate a newly spelled name to match history. Do not treat the assistant's unsupported guess as caller evidence. Use the historical name only if the caller gives no new name, and use the selected name consistently in callerName and summary.`
+      : '';
+    const nameHint = knownName && !inheritedName
       ? `\n\nThe caller's confirmed name is "${knownName.replace(/["\n]/g, ' ').trim()}" (verified against their booking or prior calls). Use exactly this name for callerName and in the summary, even if the transcript spells it differently.`
       : '';
     try {
@@ -633,7 +639,7 @@ Write every free-text field (summary, serviceType, specialRequests, unansweredQu
 
 Return a JSON object with:
 - ${BEHAVIOUR_ANALYSIS_INSTRUCTION}
-- callerName: caller's name if mentioned (string or null). If the caller SPELLS their family name letter by letter anywhere in the transcript, that spelling IS the name, even when it is shorter or different from the name heard earlier: the earlier mention is what the transcriber guessed, the spelling is what the caller actually said. Join the letters into one word ("B A R" or "BAR" -> "Bar").
+- callerName: caller's FULL name if mentioned (string or null): include their given name AND family name when both were provided in THIS call. Spelling a family name corrects that part only; retain the caller's given name stated earlier in the same call. Do not return only the corrected family name when the caller already gave their full name, and do not borrow a given name from a shared phone's history. If the caller SPELLS their family name letter by letter anywhere in the transcript, that spelling IS the name, even when it is shorter or different from the name heard earlier: the earlier mention is what the transcriber guessed, the spelling is what the caller actually said. Join the letters into one word ("B A R" or "BAR" -> "Bar"). Preserve spoken diacritics ("e accent aigu" -> "é") and final letters; do not shorten a spelling to match a historical record. This requires caller evidence, not an unsupported guess from the assistant.
 - emailCollected: email if the caller provided one (string or null)
 - sentiment: "positive", "neutral", or "negative"
 - outcome: "booking_made", "info_provided", "message_taken", "transferred", "complaint", "missed", or "other"
@@ -648,7 +654,7 @@ Return a JSON object with:
 - leadScore: lead quality score 1-10 (number)
 - tags: relevant tags like ["new_customer", "complaint", "urgent", "vip", "repeat_customer"] (string[])
 - callbackPromised: did the receptionist tell the caller that someone would call them back, get back to them, pass their request to the team, or otherwise follow up after the call? true only when a follow-up was actually promised out loud, false when the caller was fully served on the call. (boolean)
-- unansweredQuestions: questions the CALLER asked that the receptionist could not answer, each in the caller's own words, at most 3. Only genuine gaps in business knowledge (prices, hours, services, policies) — never a question the receptionist answered, and never something only the caller could know such as their own name or booking. Empty array when there is none. (string[])${nameHint}`,
+- unansweredQuestions: questions the CALLER asked that the receptionist could not answer, each in the caller's own words, at most 3. Only genuine gaps in business knowledge (prices, hours, services, policies) — never a question the receptionist answered, and never something only the caller could know such as their own name or booking. Empty array when there is none. (string[])${nameHint}${historicalHint}`,
             },
             {
               role: 'user',

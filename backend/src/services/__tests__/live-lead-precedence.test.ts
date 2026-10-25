@@ -70,7 +70,7 @@ describe('identity reset knownCallerName', () => {
   it('does not use pre-reset bookings, including a live booking id; accepts new explicit spelling', async () => {
     mocks.findMemory.mockResolvedValue({ facts: { version: 1, meta: { identityResetAt: '2026-10-20T00:00:00.000Z' } } });
     mocks.findBooking.mockResolvedValue({ customerName: 'Old', createdAt: new Date('2026-10-19') });
-    const known = (clientCallService as any).knownCallerName.bind(clientCallService);
+    const known = async (...args: unknown[]) => (await (clientCallService as any).knownCallerIdentity(...args))?.name ?? null;
     expect(await known('c1', '32483620980', 'old-booking')).toBeNull();
     expect(await known('c1', '32483620980', null, 'Jean-Luc de la Forge')).toBe('Jean-Luc de la Forge');
   });
@@ -169,6 +169,46 @@ describe('handleClientCallCompleted — les faits liveLead survivent à l\'analy
     expect(data.isLead).toBe(false);
   });
 
+  it('une ancienne réservation ne tronque pas le nom corrigé et accentué dans cet appel', async () => {
+    mocks.findBooking.mockResolvedValue({ customerName: 'Mathieu Poll', createdAt: new Date('2026-10-23') });
+    modelSays({
+      ...NO_ANALYSIS_FIELDS, callerName: 'Mathieu Pollé', isLead: true,
+      summary: 'Mathieu Pollé a appelé pour réserver une table.',
+    });
+    await clientCallService.handleClientCallCompleted(
+      'c1', 'vapi-1',
+      'User: Mathieu Paulé.\nAI: Pouvez-vous épeler votre nom de famille ?\nUser: P. O. L L accent aigu.\nAI: Je vous note ça, Mathieu Pollé.',
+      30, '+324****0000', undefined, null, {},
+    );
+    expect(persisted.call.callerName).toBe('Mathieu Pollé');
+    expect(persisted.call.nameCollected).toBe('Mathieu Pollé');
+    expect(persisted.call.summary).toContain('Mathieu Pollé');
+    expect(persisted.call.metadata.callerIdentityInherited).toBe(false);
+    expect(persisted.call.metadata.completionLifecycle.promise.callerName).toBe('Mathieu Pollé');
+    expect(mocks.crmCreateOrMerge.mock.calls[0][1].name).toBe('Mathieu Pollé');
+    const prompt = JSON.parse(fetchMock.mock.calls[0][1].body).messages[0].content;
+    expect(prompt).not.toContain('confirmed name is "Mathieu Poll"');
+    expect(prompt).toContain('historical name');
+  });
+
+  it('un nom historique reste un repli si aucun nom n’est extrait, sans devenir une nouvelle confirmation', async () => {
+    mocks.findBooking.mockResolvedValue({ customerName: 'Élodie D’Hoore', createdAt: new Date('2026-10-23') });
+    modelSays(NO_ANALYSIS_FIELDS);
+    await run({});
+    expect(persisted.call.callerName).toBe('Élodie D’Hoore');
+    expect(persisted.call.metadata.callerIdentityInherited).toBe(true);
+  });
+
+  it('un identifiant de réservation live invalide ne transforme pas l’historique en nom confirmé', async () => {
+    mocks.findBooking.mockResolvedValueOnce(null).mockResolvedValueOnce({ customerName: 'Mathieu Poll' });
+    modelSays({ ...NO_ANALYSIS_FIELDS, callerName: 'Mathieu Pollé' });
+    await run({ liveBookingId: 'missing-booking' });
+    expect(persisted.call.callerName).toBe('Mathieu Pollé');
+    expect(persisted.call.metadata.callerIdentityInherited).toBe(false);
+    const prompt = JSON.parse(fetchMock.mock.calls[0][1].body).messages[0].content;
+    expect(prompt).not.toContain('confirmed name is "Mathieu Poll"');
+  });
+
   it('un rejeu utilise sa date de fin réelle et non la date du traitement pour la mémoire', async () => {
     modelSays({ ...NO_ANALYSIS_FIELDS, callerName: null });
     const completedAt = new Date('2026-10-21T15:25:15.147Z');
@@ -228,7 +268,7 @@ describe('knownCallerName — le nom capté en direct bat la réservation histor
     for (const m of Object.values(mocks)) m.mockReset();
   });
 
-  const known = (...a: unknown[]) => (clientCallService as any).knownCallerName(...a) as Promise<string | null>;
+  const known = async (...a: unknown[]) => ((await (clientCallService as any).knownCallerIdentity(...a))?.name ?? null) as string | null;
 
   it('liveLead name > dernière réservation du numéro > mémoire', async () => {
     mocks.findBooking.mockResolvedValueOnce({ customerName: 'Vieille Orthographe' });

@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback } from 'react';
+﻿import { useState, useEffect, useCallback, useRef } from 'react';
 import { Link } from 'react-router-dom';
 import { useToast } from '../../hooks/useToast';
 import ToastContainer from '../../components/ui/Toast';
@@ -86,21 +86,35 @@ function Row({ icon: Icon, label, hint, badge, onClick, to, danger }: RowProps) 
 }
 
 interface ToggleProps {
-  checked: boolean;
+  checked: boolean | null;
+  label: string;
   onChange: (v: boolean) => void;
+  disabled?: boolean;
+  busy?: boolean;
+  status?: string;
 }
 
-function Toggle({ checked, onChange }: ToggleProps) {
+function Toggle({ checked, label, onChange, disabled, busy, status }: ToggleProps) {
   return (
-    <button
-      type="button"
-      onClick={() => onChange(!checked)}
-      className="relative w-[38px] h-[22px] rounded-full flex-shrink-0 transition-colors"
-      style={{ background: checked ? C.ok : 'rgba(255,255,255,0.10)' }}
-    >
-      <span className="absolute top-[2px] left-[2px] w-[18px] h-[18px] bg-white rounded-full shadow transition-transform"
-        style={{ transform: checked ? 'translateX(16px)' : 'translateX(0)' }} />
-    </button>
+    <div className="flex shrink-0 flex-col items-end gap-1 sm:flex-row sm:items-center sm:gap-3">
+      <span aria-live="polite" className="text-[12px] text-q2-mist">
+        {busy ? 'Enregistrement…' : status ?? (checked ? 'Activé' : 'Désactivé')}
+      </span>
+      <button
+        type="button"
+        role="switch"
+        aria-label={label}
+        aria-checked={checked === true}
+        aria-busy={busy || undefined}
+        disabled={disabled || busy || checked === null}
+        onClick={() => onChange(!checked)}
+        className="flex h-11 w-12 shrink-0 items-center justify-center rounded-full focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-q2-lift focus-visible:ring-offset-2 focus-visible:ring-offset-q2-carbon disabled:cursor-not-allowed disabled:opacity-50"
+      >
+        <span aria-hidden="true" className={`relative h-6 w-11 rounded-full border ${checked ? 'border-q2-mist bg-q2-mist' : 'border-q2-fog bg-q2-obsidian'}`}>
+          <span className={`absolute left-0.5 top-0.5 h-[18px] w-[18px] rounded-full ${checked ? 'translate-x-5 bg-q2-carbon' : 'bg-q2-fog'}`} />
+        </span>
+      </button>
+    </div>
   );
 }
 
@@ -235,6 +249,9 @@ export default function ClientAccount() {
   const [notifLeads, setNotifLeads] = useState(true);
   const [notifQuota, setNotifQuota] = useState(true);
   const [notifSms, setNotifSms] = useState(true);
+  const [notifSaving, setNotifSaving] = useState(false);
+  const [notifError, setNotifError] = useState('');
+  const notifInFlight = useRef(false);
 
   /**
    * L'entreprise et ses coordonnées.
@@ -260,16 +277,12 @@ export default function ClientAccount() {
      enverrait trente messages par jour au commerce qui reçoit trente appels. */
   const [leadAlert, setLeadAlert] = useState<'all' | 'urgent' | 'none'>('urgent');
   const [whatsappAvailable, setWhatsappAvailable] = useState(false);
-  /* L'ENREGISTREMENT DES APPELS, et c'est une OPTION que le client coche.
-     Elle etait acceptee en ecriture (`PUT /settings { recordCalls }`) depuis
-     toujours et n'etait affichee nulle part : le client ne pouvait la regler
-     qu'en ecrivant le JSON a la main. Or c'est elle qui decide de la phrase
-     « cet appel est enregistre » dite au decroche. Une option qu'on ne peut pas
-     cocher n'existe pas.
-     `true` par defaut, comme le moteur : ne rien avoir coche ne doit pas
-     eteindre un enregistrement sans que personne ne l'ait demande. */
-  const [recordCalls, setRecordCalls] = useState(true);
+  // Unknown until settings arrive: never present a local default as persisted.
+  const [recordCalls, setRecordCalls] = useState<boolean | null>(null);
   const [recordSaving, setRecordSaving] = useState(false);
+  const [recordError, setRecordError] = useState('');
+  const recordInFlight = useRef(false);
+  const [settingsError, setSettingsError] = useState('');
   const [businessName, setBusinessName] = useState('');
   const [businessType, setBusinessType] = useState('');
   const [contactPhone, setContactPhone] = useState('');
@@ -332,7 +345,6 @@ export default function ClientAccount() {
     try {
       const { data } = await api.get('/my-dashboard/retention');
       if (typeof data?.retentionDays === 'number') setRetentionDays(data.retentionDays);
-      if (typeof data?.recordCalls === 'boolean') setRecordCalls(data.recordCalls);
       if (typeof data?.defaultDays === 'number') setRetentionDefault(data.defaultDays);
       setRetentionIsDefault(data?.isDefault !== false);
     } catch {
@@ -433,20 +445,34 @@ export default function ClientAccount() {
     }
   };
 
-  /* Cocher ou decocher l'enregistrement. On revient a la valeur precedente en
-     cas d'echec: l'interrupteur ne doit pas afficher un etat que le serveur n'a
-     pas accepte, sinon le client croit avoir coupe un enregistrement qui tourne
-     toujours. `recordCalls` decide AUSSI de la phrase dite au decroche, donc un
-     affichage faux ferait mentir l'agent a l'appel suivant. */
-  const saveRecordCalls = async (valeur: boolean) => {
-    const precedent = recordCalls;
-    setRecordCalls(valeur);
+  const saveRecordCalls = async (value: boolean) => {
+    if (recordInFlight.current || recordCalls === null || !settingsLoaded) return;
+    const previous = recordCalls;
+    recordInFlight.current = true;
+    setRecordCalls(value);
     setRecordSaving(true);
+    setRecordError('');
+    let writeAccepted = false;
     try {
-      await api.put('/my-dashboard/settings', { recordCalls: valeur });
-    } catch {
-      setRecordCalls(precedent);
+      await api.put('/my-dashboard/settings', { recordCalls: value });
+      writeAccepted = true;
+      invalidateLive('/my-dashboard/');
+      // PUT only returns success. Read the effective server setting, not our intent.
+      const { data } = await api.get<{ recordCalls?: boolean }>('/my-dashboard/settings');
+      if (typeof data.recordCalls !== 'boolean') throw new Error('missing recording setting');
+      setRecordCalls(data.recordCalls);
+    } catch (e: unknown) {
+      const response = e && typeof e === 'object' && 'response' in e ? e.response : null;
+      const rejected = !writeAccepted && response && typeof response === 'object'
+        && 'status' in response && typeof response.status === 'number'
+        && response.status >= 400 && response.status < 500;
+      // A timeout or failed read-back may follow a committed write: state is unknown.
+      setRecordCalls(rejected ? previous : null);
+      setRecordError(kbMessage(e, rejected
+        ? "Le réglage d'enregistrement n'a pas pu être confirmé. Réessayez."
+        : "L'état d'enregistrement n'a pas pu être confirmé. Rechargez la page avant de réessayer."));
     } finally {
+      recordInFlight.current = false;
       setRecordSaving(false);
     }
   };
@@ -474,6 +500,8 @@ export default function ClientAccount() {
       if (data?.notificationChannel === 'whatsapp' || data?.notificationChannel === 'sms') {
         setNotificationChannel(data.notificationChannel);
       }
+      if (typeof data?.recordCalls === 'boolean') setRecordCalls(data.recordCalls);
+      else setRecordError("Le réglage d'enregistrement n'a pas pu être chargé. Rechargez la page.");
       setWhatsappAvailable(!!data?.whatsappAvailable);
       if (data?.agentLanguage) setAgentLanguage(data.agentLanguage);
       setBusinessName(data?.businessName || '');
@@ -485,7 +513,9 @@ export default function ClientAccount() {
       setVatNumber(data?.vatNumber || '');
       setSettingsLoaded(true);
       setReadOnly({ contactName: data?.contactName, contactEmail: data?.contactEmail, country: data?.country });
-    }).catch(() => { /* keep defaults */ });
+    }).catch(() => {
+      setSettingsError("Les paramètres n'ont pas pu être chargés. Rechargez la page pour réessayer.");
+    });
   }, []);
 
   /**
@@ -523,11 +553,39 @@ export default function ClientAccount() {
     }
   };
 
-  const saveNotifications = useCallback((vals: {
+  const saveNotifications = async (vals: {
     notifEmail: boolean; notifWeekly: boolean; notifLeads: boolean; notifQuota: boolean; notifSms: boolean;
   }) => {
-    api.put('/my-dashboard/notifications', vals).catch(() => { /* best-effort */ });
-  }, []);
+    if (notifInFlight.current || !settingsLoaded) return;
+    const previous = { notifEmail, notifWeekly, notifLeads, notifQuota, notifSms };
+    const apply = (values: typeof previous) => {
+      setNotifEmail(values.notifEmail);
+      setNotifWeekly(values.notifWeekly);
+      setNotifLeads(values.notifLeads);
+      setNotifQuota(values.notifQuota);
+      setNotifSms(values.notifSms);
+    };
+    notifInFlight.current = true;
+    setNotifSaving(true);
+    setNotifError('');
+    apply(vals);
+    try {
+      await api.put('/my-dashboard/notifications', vals);
+      invalidateLive('/my-dashboard/');
+      const { data } = await api.get<{ vapiConfig?: { notifications?: typeof previous } }>('/my-dashboard/settings');
+      const saved = data.vapiConfig?.notifications;
+      if (!saved || Object.keys(previous).some(key => typeof saved[key as keyof typeof previous] !== 'boolean')) {
+        throw new Error('missing notification settings');
+      }
+      apply(saved);
+    } catch (e: unknown) {
+      apply(previous);
+      setNotifError(kbMessage(e, "Les notifications n'ont pas pu être enregistrées. Réessayez."));
+    } finally {
+      notifInFlight.current = false;
+      setNotifSaving(false);
+    }
+  };
 
   const [open, setOpen] = useState<string | null>(null);
   const toggle = (k: string) => setOpen(o => (o === k ? null : k));
@@ -996,21 +1054,24 @@ export default function ClientAccount() {
                     </div>
                   </div>
                   {([
-                    { label: 'Notifications email',  desc: 'Évènements importants',   checked: notifEmail,  set: (v: boolean) => { setNotifEmail(v);  saveNotifications({ notifEmail: v, notifWeekly, notifLeads, notifQuota, notifSms }); } },
-                    { label: 'Notifications SMS',    desc: 'Alerte sur votre mobile', checked: notifSms,    set: (v: boolean) => { setNotifSms(v);    saveNotifications({ notifEmail, notifWeekly, notifLeads, notifQuota, notifSms: v }); } },
-                    { label: 'Rapport hebdomadaire', desc: 'Résumé chaque lundi',     checked: notifWeekly, set: (v: boolean) => { setNotifWeekly(v); saveNotifications({ notifEmail, notifWeekly: v, notifLeads, notifQuota, notifSms }); } },
-                    { label: 'Nouveaux leads',       desc: 'Alerte à chaque capture', checked: notifLeads,  set: (v: boolean) => { setNotifLeads(v);  saveNotifications({ notifEmail, notifWeekly, notifLeads: v, notifQuota, notifSms }); } },
-                    { label: 'Alertes quota',        desc: 'Seuil 80% et 100%',       checked: notifQuota,  set: (v: boolean) => { setNotifQuota(v);  saveNotifications({ notifEmail, notifWeekly, notifLeads, notifQuota: v, notifSms }); } },
+                    { label: 'Notifications email',  desc: 'Évènements importants',   checked: notifEmail,  set: (v: boolean) => { void saveNotifications({ notifEmail: v, notifWeekly, notifLeads, notifQuota, notifSms }); } },
+                    { label: 'Notifications SMS',    desc: 'Alerte sur votre mobile', checked: notifSms,    set: (v: boolean) => { void saveNotifications({ notifEmail, notifWeekly, notifLeads, notifQuota, notifSms: v }); } },
+                    { label: 'Rapport hebdomadaire', desc: 'Résumé chaque lundi',     checked: notifWeekly, set: (v: boolean) => { void saveNotifications({ notifEmail, notifWeekly: v, notifLeads, notifQuota, notifSms }); } },
+                    { label: 'Nouveaux leads',       desc: 'Alerte à chaque capture', checked: notifLeads,  set: (v: boolean) => { void saveNotifications({ notifEmail, notifWeekly, notifLeads: v, notifQuota, notifSms }); } },
+                    { label: 'Alertes quota',        desc: 'Seuil 80% et 100%',       checked: notifQuota,  set: (v: boolean) => { void saveNotifications({ notifEmail, notifWeekly, notifLeads, notifQuota: v, notifSms }); } },
                   ] as const).map((n, i, arr) => (
-                    <div key={i} className="flex items-center justify-between py-2.5"
+                    <div key={i} className="flex items-center justify-between gap-3 py-2.5"
                          style={{ borderBottom: i < arr.length - 1 ? `1px solid ${C.border}` : undefined }}>
-                      <div>
+                      <div className="min-w-0">
                         <p className="text-[13px] font-medium" style={{ color: C.text }}>{n.label}</p>
                         <p className="text-[11.5px]" style={{ color: C.textTer }}>{n.desc}</p>
                       </div>
-                      <Toggle checked={n.checked} onChange={n.set} />
+                      <Toggle label={n.label} checked={settingsLoaded ? n.checked : null} onChange={n.set}
+                        disabled={!settingsLoaded} busy={notifSaving}
+                        status={!settingsLoaded ? (settingsError ? 'Indisponible' : 'Chargement…') : undefined} />
                     </div>
                   ))}
+                  {notifError && <p role="alert" className="pt-2 text-[12px]" style={{ color: C.bad }}>{notifError}</p>}
                 </div>
               </motion.div>
             )}
@@ -1414,23 +1475,24 @@ export default function ClientAccount() {
             )}
           </AnimatePresence>
 
-          {/* ENREGISTREMENT DES APPELS. C'est une option du client, et c'est
-              elle qui decide de la phrase dite au decroche: `shouldRecord` sert
-              a la fois l'ecran, la notice et le demarrage reel, donc les trois
-              ne peuvent pas diverger. Desactive, l'enregistrement n'a jamais
-              lieu et « cet appel est enregistre » n'est plus prononce.
-              L'interrupteur reste utilisable meme si aucun enregistrement ne
-              peut aboutir pour l'instant (la ligne n'est pas encore sur un
-              trunk SIP): le reglage est celui du produit, l'infrastructure est
-              un autre sujet. */}
-          <Row
-            icon={ShieldCheck}
-            label="Enregistrement des appels"
-            hint={recordCalls ? "Activé, vos appels sont conservés" : "Désactivé, aucun appel n'est enregistré"}
-            onClick={() => { void saveRecordCalls(!recordCalls); }}
-          />
-          {recordSaving && (
-            <p className="text-[11.5px] px-5 pb-3" style={{ color: C.textTer }}>Enregistrement…</p>
+          {/* Le réglage autorise l'audio des prochains appels ; il ne certifie pas
+              qu'un enregistrement passé a été créé chez le fournisseur. */}
+          <div className="flex items-start gap-3.5 px-4 py-4">
+            <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-q2-obsidian">
+              <ShieldCheck size={14} aria-hidden="true" className="text-q2-mist" />
+            </div>
+            <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-medium text-q2-mist">Enregistrement des appels</p>
+              <p className="mt-1 text-[12px] leading-relaxed text-q2-fog">
+                Conserver l'audio des prochains appels. Une annonce informe l'appelant lorsque ce réglage est activé.
+              </p>
+            </div>
+            <Toggle label="Enregistrement des appels" checked={recordCalls} onChange={saveRecordCalls}
+              disabled={!settingsLoaded} busy={recordSaving}
+              status={recordCalls === null ? (settingsError || recordError ? 'Indisponible' : 'Chargement…') : undefined} />
+          </div>
+          {(settingsError || recordError) && (
+            <p role="alert" className="px-4 pb-4 text-[12px] text-red-400">{settingsError || recordError}</p>
           )}
 
           {/* CONSERVATION. La politique publiée annonçait 90 jours sans que rien

@@ -125,7 +125,7 @@ class DataRetentionService {
       //    ligne locale garde son URL et sera retentée demain.
       if (vapiBudget > 0) {
         const withRecordings = await prisma.clientCall.findMany({
-          where: { clientId: client.id, ...expired(cutoff, now), recordingUrl: { not: null }, vapiCallId: { not: null } },
+          where: { clientId: client.id, ...expired(cutoff, now), recordingUrl: { not: null } },
           select: { id: true, vapiCallId: true, recordingUrl: true },
           take: vapiBudget,
         });
@@ -145,9 +145,9 @@ class DataRetentionService {
         }
       }
 
-      // 2. Le contenu local sans audio distant: les lignes sans enregistrement,
-      //    et les URL orphelines (pas de vapiCallId, donc jamais supprimables
-      //    à distance — garder le lien pour toujours serait pire).
+      // 2. Le contenu local sans audio distant. Une URL Twilio est suffisante
+      //    pour supprimer l'audio, même sans vapiCallId : ne jamais l'effacer
+      //    ici comme « orpheline » sans confirmation distante.
       const purged = await prisma.clientCall.updateMany({
         where: {
           clientId: client.id,
@@ -164,7 +164,6 @@ class DataRetentionService {
                 { recordingUrl: null, nameCollected: { not: null } },
                 { recordingUrl: null, emailCollected: { not: null } },
                 { recordingUrl: null, summary: { not: null } },
-                { recordingUrl: { not: null }, vapiCallId: null },
               ],
             },
           ],
@@ -279,7 +278,8 @@ class DataRetentionService {
 
     for (const call of calls) {
       if (call.recordingUrl) {
-        await this.supprimerLAudio(call.recordingUrl, call.vapiCallId);
+        const deleted = await this.supprimerLAudio(call.recordingUrl, call.vapiCallId);
+        if (!deleted) throw new Error('Suppression audio distante incomplète, données conservées pour réessai.');
       }
     }
 
@@ -343,11 +343,12 @@ class DataRetentionService {
    * de toute purge future puisque plus rien ne pointerait dessus.
    *
    * L'URL tranche sans ambiguïté: une adresse `…twilio.com/…/Recordings/RE…`
-   * porte son SID, et c'est la seule chose dont Twilio a besoin.
+   * porte son SID ET sa région. Les transmettre ensemble évite de purger
+   * l'ancienne ressource US1 sur IE1 (un faux succès 404 laisserait l'audio).
    */
   private async supprimerLAudio(recordingUrl: string | null, vapiCallId: string | null): Promise<boolean> {
     const sidTwilio = sidDepuisUrl(recordingUrl);
-    if (sidTwilio) return twilioRecordingService.supprimer(sidTwilio);
+    if (sidTwilio) return twilioRecordingService.supprimer(sidTwilio, recordingUrl!);
     if (vapiCallId) return this.deleteVapiCall(vapiCallId);
     return false;
   }

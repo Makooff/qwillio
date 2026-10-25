@@ -28,26 +28,45 @@
  */
 import { env } from './env';
 
-export function twilioTrunkClient() {
-  if (!env.TWILIO_ACCOUNT_SID || !env.TWILIO_AUTH_TOKEN) {
-    throw new Error('TWILIO_ACCOUNT_SID / TWILIO_AUTH_TOKEN manquants.');
+/** Public API hosts only: a stored media URL must never choose an arbitrary
+ * destination for Basic auth. Regions are processing regions, not edge IDs. */
+const REGIONS = new Set(['us1', 'ie1', 'au1']);
+const EDGES = new Set(['ashburn', 'umatilla', 'dublin', 'frankfurt', 'singapore', 'tokyo', 'sydney', 'sao-paulo', 'roaming']);
+
+export function twilioApiLocation(region: string, edge: string): { region: string; edge: string; origin: string } {
+  if (region === 'us1' && !edge) {
+    return { region, edge: '', origin: 'https://api.us1.twilio.com' };
   }
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const twilio = require('twilio');
+  if (!region) {
+    return { region: '', edge: '', origin: 'https://api.twilio.com' };
+  }
+  if (!REGIONS.has(region) || !EDGES.has(edge)) {
+    throw new Error('Région / edge API Twilio non pris en charge.');
+  }
+  return { region, edge, origin: `https://api.${edge}.${region}.twilio.com` };
+}
 
-  const region = env.TWILIO_TRUNK_REGION.trim();
-  const edge = env.TWILIO_TRUNK_EDGE.trim();
-  const keySid = env.TWILIO_TRUNK_KEY_SID.trim();
-  const keySecret = env.TWILIO_TRUNK_KEY_SECRET.trim();
-
-  if (!region) return twilio(env.TWILIO_ACCOUNT_SID, env.TWILIO_AUTH_TOKEN);
+/** Shared by trunk control, call recording and media auth. No credential fallback
+ * across regions: an IE1 key is not a US1 account token (or an AU1 key). */
+export function twilioTrunkConnection(
+  region = env.TWILIO_TRUNK_REGION.trim(),
+  edge = env.TWILIO_TRUNK_EDGE.trim(),
+) {
+  if (!env.TWILIO_ACCOUNT_SID) throw new Error('TWILIO_ACCOUNT_SID manquant.');
+  if (!region || region === 'us1') {
+    if (!env.TWILIO_AUTH_TOKEN) throw new Error('TWILIO_AUTH_TOKEN manquant.');
+    return { ...twilioApiLocation(region, region ? edge : ''),
+      username: env.TWILIO_ACCOUNT_SID, password: env.TWILIO_AUTH_TOKEN };
+  }
 
   if (!edge) {
     throw new Error(
       `TWILIO_TRUNK_REGION=${region} sans TWILIO_TRUNK_EDGE: l'hote regional serait injoignable. ` +
-        'Poser TWILIO_TRUNK_EDGE (dublin pour ie1, sydney pour au1, frankfurt pour de1).',
+        'Poser TWILIO_TRUNK_EDGE (dublin pour ie1, sydney pour au1).',
     );
   }
+  const keySid = env.TWILIO_TRUNK_KEY_SID.trim();
+  const keySecret = env.TWILIO_TRUNK_KEY_SECRET.trim();
   if (!keySid || !keySecret) {
     throw new Error(
       `TWILIO_TRUNK_REGION=${region} sans cle API regionale: l'hote repondra 401 Authenticate. ` +
@@ -56,5 +75,16 @@ export function twilioTrunkClient() {
     );
   }
 
-  return twilio(keySid, keySecret, { accountSid: env.TWILIO_ACCOUNT_SID, region, edge });
+  return { ...twilioApiLocation(region, edge), username: keySid, password: keySecret };
+}
+
+export function twilioTrunkClient(region?: string, edge?: string) {
+  const connection = twilioTrunkConnection(region, edge);
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const twilio = require('twilio');
+  return twilio(connection.username, connection.password, {
+    accountSid: env.TWILIO_ACCOUNT_SID,
+    ...(connection.region ? { region: connection.region, edge: connection.edge } : {}),
+    autoRetry: false,
+  });
 }

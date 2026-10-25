@@ -14,8 +14,9 @@ const h = vi.hoisted(() => ({
   },
 }));
 
-vi.mock('../../../config/twilio-account', () => ({
-  twilioAccountClient: () => ({
+vi.mock('../../../config/twilio-trunk', async importOriginal => ({
+  ...await importOriginal<typeof import('../../../config/twilio-trunk')>(),
+  twilioTrunkClient: () => ({
     calls: () => ({ recordings: { create: h.recordingsCreate } }),
     recordings: Object.assign(
       (_sid: string) => ({ remove: h.recordingRemove }),
@@ -34,7 +35,8 @@ import { twilioRecordingService, sidDepuisUrl, enteteAuthTwilio } from '../twili
 
 const CA = 'CA' + 'a'.repeat(32);
 const RE = 'RE' + 'b'.repeat(32);
-const AC = 'AC' + 'c'.repeat(32);
+const AC = h.env.TWILIO_ACCOUNT_SID;
+const mediaUrl = `https://api.dublin.ie1.twilio.com/2010-04-01/Accounts/${AC}/Recordings/${RE}.mp3`;
 
 beforeEach(() => vi.clearAllMocks());
 
@@ -95,7 +97,7 @@ describe('delAppel — à la fin, et seulement si le média existe', () => {
     ]);
     await expect(twilioRecordingService.delAppel(CA)).resolves.toEqual({
       sid: RE,
-      url: `https://api.twilio.com/2010-04-01/Accounts/${AC}/Recordings/${RE}.mp3`,
+      url: `https://api.dublin.ie1.twilio.com/2010-04-01/Accounts/${AC}/Recordings/${RE}.mp3`,
     });
   });
 
@@ -115,36 +117,32 @@ describe('delAppel — à la fin, et seulement si le média existe', () => {
 describe('supprimer — la purge doit pouvoir se rejouer', () => {
   it('efface et confirme', async () => {
     h.recordingRemove.mockResolvedValue(undefined);
-    await expect(twilioRecordingService.supprimer(RE)).resolves.toBe(true);
+    await expect(twilioRecordingService.supprimer(RE, mediaUrl)).resolves.toBe(true);
   });
 
   it('traite un 404 comme un succès: l’audio n’existe plus, c’est le but', async () => {
     h.recordingRemove.mockRejectedValue(Object.assign(new Error('not found'), { status: 404 }));
-    await expect(twilioRecordingService.supprimer(RE)).resolves.toBe(true);
+    await expect(twilioRecordingService.supprimer(RE, mediaUrl)).resolves.toBe(true);
   });
 
   it('rend false sur un vrai refus, pour que la ligne garde son URL et soit retentée', async () => {
     h.recordingRemove.mockRejectedValue(Object.assign(new Error('nope'), { status: 500 }));
-    await expect(twilioRecordingService.supprimer(RE)).resolves.toBe(false);
+    await expect(twilioRecordingService.supprimer(RE, mediaUrl)).resolves.toBe(false);
   });
 });
 
-describe('enteteAuthTwilio — le portail lit un média privé', () => {
-  it('préfère les identifiants du COMPTE, comme twilioAccountClient', () => {
-    // A2: le média est servi par api.twilio.com, l'hôte du compte. C'est
-    // l'auth du compte qui y a droit; la clé régionale y répond 403, et le
-    // lecteur affichait un 502 que le gérant lisait comme « pas enregistré ».
-    const attendu = 'Basic ' + Buffer.from(`AC${'9'.repeat(32)}:jeton`).toString('base64');
-    expect(enteteAuthTwilio()).toBe(attendu);
+describe('enteteAuthTwilio — le portail lit un média privé dans sa région', () => {
+  it('utilise la clé régionale pour un média IE1', () => {
+    const attendu = 'Basic ' + Buffer.from(`${h.env.TWILIO_TRUNK_KEY_SID}:secret`).toString('base64');
+    expect(enteteAuthTwilio(mediaUrl)).toBe(attendu);
   });
 
-  it('repli sur la clé régionale seulement quand le compte n’est pas configuré', () => {
+  it('ne replie pas un média US1 sur une clé régionale', () => {
     const garder = { ...h.env };
-    h.env.TWILIO_ACCOUNT_SID = '';
     h.env.TWILIO_AUTH_TOKEN = '';
-    const attendu = 'Basic ' + Buffer.from(`SK${'1'.repeat(32)}:secret`).toString('base64');
-    expect(enteteAuthTwilio()).toBe(attendu);
-    Object.assign(h.env, garder);
+    try {
+      expect(enteteAuthTwilio(mediaUrl.replace('api.dublin.ie1.twilio.com', 'api.twilio.com'))).toBeNull();
+    } finally { Object.assign(h.env, garder); }
   });
 
   it('rend null quand AUCUN identifiant n’est configuré', () => {
@@ -153,14 +151,12 @@ describe('enteteAuthTwilio — le portail lit un média privé', () => {
     h.env.TWILIO_TRUNK_KEY_SECRET = '';
     h.env.TWILIO_ACCOUNT_SID = '';
     h.env.TWILIO_AUTH_TOKEN = '';
-    expect(enteteAuthTwilio()).toBeNull();
-    Object.assign(h.env, garder);
+    try {
+      expect(enteteAuthTwilio(mediaUrl)).toBeNull();
+    } finally { Object.assign(h.env, garder); }
   });
 
   it('rend un en-tête Basic, pas une URL signée', () => {
-    // Vapi signe ses adresses, Twilio non: c'est le compte qui ouvre la
-    // sienne. Sans cet en-tête le lecteur affiche un 502 et le gérant conclut
-    // que l'appel n'a pas été enregistré.
-    expect(enteteAuthTwilio()?.startsWith('Basic ')).toBe(true);
+    expect(enteteAuthTwilio(mediaUrl)?.startsWith('Basic ')).toBe(true);
   });
 });

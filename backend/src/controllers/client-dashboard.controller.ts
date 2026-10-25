@@ -23,7 +23,7 @@ import { clientMessage, type PhoneSetupState } from '../services/voice/phone-set
 import { wouldLoop, LOOP_MESSAGE } from '../services/voice/transfer-loop';
 import { vapiClient } from '../config/vapi';
 import { recordingCandidates } from '../services/voice/recording-urls';
-import { enteteAuthTwilio, sidDepuisUrl } from '../services/voice/twilio-recording.service';
+import { fetchMediaTwilio, sidDepuisUrl } from '../services/voice/twilio-recording.service';
 import { Readable } from 'stream';
 import { voiceModeFor } from '../services/voice/voice-tiers';
 import { lowestPlanFor, superagentAllowed } from '../config/plan-features';
@@ -445,16 +445,12 @@ export class ClientDashboardController {
       let why = '';
       let lastStatus = 0;
       for (const url of urls) {
-        /* UNE URL DE MÉDIA TWILIO EST PRIVÉE, et le dit par un 401 sec.
-           Vapi signe ses adresses, Twilio non: c'est le compte qui ouvre la
-           sienne, en Basic. Sans cet en-tête le lecteur affichait un 502 et
-           le gérant concluait que l'appel n'avait pas été enregistré. */
+        // Twilio auth follows the stored URL's region; CDN redirects never
+        // receive those credentials. Vapi signed URLs need no Basic auth.
         const entetes: Record<string, string> = range ? { Range: range } : {};
-        if (sidDepuisUrl(url)) {
-          const auth = enteteAuthTwilio();
-          if (auth) entetes.Authorization = auth;
-        }
-        const attempt = await fetch(url, { headers: entetes });
+        const attempt = sidDepuisUrl(url)
+          ? await fetchMediaTwilio(url, entetes)
+          : await fetch(url, { headers: entetes });
         if (attempt.ok) {
           upstream = attempt;
           break;

@@ -10,7 +10,7 @@ vi.mock('../../config/database', () => ({
 vi.mock('../../config/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
 
 const { clientCallService } = await import('../client-call.service');
-const known = (...a: unknown[]) => (clientCallService as any).knownCallerName(...a) as Promise<string | null>;
+const known = async (...a: unknown[]) => ((await (clientCallService as any).knownCallerIdentity(...a))?.name ?? null) as string | null;
 
 /* Appel réel du 13/09: la réservation dit « Jean-Luc de la forge » (relu,
    épelé), le transcript dit « Jean Lucas », et le portail affichait le second. */

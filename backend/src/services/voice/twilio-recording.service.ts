@@ -29,55 +29,72 @@
  */
 import { env } from '../../config/env';
 import { logger } from '../../config/logger';
-import { twilioAccountClient } from '../../config/twilio-account';
+import { twilioApiLocation, twilioTrunkClient, twilioTrunkConnection } from '../../config/twilio-trunk';
 
-/**
- * L'hôte qui SERT le média d'un enregistrement.
- *
- * ── IL SUIVAIT LA RÉGION DU TRUNK, ET C'ÉTAIT FAUX AUSSI ────────────────────
- *
- * Cette fonction rendait `https://api.dublin.ie1.twilio.com` dès que la région
- * du trunk était renseignée, en supposant qu'un enregistrement créé en Irlande
- * se relit en Irlande. C'est le même raisonnement que celui qui a fait échouer
- * le démarrage, et il mène au même 404.
- *
- * L'enregistrement est une ressource du COMPTE : il se crée et se relit sur
- * l'hôte par défaut. Twilio rend d'ailleurs un `uri` relatif, et le préfixer
- * par l'hôte du compte est ce que fait la documentation.
- *
- * Le garde-fou est conservé tel quel dans l'esprit : on ne compose PAS l'URL à
- * la main ailleurs, on passe par ici — c'est ce qui garantit que l'hôte qui
- * sert le média est celui qui a créé la ressource.
- */
-function hoteMedia(): string {
-  return 'https://api.twilio.com';
+/** Strictly parse an API recording URL before selecting credentials. The host
+ * must be a known public Twilio API location, never an arbitrary subdomain. */
+function recordingLocation(value: string | null | undefined) {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    if (url.protocol !== 'https:' || url.port || url.username || url.password || url.hash) return null;
+    const path = /^\/2010-04-01\/Accounts\/(AC[0-9a-f]{32})\/Recordings\/(RE[0-9a-f]{32})(?:\.(?:mp3|wav|json))?$/i.exec(url.pathname);
+    if (!path) return null;
+    let location;
+    if (url.hostname === 'api.twilio.com' || url.hostname === 'api.us1.twilio.com') {
+      location = twilioApiLocation('', '');
+    } else {
+      const host = /^api\.([a-z-]+)\.([a-z0-9]+)\.twilio\.com$/.exec(url.hostname);
+      if (!host) return null;
+      location = twilioApiLocation(host[2], host[1]);
+    }
+    return { ...location, accountSid: path[1], sid: path[2] };
+  } catch { return null; }
 }
 
-/**
- * Les identifiants qui ouvrent une URL de média, en Basic.
- *
- * A2: le média est servi par `api.twilio.com`, l'hôte du compte — c'est ce
- * que dit `hoteMedia()` et c'est ce que fait `twilioAccountClient`. L'auth
- * qui y a droit est donc celle du COMPTE (sid + token), exactement comme le
- * client qui crée et relit l'enregistrement. La clé API régionale reste en
- * repli pour une installation où le compte ne serait pas configuré: elle
- * répond 403 sur l'hôte du compte, et ce 403 se lisait au portail comme un
- * 502 « enregistrement indisponible ».
- */
-export function enteteAuthTwilio(): string | null {
-  if (env.TWILIO_ACCOUNT_SID && env.TWILIO_AUTH_TOKEN) {
-    return 'Basic ' + Buffer.from(`${env.TWILIO_ACCOUNT_SID}:${env.TWILIO_AUTH_TOKEN}`).toString('base64');
+function connectionForRecording(url: string) {
+  const location = recordingLocation(url);
+  if (!location || location.accountSid !== env.TWILIO_ACCOUNT_SID) {
+    throw new Error('URL d’enregistrement Twilio invalide ou compte différent.');
   }
-  const keySid = env.TWILIO_TRUNK_KEY_SID.trim();
-  const keySecret = env.TWILIO_TRUNK_KEY_SECRET.trim();
-  if (keySid && keySecret) {
-    return 'Basic ' + Buffer.from(`${keySid}:${keySecret}`).toString('base64');
+  // A stored IE1 URL may use another edge, but never another region's key.
+  if (location.region && location.region !== 'us1' && location.region !== env.TWILIO_TRUNK_REGION.trim()) {
+    throw new Error('Identifiants indisponibles pour la région de cet enregistrement.');
   }
-  return null;
+  return { ...location, ...twilioTrunkConnection(location.region, location.edge) };
 }
 
-/** Le motif d'une URL de média Twilio, qui sert aussi à la reconnaître à la purge. */
-const URL_TWILIO = /^https:\/\/api(?:\.[a-z0-9-]+)*\.twilio\.com\/2010-04-01\/Accounts\/AC[0-9a-f]{32}\/Recordings\/(RE[0-9a-f]{32})/i;
+/** The URL, not the current call region, selects media Basic auth. No URL means
+ * no authorization; missing IE1 credentials must never fall back to US1. */
+export function enteteAuthTwilio(url: string): string | null {
+  try {
+    const { username, password } = connectionForRecording(url);
+    return 'Basic ' + Buffer.from(`${username}:${password}`).toString('base64');
+  } catch { return null; }
+}
+
+/** Follow media redirects explicitly. Only the original validated API URL gets
+ * credentials; a storage/CDN redirect never receives Twilio Basic auth. */
+export async function fetchMediaTwilio(url: string, headers: Record<string, string> = {}): Promise<Response> {
+  const auth = enteteAuthTwilio(url);
+  if (!auth) throw new Error('Identifiants indisponibles pour cet enregistrement Twilio.');
+  const mediaHeaders = new Headers(headers);
+  mediaHeaders.delete('Authorization');
+  let target = url;
+  for (let redirects = 0; redirects <= 3; redirects++) {
+    const requestHeaders = new Headers(mediaHeaders);
+    if (redirects === 0) requestHeaders.set('Authorization', auth);
+    const response = await fetch(target, { headers: requestHeaders, redirect: 'manual' });
+    if (![301, 302, 303, 307, 308].includes(response.status)) return response;
+    const location = response.headers.get('location');
+    await response.body?.cancel();
+    if (!location) throw new Error('Redirection du média Twilio sans destination.');
+    const next = new URL(location, target);
+    if (next.protocol !== 'https:' || next.username || next.password) throw new Error('Redirection du média Twilio refusée.');
+    target = next.href;
+  }
+  throw new Error('Trop de redirections du média Twilio.');
+}
 
 export interface EnregistrementTwilio {
   /** Le `RE...` de Twilio. */
@@ -94,9 +111,7 @@ export interface EnregistrementTwilio {
  * stocker une colonne de plus.
  */
 export function sidDepuisUrl(url: string | null | undefined): string | null {
-  if (!url) return null;
-  const m = URL_TWILIO.exec(url);
-  return m ? m[1] : null;
+  return recordingLocation(url)?.sid ?? null;
 }
 
 class TwilioRecordingService {
@@ -115,7 +130,7 @@ class TwilioRecordingService {
       return null;
     }
     try {
-      const rec = await twilioAccountClient()
+      const rec = await twilioTrunkClient()
         .calls(callSid)
         .recordings.create({ recordingChannels: 'dual', trim: 'do-not-trim' });
       logger.info(`[Enregistrement] démarré ${rec.sid} sur l'appel ${callSid}`);
@@ -138,14 +153,17 @@ class TwilioRecordingService {
   async delAppel(callSid: string): Promise<EnregistrementTwilio | null> {
     if (!/^CA[0-9a-f]{32}$/i.test(callSid)) return null;
     try {
-      const recs = await twilioAccountClient().recordings.list({ callSid, limit: 5 });
+      const connection = twilioTrunkConnection();
+      const recs = await twilioTrunkClient(connection.region, connection.edge).recordings.list({ callSid, limit: 5 });
       const fini = recs.find((r: { status?: string }) => r.status === 'completed') ?? recs[0];
       if (!fini) return null;
       if (fini.status !== 'completed') {
         logger.warn(`[Enregistrement] ${fini.sid} encore en ${fini.status}, laissé de côté`);
         return null;
       }
-      return { sid: String(fini.sid), url: `${hoteMedia()}${fini.uri.replace(/\.json$/, '.mp3')}` };
+      const url = `${connection.origin}${fini.uri.replace(/\.json$/, '.mp3')}`;
+      if (connectionForRecording(url).sid !== String(fini.sid)) return null;
+      return { sid: String(fini.sid), url };
     } catch (error) {
       logger.error(`[Enregistrement] introuvable pour ${callSid}: ${(error as Error).message}`);
       return null;
@@ -159,10 +177,12 @@ class TwilioRecordingService {
    * compte est qu'à la sortie l'audio n'existe plus. Le traiter en échec
    * bloquerait la ligne locale sur un audio déjà parti, indéfiniment.
    */
-  async supprimer(recordingSid: string): Promise<boolean> {
+  async supprimer(recordingSid: string, recordingUrl: string): Promise<boolean> {
     if (!/^RE[0-9a-f]{32}$/i.test(recordingSid)) return false;
     try {
-      await twilioAccountClient().recordings(recordingSid).remove();
+      const connection = connectionForRecording(recordingUrl);
+      if (connection.sid !== recordingSid) return false;
+      await twilioTrunkClient(connection.region, connection.edge).recordings(recordingSid).remove();
       return true;
     } catch (error) {
       const e = error as { status?: number; message?: string };
