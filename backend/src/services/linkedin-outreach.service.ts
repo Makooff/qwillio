@@ -3,11 +3,11 @@ import { logger } from '../config/logger';
 import { env } from '../config/env';
 
 // ─── Apify actor names (adjust if needed) ───────────────────────────────────
-// Profile scraper: try "bebity/linkedin-profile-scraper" first, fallback noted below.
+// Profile search: "johnvc/linkedin-people-search-api", fallback noted below.
 // Connection sender: "curious_coder/linkedin-connection-sender"
 // If these actors are not available in your Apify account, store records as
 // "pending" and use PhantomBuster or Waalaxy to send the actual requests.
-const ACTOR_PROFILE_SCRAPER = 'bebity/linkedin-profile-scraper';
+const ACTOR_PROFILE_SCRAPER = 'johnvc/linkedin-people-search-api';
 const ACTOR_CONNECTION_SENDER = 'curious_coder/linkedin-connection-sender';
 
 // ─── Decision-maker title keywords (French) ─────────────────────────────────
@@ -177,47 +177,48 @@ export class LinkedInOutreachService {
   ): Promise<Profile[]> {
     try {
       type RawProfile = {
-        linkedInUrl?: string;
-        url?: string;
-        firstName?: string;
+        profileUrl?: string;
         fullName?: string;
-        name?: string;
         headline?: string;
-        title?: string;
-        companyName?: string;
-        company?: string;
+        currentTitle?: string;
+        currentCompany?: string;
+        resultType?: string;
       };
+
+      // The search takes a company name, so use the slug from /company/<slug>
+      const companySlug = companyLinkedInUrl.match(/\/company\/([^/?#]+)/)?.[1] ?? '';
 
       const items = await this._callApifyActor<object, RawProfile>(
         ACTOR_PROFILE_SCRAPER,
         {
-          startUrls: [{ url: companyLinkedInUrl }],
-          searchType: 'people',
-          cookie: env.LINKEDIN_COOKIES ? JSON.parse(env.LINKEDIN_COOKIES) : undefined,
+          company: companySlug.replace(/-/g, ' '),
+          enrichProfiles: false,
         },
       );
 
       const profiles: Profile[] = [];
 
       for (const item of items) {
-        const title = item.headline ?? item.title ?? '';
+        if (item.resultType === 'error') continue;
+
+        const title = item.headline ?? item.currentTitle ?? '';
         const isDecisionMaker = DECISION_MAKER_TITLES.some(kw =>
           title.toLowerCase().includes(kw.toLowerCase()),
         );
         if (!isDecisionMaker) continue;
 
-        const linkedinUrl = item.linkedInUrl ?? item.url ?? '';
+        const linkedinUrl = item.profileUrl ?? '';
         if (!linkedinUrl) continue;
 
-        const fullName = item.fullName ?? item.name ?? '';
-        const firstName = item.firstName ?? fullName.split(' ')[0] ?? 'vous';
+        const fullName = item.fullName ?? '';
+        const firstName = fullName.split(' ')[0] ?? 'vous';
 
         profiles.push({
           linkedinUrl,
           firstName,
           fullName,
           title,
-          companyName: item.companyName ?? item.company ?? '',
+          companyName: item.currentCompany ?? '',
         });
       }
 
@@ -275,42 +276,41 @@ export class LinkedInOutreachService {
         try {
           // Use profile scraper with company name + niche as search query
           type SearchResult = {
-            linkedInUrl?: string;
-            url?: string;
-            firstName?: string;
+            profileUrl?: string;
             fullName?: string;
-            name?: string;
             headline?: string;
-            title?: string;
-            companyName?: string;
+            currentCompany?: string;
+            resultType?: string;
           };
 
           const searchResults = await this._callApifyActor<object, SearchResult>(
             ACTOR_PROFILE_SCRAPER,
             {
-              searchQuery: `${prospect.businessName} ${NICHE_LABELS[niche] ?? niche}`,
-              country: 'FR',
-              cookie: env.LINKEDIN_COOKIES ? JSON.parse(env.LINKEDIN_COOKIES) : undefined,
+              keywords: `${prospect.businessName} ${NICHE_LABELS[niche] ?? niche}`,
+              location: 'France',
+              maxResults: 10,
+              enrichProfiles: false,
             },
           );
 
-          for (const item of searchResults.slice(0, 5)) {
+          const people = searchResults.filter(item => item.resultType !== 'error');
+          for (const item of people.slice(0, 5)) {
             const title = item.headline ?? '';
             const isDecisionMaker = DECISION_MAKER_TITLES.some(kw =>
               title.toLowerCase().includes(kw.toLowerCase()),
             );
             if (!isDecisionMaker) continue;
 
-            const linkedinUrl = item.linkedInUrl ?? item.url ?? '';
+            const linkedinUrl = item.profileUrl ?? '';
             if (!linkedinUrl) continue;
 
-            const fullName = item.fullName ?? item.name ?? '';
+            const fullName = item.fullName ?? '';
             profiles.push({
               linkedinUrl,
-              firstName: item.firstName ?? fullName.split(' ')[0] ?? 'vous',
+              firstName: fullName.split(' ')[0] ?? 'vous',
               fullName,
               title,
-              companyName: item.companyName ?? prospect.businessName,
+              companyName: item.currentCompany ?? prospect.businessName,
             });
           }
         } catch (err) {
