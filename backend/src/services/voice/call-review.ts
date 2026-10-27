@@ -22,7 +22,7 @@ export async function reviewCall(apiKey: string, transcript: string, scope: Lear
     body: JSON.stringify({
       model,
       messages: [
-        { role: 'system', content: `${ANALYSIS_SYSTEM_PROMPT}\nReturn both patterns and ${BEHAVIOUR_ANALYSIS_INSTRUCTION}` },
+        { role: 'system', content: `${ANALYSIS_SYSTEM_PROMPT}\nReturn both patterns and ${BEHAVIOUR_ANALYSIS_INSTRUCTION}\nContrat numérique strict pour les patterns : tout groupe de chiffres dans title ou summary doit être recopié à l'identique depuis quote. Ne convertis jamais un nombre écrit en lettres en chiffres. Préfère des formulations sans chiffres dans title et summary ; garde les détails exacts dans la citation verbatim. Ne crée aucun chiffre ni aucune citation pour satisfaire ce contrat.` },
         { role: 'user', content: JSON.stringify({ scope, context, transcript }) },
       ],
       ...(/^(gpt-[56](?:[.-]|$)|o[1-9](?:[.-]|$))/i.test(model) ? {} : { temperature: 0.1 }),
