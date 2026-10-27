@@ -21,6 +21,8 @@ interface WebsiteSignals {
   painPoints?: string[];
 }
 
+const SALES_SCRIPT_VERSION = 'founder-discovery-v2';
+
 const FRENCH_COUNTRIES = ['FR', 'BE', 'LU', 'MC', 'CH'];
 
 function isFrench(country?: string | null): boolean {
@@ -132,7 +134,7 @@ export const prospectWorkbenchService = {
     const prospect = await prisma.prospect.findUnique({ where: { id: prospectId } });
     if (!prospect) return null;
 
-    if (!refresh && prospect.salesScript) {
+    if (!refresh && prospect.salesScript && (prospect.salesScript as any).version === SALES_SCRIPT_VERSION) {
       return { script: prospect.salesScript as unknown as GeneratedScript, cached: true };
     }
 
@@ -157,7 +159,8 @@ export const prospectWorkbenchService = {
       language: fr ? 'fr' : 'en',
     };
 
-    const script = await aiScriptGeneratorService.generateScript(ctx);
+    const generated = await aiScriptGeneratorService.generateScript(ctx);
+    const script = { ...generated, version: SALES_SCRIPT_VERSION };
 
     await prisma.prospect.update({
       where: { id: prospectId },
