@@ -32,11 +32,11 @@ beforeEach(() => {
 });
 afterEach(() => { vi.restoreAllMocks(); Object.assign(env, original); });
 
-async function callStart(recordCalls: boolean, twilioCallSid: string | null = CA) {
+async function callStart(recordCalls: boolean, twilioCallSid: string | null = CA, caller = '+32475123456') {
   h.getClientProfile.mockResolvedValue({ recordCalls });
   const res: any = {};
   res.status = vi.fn(() => res); res.json = vi.fn(() => res);
-  await start({ body: { clientId: 'tenant', room: 'livekit-room', twilioCallSid } }, res);
+  await start({ body: { clientId: 'tenant', room: 'livekit-room', caller, trunkNumber: '+32470006690', twilioCallSid } }, res);
   await new Promise(resolve => setImmediate(resolve));
   return res;
 }
@@ -58,8 +58,28 @@ describe('real /calls/start handler + shouldRecord + recording service + Twilio 
     }));
     expect(h.executeRaw).toHaveBeenCalledWith(expect.anything(), JSON.stringify({ recordingSid: RE }), 'call', 'tenant', 'livekit-room');
   });
-  it('does not attempt recording without a call SID', async () => {
+  /* LiveKit ne remplit `sip.twilio.callSid` que s'il reconnaît le trunk comme
+     Twilio. Quand l'attribut manque, le pont envoie `twilioCallSid: null` —
+     avant ce correctif l'enregistrement n'existait alors tout simplement pas,
+     alors que le prompt annonçait « cet appel est enregistré ». */
+  it('sans SID du pont, retrouve l’appel en cours chez Twilio et démarre quand même', async () => {
+    transport.mockResolvedValueOnce({ statusCode: 200, headers: {}, body: JSON.stringify({ calls: [{
+      sid: CA, to: 'sip:+32470006690@livekit', status: 'in-progress', date_created: new Date().toUTCString(),
+    }] }) });
     await callStart(true, null);
-    expect(transport).not.toHaveBeenCalled();
+    expect(transport).toHaveBeenNthCalledWith(1, expect.objectContaining({
+      method: 'get', uri: expect.stringContaining('/Calls.json'),
+      params: expect.objectContaining({ Status: 'in-progress', From: '+32475123456' }),
+    }));
+    expect(transport).toHaveBeenNthCalledWith(2, expect.objectContaining({
+      method: 'post', uri: expect.stringContaining(`${CA}/Recordings`),
+    }));
+    expect(h.executeRaw).toHaveBeenCalledWith(expect.anything(), JSON.stringify({ recordingSid: RE }), 'call', 'tenant', 'livekit-room');
+  });
+  it('sans SID et sans appel en cours, n’invente pas d’enregistrement', async () => {
+    transport.mockResolvedValueOnce({ statusCode: 200, headers: {}, body: JSON.stringify({ calls: [] }) });
+    await callStart(true, null);
+    expect(transport).toHaveBeenCalledTimes(1);
+    expect(h.executeRaw).not.toHaveBeenCalled();
   });
 });

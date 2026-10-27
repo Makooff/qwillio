@@ -4,6 +4,8 @@ const h = vi.hoisted(() => ({
   recordingsCreate: vi.fn(),
   recordingsList: vi.fn(),
   recordingRemove: vi.fn(),
+  recordingFetch: vi.fn(),
+  callsList: vi.fn(),
   env: {
     TWILIO_TRUNK_REGION: 'ie1',
     TWILIO_TRUNK_EDGE: 'dublin',
@@ -17,9 +19,12 @@ const h = vi.hoisted(() => ({
 vi.mock('../../../config/twilio-trunk', async importOriginal => ({
   ...await importOriginal<typeof import('../../../config/twilio-trunk')>(),
   twilioTrunkClient: () => ({
-    calls: () => ({ recordings: { create: h.recordingsCreate } }),
+    calls: Object.assign(
+      (_sid: string) => ({ recordings: { create: h.recordingsCreate } }),
+      { list: h.callsList },
+    ),
     recordings: Object.assign(
-      (_sid: string) => ({ remove: h.recordingRemove }),
+      (_sid: string) => ({ remove: h.recordingRemove, fetch: h.recordingFetch }),
       { list: h.recordingsList },
     ),
   }),
@@ -158,5 +163,74 @@ describe('enteteAuthTwilio — le portail lit un média privé dans sa région',
 
   it('rend un en-tête Basic, pas une URL signée', () => {
     expect(enteteAuthTwilio(mediaUrl)?.startsWith('Basic ')).toBe(true);
+  });
+});
+
+/**
+ * LE SID QUI N'ARRIVE PAS DU PONT.
+ *
+ * LiveKit ne remplit `sip.twilio.callSid` que s'il reconnaît le trunk comme
+ * Twilio. Quand l'attribut manque, le pont n'envoie rien, `demarrer` n'est
+ * jamais appelé, et l'enregistrement n'existe pas — sans que rien ne le dise.
+ * Ces tests verrouillent le rattrapage: on retrouve l'appel en cours chez
+ * Twilio par l'appelant et l'instant, jamais par approximation large.
+ */
+describe('sidEnCours — retrouver l’appel quand le pont n’a pas donné le SID', () => {
+  const maintenant = new Date('2026-10-27T22:02:00Z');
+
+  it('rend le SID de l’appel en cours le plus récent de cet appelant', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(maintenant);
+    h.callsList.mockResolvedValue([
+      { sid: 'CA' + '1'.repeat(32), dateCreated: new Date(maintenant.getTime() - 30_000), to: 'sip:+32470006690@livekit' },
+      { sid: 'CA' + '2'.repeat(32), dateCreated: new Date(maintenant.getTime() - 10_000), to: 'sip:+32470006690@livekit' },
+    ]);
+    await expect(twilioRecordingService.sidEnCours('+32475123456', '+32470006690'))
+      .resolves.toBe('CA' + '2'.repeat(32));
+    vi.useRealTimers();
+  });
+
+  it('ignore un appel trop vieux — mieux vaut pas d’audio qu’un autre appelant', async () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(maintenant);
+    h.callsList.mockResolvedValue([
+      { sid: 'CA' + '3'.repeat(32), dateCreated: new Date(maintenant.getTime() - 600_000), to: 'sip:+32470006690@livekit' },
+    ]);
+    await expect(twilioRecordingService.sidEnCours('+32475123456')).resolves.toBeNull();
+    vi.useRealTimers();
+  });
+
+  it('ne cherche pas pour un numéro qui n’en est pas un', async () => {
+    await expect(twilioRecordingService.sidEnCours('anonymous')).resolves.toBeNull();
+    expect(h.callsList).not.toHaveBeenCalled();
+  });
+
+  it('rend null plutôt que de lever quand Twilio répond mal', async () => {
+    h.callsList.mockRejectedValue(new Error('503'));
+    await expect(twilioRecordingService.sidEnCours('+32475123456')).resolves.toBeNull();
+  });
+});
+
+describe('parSid — l’audio retrouvé par son RE quand le CA manque', () => {
+  const uri = `/2010-04-01/Accounts/${AC}/Recordings/${RE}.json`;
+
+  it('rend l’URL du média d’un enregistrement terminé', async () => {
+    h.recordingFetch.mockResolvedValue({ sid: RE, status: 'completed', uri });
+    await expect(twilioRecordingService.parSid(RE)).resolves.toEqual({ sid: RE, url: mediaUrl });
+  });
+
+  it('laisse de côté un enregistrement encore en cours de traitement', async () => {
+    h.recordingFetch.mockResolvedValue({ sid: RE, status: 'processing', uri });
+    await expect(twilioRecordingService.parSid(RE)).resolves.toBeNull();
+  });
+
+  it('ne demande rien pour autre chose qu’un RE', async () => {
+    await expect(twilioRecordingService.parSid(CA)).resolves.toBeNull();
+    expect(h.recordingFetch).not.toHaveBeenCalled();
+  });
+
+  it('rend null plutôt que de lever quand le média a disparu', async () => {
+    h.recordingFetch.mockRejectedValue(new Error('404'));
+    await expect(twilioRecordingService.parSid(RE)).resolves.toBeNull();
   });
 });

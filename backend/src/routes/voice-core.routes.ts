@@ -237,36 +237,46 @@ router.post('/calls/start', async (req, res) => {
        d'une seconde vaut mieux qu'un décroché qui tarde d'une seconde. */
     res.status(201).json({ id: appel.id });
 
-    if (twilioCallSid) {
-      void (async () => {
-        try {
-          const profil = await realtimeContextService.getClientProfile(String(clientId));
-          if (profil && !shouldRecord(profil)) {
-            logger.info(`[voice-core] ${clientId} a coupé l'enregistrement — appel non enregistré.`);
-            return;
-          }
-          const sid = await twilioRecordingService.demarrer(String(twilioCallSid));
-          if (!sid) return;
-          /* Le SID est rangé sur la fiche pour que la fin d'appel n'ait pas à
-             redemander à Twilio ce qu'on savait déjà — et pour qu'un appel
-             dont la remontée se perd garde quand même la trace de son audio,
-             seul moyen de le purger plus tard. */
-          // Merge on the stored JSON, not the /start snapshot: completion may
-          // have committed its journal and metrics while Twilio was pending.
-          const patch = JSON.stringify({ recordingSid: sid });
-          const changed = await prisma.$executeRaw`
-            UPDATE client_calls
-            SET metadata = (CASE WHEN jsonb_typeof(metadata) = 'object'
-              THEN metadata ELSE '{}'::jsonb END) || ${patch}::jsonb
-            WHERE id = ${appel.id}::uuid AND client_id = ${String(clientId)}::uuid
-              AND vapi_call_id = ${salle}
-          `;
-          if (changed !== 1) throw new Error('Recording metadata: room ownership or row mismatch');
-        } catch (e) {
-          logger.error(`[voice-core] enregistrement non démarré pour ${salle}: ${(e as Error).message}`);
+    /* L'ENREGISTREMENT, MÊME QUAND LE PONT N'A PAS DONNÉ LE SID.
+
+       Le pont lit `sip.twilio.callSid` dans les attributs de la salle. Quand
+       l'attribut manque, il n'envoie rien et `demarrer` n'est jamais appelé:
+       le client avait activé l'enregistrement, le prompt l'annonçait, et
+       aucun audio n'existait. On retrouve alors l'appel en cours chez Twilio
+       (`sidEnCours`) — l'appelant et l'instant suffisent, et sans SID on ne
+       peut de toute façon rien faire d'autre. */
+    void (async () => {
+      try {
+        const profil = await realtimeContextService.getClientProfile(String(clientId));
+        if (profil && !shouldRecord(profil)) {
+          logger.info(`[voice-core] ${clientId} a coupé l'enregistrement — appel non enregistré.`);
+          return;
         }
-      })();
-    }
+        const sidAppel = twilioCallSid
+          ? String(twilioCallSid)
+          : await twilioRecordingService.sidEnCours(String(caller ?? ''), trunkNumber ? String(trunkNumber) : undefined);
+        if (!sidAppel) return;
+        const sid = await twilioRecordingService.demarrer(sidAppel);
+        if (!sid) return;
+        /* Le SID est rangé sur la fiche pour que la fin d'appel n'ait pas à
+           redemander à Twilio ce qu'on savait déjà — et pour qu'un appel
+           dont la remontée se perd garde quand même la trace de son audio,
+           seul moyen de le purger plus tard. */
+        // Merge on the stored JSON, not the /start snapshot: completion may
+        // have committed its journal and metrics while Twilio was pending.
+        const patch = JSON.stringify({ recordingSid: sid });
+        const changed = await prisma.$executeRaw`
+          UPDATE client_calls
+          SET metadata = (CASE WHEN jsonb_typeof(metadata) = 'object'
+            THEN metadata ELSE '{}'::jsonb END) || ${patch}::jsonb
+          WHERE id = ${appel.id}::uuid AND client_id = ${String(clientId)}::uuid
+            AND vapi_call_id = ${salle}
+        `;
+        if (changed !== 1) throw new Error('Recording metadata: room ownership or row mismatch');
+      } catch (e) {
+        logger.error(`[voice-core] enregistrement non démarré pour ${salle}: ${(e as Error).message}`);
+      }
+    })();
     return;
   } catch (error) {
     logger.error('[voice-core] appel en cours non affiché:', error);
@@ -350,7 +360,7 @@ async function traiterAppelTermine(payload: VoiceCompletionPayload): Promise<voi
      chaque essai : un lien manqué à l'essai précédent se rattrape. */
   const deja = await prisma.clientCall.findUnique({
     where: { vapiCallId: salle },
-    select: { id: true, status: true, clientId: true },
+    select: { id: true, status: true, clientId: true, metadata: true },
   });
   if (deja && deja.clientId !== clientId) throw new Error('Voice completion room tenant mismatch');
   /* Une fiche `in-progress` est le placeholder du décroché, PAS un appel
@@ -391,10 +401,19 @@ async function traiterAppelTermine(payload: VoiceCompletionPayload): Promise<voi
 
     /* L'ENREGISTREMENT, demandé à Twilio : seule la fin d'appel sait si le
        média s'est terminé. Une absence n'est PAS une anomalie — c'est
-       l'état normal d'un client qui a coupé l'enregistrement. */
+       l'état normal d'un client qui a coupé l'enregistrement.
+
+       SANS LE SID DU PONT, on relit le `recordingSid` rangé au décroché: le
+       lien vers l'audio n'existe que là, et sans lui un enregistrement bien
+       présent chez Twilio n'arrive jamais au portail. */
+    const sidRepli = !twilioCallSid
+      ? (deja?.metadata as { recordingSid?: string } | null)?.recordingSid
+      : undefined;
     const enregistrement = twilioCallSid
-      ? await twilioRecordingService.delAppel(twilioCallSid)
-      : null;
+      ? await twilioRecordingService.delAppel(String(twilioCallSid))
+      : sidRepli
+        ? await twilioRecordingService.parSid(sidRepli)
+        : null;
 
     const liveLead = captureLive
       ? {

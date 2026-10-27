@@ -171,6 +171,76 @@ class TwilioRecordingService {
   }
 
   /**
+   * LE SID TWILIO D'UN APPEL EN COURS, quand le pont ne l'a pas fourni.
+   *
+   * POURQUOI CETTE RECHERCHE EXISTE (27/10/2026). Le pont lit le SID dans les
+   * attributs SIP de LiveKit (`sip.twilio.callSid`). Quand l'attribut manque —
+   * trunk qui n'est pas reconnu comme Twilio côté LiveKit — il n'envoie rien,
+   * l'enregistrement ne démarre pas, et RIEN ne le dit: `demarrer` n'est jamais
+   * appelé. Résultat observé en prod: plus aucun enregistrement depuis le
+   * passage au pont (28/09), alors que le client l'avait activé et que le
+   * prompt annonçait « cet appel est enregistré ». Le portail n'avait donc
+   * aucun audio à jouer, et l'option d'écoute disparaissait.
+   *
+   * On retrouve l'appel par ce qu'on sait déjà: l'appelant et l'instant. Le
+   * `From` d'un appel entrant est son numéro, et la ressource `Call` du trunk
+   * vit en cours d'appel. Fenêtre courte (2 min) et appel le plus récent:
+   * au-delà, on préfère ne rien enregistrer plutôt que d'attacher à ce client
+   * l'audio d'un autre appelant.
+   */
+  async sidEnCours(caller: string, trunkNumber?: string): Promise<string | null> {
+    if (!/^\+?[0-9]{6,}$/.test(caller)) return null;
+    try {
+      const connection = twilioTrunkConnection();
+      const appels = await twilioTrunkClient(connection.region, connection.edge).calls.list({
+        from: caller,
+        status: 'in-progress',
+        limit: 10,
+      });
+      const limite = Date.now() - 120_000;
+      const cible = appels
+        .filter((c: { dateCreated?: Date }) => new Date(c.dateCreated ?? 0).getTime() >= limite)
+        .filter((c: { to?: string }) => !trunkNumber || String(c.to ?? '').includes(trunkNumber.replace(/^\+/, '')))
+        .sort((a: { dateCreated?: Date }, b: { dateCreated?: Date }) =>
+          new Date(b.dateCreated ?? 0).getTime() - new Date(a.dateCreated ?? 0).getTime())[0];
+      if (!cible) {
+        logger.warn(`[Enregistrement] aucun appel en cours pour ${caller} — SID introuvable côté Twilio.`);
+        return null;
+      }
+      logger.info(`[Enregistrement] SID retrouvé par recherche: ${cible.sid} pour ${caller}`);
+      return String(cible.sid);
+    } catch (error) {
+      logger.error(`[Enregistrement] recherche du SID pour ${caller} impossible: ${(error as Error).message}`);
+      return null;
+    }
+  }
+
+  /**
+   * Un enregistrement par son `RE...`, quand on n'a plus le `CA...`.
+   *
+   * La fin d'appel reçoit le SID d'appel du pont; quand il est vide, la seule
+   * trace qui reste est le `recordingSid` rangé au démarrage. Sans cette
+   * lecture, l'audio existe chez Twilio et n'arrive jamais au portail.
+   */
+  async parSid(recordingSid: string): Promise<EnregistrementTwilio | null> {
+    if (!/^RE[0-9a-f]{32}$/i.test(recordingSid)) return null;
+    try {
+      const connection = twilioTrunkConnection();
+      const rec = await twilioTrunkClient(connection.region, connection.edge).recordings(recordingSid).fetch();
+      if (rec.status !== 'completed') {
+        logger.warn(`[Enregistrement] ${recordingSid} encore en ${rec.status}, laissé de côté`);
+        return null;
+      }
+      const url = `${connection.origin}${rec.uri.replace(/\.json$/, '.mp3')}`;
+      if (connectionForRecording(url).sid !== String(rec.sid)) return null;
+      return { sid: String(rec.sid), url };
+    } catch (error) {
+      logger.error(`[Enregistrement] ${recordingSid} illisible: ${(error as Error).message}`);
+      return null;
+    }
+  }
+
+  /**
    * Efface l'enregistrement CHEZ TWILIO. Vrai aussi quand il n'y était plus.
    *
    * Un 404 est un succès: la purge est rejouable, et la seule chose qui
