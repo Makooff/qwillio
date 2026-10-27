@@ -178,6 +178,29 @@ describe('completion lifecycle review regressions', () => {
     expect(locks[1]).toBeLessThan(reads[1]); expect(locks[3]).toBeLessThan(reads[2]);
     expect(io.db.$transaction.mock.calls.filter(([,opts]: any[])=>opts?.timeout===5000 && opts?.maxWait===2000)).toHaveLength(2);
   });
+  it('preserves a concurrent succeeded GPT6 review over the completion pending marker', async () => {
+    const concurrentReview = { version: 1, status: 'succeeded', requestedModel: 'gpt-6.1-sol', actualModel: 'gpt-6.1-sol',
+      transcriptHash: 'hash-concurrent', reviewedAt: '2026-01-01T00:00:00.000Z', aggregated: true, patterns: [] };
+    const gpt6Evidence = { schema_version: 1, scope: { tenant_id: 'tenant', niche: null, country: 'BE', language: 'fr' },
+      behaviour: { schema_version: 1, observations: [] } };
+    rows.push({ id: 'stable', clientId: 'tenant', vapiCallId: 'room', status: 'ended',
+      metadata: { learningReview: concurrentReview, learningEvidence: gpt6Evidence } });
+    io.fetch.mockResolvedValue({ ok: true, status: 200, json: async () => ({ choices: [{ message: { content: JSON.stringify({
+      callerName: null, summary: 's', sentiment: 'neutral', outcome: 'message_taken', bookingRequested: false,
+      isLead: false, callbackPromised: false, tags: [], learningBehaviour: { schema_version: 1, observations: [{ category: 'repeated_question', count: 1 }] },
+    }) } }] }) });
+    await finish(await service());
+    expect(rows[0].metadata.learningReview).toEqual(concurrentReview);
+    expect(rows[0].metadata.learningEvidence).toEqual(gpt6Evidence);
+    expect(rows[0].metadata.completionLifecycle.completed).toBe(true);
+  });
+  it('stamps a fresh pending review marker when no succeeded review exists', async () => {
+    rows.push({ id: 'stable', clientId: 'tenant', vapiCallId: 'room', status: 'ended', metadata: {} });
+    await finish(await service());
+    expect(rows[0].metadata.learningReview.status).toBe('pending');
+    expect(rows[0].metadata.learningReview.transcriptHash).toBeTruthy();
+    expect(rows[0].metadata.completionLifecycle.completed).toBe(true);
+  });
   it('late recording callback preserves current completion journal and final metadata', async () => {
     rows.push({id:'stable',clientId:'tenant',vapiCallId:'room',status:'in-progress',metadata:{live:true}});
     const recordings = (await import('../services/voice/twilio-recording.service')).twilioRecordingService;

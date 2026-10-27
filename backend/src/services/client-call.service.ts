@@ -23,6 +23,7 @@ import { rescuePromise, type PromiseFacts } from './voice/promise-rescue';
 import type { LeadForAlert } from './voice/lead-alert.service';
 import { analysisDateRule, parseAnalysisDate } from '../utils/analysis-date';
 import { BEHAVIOUR_ANALYSIS_INSTRUCTION, evidenceForAnalysis } from './voice/learning-evidence';
+import { pendingReview } from './voice/call-review';
 import { canonicalCountry, canonicalNiche } from './voice/learning-observations.service';
 
 export class ClientCallService {
@@ -196,6 +197,7 @@ export class ClientCallService {
       });
       return {
         ...(learningEvidence ? { learningEvidence } : {}),
+        ...(!spam.isSpam ? { learningReview: pendingReview(transcript) } : {}),
         callerIdentityInherited: identity?.inherited === true && analysis.callerName === known,
         completionLifecycle: {
           version: 1, completed: false,
@@ -257,7 +259,15 @@ export class ClientCallService {
       if (current && current.status !== 'in-progress' && current.status !== 'ended') return null;
       const metadata = (current?.metadata && typeof current.metadata === 'object' && !Array.isArray(current.metadata)
         ? current.metadata : {}) as Record<string, unknown>;
-      const data = { ...donneesAppel, metadata: { ...metadata, ...nouvellesClesMetadata } };
+      /* La revue GPT6 du balayage a pu réussir pendant l'analyse : ne jamais
+         écraser une revue succeeded par le marqueur pending, ni la preuve GPT6
+         par l'evidence d'analyse historique. */
+      const revueConcurrente = (metadata.learningReview as { status?: unknown } | undefined)?.status === 'succeeded';
+      const clesMetadata = revueConcurrente
+        ? Object.fromEntries(Object.entries(nouvellesClesMetadata)
+          .filter(([cle]) => cle !== 'learningReview' && cle !== 'learningEvidence')) as typeof nouvellesClesMetadata
+        : nouvellesClesMetadata;
+      const data = { ...donneesAppel, metadata: { ...metadata, ...clesMetadata } };
       // No row lock can protect an absent row. Use create-only here: if a
       // delayed /calls/start inserts meanwhile, the unique conflict rolls this
       // attempt back for retry rather than overwriting its fresh metadata.

@@ -1,6 +1,6 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
 import type { Prisma } from '@prisma/client';
-import { exportEvidence } from './learning-evidence';
+import { authorizedEvidence } from './learning-evidence';
 
 export const OBSERVATIONS_COVERAGE_MODE = 'creation_only' as const;
 // Closed, exact identifiers only. Sources: config/niches.ts (NicheId and
@@ -106,12 +106,20 @@ export function mapObservation(row: ObservationRow, patterns: PatternsByCall) {
     country: canonicalCountry(row.client.country), language: row.client.agentLanguage,
     status: row.status, endedAt: row.endedAt?.toISOString() ?? null,
     // No persisted analysis timestamp or at-call release identity exists in the current writers.
-    observedAt: null, source: detectSource(row.metadata), mortem: readMortem(row.metadata),
+    observedAt: typeof object(object(row.metadata).learningReview).reviewedAt === 'string'
+      ? object(object(row.metadata).learningReview).reviewedAt : null,
+    review: (() => {
+      const r = object(object(row.metadata).learningReview);
+      return { status: ['pending', 'failed', 'succeeded'].includes(String(r.status)) ? r.status : 'pending',
+        requestedModel: typeof r.requestedModel === 'string' ? r.requestedModel : null,
+        actualModel: typeof r.actualModel === 'string' ? r.actualModel : null };
+    })(),
+    source: detectSource(row.metadata), mortem: readMortem(row.metadata),
     patterns: { read: count > 0, count, niche: canonicalNiche(row.client.businessType) },
     metrics: readMetrics(row.metadata), release_refs: { backend: null, worker: null }, revision: 1,
     hasTranscript: typeof row.transcript === 'string' && row.transcript.trim().length > 0,
     behaviour: row.status === 'completed' && row.endedAt && row.isSpam === false
-      ? exportEvidence(object(row.metadata).learningEvidence, {
+      ? authorizedEvidence(row.metadata, row.transcript, {
           tenant_id: row.clientId, niche: canonicalNiche(row.client.businessType),
           country: canonicalCountry(row.client.country), language: row.client.agentLanguage,
         }) : null,
