@@ -18,7 +18,7 @@ export default function FooterV2() {
     {
       heading: isFr ? 'Produit' : 'Product',
       links: [
-        { to: '/receptionist', label: 'Receptionist AI' },
+        { to: '/receptionist', label: isFr ? 'Réceptionniste IA' : 'AI receptionist' },
         /* Plus de lien vers /agent: la route redirige vers l'accueil (App.tsx),
            donc le pied de page proposait un produit qui n'ouvre rien. Un lien
            mort dans le pied de page se remarque, et il se remarque mal. */
@@ -37,11 +37,11 @@ export default function FooterV2() {
       ],
     },
     {
-      heading: 'Legal',
+      heading: isFr ? 'Informations légales' : 'Legal',
       links: [
         { to: '/privacy', label: isFr ? 'Confidentialité' : 'Privacy' },
         { to: '/terms', label: isFr ? 'Conditions' : 'Terms' },
-        { to: '/gdpr', label: 'GDPR' },
+        { to: '/gdpr', label: isFr ? 'RGPD' : 'GDPR' },
         { to: '/sla', label: 'SLA' },
       ],
     },
@@ -114,7 +114,7 @@ export default function FooterV2() {
 
         <div className="flex items-center justify-between flex-wrap gap-3 pt-8">
           <p className="text-xs text-q2-body">
-            &copy; {new Date().getFullYear()} Qwillio Inc.{' '}
+            &copy; {new Date().getFullYear()} Qwillio.{' '}
             {isFr ? 'Tous droits réservés.' : 'All rights reserved.'}
           </p>
           <p className="text-xs text-q2-body">

@@ -186,7 +186,7 @@ export function SqueezeCarousel({
   const wrap = (i: number) => ((i % count) + count) % count;
 
   // Quatre colonnes plus une queue de lattes. Moins de diapositives, queue plus courte.
-  const slats = clamp(count - 4, 1, 3);
+  const slats = clamp(count - 4, 0, 3);
   const visible = 4 + slats;
 
   const reduced = useReducedMotion();

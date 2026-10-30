@@ -1,364 +1,44 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
-import { motion, useScroll, useTransform } from 'framer-motion';
-import type { CSSProperties } from 'react';
+import { useMemo, useRef } from 'react';
+
+
 import { Link, useNavigate } from 'react-router-dom';
-import gsap from 'gsap';
-import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
+
 import {
-  ArrowRight, Play, CalendarCheck, MessageSquare, PhoneForwarded,
-  Camera, Mic2, ShieldCheck, Smartphone, Sparkles, Users, Clock, Headphones,
+  ArrowRight, Play, CalendarCheck, MessageSquare,
+  Camera, Mic2, Sparkles, Users, Clock, Headphones,
 } from '../../components/icons';
 import { useSEO } from '../../hooks/useSEO';
 import { useLang } from '../../stores/langStore';
 import PublicShell from '../../components/v2/PublicShell';
-import HeroBackdrop from '../../components/v2/HeroBackdrop';
+import HeroBackdrop from '../../components/v2/HospitalityBackdrop';
+import ProductIllustration from '../../components/v2/ProductIllustration';
 import Atmosphere from '../../components/v2/AtmosphereFocus';
 import { Container, Section, Eyebrow, Display, H2, Lead, SerifWord } from '../../components/v2/Primitives';
 import { PillLink } from '../../components/v2/Button';
 import RevealV2 from '../../components/v2/RevealV2';
 import TryVoiceButton from '../../components/v2/TryVoiceButton';
-import CardV2 from '../../components/v2/CardV2';
-import HeroPhone3D from '../../components/ui/HeroPhone3D';
+
 import CircularReceptionists from '../../components/v2/CircularReceptionists';
-import FeatureCards from '../../components/v2/FeatureCards';
-import IntegrationsOrbit from '../../components/v2/IntegrationsOrbit';
-import ImpactStats from '../../components/v2/ImpactStats';
+import { BenefitsGrid, LaunchSteps, EcosystemMosaic } from '../../components/v2/MarketingSections';
 import TextReveal from '../../components/v2/motion/TextReveal';
 import PinnedScene from '../../components/v2/motion/PinnedScene';
 import { SqueezeCarousel, type SqueezeSlide } from '../../components/ui/carousel-squeeze';
-import { prefersReducedMotion } from '../../components/v2/motion/reducedMotion';
-
-gsap.registerPlugin(ScrollTrigger);
 
 
-/* Cadre du hero : le PNG livré par l'utilisateur (export Figma du kit « macOS
-   Browser UI Kit — Big Sur »), posé tel quel, ombre portée comprise. Les cotes
-   ci-dessous sont MESURÉES dans le fichier, pas estimées :
-     image      2760 x 1768 (100 px d'ombre à gauche/droite, 80 en haut, 120 en bas)
-     fenêtre    x 100..2659, y 80..1647, soit 2560 x 1568, coins de 19 px
-     barre      106 px, donc le corps commence à y = 186 et mesure 2560 x 1462
-   D'où les pourcentages : ils tiennent à n'importe quelle taille d'affichage.
-   Changer de mockup (MacBook, autre navigateur) = remplacer ces six valeurs. */
-const MOCKUP = {
-  src: '/mockups/safari-big-sur-dark.png',
-  width: 2760,
-  height: 1768,
-  /* La marge transparente du fichier, de chaque côté de la fenêtre. Même
-     valeur que `screen.left` parce que c'est la même arête: le bord gauche du
-     PNG au bord gauche du chrome Safari. */
-  bleed: '3.6232%',
-  screen: {
-    left: '3.6232%',
-    top: '10.5204%',
-    width: '92.7536%',
-    height: '82.6923%',
-    borderBottomLeftRadius: '0.742% 1.3%',
-    borderBottomRightRadius: '0.742% 1.3%',
-  },
-} as const;
-
-/**
- * Le décor du hero: une boucle vidéo en ALLER-RETOUR, posée sur une photo.
- *
- * La photo reste le PLANCHER: elle est là au premier rendu, sans lecture à
- * démarrer ni codec à négocier. La vidéo se fond par-dessus quand elle joue
- * vraiment (`onPlaying`), si bien qu'un appareil qui refuse de la lire garde le
- * décor au lieu d'un trou.
- *
- * L'ALLER-RETOUR est dans le FICHIER, pas dans le code: le montage est suivi de
- * son propre reflet, donc un `loop` ordinaire suffit à repartir en arrière puis
- * en avant, indéfiniment. Le faire en JavaScript demanderait un `playbackRate`
- * négatif, que les navigateurs ne savent pas lire.
- *
- * La bande noire du bas du rush est COUPÉE au montage (recadrage 1440x958):
- * la laisser aurait demandé de la masquer à l'écran, ce qui revient à corriger
- * dans le navigateur un défaut qui appartient au fichier.
- *
- * Le fondu des bords est un MASQUE, jamais une couche peinte: voir le
- * commentaire dans le composant.
- */
-/* Les fondus du décor du hero, en MASQUE.
-   Un masque ne peint rien: il rend le décor TRANSPARENT sur ses bords, donc
-   c'est la page qui reparaît, exactement de sa couleur. Noir en sombre, blanc
-   en clair, sans qu'aucune couleur ne soit écrite ici et sans un aplat par
-   thème à faire tomber pile sur le fond.
-   Les paliers suivent une courbe en S. Un dégradé à trois paliers s'interpole
-   linéairement entre eux: l'oeil ne voit pas la rampe, il voit les CASSURES de
-   pente à chaque palier, et c'est ce qui se lisait comme un dégradé « trop
-   fort ». */
-/* LE FONDU DU HAUT ET DU BAS, sur un seul axe (demande utilisateur: « aucune
-   marge, juste un dégradé, en haut et en bas, pas sur les côtés »).
-   Un `linear-gradient(to bottom, …)` ne varie QUE selon la verticale: chacune
-   de ses lignes est uniforme d'un flanc à l'autre. Les côtés ne peuvent donc
-   pas s'éteindre, quel que soit le réglage des paliers: c'est la géométrie du
-   dégradé qui l'interdit, pas une valeur qu'on aurait choisie et qu'un
-   changement futur pourrait défaire.
-   C'est un MASQUE: il ne peint rien, il rend l'image TRANSPARENTE à ses deux
-   extrémités, donc c'est la page qui reparaît dessous, exactement de sa
-   couleur (blanche en clair, noire en sombre, sans qu'aucune couleur ne soit
-   écrite ici). C'est ce qui remplace la marge: le bord n'est plus une bande de
-   page laissée vide, c'est l'image elle-même qui s'y dissout.
-   Le haut se ferme vite (8 %) pour dégager la barre de nav; le bas prend le
-   dernier quart, l'image y descend dans la suite de la page au lieu de
-   s'arrêter net au-dessus de la capture du tableau de bord. Les deux atteignent
-   zéro AVANT le bord même, sinon il reste assez d'opacité pour relire une arête
-   pâle. Les paliers suivent une courbe en S: un dégradé à trois paliers
-   s'interpole linéairement, et l'oeil voit alors les CASSURES de pente plutôt
-   que la rampe. */
-
-/* PLUS AUCUNE TEINTE DE MARQUE SUR LA VIDÉO (demande utilisateur: « enlève
-   les effets de couleurs sur la vidéo, garde l'effet lens vignette »).
-   Il y avait ici deux couches PEINTES, indigo en haut et violet en bas, qui
-   coloraient la dissolution du décor. Elles partent toutes les deux; ce qui
-   reste est le CADRE ARRONDI et son fondu du bas: ils ne peignent rien, ils
-   ne peint rien, il rend le décor transparent sur ses bords, si bien que c'est
-   la page qui reparaît, exactement de sa couleur, blanche en clair et noire en
-   sombre. Le flou sous la nav reste aussi: il brouille, il ne colore pas.
-   Ce que cela coûte, et c'est mesuré: la teinte du haut portait le contraste du
-   titre, qui commence dans cette bande. Sans elle, le texte se lit sur la vidéo
-   nue, plus claire. Les valeurs relevées après ce changement sont dans le
-   message de commit; si l'une d'elles devient intenable, la réponse est une
-   bande NEUTRE derrière le texte, pas le retour des teintes de marque. */
-/* Le fondu de flou du HAUT: plein sous la nav, éteint plus bas. Comme le voile
-   des bords, il ne peint rien, il ne fait que brouiller ce qui passe dessous:
-   la vidéo reste visible derrière le menu, en diffus, au lieu d'être remplacée
-   par un aplat. */
 
 
-/* Les quatre panneaux du carrousel du bas. Aucune photographie: les photos
-   aériennes (montagnes, routes, rivières) ne disaient rien des pages qu'elles
-   ouvraient (retour utilisateur: « reprendre le bon contenu pour chaque »).
-   Chaque panneau porte donc un MOTIF DESSINÉ qui évoque sa page, posé en
-   couche SVG au-dessus d'un fond du registre drenched:
-     À propos    — les deux cercles du logo (Q et W), qui se rejoignent
-     Blog        — des lignes d'article
-     Contact     — des arcs concentriques, un signal qui part du coin
-     Affiliation — une progression qui monte (la commission récurrente)
-   Quatre géométries, pas quatre teintes: des dégradés identiques feraient la
-   grille de cartes jumelles que la charte interdit. Ils ne basculent pas avec
-   le thème, comme tout le registre drenched.
-   MAUVE SOMBRE (retour utilisateur: « pas de rose ni de mauve clair »): la
-   lumière de chaque panneau reste mauve mais profonde (#453486 / #4E2E7E,
-   jamais le #CD6BFB rosé), sur une base #161718 qui reste AU-DESSUS du fond
-   de la bande en thème sombre (#111111) — en quasi-noir, les trois panneaux
-   repliés se lisaient comme des trous plutôt que comme des cartes. */
-const svgLayer = (svg: string, position: string, size: string) =>
-  `url("data:image/svg+xml,${encodeURIComponent(svg)}") ${position} / ${size} no-repeat`;
 
-const EXPLORE_MOTIFS = [
-  /* À propos: les deux cercles du logo, à droite. */
-  svgLayer(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><circle cx="80" cy="100" r="60" fill="none" stroke="#9d86ff" stroke-opacity=".8" stroke-width="1.25"/><circle cx="122" cy="100" r="60" fill="none" stroke="#e3a9fd" stroke-opacity=".8" stroke-width="1.25"/></svg>`,
-    'right 8% center', '62% auto',
-  ),
-  /* Blog: quatre lignes d'article, à gauche. */
-  svgLayer(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><g stroke="#ffffff" stroke-opacity=".28" stroke-width="4" stroke-linecap="round"><line x1="28" y1="66" x2="172" y2="66"/><line x1="28" y1="90" x2="148" y2="90"/><line x1="28" y1="114" x2="166" y2="114"/><line x1="28" y1="138" x2="118" y2="138"/></g></svg>`,
-    'left 8% center', '58% auto',
-  ),
-  /* Contact: un signal qui part du coin bas-gauche. */
-  svgLayer(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><g fill="none" stroke="#ffffff" stroke-width="1.25"><circle cx="0" cy="200" r="64" stroke-opacity=".30"/><circle cx="0" cy="200" r="108" stroke-opacity=".22"/><circle cx="0" cy="200" r="152" stroke-opacity=".15"/></g><circle cx="0" cy="200" r="6" fill="#e3a9fd"/></svg>`,
-    'left bottom', '82% auto',
-  ),
-  /* Affiliation: la progression, au bas à droite. */
-  svgLayer(
-    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 200 200"><g><rect x="46" y="128" width="20" height="44" rx="5" fill="#ffffff" fill-opacity=".22"/><rect x="78" y="102" width="20" height="70" rx="5" fill="#ffffff" fill-opacity=".30"/><rect x="110" y="76" width="20" height="96" rx="5" fill="#ffffff" fill-opacity=".38"/><rect x="142" y="50" width="20" height="122" rx="5" fill="#e3a9fd" fill-opacity=".85"/></g></svg>`,
-    'right 10% bottom', '56% auto',
-  ),
+
+
+
+/* Photos de contexte, pas les bureaux, l'équipe ou les partenaires Qwillio. */
+const EXPLORE_PHOTOS = [
+  { src: '/marketing/explore-about.webp', fr: 'Espace de travail, photographie d’illustration', en: 'Workspace, illustrative photograph' },
+  { src: '/marketing/explore-blog.webp', fr: 'Carnet et stylo, photographie d’illustration', en: 'Notebook and pen, illustrative photograph' },
+  { src: '/marketing/explore-contact.webp', fr: 'Rédaction sur ordinateur, photographie d’illustration', en: 'Writing on a laptop, illustrative photograph' },
+  { src: '/marketing/explore-affiliate.webp', fr: 'Collaboration professionnelle, photographie d’illustration', en: 'Professional collaboration, illustrative photograph' },
 ];
-
-const EXPLORE_BACKS = [
-  'radial-gradient(125% 145% at 18% 118%, #453486 0%, #221845 42%, #161718 82%)',
-  'linear-gradient(112deg, #161718 0%, #221645 52%, #453486 108%)',
-  'radial-gradient(115% 135% at 86% -12%, #4E2E7E 0%, #2C1D52 46%, #161718 84%)',
-  'radial-gradient(80% 100% at 4% 4%, #453486 0%, rgba(69,52,134,0) 60%), radial-gradient(80% 100% at 96% 96%, #4E2E7E 0%, rgba(78,46,126,0) 60%), #221845',
-];
-
-
-
-/* Masques de la vignette du hero.
-   Cotes mesurées dans le PNG: « Déconnexion » à 91 %, arête basse de la
-   fenêtre à 93,2 %. Le fondu vertical démarre un centimètre plus haut (mesure
-   demandée, laissée en `cm` pour rester lisible) et se termine à 93,5 %, si
-   bien que l'arête et son ombre disparaissent. Le fondu horizontal est bien
-   plus court: assez pour décoller les flancs du bord, trop peu pour rogner le
-   contenu du dashboard. */
-const MASK_V = 'linear-gradient(to bottom, #000 0%, #000 calc(91% - 1cm), rgba(0,0,0,0) 93.5%)';
-
-function HeroDashboardShot({ isFr }: { isFr: boolean }) {
-  const wrapRef = useRef<HTMLDivElement>(null);
-
-  /* UNE PARALLAXE, ET RIEN D'AUTRE (demande utilisateur: « enlève l'effet sur
-   * la fenêtre Safari, mets un simple effet parallaxe au scroll »).
-   *
-   * Ce qui part: le redressement 3D de `useContainerScrollMotion`, vingt degrés
-   * de `rotateX` accompagnés d'une mise à l'échelle. Il donnait à la maquette
-   * une perspective qui se corrigeait au défilement.
-   *
-   * Ce qui reste: la fenêtre descend de 90 px pendant que la page en parcourt
-   * la hauteur, donc elle défile plus LENTEMENT que ce qui l'entoure. C'est
-   * tout ce que fait une parallaxe, et c'est le seul mouvement qui ne demande
-   * ni perspective ni transformation du plan.
-   *
-   * `['start end', 'end start']`: la course couvre toute la traversée de la
-   * fenêtre du navigateur, du moment où le cadre entre par le bas à celui où
-   * il sort par le haut. Le réglage précédent partait d'une plage étroite
-   * parce qu'un redressement doit finir avant qu'on ne l'ait dépassé; une
-   * parallaxe, elle, n'a pas de fin à atteindre.
-   *
-   * `prefers-reduced-motion` annule la course plutôt que le rendu: la maquette
-   * reste à sa place, le composant garde ses hooks. */
-  const { scrollYProgress } = useScroll({
-    target: wrapRef,
-    offset: ['start end', 'end start'],
-  });
-  const parallax = useTransform(scrollYProgress, [0, 1], prefersReducedMotion() ? [0, 0] : [0, 90]);
-
-  useEffect(() => {
-    const wrap = wrapRef.current;
-    if (!wrap || prefersReducedMotion()) return;
-    const ctx = gsap.context(() => {
-      gsap.from(wrap, { opacity: 0, duration: 0.9, ease: 'expo.out', delay: 0.2 });
-    }, wrap);
-    return () => ctx.revert();
-  }, []);
-
-  return (
-    // Plus de `perspective` sur ce conteneur: elle n'existait que pour le
-    // `rotateX` du redressement, et une parallaxe se joue dans le plan.
-    <div ref={wrapRef} className="relative mt-10 sm:mt-14 md:mt-20">
-      {/* Plus de nappe indigo derrière la capture (demande utilisateur: « la
-          lueur du hero aussi », puis « enlève le mauve »). C'est elle qui
-          déposait la frange mauve visible sous le bord bas de la maquette.
-          Elle servait à décoller la capture du fond: ce rôle revient au cadre
-          de la maquette elle-même, qui porte sa propre bordure. */}
-      <motion.div
-        className="relative"
-        /* Surface sombre : la nav doit passer en verre noir quand elle la
-           survole, sinon on lit du texte foncé sur la capture du dashboard. */
-        data-nav-dark=""
-        style={{
-          /* La parallaxe. Elle vit dans le MÊME objet `style` que le reste:
-             deux attributs `style` sur un même élément, et le second efface
-             le premier. */
-          y: parallax,
-          /* Le PNG porte sa propre marge transparente autour de la fenêtre —
-             3,62 %, la même cote que `screen.left`, c'est la même arête. Sans
-             la compenser, la fenêtre visible tombe 40 px à droite du titre
-             alors que les deux vivent dans le même conteneur: l'alignement
-             était juste, c'est le fichier qui mentait sur sa largeur.
-             Le débordement est posé sur le CADRE et non sur l'image: tout ce
-             qu'il contient est positionné en pourcentage de lui (la capture,
-             le patch de barre d'adresse), donc élargir l'image seule les
-             décalait — la barre affichait « figma.com » à côté de la nôtre. */
-          width: `calc(100% + 2 * ${MOCKUP.bleed})`,
-          marginLeft: `-${MOCKUP.bleed}`,
-          maxWidth: 'none',
-          transformOrigin: 'center top',
-          willChange: 'transform',
-          /* Le bas de la fenêtre s'EFFACE, il n'est plus recouvert.
-             Un voile peint en couleur de page était un aplat, alors que la
-             section derrière est un dégradé: le raccord se voyait comme une
-             bande. En masquant l'image, c'est le dégradé de la page qui passe
-             au travers, donc il n'y a plus rien à raccorder — et ça reste vrai
-             dans les deux thèmes, sans aucune couleur écrite ici.
-
-             Cotes mesurées dans le PNG: « Déconnexion » à 91 %, arête basse de
-             la fenêtre à 93,2 %. Le fondu démarre un centimètre plus haut
-             (mesure demandée, laissée en `cm` pour rester lisible) et il est
-             fini à 93,5 %, si bien que l'arête et son ombre disparaissent. */
-          /* Le fondu descend, il ne fait plus le tour (demande utilisateur).
-             Un second masque adoucissait les deux flancs sur 5 % de la
-             largeur. Il coûtait deux choses: la fenêtre paraissait plus
-             étroite qu'elle n'est, et surtout son arête gauche ne tombait plus
-             sur celle du titre — les deux vivent pourtant dans le MÊME
-             conteneur, donc l'alignement était déjà juste et c'est le fondu
-             qui le cachait. Il ne reste que le fondu du bas, qui a un autre
-             rôle: raccorder la fenêtre au dégradé de la page sans y peindre
-             une bande de couleur. */
-          WebkitMaskImage: MASK_V,
-          maskImage: MASK_V,
-        }}
-      >
-        <img
-          src={MOCKUP.src}
-          alt=""
-          aria-hidden="true"
-          width={MOCKUP.width}
-          height={MOCKUP.height}
-          className="block w-full h-auto select-none pointer-events-none"
-        />
-        <img
-          src="/screens/hero-dashboard.webp"
-          alt={
-            isFr
-              ? 'Dashboard Qwillio : les appels du jour, leur issue et leur transcript'
-              : 'Qwillio dashboard: the day’s calls, their outcome and their transcript'
-          }
-          width={2560}
-          height={1462}
-          className="absolute block object-cover"
-          style={MOCKUP.screen}
-        />
-        {/* Le kit livre sa barre d'adresse remplie (« figma.com »). On la
-            repeint dans le repère du PNG : le champ occupe x 866..1893,
-            y 104..159, aplat #0C0F12. En SVG, donc net à toutes les tailles. */}
-        <svg
-          viewBox={`0 0 ${MOCKUP.width} ${MOCKUP.height}`}
-          aria-hidden="true"
-          className="absolute inset-0 w-full h-full pointer-events-none"
-        >
-          <rect x="900" y="105" width="960" height="54" fill="#0C0F12" />
-          <g stroke="#9EA2A6" strokeWidth="3" fill="none">
-            <rect x="1231" y="126" width="18" height="14" rx="3" fill="#9EA2A6" stroke="none" />
-            <path d="M1235 126v-5a5 5 0 0 1 10 0v5" />
-          </g>
-          <text
-            x="1261"
-            y="133"
-            fill="#E8E9EA"
-            fontSize="26"
-            dominantBaseline="central"
-            fontFamily="-apple-system, 'SF Pro Text', system-ui, sans-serif"
-          >
-            qwillio.com/dashboard
-          </text>
-        </svg>
-      </motion.div>
-
-      {/* Le bas de la fenêtre: dégradé ET flou (demande utilisateur).
-          Le masque seul effaçait déjà l'arête, mais il laissait une image
-          NETTE jusqu'au dernier pixel visible, si bien qu'on lisait encore la
-          fin d'une ligne de dashboard juste avant qu'elle disparaisse. Le flou
-          dissout ce qui reste, et il n'y a plus de délimitation du tout.
-
-          DEUX éléments, jamais un seul: sur WebKit, un `-webkit-backdrop-filter`
-          posé sur un élément qui porte aussi un `-webkit-mask-image` n'est pas
-          rendu. Le masque reste donc au parent, le filtre descend à l'enfant.
-          Même correction que le voile de la nav. */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-[22%] overflow-hidden"
-        style={{
-          maskImage: 'linear-gradient(to bottom, transparent 0%, #000 62%, #000 100%)',
-          WebkitMaskImage: 'linear-gradient(to bottom, transparent 0%, #000 62%, #000 100%)',
-        }}
-      >
-        <div
-          className="absolute inset-0"
-          style={{
-            backdropFilter: 'blur(16px)',
-            WebkitBackdropFilter: 'blur(16px)',
-            /* Promotion par transform: Safari ne lit pas
-               `will-change: backdrop-filter`, et la couche resterait figée. */
-            transform: 'translateZ(0)',
-          }}
-        />
-      </div>
-    </div>
-  );
-}
 
 /* Home phase 2, récit neuf sourcé du réceptionniste next-gen (PR #67).
    Zéro copie V1. Chaque affirmation est couverte par le code
@@ -393,9 +73,8 @@ export default function Home() {
       id: row.to,
       title: row.title,
       description: row.desc,
-      /* Le motif de la page en couche DEVANT le dégradé drenched: deux couches
-         d'un même `background`, le composant n'a plus d'image à charger. */
-      background: `${EXPLORE_MOTIFS[i]}, ${EXPLORE_BACKS[i]}`,
+      image: EXPLORE_PHOTOS[i].src,
+      imageAlt: isFr ? EXPLORE_PHOTOS[i].fr : EXPLORE_PHOTOS[i].en,
       overlay: (
         <span className="text-sm font-medium tracking-tight text-white">{row.name}</span>
       ),
@@ -414,8 +93,8 @@ export default function Home() {
       ? 'Qwillio, réceptionniste IA pour les PME belges et françaises'
       : 'Qwillio, AI receptionist for Belgian and French businesses',
     description: isFr
-      ? 'Qwillio décroche 24/7, vérifie votre agenda Google ou Outlook pendant l’appel, inscrit le rendez-vous et vous briefe avant chaque transfert. Français et anglais. À partir de 99 € par mois, 7 jours d’essai.'
-      : 'Qwillio answers 24/7, checks your Google or Outlook calendar during the call, books the appointment and briefs you before every transfer. French and English. From €99 a month, 7-day trial.',
+      ? 'Qwillio répond aux appels, réserve dans votre agenda Google ou Outlook connecté et transmet le contexte à votre équipe. Français et anglais. À partir de 99 € par mois, 7 jours d’essai.'
+      : 'Qwillio answers calls, books into your connected Google or Outlook calendar and passes the context to your team. French and English. From €99 a month, 7-day trial.',
     canonical: 'https://qwillio.com/',
   });
 
@@ -426,22 +105,15 @@ export default function Home() {
       icon: CalendarCheck,
       title: isFr ? 'Elle vérifie le créneau' : 'She checks the slot',
       desc: isFr
-        ? 'Agenda Google ou Outlook connecté, elle lit vos disponibilités pendant que votre client parle. Deux appels en même temps ne peuvent pas réserver la même heure.'
-        : 'With your Google or Outlook calendar connected, she reads your availability while your customer is talking. Two simultaneous calls can never book the same hour.',
+        ? 'Avec votre agenda Google ou Outlook connecté, elle vérifie les disponibilités avant de confirmer. Vos clients peuvent aussi déplacer ou annuler un rendez-vous pendant l’appel.'
+        : 'With your Google or Outlook calendar connected, she checks availability before confirming. Your customers can also reschedule or cancel an appointment during the call.',
     },
     {
       icon: Sparkles,
       title: isFr ? 'Elle inscrit le rendez-vous' : 'She books the appointment',
       desc: isFr
-        ? 'La réservation est créée avant de raccrocher, pas dans un message à rappeler. Votre client reçoit la confirmation par SMS.'
-        : 'The booking is created before hanging up, not left in a message to call back. Your customer gets an SMS confirmation.',
-    },
-    {
-      icon: PhoneForwarded,
-      title: isFr ? 'Elle vous briefe avant de transférer' : 'She briefs you before transferring',
-      desc: isFr
-        ? 'Quand un appel doit vous parvenir, elle vous dit d’abord qui appelle et pourquoi, à l’oral et par SMS. Vous décrochez en sachant.'
-        : 'When a call needs you, she first tells you who is calling and why, out loud and by SMS. You pick up already knowing.',
+        ? 'La réservation est créée avant de raccrocher, pas dans un message à rappeler.'
+        : 'The booking is created before hanging up, not left in a message to call back.',
     },
     {
       icon: Users,
@@ -462,17 +134,16 @@ export default function Home() {
   const naturally = [
     {
       icon: Mic2,
-      title: isFr ? 'Coupez-la, elle s’arrête net' : 'Cut her off, she stops dead',
+      title: isFr ? 'Reprenez la parole, elle vous écoute' : 'Cut in, she makes room for you',
       body: isFr
-        ? 'En pleine phrase, elle se tait. Une toux ne la déstabilise pas.'
-        : 'Mid-sentence, she goes quiet. A cough will not throw her off.',
-      /* Marge resserrée (retour utilisateur: « il y a beaucoup de marge dans
-         celle noire »). Le noir avale déjà l'espace, il n'a pas besoin d'en
-         réserver autant que les autres pour respirer. */
+        ? 'Vous pouvez l’interrompre pour préciser votre demande, sans reprendre toute la conversation.'
+        : 'You can interrupt to clarify your request without starting the conversation again.',
+      /* Gris du site, adapté au thème, sans noir bleuté hors palette. */
       pad: 'p-6 md:p-7',
-      bg: '#0F1011',
-      fg: 'white',
-      accent: '#B9A8FF',
+      bg: 'rgb(var(--q2-plate))',
+      fg: 'rgb(var(--q2-ink))',
+      bodyFg: 'rgb(var(--q2-graphite))',
+      accent: 'var(--q2-indigo)',
       /* Hauteur PROPRE à chaque bloc, et retrait propre à chaque bloc.
          Les quatre partageaient `minHeight: 240` et `h-full`: sur un téléphone,
          où la grille retombe sur une colonne, cela donnait quatre rectangles
@@ -490,10 +161,10 @@ export default function Home() {
     },
     {
       icon: MessageSquare,
-      title: isFr ? 'Elle acquiesce sans s’engager' : 'She agrees without committing you',
+      title: isFr ? 'Elle suit le fil de l’échange' : 'She follows the conversation',
       body: isFr
-        ? 'Elle glisse des « mhm » pendant que vous parlez, jamais un « oui » qui vaudrait engagement.'
-        : 'She slips in a “mm-hmm” while you talk, never a “yes” that would commit you.',
+        ? 'Le motif de l’appel, vos précisions et le créneau discuté restent dans le contexte de la conversation.'
+        : 'The reason for the call, your clarifications and the time discussed stay in the conversation context.',
       pad: 'p-6 md:p-8',
       bg: '#F5F3F1',
       fg: '#1D1D1F',
@@ -589,7 +260,7 @@ export default function Home() {
             contrôles : c'est une texture, pas un média. Elle passe sous un
             voile crème pour que le titre garde son contraste, et disparaît en
             reduced-motion, où le dégradé ci-dessus suffit. */}
-        {new URLSearchParams(window.location.search).get('design') === 'atmosphere' ? <Atmosphere /> : <HeroBackdrop />}
+        {new URLSearchParams(window.location.search).get('design') === 'atmosphere' ? <Atmosphere /> : <HeroBackdrop dark />}
         {/* Les blobs « pixel blush » ne dérivent plus par-dessus le décor
             (retour utilisateur: « enlève les dégradés de mauve »). C'était la
             seule couleur de marque posée en filtre sur la vidéo, et elle
@@ -710,8 +381,8 @@ export default function Home() {
                   texte, on éclaircit, et c'est le voile qui fait le noir. */}
               <Lead className="max-w-[500px] mb-7 sm:mb-10 q2-body-text !text-white/[0.88]">
                 {isFr
-                  ? 'Elle décroche 24/7, vérifie votre agenda pendant l’appel et confirme le rendez-vous par SMS. Dès 99 € par mois.'
-                  : 'She answers 24/7, checks your calendar during the call and confirms the booking by SMS. From €99 a month.'}
+                  ? 'Elle prend les appels, réserve dans votre agenda connecté et vous transmet les demandes. Dès 99 € par mois.'
+                  : 'She takes calls, books into your connected calendar and passes requests on to you. From €99 a month.'}
               </Lead>
 
               <div className="flex flex-wrap items-center gap-3 mb-2 sm:mb-4">
@@ -727,11 +398,12 @@ export default function Home() {
                   {isFr ? 'L’entendre décrocher' : 'Hear her answer'}
                 </TryVoiceButton>
               </div>
+
             </div>
           </RevealV2>
 
           {/* La vraie capture du dashboard referme le hero, pleine largeur */}
-          <HeroDashboardShot isFr={isFr} />
+          <div className="mt-12 sm:mt-16 max-w-[1080px] mx-auto"><ProductIllustration kind="overview" isFr={isFr} /></div>
         </Container>
       </Section>
 
@@ -747,7 +419,7 @@ export default function Home() {
               partagée par toute la V2, lui ajouter forwardRef pour un seul
               appelant la complique pour tous les autres. */}
           <div ref={duringRef} className="relative">
-          <PinnedScene
+          <PinnedScene className="[&_[data-scene-act]]:!opacity-100"
             aside={
               <RevealV2 className="max-w-[420px]">
                 <Eyebrow tone="indigo" className="mb-4">
@@ -836,8 +508,8 @@ export default function Home() {
             </H2>
             <p className="text-q2-body text-base leading-relaxed mt-4 q2-body-text">
               {isFr
-                ? 'Chaque réceptionniste a un visage, une personnalité et sa façon de tenir un appel. Choisissez la vôtre, ou prêtez-lui votre propre voix.'
-                : 'Each receptionist has a face, a personality and a way of holding a call. Pick yours, or lend her your own voice.'}
+                ? 'Un ton chaleureux, posé ou plus direct : écoutez les voix et choisissez celle qui correspond à votre accueil.'
+                : 'Warm, composed or more direct: hear the voices and choose the one that fits your welcome.'}
             </p>
           </RevealV2>
           <RevealV2 index={1}>
@@ -954,7 +626,7 @@ export default function Home() {
                         </h3>
                         <p
                           className="text-[14.5px] leading-relaxed q2-body-text"
-                          style={{ color: feat.fg === 'white' ? 'rgba(255,255,255,0.72)' : '#525257' }}
+                          style={{ color: feat.bodyFg ?? (feat.fg === 'white' ? 'rgba(255,255,255,0.72)' : '#525257') }}
                         >
                           {feat.body}
                         </p>
@@ -967,6 +639,8 @@ export default function Home() {
           </div>
         </Container>
       </Section>
+
+      <BenefitsGrid isFr={isFr} />
 
       {/* ── CONFIGUREZ-LA EN LUI PARLANT ── */}
       <Section aria-labelledby="setup-heading" className="relative">
@@ -981,7 +655,7 @@ export default function Home() {
             sur la page. */}
         <Container className="relative z-10">
           <div className="relative">
-          <PinnedScene
+          <PinnedScene className="[&_[data-scene-act]]:!opacity-100"
             aside={
               <RevealV2 className="max-w-[420px]">
                 <Eyebrow tone="violet" className="mb-4">
@@ -1002,8 +676,8 @@ export default function Home() {
                 </H2>
                 <p className="text-q2-body text-base leading-relaxed mt-4 q2-body-text">
                   {isFr
-                    ? 'Pas de formulaire interminable. Vous discutez, elle se règle. Des voix avec de vrais aperçus audio, ou la vôtre, clonée en 90 secondes d’enregistrement.'
-                    : 'No endless forms. You chat, she adjusts. Voices with real audio previews, or your own, cloned from 90 seconds of recording.'}
+                    ? 'Pas de formulaire interminable. Vous discutez, elle se règle. Écoutez les voix avant de choisir. Le clonage de votre voix est aussi proposé sur les moteurs compatibles.'
+                    : 'No endless forms. You chat, she adjusts. Listen to the voices before choosing. Voice cloning is also offered on compatible engines.'}
                 </p>
               </RevealV2>
             }
@@ -1036,6 +710,7 @@ export default function Home() {
                   <p className="text-q2-body text-[15px] leading-relaxed max-w-[560px] q2-body-text">
                     {item.desc}
                   </p>
+
                 </div>
               </div>
             ))}
@@ -1045,136 +720,10 @@ export default function Home() {
       </Section>
 
       {/* ── QWILLIO EN CHIFFRES, bande taupe: quatre faits, rien d'autre ── */}
-      <ImpactStats isFr={isFr} />
+      <LaunchSteps isFr={isFr} />
 
-      {/* ── L'APP DANS VOTRE POCHE, le téléphone quitte le hero ── */}
-      {/* `overflow-hidden` reste après le retrait du halo de HeroPhone3D: la
-          maquette du téléphone est inclinée en 3D, et ses angles dépassent
-          encore la colonne sur un écran de 390 px. */}
-      <Section aria-labelledby="pocket-heading" className="relative overflow-hidden">
-        <Container className="relative z-10 grid lg:grid-cols-[1fr_1fr] gap-8 sm:gap-14 lg:gap-20 items-center [&>*]:min-w-0">
-          <RevealV2>
-            <Eyebrow tone="indigo" className="mb-3 sm:mb-4">
-              {isFr ? 'Sur mobile' : 'On mobile'}
-            </Eyebrow>
-            <H2 id="pocket-heading">
-              <TextReveal>
-                {isFr ? (
-                  <>
-                    L’app dans votre <SerifWord>poche.</SerifWord>
-                  </>
-                ) : (
-                  <>
-                    The app in your <SerifWord>pocket.</SerifWord>
-                  </>
-                )}
-              </TextReveal>
-            </H2>
-            <p className="text-q2-body text-base leading-relaxed mt-4 max-w-[420px] q2-body-text">
-              {isFr
-                ? 'Une notification à chaque appel pris, le résumé lisible en trois secondes, et le rendez-vous déjà inscrit. Le dashboard complet tient dans le navigateur du téléphone.'
-                : 'A notification for every call taken, a summary readable in three seconds, and the appointment already booked. The full dashboard fits in the phone browser.'}
-            </p>
-            <p className="flex items-center gap-2 mt-6 text-sm text-q2-body q2-body-text">
-              <Smartphone size={15} className="text-q2-indigo shrink-0" aria-hidden="true" />
-              {isFr
-                ? 'Rien à installer : la même adresse, sur tous vos écrans.'
-                : 'Nothing to install: the same address, on every screen you own.'}
-            </p>
-          </RevealV2>
-          <RevealV2 index={2}>
-            <HeroPhone3D isFr={isFr} />
-          </RevealV2>
-        </Container>
-      </Section>
 
-      {/* ── APRÈS L'APPEL + CONFIANCE ──
-          Sur le FOND DE PAGE, plus sur la bande. La bande vaut #111111 en thème
-          sombre et les plates des rangées produit #1a1a1a: neuf valeurs d'écart,
-          c'est-à-dire rien à l'oeil, et les cartes ne se lisaient plus comme des
-          cartes (retour utilisateur: « le fond de la section ne doit pas être de
-          la couleur de la carte »). Sur le fond de page à #0a0a0a, l'écart passe
-          à seize valeurs et elles se détachent.
-          Le filet du haut (`hairline`) reste, et c'est lui qui porte désormais la
-          séparation d'avec la section précédente: sans la bande, deux sections
-          canvas voisines se toucheraient sans rien entre elles. */}
-      <Section hairline aria-labelledby="after-heading" className="relative">
-        <Container className="relative z-10">
-          <RevealV2 className="mb-8 sm:mb-12 max-w-[640px]">
-            <Eyebrow tone="neutral" className="mb-3 sm:mb-4">
-              {isFr ? 'Et après' : 'And after'}
-            </Eyebrow>
-            <H2 id="after-heading">
-              <TextReveal>{isFr ? 'Rien ne se perd.' : 'Nothing gets lost.'}</TextReveal>
-            </H2>
-          </RevealV2>
-          {/* Deux rangées pleine largeur, illustration alternée gauche/droite */}
-          <FeatureCards isFr={isFr} />
-
-          <RevealV2 className="mt-9 sm:mt-12">
-            <p className="text-[15px] text-q2-graphite leading-relaxed q2-body-text border-t border-q2-plate pt-5 max-w-[640px]">
-              <ShieldCheck size={14} className="inline mr-1.5 -mt-0.5 text-q2-indigo" aria-hidden="true" />
-              {isFr
-                ? 'Annonce d’enregistrement conforme RGPD, sous-traitants encadrés par des clauses contractuelles types, et le spam est filtré sans entamer votre quota.'
-                : 'GDPR-compliant recording notice, sub-processors covered by standard contractual clauses, and spam is filtered without touching your quota.'}
-            </p>
-          </RevealV2>
-
-          <RevealV2 index={3} className="mt-10 sm:mt-14">
-            <CardV2 variant="canvas" glow className="q2-lit flex flex-wrap items-center justify-between gap-5 sm:gap-6">
-              <p className="text-q2-graphite text-[15px] q2-body-text max-w-[520px]">
-                {isFr ? (
-                  <>
-                    {/* Aucun lien: Qwillio Agent n'est pas ouvert, et « Découvrir »
-                        menait à une page qui décrivait un produit non achetable. */}
-                    Et bientôt, Qwillio Agent : Email, Facturation, Inventaire et Paiements greffés à votre réceptionniste.
-                  </>
-                ) : (
-                  <>
-                    And soon, Qwillio Agent: Email, Billing, Inventory and Payments bolted onto your receptionist.
-                  </>
-                )}
-              </p>
-              <PillLink to="/pricing" variant="outline">
-                {isFr ? 'Voir les tarifs' : 'See pricing'}
-                <ArrowRight size={14} aria-hidden="true" />
-              </PillLink>
-            </CardV2>
-          </RevealV2>
-        </Container>
-      </Section>
-
-      {/* ── CE À QUOI ELLE EST BRANCHÉE, orbite d'intégrations ── */}
-      <Section aria-labelledby="integrations-heading" className="relative">
-        <Container className="relative z-10 grid lg:grid-cols-[1fr_1.1fr] gap-9 sm:gap-14 items-center [&>*]:min-w-0">
-          <RevealV2 className="max-w-[440px]">
-            <Eyebrow tone="violet" className="mb-3 sm:mb-4">
-              {isFr ? 'Intégrations' : 'Integrations'}
-            </Eyebrow>
-            <H2 id="integrations-heading">
-              <TextReveal>
-                {isFr ? (
-                  <>
-                    Branchée à ce que vous <SerifWord>utilisez déjà.</SerifWord>
-                  </>
-                ) : (
-                  <>
-                    Wired into what you <SerifWord>already use.</SerifWord>
-                  </>
-                )}
-              </TextReveal>
-            </H2>
-            <p className="text-q2-body text-base leading-relaxed mt-4 q2-body-text">
-              {isFr
-                ? 'Elle lit votre agenda, envoie les SMS, pousse le lead dans votre CRM. Ce qui n’est pas dans la liste passe par un webhook : Zapier, Make, n8n. D’autres arrivent.'
-                : 'She reads your calendar, sends the texts, pushes the lead into your CRM. Whatever is not on the list goes through a webhook: Zapier, Make, n8n. More are coming.'}
-            </p>
-          </RevealV2>
-          <RevealV2 index={1}>
-            <IntegrationsOrbit isFr={isFr} />
-          </RevealV2>
-        </Container>
-      </Section>
+      <EcosystemMosaic isFr={isFr} />
 
       {/* ── LE RESTE DU SITE, carrousel « squeeze » ──
           Placé AVANT l'appel à l'action final, pas après: ces quatre liens sont
@@ -1246,8 +795,8 @@ export default function Home() {
             </Eyebrow>
             <p className="text-q2-mist text-lg leading-relaxed q2-body-text">
               {isFr
-                ? 'Qwillio est jeune, construit à Bruxelles, et chaque premier client est accompagné personnellement. Vous ne trouverez ici ni faux avis ni chiffres gonflés : essayez-la, c’est elle qui vous convaincra.'
-                : 'Qwillio is young, built in Brussels, and every first customer is onboarded personally. You will find no fake reviews or inflated numbers here: try her, she will do the convincing.'}
+                ? 'Testez la voix, vérifiez les réponses avec vos consignes et choisissez les appels à lui confier. Vous gardez votre numéro et la main sur les transferts.'
+                : 'Test the voice, check the answers against your instructions and choose which calls to delegate. Keep your number and stay in control of transfers.'}
             </p>
           </RevealV2>
           <Container className="relative z-10 !px-0 grid lg:grid-cols-[1.5fr_1fr] gap-8 sm:gap-10 items-end">

@@ -1,0 +1,140 @@
+/* Original Qwillio explanatory scenes: readable paper objects, not screens.
+   In-flow layouts prevent text clipping at narrow container widths. */
+.pi {
+  --pi-deep: var(--q2-deep); --pi-ink: rgb(var(--q2-ink)); --pi-sub: rgb(var(--q2-graphite));
+  --pi-line: rgb(var(--q2-plate)); --pi-paper: rgb(var(--q2-canvas)); --pi-stage: rgb(var(--q2-band));
+  --pi-field-bg: color-mix(in srgb, rgb(var(--q2-band)) 40%, rgb(var(--q2-canvas)));
+  --pi-active-bg: color-mix(in srgb, var(--q2-indigo) 12%, var(--pi-paper));
+  --pi-shadow: var(--q2-shadow-whisper);
+  --pi-photo: url('/marketing/scene-service-blur.webp');
+  --pi-photo-shade: .12;
+  display: block; width: 100%; min-width: 0; margin: 0; container-type: inline-size;
+}
+.pi *, .pi *::before, .pi *::after { box-sizing: border-box; }
+.pi__frame { display: block; width: 100%; position: relative; isolation: isolate; overflow: hidden; border-radius: 24px; background: var(--pi-stage); }
+/* Real, preblurred photography at full opacity, never a washed-out gray veil.
+   The dark theme attenuates light with a black overlay, retaining photo colour. */
+.pi[data-kind='transfer'], .pi[data-kind='intake'] { --pi-photo: url('/marketing/scene-restaurant-blur.webp'); }
+.pi[data-kind='setup'] { --pi-photo: url('/marketing/scene-business-blur.webp'); }
+.pi[data-kind='returning'] { --pi-photo: url('/marketing/unique-summary-blur.webp'); }
+.pi[data-kind='conversation'] { --pi-photo: url('/marketing/unique-test-blur.webp'); }
+.pi-returning, .pi-configuration { gap: 16px; }
+.pi[data-kind='knowledge'] { --pi-photo: url('/marketing/unique-knowledge-blur.webp'); }
+.pi-knowledge { display: grid; grid-template-columns: minmax(0,1.15fr) minmax(0,.85fr); gap: 18px; align-items: center; }
+.pi-knowledge .pi__field { display: grid; gap: 12px; }
+.pi-knowledge .pi__title { font-size: max(16px,1em); }
+@container (max-width: 480px) { .pi-knowledge { grid-template-columns: 1fr; } .pi-knowledge__answer { margin-left: 20px; } }
+.pi__frame::before, .pi__frame::after { content: ''; position: absolute; inset: 0; z-index: -1; pointer-events: none; }
+.pi__frame::before { background: var(--pi-photo) center / cover; }
+.pi__frame::after { background: var(--q2-void); opacity: var(--pi-photo-shade); }
+.pi[data-kind='overview'] .pi__frame::before, .pi[data-kind='overview'] .pi__frame::after { content: none; }
+.pi[data-kind='overview'] .pi__frame {
+  background: rgb(var(--q2-canvas) / .08);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
+}
+/* Match the site's explicit theme and its system-theme fallback. */
+:root[data-theme='dark'] .pi {
+  --pi-paper: var(--q2-obsidian); --pi-deep: var(--q2-lift); --pi-shadow: none; --pi-photo-shade: .38;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme='light']) .pi {
+    --pi-paper: var(--q2-obsidian); --pi-deep: var(--q2-lift); --pi-shadow: none; --pi-photo-shade: .38;
+  }
+}
+.pi__draw { display: grid; align-items: center; position: relative; min-height: clamp(250px, 42cqi, 430px); padding: clamp(20px, 5cqi, 50px); color: var(--pi-ink); font-size: clamp(13px, 2.4cqi, 18px); line-height: 1.45; }
+.pi--compact .pi__draw { min-height: 250px; padding: clamp(18px, 4.5cqi, 32px); }
+.pi svg { display: inline-block; flex-shrink: 0; width: 20px; height: 20px; stroke-width: 1.7; }
+.pi__card { position: relative; z-index: 1; display: flex; flex-direction: column; min-width: 0; gap: 14px; padding: clamp(18px, 3.8cqi, 30px); border: 1px solid var(--pi-line); border-radius: 18px; background: var(--pi-paper); box-shadow: var(--pi-shadow); }
+.pi__chip, .pi-conv__who { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; color: var(--pi-deep); font-size: max(13px, .8em); font-weight: 500; }
+.pi__title { display: block; font-size: clamp(16px, 3.2cqi, 24px); line-height: 1.25; font-weight: 500; letter-spacing: -.025em; }
+.pi__text { color: var(--pi-sub); font-size: max(13px, .92em); }
+.pi__text--small, .pi__field-label { display: block; color: var(--pi-sub); font-size: max(13px, .8em); }
+.pi__field-label { margin-bottom: 7px; }
+.pi__field { display: block; padding: 10px 12px; background: var(--pi-field-bg); border: 1px solid var(--pi-line); border-radius: 9px; overflow-wrap: anywhere; }
+.pi__field--active { border-color: var(--q2-indigo); background: var(--pi-active-bg); }
+.pi__ok { display: inline-flex; align-items: center; align-self: start; gap: 7px; background: var(--q2-ok-bg); color: var(--q2-ok-ink); border-radius: 99px; padding: 7px 11px; font-size: max(13px, .82em); }
+.pi__link { display: none; }
+.pi__tile { display: grid; width: 60px; height: 60px; place-items: center; background: var(--pi-paper); color: var(--pi-deep); border: 1px solid var(--pi-line); border-radius: 16px; box-shadow: var(--pi-shadow); }
+.pi__caption { margin-top: 12px; color: rgb(var(--q2-body)); font-size: 13px; line-height: 1.5; text-align: left; }
+/* Overview: incoming voice → proposed booking, over the real hero backdrop. */
+.pi-overview { display: grid; grid-template-columns: 1fr 60px 1.1fr; align-items: center; gap: 22px; width: 100%; }
+.pi-overview__phone { grid-column: 1; grid-row: 1; }
+.pi-overview__tile { grid-column: 2; grid-row: 1; }
+.pi-overview__booking { grid-column: 3; grid-row: 1; }
+.pi-overview__row { display: flex; flex-wrap: wrap; gap: 7px; }
+.pi-overview__slot { padding: 8px 11px; border-radius: 8px; background: var(--pi-field-bg); color: var(--pi-sub); font-size: max(13px, .85em); }
+.pi-overview__slot--pick { color: var(--pi-deep); background: var(--pi-active-bg); }
+.pi-overview__wave { display: flex; gap: 6px; height: 40px; align-items: center; }
+.pi-overview__wave i, .pi-conv__wave i { width: 4px; height: 12px; background: var(--q2-indigo); border-radius: 6px; }
+.pi-overview__wave i:nth-child(2n), .pi-conv__wave i:nth-child(2n) { height: 26px; }
+.pi-overview__wave i:nth-child(3n), .pi-conv__wave i:nth-child(3n) { height: 35px; }
+/* Booking: a readable slot chooser and a separate result, never overlap. */
+.pi-booking { display: grid; grid-template-columns: 1.25fr 1fr; align-items: center; gap: 18px; }
+.pi-booking__hours { display: grid; grid-template-columns: repeat(3, minmax(0,1fr)); gap: 8px; }
+.pi-booking__hour { display: block; text-align: center; border: 1px solid var(--pi-line); border-radius: 8px; padding: 10px 4px; font-size: max(13px,.9em); font-variant-numeric: tabular-nums; }
+.pi-booking__hour--sel { color: var(--pi-deep); background: var(--pi-active-bg); border-color: var(--q2-indigo); }
+.pi-booking__hour--off { color: var(--pi-sub); background: var(--pi-field-bg); text-decoration: line-through; }
+.pi-booking__cond { display: grid; gap: 16px; min-width: 0; }
+.pi-booking__condcard { display: grid; gap: 10px; padding: 18px; border-radius: 16px; background: var(--pi-paper); border: 1px solid var(--pi-line); }
+.pi-booking__confirm { padding: 18px; }
+.pi-booking__confirm .pi__title { font-size: max(15px,1em); }
+/* Transfer: three distinct roles. Decorative tiles aren't extra steps. */
+.pi-transfer { display: grid; grid-template-columns: .8fr 1.4fr .8fr; align-items: center; gap: 16px; position: relative; }
+.pi-transfer::before { content: ''; position: absolute; top: 50%; left: 5%; right: 5%; border-top: 2px dashed var(--pi-line); }
+.pi-transfer .pi__tile { display: none; }
+.pi-transfer__col { text-align: center; align-items: center; padding: 20px 12px; }
+.pi-transfer__col .pi__title { font-size: max(16px,1.05em); }
+.pi-transfer__icon { display: grid; place-items: center; width: 42px; height: 42px; color: var(--pi-deep); background: var(--pi-active-bg); border-radius: 12px; }
+.pi-transfer__brief { gap: 12px; padding: 22px; }
+.pi-transfer__brief .pi__field { min-height: 24px; padding: 0; border: 0; background: transparent; font-size: max(13px,.9em); }
+.pi-transfer__brief .pi__field-label { margin-bottom: 2px; }
+/* Business information: a macro fragment, all fields remain readable. */
+.pi-intake, .pi-setup, .pi-summary { display: grid; justify-items: center; width: 100%; }
+.pi-intake__card, .pi-setup__card, .pi-summary__card { width: 100%; max-width: 510px; }
+.pi-intake__head { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.pi-intake__mark { display: grid; width: 46px; height: 46px; flex-shrink: 0; place-items: center; border-radius: 12px; background: var(--pi-active-bg); color: var(--pi-deep); }
+.pi-intake__grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+.pi-intake__grid > span { min-width: 0; }
+.pi-intake__full { grid-column: 1 / -1; }
+/* Configuration: checklist, no arbitrary progress percentage. */
+.pi-setup__item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--pi-line); }
+.pi-setup__box { display: grid; width: 25px; height: 25px; flex-shrink: 0; place-items: center; border: 1px solid var(--pi-line); border-radius: 7px; }
+.pi-setup__item--done .pi-setup__box { color: var(--q2-ok-ink); background: var(--q2-ok-bg); border-color: var(--q2-ok-brd); }
+.pi-setup__foot { display: flex; align-items: center; gap: 8px; color: var(--pi-sub); font-size: 13px; }
+/* Conversation: two large speech fragments and one listening strip. */
+.pi-conv { display: grid; gap: 16px; }
+.pi-conv__bubble { display: grid; gap: 9px; width: 90%; padding: 20px; border: 1px solid var(--pi-line); background: var(--pi-paper); border-radius: 18px 18px 18px 5px; font-size: max(14px,.96em); box-shadow: var(--pi-shadow); }
+.pi-conv__bubble--qwillio { justify-self: end; border-radius: 18px 18px 5px 18px; background: var(--pi-active-bg); }
+.pi-conv__wavecard { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 12px; padding: 12px; }
+.pi-conv__wave { display: flex; gap: 3px; height: 38px; align-items: center; }
+.pi-conv__wave i { width: 3px; }
+/* Follow-up: one useful note, not a miniature phone/dashboard. */
+.pi-summary__meta { display: flex; flex-wrap: wrap; gap: 10px; }
+.pi-summary__pill { display: inline-flex; align-items: center; flex-wrap: wrap; gap: 6px; color: var(--pi-sub); font-size: 13px; }
+.pi-summary__lines { display: grid; gap: 10px; padding-top: 16px; border-top: 1px solid var(--pi-line); }
+.pi-summary__ph { color: var(--pi-sub); }
+/* Learning: a question becomes a draft instruction, no invented chart. */
+.pi-insight { display: grid; gap: 18px; }
+.pi-insight__q { width: 91%; }
+.pi-insight__a { width: 91%; justify-self: end; }
+.pi-insight__quote, .pi-insight__suggest { font-size: max(16px,1.1em); line-height: 1.4; }
+@container (max-width: 540px) {
+  .pi-overview { grid-template-columns: 1fr 1fr; gap: 14px; }
+  .pi-overview__tile { display: none; }
+  .pi-overview__booking { grid-column: 2; }
+  .pi-booking { grid-template-columns: 1fr; }
+  .pi-booking__cond { grid-template-columns: 1fr 1fr; gap: 12px; }
+  .pi-transfer { grid-template-columns: 1fr 1fr; gap: 14px; }
+  .pi-transfer__brief { grid-column: 1 / -1; grid-row: 2; }
+  .pi-transfer::before { top: 40%; }
+  .pi-intake__grid { grid-template-columns: 1fr; }
+}
+@container (max-width: 360px) {
+  .pi__draw { padding: 16px; }
+  .pi-overview { grid-template-columns: 1fr; }
+  .pi-overview__phone { grid-column: 1; grid-row: 1; }
+  .pi-overview__booking { grid-column: 1; grid-row: 2; }
+  .pi-booking__cond { grid-template-columns: 1fr; }
+  .pi__card { padding: 17px; }
+}

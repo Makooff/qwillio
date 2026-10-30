@@ -186,8 +186,8 @@ function VoiceCloneNote({ isFr }: { isFr: boolean }) {
       </span>
       <p className="text-[15px] text-q2-body leading-relaxed q2-body-text">
         {isFr
-          ? 'Ou clonez votre propre voix : 20 à 90 secondes d’enregistrement, avec votre consentement explicite, et elle répond avec votre timbre.'
-          : 'Or clone your own voice: 20 to 90 seconds of recording, with your explicit consent, and she answers with your timbre.'}
+          ? 'Ou clonez votre voix, avec votre consentement explicite. Sur le moteur Qwillio, cette option est disponible en mode cascade, pas en mode temps réel.'
+          : 'Or clone your voice with your explicit consent. On the Qwillio engine, this option works in cascade mode, not realtime mode.'}
       </p>
     </div>
   );
@@ -202,7 +202,7 @@ export default function CircularReceptionists({ isFr }: { isFr: boolean }) {
   const speaking = playing === preset.id;
   const onTogglePreview = useCallback(() => {
     toggle(preset.id, previewUrl(preset.id, isFr), spokenLine(preset.id, isFr));
-  }, [toggle, preset.id, preset.name, isFr]);
+  }, [toggle, preset.id, isFr]);
 
   /* Changer de personnage coupe l'aperçu en cours et précharge le clip du
      nouveau, pour que ▶ parte sans attente. */

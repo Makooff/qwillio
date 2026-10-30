@@ -135,8 +135,8 @@ export default function Pricing() {
       overage: PLAN_OVERAGE_EUR.pro,
       description: isFr ? 'Pour grandir' : 'To grow',
       features: isFr
-        ? ['2 000 minutes incluses par mois', 'Tout Starter inclus', 'Analytiques avancées', 'Intégrations CRM natives', 'Support prioritaire']
-        : ['2,000 minutes included per month', 'Everything in Starter', 'Advanced analytics', 'Native CRM integrations', 'Priority support'],
+        ? ['2 000 minutes incluses par mois', 'Tout Starter inclus', 'Analytiques avancées', 'HubSpot natif et connexions CRM', 'Support prioritaire']
+        : ['2,000 minutes included per month', 'Everything in Starter', 'Advanced analytics', 'Native HubSpot and CRM connections', 'Priority support'],
       cta: isFr ? 'Choisir Pro' : 'Choose Pro',
       popular: true,
     },
@@ -240,7 +240,7 @@ export default function Pricing() {
             ['Bouclier anti-spam', '✓', '✓', '✓', '✓'],
             ['Transcription + sentiment', '✓', '✓', '✓', '✓'],
             ['Analytiques avancées', '·', '·', '✓', '✓'],
-            ['Intégrations CRM natives', '·', '·', '✓', '✓'],
+            ['HubSpot natif et connexions CRM', '·', '·', '✓', '✓'],
             ['Accès API complet', '·', '·', '·', '✓'],
           ],
         },
@@ -265,7 +265,7 @@ export default function Pricing() {
             ['Minutes included', '250', '750', '2,000', '5,000'],
             [`Price / ${perLabel}`, ...tiers.map((t) => `€${priceFor(t.monthly).toLocaleString('en-US')}`)],
             ['Effective price / minute', ...tiers.map((t) => `€${effectivePerMinute(priceFor(t.monthly), t.minutes).toFixed(2)}`)],
-            ['Overage per minute', '€0.45', '€0.39', '€0.35', '€0.30'],
+            ['Overage per minute', ...tiers.map((tier) => `€${tier.overage.toFixed(2)}`)],
           ],
         },
         {
@@ -279,7 +279,7 @@ export default function Pricing() {
             ['Spam shield', '✓', '✓', '✓', '✓'],
             ['Transcript + sentiment', '✓', '✓', '✓', '✓'],
             ['Advanced analytics', '·', '·', '✓', '✓'],
-            ['Native CRM integrations', '·', '·', '✓', '✓'],
+            ['Native HubSpot and CRM connections', '·', '·', '✓', '✓'],
             ['Full API access', '·', '·', '·', '✓'],
           ],
         },

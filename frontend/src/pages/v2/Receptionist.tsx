@@ -7,13 +7,14 @@ import {
 import { useSEO } from '../../hooks/useSEO';
 import { useLang } from '../../stores/langStore';
 import PublicShell from '../../components/v2/PublicShell';
-import HeroBackdrop from '../../components/v2/HeroBackdrop';
+import HeroBackdrop from '../../components/v2/HospitalityBackdrop';
+import ProductIllustration from '../../components/v2/ProductIllustration';
 import { Container, Section, Eyebrow, Display, H2, Lead, SerifWord } from '../../components/v2/Primitives';
 import { PillLink } from '../../components/v2/Button';
 import RevealV2 from '../../components/v2/RevealV2';
-import ScreenShot from '../../components/v2/ScreenShot';
-import ReceptionistCard from '../../components/v2/ReceptionistCards';
-import HeroPhone3D from '../../components/ui/HeroPhone3D';
+
+
+
 import CircularReceptionists from '../../components/v2/CircularReceptionists';
 import TextReveal from '../../components/v2/motion/TextReveal';
 import TryVoiceButton from '../../components/v2/TryVoiceButton';
@@ -37,8 +38,9 @@ interface Pillar {
   panelNote?: string;
 }
 
-function Panel({ num, isFr }: { num: string; isFr: boolean }) {
-  return <ReceptionistCard num={num} isFr={isFr} />;
+function Panel({ pillar, isFr }: { pillar: Pillar; isFr: boolean }) {
+  const kind = pillar.num === '01' ? 'booking' : pillar.num === '02' ? 'transfer' : pillar.num === '03' ? 'returning' : 'conversation';
+  return <ProductIllustration kind={kind} isFr={isFr} />;
 }
 
 export default function Receptionist() {
@@ -62,12 +64,12 @@ export default function Receptionist() {
           icon: CalendarCheck,
           num: '01',
           title: 'Le rendez-vous est inscrit avant qu’il raccroche',
-          body: 'Dès qu’un jour est prononcé, la disponibilité part en avance vers votre agenda, Google ou Outlook. Le créneau retenu est écrit confirmé, pas mis de côté pour plus tard. Deux appels au même moment ne peuvent pas repartir avec le même créneau.',
+          body: 'Il consulte votre agenda Google ou Outlook et confirme le créneau choisi pendant l’appel. Vos clients peuvent aussi déplacer ou annuler un rendez-vous. Si le créneau vient d’être pris, il propose une autre heure.',
           panelLabel: 'Ce qui se passe pendant la phrase',
           panelRows: [
             { label: 'Un jour est prononcé, l’agenda est interrogé', meta: 'en avance' },
             { label: 'Le créneau choisi est écrit, confirmé' },
-            { label: 'Un créneau retenu disparaît des autres appels' },
+            { label: 'Déplacement et annulation pendant l’appel' },
           ],
           panelNote: `Fonctionne si votre agenda Google ou Outlook est connecté${NB}: sinon il note la demande et vous rappelez.`,
         },
@@ -75,7 +77,7 @@ export default function Receptionist() {
           icon: PhoneForwarded,
           num: '02',
           title: 'Il vous dit qui appelle avant de vous passer l’appel',
-          body: 'Vous ne décrochez plus dans le vide. Avant de faire le pont, il vous résume à l’oral qui est en ligne et pourquoi, puis vous envoie le même brief par SMS, avec le numéro et l’état d’esprit de l’appelant.',
+          body: 'Vous ne décrochez plus dans le vide. Avant de faire le pont, il vous résume à l’oral qui est en ligne et pourquoi, puis peut vous envoyer le même brief par SMS si ce canal est activé et votre numéro renseigné.',
           panelLabel: 'Le SMS de brief',
           panelRows: [
             { label: 'Qui appelle', meta: 'nom et numéro' },
@@ -101,14 +103,14 @@ export default function Receptionist() {
           icon: MessagesSquare,
           num: '04',
           title: 'Une conversation, pas un serveur vocal',
-          body: 'Coupez-le, il s’arrête net. Une toux ne le coupe pas. Pendant que vous parlez il glisse des « mhm », jamais un « oui » qui vaudrait engagement. Un blanc trop long et il demande si vous êtes toujours là. Un appelant agacé obtient des phrases courtes, zéro discours commercial, et un humain proposé plus tôt.',
+          body: 'Vous pouvez l’interrompre pour préciser une demande. Après un silence prolongé, il vérifie si vous êtes toujours là. Face à un appelant agacé, ses consignes privilégient des réponses courtes et le passage à un humain.',
           panelLabel: 'Ce qu’il dit vraiment',
           panelRows: [
             { label: '« Pardon, allez-y. »', meta: 'coupé' },
             { label: '« Vous êtes toujours là ? »', meta: 'silence' },
-            { label: '« mhm »', meta: 'pendant que vous parlez' },
+            { label: '« Je peux vous passer quelqu’un. »', meta: 'passage à un humain' },
           ],
-          panelNote: 'Un acquiescement n’est jamais interprété comme un accord.',
+          panelNote: 'Les actions demandées restent soumises aux confirmations prévues.',
         },
       ]
     : [
@@ -116,12 +118,12 @@ export default function Receptionist() {
           icon: CalendarCheck,
           num: '01',
           title: 'The appointment is written before it hangs up',
-          body: 'The moment a day is named, availability is fetched ahead of the request from your Google or Outlook calendar. The chosen slot is written confirmed, not parked for later. Two calls at the same moment cannot walk away with the same slot.',
+          body: 'It checks your Google or Outlook calendar and confirms the chosen slot during the call. Customers can also reschedule or cancel an appointment. If the slot has just been taken, it offers another time.',
           panelLabel: 'What happens mid-sentence',
           panelRows: [
             { label: 'A day is named, the calendar is queried', meta: 'ahead' },
             { label: 'The chosen slot is written, confirmed' },
-            { label: 'A held slot disappears from other calls' },
+            { label: 'Reschedule or cancel during the call' },
           ],
           panelNote: 'Requires a connected Google or Outlook calendar: otherwise it takes the request and you call back.',
         },
@@ -129,7 +131,7 @@ export default function Receptionist() {
           icon: PhoneForwarded,
           num: '02',
           title: 'It tells you who is calling before it hands over',
-          body: 'You no longer pick up blind. Before bridging the call, it tells you out loud who is on the line and why, then sends you the same brief by text, with the number and the caller’s state of mind.',
+          body: 'You no longer pick up blind. Before bridging the call, it tells you out loud who is on the line and why, then can send the same brief by text when messaging is enabled and your number is provided.',
           panelLabel: 'The brief text',
           panelRows: [
             { label: 'Who is calling', meta: 'name and number' },
@@ -155,14 +157,14 @@ export default function Receptionist() {
           icon: MessagesSquare,
           num: '04',
           title: 'A conversation, not a phone menu',
-          body: 'Cut in and it stops dead. A cough does not cut it off. While you speak it slips in a quiet "mhm", never a "yes" that could pass for consent. After a long pause it asks whether you are still there. An annoyed caller gets short sentences, no sales talk, and a human offered sooner.',
+          body: 'You can interrupt to clarify a request. After a long pause, it checks whether you are still there. With an annoyed caller, its instructions favour short answers and a handoff to a person.',
           panelLabel: 'What it actually says',
           panelRows: [
             { label: '"Sorry, go ahead."', meta: 'cut off' },
             { label: '"Are you still there?"', meta: 'silence' },
-            { label: '"mhm"', meta: 'while you speak' },
+            { label: '"I can put you through to someone."', meta: 'human handoff' },
           ],
-          panelNote: 'A backchannel is never read as agreement.',
+          panelNote: 'Requested actions still require the relevant confirmations.',
         },
       ];
 
@@ -209,16 +211,16 @@ export default function Receptionist() {
           body: 'Pas à la fin. Une ligne qui coupe en pleine phrase laisse quand même de quoi rappeler.',
         },
         {
-          title: 'En cas de pépin technique, il ne dit jamais « erreur »',
-          body: 'Il prend les coordonnées de l’appelant et propose un rappel. L’appelant n’entend jamais la panne.',
+          title: 'Une demande de rappel plutôt qu’une impasse',
+          body: 'Si une action échoue, il peut recueillir les coordonnées de l’appelant pour vous permettre de rappeler. Ce repli ne garantit pas la continuité d’une ligne coupée.',
         },
         {
           title: 'Chaque appel repart avec son analyse',
-          body: 'Le client final reçoit son SMS de confirmation, un rappel la veille du rendez-vous et une relance s’il ne se présente pas.',
+          body: 'Résumé et coordonnées sont réunis dans le portail. Confirmation, rappel et relance après absence dépendent des canaux activés et des coordonnées disponibles.',
         },
         {
           title: 'Chaque semaine, il vous dit ce qui cloche',
-          body: 'Trop bavard, agenda déconnecté, questions revenues sans réponse dans sa base. Le constat part sur votre courriel et votre téléphone, vous décidez : il ne se réécrit pas tout seul.',
+          body: 'Trop bavard, agenda déconnecté, questions revenues sans réponse dans sa base. Le bilan peut arriver par email et par SMS selon vos coordonnées et les canaux activés. Vous décidez des changements.',
         },
       ]
     : [
@@ -227,16 +229,16 @@ export default function Receptionist() {
           body: 'Not at the end. A line that drops mid-sentence still leaves you something to call back.',
         },
         {
-          title: 'On a technical hiccup it never says "error"',
-          body: 'It takes the caller’s details and offers a callback. The caller never hears the failure.',
+          title: 'A callback request rather than a dead end',
+          body: 'If an action fails, it can collect the caller’s details so you can call back. This fallback cannot keep a disconnected line open.',
         },
         {
           title: 'Every call comes back analysed',
-          body: 'Summary, sentiment, scored lead. The customer gets their confirmation text, a reminder the day before the appointment, and a follow-up if they do not show.',
+          body: 'Summary, sentiment and contact details are kept in the portal. Confirmations, reminders and no-show follow-ups depend on enabled channels and available contact details.',
         },
         {
           title: 'Every week it tells you what is off',
-          body: 'Too talkative, calendar disconnected, questions its knowledge base could not answer. The findings land in your inbox and on your phone, you decide: it does not rewrite itself.',
+          body: 'Too talkative, calendar disconnected, questions its knowledge base could not answer. The report can arrive by email and text depending on your contact details and enabled channels. You decide what changes.',
         },
       ];
 
@@ -296,9 +298,9 @@ export default function Receptionist() {
               {/* Propriétés vérifiables du produit uniquement (DA/voix.md) */}
               <dl className="grid grid-cols-3 gap-x-3 sm:gap-x-6 gap-y-3 text-sm text-q2-body border-t border-q2-plate pt-5 sm:pt-6 max-w-[540px]">
                 <div className="flex min-w-0 flex-col items-start gap-1 break-words">
-                  <dt className="sr-only">{isFr ? 'Temps de décrochage' : 'Pickup time'}</dt>
-                  <dd className="text-2xl font-light tracking-tight text-q2-ink tabular-nums">&lt;1&nbsp;s</dd>
-                  <span>{isFr ? 'décrochage' : 'pickup'}</span>
+                  <dt className="sr-only">{isFr ? 'Mode d’accueil' : 'Reception mode'}</dt>
+                  <dd className="text-2xl font-light tracking-tight text-q2-ink">{isFr ? 'IA' : 'AI'}</dd>
+                  <span>{isFr ? 'sans menu vocal' : 'no phone menus'}</span>
                 </div>
                 <div className="flex min-w-0 flex-col items-start gap-1 break-words">
                   <dt className="sr-only">{isFr ? 'Langues' : 'Languages'}</dt>
@@ -308,14 +310,14 @@ export default function Receptionist() {
                 <div className="flex min-w-0 flex-col items-start gap-1 break-words">
                   <dt className="sr-only">{isFr ? 'Disponibilité' : 'Uptime'}</dt>
                   <dd className="text-2xl font-light tracking-tight text-q2-ink tabular-nums">24/7</dd>
-                  <span>{isFr ? 'jamais fermé' : 'always on'}</span>
+                  <span>{isFr ? 'horaires configurables' : 'configurable hours'}</span>
                 </div>
               </dl>
             </div>
           </RevealV2>
 
           <RevealV2 index={2}>
-            <HeroPhone3D isFr={isFr} />
+            <ProductIllustration kind="overview" isFr={isFr} />
           </RevealV2>
         </Container>
       </Section>
@@ -409,7 +411,7 @@ export default function Receptionist() {
                         de ce panneau au lieu de le frôler en travers de la
                         scène. C'est ce qui évite les coins des cartes. */}
                     <div data-step-mask className={flip ? 'lg:order-1' : ''}>
-                      <Panel num={pillar.num} isFr={isFr} />
+                      <Panel pillar={pillar} isFr={isFr} />
                     </div>
                   </div>
                 </RevealV2>
@@ -468,41 +470,7 @@ export default function Receptionist() {
                 parce qu'une capture réduite à 350 px se lisait comme une
                 grille de gris; le cadrage sur le haut de l'image règle ce
                 point sans avoir à redessiner l'écran. */}
-            <figure>
-              {/* Le PANNEAU DÉGRADÉ des illustrations de l'accueil (retour
-                  utilisateur: « les cadres avec dégradé »): même géométrie
-                  mauve sombre que la rangée Fiche d'appel, fenêtre posée
-                  dedans, et derrière elle le cadre de déco décalé en gris
-                  secondaire (`q2-fog`), 12px égaux bas et droite. */}
-              <div
-                className="rounded-[28px] p-6 sm:p-10 lg:p-14"
-                style={{ background: 'radial-gradient(130% 150% at 18% 115%, #453486 0%, #221842 48%, #100F13 85%)' }}
-              >
-                <div className="relative">
-                  {/* Le cadre de déco est PLEIN, du gris sombre figé
-                      (valeur `q2-band` du thème sombre: #111111) — identique
-                      dans les deux thèmes. Retour utilisateur: « garde l'ombre
-                      grise même en mode clair », « c'était le gris avant en
-                      mode sombre ». Le token basculait au presque blanc en
-                      clair; on fige donc la valeur sombre, et le filet fog
-                      garde l'arête lisible contre le panneau. */}
-                  <div aria-hidden="true" className="absolute inset-0 translate-x-3 translate-y-3 rounded-[16px] bg-[#111111] border border-q2-fog/30" />
-                  <div className="relative rounded-[16px] overflow-hidden border border-white/15">
-                    <ScreenShot
-                      name="chat-config"
-                      alt={isFr
-                        ? 'La conversation de configuration dans le portail: on lui dit de fermer le mercredi après-midi, elle confirme le nouvel horaire.'
-                        : 'The setup conversation in the portal: told to close Wednesday afternoons, she confirms the new hours.'}
-                    />
-                  </div>
-                </div>
-              </div>
-              <figcaption className="mt-6 px-1 text-[12.5px] text-q2-fog q2-body-text">
-                {isFr
-                  ? 'Le chat de configuration du dashboard, compte de démonstration.'
-                  : 'The dashboard configuration chat, demo account.'}
-              </figcaption>
-            </figure>
+            <ProductIllustration kind="setup" isFr={isFr} />
           </RevealV2>
         </Container>
       </Section>
@@ -532,8 +500,8 @@ export default function Receptionist() {
             </H2>
             <p className="text-q2-body text-base leading-relaxed mt-4 q2-body-text">
               {isFr
-                ? 'Chaque réceptionniste a un visage, une personnalité et sa façon de tenir un appel. Choisissez la vôtre, ou prêtez-lui votre propre voix.'
-                : 'Each receptionist has a face, a personality and a way of holding a call. Pick yours, or lend her your own voice.'}
+                ? 'Un ton chaleureux, posé ou plus direct : écoutez les voix et choisissez celle qui correspond à votre accueil.'
+                : 'Warm, composed or more direct: hear the voices and choose the one that fits your welcome.'}
             </p>
           </RevealV2>
           <RevealV2 index={1}>
@@ -568,7 +536,7 @@ export default function Receptionist() {
           </RevealV2>
 
           <RevealV2 index={1}>
-            <ReceptionistCard num="05" isFr={isFr} />
+            <ProductIllustration kind="knowledge" isFr={isFr} />
           </RevealV2>
         </Container>
       </Section>

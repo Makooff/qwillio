@@ -17,11 +17,11 @@ type QA = { q: string; a: string };
 const FAQ_FR: QA[] = [
   {
     q: 'Est-ce qu’il prend vraiment le rendez-vous pendant l’appel ?',
-    a: "Oui, si votre agenda Google est connecté. Dès qu'un jour est prononcé, il interroge vos disponibilités sans attendre la fin de la phrase, propose les créneaux réellement libres, puis écrit la réservation confirmée. Deux appels simultanés ne peuvent pas repartir avec le même créneau : un créneau retenu sur un appel disparaît des propositions faites à l'autre. Sans agenda connecté, il note la demande et vos coordonnées, et c'est vous qui rappelez.",
+    a: "Oui, avec votre agenda Google ou Outlook connecté. Il vérifie vos disponibilités, propose un créneau libre puis enregistre la réservation confirmée. Vos clients peuvent aussi déplacer ou annuler un rendez-vous pendant l’appel. Si le créneau vient d’être réservé, il propose une autre heure. Sans agenda connecté, il note la demande et les coordonnées pour vous permettre de rappeler.",
   },
   {
     q: 'Que se passe-t-il quand il me passe l’appel ?',
-    a: "Il ne vous met pas devant un inconnu. Avant de faire le pont, il vous résume à l'oral qui est en ligne et pourquoi, puis vous envoie le même brief par SMS : le nom, le numéro, le motif, et l'état d'esprit de l'appelant. Si le transfert saute en route, vous avez déjà le numéro pour rappeler.",
+    a: "Il ne vous met pas devant un inconnu. Avant de faire le pont, il vous résume à l’oral qui est en ligne et pourquoi, puis peut vous envoyer le même brief par SMS si ce canal est activé et votre numéro renseigné. Si le transfert échoue, les coordonnées déjà recueillies vous permettent de rappeler.",
   },
   {
     q: 'Reconnaît-il un client qui rappelle ?',
@@ -41,7 +41,7 @@ const FAQ_FR: QA[] = [
   },
   {
     q: 'Puis-je utiliser ma propre voix ?',
-    a: "Oui. Depuis le tableau de bord, enregistrez entre 20 et 90 secondes au micro, ou importez un fichier audio, et la voix clonée est utilisable dans la foulée : votre réceptionniste répond avec votre timbre. Le clonage exige votre consentement explicite, la voix doit être la vôtre ou enregistrée avec l’accord écrit de la personne. Vous pouvez la remplacer ou la supprimer à tout moment, l’ancienne est alors effacée.",
+    a: "Oui. Depuis le tableau de bord, enregistrez votre voix au micro ou importez un fichier audio. Sur le moteur vocal Qwillio, cette option nécessite le mode cascade : les voix des modèles temps réel ne peuvent pas être remplacées par un clone. Le clonage exige votre consentement explicite ; la voix doit être la vôtre ou enregistrée avec l’accord écrit de la personne. Vous pouvez la remplacer ou demander sa suppression.",
   },
   {
     q: 'Parle-t-il d’autres langues que le français et l’anglais ?',
@@ -53,7 +53,7 @@ const FAQ_FR: QA[] = [
   },
   {
     q: 'Et s’il ne sait pas répondre ?',
-    a: "Il transfère vers vous selon les règles que vous avez posées, ou il prend les coordonnées de l'appelant et propose un rappel. Même en cas de pépin technique de notre côté, l'appelant n'entend jamais un message d'erreur : il repart avec la promesse d'un rappel et vous récupérez la fiche. Chaque semaine, vous recevez par courriel et par SMS la liste de ce qui a coincé, par exemple les questions revenues sans réponse dans votre FAQ.",
+    a: "Il transfère vers vous selon vos règles ou prend les coordonnées pour vous permettre de rappeler. Lorsqu’une action échoue, il peut proposer ce même repli. Cela ne couvre pas toutes les pannes ou les coupures de ligne. Un bilan hebdomadaire peut vous être envoyé par email et par SMS selon les canaux activés, notamment pour repérer les questions sans réponse dans votre FAQ.",
   },
   {
     q: 'Combien ça coûte ?',
@@ -68,11 +68,11 @@ const FAQ_FR: QA[] = [
 const FAQ_EN: QA[] = [
   {
     q: 'Does it really book the appointment during the call?',
-    a: "Yes, if your Google calendar is connected. As soon as a day is named it checks your availability without waiting for the end of the sentence, offers slots that are genuinely free, then writes the booking confirmed. Two simultaneous calls cannot walk away with the same slot: a slot held on one call disappears from what is offered on the other. Without a connected calendar it takes the request and the caller's details, and you call back.",
+    a: "Yes, with your Google or Outlook calendar connected. It checks availability, offers a free slot and records the confirmed booking. Customers can also reschedule or cancel an appointment during the call. If the slot has just been taken, it offers another time. Without a connected calendar, it records the request and contact details so you can call back.",
   },
   {
     q: 'What happens when it hands the call over to me?',
-    a: "You are not dropped in front of a stranger. Before bridging the call it tells you out loud who is on the line and why, then sends you the same brief by text: name, number, reason, and the caller's state of mind. If the transfer drops on the way, you already have the number to call back.",
+    a: "You are not dropped in front of a stranger. Before bridging the call, it tells you who is on the line and why, then can send the same brief by text when messaging is enabled and your number is provided. If the transfer fails, contact details already collected let you call back.",
   },
   {
     q: 'Does it recognise a customer calling back?',
@@ -92,7 +92,7 @@ const FAQ_EN: QA[] = [
   },
   {
     q: 'Can I use my own voice?',
-    a: 'Yes. From the dashboard, record 20 to 90 seconds with your microphone, or import an audio file, and the cloned voice is usable right away: your receptionist answers with your timbre. Cloning requires your explicit consent, the voice must be yours or recorded with the person’s written permission. You can replace or delete it at any time, and the previous one is erased.',
+    a: 'Yes. Record your voice with your microphone or import an audio file from the dashboard. On the Qwillio voice engine, this option requires cascade mode: a realtime model voice cannot be replaced by a clone. Cloning requires explicit consent; the voice must be yours or recorded with the person’s written permission. You can replace it or request deletion.',
   },
   {
     q: 'Does it speak languages other than French and English?',
@@ -104,7 +104,7 @@ const FAQ_EN: QA[] = [
   },
   {
     q: 'What if it does not know the answer?',
-    a: 'It transfers to you according to the rules you set, or it takes the caller’s details and offers a callback. Even on a technical hiccup on our side, the caller never hears an error message: they leave with the promise of a callback and you get the record. Every week you receive, by email and text, a list of what went wrong, for example questions that kept coming back with no answer in your FAQ.',
+    a: 'It transfers according to your rules or collects contact details so you can call back. If an action fails, it can offer this same fallback. This cannot cover every outage or disconnected line. A weekly report can be sent by email and text depending on enabled channels, including questions your FAQ could not answer.',
   },
   {
     q: 'How much does it cost?',
