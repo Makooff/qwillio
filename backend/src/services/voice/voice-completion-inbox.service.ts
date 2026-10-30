@@ -37,6 +37,10 @@ const POLL_MS = 30_000;
 const PII_TTL_MS = 24 * 60 * 60_000;
 const RETRY_BASE_MS = 30_000;
 
+// Numeric-only legacy summaries remain assignable; only `stt` may be a string
+// at runtime (enforced at the persistence boundary below).
+export type VoiceCompletionLatency = Record<string, number | string> & { stt?: string };
+
 export interface VoiceCompletionPayload {
   room: string;
   clientId: string;
@@ -45,7 +49,7 @@ export interface VoiceCompletionPayload {
   brain?: string;
   startedAt?: string;
   durationSeconds?: number;
-  latency?: Record<string, number>;
+  latency?: VoiceCompletionLatency;
   transcript?: string;
   twilioCallSid?: string;
 }
@@ -73,7 +77,7 @@ export function validateVoiceCompletionPayload(raw: unknown): VoiceCompletionPay
   }
   if (p.startedAt !== undefined
     && (typeof p.startedAt !== 'string' || Number.isNaN(new Date(p.startedAt).getTime()))) invalid();
-  let latency: Record<string, number> | undefined;
+  let latency: VoiceCompletionLatency | undefined;
   if (p.latency !== undefined) {
     if (typeof p.latency !== 'object' || p.latency === null || Array.isArray(p.latency)) invalid();
     latency = {};
@@ -84,10 +88,15 @@ export function validateVoiceCompletionPayload(raw: unknown): VoiceCompletionPay
     const contextKeys = new Set(['room', 'caller', 'cerveau', 'langue']);
     for (const [key, value] of Object.entries(p.latency)) {
       if (contextKeys.has(key)) {
-        if (typeof value !== 'string') invalid();
+        if (typeof value !== 'string' || value.length > 255 || /[\u0000-\u001f\u007f]/.test(value)) invalid();
         continue;
       }
-      if (typeof value !== 'number' || !Number.isFinite(value)) invalid();
+      if (key === 'stt') {
+        // Keep the model label for A/B attribution. Empty is the worker's
+        // historical default; non-empty labels are bounded model identifiers.
+        if (typeof value !== 'string' || value.length > 255
+          || (value !== '' && !/^[a-zA-Z0-9][a-zA-Z0-9._:/-]*$/.test(value))) invalid();
+      } else if (typeof value !== 'number' || !Number.isFinite(value)) invalid();
       Object.defineProperty(latency, key, { value, enumerable: true, writable: true, configurable: true });
     }
   }

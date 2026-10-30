@@ -69,6 +69,17 @@ beforeEach(() => {
 afterEach(() => { vi.useRealTimers(); vi.unstubAllEnvs(); });
 
 describe('voice completion durable inbox', () => {
+  it('stores and revalidates the STT label without losing numeric legacy summaries', async () => {
+    const inbox = await load();
+    const latency = { stt: 'nova-3', total_p50: 850 };
+    const { id } = await inbox.enqueue(payload({ latency: { ...latency, langue: 'nl', caller: '' } }));
+    expect(rows[0].content.payload.latency).toEqual(latency);
+    const handler = vi.fn().mockResolvedValue(undefined);
+    await inbox.runOne(id, handler);
+    expect(handler).toHaveBeenCalledWith(expect.objectContaining({ latency }));
+    expect(rows[0].status).toBe('completed');
+  });
+
   it('persists before resolving enqueue (the caller may now ACK), first payload wins under concurrent replay', async () => {
     const inbox = await load();
     const result = await Promise.all([inbox.enqueue(payload()), inbox.enqueue(payload({ transcript: 'replacement' }))]);
