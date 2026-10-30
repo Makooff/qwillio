@@ -36,7 +36,9 @@ export function clientLocale(client: {
   country?: string | null;
 }): ClientLocale {
   const chosen = String(client.agentLanguage ?? '').trim().toLowerCase();
-  if (chosen === 'fr' || chosen === 'en' || chosen === 'nl') return chosen;
+  // Accept a language or a language-region tag, not an arbitrary prefix.
+  const locale = /^(fr|en|nl)(?:-[a-z]{2}|-\d{3})?$/.exec(chosen);
+  if (locale) return locale[1] as ClientLocale;
   return FRENCH_SPEAKING.has(String(client.country ?? '').toUpperCase()) ? 'fr' : 'en';
 }
 

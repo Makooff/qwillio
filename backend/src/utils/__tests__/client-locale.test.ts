@@ -19,6 +19,13 @@ describe('clientLocale', () => {
     expect(clientLocale({ agentLanguage: 'nl' })).toBe('nl');
   });
 
+  it.each([['nl-BE', 'nl'], ['fr-BE', 'fr'], ['en-GB', 'en'], [' NL-be ', 'nl']])('normalizes regional choice %s before country fallback', (agentLanguage, expected) => {
+    expect(clientLocale({ agentLanguage, country: expected === 'fr' ? 'US' : 'BE' })).toBe(expected);
+  });
+  it.each(['nl-', 'nl_BE', 'nl-B', 'nl-BEL', 'nl-BE-extra', 'nl--BE', 'nlish', 'en-1234', 'fr-💥'])('does not promote malformed locale %s', agentLanguage => {
+    expect(clientLocale({ agentLanguage, country: 'US' })).toBe('en');
+    expect(clientLocale({ agentLanguage, country: 'BE' })).toBe('fr');
+  });
   it('ne perd PAS le néerlandais', () => {
     /* `agentLanguage === 'fr' ? 'fr' : 'en'`, recopié dans huit services,
        servait de l'anglais à tout client flamand. */
