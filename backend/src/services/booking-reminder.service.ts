@@ -93,6 +93,12 @@ export class BookingReminderService {
       include: {
         client: {
           select: {
+            /* L'id compte autant que le nom: c'est lui qui donne au point
+               d'envoi SMS le pays (conversion d'un numéro national), la ligne
+               mobile du client comme expéditeur, la préférence WhatsApp et le
+               rattachement dans `sms_log`. Sans lui, le rappel partait
+               dégradé et rien ne le disait. */
+            id: true,
             businessName: true,
             businessType: true,
             contactPhone: true,
@@ -179,6 +185,7 @@ export class BookingReminderService {
                 bookingDate: booking.bookingDate.toISOString(),
                 bookingTime: booking.bookingTime || null,
                 serviceType: booking.serviceType || null,
+                clientId: booking.client.id,
               });
             } catch (error) {
               logger.error(`[REMINDERS] SMS refusé pour ${booking.id}: ${(error as Error).message}`);
@@ -221,7 +228,18 @@ export class BookingReminderService {
           lte: new Date(now.getTime() + margin),
         },
         status: 'confirmed', // Toujours confirmé = absence probable
-        customerEmail: { not: null },
+        /* COURRIEL OU TÉLÉPHONE: LA RELANCE SUIT LE CANAL QUI EXISTE.
+           L'ancien filtre `customerEmail: { not: null }` faisait pire que
+           manquer une relance: un rendez-vous manqué sans courriel ne
+           sortait JAMAIS du `confirmed` — ni marqué absent (le taux affiché
+           mentait), ni relancé. Le repli est le canal transactionnel déjà
+           utilisé pour le rappel 24 h sur CE numéro; et quand ni l'un ni
+           l'autre n'existe, la ligne n'est tout simplement pas relançable:
+           on ne fabrique pas de livraison. */
+        OR: [
+          { customerEmail: { not: null } },
+          { customerPhone: { not: null } },
+        ],
         /* PLUS DE FILTRE DE FORFAIT, ET IL ÉTAIT DOUBLEMENT NUISIBLE.
            Il vivait en mémoire, APRÈS le `take: 20`: vingt rendez-vous Solo
            dans les dernières heures remplissaient le lot et aucun client Pro
@@ -232,6 +250,11 @@ export class BookingReminderService {
       include: {
         client: {
           select: {
+            /* Même raison que pour les rappels: l'id du client porte le pays,
+               l'expéditeur, la préférence WhatsApp et l'attribution dans
+               `sms_log` — et l'absence constatée DOIT être attribuée au bon
+               commerce, pas envoyée anonyme. */
+            id: true,
             businessName: true,
             planType: true,
             contactPhone: true,
@@ -281,16 +304,43 @@ export class BookingReminderService {
         });
         if (claimed.count === 0) continue;
 
-        try {
-          await emailService.sendRescheduleEmail({
-            to: booking.customerEmail!,
-            customerName: booking.customerName,
-            businessName: booking.client.businessName,
-            originalDate: booking.bookingDate,
-            businessPhone: booking.client.contactPhone || booking.client.vapiPhoneNumber || '',
-          });
-        } catch (error) {
-          logger.error(`[NO-SHOW] ${booking.id} marqué absent, mail de relance non parti: ${(error as Error).message}`);
+        if (booking.customerEmail) {
+          try {
+            await emailService.sendRescheduleEmail({
+              to: booking.customerEmail,
+              customerName: booking.customerName,
+              businessName: booking.client.businessName,
+              originalDate: booking.bookingDate,
+              businessPhone: booking.client.contactPhone || booking.client.vapiPhoneNumber || '',
+            });
+          } catch (error) {
+            logger.error(`[NO-SHOW] ${booking.id} marqué absent, mail de relance non parti: ${(error as Error).message}`);
+          }
+        } else if (booking.customerPhone) {
+          /* REPLI SMS: MÊME DOCTRINE QUE LE MAIL. Le statut est déjà `no_show`
+             (réservé AVANT l'envoi par le `updateMany` ci-dessus): une seule
+             tentative, jamais de doubl entre deux instances, et un échec ne
+             repasse RIEN en « confirmé » — l'absence est un fait constaté.
+             L'envoi passe par `smsService.sendNoShowRescheduleSMS`, donc par
+             le seul point d'envoi: SMS_ENABLED, expéditeur, forme E.164,
+             préférence WhatsApp et refus porteur (STOP / 21610) y sont gérés. */
+          try {
+            const sent = await smsService.sendNoShowRescheduleSMS({
+              customerPhone: booking.customerPhone,
+              customerName: booking.customerName,
+              businessName: booking.client.businessName,
+              bookingDate: booking.bookingDate.toISOString(),
+              bookingTime: booking.bookingTime || null,
+              serviceType: booking.serviceType || null,
+              businessPhone: booking.client.contactPhone || booking.client.vapiPhoneNumber || null,
+              clientId: booking.client.id,
+            });
+            if (!sent) {
+              logger.error(`[NO-SHOW] ${booking.id} marqué absent, SMS de relance non parti (refusé en amont)`);
+            }
+          } catch (error) {
+            logger.error(`[NO-SHOW] ${booking.id} marqué absent, SMS de relance non parti: ${(error as Error).message}`);
+          }
         }
 
         processed++;

@@ -450,6 +450,12 @@ export class ClientCallService {
             bookingDate: bookingDay.ymd,
             bookingTime: analysis.bookingTime || null,
             serviceType: analysis.serviceType || null,
+            /* L'identité du client n'est pas décorative: elle donne au point
+               d'envoi le pays (un numéro national belge « 0483… » ne se
+               convertit pas tout seul), la ligne mobile du client comme
+               expéditeur, sa préférence WhatsApp et le rattachement dans
+               `sms_log`. La confirmation partait sans rien de tout cela. */
+            clientId,
           }).then(sent => {
             if (sent) {
               prisma.clientBooking.update({

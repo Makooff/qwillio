@@ -6,6 +6,7 @@ const h = vi.hoisted(() => ({
   sendEmail: vi.fn(),
   sendSms: vi.fn(),
   sendReschedule: vi.fn(),
+  sendNoShowSms: vi.fn(),
 }));
 
 vi.mock('../../config/database', () => ({
@@ -16,7 +17,7 @@ vi.mock('../../config/logger', () => ({
 }));
 vi.mock('../email.service', () => ({ emailService: { sendBookingReminderEmail: h.sendEmail, sendRescheduleEmail: h.sendReschedule } }));
 vi.mock('../discord.service', () => ({ discordService: { notify: vi.fn() } }));
-vi.mock('../sms.service', () => ({ smsService: { sendBookingReminderSMS: h.sendSms } }));
+vi.mock('../sms.service', () => ({ smsService: { sendBookingReminderSMS: h.sendSms, sendNoShowRescheduleSMS: h.sendNoShowSms } }));
 
 import { bookingReminderService, bookingInstant } from '../booking-reminder.service';
 
@@ -24,7 +25,8 @@ import { bookingReminderService, bookingInstant } from '../booking-reminder.serv
 const day = (ymd: string) => new Date(`${ymd}T12:00:00Z`);
 
 const client = {
-  businessName: 'Garage Leblanc', businessType: 'garage', contactPhone: '+3225550011',
+  id: 'c1',
+  businessName: 'Garage Leblanc', businessType: 'garage', contactPhone: '+322****0011',
   vapiPhoneNumber: null, planType: 'pro',
   onboardingData: { timezone: 'Europe/Brussels' }, country: 'BE', city: 'Bruxelles', agentLanguage: 'fr',
 };
@@ -43,6 +45,7 @@ beforeEach(() => {
   h.sendEmail.mockResolvedValue(undefined);
   h.sendSms.mockResolvedValue(true);
   h.sendReschedule.mockResolvedValue(undefined);
+  h.sendNoShowSms.mockResolvedValue(true);
 });
 
 /**
@@ -144,6 +147,42 @@ describe('processBookingReminders — ce que la base est priée de filtrer', () 
     expect(sent).toBe(1);
     expect(h.sendEmail).toHaveBeenCalledOnce();
     expect(h.sendSms).toHaveBeenCalledOnce();
+  });
+
+  it('sélectionne l’id du client (pas seulement son nom) pour l’envoi du rappel', async () => {
+    /* AUDIT: la présélection ne lisait que businessName/etc. Sans l'id, le
+       point d'envoi perdait le pays (conversion d'un numéro national), la
+       ligne mobile du client comme expéditeur et le rattachement dans
+       `sms_log`. L'id du client DOIT figurer dans le select ET être passé
+       au SMS. */
+    h.findMany.mockResolvedValue([]);
+    await bookingReminderService.processBookingReminders(new Date('2026-07-01T16:30:00Z'));
+    const select = h.findMany.mock.calls[0][0].include.client.select;
+    expect(select.id).toBe(true);
+  });
+
+  it('passe le clientId au SMS de rappel: attribution et routage tenant', async () => {
+    h.findMany.mockResolvedValue([booking({ customerEmail: null })]);
+    await bookingReminderService.processBookingReminders(new Date('2026-07-01T16:30:00Z'));
+    expect(h.sendSms).toHaveBeenCalledOnce();
+    expect(h.sendSms.mock.calls[0][0]).toMatchObject({ clientId: 'c1' });
+  });
+
+  it('passe le clientId au SMS de relance d’absence: attribution tenant', async () => {
+    /* L'absence constatée doit revenir au BON commerce dans `sms_log`; sans
+       clientId, l'envoi repartait anonyme et le numéro national n'était pas
+       convertible. */
+    h.findMany.mockResolvedValue([booking({ customerEmail: null })]);
+    await bookingReminderService.processNoShowFollowUps(new Date('2026-07-02T15:30:00Z'));
+    expect(h.sendNoShowSms).toHaveBeenCalledOnce();
+    expect(h.sendNoShowSms.mock.calls[0][0]).toMatchObject({ clientId: 'c1' });
+  });
+
+  it('sélectionne aussi l’id du client dans la présélection no-show', async () => {
+    h.findMany.mockResolvedValue([]);
+    await bookingReminderService.processNoShowFollowUps(new Date('2026-07-02T15:30:00Z'));
+    const select = h.findMany.mock.calls[0][0].include.client.select;
+    expect(select.id).toBe(true);
   });
 
   it('ratisse large sur le jour, parce que le fuseau se décide en mémoire', async () => {
@@ -267,5 +306,98 @@ describe('processNoShowFollowUps — ne déclarer absent que ce qui l\u2019est',
     const done = await bookingReminderService.processNoShowFollowUps(new Date('2026-07-02T15:30:00Z'));
     expect(done).toBe(0);
     expect(h.updateMany).not.toHaveBeenCalled();
+  });
+});
+
+/**
+ * LA RELANCE D'ABSENCE N'ÉTAIT JAMAIS LUE POUR UN CLIENT SANS COURRIEL.
+ *
+ * Le `where` exigeait `customerEmail: { not: null }`: un rendez-vous manqué
+ * dont on n'avait que le numéro ne sortait jamais du `confirmed` — le client
+ * n'était ni marqué absent (le taux affiché mentait) ni relancé. Le repli est
+ * le canal TRANSACTIONNEL qui existe déjà pour ce même numéro: le SMS de
+ * rappel 24 h part dessus sans porte de consentement distincte, et la
+ * préférence WhatsApp / le STOP porteur / la disponibilité de l'expéditeur
+ * sont gérés par `smsService.sendSMS`, seul point d'envoi.
+ *
+ * Ce qui reste VOLONTAIREMENT vrai: sans numéro ET sans courriel, aucune
+ * relance ne part — on ne fabrique pas de livraison. Et l'échec du SMS ne
+ * repasse PAS la ligne en « confirmé »: l'absence est un fait constaté, comme
+ * pour le mail.
+ */
+describe('processNoShowFollowUps — repli SMS quand il n’y a pas de courriel', () => {
+  it('la présélection accepte un téléphone sans courriel', async () => {
+    h.findMany.mockResolvedValue([]);
+    await bookingReminderService.processNoShowFollowUps(new Date('2026-07-02T15:30:00Z'));
+    const where = h.findMany.mock.calls[0][0].where;
+    expect(where.customerEmail).toBeUndefined();
+    expect(where.OR).toEqual([
+      { customerEmail: { not: null } },
+      { customerPhone: { not: null } },
+    ]);
+  });
+
+  it('relance par SMS un client qu’on n’a que par téléphone, et le déclare absent', async () => {
+    h.findMany.mockResolvedValue([booking({ customerEmail: null })]);
+    const done = await bookingReminderService.processNoShowFollowUps(new Date('2026-07-02T15:30:00Z'));
+    expect(done).toBe(1);
+    expect(h.updateMany.mock.calls[0][0]).toMatchObject({
+      where: { id: 'b1', status: 'confirmed' },
+      data: { status: 'no_show' },
+    });
+    expect(h.sendNoShowSms).toHaveBeenCalledOnce();
+    const smsArgs = h.sendNoShowSms.mock.calls[0][0] as Record<string, unknown>;
+    expect(smsArgs.customerPhone).toBe('+32470111222');
+    expect(smsArgs.customerName).toBe('Jean Dupont');
+    expect(smsArgs.businessName).toBe('Garage Leblanc');
+    expect(smsArgs.businessPhone).toBe('+322****0011');
+    /* UN SEUL canal: la relance ne part pas deux fois. */
+    expect(h.sendReschedule).not.toHaveBeenCalled();
+  });
+
+  it('quand courriel ET téléphone existent, le canal reste le courriel', async () => {
+    h.findMany.mockResolvedValue([booking()]);
+    await bookingReminderService.processNoShowFollowUps(new Date('2026-07-02T15:30:00Z'));
+    expect(h.sendReschedule).toHaveBeenCalledOnce();
+    expect(h.sendNoShowSms).not.toHaveBeenCalled();
+  });
+
+  it('GARDE le statut absent quand le SMS échoue, sans se relancer', async () => {
+    /* Même doctrine que le mail: `no_show` est un fait constaté. Une seule
+       tentative est faite (pas de boucle de retry): le statut rend toute
+       seconde instance inerte, et un échec Twilio ne remet rien en jeu. */
+    h.findMany.mockResolvedValue([booking({ customerEmail: null })]);
+    h.sendNoShowSms.mockResolvedValue(false);
+    const done = await bookingReminderService.processNoShowFollowUps(new Date('2026-07-02T15:30:00Z'));
+    expect(done).toBe(1);
+    /* Le claim initial et RIEN d'autre: pas de revert, pas de seconde tentative. */
+    expect(h.updateMany).toHaveBeenCalledOnce();
+    expect(h.sendNoShowSms).toHaveBeenCalledOnce();
+  });
+
+  it('GARDE le statut absent quand l’envoi LÈVE (STOP porteur, Twilio en panne…)', async () => {
+    h.findMany.mockResolvedValue([booking({ customerEmail: null })]);
+    h.sendNoShowSms.mockRejectedValue(new Error('SMS send failed: STOP [Twilio 21610]'));
+    const done = await bookingReminderService.processNoShowFollowUps(new Date('2026-07-02T15:30:00Z'));
+    expect(done).toBe(1);
+    expect(h.updateMany).toHaveBeenCalledOnce();
+    expect(h.sendNoShowSms).toHaveBeenCalledOnce();
+  });
+
+  it('n’envoie rien quand une autre instance a déjà pris la ligne', async () => {
+    h.findMany.mockResolvedValue([booking({ customerEmail: null })]);
+    h.updateMany.mockResolvedValue({ count: 0 });
+    const done = await bookingReminderService.processNoShowFollowUps(new Date('2026-07-02T15:30:00Z'));
+    expect(done).toBe(0);
+    expect(h.sendNoShowSms).not.toHaveBeenCalled();
+  });
+
+  it('respecte la MÊME fenêtre de temps que la relance par courriel', async () => {
+    /* 90 minutes après l'heure dite: sous le plancher de deux heures, le
+       téléphone seul ne change rien au calendrier. */
+    h.findMany.mockResolvedValue([booking({ customerEmail: null })]);
+    const done = await bookingReminderService.processNoShowFollowUps(new Date('2026-07-02T14:00:00Z'));
+    expect(done).toBe(0);
+    expect(h.sendNoShowSms).not.toHaveBeenCalled();
   });
 });

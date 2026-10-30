@@ -1,0 +1,11 @@
+{
+  "name": "qwillio-booking-sql-verification",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test booking-migration.verify.mjs"
+  },
+  "devDependencies": {
+    "@electric-sql/pglite": "0.5.13"
+  }
+}

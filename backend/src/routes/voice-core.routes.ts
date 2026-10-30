@@ -126,10 +126,36 @@ router.get('/context/by-number/:trunkNumber', async (req, res) => {
     const learningClient = await prisma.client.findFirst({
       where: { id: client.id }, select: { id: true, businessType: true, country: true, agentLanguage: true },
     });
+
+    /* LA VOIX CHOISIE PAR LE CLIENT, pour le TTS de voice-core.
+       Un clone enregistré vit chez ElevenLabs (consentement exigé à la
+       création, voir voice-clone.service) ; une voix de bibliothèque peut
+       porter `provider: 'cartesia'`. Le provider ABSENT veut dire ElevenLabs,
+       le défaut historique — sans ce rappel, un vieux clone serait lu comme
+       Cartesia dès qu'une fiche le perd. C'est voice-core qui bascule son
+       modèle TTS vers le fournisseur de LA VOIX : un identifiant ne désigne
+       RIEN chez le fournisseur voisin. Le fournisseur de `customVoice`
+       prime donc sur `ttsProvider` (réglage générique historique `11labs`
+       ou `cartesia`) : choisir un clone ElevenLabs ne le transforme pas en
+       voix Cartesia. Le contrat worker utilise le nom canonique `elevenlabs`.
+       `null` = le worker garde ses voix par défaut. */
+    const voixChoisie = profil.customVoice;
+    const voice = voixChoisie && typeof voixChoisie.voiceId === 'string'
+      && voixChoisie.voiceId.trim()
+      && voixChoisie.voiceId.trim().length <= 128
+      ? {
+          voiceId: voixChoisie.voiceId.trim(),
+          name: typeof voixChoisie.name === 'string' ? voixChoisie.name.trim().slice(0, 120) : '',
+          cloned: voixChoisie.cloned === true,
+          provider: voixChoisie.provider === 'cartesia' ? 'cartesia' as const : 'elevenlabs' as const,
+        }
+      : null;
+
     return res.json({
       learningAssertion: learningClient ? signRuntimeScope(learningClient, appele,
         process.env.VOICE_CORE_API_KEY || '', process.env.LEARNING_RUNTIME_ENABLED === 'true') : null,
       clientId: profil.clientId,
+      voice,
       /* L'ENREGISTREMENT SE DIT PAR CLIENT, PAS PAR WORKER.
          `voice-core` avait son propre VC_RECORDING, un booléen d'environnement
          valable pour tout le monde à la fois: un client qui coupe

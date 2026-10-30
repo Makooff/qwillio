@@ -141,6 +141,35 @@ export const smsTemplates = {
     const svc = d.service ? ` for your ${d.service}` : '';
     return `Reminder: Hi ${d.firstName}, your appointment at ${d.businessName} is${when}${svc}. See you soon.`;
   },
+
+  /**
+   * No-show follow-up: the missed appointment, and how to rebook. Sent over
+   * the SAME transactional channel as the booking SMS to the caller's own
+   * number — no marketing line, no opt-out footer (transactional, exactly
+   * like `bookingReminder` and `bookingConfirm`). Carrier-level refusals
+   * (STOP / Twilio 21610) are handled by the single send path in sms.service.
+   */
+  bookingNoShow: (d: {
+    firstName: string;
+    businessName: string;
+    date: string | Date;
+    time: string | null;
+    service: string | null;
+    lang: Lang;
+    businessPhone: string | null;
+  }) => {
+    const dateStr = bookingDate(d.date, d.lang);
+    if (d.lang === 'fr') {
+      const when = d.time ? ` à ${d.time}` : '';
+      const svc = d.service ? ` pour votre ${d.service}` : '';
+      const rebook = d.businessPhone ? ` Pour reprendre un rendez-vous, appelez le ${d.businessPhone}.` : '';
+      return `Bonjour ${d.firstName}, nous avons manqué votre rendez-vous chez ${d.businessName} (${dateStr}${when}${svc}).${rebook}`;
+    }
+    const when = d.time ? ` at ${d.time}` : '';
+    const svc = d.service ? ` for your ${d.service}` : '';
+    const rebook = d.businessPhone ? ` To book a new slot, call ${d.businessPhone}.` : '';
+    return `Hi ${d.firstName}, we missed your appointment at ${d.businessName} (${dateStr}${when}${svc}).${rebook}`;
+  },
 };
 
 export type SmsTemplateKey = keyof typeof smsTemplates;

@@ -401,6 +401,12 @@ export class SmsService {
 
   /**
    * Send booking reminder SMS 24h before appointment.
+   *
+   * `clientId` n'est pas optionnel en pratique: sans lui, le point d'envoi
+   * ne peut ni convertir un numéro NATIONAL dans le pays du commerce, ni
+   * choisir la ligne mobile du client comme expéditeur, ni rattacher le
+   * message au client dans `sms_log`. Ces trois pertes étaient réelles:
+   * le rappel 24 h partait sans aucune de ces métadonnées.
    */
   async sendBookingReminderSMS(booking: {
     customerPhone: string;
@@ -409,6 +415,7 @@ export class SmsService {
     bookingDate: string;
     bookingTime: string | null;
     serviceType: string | null;
+    clientId?: string;
   }): Promise<boolean> {
     if (!booking.customerPhone) return false;
 
@@ -423,9 +430,63 @@ export class SmsService {
       lang,
     });
 
-    const result = await this.sendSMS(booking.customerPhone, body);
+    const result = await this.sendSMS(booking.customerPhone, body, {
+      /* Le type dédié compte: c'est lui qui déclenche la préférence
+         WhatsApp ET le bon modèle approuvé Meta. Le confondre avec
+         `booking_confirmed` enverrait le mauvais gabarit. */
+      messageType: 'booking_reminder',
+      clientId: booking.clientId,
+    });
     if (result.success) {
       logger.info(`Booking reminder SMS sent to ${booking.customerPhone} for ${booking.businessName}`);
+    }
+    return result.success;
+  }
+
+  /**
+   * Relance d'absence (2 h après l'heure dite), quand le client n'a pas de
+   * courriel. Canal TRANSACTIONNEL, jamais marketing: c'est le même numéro
+   * qui vient de recevoir le rappel 24 h, et le STOP porteur reste géré par
+   * le point d'envoi unique (`sendSMS`, erreur Twilio 21610).
+   */
+  async sendNoShowRescheduleSMS(booking: {
+    customerPhone: string;
+    customerName: string;
+    businessName: string;
+    bookingDate: string;
+    bookingTime: string | null;
+    serviceType: string | null;
+    businessPhone: string | null;
+    clientId?: string;
+  }): Promise<boolean> {
+    if (!booking.customerPhone) return false;
+
+    const lang = detectLanguage(booking.customerPhone);
+    const firstName = (booking.customerName?.split(' ')[0]) || (lang === 'fr' ? 'à vous' : 'there');
+
+    const body = smsTemplates.bookingNoShow({
+      firstName,
+      businessName: booking.businessName,
+      date: booking.bookingDate,
+      time: booking.bookingTime,
+      service: booking.serviceType,
+      lang,
+      businessPhone: booking.businessPhone,
+    });
+
+    /* `booking_no_show` est un type À PART de `booking_reminder`: le gabarit
+       WhatsApp approuvé par Meta n'est pas le même (le contenu l'est
+       explicitement: absence constatée + numéro pour reprendre rendez-vous),
+       et l'attribuer au type « rappel » aurait envoyé le mauvais modèle —
+       voire, sans type, aucune métadonnée du tout: pas de pays pour la
+       conversion nationale, pas de ligne du client comme expéditeur, aucun
+       rattachement dans `sms_log`. */
+    const result = await this.sendSMS(booking.customerPhone, body, {
+      messageType: 'booking_no_show',
+      clientId: booking.clientId,
+    });
+    if (result.success) {
+      logger.info(`No-show follow-up SMS sent to ${booking.customerPhone} for ${booking.businessName}`);
     }
     return result.success;
   }
