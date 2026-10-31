@@ -69,12 +69,32 @@ export function BenefitsGrid({ isFr }: Props) {
     { scene: 'summary', title: 'Every call leaves a useful record', body: 'Summary, transcript, contact details and next steps: find what matters, even on your phone.' },
     { scene: 'knowledge', title: 'She knows how your business works', body: 'Hours, services, FAQs and reception rules: answers based on your information, not generalities.' },
   ];
+  const feature = (index: number) => <div data-benefit key={items[index].scene}><h3>{items[index].title}</h3><p>{items[index].body}</p></div>;
   return <Section aria-labelledby="benefits-heading" className="qms qms-benefits">
-    <Container className="qms-benefits-layout">
-      <div className="qms-benefits-intro"><H2 id="benefits-heading">{isFr ? 'Puissante là où ça compte.' : 'Powerful where it matters.'}</H2><p>{isFr ? 'Les appels sont pris. Le travail avance aussi. Voilà ce que Qwillio prend réellement en charge.' : 'Calls get answered. Work moves forward too. Here is what Qwillio actually takes care of.'}</p><PillLink to="/register" variant="primary">{isFr ? 'Essayer Qwillio' : 'Try Qwillio'}<ArrowRight size={16} /></PillLink></div>
-      <div className="qms-benefits-grid">{items.map((item, i) => <RevealV2 key={item.scene} index={i}><article data-benefit><Visual scene={item.scene} isFr={isFr} /><h3>{item.title}</h3><p>{item.body}</p></article></RevealV2>)}</div>
+    <Container>
+      <div className="qms-benefits-intro"><div><H2 id="benefits-heading">{isFr ? 'Puissante là où ça compte.' : 'Powerful where it matters.'}</H2><p>{isFr ? 'Les appels sont pris. Le travail avance aussi. Voilà ce que Qwillio prend réellement en charge.' : 'Calls get answered. Work moves forward too. Here is what Qwillio actually takes care of.'}</p></div><PillLink to="/register" variant="primary">{isFr ? 'Essayer Qwillio' : 'Try Qwillio'}<ArrowRight size={16} /></PillLink></div>
+      <div className="qms-benefit-stories">
+        <article className="qms-benefit-mobile" data-benefit-story>
+          <div className="qms-phone-stage" role="img" aria-label={isFr ? 'Mockup de téléphone : fiche d’appel Qwillio, données de démonstration' : 'Phone mockup: Qwillio call record, demonstration data'}>
+            <div className="qms-device-phone" aria-hidden="true"><div className="qms-phone-screen"><img src="/screens/fiche-appel-phone.webp" alt="" loading="lazy" decoding="async" width={780} height={1691} /><span className="qms-phone-island" /></div><span className="qms-phone-button" /></div>
+            <span className="qms-device-caption">{isFr ? 'Votre suivi, dans votre poche.' : 'Your follow-up, in your pocket.'}</span>
+          </div>
+          <div className="qms-story-copy">{feature(4)}{feature(2)}</div>
+        </article>
+        <article className="qms-benefit-life" data-benefit-story>
+          <figure><img src="/marketing/owner-phone.webp" alt={isFr ? 'Une personne consulte son téléphone, mise en situation illustrative' : 'A person checking their phone, an illustrative use scene'} loading="lazy" decoding="async" width={1200} height={1800} /></figure>
+          <div className="qms-story-copy">{feature(1)}{feature(3)}</div>
+        </article>
+        <article className="qms-benefit-desktop" data-benefit-story>
+          <div className="qms-story-copy">{feature(5)}{feature(0)}</div>
+          <figure className="qms-mac-stage">
+            <div className="qms-device-mac" data-figma-node="1:2"><img src="/marketing/macbook-figma-safari.webp" alt={isFr ? 'MacBook Pro : le portail Qwillio et sa base de connaissances dans Safari maximisé, données de démonstration' : 'MacBook Pro: Qwillio and its knowledge base in maximized Safari, demonstration data'} loading="lazy" decoding="async" width={2400} height={1600} /></div>
+            <figcaption className="qms-mockup-credit">{isFr ? 'Mockup adapté de ' : 'Mockup adapted from '}<a href="https://www.figma.com/community/file/1176558805861554548/macbook-pro-mockups" target="_blank" rel="noopener noreferrer">Mr.Mockup</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a></figcaption>
+          </figure>
+        </article>
+      </div>
+      <p className="qms-illustrative-note">{isFr ? 'Écrans du portail Qwillio avec données de démonstration. La photographie illustre un usage, pas un client Qwillio.' : 'Qwillio portal screens with demonstration data. The photograph illustrates a use case, not a Qwillio customer.'}</p>
     </Container>
-    <Container><p className="qms-illustrative-note">{isFr ? 'Visuels illustratifs du fonctionnement. Les lieux photographiés ne sont pas présentés comme des clients Qwillio.' : 'Illustrative product visuals. The photographed businesses are not presented as Qwillio customers.'}</p></Container>
   </Section>;
 }
 

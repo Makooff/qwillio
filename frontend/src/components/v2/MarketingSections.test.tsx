@@ -11,14 +11,22 @@ afterEach(cleanup);
 const wrap = (children: ReactNode) => render(<MemoryRouter>{children}</MemoryRouter>);
 
 describe('Separate visual marketing sections', () => {
-  it('gives six useful benefits their own image-first gallery', () => {
+  it('keeps six benefits but only three distinct editorial visuals, not a six-card grid', () => {
     const { container } = wrap(<BenefitsGrid isFr />);
     expect(screen.getByRole('heading', { name: 'Puissante là où ça compte.' })).toBeInTheDocument();
     expect(container.querySelectorAll('[data-benefit]')).toHaveLength(6);
-    expect(container.querySelectorAll('[data-benefit] .qms-media')).toHaveLength(6);
-    expect(container.querySelector('[data-scene-act]')).toBeNull();
-    expect(screen.getByText('Filtre anti-spam')).toBeInTheDocument();
-    expect(container.querySelector('.qms-media--calendar')).toBeNull();
+    expect(container.querySelectorAll('[data-benefit-story]')).toHaveLength(3);
+    expect(container.querySelector('.qms-benefits-grid')).toBeNull();
+    expect(container.querySelector('.qms-device-phone img')).toHaveAttribute('src', '/screens/fiche-appel-phone.webp');
+    expect(container.querySelector('.qms-device-mac img')).toHaveAttribute('src', '/marketing/macbook-figma-safari.webp');
+    expect(container.querySelector('.qms-mac-display')).toBeNull();
+    expect(screen.getByRole('img', { name: /MacBook Pro.*Safari/ })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Mr.Mockup' })).toHaveAttribute('href', 'https://www.figma.com/community/file/1176558805861554548/macbook-pro-mockups');
+    expect(container.querySelector('.qms-benefit-life img')).toHaveAttribute('src', '/marketing/owner-phone.webp');
+    expect(container.querySelectorAll('.qms-benefits .qms-paper')).toHaveLength(0);
+    expect(container.textContent).toContain('Votre quota est réservé aux vrais appels');
+    expect(container.textContent).toContain('SMS activés');
+    expect(container.textContent).toContain('démonstration');
     expect(container.textContent).not.toContain('20 langues');
   });
   it('presents three onboarding images independently of the configuration feature list', () => {
@@ -44,13 +52,13 @@ describe('Separate visual marketing sections', () => {
     const { container } = wrap(<><BenefitsGrid isFr /><LaunchSteps isFr /><EcosystemMosaic isFr /></>);
     const sources = [...container.querySelectorAll('.qms img')].map(img => img.getAttribute('src'));
     expect(new Set(sources).size).toBe(sources.length);
-    expect(screen.getAllByText('Rendez-vous confirmé')).toHaveLength(1);
+    expect(screen.queryByText('Rendez-vous confirmé')).not.toBeInTheDocument();
     expect(container.querySelectorAll('.qms-connections')).toHaveLength(1);
   });
   it.each([BenefitsGrid, LaunchSteps, EcosystemMosaic])('renders the section in English', Component => {
     const { container } = wrap(<Component isFr={false} />);
     expect(container.querySelector('h2')).toBeInTheDocument();
-    expect(container.querySelectorAll('.qms-media img').length).toBeGreaterThan(0);
+    expect(container.querySelectorAll('.qms img').length).toBeGreaterThan(0);
     expect(container.textContent).not.toContain('Établissement');
   });
 });

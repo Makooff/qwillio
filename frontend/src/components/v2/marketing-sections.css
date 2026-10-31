@@ -5,13 +5,33 @@
 @media (prefers-color-scheme: dark) { :root:not([data-theme='light']) .qms { --qms-paper: var(--q2-obsidian); --qms-accent: var(--q2-lift); --qms-shade: .36; } }
 .qms p { color: rgb(var(--q2-graphite)); font-size: 15px; line-height: 1.65; }
 .qms h3 { color: var(--qms-ink); font-weight: 500; line-height: 1.3; letter-spacing: -.02em; }
-.qms-benefits-layout { display: grid; grid-template-columns: minmax(0,.82fr) minmax(0,2fr); gap: clamp(28px,5vw,80px); align-items: start; }
-.qms-benefits-intro { position: sticky; top: 112px; }
-.qms-benefits-intro p { margin: 24px 0 28px; max-width: 350px; }
-.qms-benefits-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 48px 26px; }
-.qms-benefits-grid article { min-width: 0; }
-.qms-benefits-grid h3 { margin: 22px 0 12px; font-size: clamp(20px,1.75vw,25px); }
-.qms-benefits-grid p { max-width: 45ch; }
+.qms-benefits-intro { display: flex; justify-content: space-between; align-items: end; gap: 32px; margin-bottom: 48px; }
+.qms-benefits-intro > div { max-width: 720px; }
+.qms-benefits-intro p { margin: 22px 0 0; max-width: 570px; }
+.qms-benefits-intro > a { flex-shrink: 0; }
+.qms-benefit-stories { display: grid; grid-template-columns: minmax(0,.85fr) minmax(0,1.15fr); gap: 56px 56px; }
+.qms-benefit-stories article { min-width: 0; }
+.qms-story-copy { display: grid; gap: 26px; padding-top: 26px; }
+.qms-story-copy h3 { font-size: clamp(19px,1.75vw,24px); margin-bottom: 10px; max-width: 30ch; }
+.qms-story-copy p { max-width: 55ch; }
+.qms-phone-stage { height: 430px; position: relative; display: grid; place-items: center; overflow: hidden; border-radius: 28px; background: rgb(var(--q2-band)); }
+.qms-device-caption { position: absolute; top: 28px; right: 26px; max-width: 120px; color: var(--qms-sub); font-size: 17px; line-height: 1.3; letter-spacing: -.02em; }
+.qms-device-phone { width: 204px; position: relative; padding: 5px; border: 1px solid #878789; border-radius: 36px; background: linear-gradient(115deg,#e1dedb,#5e5d5c 18%,#d1ceca 45%,#595959 82%,#b7b4b1); box-shadow: 12px 26px 32px -18px rgb(0 0 0 / .4); transform: translate(-30px,30px) rotate(-9deg); }
+.qms-phone-screen { border: 3px solid #111; border-radius: 30px; overflow: hidden; position: relative; background: #08090a; }
+.qms-phone-screen img { display: block; width: 100%; height: auto; }
+.qms-phone-island { position: absolute; top: 10px; left: 50%; transform: translateX(-50%); width: 61px; height: 17px; border-radius: 12px; background: #020203; }
+.qms-phone-button { position: absolute; right: -3px; top: 100px; height: 46px; width: 3px; border-radius: 0 3px 3px 0; background: #777674; }
+.qms-benefit-life figure { position: relative; height: 380px; border-radius: 12px 56px 12px 12px; overflow: hidden; margin: 0; background: rgb(var(--q2-band)); }
+.qms-benefit-life figure > img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 42%; }
+
+.qms-benefit-desktop { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0,.8fr) minmax(0,1.2fr); align-items: center; gap: 48px; padding-top: 44px; border-top: 1px solid rgb(var(--q2-plate)); }
+.qms-benefit-desktop .qms-story-copy { padding-top: 0; }
+.qms-mac-stage { min-width: 0; margin: 0; }
+.qms-device-mac { width: 100%; overflow: hidden; border-radius: 14px; background: #fff; }
+.qms-device-mac > img { display: block; width: 100%; height: auto; }
+.qms-mockup-credit { margin-top: 10px; color: var(--qms-sub); font-size: 11px; line-height: 1.5; }
+.qms-mockup-credit a { text-decoration: underline; text-underline-offset: 3px; }
+.qms-mockup-credit a:focus-visible { outline: 2px solid var(--qms-accent); outline-offset: 3px; }
 .qms-illustrative-note { margin-top: 34px; max-width: 760px; font-size: 13px !important; color: rgb(var(--q2-body)) !important; }
 .qms-media { position: relative; isolation: isolate; overflow: hidden; border-radius: 22px; min-width: 0; height: 325px; display: grid; align-items: center; padding: clamp(18px,2.2vw,28px); background: var(--q2-carbon); }
 .qms-media-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; }
@@ -81,8 +101,7 @@
 .qms-connection-nodes > span { display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 13px; line-height: 1.4; min-width: 0; }
 .qms-connection-nodes svg { color: var(--qms-accent); }
 @media (max-width: 1100px) {
-  .qms-benefits-layout { grid-template-columns: minmax(0,.7fr) minmax(0,1.7fr); gap: 32px; }
-  .qms-benefits-grid { gap: 36px 20px; }
+  .qms-benefit-stories { gap: 44px 32px; }
   .qms-media { height: 340px; padding: 18px; }
   .qms-paper { padding: 17px; }
   .qms-launch-grid { gap: 20px; }
@@ -94,10 +113,11 @@
   .qms-ecosystem-calendar .qms-media { height: 340px; }
 }
 @media (max-width: 900px) {
-  .qms-benefits-layout { grid-template-columns: 1fr; }
-  .qms-benefits-intro { position: static; max-width: 650px; }
+  .qms-benefits-intro { align-items: start; flex-direction: column; }
+    .qms-benefit-stories { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
+    .qms-device-phone { transform: translate(-12px,30px) rotate(-7deg); }
+    .qms-device-caption { font-size: 15px; max-width: 100px; right: 18px; }
   .qms-benefits-intro p { max-width: 560px; margin-top: 20px; }
-  .qms-benefits-grid { margin-top: 12px; }
   .qms-launch-grid { grid-template-columns: 1fr; gap: 40px; }
   .qms-launch-grid .qms-media { height: 290px; }
   .qms-launch-grid .qms-paper { max-width: 390px; width: 100%; margin: auto; padding: 22px; }
@@ -105,9 +125,14 @@
   .qms-ecosystem-intro { grid-template-columns: 1fr; gap: 20px; }
 }
 @media (max-width: 580px) {
-  .qms-benefits-grid { grid-template-columns: 1fr; gap: 36px; }
+  .qms-benefit-stories { grid-template-columns: 1fr; gap: 48px; }
+  .qms-benefit-desktop { grid-template-columns: 1fr; gap: 26px; padding-top: 32px; }
+  .qms-benefit-desktop .qms-mac-stage { grid-row: 1; padding: 0; }
+  .qms-phone-stage { height: 390px; }
+  .qms-benefit-life figure { height: 360px; }
+  .qms-story-copy { gap: 22px; padding-top: 22px; }
+  .qms-device-phone { width: 192px; }
   .qms-media { height: 315px; padding: 25px; }
-  .qms-benefits-grid h3 { margin-top: 18px; font-size: 23px; }
   .qms-media .qms-paper { padding: 22px; }
   .qms-section-intro { margin-bottom: 28px; }
   .qms-ecosystem-grid { grid-template-columns: 1fr; gap: 28px; }
