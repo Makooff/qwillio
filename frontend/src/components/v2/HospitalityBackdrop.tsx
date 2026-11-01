@@ -1,6 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Pause, Play } from '../icons';
-import { useLang } from '../../stores/langStore';
+import { useCallback, useEffect, useState } from 'react';
 import { prefersReducedMotion } from './motion/reducedMotion';
 
 /** Licensed illustrative sector footage (Mixkit Free License), not customer
@@ -15,11 +13,7 @@ const CLIPS = [
 const MAX_ERRORS = CLIPS.length + 1;
 
 export default function HospitalityBackdrop({ dark = false }: { dark?: boolean }) {
-  const { lang } = useLang();
-  const isFr = lang === 'fr';
-  const videoRef = useRef<HTMLVideoElement>(null);
   const [reduced, setReduced] = useState(prefersReducedMotion);
-  const [paused, setPaused] = useState(false);
   const [index, setIndex] = useState(0);
   const [errorCount, setErrorCount] = useState(0);
   const failed = errorCount >= MAX_ERRORS;
@@ -31,20 +25,12 @@ export default function HospitalityBackdrop({ dark = false }: { dark?: boolean }
     return () => media.removeEventListener?.('change', change);
   }, []);
   const advance = useCallback(() => setIndex(i => (i + 1) % CLIPS.length), []);
-  const onEnded = useCallback(() => {
-    if (!paused) advance();
-  }, [paused, advance]);
+
   const onError = useCallback(() => {
     setErrorCount(c => c + 1);
     advance();
   }, [advance]);
-  const toggle = async () => {
-    const video = videoRef.current;
-    if (!video) return;
-    if (paused) {
-      try { await video.play(); setPaused(false); } catch { setErrorCount(c => c + 1); }
-    } else { video.pause(); setPaused(true); }
-  };
+
   const clip = CLIPS[index];
   return (
     <>
@@ -59,13 +45,12 @@ export default function HospitalityBackdrop({ dark = false }: { dark?: boolean }
         {!reduced && !failed && (
           <video
             key={clip.src}
-            ref={videoRef}
-            autoPlay={!paused}
+            autoPlay
             muted
             playsInline
             preload="metadata"
             poster={clip.poster}
-            onEnded={onEnded}
+            onEnded={advance}
             onError={onError}
             className="absolute inset-0 h-full w-full object-cover object-[60%_center]"
           >
@@ -73,11 +58,7 @@ export default function HospitalityBackdrop({ dark = false }: { dark?: boolean }
           </video>
         )}
       </div>
-      {!reduced && !failed && (
-        <button type="button" onClick={toggle} aria-label={paused ? (isFr ? 'Reprendre la vidéo de fond' : 'Resume background video') : (isFr ? 'Mettre la vidéo de fond en pause' : 'Pause background video')} className="absolute right-4 top-24 z-20 grid h-11 w-11 place-items-center rounded-full border border-white/40 bg-black/50 text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-white">
-          {paused ? <Play size={16} aria-hidden="true" /> : <Pause size={16} aria-hidden="true" />}
-        </button>
-      )}
+
     </>
   );
 }

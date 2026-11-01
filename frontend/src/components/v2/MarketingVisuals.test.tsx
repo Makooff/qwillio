@@ -47,14 +47,14 @@ describe('Marketing hospitality footage', () => {
     expect(container.querySelector('video')).toBeNull();
     expect(container.querySelector('img')).not.toBeNull();
   });
-  it('lets the visitor pause and the pause persists across clips', () => {
-    const pause = vi.spyOn(HTMLMediaElement.prototype, 'pause').mockImplementation(() => undefined);
+  it('plays background clips without visible playback buttons or native controls', () => {
     const { container } = render(<HospitalityBackdrop />);
-    fireEvent.click(screen.getByRole('button', { name: 'Mettre la vidéo de fond en pause' }));
-    expect(pause).toHaveBeenCalledOnce();
+    expect(screen.queryByRole('button')).toBeNull();
+    expect(container.querySelector('video')?.controls).toBe(false);
+    expect(container.querySelector('video')?.autoplay).toBe(true);
     fireEvent.ended(container.querySelector('video')!);
-    expect(container.querySelector('video source')?.getAttribute('src')).toBe('/marketing/service-cafe.mp4');
-    expect(screen.getByRole('button', { name: 'Reprendre la vidéo de fond' })).toBeTruthy();
+    expect(container.querySelector('video source')?.getAttribute('src')).toBe('/marketing/sector-salon.mp4');
+    expect(screen.queryByRole('button')).toBeNull();
   });
 });
 

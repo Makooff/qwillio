@@ -25,8 +25,8 @@ import TryVoiceButton from './TryVoiceButton';
      utilisateur : « le haut flou partout comme sur le dashboard ») :
      très flou tout en haut, de moins en moins flou en descendant (backdrop
      blur 22px saturé à 140 %, masqué par un dégradé vertical qui se
-     prolonge sous la barre), teinte opaque-vers-transparent qui suit le
-     thème et les sections drenched. Seul le menu plein écran l'éteint.
+     prolonge sous la barre). Seule l'opacité du flou s'estompe : aucun
+     fond ni fondu noir/blanc n'est peint. Seul le menu plein écran l'éteint.
    - AU SCROLL (hystérésis 80/40px) : la barre se détache en BULLE flottante
      compacte (ressort framer réversible), et le fond de la bulle est
      TRANSPARENT FLOU (verre : backdrop-blur + teinte crème très légère),
@@ -615,18 +615,10 @@ export default function NavV2() {
                  Safari ne connaît pas cette valeur comme indice et la couche
                  restait photographiée au montage, donc figée au défilement. */
               transform: 'translateZ(0)',
-              /* Teinte PROGRESSIVE opaque-vers-transparent, même recette que
-                 l'entête du dashboard: opaque en haut là où le contenu doit
-                 disparaître pour de bon (le flou seul ne suffit pas sur du
-                 texte clair posé sur du noir: il en garde le contraste),
-                 rendue en descendant, éteinte au bord — le masque au-dessus
-                 continue d'effacer la chute. Aucune bande opaque: le fond
-                 passe de 0,97 (sombre) / 0,95 (clair) à 0 en bas.
-                 Sur sombre — section drenched ou thème dark — le voile part
-                 du noir de la marque; sur clair, du canvas. */
-              background: overDark
-                ? 'linear-gradient(to bottom, rgba(10,10,10,0.97) 0%, rgba(10,10,10,0.88) 42%, rgba(10,10,10,0.45) 72%, rgba(10,10,10,0) 100%)'
-                : 'linear-gradient(to bottom, rgb(var(--q2-canvas) / 0.95) 0%, rgb(var(--q2-canvas) / 0.78) 42%, rgb(var(--q2-canvas) / 0.4) 72%, rgb(var(--q2-canvas) / 0) 100%)',
+              /* Vrai flou du contenu, pas un fondu coloré : le masque du
+                 parent atténue uniquement l'opacité de la couche filtrante.
+                 Même rendu transparent en clair et en sombre. */
+              background: 'transparent',
             }}
           />
         </div>
@@ -663,8 +655,7 @@ export default function NavV2() {
             <GlassSkin
               onDark={overDark}
               radius={999}
-              /* Dégradé conservé ici (décision utilisateur) : seule l'entête au
-                 repos s'en passe. Teintes basses, le verre fait le reste. */
+
               /* Teintes abaissées (retour utilisateur : la bulle était grise et
                  pas assez transparente). Le verre garde sa matière par le flou,
                  la couleur ne fait plus que l'adoucir. */

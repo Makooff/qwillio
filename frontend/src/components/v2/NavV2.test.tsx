@@ -93,22 +93,16 @@ describe('NavV2 — voile de flou progressif (demande utilisateur: flou en haut 
     expect(filter.style.backdropFilter).toContain('blur(22px)');
   });
 
-  it('teinte claire: dégradé opaque en haut rendu transparent en bas, jamais une barre opaque', () => {
+  it.each(['light', 'dark'])('uses only real blur and an opacity mask, never a painted fade in %s mode', (theme) => {
+    document.documentElement.setAttribute('data-theme', theme);
     const { container } = wrap('/');
-    const { filter } = veil(container);
-    const bg = filter.style.background;
-    expect(bg).toContain('linear-gradient');
-    /* Se termine totalement transparent: pas de bande opaque en travers. */
-    expect(bg).toMatch(/\/\s*0\)\s*100%/);
-  });
-
-  it('teinte sombre en thème dark: dégradé foncé opaque en haut qui s’éteint', () => {
-    document.documentElement.setAttribute('data-theme', 'dark');
-    const { container } = wrap('/');
-    const { filter } = veil(container);
-    const bg = filter.style.background;
-    expect(bg).toContain('rgba(10,10,10,0.97)');
-    expect(bg).toMatch(/rgba\(10,\s*10,\s*10,\s*0\)\s*100%/);
+    const { masked, filter } = veil(container);
+    expect(filter.style.backdropFilter).toContain('blur(22px)');
+    expect(filter.style.background).toBe('transparent');
+    expect(filter.style.backgroundImage).toBe('');
+    expect(masked.style.backgroundImage).toBe('');
+    expect(masked.style.maskImage).toContain('linear-gradient');
+    expect(masked.style.maskImage).toContain('transparent 100%');
   });
 
   it('le header lui-même ne porte aucun fond opaque au repos (pas de barre dure sous le voile)', () => {
