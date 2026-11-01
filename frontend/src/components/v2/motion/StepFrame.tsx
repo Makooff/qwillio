@@ -2,6 +2,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from
 import { framePath, type FrameBox } from './frameJourney';
 import { prefersReducedMotion } from './reducedMotion';
 import { onScrollFrame, sceneAt, sceneStarted, staggeredAt } from './sceneProgress';
+import { createSpringTracker, SPRING_PRESETS } from './springTracker';
 
 /**
  * Un cadre arrondi posé derrière les étapes, qui passe de l'une à l'autre au
@@ -159,9 +160,10 @@ export default function StepFrame({
     const aside = root.querySelector<HTMLElement>('[data-scene-aside]');
 
     /* Cadre posé à la position continue `pos` ∈ [0, n-1], entre deux étapes.
-       Interpolation LINÉAIRE, sans easing et sans tween à durée fixe : c'est
-       le scroll qui donne la vitesse, le cadre ne traîne ni ne court après
-       (retour utilisateur : « elle doit se déplacer à la vitesse du scroll »). */
+       Le ressort (plus bas) alimente `pos` : la géométrie elle-même reste une
+       interpolation linéaire entre les boîtes mesurées, la douceur vient du
+       temps, pas d'un easing sur l'espace — la silhouette et les masques ne
+       changent pas. */
     const drawAtPosition = (pos: number) => {
       const i = Math.max(0, Math.min(boxes.length - 1, Math.floor(pos)));
       const f = pos - i;
@@ -176,6 +178,38 @@ export default function StepFrame({
       path.setAttribute('d', framePath(box, radius));
     };
 
+    /* RESSORT, pas interpolation directe ni tween à durée fixe (retour
+       utilisateur : le cadre doit suivre le scroll « en douceur, avec un
+       effet de ressort »). Le scroll pose la cible à chaque frame ; un
+       ressort physique (masse + raideur + amortissement ≈ critique) fait la
+       trajectoire : le cadre flotte un peu derrière un scroll vif et se pose
+       sans rebond. `staggeredAt` garde la main sur les paliers — le ressort
+       lisse le chemin entre eux, il ne les supprime pas. */
+    const tracker = createSpringTracker({ ...SPRING_PRESETS.stepFrame });
+    let target = 0;
+    let raf = 0;
+    let last = 0;
+    const tick = (now: number) => {
+      /* Le vrai dt du RAF, plafonné dans le helper : quand l'onglet accroche,
+         on n'intègre pas un faux énorme pas qui ferait dériver le cadre. */
+      const dt = last === 0 ? 1 / 60 : (now - last) / 1000;
+      last = now;
+      drawAtPosition(tracker.update(target, dt));
+      if (tracker.isSettled(target)) {
+        tracker.value = target;
+        tracker.velocity = 0;
+        drawAtPosition(target);
+        raf = 0;
+        return;
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    const startLoop = () => {
+      if (raf) return;
+      last = 0;
+      raf = requestAnimationFrame(tick);
+    };
+
     const unsub = onScrollFrame(() => {
       const raw = sceneStarted(aside) ? sceneAt(nodes) : 0;
       /* `staggeredAt` pose un palier sur chaque étape : le scroll « ne fait
@@ -183,13 +217,25 @@ export default function StepFrame({
          la position reste une fonction continue du scroll, un scroll rapide ne
          saute plus d'étape : il traverse chaque palier dans l'ordre, sans
          envol vers le dernier (retour utilisateur). */
-      drawAtPosition(staggeredAt(raw, boxes.length));
+      target = staggeredAt(raw, boxes.length);
+      /* Le ressort n'est redémarré que s'il est au repos : pendant un scroll
+         continu la boucle tourne déjà et ne fait que recevoir la nouvelle
+         cible. */
+      if (!tracker.isSettled(target)) startLoop();
     });
 
-    drawAtPosition(0);
+    /* Point de départ sans couture : `onScrollFrame` a déjà lu la position au
+       moment de s'abonner, on pose le ressort DIRECTEMENT dessus. Sans ce
+       réglage, chaque re-création d'effet (resize → nouvelle `size`) repartait
+       de 0 et le cadre sautait vers la première étape avant de revenir. */
+    tracker.value = target;
+    drawAtPosition(target);
 
     return () => {
       unsub();
+      /* Pas de fuite : le RAF meurt avec l'effet (démontage, resize qui
+         recrée l'effet, reduced-motion qui bascule). */
+      if (raf) cancelAnimationFrame(raf);
     };
   }, [radius, reduced, size, scope]);
 

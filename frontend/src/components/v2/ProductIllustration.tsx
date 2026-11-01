@@ -498,9 +498,6 @@ export default function ProductIllustration({
 }: ProductIllustrationProps) {
   const Draw = DRAWINGS[kind];
   const label = isFr ? LABELS[kind].fr : LABELS[kind].en;
-  const caption = isFr
-    ? 'Illustration du fonctionnement'
-    : 'How it works illustration';
   return (
     <figure
       className={compact ? 'pi pi--compact' : 'pi'}
@@ -513,7 +510,7 @@ export default function ProductIllustration({
           <Draw isFr={isFr} />
         </span>
       </span>
-      <figcaption className="pi__caption q2-body-text">{caption}</figcaption>
+
     </figure>
   );
 }

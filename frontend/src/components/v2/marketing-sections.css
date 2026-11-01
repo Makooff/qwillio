@@ -9,13 +9,23 @@
 .qms-benefits-intro > div { max-width: 720px; }
 .qms-benefits-intro p { margin: 22px 0 0; max-width: 570px; }
 .qms-benefits-intro > a { flex-shrink: 0; }
-.qms-benefit-stories { display: grid; grid-template-columns: minmax(0,.85fr) minmax(0,1.15fr); gap: 56px 56px; }
+.qms-benefit-stories { display: flex; flex-direction: column; }
 .qms-benefit-stories article { min-width: 0; }
-.qms-story-copy { display: grid; gap: 26px; padding-top: 26px; }
-.qms-story-copy h3 { font-size: clamp(19px,1.75vw,24px); margin-bottom: 10px; max-width: 30ch; }
+.qms-benefit-editorial { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1fr); grid-template-areas: 'media copy'; align-items: center; gap: clamp(32px,5vw,72px); padding: 36px 0; }
+.qms-benefit-editorial:first-child { padding-top: 0; }
+.qms-benefit-editorial > .qms-phone-stage, .qms-benefit-editorial > figure { grid-area: media; }
+.qms-benefit-editorial > .qms-story-copy { grid-area: copy; }
+.qms-benefit-life, .qms-benefit-desktop { grid-template-areas: 'copy media'; }
+.qms-story-copy { min-width: 0; }
+.qms-story-copy h3 { font-size: clamp(22px,2.3vw,32px); margin-bottom: 14px; max-width: 26ch; }
 .qms-story-copy p { max-width: 55ch; }
+.qms-benefit-support { display: grid; grid-template-columns: 52px minmax(0,1fr); gap: 24px; align-items: start; padding: 30px 0; border-top: 1px solid rgb(var(--q2-plate)); border-bottom: 1px solid rgb(var(--q2-plate)); }
+.qms-benefit-support:last-child { border-bottom: 0; padding-bottom: 0; }
+.qms-benefit-support [data-benefit] { display: grid; grid-template-columns: minmax(0,.9fr) minmax(0,1.1fr); align-items: start; gap: 36px; }
+.qms-benefit-support h3 { font-size: clamp(20px,1.8vw,25px); margin: 0; }
+.qms-benefit-symbol { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; color: var(--qms-accent); background: rgb(var(--q2-band)); }
 .qms-phone-stage { height: 430px; position: relative; display: grid; place-items: center; overflow: hidden; border-radius: 28px; background: rgb(var(--q2-band)); }
-.qms-device-caption { position: absolute; top: 28px; right: 26px; max-width: 120px; color: var(--qms-sub); font-size: 17px; line-height: 1.3; letter-spacing: -.02em; }
+
 .qms-device-phone { width: 204px; position: relative; padding: 5px; border: 1px solid #878789; border-radius: 36px; background: linear-gradient(115deg,#e1dedb,#5e5d5c 18%,#d1ceca 45%,#595959 82%,#b7b4b1); box-shadow: 12px 26px 32px -18px rgb(0 0 0 / .4); transform: translate(-30px,30px) rotate(-9deg); }
 .qms-phone-screen { border: 3px solid #111; border-radius: 30px; overflow: hidden; position: relative; background: #08090a; }
 .qms-phone-screen img { display: block; width: 100%; height: auto; }
@@ -24,15 +34,13 @@
 .qms-benefit-life figure { position: relative; height: 380px; border-radius: 12px 56px 12px 12px; overflow: hidden; margin: 0; background: rgb(var(--q2-band)); }
 .qms-benefit-life figure > img { width: 100%; height: 100%; object-fit: cover; object-position: 50% 42%; }
 
-.qms-benefit-desktop { grid-column: 1 / -1; display: grid; grid-template-columns: minmax(0,.8fr) minmax(0,1.2fr); align-items: center; gap: 48px; padding-top: 44px; border-top: 1px solid rgb(var(--q2-plate)); }
-.qms-benefit-desktop .qms-story-copy { padding-top: 0; }
 .qms-mac-stage { min-width: 0; margin: 0; }
-.qms-device-mac { width: 100%; overflow: hidden; border-radius: 14px; background: #fff; }
+.qms-device-mac { display: block; width: 100%; overflow: hidden; border-radius: 14px; background: rgb(var(--q2-canvas)); }
 .qms-device-mac > img { display: block; width: 100%; height: auto; }
 .qms-mockup-credit { margin-top: 10px; color: var(--qms-sub); font-size: 11px; line-height: 1.5; }
 .qms-mockup-credit a { text-decoration: underline; text-underline-offset: 3px; }
 .qms-mockup-credit a:focus-visible { outline: 2px solid var(--qms-accent); outline-offset: 3px; }
-.qms-illustrative-note { margin-top: 34px; max-width: 760px; font-size: 13px !important; color: rgb(var(--q2-body)) !important; }
+
 .qms-media { position: relative; isolation: isolate; overflow: hidden; border-radius: 22px; min-width: 0; height: 325px; display: grid; align-items: center; padding: clamp(18px,2.2vw,28px); background: var(--q2-carbon); }
 .qms-media-bg { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; z-index: -2; }
 .qms-media::after { content: ''; position: absolute; inset: 0; background: var(--q2-void); opacity: var(--qms-shade); z-index: -1; pointer-events: none; }
@@ -101,7 +109,7 @@
 .qms-connection-nodes > span { display: flex; flex-direction: column; align-items: center; gap: 10px; font-size: 13px; line-height: 1.4; min-width: 0; }
 .qms-connection-nodes svg { color: var(--qms-accent); }
 @media (max-width: 1100px) {
-  .qms-benefit-stories { gap: 44px 32px; }
+  .qms-benefit-editorial { gap: 36px; }
   .qms-media { height: 340px; padding: 18px; }
   .qms-paper { padding: 17px; }
   .qms-launch-grid { gap: 20px; }
@@ -114,9 +122,8 @@
 }
 @media (max-width: 900px) {
   .qms-benefits-intro { align-items: start; flex-direction: column; }
-    .qms-benefit-stories { grid-template-columns: minmax(0,1fr) minmax(0,1fr); }
-    .qms-device-phone { transform: translate(-12px,30px) rotate(-7deg); }
-    .qms-device-caption { font-size: 15px; max-width: 100px; right: 18px; }
+  .qms-device-phone { transform: translate(-12px,30px) rotate(-7deg); }
+  .qms-benefit-support [data-benefit] { grid-template-columns: 1fr; gap: 12px; }
   .qms-benefits-intro p { max-width: 560px; margin-top: 20px; }
   .qms-launch-grid { grid-template-columns: 1fr; gap: 40px; }
   .qms-launch-grid .qms-media { height: 290px; }
@@ -125,12 +132,12 @@
   .qms-ecosystem-intro { grid-template-columns: 1fr; gap: 20px; }
 }
 @media (max-width: 580px) {
-  .qms-benefit-stories { grid-template-columns: 1fr; gap: 48px; }
-  .qms-benefit-desktop { grid-template-columns: 1fr; gap: 26px; padding-top: 32px; }
-  .qms-benefit-desktop .qms-mac-stage { grid-row: 1; padding: 0; }
+  .qms-benefit-editorial { grid-template-columns: 1fr; grid-template-areas: 'media' 'copy'; gap: 24px; padding: 32px 0; }
+  .qms-benefit-support { grid-template-columns: 40px minmax(0,1fr); gap: 16px; padding: 26px 0; }
+  .qms-benefit-symbol { width: 40px; height: 40px; }
   .qms-phone-stage { height: 390px; }
   .qms-benefit-life figure { height: 360px; }
-  .qms-story-copy { gap: 22px; padding-top: 22px; }
+
   .qms-device-phone { width: 192px; }
   .qms-media { height: 315px; padding: 25px; }
   .qms-media .qms-paper { padding: 22px; }

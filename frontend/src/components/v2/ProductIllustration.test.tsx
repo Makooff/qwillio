@@ -23,7 +23,7 @@ describe('ProductIllustration', () => {
         name: /Illustration du fonctionnement/u,
       }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Illustration du fonctionnement')).toBeInTheDocument();
+    expect(screen.queryByText('Illustration du fonctionnement')).not.toBeInTheDocument();
   });
 
   it.each(PRODUCT_ILLUSTRATION_KINDS)('rend le genre « %s » en anglais', (kind) => {
@@ -31,7 +31,7 @@ describe('ProductIllustration', () => {
     expect(
       screen.getByRole('img', { name: /How it works illustration/u }),
     ).toBeInTheDocument();
-    expect(screen.getByText('How it works illustration')).toBeInTheDocument();
+    expect(screen.queryByText('How it works illustration')).not.toBeInTheDocument();
   });
 
   it.each([true, false])('explains FAQ-backed answers rather than showing an intake form (French: %s)', (isFr) => {
@@ -62,11 +62,10 @@ describe('ProductIllustration', () => {
     ] satisfies ProductIllustrationKind[]);
   });
 
-  it('pose une légende thémée et compact optionnel', () => {
-    render(<ProductIllustration kind="setup" isFr compact />);
-    const caption = screen.getByText('Illustration du fonctionnement');
-    expect(caption).toHaveClass('q2-body-text');
-    expect(screen.getByRole('img')).toHaveClass('pi--compact');
+  it('keeps compact layout and accessible description without a visible caption', () => {
+    const { container } = render(<ProductIllustration kind="setup" isFr compact />);
+    expect(container.querySelector('figcaption')).toBeNull();
+    expect(screen.getByRole('img', { name: /Illustration du fonctionnement/ })).toHaveClass('pi--compact');
   });
 
   it('le dessin interne est masqué aux technologies d’assistance', () => {

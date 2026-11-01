@@ -4,18 +4,29 @@ import { cleanup, render, screen } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 import '@testing-library/jest-dom/vitest';
 import { BenefitsGrid, LaunchSteps, EcosystemMosaic } from './MarketingSections';
+import { useTheme } from '../../stores/themeStore';
 
 vi.mock('./RevealV2', () => ({ default: ({ children }: { children: ReactNode }) => <div>{children}</div> }));
 vi.mock('./TryVoiceButton', () => ({ default: ({ children }: { children: ReactNode }) => <button>{children}</button> }));
-afterEach(cleanup);
+afterEach(() => {
+  cleanup();
+  useTheme.setState({ theme: 'system' });
+});
 const wrap = (children: ReactNode) => render(<MemoryRouter>{children}</MemoryRouter>);
 
 describe('Separate visual marketing sections', () => {
-  it('keeps six benefits but only three distinct editorial visuals, not a six-card grid', () => {
+  it('keeps each benefit in its own story, with three distinct editorial visuals rather than a six-card grid', () => {
     const { container } = wrap(<BenefitsGrid isFr />);
     expect(screen.getByRole('heading', { name: 'Puissante là où ça compte.' })).toBeInTheDocument();
     expect(container.querySelectorAll('[data-benefit]')).toHaveLength(6);
-    expect(container.querySelectorAll('[data-benefit-story]')).toHaveLength(3);
+    const stories = [...container.querySelectorAll('[data-benefit-story]')];
+    expect(stories).toHaveLength(6);
+    expect(stories.map(story => story.querySelectorAll('[data-benefit]').length)).toEqual([1, 1, 1, 1, 1, 1]);
+    expect(container.querySelectorAll('[data-benefit-story] img')).toHaveLength(3);
+    expect(container.querySelector('.qms-benefit-mobile [data-benefit]')).toHaveAttribute('data-benefit', 'summary');
+    expect(container.querySelector('.qms-benefit-life [data-benefit]')).toHaveAttribute('data-benefit', 'languages');
+    expect(container.querySelector('.qms-benefit-desktop [data-benefit]')).toHaveAttribute('data-benefit', 'knowledge');
+    expect(container.querySelectorAll('.qms-benefit-support')).toHaveLength(3);
     expect(container.querySelector('.qms-benefits-grid')).toBeNull();
     expect(container.querySelector('.qms-device-phone img')).toHaveAttribute('src', '/screens/fiche-appel-phone.webp');
     expect(container.querySelector('.qms-device-mac img')).toHaveAttribute('src', '/marketing/macbook-figma-safari.webp');
@@ -26,8 +37,22 @@ describe('Separate visual marketing sections', () => {
     expect(container.querySelectorAll('.qms-benefits .qms-paper')).toHaveLength(0);
     expect(container.textContent).toContain('Votre quota est réservé aux vrais appels');
     expect(container.textContent).toContain('SMS activés');
-    expect(container.textContent).toContain('démonstration');
+    expect(container.querySelector('.qms-device-mac img')).toHaveAttribute('alt', expect.stringContaining('démonstration'));
+    expect(container.querySelector('.qms-device-caption')).toBeNull();
+    expect(container.querySelector('.qms-illustrative-note')).toBeNull();
     expect(container.textContent).not.toContain('20 langues');
+  });
+  it.each([
+    ['dark', 'all'],
+    ['light', 'not all'],
+    ['system', '(prefers-color-scheme: dark)'],
+  ] as const)('uses the matching MacBook backdrop in %s theme', (theme, media) => {
+    useTheme.setState({ theme });
+    const { container } = wrap(<BenefitsGrid isFr />);
+    const source = container.querySelector('.qms-device-mac source');
+    expect(source).toHaveAttribute('srcset', '/marketing/macbook-figma-safari-dark.webp');
+    expect(source).toHaveAttribute('media', media);
+    expect(container.querySelector('.qms-device-mac img')).toHaveAttribute('src', '/marketing/macbook-figma-safari.webp');
   });
   it('presents three onboarding images independently of the configuration feature list', () => {
     const { container } = wrap(<LaunchSteps isFr />);
@@ -47,6 +72,7 @@ describe('Separate visual marketing sections', () => {
     expect(screen.getByText(/Zapier, Make, n8n via webhook/)).toBeInTheDocument();
     expect(container.textContent).toContain('Google ou Outlook');
     expect(container.textContent).not.toContain('WhatsApp');
+    expect(screen.queryByText('Illustration métier')).not.toBeInTheDocument();
   });
   it('does not reuse the same image or booking/SMS illustration across the three sections', () => {
     const { container } = wrap(<><BenefitsGrid isFr /><LaunchSteps isFr /><EcosystemMosaic isFr /></>);

@@ -5,6 +5,7 @@ import { Container, Section, H2 } from './Primitives';
 import { PillLink } from './Button';
 import RevealV2 from './RevealV2';
 import TryVoiceButton from './TryVoiceButton';
+import { useTheme } from '../../stores/themeStore';
 import './marketing-sections.css';
 
 type Props = { isFr: boolean };
@@ -54,6 +55,8 @@ function Visual({ scene, isFr }: { scene: Scene; isFr: boolean }) {
 }
 
 export function BenefitsGrid({ isFr }: Props) {
+  const theme = useTheme(state => state.theme);
+  const darkMedia = theme === 'system' ? '(prefers-color-scheme: dark)' : theme === 'dark' ? 'all' : 'not all';
   const items: { scene: Scene; title: string; body: string }[] = isFr ? [
     { scene: 'shield', title: 'Votre quota est réservé aux vrais appels', body: 'Les appels indésirables sont filtrés. Vous ne dépensez pas vos minutes à écouter du spam.' },
     { scene: 'languages', title: 'Une conversation, pas un menu vocal', body: 'Elle écoute, répond et laisse la place à votre interlocuteur. Français ou anglais, selon votre offre.' },
@@ -69,31 +72,43 @@ export function BenefitsGrid({ isFr }: Props) {
     { scene: 'summary', title: 'Every call leaves a useful record', body: 'Summary, transcript, contact details and next steps: find what matters, even on your phone.' },
     { scene: 'knowledge', title: 'She knows how your business works', body: 'Hours, services, FAQs and reception rules: answers based on your information, not generalities.' },
   ];
-  const feature = (index: number) => <div data-benefit key={items[index].scene}><h3>{items[index].title}</h3><p>{items[index].body}</p></div>;
+  const feature = (index: number) => <div data-benefit={items[index].scene} key={items[index].scene}><h3>{items[index].title}</h3><p>{items[index].body}</p></div>;
   return <Section aria-labelledby="benefits-heading" className="qms qms-benefits">
     <Container>
       <div className="qms-benefits-intro"><div><H2 id="benefits-heading">{isFr ? 'Puissante là où ça compte.' : 'Powerful where it matters.'}</H2><p>{isFr ? 'Les appels sont pris. Le travail avance aussi. Voilà ce que Qwillio prend réellement en charge.' : 'Calls get answered. Work moves forward too. Here is what Qwillio actually takes care of.'}</p></div><PillLink to="/register" variant="primary">{isFr ? 'Essayer Qwillio' : 'Try Qwillio'}<ArrowRight size={16} /></PillLink></div>
       <div className="qms-benefit-stories">
-        <article className="qms-benefit-mobile" data-benefit-story>
+        <article className="qms-benefit-editorial qms-benefit-mobile" data-benefit-story>
           <div className="qms-phone-stage" role="img" aria-label={isFr ? 'Mockup de téléphone : fiche d’appel Qwillio, données de démonstration' : 'Phone mockup: Qwillio call record, demonstration data'}>
             <div className="qms-device-phone" aria-hidden="true"><div className="qms-phone-screen"><img src="/screens/fiche-appel-phone.webp" alt="" loading="lazy" decoding="async" width={780} height={1691} /><span className="qms-phone-island" /></div><span className="qms-phone-button" /></div>
-            <span className="qms-device-caption">{isFr ? 'Votre suivi, dans votre poche.' : 'Your follow-up, in your pocket.'}</span>
+
           </div>
-          <div className="qms-story-copy">{feature(4)}{feature(2)}</div>
+          <div className="qms-story-copy">{feature(4)}</div>
         </article>
-        <article className="qms-benefit-life" data-benefit-story>
+        <article className="qms-benefit-support" data-benefit-story>
+          <span className="qms-benefit-symbol" aria-hidden="true"><MessageSquare size={25} /></span>
+          <div className="qms-story-copy">{feature(2)}</div>
+        </article>
+        <article className="qms-benefit-editorial qms-benefit-life" data-benefit-story>
           <figure><img src="/marketing/owner-phone.webp" alt={isFr ? 'Une personne consulte son téléphone, mise en situation illustrative' : 'A person checking their phone, an illustrative use scene'} loading="lazy" decoding="async" width={1200} height={1800} /></figure>
-          <div className="qms-story-copy">{feature(1)}{feature(3)}</div>
+          <div className="qms-story-copy">{feature(1)}</div>
         </article>
-        <article className="qms-benefit-desktop" data-benefit-story>
-          <div className="qms-story-copy">{feature(5)}{feature(0)}</div>
+        <article className="qms-benefit-support" data-benefit-story>
+          <span className="qms-benefit-symbol" aria-hidden="true"><PhoneForwarded size={25} /></span>
+          <div className="qms-story-copy">{feature(3)}</div>
+        </article>
+        <article className="qms-benefit-editorial qms-benefit-desktop" data-benefit-story>
+          <div className="qms-story-copy">{feature(5)}</div>
           <figure className="qms-mac-stage">
-            <div className="qms-device-mac" data-figma-node="1:2"><img src="/marketing/macbook-figma-safari.webp" alt={isFr ? 'MacBook Pro : le portail Qwillio et sa base de connaissances dans Safari maximisé, données de démonstration' : 'MacBook Pro: Qwillio and its knowledge base in maximized Safari, demonstration data'} loading="lazy" decoding="async" width={2400} height={1600} /></div>
+            <picture className="qms-device-mac" data-figma-node="1:2"><source srcSet="/marketing/macbook-figma-safari-dark.webp" media={darkMedia} /><img src="/marketing/macbook-figma-safari.webp" alt={isFr ? 'MacBook Pro : le portail Qwillio et sa base de connaissances dans Safari maximisé, données de démonstration' : 'MacBook Pro: Qwillio and its knowledge base in maximized Safari, demonstration data'} loading="lazy" decoding="async" width={2400} height={1600} /></picture>
             <figcaption className="qms-mockup-credit">{isFr ? 'Mockup adapté de ' : 'Mockup adapted from '}<a href="https://www.figma.com/community/file/1176558805861554548/macbook-pro-mockups" target="_blank" rel="noopener noreferrer">Mr.Mockup</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a></figcaption>
           </figure>
         </article>
+        <article className="qms-benefit-support" data-benefit-story>
+          <span className="qms-benefit-symbol" aria-hidden="true"><ShieldCheck size={25} /></span>
+          <div className="qms-story-copy">{feature(0)}</div>
+        </article>
       </div>
-      <p className="qms-illustrative-note">{isFr ? 'Écrans du portail Qwillio avec données de démonstration. La photographie illustre un usage, pas un client Qwillio.' : 'Qwillio portal screens with demonstration data. The photograph illustrates a use case, not a Qwillio customer.'}</p>
+
     </Container>
   </Section>;
 }
@@ -125,7 +140,7 @@ export function EcosystemMosaic({ isFr }: Props) {
   return <Section aria-labelledby="ecosystem-heading" className="qms qms-ecosystem" hairline>
     <Container><div className="qms-ecosystem-intro"><H2 id="ecosystem-heading">{isFr ? 'Vos outils. Le même accueil.' : 'Your tools. One connected welcome.'}</H2><p>{isFr ? 'Connectez les outils que vous utilisez déjà. L’agenda sert de référence ; les autres échanges passent par vos intégrations et vos webhooks.' : 'Connect the tools you already use. Your calendar is the source of truth; other exchanges use your integrations and webhooks.'}</p></div>
       <div className="qms-ecosystem-grid">
-        <div className="qms-ecosystem-photo"><img src="/marketing/restaurant.webp" alt={isFr ? 'Intérieur de restaurant, illustration métier' : 'Restaurant interior, an illustrative business context'} loading="lazy" width={1100} height={800} /><div><QwillioLogo size={46} /><h3>{isFr ? 'Vous accueillez sur place. Elle garde la ligne.' : 'You welcome people in. She keeps the line covered.'}</h3><span>{isFr ? 'Illustration métier' : 'Illustrative business context'}</span></div></div>
+        <div className="qms-ecosystem-photo"><img src="/marketing/restaurant.webp" alt={isFr ? 'Intérieur de restaurant, illustration métier' : 'Restaurant interior, an illustrative business context'} loading="lazy" width={1100} height={800} /><div><QwillioLogo size={46} /><h3>{isFr ? 'Vous accueillez sur place. Elle garde la ligne.' : 'You welcome people in. She keeps the line covered.'}</h3></div></div>
         <div className="qms-ecosystem-calendar">
           <ImageStage scene="calendar" label={isFr ? 'Schéma : Qwillio relié à votre agenda et vos automatisations' : 'Diagram: Qwillio connected to your calendar and automations'}>
             <Paper className="qms-connections"><QwillioLogo size={48} /><div className="qms-connection-nodes"><span><CalendarCheck size={24} />Google Calendar</span><span><MessageSquare size={24} />SMS</span><span><Webhook size={24} />Webhook</span></div></Paper>

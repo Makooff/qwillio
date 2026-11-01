@@ -15,19 +15,22 @@ import { useTheme } from '../../stores/themeStore';
 import { useLang } from '../../stores/langStore';
 import { EASE_OUT_EXPO } from './motion/reducedMotion';
 import { useGlow } from './motion/GlowCard';
-import GlassSkin, { GLASS_FILTER_ID, GlassFilter, useLiquidGlassSupport } from './ui/liquid-glass';
+import GlassSkin, { GlassFilter } from './ui/liquid-glass';
 import { DARK_GLASS, LIGHT_GLASS } from './ui/glassTints';
 import TryVoiceButton from './TryVoiceButton';
 
-/* Nav V2 (demande utilisateur, deux états) :
-   - AU REPOS (haut de page) : aucune surface blanche sous le logo/menu.
-     À la place, un voile de flou progressif permanent sur la bande d'entête :
+/* Nav V2 (deux états de la barre, UN voile permanent) :
+   - Voile de flou progressif pleine largeur sur la bande d'entête, sur
+     TOUTES les pages et dans les DEUX états de la barre (demande
+     utilisateur : « le haut flou partout comme sur le dashboard ») :
      très flou tout en haut, de moins en moins flou en descendant (backdrop
-     blur masqué par un dégradé vertical qui se prolonge sous la barre).
+     blur 22px saturé à 140 %, masqué par un dégradé vertical qui se
+     prolonge sous la barre), teinte opaque-vers-transparent qui suit le
+     thème et les sections drenched. Seul le menu plein écran l'éteint.
    - AU SCROLL (hystérésis 80/40px) : la barre se détache en BULLE flottante
      compacte (ressort framer réversible), et le fond de la bulle est
      TRANSPARENT FLOU (verre : backdrop-blur + teinte crème très légère),
-     plus jamais blanc. Le voile de repos s'efface pendant que la bulle vit.
+     plus jamais blanc. Le voile pleine largeur, lui, vit toujours.
    - AU-DESSUS D'UNE SECTION SOMBRE : la teinte crème et le filet clair
      dessinaient un anneau blanc sur le drenched. Le verre passe alors en
      sombre. Les sections concernées se signalent déjà elles-mêmes par
@@ -265,7 +268,6 @@ export default function NavV2() {
   const burgerRef = useRef<HTMLButtonElement>(null);
   const asideRef = useGlow<HTMLDivElement>();
   const location = useLocation();
-  const plainHeader = !['/', '/receptionist'].includes(location.pathname.replace(/\/+$/, '') || '/');
   const reduced = useReducedMotion();
 
   useEffect(() => {
@@ -537,13 +539,14 @@ export default function NavV2() {
     { label: isFr ? 'Société' : 'Company', links: company },
   ];
 
-  /* Le verre liquide n'existe que là où le navigateur accepte un filtre SVG
-     en backdrop. Ailleurs (WebKit), on retombe sur un flou classique et une
-     teinte plus dense, pour que la barre reste non traversable. */
-  const liquid = useLiquidGlassSupport();
-  const restVeil = liquid
-    ? `url("#${GLASS_FILTER_ID}")`
-    : 'blur(30px) saturate(1.5)';
+  /* Le voile porte désormais UNIQUEMENT un vrai flou backdrop, la même
+     recette que l'entête du tableau de bord (DashboardShell) : blur(22px)
+     saturate(140%). La déformation liquide SVG a été retirée du voile:
+     distordait le contenu derrière sans suffire à masquer le texte clair,
+     et la demande utilisateur est « le haut flouté comme sur le dashboard »,
+     pas un effet. La distortion liquide ne vit plus que sur la peau de la
+     bulle flottante (GlassSkin), là où elle signe la matière du verre. */
+  const restVeil = 'blur(22px) saturate(140%)';
 
   return (
     <>
@@ -565,9 +568,12 @@ export default function NavV2() {
         }}
         transition={reduced ? { duration: 0 } : DETACH_SPRING}
       >
-        {/* Voile de repos : flou progressif permanent sur la bande d'entête,
-            très flou en haut, qui s'estompe en descendant et déborde sous la
-            barre. Aucune surface blanche : juste le contenu qui fond. */}
+        {/* Voile de flou progressif PERMANENT sur la bande d'entête, sur
+            TOUTES les pages (demande utilisateur : « le haut flou partout
+            comme sur le dashboard »), y compris quand la barre se détache
+            en bulle flottante. Très flou en haut, qui s'estompe en
+            descendant et déborde sous la barre. Aucune surface blanche :
+            juste le contenu qui fond. */}
         {/* DEUX éléments, et c'est le fond du problème iOS.
             Le masque et le `backdrop-filter` vivaient sur la MÊME boîte. Sur
             WebKit, un `-webkit-backdrop-filter` pose sur un élément qui porte
@@ -582,11 +588,20 @@ export default function NavV2() {
           aria-hidden="true"
           className="pointer-events-none absolute inset-x-0 top-0 overflow-hidden"
           style={{
-            display: plainHeader ? 'none' : undefined,
+            /* Il n'y a plus d'état « en-tête simple » sans voile : le flou du
+               haut de page est une propriété du site, pas de deux pages. */
             height: '160%',
-            opacity: floating || menuOpen ? 0 : 1,
+            /* Seul le menu plein écran éteint le voile : l'entête y est une
+               vraie surface `q2-canvas` opaque qui le recouvrirait de toute
+               façon. Pendant que la bulle flotte, le voile pleine largeur
+               VIT — c'était la régression demandée (le haut devenait net
+               dès le détachement). */
+            opacity: menuOpen ? 0 : 1,
             transition: 'opacity 320ms cubic-bezier(0.16, 1, 0.3, 1)',
-            /* Le masque évite le bord franc sous l'entête. */
+            /* Le masque évite le bord franc sous l'entête. Il reste sur le
+               parent, jamais sur l'enfant qui porte le backdrop-filter:
+               WebKit ne rend pas un backdrop-filter posé sur un élément
+               masqué (même leçon que DashboardShell). */
             maskImage: 'linear-gradient(to bottom, black 30%, rgba(0,0,0,0.55) 62%, transparent 100%)',
             WebkitMaskImage: 'linear-gradient(to bottom, black 30%, rgba(0,0,0,0.55) 62%, transparent 100%)',
           }}
@@ -600,24 +615,18 @@ export default function NavV2() {
                  Safari ne connaît pas cette valeur comme indice et la couche
                  restait photographiée au montage, donc figée au défilement. */
               transform: 'translateZ(0)',
-              /* UN DÉGRADÉ BLANC SUR CLAIR (demande utilisateur: « mets un
-                 dégradé blanc et l'écriture en noir »).
-                 C'était une teinte UNIE, et à 12 % en mode liquide elle ne
-                 portait rien: le texte noir de la barre tombait sur la vidéo
-                 du hero, sapins compris. Un dégradé dense en haut, éteint en
-                 bas, donne au texte le fond qu'il lui faut là où il est, sans
-                 poser une bande blanche en travers de l'image.
-                 Le mode liquide reste plus léger que le repli: le flou y fait
-                 déjà une part du travail.
-                 Sur sombre, rien ne change: le voile reste noir et le texte
-                 blanc. */
-              background: liquid
-                ? (overDark
-                    ? 'rgba(8, 9, 10, 0.12)'
-                    : 'linear-gradient(to bottom, rgb(var(--q2-canvas) / 0.86) 0%, rgb(var(--q2-canvas) / 0.52) 55%, rgb(var(--q2-canvas) / 0) 100%)')
-                : (overDark
-                    ? 'rgba(8, 9, 10, 0.58)'
-                    : 'linear-gradient(to bottom, rgb(var(--q2-canvas) / 0.95) 0%, rgb(var(--q2-canvas) / 0.68) 55%, rgb(var(--q2-canvas) / 0) 100%)'),
+              /* Teinte PROGRESSIVE opaque-vers-transparent, même recette que
+                 l'entête du dashboard: opaque en haut là où le contenu doit
+                 disparaître pour de bon (le flou seul ne suffit pas sur du
+                 texte clair posé sur du noir: il en garde le contraste),
+                 rendue en descendant, éteinte au bord — le masque au-dessus
+                 continue d'effacer la chute. Aucune bande opaque: le fond
+                 passe de 0,97 (sombre) / 0,95 (clair) à 0 en bas.
+                 Sur sombre — section drenched ou thème dark — le voile part
+                 du noir de la marque; sur clair, du canvas. */
+              background: overDark
+                ? 'linear-gradient(to bottom, rgba(10,10,10,0.97) 0%, rgba(10,10,10,0.88) 42%, rgba(10,10,10,0.45) 72%, rgba(10,10,10,0) 100%)'
+                : 'linear-gradient(to bottom, rgb(var(--q2-canvas) / 0.95) 0%, rgb(var(--q2-canvas) / 0.78) 42%, rgb(var(--q2-canvas) / 0.4) 72%, rgb(var(--q2-canvas) / 0) 100%)',
             }}
           />
         </div>
