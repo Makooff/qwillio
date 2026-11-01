@@ -103,12 +103,11 @@ export function BenefitsGrid({ isFr }: Props) {
             <figcaption className="qms-mockup-credit">{isFr ? 'Mockup adapté de ' : 'Mockup adapted from '}<a href="https://www.figma.com/community/file/1176558805861554548/macbook-pro-mockups" target="_blank" rel="noopener noreferrer">Mr.Mockup</a> · <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noopener noreferrer">CC BY 4.0</a></figcaption>
           </figure>
         </article>
-        <article className="qms-benefit-support" data-benefit-story>
-          <span className="qms-benefit-symbol" aria-hidden="true"><ShieldCheck size={25} /></span>
-          <div className="qms-story-copy">{feature(0)}</div>
-        </article>
       </div>
-
+      <article className="qms-benefit-support qms-benefit-antispam" data-benefit-story>
+        <span className="qms-benefit-symbol" aria-hidden="true"><ShieldCheck size={25} /></span>
+        <div className="qms-story-copy">{feature(0)}</div>
+      </article>
     </Container>
   </Section>;
 }

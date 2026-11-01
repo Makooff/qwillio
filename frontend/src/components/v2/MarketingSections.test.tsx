@@ -42,6 +42,15 @@ describe('Separate visual marketing sections', () => {
     expect(container.querySelector('.qms-illustrative-note')).toBeNull();
     expect(container.textContent).not.toContain('20 langues');
   });
+  it('puts spam protection outside the image stories, in a separate full-width block', () => {
+    const { container } = wrap(<BenefitsGrid isFr />);
+    const spam = container.querySelector('[data-benefit="shield"]')!;
+    const standalone = spam.closest('.qms-benefit-antispam');
+    expect(standalone).not.toBeNull();
+    expect(spam.closest('.qms-benefit-stories')).toBeNull();
+    expect(standalone?.querySelector('img')).toBeNull();
+    expect(container.querySelector('.qms-benefit-desktop')?.querySelectorAll('[data-benefit]')).toHaveLength(1);
+  });
   it.each([
     ['dark', 'all'],
     ['light', 'not all'],

@@ -180,8 +180,8 @@ export const COMPARISON_PAGES: ComparisonPage[] = [
       fr: 'Qwillio vs Smith.ai : le comparatif honnête 2026',
     },
     subtitle: {
-      en: 'Both cover business calls 24/7. One relies on human receptionists in the US; the other is pure AI, bilingual, GDPR-friendly. Here is where each wins.',
-      fr: 'Les deux couvrent les appels 24 h/24. L\'un s\'appuie sur des réceptionnistes humaines aux États-Unis ; l\'autre est une IA pure, bilingue, compatible RGPD. Voici où chacun l\'emporte.',
+      en: 'Both cover business calls 24/7. Smith.ai combines AI with human receptionists; Qwillio answers in English and French and can transfer calls to your team. Here is what sets them apart.',
+      fr: 'Les deux couvrent les appels 24 h/24. Smith.ai associe IA et réceptionnistes humaines ; Qwillio répond en français et en anglais et peut transférer les appels à votre équipe. Voici ce qui les distingue.',
     },
     updated: '2026-07-11',
     content: {
@@ -203,7 +203,7 @@ export const COMPARISON_PAGES: ComparisonPage[] = [
         { type: 'h2', text: 'Feature-by-feature comparison' },
         { type: 'table', head: ['Feature', 'Smith.ai', 'Qwillio'], rows: [
           ['24/7 answering', 'Yes', 'Yes'],
-          ['Human backup on tricky calls', 'Yes (US-based)', 'No (pure AI)'],
+          ['Human backup on tricky calls', 'Yes (US-based)', 'Yes, to your team (when configured)'],
           ['English native', 'Yes', 'Yes'],
           ['Spanish native', 'Yes', 'No'],
           ['French native', 'No', 'Yes'],
@@ -215,6 +215,7 @@ export const COMPARISON_PAGES: ComparisonPage[] = [
           ['Self-serve onboarding', 'Partial', 'Yes (15 min)'],
           ['7-day free trial', 'Case by case', 'Yes, 7-day trial'],
         ]},
+        { type: 'p', text: 'With Qwillio, human handoff means transferring to your own team, once the destination numbers and transfer rules are configured. Answering depends on the recipient being available: Qwillio does not provide outsourced human receptionists.' },
         { type: 'h2', text: 'Where Smith.ai still wins' },
         { type: 'p', text: "Smith.ai is not a legacy player. It has ten years of operational maturity, a brand US SMB owners already trust, and hybrid human coverage on calls where the AI would fall short. If your business is US-only, English-only, and you value having a real human as fallback on a case that turns emotional or high-stakes, Smith.ai remains defensible." },
         { type: 'verdict', tone: 'good', title: 'Smith.ai is the better fit if', text: 'You are a US business, your clients speak English only, you already pay for a human receptionist and want to keep a human touch, and your inbound call volume is under 300 per month.' },
@@ -244,7 +245,7 @@ export const COMPARISON_PAGES: ComparisonPage[] = [
         { type: 'h2', text: 'Comparaison fonctionnalité par fonctionnalité' },
         { type: 'table', head: ['Fonctionnalité', 'Smith.ai', 'Qwillio'], rows: [
           ['Décroché 24/7', 'Oui', 'Oui'],
-          ['Relais humain sur appel complexe', 'Oui (basé US)', 'Non (IA pure)'],
+          ['Relais humain sur appel complexe', 'Oui (basé US)', 'Oui, vers votre équipe (si configuré)'],
           ['Anglais natif', 'Oui', 'Oui'],
           ['Espagnol natif', 'Oui', 'Non'],
           ['Français natif', 'Non', 'Oui'],
@@ -256,6 +257,7 @@ export const COMPARISON_PAGES: ComparisonPage[] = [
           ['Onboarding self-serve', 'Partiel', 'Oui (15 min)'],
           ['7 jours d’essai', 'Au cas par cas', 'Oui, essai 7 jours'],
         ]},
+        { type: 'p', text: 'Chez Qwillio, le relais humain désigne le transfert vers votre propre équipe, lorsque les numéros et les règles de transfert sont configurés. La prise en charge dépend de la disponibilité du destinataire : Qwillio ne fournit pas de réceptionnistes humaines externes.' },
         { type: 'h2', text: 'Là où Smith.ai reste devant' },
         { type: 'p', text: "Smith.ai n'est pas un acteur dépassé. Dix ans de maturité opérationnelle, une marque que les patrons de PME américaines connaissent déjà, et un relais humain sur les appels que l'IA ne saurait pas gérer. Si votre entreprise est 100 % US, 100 % anglophone, et que vous tenez à avoir un humain comme filet sur un dossier émotionnel ou à fort enjeu, Smith.ai reste défendable." },
         { type: 'verdict', tone: 'good', title: 'Smith.ai est le meilleur choix si', text: "Vous êtes une entreprise US, vos clients ne parlent qu'anglais, vous payez déjà une réceptionniste humaine et voulez garder ce contact humain, et votre volume d'appels entrants est sous 300 par mois." },

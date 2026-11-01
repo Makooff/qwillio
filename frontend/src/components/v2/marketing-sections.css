@@ -24,6 +24,8 @@
 .qms-benefit-support [data-benefit] { display: grid; grid-template-columns: minmax(0,.9fr) minmax(0,1.1fr); align-items: start; gap: 36px; }
 .qms-benefit-support h3 { font-size: clamp(20px,1.8vw,25px); margin: 0; }
 .qms-benefit-symbol { width: 48px; height: 48px; display: grid; place-items: center; border-radius: 50%; color: var(--qms-accent); background: rgb(var(--q2-band)); }
+.qms-benefit-support.qms-benefit-antispam { margin-top: 48px; padding: clamp(24px,3vw,40px); border: 0; border-radius: 20px; background: rgb(var(--q2-band)); }
+.qms-benefit-antispam .qms-benefit-symbol { background: rgb(var(--q2-canvas)); }
 .qms-phone-stage { height: 430px; position: relative; display: grid; place-items: center; overflow: hidden; border-radius: 28px; background: rgb(var(--q2-band)); }
 
 .qms-device-phone { width: 204px; position: relative; padding: 5px; border: 1px solid #878789; border-radius: 36px; background: linear-gradient(115deg,#e1dedb,#5e5d5c 18%,#d1ceca 45%,#595959 82%,#b7b4b1); box-shadow: 12px 26px 32px -18px rgb(0 0 0 / .4); transform: translate(-30px,30px) rotate(-9deg); }
