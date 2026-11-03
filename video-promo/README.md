@@ -46,6 +46,8 @@ npm run build
 - `video` : Chromium avance la timeline GSAP image par image et envoie chaque image à ffmpeg (environ 10 minutes) ;
 - `mux` : assemblage et normalisation du son.
 
+La version livrée est `frontend/public/qwillio-promo.mp4` (CRF 22, 13 Mo, pour le web) avec son affiche `qwillio-promo-poster.jpg`. Le `build` produit un master plus lourd (CRF 14, environ 75 Mo) à garder hors du dépôt.
+
 `npm run stills` produit quelques images fixes dans `stills/` pour relire une modification sans tout rendre.
 
 ## Ce qui manque, volontairement
