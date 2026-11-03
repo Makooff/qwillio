@@ -1,7 +1,10 @@
 node_modules/
 foot/
+assets/
 stills/
 logo.js
+logo-frames.js
+sfx.json
 video.mp4
-music.wav
+pops.wav
 qwillio-promo.mp4

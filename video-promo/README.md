@@ -1,58 +1,65 @@
 # Film promotionnel Qwillio
 
-47 secondes, 1920×1080, 60 images par seconde, son stéréo à -14 LUFS (la norme des réseaux).
+49,5 secondes, 1920×1080, 60 images par seconde. Aucune musique : chaque apparition à l'écran fait un pop.
+
+## Le design est celui du site
+
+Le film ne réinvente rien, il reprend le registre V2 « Papier & Signal » (`DA/v2-direction.md`) :
+
+- titres en Outfit 300 avec un mot en italique serif (`.q2-serif-word`, en Georgia sur le site, en Gelasio ici, qui en reprend les métriques) ;
+- eyebrows indigo en petites capitales, pilules pour tous les boutons, cartes blanches sur la bande taupe, sections sombres à bordures fines et sans ombre ;
+- les textes du site, mot pour mot : le hero (« Elle ne prend pas de messages. Elle prend des *rendez-vous.* »), ses cartes « Appel entrant » et « Réservation proposée », la scène « Tout se passe *en ligne.* » et ses étapes, « La confirmation part toute seule », les boutons « Essayer 7 jours » et « L'entendre décrocher » ;
+- Marie, l'un des personnages réceptionnistes du site, dans la carte d'appel.
+
+## Le logo est l'animation d'ouverture de la webapp
+
+Les deux lobes qui se déforment, traversent l'écran et se posent en logo sont calculés par
+`liquidJourney` (`frontend/src/components/blobPath.ts`), le même code que `SplashScreen.tsx`,
+avec ses constantes (graines 7 et 21, rayon de départ, 2,5 s de trajet, recouvrement en
+`#7349FE` par découpe d'un lobe par l'autre). `logo-frames.mjs` l'exécute aux dimensions du
+film : si l'animation change dans l'app, elle change dans le film au prochain `build`.
 
 ## Le découpage
 
-| Temps | Plan | Ce qu'il dit |
-|---|---|---|
-| 0 à 5,8 s | Nuit, le téléphone sonne, les appels manqués s'empilent | Le problème, ressenti avant d'être dit |
-| 5,8 s | Coupe au noir, silence total | La rupture |
-| 6 à 10 s | Boulangerie, barbier | « Vous avez les mains prises. Le téléphone, lui, sonne encore. » |
-| 10 à 13 s | Phrase-choc sur fond papier | « Un appel manqué, c'est un client qui appelle le suivant. » |
-| 13 à 16,5 s | Les deux lobes du logo se rejoignent, impact | « Qwillio décroche. » |
-| 16,5 à 29 s | L'appel en direct : forme d'onde, transcription, outils | Elle décroche, comprend, réserve |
-| 29 à 33 s | Le rendez-vous tombe dans l'agenda, le SMS part | Directement dans votre agenda |
-| 33 à 39,5 s | Quatre capacités, une par plan | 24 h/24, transfert d'urgence, FR/EN/NL, résumé d'appel |
-| 39,5 à 47 s | Carton final | « Qwillio décroche. Vous, vous travaillez. » Essai 7 jours, dès 99 € par mois |
+| Temps | Plan |
+|---|---|
+| 0 à 5,8 s | Nuit, le téléphone sonne, les appels manqués s'empilent |
+| 6 à 10 s | Boulangerie, barbier : « Vous avez les mains *prises.* » |
+| 10 à 13 s | « Un appel manqué, c'est un client qui appelle *le suivant.* » |
+| 13 à 16,5 s | Ouverture de l'app : les lobes se rejoignent, « Qwillio » |
+| 16,5 à 21 s | Le hero du site, ses cartes, le créneau 19:30 qui s'allume |
+| 21 à 31,5 s | « Tout se passe *en ligne.* » : l'appel de Marie, les trois étapes qui s'allument |
+| 31,5 à 35,5 s | « La confirmation part *toute seule.* » : agenda et SMS |
+| 35,5 à 42 s | 24 h/24, transfert d'urgence, français et anglais, résumé d'appel |
+| 42 à 49,5 s | Ouverture de l'app une seconde fois, puis le hero en carton final et ses boutons |
 
-Chaque coupe tombe sur un temps de la musique (120 BPM, grille de 0,5 s). Les temps de
-`index.html` et de `music.py` sont les mêmes nombres : en déplacer un, c'est déplacer l'autre.
+## Le son : des pops, déclarés par l'image
 
-## Ce que le film affirme, et pourquoi c'est tenable
+Chaque animation qui mérite un son appelle `pop(t, type, hauteur)` dans `index.html`. La
+page publie cette liste (`window.SFX`), `npm run sfx` l'écrit dans `sfx.json`, et `pops.py`
+synthétise chaque pop à son instant. Déplacer une animation déplace donc son pop, sans rien
+recaler à la main. Cinq sons, tous générés par le code : `pop` (bulle qui éclate),
+`tiny` (un mot qui apparaît), `big` (le logo qui se forme), `double` (une validation),
+`ring` (la sonnerie, en roulé de petites bulles). Les hauteurs suivent une gamme
+pentatonique, pour que les cascades restent agréables.
 
-La règle de `DA/voix.md` vaut ici : rien qu'on ne puisse prouver. Pas de client cité, pas de
-chiffre de résultat. Ce qui est montré existe dans le produit : agenda Google, SMS de
-confirmation avec lien agenda, transfert vers le portable, trois langues, résumé d'appel,
-grille tarifaire de `backend/src/config/plans.ts`. L'appel est une mise en scène, et le
-numéro est masqué. Les deux plans filmés sont des images Mixkit sous licence libre
-commerciale (`frontend/public/marketing/SECTOR-VIDEO-SOURCES.md`), sans lien avec un client.
+## Ce que le film affirme
 
-Si un prix change dans `plans.ts`, il change aussi dans le carton final (`#cta`).
+Rien d'invérifiable (`DA/voix.md`) : pas de client cité, pas de chiffre de résultat. Ce qui
+est montré existe : agenda connecté, SMS de confirmation, transfert, français et anglais,
+résumé d'appel, prix de `backend/src/config/plans.ts`. L'appel est une mise en scène. Les
+plans filmés sont des images Mixkit sous licence commerciale libre
+(`frontend/public/marketing/SECTOR-VIDEO-SOURCES.md` et `VIDEO-SOURCE.md`).
 
 ## Régénérer
 
-Prérequis : Node 20+, ffmpeg, Python 3 avec numpy, Chromium pour Playwright.
+Prérequis : Node 22.6 ou plus (pour lire `blobPath.ts` directement), ffmpeg, Python 3 avec numpy, Chromium pour Playwright.
 
 ```bash
 npm install
 npm run build
 ```
 
-`build` enchaîne quatre étapes, utilisables seules :
-
-- `prepare-assets` : logo lu depuis `frontend/public/qwillio-logo-512.svg` (jamais redessiné), plans filmés extraits et étalonnés ;
-- `music` : la bande-son, composée par le code (aucun échantillon externe) ;
-- `video` : Chromium avance la timeline GSAP image par image et envoie chaque image à ffmpeg (environ 10 minutes) ;
-- `mux` : assemblage et normalisation du son.
-
-La version livrée est `frontend/public/qwillio-promo.mp4` (CRF 22, 13 Mo, pour le web) avec son affiche `qwillio-promo-poster.jpg`. Le `build` produit un master plus lourd (CRF 14, environ 75 Mo) à garder hors du dépôt.
-
-`npm run stills` produit quelques images fixes dans `stills/` pour relire une modification sans tout rendre.
-
-## Ce qui manque, volontairement
-
-Aucune voix. Les seules voix françaises installables hors ligne ne prononcent pas les nasales,
-et une voix robotique dans le film d'un produit qui vend une voix naturelle ferait l'effet
-inverse. La meilleure voix possible est celle de la réceptionniste elle-même : un vrai appel
-enregistré, posé sur la scène de 16,5 à 29 s, remplacerait la transcription muette.
+`npm run stills` produit quelques images fixes dans `stills/` pour relire une modification
+sans tout rendre. La version livrée est `frontend/public/qwillio-promo.mp4`, avec son
+affiche `qwillio-promo-poster.jpg`.
