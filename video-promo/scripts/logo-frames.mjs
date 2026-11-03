@@ -3,7 +3,7 @@
 // SplashScreen.tsx). Seules changent les dimensions : celles du film.
 // Lancer avec : node --experimental-strip-types logo-frames.mjs
 import fs from 'fs';
-import { liquidJourney } from '../frontend/src/components/blobPath.ts';
+import { liquidJourney } from '../../frontend/src/components/blobPath.ts';
 
 const W = 1920, H = 1080;
 // Constantes de SplashScreen.tsx, à l'échelle du film.
@@ -26,6 +26,6 @@ function journey(logo, my) {
   return out;
 }
 
-const data = { open: journey(360, 470), close: journey(260, 330) };
-fs.writeFileSync('logo-frames.js', 'window.LOGO_FRAMES=' + JSON.stringify(data) + ';');
+const data = { open: journey(360, 500), close: journey(300, 400) };
+fs.writeFileSync('src/logo-frames.json', JSON.stringify(data));
 console.log('frames', data.open.left.length);

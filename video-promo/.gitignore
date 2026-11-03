@@ -1,10 +1,7 @@
 node_modules/
-foot/
-assets/
-stills/
-logo.js
-logo-frames.js
-sfx.json
-video.mp4
-pops.wav
-qwillio-promo.mp4
+out/
+scripts/sfx.json
+public/sounds.wav
+public/qwillio-logo-512.svg
+public/marie.webp
+src/logo-frames.json

@@ -1,65 +1,49 @@
 # Film promotionnel Qwillio
 
-49,5 secondes, 1920×1080, 60 images par seconde. Aucune musique : chaque apparition à l'écran fait un pop.
+42 secondes, 1920×1080, 60 images par seconde, rendu avec **Remotion**. Pas de musique : un son par événement.
 
-## Le design est celui du site
+## Ce que montre le film : le produit, pas le site
 
-Le film ne réinvente rien, il reprend le registre V2 « Papier & Signal » (`DA/v2-direction.md`) :
+Le film se passe dans le **portail client** (`frontend/src/pages/client/*`). Un appel arrive en
+direct sur la page Appels, le rendez-vous tombe dans l'agenda, la fiche d'appel s'ouvre avec
+son résumé IA, puis la vue d'ensemble du mois. Un curseur fait les clics qu'un gérant ferait.
 
-- titres en Outfit 300 avec un mot en italique serif (`.q2-serif-word`, en Georgia sur le site, en Gelasio ici, qui en reprend les métriques) ;
-- eyebrows indigo en petites capitales, pilules pour tous les boutons, cartes blanches sur la bande taupe, sections sombres à bordures fines et sans ombre ;
-- les textes du site, mot pour mot : le hero (« Elle ne prend pas de messages. Elle prend des *rendez-vous.* »), ses cartes « Appel entrant » et « Réservation proposée », la scène « Tout se passe *en ligne.* » et ses étapes, « La confirmation part toute seule », les boutons « Essayer 7 jours » et « L'entendre décrocher » ;
-- Marie, l'un des personnages réceptionnistes du site, dans la carte d'appel.
+Ce qui vient du portail, et pas d'une imitation :
 
-## Le logo est l'animation d'ouverture de la webapp
+- **les valeurs** : fonds, bordures, rayons et tailles ont été relevés sur le portail lui-même
+  (styles calculés de `ClientLayout`, `ClientBookings`, `ClientCalls`, `LiveCalls`) ;
+- **les icônes** : la façade du portail, `frontend/src/components/icons.tsx`, importée telle
+  quelle (`remotion.config.ts` lui donne le même React que le film) ;
+- **la grille de l'agenda** : `monthGrid` de `frontend/src/utils/month-grid.ts` ;
+- **le logo** : les trajectoires de l'animation d'ouverture de l'app, calculées par
+  `liquidJourney` (`frontend/src/components/blobPath.ts`, le code de `SplashScreen.tsx`).
 
-Les deux lobes qui se déforment, traversent l'écran et se posent en logo sont calculés par
-`liquidJourney` (`frontend/src/components/blobPath.ts`), le même code que `SplashScreen.tsx`,
-avec ses constantes (graines 7 et 21, rayon de départ, 2,5 s de trajet, recouvrement en
-`#7349FE` par découpe d'un lobe par l'autre). `logo-frames.mjs` l'exécute aux dimensions du
-film : si l'animation change dans l'app, elle change dans le film au prochain `build`.
+Aucun bouton du site (« L'entendre décrocher », « Essayer 7 jours ») n'y figure : ce sont des
+appels à l'action d'une page web, pas des éléments du produit.
 
-## Le découpage
+## Le son
 
-| Temps | Plan |
-|---|---|
-| 0 à 5,8 s | Nuit, le téléphone sonne, les appels manqués s'empilent |
-| 6 à 10 s | Boulangerie, barbier : « Vous avez les mains *prises.* » |
-| 10 à 13 s | « Un appel manqué, c'est un client qui appelle *le suivant.* » |
-| 13 à 16,5 s | Ouverture de l'app : les lobes se rejoignent, « Qwillio » |
-| 16,5 à 21 s | Le hero du site, ses cartes, le créneau 19:30 qui s'allume |
-| 21 à 31,5 s | « Tout se passe *en ligne.* » : l'appel de Marie, les trois étapes qui s'allument |
-| 31,5 à 35,5 s | « La confirmation part *toute seule.* » : agenda et SMS |
-| 35,5 à 42 s | 24 h/24, transfert d'urgence, français et anglais, résumé d'appel |
-| 42 à 49,5 s | Ouverture de l'app une seconde fois, puis le hero en carton final et ses boutons |
-
-## Le son : des pops, déclarés par l'image
-
-Chaque animation qui mérite un son appelle `pop(t, type, hauteur)` dans `index.html`. La
-page publie cette liste (`window.SFX`), `npm run sfx` l'écrit dans `sfx.json`, et `pops.py`
-synthétise chaque pop à son instant. Déplacer une animation déplace donc son pop, sans rien
-recaler à la main. Cinq sons, tous générés par le code : `pop` (bulle qui éclate),
-`tiny` (un mot qui apparaît), `big` (le logo qui se forme), `double` (une validation),
-`ring` (la sonnerie, en roulé de petites bulles). Les hauteurs suivent une gamme
-pentatonique, pour que les cascades restent agréables.
+`src/timeline.ts` est le seul endroit qui dit QUAND : les scènes le lisent, et
+`scripts/sfx.mjs` en tire la liste des sons. 26 sons, dans 12 familles (sonnerie, notification
+en verre, clic de souris, pastille qui rebondit, carte qui se pose, panneau qui glisse, logo…).
+Chaque occurrence a sa graine, qui fait varier sa hauteur, sa durée et sa place en stéréo :
+aucun son n'est rejoué à l'identique.
 
 ## Ce que le film affirme
 
-Rien d'invérifiable (`DA/voix.md`) : pas de client cité, pas de chiffre de résultat. Ce qui
-est montré existe : agenda connecté, SMS de confirmation, transfert, français et anglais,
-résumé d'appel, prix de `backend/src/config/plans.ts`. L'appel est une mise en scène. Les
-plans filmés sont des images Mixkit sous licence commerciale libre
-(`frontend/public/marketing/SECTOR-VIDEO-SOURCES.md` et `VIDEO-SOURCE.md`).
+Rien d'invérifiable (`DA/voix.md`). Les noms, numéros et rendez-vous sont fictifs et les
+numéros de l'ouverture sont masqués. Ce qui est montré existe dans le portail : appel en
+direct, agenda, fiche d'appel avec résumé IA et score de lead, vue d'ensemble.
 
 ## Régénérer
 
-Prérequis : Node 22.6 ou plus (pour lire `blobPath.ts` directement), ffmpeg, Python 3 avec numpy, Chromium pour Playwright.
+Prérequis : Node 22.6 ou plus, Python 3 avec numpy, un Chromium (variable `REMOTION_CHROME`
+ou option `--browser-executable`).
 
 ```bash
 npm install
 npm run build
 ```
 
-`npm run stills` produit quelques images fixes dans `stills/` pour relire une modification
-sans tout rendre. La version livrée est `frontend/public/qwillio-promo.mp4`, avec son
-affiche `qwillio-promo-poster.jpg`.
+`npm run studio` ouvre Remotion Studio pour régler une scène image par image. La version
+livrée est `frontend/public/qwillio-promo.mp4`, avec son affiche `qwillio-promo-poster.jpg`.
