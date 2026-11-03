@@ -118,8 +118,8 @@ body{font-family:Outfit,sans-serif;-webkit-font-smoothing:antialiased;color:var(
 .cal .hr{position:absolute;left:0;right:0;height:1px;background:var(--plate)}
 .cal .hl{position:absolute;left:22px;font-size:17px;color:var(--faint);margin-top:-11px}
 .cal .ev{position:absolute;border-radius:14px;background:var(--band);box-shadow:inset 0 0 0 1px var(--plate);padding:12px 14px;font-size:17px;color:var(--body)}
-.cal .new{background:var(--indigo);box-shadow:0 18px 40px rgba(122,95,255,.42);color:#fff;font-size:20px;padding:14px 16px}
-.cal .new b{display:block;font-size:22px;font-weight:600}
+.cal .new{background:var(--indigo);box-shadow:0 18px 40px rgba(122,95,255,.42);color:#fff;font-size:17px;padding:12px 14px;white-space:nowrap}
+.cal .new b{display:block;font-size:19px;font-weight:600;white-space:nowrap}
 .cal .ripple{position:absolute;border-radius:18px;border:3px solid var(--indigo)}
 #s6 .sms{left:1290px;top:640px;width:520px;border-radius:36px;background:#0E0F11;padding:30px;color:#F5F4F2;
   box-shadow:0 0 0 1px rgba(255,255,255,.06),0 50px 100px rgba(29,25,60,.3)}
@@ -576,7 +576,7 @@ async function procedural(t,frame){
   // S7a dial
   if(t>=33&&t<34.5){const p=Math.min(1,(t-33.05)/1.25);const e=p<0?0:1-Math.pow(1-p,3);
     $('#arc').setAttribute('stroke-dasharray',`${(e*100).toFixed(2)} 100`);
-    const mins=Math.floor(e*24*60);$('#dialt').textContent=String(Math.floor(mins/60)%24).padStart(2,'0')+':'+String(mins%60).padStart(2,'0');}
+    const mins=Math.min(1439,Math.floor(e*24*60));$('#dialt').textContent=String(Math.floor(mins/60)%24).padStart(2,'0')+':'+String(mins%60).padStart(2,'0');}
   // grain
   const c=$('#grain'),x=c.getContext('2d'),id=x.createImageData(480,270),r=rng(frame*977+13);
   for(let i=0;i<id.data.length;i+=4){const v=r()*255;id.data[i]=id.data[i+1]=id.data[i+2]=v;id.data[i+3]=255}
