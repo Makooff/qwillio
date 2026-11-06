@@ -135,8 +135,8 @@ export default function Pricing() {
       overage: PLAN_OVERAGE_EUR.pro,
       description: isFr ? 'Pour grandir' : 'To grow',
       features: isFr
-        ? ['2 000 minutes incluses par mois', 'Tout Starter inclus', 'Analytiques avancées', 'HubSpot natif et connexions CRM', 'Support prioritaire']
-        : ['2,000 minutes included per month', 'Everything in Starter', 'Advanced analytics', 'Native HubSpot and CRM connections', 'Priority support'],
+        ? ['2 000 minutes incluses par mois', 'Tout Starter inclus', 'Analytiques avancées', 'Score de lead + rapport hebdomadaire par email', 'Sync HubSpot + webhook vers vos outils (Zapier, Make, n8n)', 'Support prioritaire']
+        : ['2,000 minutes included per month', 'Everything in Starter', 'Advanced analytics', 'Lead score + weekly email report', 'HubSpot sync + outbound webhook (Zapier, Make, n8n)', 'Priority support'],
       cta: isFr ? 'Choisir Pro' : 'Choose Pro',
       popular: true,
     },
@@ -148,8 +148,8 @@ export default function Pricing() {
       overage: PLAN_OVERAGE_EUR.enterprise,
       description: isFr ? 'Pour scale' : 'To scale',
       features: isFr
-        ? ['5 000 minutes incluses par mois', 'Tout Pro inclus', 'Multi-sites & numéros multiples', 'Responsable dédié', 'SLA 99,5% uptime', 'Accès API complet']
-        : ['5,000 minutes included per month', 'Everything in Pro', 'Multi-site & multiple numbers', 'Dedicated manager', '99.5% uptime SLA', 'Full API access'],
+        ? ['5 000 minutes incluses par mois', 'Tout Pro inclus', 'Multi-sites & numéros multiples, réglages par ligne (accueil, instructions, transfert)', 'Responsable dédié', 'SLA 99,5 % contractuel', 'API & webhooks']
+        : ['5,000 minutes included per month', 'Everything in Pro', 'Multi-site & multiple numbers, per-line settings (greeting, instructions, transfer)', 'Dedicated manager', '99.5% contractual SLA', 'API & webhooks'],
       cta: isFr ? 'Contacter' : 'Contact us',
       popular: false,
     },
@@ -164,7 +164,7 @@ export default function Pricing() {
         { q: 'Comment fonctionne la remise de 20 % en annuel ?', a: 'Choisissez la facturation annuelle sur la page tarifs. Vous économisez 20 % sur le prix mensuel, prélevé en une fois à l\'inscription. Le calcul est simple : le montant annuel affiché correspond à 12 × (prix mensuel × 0,80).' },
         { q: 'Comment fonctionne la facturation à la minute ?', a: 'Chaque plan inclut un volume de minutes par mois. Au-delà, les minutes supplémentaires sont facturées au tarif de dépassement de votre plan (par exemple 0,39 €/min en Starter). Seuls les appels réels comptent : le spam bloqué n\'est jamais facturé. Vous recevez une alerte à 80, 95 et 100 % de votre quota.' },
         { q: 'Puis-je changer de plan ?', a: 'Oui, à tout moment. Les changements sont au prorata sur votre prochaine facture.' },
-        { q: 'Combien de temps prend la mise en route ?', a: 'Compte créé en 2 minutes. Premiers appels traités le jour même. Configuration assistée si besoin.' },
+        { q: 'Combien de temps prend la mise en route ?', a: 'Après confirmation du compte et de l’abonnement, configurez vos informations et vos connexions. La mise en service dépend de la disponibilité du numéro, du renvoi opérateur et du test de ligne.' },
         { q: 'Quels moyens de paiement acceptez-vous ?', a: 'Carte bancaire (Visa, Mastercard, Amex), SEPA, virement pour les comptes Enterprise et annuels.' },
       ]
     : [
@@ -172,7 +172,7 @@ export default function Pricing() {
         { q: 'How does the 20% annual discount work?', a: 'Pick annual billing on the pricing page. You save 20% on the monthly price, charged upfront at signup. The math is simple: the annual amount shown equals 12 × (monthly price × 0.80).' },
         { q: 'How does per-minute billing work?', a: 'Each plan includes a monthly minute allowance. Beyond that, extra minutes are billed at your plan\'s overage rate (for example €0.39/min on Starter). Only real calls count: blocked spam is never billed. You get an alert at 80%, 95% and 100% of your quota.' },
         { q: 'Can I change my plan?', a: 'Yes, anytime. Changes are prorated on your next invoice.' },
-        { q: 'How long does setup take?', a: 'Account created in 2 minutes. First calls handled the same day. Assisted setup if you need it.' },
+        { q: 'How long does setup take?', a: 'After account and subscription confirmation, configure your information and connections. Activation depends on number availability, carrier forwarding and line testing.' },
         { q: 'What payment methods do you accept?', a: 'Credit card (Visa, Mastercard, Amex), SEPA, wire transfer for Enterprise and annual accounts.' },
       ];
 
@@ -239,9 +239,11 @@ export default function Pricing() {
             ['Transfert des urgences', '✓', '✓', '✓', '✓'],
             ['Bouclier anti-spam', '✓', '✓', '✓', '✓'],
             ['Transcription + sentiment', '✓', '✓', '✓', '✓'],
+            ['Score de lead + rapport hebdomadaire', '✓', '✓', '✓', '✓'],
             ['Analytiques avancées', '·', '·', '✓', '✓'],
-            ['HubSpot natif et connexions CRM', '·', '·', '✓', '✓'],
-            ['Accès API complet', '·', '·', '·', '✓'],
+            ['Sync HubSpot + webhook (Zapier/Make/n8n)', '·', '·', '✓', '✓'],
+            ['Réglages par ligne (accueil, instructions, transfert)', '·', '·', '·', '✓'],
+            ['API & webhooks', '·', '·', '·', '✓'],
           ],
         },
         {
@@ -278,9 +280,11 @@ export default function Pricing() {
             ['Urgency transfer', '✓', '✓', '✓', '✓'],
             ['Spam shield', '✓', '✓', '✓', '✓'],
             ['Transcript + sentiment', '✓', '✓', '✓', '✓'],
+            ['Lead score + weekly report', '✓', '✓', '✓', '✓'],
             ['Advanced analytics', '·', '·', '✓', '✓'],
-            ['Native HubSpot and CRM connections', '·', '·', '✓', '✓'],
-            ['Full API access', '·', '·', '·', '✓'],
+            ['HubSpot sync + webhook (Zapier/Make/n8n)', '·', '·', '✓', '✓'],
+            ['Per-line settings (greeting, instructions, transfer)', '·', '·', '·', '✓'],
+            ['API & webhooks', '·', '·', '·', '✓'],
           ],
         },
         {
@@ -312,14 +316,14 @@ export default function Pricing() {
       qwillio: isFr ? 'Aucun' : 'None',
       rosie: isFr ? 'Aucun' : 'None',
       smith: isFr ? 'Aucun' : 'None',
-      yelda: isFr ? '3 000 – 8 000 €' : '€3,000 – €8,000',
+      yelda: isFr ? 'Devis selon projet' : 'Quote for project scope',
     },
     {
       label: isFr ? 'Temps de mise en route' : 'Time to first call',
-      qwillio: '15 min',
-      rosie: isFr ? '1 h' : '1 hour',
-      smith: isFr ? '1 jour' : '1 day',
-      yelda: isFr ? '4 à 8 sem' : '4 to 8 weeks',
+      qwillio: isFr ? 'Après configuration et test de ligne' : 'After configuration and line testing',
+            rosie: isFr ? 'À confirmer selon offre' : 'Confirm for the selected service',
+            smith: isFr ? 'À confirmer selon offre' : 'Confirm for the selected service',
+            yelda: isFr ? 'Selon périmètre du projet' : 'According to project scope',
     },
     {
       label: isFr ? 'Bilingue sur un même appel' : 'Bilingual on the same call',
@@ -679,6 +683,11 @@ export default function Pricing() {
               </RevealV2>
             ))}
           </div>
+          <p className="mt-6 text-[12.5px] leading-relaxed text-q2-body q2-body-text max-w-[640px]">
+            {isFr
+              ? 'Multi-numéros : voix du profil principal partagée. Rapport hebdomadaire : ordonnanceur actif, email configuré et adresse de contact renseignée ; envoi si des points exploitables sont détectés. HubSpot : contacts avec email, compte connecté. Webhook : URL HTTPS et scénario récepteur configuré. Confirmations et rappels par SMS : canal SMS activé et numéro de mobile valide requis ; sinon le rappel part par email. Transfert : vers vos propres numéros, selon vos règles, si le destinataire est disponible.'
+              : 'Multiple numbers: shared main profile voice. Weekly report: scheduler active, email configured and contact address provided; sent when actionable findings are detected. HubSpot: contacts with email, connected account. Webhook: HTTPS URL and configured receiving workflow. SMS confirmations and reminders: text channel enabled and a valid mobile number required; otherwise the reminder goes by email. Transfer: to your own numbers, per your rules, when the recipient is available.'}
+          </p>
         </Container>
       </Section>
 

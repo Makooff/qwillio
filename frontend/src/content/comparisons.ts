@@ -1,563 +1,459 @@
+// Public comparisons: primary-source observations, not competitor guarantees.
+import { PLAN_MONTHLY_EUR, PLAN_MINUTES } from '../pages/v2/pricing-plans';
 export type ComparisonBlock =
   | { type: 'p'; text: string }
   | { type: 'h2'; text: string }
   | { type: 'ul'; items: string[] }
   | { type: 'table'; head: string[]; rows: string[][]; caption?: string }
   | { type: 'verdict'; tone: 'good' | 'bad' | 'neutral'; title: string; text: string };
-
-export interface Localized {
-  en: string;
-  fr: string;
-}
-
+export interface Localized { en: string; fr: string; }
 export interface ComparisonPage {
-  slug: string;
-  competitor: string;
-  title: Localized;
-  subtitle: Localized;
-  updated: string;
+  slug: string; competitor: string; title: Localized; subtitle: Localized;
+  updated: string; sources: { label: string; url: string }[];
   content: { en: ComparisonBlock[]; fr: ComparisonBlock[] };
 }
+interface ComparisonEvidence {
+  slug: string; competitor: string; source: string;
+  intro: Localized; question: Localized; fit: Localized;
+  rows: { fr: string[][]; en: string[][] };
+}
 
-export const COMPARISON_PAGES: ComparisonPage[] = [
-  {
-    slug: 'sylen',
-    competitor: 'Sylen AI',
-    title: {
-      en: 'Qwillio vs Sylen AI',
-      fr: 'Qwillio ou Sylen AI',
-    },
-    subtitle: {
-      en: 'Two French-market AI receptionists. Sylen is cheaper; the question is what you give up.',
-      fr: 'Deux réceptionnistes IA sur le marché français. Sylen est moins cher, la question est ce que vous perdez.',
-    },
-    updated: '2026-07',
-    content: {
-      fr: [
-        { type: 'p', text: "Sylen AI est un standard téléphonique IA français, positionné sur les TPE, avec une entrée de gamme autour de 49 €/mois et un haut de gamme vers 199 €. C'est aujourd'hui l'offre la moins chère du marché français, et si votre besoin est de décrocher en français et rien d'autre, elle le couvre." },
-        { type: 'p', text: "Qwillio démarre à 99 €/mois. Il faut donc dire les choses simplement : sur le seul prix du décrochage, Sylen gagne. Ce qui suit est ce que cet écart achète, pour que vous décidiez si ça vaut la différence chez vous." },
-        { type: 'h2', text: 'Ce qui les sépare vraiment' },
-        {
-          type: 'table',
-          head: ['', 'Qwillio', 'Sylen AI'],
-          rows: [
-            ['Entrée de gamme', '99 €/mois (250 min)', '~49 €/mois'],
-            ['Français', 'Oui', 'Oui'],
-            ['Anglais sur le même appel', 'Oui', 'Non'],
-            ['Conformité RGPD', 'Oui, effacement sur demande', 'À vérifier auprès d\'eux'],
-            ['CRM inclus', 'Oui, natif', 'Non'],
-            ['Prise de rendez-vous agenda', 'Incluse', 'Selon formule'],
-            ['Facturation', 'À la minute, minutes incluses', 'Par formule'],
-            ['Essai', '7 jours, carte à l\'inscription', 'Voir leur site'],
-          ],
-        },
-        { type: 'h2', text: 'Quand Sylen est le bon choix' },
-        { type: 'p', text: "Si votre clientèle est exclusivement francophone, que vous n'avez pas besoin de CRM, et que le budget est le premier critère, prenez Sylen. Payer 50 € de plus par mois pour du bilingue dont vous ne vous servirez pas n'a aucun sens." },
-        { type: 'h2', text: 'Quand l\'écart se justifie' },
-        { type: 'ul', items: [
-          "Vous êtes en Belgique, ou vous avez des clients anglophones : le bilingue sur un même appel n'est pas une option chez Sylen.",
-          "Vous traitez des données sensibles et devez prouver où elles sont hébergées.",
-          "Vous voulez que l'appel finisse dans un CRM plutôt que dans un email.",
-        ] },
-        {
-          type: 'verdict',
-          tone: 'neutral',
-          title: 'Comparez sur votre besoin, pas sur le prix affiché',
-          text: "Sylen est moins cher et l'assume. Si le français seul vous suffit, c'est un choix rationnel. Testez les deux sur vos vrais appels pendant une semaine : c'est la seule comparaison qui tranche.",
-        },
-      ],
-      en: [
-        { type: 'p', text: 'Sylen AI is a French AI phone receptionist aimed at small businesses, entry tier around €49/month and top tier near €199. It is currently the cheapest sticker in the French market, and if your need is to answer calls in French and nothing else, it covers that.' },
-        { type: 'p', text: 'Qwillio starts at €99/month. So let us be plain: on the price of answering alone, Sylen wins. What follows is what the gap buys, so you can decide whether it is worth it in your case.' },
-        { type: 'h2', text: 'What actually separates them' },
-        {
-          type: 'table',
-          head: ['', 'Qwillio', 'Sylen AI'],
-          rows: [
-            ['Entry price', '€99/month (250 min)', '~€49/month'],
-            ['French', 'Yes', 'Yes'],
-            ['English on the same call', 'Yes', 'No'],
-            ['GDPR compliance', 'Yes, erasure on request', 'Check with them'],
-            ['CRM included', 'Yes, native', 'No'],
-            ['Calendar booking', 'Included', 'Depends on tier'],
-            ['Billing', 'Per minute, minutes included', 'Per tier'],
-            ['Trial', '7 days, card at signup', 'See their site'],
-          ],
-        },
-        { type: 'h2', text: 'When Sylen is the right call' },
-        { type: 'p', text: 'If your callers are exclusively French-speaking, you do not need a CRM, and budget is the first criterion, take Sylen. Paying €50 more a month for bilingual handling you will never use makes no sense.' },
-        { type: 'h2', text: 'When the gap is worth it' },
-        { type: 'ul', items: [
-          'You are in Belgium, or you have English-speaking customers: bilingual handling on one call is not on the table with Sylen.',
-          'You handle sensitive data and need to prove where it is hosted.',
-          'You want the call to land in a CRM rather than an inbox.',
-        ] },
-        {
-          type: 'verdict',
-          tone: 'neutral',
-          title: 'Compare on your need, not on the sticker',
-          text: 'Sylen is cheaper and owns it. If French-only covers you, that is a rational choice. Run both on your real calls for a week: that is the only comparison that settles it.',
-        },
-      ],
-    },
+const SUBTITLES: Record<string, Localized> = {
+  "sylen": {
+    "fr": "Minutes incluses, agenda et suivi : comparez le coût de votre usage.",
+    "en": "Included minutes, scheduling and follow-up: compare your actual usage cost."
   },
-  {
-    slug: 'nerolia',
-    competitor: 'Nerolia',
-    title: {
-      en: 'Qwillio vs Nerolia',
-      fr: 'Qwillio ou Nerolia',
-    },
-    subtitle: {
-      en: 'Both answer calls in French. The difference shows after the call.',
-      fr: 'Les deux décrochent en français. La différence se voit après l\'appel.',
-    },
-    updated: '2026-07',
-    content: {
-      fr: [
-        { type: 'p', text: "Nerolia propose un accueil téléphonique automatique par IA pour les PME françaises, à partir d'environ 80 €/mois. L'offre est sérieuse et bien documentée, avec beaucoup de contenu pédagogique sur leur site." },
-        { type: 'p', text: "Sur le décrochage lui-même, les deux produits font la même chose, et il faut le reconnaître : personne dans cette catégorie n'a d'avantage technologique, tout le monde s'appuie sur les mêmes briques vocales. La différence est ailleurs." },
-        { type: 'h2', text: 'Comparaison' },
-        {
-          type: 'table',
-          head: ['', 'Qwillio', 'Nerolia'],
-          rows: [
-            ['Entrée de gamme', '99 €/mois (250 min)', "à partir de ~80 €/mois"],
-            ['Français', 'Oui', 'Oui'],
-            ['Anglais sur le même appel', 'Oui', 'Non mis en avant'],
-            ['Conformité RGPD', 'Oui', 'À vérifier auprès d\'eux'],
-            ['CRM natif', 'Inclus', 'À vérifier'],
-            ['Facturation', 'À la minute', 'Par formule'],
-            ['Suivi après appel', 'Relances et séquences intégrées', 'À vérifier'],
-          ],
-        },
-        { type: 'h2', text: 'Ce qui se passe après l\'appel' },
-        { type: 'p', text: "Un appel décroché n'est pas un client gagné. Chez Qwillio, l'appel produit une fiche, un score, et une relance si le devis reste sans réponse. C'est là que se joue la différence de résultat, davantage que sur la qualité de la voix." },
-        { type: 'h2', text: 'Bilingue, si vous êtes en Belgique' },
-        { type: 'p', text: "Nerolia cible la France. En Belgique, où une part des appels arrive en anglais, le français et l'anglais sur un même appel changent la nature du service." },
-        {
-          type: 'verdict',
-          tone: 'neutral',
-          title: 'Deux offres proches, testez-les côte à côte',
-          text: "Sur le décrochage, l'écart est faible et nous ne prétendrons pas le contraire. Regardez ce qui se passe après l'appel, et si vous avez besoin du bilingue. Puis faites tourner les deux une semaine sur vos vrais appels.",
-        },
-      ],
-      en: [
-        { type: 'p', text: 'Nerolia offers automated AI phone answering for French SMBs, from around €80/month. It is a serious product with a lot of well-written educational content on their site.' },
-        { type: 'p', text: 'On answering itself the two products do the same thing, and it is worth saying plainly: nobody in this category has a technology advantage, everyone builds on the same voice stack. The difference is elsewhere.' },
-        { type: 'h2', text: 'Comparison' },
-        {
-          type: 'table',
-          head: ['', 'Qwillio', 'Nerolia'],
-          rows: [
-            ['Entry price', '€99/month (250 min)', 'from ~€80/month'],
-            ['French', 'Yes', 'Yes'],
-            ['English on the same call', 'Yes', 'Not advertised'],
-            ['GDPR compliance', 'Yes', 'Check with them'],
-            ['Native CRM', 'Included', 'Check'],
-            ['Billing', 'Per minute', 'Per tier'],
-            ['After-call follow-up', 'Built-in sequences', 'Check'],
-          ],
-        },
-        { type: 'h2', text: 'What happens after the call' },
-        { type: 'p', text: 'An answered call is not a won customer. With Qwillio the call produces a record, a score, and a follow-up if the quote goes quiet. That is where the difference in outcome sits, more than in voice quality.' },
-        { type: 'h2', text: 'Bilingual, if you are in Belgium' },
-        { type: 'p', text: 'Nerolia targets France. In Belgium, where a share of calls arrives in English, French and English on one call changes what the service is.' },
-        {
-          type: 'verdict',
-          tone: 'neutral',
-          title: 'Two close products, run them side by side',
-          text: 'On answering, the gap is small and we will not pretend otherwise. Look at what happens after the call, and whether you need bilingual handling. Then run both for a week on your real calls.',
-        },
-      ],
-    },
+  "nerolia": {
+    "fr": "Automatisation sur mesure ou accueil à abonnement : deux approches à comparer.",
+    "en": "Custom automation or subscription answering: two different approaches."
   },
-  {
-    slug: 'smith-ai',
-    competitor: 'Smith.ai',
-    title: {
-      en: 'Qwillio vs Smith.ai: the honest 2026 comparison',
-      fr: 'Qwillio vs Smith.ai : le comparatif honnête 2026',
-    },
-    subtitle: {
-      en: 'Both cover business calls 24/7. Smith.ai combines AI with human receptionists; Qwillio answers in English and French and can transfer calls to your team. Here is what sets them apart.',
-      fr: 'Les deux couvrent les appels 24 h/24. Smith.ai associe IA et réceptionnistes humaines ; Qwillio répond en français et en anglais et peut transférer les appels à votre équipe. Voici ce qui les distingue.',
-    },
-    updated: '2026-07-11',
-    content: {
-      en: [
-        { type: 'p', text: "Smith.ai has been the reference US call-answering brand for a decade. Founded in 2015 in California, it built its reputation on hybrid human plus AI receptionists that handle inbound calls, qualify leads, and book meetings for small and mid-market US businesses. Its plans start at 95 $/month for the AI-only tier and 500 $/month for the Done-for-You human-hybrid tier." },
-        { type: 'p', text: "Qwillio is the newer generation. Founded in 2025 in Brussels, it runs pure conversational AI in both English and French from day one, targets Belgium and France as much as North America, and bills by the minute: a flat monthly fee with included minutes, then a per-minute rate beyond that. Solo is 99 EUR/month (250 min), Starter 249 EUR/month (750 min), Pro 599 EUR/month (2,000 min), Enterprise 1,290 EUR/month (5,000 min)." },
-        { type: 'p', text: "The two products serve overlapping needs but from different angles. If you weight your decision on English-only US-based hybrid coverage with a strong brand, Smith.ai still wins. If you weight it on bilingual native French, GDPR alignment, and lower flat monthly cost, Qwillio wins clearly. This page walks through the material differences." },
-        { type: 'h2', text: 'Price comparison at similar volume' },
-        { type: 'table', head: ['Plan', 'Included volume', 'Price / month', 'Effective price'], rows: [
-          ['Smith.ai AI Starter', '~60 calls', '95 $', '≈ 1.58 $/call'],
-          ['Smith.ai DFY Basic', '~250 calls', '500 $', '≈ 2.00 $/call'],
-          ['Smith.ai DFY Pro', '~600 calls', '1 000 $', '≈ 1.67 $/call'],
-          ['Qwillio Solo', '250 minutes', '99 €', '≈ 0.40 €/min'],
-          ['Qwillio Starter', '750 minutes', '249 €', '≈ 0.33 €/min'],
-          ['Qwillio Pro', '2,000 minutes', '599 €', '≈ 0.30 €/min'],
-          ['Qwillio Enterprise', '5,000 minutes', '1,290 €', '≈ 0.26 €/min'],
-        ]},
-        { type: 'p', text: "At 500 to 800 answered calls per month — the volume most home service and healthcare businesses hit — Qwillio Starter costs roughly half of Smith.ai Done-for-You Basic. Above 2 000 calls, the flat-rate Qwillio Pro is materially cheaper than either Smith.ai plan or any pay-per-call hybrid." },
-        { type: 'h2', text: 'Feature-by-feature comparison' },
-        { type: 'table', head: ['Feature', 'Smith.ai', 'Qwillio'], rows: [
-          ['24/7 answering', 'Yes', 'Yes'],
-          ['Human backup on tricky calls', 'Yes (US-based)', 'Yes, to your team (when configured)'],
-          ['English native', 'Yes', 'Yes'],
-          ['Spanish native', 'Yes', 'No'],
-          ['French native', 'No', 'Yes'],
-          ['Bilingual on the same call (auto-switch)', 'No', 'Yes (EN + FR)'],
-          ['Calendar booking (Google, Cal.com)', 'Yes', 'Yes'],
-          ['CRM sync (HubSpot, Salesforce)', 'Yes', 'Yes'],
-          ['Native billing add-ons (Stripe)', 'No', 'Yes'],
-          ['GDPR-compliant hosting option', 'No (US)', 'Yes (EU)'],
-          ['Self-serve onboarding', 'Partial', 'Yes (15 min)'],
-          ['7-day free trial', 'Case by case', 'Yes, 7-day trial'],
-        ]},
-        { type: 'p', text: 'With Qwillio, human handoff means transferring to your own team, once the destination numbers and transfer rules are configured. Answering depends on the recipient being available: Qwillio does not provide outsourced human receptionists.' },
-        { type: 'h2', text: 'Where Smith.ai still wins' },
-        { type: 'p', text: "Smith.ai is not a legacy player. It has ten years of operational maturity, a brand US SMB owners already trust, and hybrid human coverage on calls where the AI would fall short. If your business is US-only, English-only, and you value having a real human as fallback on a case that turns emotional or high-stakes, Smith.ai remains defensible." },
-        { type: 'verdict', tone: 'good', title: 'Smith.ai is the better fit if', text: 'You are a US business, your clients speak English only, you already pay for a human receptionist and want to keep a human touch, and your inbound call volume is under 300 per month.' },
-        { type: 'h2', text: 'Where Qwillio wins' },
-        { type: 'p', text: "Qwillio was built for exactly the gaps Smith.ai never filled — bilingual French markets, EU data hosting for GDPR-sensitive clients, and a flat monthly rate that does not scale on a per-call variable. Every Qwillio subscription includes calendar, CRM, transcripts, transfers, and analytics without buying add-ons. The self-serve onboarding is fifteen minutes, and the trial is free for 7 days — so a prospect can be live before they even hit Smith.ai's contact form." },
-        { type: 'verdict', tone: 'good', title: 'Qwillio is the better fit if', text: 'You serve Belgian, French, or bilingual clients, care about GDPR compliance, run more than 200 calls per month, prefer flat monthly pricing, and want to be up and running the same day.' },
-        { type: 'h2', text: 'Migration path from Smith.ai' },
-        { type: 'p', text: "Businesses moving from Smith.ai to Qwillio in 2026 usually do so in three steps. First, they forward their Smith.ai-provided number to Qwillio for a two-week trial in parallel — no client-facing change. Second, they compare captured leads, missed-call rates, and transcript quality across both providers. Third, they port their business line to Qwillio and cancel the Smith.ai plan. The porting is free and takes five to ten business days." },
-        { type: 'h2', text: 'Bottom line' },
-        { type: 'p', text: "Smith.ai is not being replaced everywhere overnight. It remains a solid choice for US-only businesses that want a human hybrid. But if you need French, need GDPR alignment, or want a lower flat monthly cost with more included features, Qwillio is the honest recommendation in 2026." },
-      ],
-      fr: [
-        { type: 'p', text: "Smith.ai est la marque américaine de référence sur le décroché d'appels professionnels depuis dix ans. Fondée en 2015 en Californie, elle a bâti sa réputation sur un hybride « réceptionnistes humaines aux États-Unis plus IA » qui prend les appels entrants, qualifie les leads et pose les rendez-vous pour les PME et le mid-market américain. Ses plans démarrent à 95 $/mois pour le tier IA seule et à 500 $/mois pour le Done-for-You humain-hybride." },
-        { type: 'p', text: "Qwillio est de la génération suivante. Fondée en 2025 à Bruxelles, elle fait tourner une IA conversationnelle pure en anglais et en français dès le premier jour, cible la Belgique et la France autant que l'Amérique du Nord, et facture à la minute : un forfait mensuel avec des minutes incluses, puis un tarif par minute au-delà. Solo à 99 €/mois (250 min), Starter à 249 €/mois (750 min), Pro à 599 €/mois (2 000 min), Enterprise à 1 290 €/mois (5 000 min)." },
-        { type: 'p', text: "Les deux produits couvrent des besoins qui se recoupent, mais depuis des angles différents. Si votre décision pèse sur la couverture hybride américaine anglophone avec une marque forte, Smith.ai reste devant. Si elle pèse sur le français natif, la conformité RGPD et le coût mensuel plat plus bas, Qwillio gagne nettement. Cette page fait le tour des différences matérielles." },
-        { type: 'h2', text: 'Comparaison des prix à volume comparable' },
-        { type: 'table', head: ['Plan', 'Volume inclus', 'Prix / mois', 'Prix effectif'], rows: [
-          ['Smith.ai AI Starter', '≈ 60 appels', '95 $', '≈ 1,58 $/appel'],
-          ['Smith.ai DFY Basic', '≈ 250 appels', '500 $', '≈ 2,00 $/appel'],
-          ['Smith.ai DFY Pro', '≈ 600 appels', '1 000 $', '≈ 1,67 $/appel'],
-          ['Qwillio Solo', '250 minutes', '99 €', '≈ 0,40 €/min'],
-          ['Qwillio Starter', '750 minutes', '249 €', '≈ 0,33 €/min'],
-          ['Qwillio Pro', '2 000 minutes', '599 €', '≈ 0,30 €/min'],
-          ['Qwillio Enterprise', '5 000 minutes', '1 290 €', '≈ 0,26 €/min'],
-        ]},
-        { type: 'p', text: "À 500-800 appels traités par mois — le volume que la plupart des services à domicile et des cabinets de santé atteignent — Qwillio Starter coûte environ la moitié de Smith.ai Done-for-You Basic. Au-dessus de 2 000 appels, le flat Qwillio Pro est nettement moins cher que n'importe quel plan Smith.ai ou hybride au coût variable." },
-        { type: 'h2', text: 'Comparaison fonctionnalité par fonctionnalité' },
-        { type: 'table', head: ['Fonctionnalité', 'Smith.ai', 'Qwillio'], rows: [
-          ['Décroché 24/7', 'Oui', 'Oui'],
-          ['Relais humain sur appel complexe', 'Oui (basé US)', 'Oui, vers votre équipe (si configuré)'],
-          ['Anglais natif', 'Oui', 'Oui'],
-          ['Espagnol natif', 'Oui', 'Non'],
-          ['Français natif', 'Non', 'Oui'],
-          ['Bilingue sur un même appel (auto)', 'Non', 'Oui (EN + FR)'],
-          ['Réservation agenda (Google, Cal.com)', 'Oui', 'Oui'],
-          ['Sync CRM (HubSpot, Salesforce)', 'Oui', 'Oui'],
-          ['Add-ons facturation natifs (Stripe)', 'Non', 'Oui'],
-          ['Interface et support en français', 'Non', 'Oui'],
-          ['Onboarding self-serve', 'Partiel', 'Oui (15 min)'],
-          ['7 jours d’essai', 'Au cas par cas', 'Oui, essai 7 jours'],
-        ]},
-        { type: 'p', text: 'Chez Qwillio, le relais humain désigne le transfert vers votre propre équipe, lorsque les numéros et les règles de transfert sont configurés. La prise en charge dépend de la disponibilité du destinataire : Qwillio ne fournit pas de réceptionnistes humaines externes.' },
-        { type: 'h2', text: 'Là où Smith.ai reste devant' },
-        { type: 'p', text: "Smith.ai n'est pas un acteur dépassé. Dix ans de maturité opérationnelle, une marque que les patrons de PME américaines connaissent déjà, et un relais humain sur les appels que l'IA ne saurait pas gérer. Si votre entreprise est 100 % US, 100 % anglophone, et que vous tenez à avoir un humain comme filet sur un dossier émotionnel ou à fort enjeu, Smith.ai reste défendable." },
-        { type: 'verdict', tone: 'good', title: 'Smith.ai est le meilleur choix si', text: "Vous êtes une entreprise US, vos clients ne parlent qu'anglais, vous payez déjà une réceptionniste humaine et voulez garder ce contact humain, et votre volume d'appels entrants est sous 300 par mois." },
-        { type: 'h2', text: 'Là où Qwillio gagne' },
-        { type: 'p', text: "Qwillio a été bâtie exactement sur les trous que Smith.ai n'a jamais comblés — marchés francophones bilingues, conformité RGPD pour les clients qui y sont sensibles, et tarif mensuel plat sans variable à l'appel. Chaque abonnement Qwillio inclut agenda, CRM, transcriptions, transferts et analytics sans add-ons. L'onboarding self-serve prend quinze minutes, l'essai est gratuit pendant 7 jours — un prospect peut être en ligne avant même d'avoir rempli le formulaire de contact de Smith.ai." },
-        { type: 'verdict', tone: 'good', title: 'Qwillio est le meilleur choix si', text: "Vous servez une clientèle belge, française ou bilingue, vous tenez à la conformité RGPD, vous traitez plus de 200 appels par mois, vous préférez un tarif mensuel plat, et vous voulez être en production le jour même." },
-        { type: 'h2', text: 'Chemin de migration depuis Smith.ai' },
-        { type: 'p', text: "Les entreprises qui migrent de Smith.ai vers Qwillio en 2026 le font en général en trois étapes. Un : renvoyer le numéro fourni par Smith.ai vers Qwillio pour deux semaines de trial en parallèle — aucun changement côté client. Deux : comparer les leads capturés, le taux d'appels manqués et la qualité des transcriptions entre les deux prestataires. Trois : porter le numéro professionnel vers Qwillio et résilier le plan Smith.ai. Le portage est gratuit et prend cinq à dix jours ouvrés." },
-        { type: 'h2', text: 'Verdict' },
-        { type: 'p', text: "Smith.ai ne disparaît pas du jour au lendemain. Il reste un choix solide pour les entreprises 100 % US qui veulent l'hybride humain. Mais si vous avez besoin du français, si vous tenez à la conformité RGPD, ou si vous voulez un mensuel plat plus bas avec plus de fonctionnalités incluses, Qwillio est la recommandation honnête en 2026." },
-      ],
-    },
+  "smith-ai": {
+    "fr": "Réseau d’agents humains ou relais vers votre équipe : la différence compte.",
+    "en": "An external agent network or a transfer to your team: the difference matters."
   },
+  "yelda": {
+    "fr": "Service client multicanal ou accueil téléphonique : partez de votre besoin.",
+    "en": "Multichannel customer service or phone answering: start with your needs."
+  },
+  "rosie": {
+    "fr": "Langues, minutes et réservation directe : comparez la bonne formule.",
+    "en": "Languages, minutes and direct booking: compare the right plan."
+  },
+  "ruby": {
+    "fr": "Accueil humain externalisé ou IA : choisissez qui répond à vos clients.",
+    "en": "Outsourced human reception or AI: choose who answers your customers."
+  },
+  "answering-legal": {
+    "fr": "Accueil juridique humain ou qualification IA : gardez les rôles clairs.",
+    "en": "Human legal intake or AI qualification: keep the roles clear."
+  }
+};
 
+const EVIDENCE: ComparisonEvidence[] = [
   {
-    slug: 'yelda',
-    competitor: 'Yelda.ai',
-    title: {
-      en: 'Qwillio vs Yelda.ai: the honest 2026 comparison',
-      fr: 'Qwillio vs Yelda.ai : le comparatif honnête 2026',
+    "slug": "sylen",
+    "competitor": "Sylen AI",
+    "source": "https://sylen.ai/solutions/restaurant",
+    "intro": {
+      "fr": "Sylen présente un accueil IA avec agenda, transferts et comptes rendus. Son offre Start publiée est à 49 € HT/mois pour 100 minutes, avec 0,44 €/minute supplémentaire. Ce prix seul ne compare pas le coût de votre volume réel.",
+      "en": "Sylen advertises AI answering with scheduling, transfers and call summaries. Its published Start plan is €49 excluding tax/month for 100 minutes, then €0.44 per additional minute. That sticker price is not the cost of your actual traffic."
     },
-    subtitle: {
-      en: 'Both are French-first voice AI for business calls. One is a French enterprise voicebot with setup fees; the other is a self-serve monthly SaaS. Here is where each wins.',
-      fr: "Les deux sont des IA vocales pensées français d'abord pour les appels professionnels. L'une est un voicebot enterprise français avec frais de setup ; l'autre est un SaaS mensuel self-serve. Voici où chacun l'emporte.",
+    "question": {
+      "fr": "Demandez un test de modification puis d’annulation dans votre agenda, pas seulement une réservation réussie. Comparez aussi le traitement d’un agenda déconnecté et le coût des dépassements.",
+      "en": "Ask for a calendar reschedule and cancellation test, not just a successful booking. Compare disconnected-calendar handling and overage costs too."
     },
-    updated: '2026-07-11',
-    content: {
-      en: [
-        { type: 'p', text: "Yelda.ai is the French voice-AI reference. Founded in 2019 in Paris, it built its reputation on custom-trained voice bots for local government, mid-market service companies, and a small number of large enterprises. Its typical engagement is a 3 000 to 8 000 EUR one-off setup plus a per-minute run rate around 0.15 EUR per minute. Above that, dedicated projects for large accounts scale into 30 000 EUR-plus annual budgets." },
-        { type: 'p', text: "Qwillio is the SaaS-first alternative. Founded in 2025 in Brussels, it runs the same category of conversational voice AI but sells as a monthly subscription, no setup fee, no professional services engagement required. The user creates an account, sets up in fifteen minutes, and the first 7 days are free. Prices go from 99 EUR/month (Solo, 250 minutes) up to 1,290 EUR/month for Enterprise, billed by the minute beyond the included allowance." },
-        { type: 'p', text: "The two products often look interchangeable in a demo. They are not. Yelda is a professional-services voice AI with a SaaS component. Qwillio is a self-serve SaaS voice AI. The choice is really between a project engagement and a subscription — and that changes everything about time-to-value, budget, and risk." },
-        { type: 'h2', text: 'Total cost of ownership over 12 months' },
-        { type: 'table', head: ['Scenario', 'Yelda.ai', 'Qwillio Solo', 'Qwillio Starter'], rows: [
-          ['Setup', '3 000 – 8 000 €', '0 €', '0 €'],
-          ['Monthly run rate (250 min)', '≈ 200 €', '99 €', '249 € (over-provisioned)'],
-          ['Monthly run rate (750 min)', '≈ 500 €', 'over quota', '249 €'],
-          ['12-month total at 250 min', '5 400 – 10 400 €', '950 € (annual)*', '2 988 €'],
-          ['12-month total at 750 min', '9 000 – 14 000 €', 'n/a', '2 988 €'],
-        ], caption: '* with 20% annual discount active' },
-        { type: 'p', text: "For a French plumber, dentist, or law firm handling a few hundred call minutes a month, Qwillio Solo or Starter beats a Yelda project on year-one cost by a factor of three to five. The gap grows if Yelda's setup lands at the higher end of its range." },
-        { type: 'h2', text: 'Feature-by-feature comparison' },
-        { type: 'table', head: ['Feature', 'Yelda.ai', 'Qwillio'], rows: [
-          ['French native voice', 'Yes (leader)', 'Yes'],
-          ['English on the same account', 'Add-on', 'Yes (native)'],
-          ['GDPR compliance', 'Yes', 'Yes'],
-          ['Setup fee', '3 000 – 8 000 €+', 'None'],
-          ['Setup time', '4 to 8 weeks', '15 minutes'],
-          ['Self-serve onboarding', 'No', 'Yes'],
-          ['7-day free trial', 'No', 'Yes'],
-          ['Cancel anytime (monthly)', 'Contract-based', 'Yes'],
-          ['Native CRM (HubSpot, Salesforce)', 'Custom integration', 'Yes'],
-          ['Native calendar booking', 'Custom', 'Yes'],
-          ['Analytics dashboard', 'Custom', 'Included'],
-          ['Sales cycle', 'Sales-led', 'Product-led'],
-          ['Custom voice cloning', 'Yes (premium)', 'Enterprise tier'],
-        ]},
-        { type: 'h2', text: 'Where Yelda still wins' },
-        { type: 'p', text: "Yelda has serious mid-market and enterprise credentials in France. It has taken calls for public administrations, large healthcare networks, and major utilities. If your project needs a bespoke voice, a custom integration into a legacy French PBX, dedicated professional services, and a signed contract with SLAs and a named account manager, Yelda is built for that lane. Qwillio is not — and admits it." },
-        { type: 'verdict', tone: 'good', title: 'Yelda is the better fit if', text: "You have a project budget of 20 000 EUR+, you need bespoke voice and workflow design, you have an existing legacy telephony stack that needs deep custom integration, or your procurement process requires signed contracts and named accounts." },
-        { type: 'h2', text: 'Where Qwillio wins' },
-        { type: 'p', text: "Qwillio was built for the 90 % of French and Belgian businesses that will never justify a Yelda project. A notary in Namur handling 200 calls a month, a bike repair shop in Lyon closing after seven, an accounting firm in Brussels missing the lunchtime rush — none of these can spend 5 000 EUR on setup and wait six weeks. Qwillio makes the value proposition available in an evening, on a credit card, with a free 7-day trial and monthly cancel-any-time." },
-        { type: 'verdict', tone: 'good', title: 'Qwillio is the better fit if', text: "You are a small or mid-size French or Belgian business, you want to test the value before committing to any budget, you do not want a sales cycle, and you can be up and running today rather than in two months." },
-        { type: 'h2', text: 'Migration path from a Yelda project' },
-        { type: 'p', text: "If you have scoped a Yelda project and are hesitating, the two are easy to run side by side: keep the Yelda proposal on the desk, forward your inbound line to Qwillio for a few weeks, and compare captured leads and transcript quality on your own calls. That comparison costs you nothing and settles the question better than any claim we could make here." },
-        { type: 'h2', text: 'Bottom line' },
-        { type: 'p', text: "Yelda is a strong French enterprise voice-AI provider. If you have the budget and the integration complexity to match, it earns its cost. But for the 90 % of French and Belgian businesses that just need to answer their calls in French, book appointments, and route emergencies — Qwillio is the honest recommendation in 2026, at a fraction of the total cost and a fraction of the wait." },
+    "fit": {
+      "fr": "Sylen mérite un essai si ses minutes et connecteurs correspondent à votre activité. Choisissez Qwillio si vous voulez piloter l’accueil, les contacts et les rendez-vous dans le même portail, après validation de vos scénarios.",
+      "en": "Try Sylen if its minute allowance and connectors fit your business. Choose Qwillio if you want answering, contacts and bookings in one portal, after validating your own scenarios."
+    },
+    "rows": {
+      "fr": [
+        [
+          "Accueil",
+          "IA, selon l’offre publiée",
+          "IA conversationnelle"
+        ],
+        [
+          "Agenda",
+          "Connecteurs annoncés",
+          "Google Agenda ou Outlook connecté"
+        ],
+        [
+          "Budget de départ",
+          "Start : 49 € HT / 100 min",
+          "Solo : 99 € / 250 min"
+        ]
       ],
-      fr: [
-        { type: 'p', text: "Yelda.ai est la référence française de l'IA vocale. Fondée en 2019 à Paris, elle a bâti sa réputation sur des voicebots sur-mesure pour les collectivités locales, les entreprises de service mid-market, et quelques grands comptes. L'engagement type est un setup ponctuel de 3 000 à 8 000 € plus un run à la minute autour de 0,15 €. Au-delà, les projets dédiés grands comptes tournent à 30 000 € et plus par an." },
-        { type: 'p', text: "Qwillio est l'alternative SaaS-first. Fondée en 2025 à Bruxelles, elle propose la même catégorie d'IA conversationnelle vocale mais se vend en abonnement mensuel, sans frais de setup, sans engagement de services professionnels. L'utilisateur crée son compte, configure en quinze minutes, et les 7 premiers jours sont offerts. Les prix vont de 99 €/mois (Solo, 250 minutes) jusqu'à 1 290 €/mois pour Enterprise, facturés à la minute au-delà des minutes incluses." },
-        { type: 'p', text: "Les deux produits ont souvent l'air interchangeables en démo. Ils ne le sont pas. Yelda est une IA vocale pilotée par du service, avec une brique SaaS. Qwillio est une IA vocale SaaS self-serve. Le choix se joue en réalité entre un engagement projet et un abonnement — et ça change tout, du time-to-value au budget au risque." },
-        { type: 'h2', text: 'Coût total de possession sur 12 mois' },
-        { type: 'table', head: ['Scénario', 'Yelda.ai', 'Qwillio Solo', 'Qwillio Starter'], rows: [
-          ['Setup', '3 000 – 8 000 €', '0 €', '0 €'],
-          ['Run mensuel (250 min)', '≈ 200 €', '99 €', '249 € (surdimensionné)'],
-          ['Run mensuel (750 min)', '≈ 500 €', 'quota dépassé', '249 €'],
-          ['Total 12 mois à 250 min', '5 400 – 10 400 €', '950 € (annuel)*', '2 988 €'],
-          ['Total 12 mois à 750 min', '9 000 – 14 000 €', 'n/a', '2 988 €'],
-        ], caption: '* avec la remise annuelle de 20 % active' },
-        { type: 'p', text: "Pour un plombier, un dentiste ou un cabinet juridique français qui traite quelques centaines de minutes d'appel par mois, Qwillio Solo ou Starter bat un projet Yelda sur le coût de la première année par un facteur trois à cinq. L'écart grandit si le setup Yelda tombe dans le haut de sa fourchette." },
-        { type: 'h2', text: 'Comparaison fonctionnalité par fonctionnalité' },
-        { type: 'table', head: ['Fonctionnalité', 'Yelda.ai', 'Qwillio'], rows: [
-          ['Voix française native', 'Oui (leader)', 'Oui'],
-          ['Anglais sur le même compte', 'Add-on', 'Oui (natif)'],
-          ['Conformité RGPD', 'Oui', 'Oui'],
-          ['Frais de setup', '3 000 – 8 000 €+', 'Aucun'],
-          ['Délai de mise en route', '4 à 8 semaines', '15 minutes'],
-          ['Onboarding self-serve', 'Non', 'Oui'],
-          ['7 jours d’essai', 'Non', 'Oui'],
-          ['Résiliable au mois', 'Contrat', 'Oui'],
-          ['CRM natif (HubSpot, Salesforce)', 'Intégration sur-mesure', 'Oui'],
-          ['Prise de RDV agenda native', 'Sur-mesure', 'Oui'],
-          ['Tableau analytics', 'Sur-mesure', 'Inclus'],
-          ['Cycle de vente', 'Sales-led', 'Product-led'],
-          ['Clonage voix personnalisée', 'Oui (premium)', 'Tier Enterprise'],
-        ]},
-        { type: 'h2', text: 'Là où Yelda reste devant' },
-        { type: 'p', text: "Yelda a des références mid-market et enterprise sérieuses en France. Elle a pris des appels pour des administrations publiques, de grands réseaux de santé, des utilities. Si votre projet demande une voix sur-mesure, une intégration profonde dans un PBX français legacy, des services professionnels dédiés, un contrat signé avec SLA et un chargé de compte nommé, Yelda est faite pour ce couloir. Qwillio ne l'est pas — et l'assume." },
-        { type: 'verdict', tone: 'good', title: 'Yelda est le meilleur choix si', text: "Vous avez un budget projet de 20 000 €+, il vous faut une voix et un workflow sur-mesure, vous avez un stack téléphonique legacy qui exige une intégration profonde, ou votre process achats impose un contrat signé et un chargé de compte." },
-        { type: 'h2', text: 'Là où Qwillio gagne' },
-        { type: 'p', text: "Qwillio a été conçu pour les 90 % de PME françaises et belges qui ne justifieront jamais un projet Yelda. Un notaire à Namur qui traite 200 appels par mois, un atelier vélo à Lyon qui ferme après 19 h, un cabinet comptable à Bruxelles qui rate la pointe de midi — aucun ne peut mettre 5 000 € en setup et attendre six semaines. Qwillio rend la proposition de valeur accessible en une soirée, à la carte bancaire, avec un 7 jours d’essai gratuit et une résiliation au mois." },
-        { type: 'verdict', tone: 'good', title: 'Qwillio est le meilleur choix si', text: "Vous êtes une PME française ou belge, vous voulez tester la valeur avant de vous engager sur un budget, vous ne voulez pas de cycle de vente, et vous voulez être opérationnel aujourd'hui plutôt que dans deux mois." },
-        { type: 'h2', text: 'Chemin de migration depuis un projet Yelda' },
-        { type: 'p', text: "Si vous avez scopé un projet Yelda et que vous hésitez, les deux se comparent facilement en parallèle : gardez la proposition Yelda sur le bureau, redirigez votre ligne entrante vers Qwillio pendant quelques semaines, et comparez les leads capturés et la qualité des transcriptions sur vos propres appels. Cette comparaison ne vous coûte rien et tranche mieux que n'importe quelle affirmation de notre part." },
-        { type: 'h2', text: 'Verdict' },
-        { type: 'p', text: "Yelda est un fournisseur français solide d'IA vocale enterprise. Si vous avez le budget et la complexité d'intégration qui vont avec, il justifie son coût. Mais pour les 90 % de PME françaises et belges qui ont juste besoin de décrocher leurs appels en français, de poser des rendez-vous et de router les urgences — Qwillio est la recommandation honnête en 2026, à une fraction du coût total et une fraction de l'attente." },
-      ],
-    },
+      "en": [
+        [
+          "Answering",
+          "AI, per published offering",
+          "Conversational AI"
+        ],
+        [
+          "Calendar",
+          "Connectors advertised",
+          "Connected Google Calendar or Outlook"
+        ],
+        [
+          "Entry budget",
+          "Start: €49 excl. tax / 100 min",
+          "Solo: €99 / 250 min"
+        ]
+      ]
+    }
   },
   {
-    slug: 'rosie',
-    competitor: 'Rosie',
-    title: {
-      en: 'Qwillio vs Rosie: the honest 2026 comparison',
-      fr: 'Qwillio vs Rosie : le comparatif honnête 2026',
+    "slug": "nerolia",
+    "competitor": "Nerolia",
+    "source": "https://nerolia-ai.fr/agence-automatisation",
+    "intro": {
+      "fr": "La page d’automatisation de Nerolia décrit des workflows sur mesure et des agents vocaux qui prennent des rendez-vous et alimentent un CRM. Elle propose un devis fixe. Un prix cité dans un guide général n’est pas un devis pour votre installation.",
+      "en": "Nerolia’s automation page describes custom workflows and voice agents that book appointments and update a CRM. It offers a fixed quote. A price in a general guide is not a quote for your installation."
     },
-    subtitle: {
-      en: 'Both are SaaS AI receptionists for small businesses. Rosie is the cheap US anchor; Qwillio is the bilingual, GDPR-friendly alternative for Belgian and French SMBs.',
-      fr: 'Les deux sont des réceptionnistes IA SaaS pour PME. Rosie est l\'ancre pas chère américaine ; Qwillio est l\'alternative bilingue, compatible RGPD pour la Belgique et la France.',
+    "question": {
+      "fr": "Faites préciser qui maintient chaque workflow, ce que couvre le devis et les frais récurrents. Pour l’accueil, faites tester une question hors consigne, une annulation et le relais vers votre équipe.",
+      "en": "Clarify who maintains each workflow, what the quote includes and recurring charges. For answering, test an out-of-scope question, a cancellation and transfer to your team."
     },
-    updated: '2026-07-13',
-    content: {
-      en: [
-        { type: 'p', text: "Rosie is a well-known North American SaaS AI receptionist targeting home service SMBs. Its Starter tier at 49 USD a month for 250 minutes (about 100 calls) is the cheapest sticker in the market. Its Growth tier at 149 USD covers roughly 400 calls, and Scale at 299 USD covers about 800 calls." },
-        { type: 'p', text: "Qwillio is the same category, but built from day one for the Belgian and French market: French native voice, GDPR-safe by default, bilingual on the same call, native CRM and calendar included. Like Rosie, Qwillio bills by the minute: the Solo tier at 99 EUR a month includes 250 minutes, Starter at 249 EUR includes 750 minutes." },
-        { type: 'p', text: "The two products overlap on the SaaS format and the SMB target. They diverge on almost everything else. This page walks through the material differences." },
-        { type: 'h2', text: 'Price comparison at similar volume' },
-        { type: 'table', head: ['Plan', 'Included volume', 'Price / month', 'Overage'], rows: [
-          ['Rosie Starter', '≈ 100 calls', '49 $', '0.25 $ / min'],
-          ['Rosie Growth', '≈ 400 calls', '149 $', '0.25 $ / min'],
-          ['Rosie Scale', '≈ 800 calls', '299 $', '0.25 $ / min'],
-          ['Qwillio Solo', '250 minutes', '99 €', '0.45 € / min'],
-          ['Qwillio Starter', '750 minutes', '249 €', '0.39 € / min'],
-          ['Qwillio Pro', '2,000 minutes', '599 €', '0.35 € / min'],
-        ]},
-        { type: 'p', text: "Both bill by the minute, which makes them directly comparable. Rosie is a US-only, English-only product; its raw sticker price is competitive because it negotiates US infrastructure at scale. Qwillio's included-minute bundles land in the same ballpark while adding native French, GDPR alignment and bilingual calls — value Rosie simply does not offer in Europe." },
-        { type: 'h2', text: 'Feature-by-feature comparison' },
-        { type: 'table', head: ['Feature', 'Rosie', 'Qwillio'], rows: [
-          ['24/7 answering', 'Yes', 'Yes'],
-          ['English native', 'Yes', 'Yes'],
-          ['Spanish native', 'Yes', 'No'],
-          ['French native', 'No', 'Yes'],
-          ['Bilingual on the same call', 'No', 'Yes (EN + FR)'],
-          ['Calendar booking (Google, Cal.com)', 'Higher tier', 'Yes'],
-          ['SMS booking / confirmation', 'Yes', 'Yes'],
-          ['CRM sync', 'Zapier', 'Native'],
-          ['Live human transfer', 'Higher tier', 'Yes'],
-          ['GDPR compliance', 'No', 'Yes'],
-          ['Self-serve onboarding', 'Yes', 'Yes (15 min)'],
-          ['7-day free trial', 'No', 'Yes'],
-        ]},
-        { type: 'h2', text: 'Where Rosie wins' },
-        { type: 'p', text: "Rosie is a solid choice for US-based home-service SMBs with an English-speaking clientele. It has years of operational maturity, transparent pricing, a large customer base for social proof, and Spanish native voice on top of English. If the business is US-only, English or Spanish only, and price sensitivity is the primary constraint, Rosie is defensible." },
-        { type: 'verdict', tone: 'good', title: 'Rosie is the better fit if', text: 'You are a US or Canadian home-service SMB, your clients speak English or Spanish, you want the cheapest sticker price on the market, and you do not need GDPR alignment or French-native voice.' },
-        { type: 'h2', text: 'Where Qwillio wins' },
-        { type: 'p', text: "Qwillio was built for exactly the market Rosie does not serve: French and bilingual Belgian and French SMBs who need GDPR-safe handling, native CRM without Zapier duct tape, and a free 7-day trial. Above 500 calls a month, Qwillio Solo and Starter also stop leaking overage the way Rosie does at 0.25 USD per minute above the tier." },
-        { type: 'verdict', tone: 'good', title: 'Qwillio is the better fit if', text: 'You serve French or bilingual Belgian / French clients, you care about GDPR compliance, you want a native CRM without gluing tools together, and you want a real trial without entering a card upfront.' },
-        { type: 'h2', text: 'Migration path from Rosie' },
-        { type: 'p', text: "Businesses moving from Rosie to Qwillio in 2026 usually do so when they hit the French-speaking client barrier or when their compliance officer flags US hosting. The migration is a three-step forward: fork the inbound line to both for two weeks, compare captured leads, then port. Qwillio takes over the number and Rosie is cancelled at the next billing cycle." },
-        { type: 'h2', text: 'Bottom line' },
-        { type: 'p', text: "Rosie is not being replaced everywhere. It is the right pick for the price-first English-only US SMB. But for a Belgian or French SMB that needs French-native voice, GDPR alignment, and a real 7-day trial, Qwillio is the honest recommendation in 2026." },
+    "fit": {
+      "fr": "Un projet Nerolia peut convenir à une chaîne métier spécifique. Qwillio convient si votre besoin commence par un accueil téléphonique configurable, avec contacts et agenda dans un produit à abonnement.",
+      "en": "A Nerolia project may suit a specific business workflow. Qwillio fits when you need configurable phone answering with contacts and calendar in a subscription product."
+    },
+    "rows": {
+      "fr": [
+        [
+          "Approche",
+          "Automatisation sur mesure",
+          "Produit à abonnement"
+        ],
+        [
+          "CRM",
+          "Intégration décrite dans le projet",
+          "Contacts et suivi dans le portail"
+        ],
+        [
+          "Budget",
+          "Devis selon périmètre",
+          "Forfait avec minutes incluses"
+        ]
       ],
-      fr: [
-        { type: 'p', text: "Rosie est une réceptionniste IA SaaS nord-américaine bien connue, ciblant les PME de service à domicile. Son tier Starter à 49 USD par mois pour 250 minutes (environ 100 appels) est le sticker le moins cher du marché. Son tier Growth à 149 USD couvre à peu près 400 appels, et Scale à 299 USD couvre environ 800 appels." },
-        { type: 'p', text: "Qwillio est de la même catégorie, mais bâtie dès le premier jour pour le marché belge et français : voix française native, RGPD par défaut, bilingue sur un même appel, CRM et agenda natifs inclus. Comme Rosie, Qwillio facture à la minute : le tier Solo à 99 € par mois inclut 250 minutes, Starter à 249 € inclut 750 minutes." },
-        { type: 'p', text: "Les deux produits se recoupent sur le format SaaS et la cible PME. Ils divergent sur à peu près tout le reste. Cette page fait le tour des différences matérielles." },
-        { type: 'h2', text: 'Comparaison des prix à volume comparable' },
-        { type: 'table', head: ['Plan', 'Volume inclus', 'Prix / mois', 'Dépassement'], rows: [
-          ['Rosie Starter', '≈ 100 appels', '49 $', '0,25 $ / min'],
-          ['Rosie Growth', '≈ 400 appels', '149 $', '0,25 $ / min'],
-          ['Rosie Scale', '≈ 800 appels', '299 $', '0,25 $ / min'],
-          ['Qwillio Solo', '250 minutes', '99 €', '0,45 € / min'],
-          ['Qwillio Starter', '750 minutes', '249 €', '0,39 € / min'],
-          ['Qwillio Pro', '2 000 minutes', '599 €', '0,35 € / min'],
-        ]},
-        { type: 'p', text: "Les deux facturent à la minute, ce qui les rend directement comparables. Rosie est un produit US, anglophone uniquement ; son prix brut est compétitif car il négocie l'infrastructure américaine à l'échelle. Les forfaits de minutes incluses de Qwillio se situent dans la même fourchette, tout en ajoutant le français natif, la conformité RGPD et les appels bilingues — une valeur que Rosie n'offre pas en Europe." },
-        { type: 'h2', text: 'Comparaison fonctionnalité par fonctionnalité' },
-        { type: 'table', head: ['Fonctionnalité', 'Rosie', 'Qwillio'], rows: [
-          ['Décroché 24/7', 'Oui', 'Oui'],
-          ['Anglais natif', 'Oui', 'Oui'],
-          ['Espagnol natif', 'Oui', 'Non'],
-          ['Français natif', 'Non', 'Oui'],
-          ['Bilingue sur un même appel', 'Non', 'Oui (EN + FR)'],
-          ['Réservation agenda (Google, Cal.com)', 'Tier sup.', 'Oui'],
-          ['SMS de confirmation', 'Oui', 'Oui'],
-          ['Sync CRM', 'Zapier', 'Natif'],
-          ['Transfert humain live', 'Tier sup.', 'Oui'],
-          ['Conformité RGPD', 'Non', 'Oui'],
-          ['Onboarding self-serve', 'Oui', 'Oui (15 min)'],
-          ['7 jours d’essai', 'Non', 'Oui'],
-        ]},
-        { type: 'h2', text: 'Là où Rosie gagne' },
-        { type: 'p', text: "Rosie est un choix solide pour les PME de service à domicile américaines avec une clientèle anglophone. Elle a des années de maturité opérationnelle, une tarification transparente, une base de clients large pour la preuve sociale, et l'espagnol natif en plus de l'anglais. Si l'entreprise est 100 % US, 100 % EN ou ES, et que la sensibilité au prix est la contrainte principale, Rosie est défendable." },
-        { type: 'verdict', tone: 'good', title: 'Rosie est le meilleur choix si', text: "Vous êtes une PME de service à domicile américaine ou canadienne, vos clients parlent anglais ou espagnol, vous voulez le sticker le moins cher du marché, et vous n'avez pas besoin de conformité RGPD ni de voix française native." },
-        { type: 'h2', text: 'Là où Qwillio gagne' },
-        { type: 'p', text: "Qwillio a été bâtie exactement pour le marché que Rosie ne sert pas : les PME françaises et belges bilingues qui ont besoin de conformité RGPD, d'un CRM natif sans scotch Zapier, et d’un essai gratuit de 7 jours. Au-dessus de 500 appels par mois, Qwillio Solo et Starter arrêtent aussi de fuir en dépassement comme Rosie à 0,25 USD par minute au-delà du palier." },
-        { type: 'verdict', tone: 'good', title: 'Qwillio est le meilleur choix si', text: "Vous servez une clientèle française ou bilingue belge / française, vous tenez à la conformité RGPD, vous voulez un CRM natif sans coller des outils entre eux, et vous voulez un vrai essai sans entrer de carte au démarrage." },
-        { type: 'h2', text: 'Chemin de migration depuis Rosie' },
-        { type: 'p', text: "Les entreprises qui migrent de Rosie vers Qwillio en 2026 le font en général quand elles heurtent la barrière de la clientèle francophone, ou quand leur DPO signale l'hébergement US. La migration se fait en trois étapes : fork de la ligne entrante vers les deux pendant deux semaines, comparaison des leads capturés, puis portage. Qwillio reprend le numéro et Rosie est résiliée au cycle de facturation suivant." },
-        { type: 'h2', text: 'Verdict' },
-        { type: 'p', text: "Rosie ne disparaît pas partout. C'est le bon choix pour la PME US 100 % anglophone qui achète au prix. Mais pour une PME belge ou française qui a besoin de la voix française native, de la conformité RGPD et d’un vrai essai de 7 jours, Qwillio est la recommandation honnête en 2026." },
-      ],
-    },
+      "en": [
+        [
+          "Approach",
+          "Custom automation",
+          "Subscription product"
+        ],
+        [
+          "CRM",
+          "Integration scoped in the project",
+          "Contacts and follow-up in the portal"
+        ],
+        [
+          "Budget",
+          "Quote based on scope",
+          "Plan with included minutes"
+        ]
+      ]
+    }
   },
   {
-    slug: 'ruby',
-    competitor: 'Ruby',
-    title: {
-      en: 'Qwillio vs Ruby Receptionists: AI vs human answering in 2026',
-      fr: 'Qwillio vs Ruby Receptionists : IA contre réception humaine en 2026',
+    "slug": "smith-ai",
+    "competitor": "Smith.ai",
+    "source": "https://smith.ai/",
+    "intro": {
+      "fr": "Smith.ai présente un accueil associant IA et agents humains, avec qualification et prise de consultation. Le relais vers son réseau d’agents n’est pas le même service qu’un transfert vers votre propre équipe chez Qwillio.",
+      "en": "Smith.ai advertises AI answering with live human agents, qualification and consultation booking. Escalation to its agent network is not the same service as a Qwillio transfer to your own team."
     },
-    subtitle: {
-      en: 'Ruby is a premium US human virtual receptionist service. Qwillio is bilingual AI, flat-priced, GDPR-aligned. Here is where each one wins.',
-      fr: "Ruby est un service premium de réceptionnistes humaines aux États-Unis. Qwillio est une IA bilingue, à prix fixe, alignée RGPD. Voici où chacun l'emporte.",
+    "question": {
+      "fr": "Comparez séparément appel traité par l’IA, appel escaladé et appel long. Un tarif par appel ne se compare pas à un forfait de minutes sans vos durées moyennes et vos règles de facturation.",
+      "en": "Compare AI-handled, escalated and long calls separately. Per-call pricing cannot be compared with a minute allowance without your average durations and billing rules."
     },
-    updated: '2026-07-18',
-    content: {
-      en: [
-        { type: 'p', text: 'Ruby (formerly Ruby Receptionists) is one of the most established virtual receptionist brands in the United States. It uses trained human receptionists to answer calls, take messages and route callers for small US businesses, with a strong reputation for warmth and brand voice. Pricing is premium and built around monthly receptionist-minute allowances that scale up quickly with volume.' },
-        { type: 'p', text: 'Qwillio takes a different route: pure conversational AI that answers every call itself, in French and English, books appointments, and is built for GDPR from the start. Pricing is a monthly plan with included minutes, billed by the minute beyond that — without the cost of Ruby\'s human minutes — from a 99 EUR Solo tier up to Enterprise.' },
-        { type: 'h2', text: 'The core trade-off' },
-        { type: 'p', text: 'Ruby sells a human on the line. That is a genuine strength for businesses whose brand depends on a warm human voice and who are happy to pay for it. The cost is that human minutes are metered and expensive, and Ruby operates in English for a US market. Qwillio sells always-on capacity at a flat price, in two languages, GDPR aligned, at the cost of being AI rather than a person.' },
-        { type: 'table', head: ['Dimension', 'Ruby', 'Qwillio'], rows: [
-          ['Who answers', 'Human receptionists (US)', 'Conversational AI'],
-          ['Languages', 'English', 'French + English (native)'],
-          ['Pricing model', 'Metered receptionist minutes', 'Flat monthly, no per-minute meter'],
-          ['GDPR compliance', 'Partial', 'Yes, standard contractual clauses'],
-          ['Books into your calendar', 'Limited / add-on', 'Yes, native'],
-          ['7-day free trial', 'No', 'Yes'],
-        ] },
-        { type: 'verdict', tone: 'good', title: 'Ruby is the better fit if', text: 'You are a US business whose brand depends on a warm human voice, your callers speak English, and you are comfortable paying a premium metered rate for that human touch.' },
-        { type: 'verdict', tone: 'good', title: 'Qwillio is the better fit if', text: 'You serve French or bilingual clients, you want predictable flat pricing without a per-minute meter, you need GDPR alignment, and you want appointments booked into your calendar automatically.' },
+    "fit": {
+      "fr": "Smith.ai peut convenir si vous cherchez aussi une permanence humaine externalisée. Qwillio convient si vous voulez l’IA en première ligne et votre équipe en relais, sans présenter ce relais comme une équipe humaine fournie par Qwillio.",
+      "en": "Smith.ai may fit if you also need an outsourced human answering team. Qwillio fits if you want AI first and your team as backup, without treating that transfer as a human team supplied by Qwillio."
+    },
+    "rows": {
+      "fr": [
+        [
+          "Qui répond",
+          "IA et/ou agents selon l’offre",
+          "IA conversationnelle"
+        ],
+        [
+          "Relais humain sur appel complexe",
+          "Réseau d’agents annoncé",
+          "Oui, vers votre équipe (si configuré)"
+        ],
+        [
+          "Unité de facturation",
+          "Par appel selon offre et escalade",
+          "Minutes incluses puis dépassement"
+        ]
       ],
-      fr: [
-        { type: 'p', text: "Ruby (anciennement Ruby Receptionists) est l'une des marques de réception virtuelle les plus établies aux États-Unis. Elle utilise des réceptionnistes humaines formées pour répondre aux appels, prendre les messages et router les appelants des petites entreprises américaines, avec une réputation de chaleur et de voix de marque. La tarification est premium et construite autour d'allocations mensuelles de minutes de réceptionniste qui montent vite avec le volume." },
-        { type: 'p', text: "Qwillio prend une autre voie : une IA conversationnelle pure qui répond elle-même à chaque appel, en français et en anglais, pose les rendez-vous et est pensée pour le RGPD dès l'origine. La tarification est un forfait mensuel avec minutes incluses, facturé à la minute au-delà — sans le coût des minutes humaines de Ruby — d'un plan Solo à 99 € jusqu'à Enterprise." },
-        { type: 'h2', text: "Le compromis central" },
-        { type: 'p', text: "Ruby vend un humain au bout du fil. C'est une vraie force pour les entreprises dont la marque dépend d'une voix humaine chaleureuse et qui acceptent de payer pour. Le coût : les minutes humaines sont comptées et chères, et Ruby opère en anglais pour un marché américain. Qwillio vend une capacité always-on à prix fixe, en deux langues, conforme au RGPD, au prix d'être une IA plutôt qu'une personne." },
-        { type: 'table', head: ['Dimension', 'Ruby', 'Qwillio'], rows: [
-          ['Qui répond', 'Réceptionnistes humaines (US)', 'IA conversationnelle'],
-          ['Langues', 'Anglais', 'Français + anglais (natif)'],
-          ['Modèle de prix', 'Minutes de réceptionniste comptées', 'Fixe au mois, sans compteur'],
-          ['Conformité RGPD', 'Partielle', 'Oui, clauses contractuelles types'],
-          ['Pose les RDV dans votre agenda', 'Limité / option', 'Oui, natif'],
-          ['Essai gratuit 7 jours', 'Non', 'Oui'],
-        ] },
-        { type: 'verdict', tone: 'good', title: 'Ruby est le meilleur choix si', text: "Vous êtes une entreprise américaine dont la marque repose sur une voix humaine chaleureuse, vos appelants parlent anglais, et vous acceptez de payer un tarif premium compté pour ce contact humain." },
-        { type: 'verdict', tone: 'good', title: 'Qwillio est le meilleur choix si', text: "Vous servez une clientèle française ou bilingue, vous voulez un prix fixe prévisible sans compteur de minutes, vous avez besoin de la conformité RGPD, et vous voulez des rendez-vous posés automatiquement dans votre agenda." },
-      ],
-    },
+      "en": [
+        [
+          "Who answers",
+          "AI and/or live agents by offering",
+          "Conversational AI"
+        ],
+        [
+          "Human backup on tricky calls",
+          "Advertised live agent network",
+          "Yes, to your team (when configured)"
+        ],
+        [
+          "Billing unit",
+          "Per call, depending on offering and escalation",
+          "Included minutes then overage"
+        ]
+      ]
+    }
   },
   {
-    slug: 'answering-legal',
-    competitor: 'Answering Legal',
-    title: {
-      en: 'Qwillio vs Answering Legal: law-firm call handling in 2026',
-      fr: "Qwillio vs Answering Legal : la gestion d'appels pour cabinets d'avocats en 2026",
+    "slug": "yelda",
+    "competitor": "YeldaAI",
+    "source": "https://yelda.fr",
+    "intro": {
+      "fr": "YeldaAI présente des callbots, voicebots et chatbots vocaux reliés aux systèmes métier. C’est une piste pour un service client multicanal. Cette présentation ne donne pas le budget de votre projet ni la liste des connecteurs inclus dans votre contrat.",
+      "en": "YeldaAI advertises callbots, voicebots and voice-enabled chatbots connected to business systems. It is an option for multichannel customer service. That description does not establish your project budget or contracted connectors."
     },
-    subtitle: {
-      en: 'Answering Legal is a US human answering service built for law firms. Qwillio is bilingual AI that qualifies and books. Here is the honest comparison.',
-      fr: "Answering Legal est un service de réception humain américain conçu pour les cabinets d'avocats. Qwillio est une IA bilingue qui qualifie et prend les RDV. Voici le comparatif honnête.",
+    "question": {
+      "fr": "Faites cadrer les canaux, l’authentification de vos outils et les actions autorisées avant le devis. Pour un accueil PME, comparez le temps d’administration quotidien, pas uniquement la liste des canaux possibles.",
+      "en": "Scope channels, tool authentication and allowed actions before requesting a quote. For small-business answering, compare daily administration, not just the list of possible channels."
     },
-    updated: '2026-07-18',
-    content: {
-      en: [
-        { type: 'p', text: 'Answering Legal is a US answering service specialised for law firms. Human agents answer calls around the clock, take intake details and relay messages, with scripts tuned to legal reception. It is a niche, human-first service priced on a per-minute or per-plan basis typical of US answering services.' },
-        { type: 'p', text: 'Qwillio is a general-purpose bilingual AI receptionist that also handles legal intake well: it answers every call, qualifies the matter (field, urgency, opposing party), screens obvious spam, books the consultation and emails a structured recap before you call back. It is GDPR aligned, with transfers covered by standard contractual clauses.' },
-        { type: 'h2', text: 'Human legal intake vs AI qualification' },
-        { type: 'p', text: 'Answering Legal wins if your firm specifically wants trained humans handling US-English legal calls and you are comfortable with metered per-minute pricing. Qwillio wins if you want structured qualification and booking without per-minute costs, in French or English, GDPR aligned. For a Belgian or French practice, the language gap is decisive.' },
-        { type: 'table', head: ['Dimension', 'Answering Legal', 'Qwillio'], rows: [
-          ['Who answers', 'Human agents (US)', 'Conversational AI'],
-          ['Languages', 'English', 'French + English (native)'],
-          ['Legal intake qualification', 'Yes, human', 'Yes, structured + emailed recap'],
-          ['Pricing model', 'Per-minute / plan', 'Flat monthly'],
-          ['GDPR compliance', 'Partial', 'Yes, standard contractual clauses'],
-          ['Books the consultation', 'Message relay', 'Yes, into your calendar'],
-        ] },
-        { type: 'verdict', tone: 'good', title: 'Answering Legal is the better fit if', text: 'You are a US law firm that wants trained human agents on English-language calls and you accept per-minute answering-service pricing.' },
-        { type: 'verdict', tone: 'good', title: 'Qwillio is the better fit if', text: 'You are a French or Belgian practice (or bilingual), you want structured matter qualification and booking without per-minute fees, and you need GDPR alignment.' },
+    "fit": {
+      "fr": "YeldaAI mérite une étude si votre priorité est un service client intégré à plusieurs canaux. Qwillio convient à un accueil téléphonique avec agenda et suivi dans un portail, sans promettre un remplacement de tous vos logiciels métier.",
+      "en": "Consider YeldaAI when your priority is customer service across multiple channels. Qwillio fits phone answering with scheduling and follow-up in a portal, without promising to replace every business system."
+    },
+    "rows": {
+      "fr": [
+        [
+          "Périmètre présenté",
+          "Callbot, voicebot, chatbot vocal",
+          "Accueil téléphonique et portail"
+        ],
+        [
+          "Systèmes métier",
+          "Connexions annoncées, à cadrer",
+          "Agenda connecté ; autres flux selon configuration"
+        ],
+        [
+          "Budget",
+          "À demander pour votre projet",
+          "Abonnement et consommation de minutes"
+        ]
       ],
-      fr: [
-        { type: 'p', text: "Answering Legal est un service de réception américain spécialisé pour les cabinets d'avocats. Des agents humains répondent aux appels 24 h/24, prennent les éléments d'intake et relaient les messages, avec des scripts calés sur la réception juridique. C'est un service de niche, humain d'abord, facturé à la minute ou au forfait comme les answering services américains." },
-        { type: 'p', text: "Qwillio est une réceptionniste IA bilingue généraliste qui gère aussi très bien l'intake juridique : elle répond à chaque appel, qualifie le dossier (domaine, urgence, partie adverse), écarte le spam évident, pose la consultation et envoie un récap structuré par email avant que vous ne rappeliez. Elle est conforme au RGPD, les transferts étant encadrés par des clauses contractuelles types." },
-        { type: 'h2', text: "Intake juridique humain contre qualification IA" },
-        { type: 'p', text: "Answering Legal l'emporte si votre cabinet veut spécifiquement des humains formés sur des appels juridiques en anglais américain et accepte une tarification comptée à la minute. Qwillio l'emporte si vous voulez une qualification et une prise de RDV structurées sans coût à la minute, en français ou en anglais, conforme au RGPD. Pour un cabinet belge ou français, l'écart de langue est décisif." },
-        { type: 'table', head: ['Dimension', 'Answering Legal', 'Qwillio'], rows: [
-          ['Qui répond', 'Agents humains (US)', 'IA conversationnelle'],
-          ['Langues', 'Anglais', 'Français + anglais (natif)'],
-          ['Qualification intake juridique', 'Oui, humain', 'Oui, structuré + récap email'],
-          ['Modèle de prix', 'À la minute / forfait', 'Fixe au mois'],
-          ['Conformité RGPD', 'Partielle', 'Oui, clauses contractuelles types'],
-          ['Pose la consultation', 'Relais de message', 'Oui, dans votre agenda'],
-        ] },
-        { type: 'verdict', tone: 'good', title: 'Answering Legal est le meilleur choix si', text: "Vous êtes un cabinet américain qui veut des agents humains formés sur des appels en anglais et vous acceptez une tarification d'answering service à la minute." },
-        { type: 'verdict', tone: 'good', title: 'Qwillio est le meilleur choix si', text: "Vous êtes un cabinet français ou belge (ou bilingue), vous voulez une qualification de dossier et une prise de RDV structurées sans frais à la minute, et vous avez besoin de la conformité RGPD." },
-      ],
-    },
+      "en": [
+        [
+          "Advertised scope",
+          "Callbot, voicebot, voice chatbot",
+          "Phone answering and portal"
+        ],
+        [
+          "Business systems",
+          "Advertised connections, scope required",
+          "Connected calendar; other workflows depend on configuration"
+        ],
+        [
+          "Budget",
+          "Request a project quote",
+          "Subscription and minute usage"
+        ]
+      ]
+    }
   },
+  {
+    "slug": "rosie",
+    "competitor": "Rosie",
+    "source": "https://heyrosie.com/pricing",
+    "intro": {
+      "fr": "Rosie publie Professional à 49 $/mois pour 250 minutes. La réservation directe et les transferts sont annoncés dans Scale, à 149 $ pour 1 000 minutes. Sa page indique anglais et espagnol. Comparez la formule contenant les actions nécessaires, pas le seul prix d’entrée.",
+      "en": "Rosie lists Professional at $49/month for 250 minutes. Direct booking and transfers are advertised in Scale, at $149 for 1,000 minutes. Its page lists English and Spanish. Compare the tier containing the actions you need, not only the entry price."
+    },
+    "question": {
+      "fr": "Testez votre langue, votre numéro et un créneau dans votre fuseau horaire. Vérifiez si l’offre envoie un lien de réservation ou écrit directement dans l’agenda : ces deux parcours ne rendent pas le même service.",
+      "en": "Test your language, phone number and a slot in your time zone. Check whether a tier texts a booking link or writes directly to the calendar: those are different workflows."
+    },
+    "fit": {
+      "fr": "Rosie peut convenir si ses langues et son offre correspondent à vos appelants. Qwillio mérite un essai pour un accueil français et anglais avec un agenda Google ou Outlook connecté. Les prix en dollars et en euros restent dans leur devise d’origine.",
+      "en": "Rosie may fit if its languages and plan suit your callers. Try Qwillio for French and English answering with a connected Google or Outlook calendar. Dollar and euro prices remain in their original currencies."
+    },
+    "rows": {
+      "fr": [
+        [
+          "Langues publiées",
+          "Anglais et espagnol",
+          "Français et anglais"
+        ],
+        [
+          "Réservation directe",
+          "Scale et offres supérieures",
+          "Avec agenda connecté et configuration"
+        ],
+        [
+          "Budget de départ",
+          "Professional : 49 $ / 250 min",
+          "Solo : 99 € / 250 min"
+        ]
+      ],
+      "en": [
+        [
+          "Published languages",
+          "English and Spanish",
+          "French and English"
+        ],
+        [
+          "Direct booking",
+          "Scale and higher tiers",
+          "With connected calendar and configuration"
+        ],
+        [
+          "Entry budget",
+          "Professional: $49 / 250 min",
+          "Solo: €99 / 250 min"
+        ]
+      ]
+    }
+  },
+  {
+    "slug": "ruby",
+    "competitor": "Ruby",
+    "source": "https://info.ruby.com/lp-virtual-receptionists-more-than-answering-service/",
+    "intro": {
+      "fr": "Ruby présente une permanence avec des réceptionnistes humains basés aux États-Unis. Leur prestation inclut prise de messages, qualification et gestion de rendez-vous. Qwillio propose un accueil IA ; ce n’est pas la même forme de présence humaine.",
+      "en": "Ruby advertises answering by US-based human receptionists. Its service includes messages, intake and appointment handling. Qwillio provides AI answering; it is not the same form of human coverage."
+    },
+    "question": {
+      "fr": "Si l’humain est votre critère principal, faites écouter vos appels types à la personne chargée de choisir. Comparez ensuite langues contractuelles, volume inclus, dépassements et traitement des demandes qui exigent votre jugement.",
+      "en": "If human answering is your main criterion, let the decision-maker hear your typical calls. Then compare contracted languages, included volume, overage and requests requiring your judgment."
+    },
+    "fit": {
+      "fr": "Ruby est une piste si vous voulez externaliser l’accueil humain. Qwillio convient si vous acceptez un accueil IA et gardez les décisions sensibles dans votre équipe, avec transfert configuré lorsque votre ligne est disponible.",
+      "en": "Consider Ruby if you want outsourced human answering. Qwillio fits if you accept AI answering and keep sensitive decisions with your team, with configured transfers when your line is available."
+    },
+    "rows": {
+      "fr": [
+        [
+          "Qui répond",
+          "Réceptionnistes humains",
+          "IA conversationnelle"
+        ],
+        [
+          "Équipe externalisée",
+          "Oui, selon prestation Ruby",
+          "Non ; relais vers votre équipe"
+        ],
+        [
+          "Rendez-vous",
+          "Prestation annoncée",
+          "Agenda connecté et règles configurées"
+        ]
+      ],
+      "en": [
+        [
+          "Who answers",
+          "Human receptionists",
+          "Conversational AI"
+        ],
+        [
+          "Outsourced team",
+          "Yes, under the Ruby service",
+          "No; transfers to your team"
+        ],
+        [
+          "Appointments",
+          "Advertised service",
+          "Connected calendar and configured rules"
+        ]
+      ]
+    }
+  },
+  {
+    "slug": "answering-legal",
+    "competitor": "Answering Legal",
+    "source": "https://answeringlegal.com/",
+    "intro": {
+      "fr": "Answering Legal présente une permanence humaine dédiée aux cabinets d’avocats, avec qualification juridique, anglais/espagnol et prise de rendez-vous. Son chatbot IA de site web est une offre distincte de cet accueil téléphonique humain.",
+      "en": "Answering Legal advertises human answering for law firms, legal intake, English/Spanish handling and scheduling. Its AI website chatbot is separate from that human phone-answering service."
+    },
+    "question": {
+      "fr": "Pour un cabinet, testez le recueil du motif sans conseil juridique et la remise des informations au bon collaborateur. Vérifiez l’accord de traitement des données et les sous-traitants des deux offres : un pays d’origine ne prouve pas, à lui seul, la conformité.",
+      "en": "For a law firm, test capturing the matter without legal advice and delivering it to the right colleague. Check both providers’ data processing terms and subprocessors: country of origin alone does not establish compliance."
+    },
+    "fit": {
+      "fr": "Answering Legal peut convenir à un cabinet cherchant une équipe humaine formée à l’accueil juridique. Qwillio convient à une qualification initiale en français ou anglais, avec rendez-vous dans l’agenda connecté ; les décisions juridiques restent humaines.",
+      "en": "Answering Legal may fit a firm seeking humans trained in legal intake. Qwillio fits initial qualification in French or English with booking in a connected calendar; legal decisions remain human."
+    },
+    "rows": {
+      "fr": [
+        [
+          "Accueil téléphonique",
+          "Humains spécialisés juridique",
+          "IA configurée pour votre cabinet"
+        ],
+        [
+          "Langues publiées",
+          "Anglais et espagnol",
+          "Français et anglais"
+        ],
+        [
+          "Prise de rendez-vous",
+          "Annoncée par le prestataire",
+          "Avec agenda connecté et configuration"
+        ]
+      ],
+      "en": [
+        [
+          "Phone answering",
+          "Humans trained in legal intake",
+          "AI configured for your firm"
+        ],
+        [
+          "Published languages",
+          "English and Spanish",
+          "French and English"
+        ],
+        [
+          "Scheduling",
+          "Advertised by provider",
+          "With connected calendar and configuration"
+        ]
+      ]
+    }
+  }
 ];
 
+function blocks(e: ComparisonEvidence, lang: 'fr' | 'en'): ComparisonBlock[] {
+  const fr = lang === 'fr';
+  return [
+    { type: 'p', text: e.intro[lang] },
+    { type: 'p', text: fr
+      ? 'Les éléments concurrentiels ci-dessous décrivent les pages officielles citées, consultées le 1er novembre 2026. Ce ne sont pas des essais indépendants. Prix, conditions et disponibilité pour votre compte : à revérifier avant de décider.'
+      : 'Competitor details below describe the cited official pages, reviewed on November 1, 2026. They are not independent product tests. Prices, terms and availability for your account: re-verify before deciding.' },
+    { type: 'h2', text: fr ? 'Comparer le service rendu' : 'Compare the actual service' },
+    { type: 'table', head: [fr ? 'Critère' : 'Criterion', e.competitor, 'Qwillio'], rows: e.rows[lang] },
+    { type: 'p', text: e.question[lang] },
+    { type: 'h2', text: fr ? 'Le budget Qwillio, en minutes' : 'Qwillio budget, in minutes' },
+    { type: 'table', head: [fr ? 'Formule' : 'Plan', fr ? 'Prix mensuel' : 'Monthly price', fr ? 'Minutes incluses' : 'Included minutes'],
+      rows: (Object.keys(PLAN_MONTHLY_EUR) as (keyof typeof PLAN_MONTHLY_EUR)[]).map(key => [key === 'enterprise' ? 'Enterprise' : key[0].toUpperCase() + key.slice(1), `${PLAN_MONTHLY_EUR[key]} €`, `${PLAN_MINUTES[key].toLocaleString('en-US')} min`]),
+      caption: fr ? 'Tarifs mensuels, hors remise annuelle. Dépassements facturés à la minute selon la formule ; pas d’appels illimités.' : 'Monthly prices, before annual discounts. Overage is billed per minute according to plan; calls are not unlimited.' },
+    { type: 'p', text: fr
+      ? 'Chez Qwillio, la réservation exige un agenda Google ou Outlook connecté. Le transfert exige un numéro de destination configuré et dépend de votre opérateur ; son acceptation technique ne prouve pas qu’une personne a décroché. La consultation, la modification et l’annulation d’un rendez-vous existant passent à votre équipe après vérification d’identité. CRM inclus, sync HubSpot/webhook selon configuration. Le récap hebdomadaire dépend du bot actif et des emails configurés ; les autres envois et automatisations dépendent des options activées sur le compte.'
+      : 'Qwillio booking requires a connected Google or Outlook calendar. Transfer requires a configured destination number and depends on your carrier; an accepted transfer request does not prove anyone answered. Looking up, changing or cancelling an existing booking requires team identity verification. CRM is included; HubSpot/webhook sync depends on configuration. The weekly recap requires an active bot and configured emails; other messages and automation depend on enabled account options.' },
+    { type: 'h2', text: fr ? 'Un essai qui permet de décider' : 'A trial that helps you decide' },
+    { type: 'p', text: fr
+      ? 'L’essai Qwillio dure 7 jours, carte requise à l’inscription. La démo navigateur permet d’écouter et de poser des questions sans créer de rendez-vous ni envoyer de SMS. Pour valider l’exploitation, testez ensuite votre ligne réelle, un agenda indisponible et un destinataire qui ne répond pas.'
+      : 'The Qwillio trial lasts 7 days, card required at signup. The browser demo lets you listen and ask questions without creating bookings or sending texts. To validate operations, then test your actual phone line, an unavailable calendar and an unanswered transfer.' },
+    { type: 'verdict', tone: 'neutral', title: fr ? 'Choisissez selon votre organisation' : 'Choose for your operation', text: e.fit[lang] },
+  ];
+}
+export const COMPARISON_PAGES: ComparisonPage[] = EVIDENCE.map(e => ({
+  slug: e.slug, competitor: e.competitor,
+  title: { fr: `Qwillio ou ${e.competitor}`, en: `Qwillio vs ${e.competitor}` },
+  subtitle: SUBTITLES[e.slug],
+  updated: '2026-11-01', sources: [{ label: e.competitor, url: e.source }],
+  content: { fr: blocks(e, 'fr'), en: blocks(e, 'en') },
+}));
 export function getComparisonBySlug(slug: string): ComparisonPage | undefined {
-  return COMPARISON_PAGES.find((c) => c.slug === slug);
+  return COMPARISON_PAGES.find(c => c.slug === slug);
 }

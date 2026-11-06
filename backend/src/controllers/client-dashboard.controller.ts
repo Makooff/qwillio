@@ -29,6 +29,7 @@ import { voiceModeFor } from '../services/voice/voice-tiers';
 import { lowestPlanFor, superagentAllowed } from '../config/plan-features';
 import { PLANS } from '../config/plans';
 import { readTierId } from '../services/voice/voice-tiers';
+import { businessTimezone, zonedInstant, ymdOf } from '../utils/zoned-time';
 
 /**
  * Rebâtir l'assistant DISTANT après un changement d'intégration.
@@ -328,7 +329,7 @@ export class ClientDashboardController {
          et les outils (6vicies). Voir `services/booking-cancel.ts`. */
       const outcome = await cancelBooking(req.clientId, String(req.params.id));
       if (!outcome.ok) return res.status(404).json({ error: 'Réservation introuvable' });
-      res.json(outcome.alreadyCancelled ? { ok: true, alreadyCancelled: true } : { ok: true });
+      res.json({ ok: true, ...(outcome.alreadyCancelled ? { alreadyCancelled: true } : {}), calendarSync: outcome.calendarSync, ...(outcome.calendarSync === 'retained' ? { retryable: true, warning: 'calendar_sync_pending' } : {}) });
     } catch (error: any) {
       res.status(500).json({ error: error.message });
     }
@@ -1042,6 +1043,10 @@ export class ClientDashboardController {
   // acceptable, since this is what an owner judges the agent on.
   async voiceLiveConfig(req: any, res: Response) {
     try {
+      // Only the server operator may enable the explicit legacy rollback.
+      if (env.VOICE_RUNTIME !== 'vapi') {
+        return this.webSessionVoiceConfig(req, res, 'client-test');
+      }
       if (!env.VAPI_PUBLIC_KEY) return res.status(503).json({ error: 'Vapi public key not configured' });
 
       const { realtimeContextService } = await import('../services/voice/realtime-context.service');
@@ -1109,6 +1114,7 @@ export class ClientDashboardController {
       });
 
       res.json({
+        provider: 'vapi',
         publicKey: env.VAPI_PUBLIC_KEY,
         assistant: {
           name: `${character.name} — ${profile.businessName}`,
@@ -1233,7 +1239,37 @@ export class ClientDashboardController {
   // backchannels): configuring the agent should not feel worse than the agent.
   // Different job though — this one changes settings, it does not answer
   // callers, so it carries no receptionist tools.
+  async webSessionVoiceConfig(req: any, res: Response, mode: 'client-test' | 'setup') {
+    if (!req.clientId) return res.status(401).json({ error: 'authentication_required' });
+    try {
+      const { issueWebSession } = await import('../services/voice/web-session.service');
+      const { coreProfileVoice } = await import('../services/voice/core-profile-voice');
+      const { realtimeContextService } = await import('../services/voice/realtime-context.service');
+      const { businessMemoryService } = await import('../services/voice/business-memory.service');
+      const profile = await realtimeContextService.getClientProfile(req.clientId);
+      if (!profile) return res.status(404).json({ error: 'Client not found' });
+      const knowledge = profile.hasKnowledgeBase ? await businessMemoryService.all(req.clientId) : [];
+      const session = await issueWebSession({
+        mode, setupMode: mode === 'setup' ? (req.query?.mode === 'onboarding' ? 'onboarding' : 'config') : undefined,
+        profile: {
+          clientId: req.clientId, business: profile.businessName, agent: profile.agentName,
+          language: profile.language, businessType: profile.businessType,
+          notes: [profile.instructions, profile.knowledgeFields].filter(Boolean).join('\n'),
+          openingHours: profile.weekHours as Record<string, unknown>, openingHoursSpoken: profile.openingHours || '',
+          services: profile.services, voice: coreProfileVoice(profile),
+        },
+        knowledge: knowledge.map((entry: any) => ({ question: entry.question || entry.title || entry.kind || 'Information',
+          answer: entry.answer || entry.content || '', keywords: entry.keywords || [] })),
+      });
+      return res.json(session);
+    } catch (error: any) {
+      logger.warn(`web session unavailable: ${error.code || error.message}`);
+      return res.status(503).json({ error: 'web_session_unavailable' });
+    }
+  }
+
   async assistantVoiceConfig(req: any, res: Response) {
+    if (env.VOICE_RUNTIME !== 'vapi') return this.webSessionVoiceConfig(req, res, 'setup');
     try {
       if (!env.VAPI_PUBLIC_KEY) return res.status(503).json({ error: 'Vapi public key not configured' });
 
@@ -1277,6 +1313,7 @@ export class ClientDashboardController {
           ].join('\n');
 
       res.json({
+        provider: 'vapi',
         publicKey: env.VAPI_PUBLIC_KEY,
         assistant: {
           name: `Config — ${profile.businessName}`,
@@ -3015,6 +3052,34 @@ export class ClientDashboardController {
     }
   }
 
+  // POST /api/my-dashboard/integrations/google-calendar/test
+  // Crée un événement réel « Test Qwillio » demain à 10 h dans l'agenda du
+  // client, puis le rend. C'est le seul moyen de vérifier que la connexion
+  // écrit VRAIMENT, puisque l'appel de test est volontairement en lecture seule.
+  async testGoogleCalendar(req: any, res: Response) {
+    try {
+      const client = await prisma.client.findUnique({
+        where: { id: req.clientId },
+        select: {
+          googleCalendarRefreshToken: true, googleCalendarId: true,
+          onboardingData: true, country: true, city: true, agentLanguage: true,
+        },
+      });
+      if (!client?.googleCalendarRefreshToken) {
+        return res.status(400).json({ ok: false, error: 'Google Calendar non connecté' });
+      }
+      const accessToken = await googleCalendarService.getAccessTokenFromRefresh(client.googleCalendarRefreshToken);
+      const timezone = businessTimezone(client);
+      const event = await googleCalendarService.createTestEvent(
+        accessToken, client.googleCalendarId || 'primary', timezone,
+      );
+      res.json({ ok: true, provider: 'google', calendarId: client.googleCalendarId || 'primary', ...event });
+    } catch (error: any) {
+      logger.error('GCal test error:', error);
+      res.status(500).json({ ok: false, error: error?.message || 'Échec du test Google Calendar' });
+    }
+  }
+
   // ═══ Outlook / Microsoft 365 integration (OAuth) ═══════════════════
   // Quatre gestes en miroir de ceux de Google. Ce qui change n'est pas la
   // forme mais le fournisseur : Microsoft tourne son refresh token, et le
@@ -3154,6 +3219,48 @@ export class ClientDashboardController {
     } catch (error: any) {
       logger.error('Outlook disconnect error:', error);
       res.status(500).json({ error: error.message });
+    }
+  }
+
+  // POST /api/my-dashboard/integrations/outlook-calendar/test
+  // Même geste que côté Google : un événement réel « Test Qwillio » demain à
+  // 10 h, rendu pour prouver que le jeton écrit. Le refresh token tourné est
+  // réécrit en base, sinon l'intégration meurt à l'heure suivante.
+  async testOutlookCalendar(req: any, res: Response) {
+    try {
+      const client = await prisma.client.findUnique({
+        where: { id: req.clientId },
+        select: {
+          outlookRefreshToken: true, outlookCalendarId: true,
+          onboardingData: true, country: true, city: true, agentLanguage: true,
+        },
+      });
+      if (!client?.outlookRefreshToken) {
+        return res.status(400).json({ ok: false, error: 'Outlook non connecté' });
+      }
+      const persistRotatedToken = async (next: string): Promise<void> => {
+        await prisma.client.update({ where: { id: req.clientId }, data: { outlookRefreshToken: next } });
+      };
+      const accessToken = await outlookCalendarService.getAccessTokenFromRefresh(
+        client.outlookRefreshToken, persistRotatedToken,
+      );
+      const timezone = businessTimezone(client);
+      const start = zonedInstant(ymdOf(new Date(Date.now() + 86_400_000)), '10:00', timezone);
+      const end = new Date(start.getTime() + 30 * 60 * 1000);
+      const summary = 'Test Qwillio — connexion agenda';
+      const eventId = await outlookCalendarService.createEvent(
+        accessToken,
+        {
+          subject: summary,
+          bodyText: 'Événement de test créé depuis Qwillio pour vérifier la connexion à votre agenda. Vous pouvez le supprimer.',
+          startIso: start.toISOString(), endIso: end.toISOString(), timeZone: timezone,
+        },
+        client.outlookCalendarId || 'primary',
+      );
+      res.json({ ok: true, provider: 'outlook', calendarId: client.outlookCalendarId || 'primary', eventId, summary, start: start.toISOString(), end: end.toISOString() });
+    } catch (error: any) {
+      logger.error('Outlook test error:', error);
+      res.status(500).json({ ok: false, error: error?.message || 'Échec du test Outlook' });
     }
   }
 }

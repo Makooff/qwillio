@@ -371,13 +371,13 @@ function GuaranteeCard({ isFr }: { isFr: boolean }) {
   const reduced = useReducedMotion();
   const rows = isFr
     ? [
-        'Enregistrement annoncé au décrochage, conforme RGPD',
+        'Enregistrement, lorsqu’il est activé, annoncé au décrochage, conforme RGPD',
         'Données jamais vendues, jamais utilisées pour entraîner un modèle sans accord',
         'Appels spam écartés, non décomptés',
         '24/7, français et anglais sur le même appel',
       ]
     : [
-        'Recording announced at pickup, GDPR compliant',
+        'Recording, when enabled, announced at pickup, GDPR compliant',
         'Data never sold, never used to train a model without consent',
         'Spam calls filtered out, not counted',
         '24/7, French and English on the same call',

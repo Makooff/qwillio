@@ -114,13 +114,13 @@ export default function City() {
   const benefits = isFr
     ? [
         { icon: Phone, title: '24/7, bilingue', body: 'Décroche en français et en anglais, jour et nuit, sans jamais mettre en attente.' },
-        { icon: CalendarDays, title: 'RDV dans votre agenda', body: 'Prend les rendez-vous, sync Google Calendar, envoie la confirmation par SMS.' },
-        { icon: ShieldCheck, title: 'Conformité RGPD', body: 'Transferts encadrés par des clauses contractuelles types, anti-spam inclus, enregistrement annoncé au décrochage.' },
+        { icon: CalendarDays, title: 'RDV dans votre agenda', body: 'Prend les rendez-vous, synchronise Google ou Outlook, envoie la confirmation par SMS si le canal SMS est activé et le mobile renseigné.' },
+        { icon: ShieldCheck, title: 'Conformité RGPD', body: 'Transferts encadrés par des clauses contractuelles types, anti-spam inclus, enregistrement annoncé au décrochage lorsqu’il est activé.' },
       ]
     : [
         { icon: Phone, title: '24/7, bilingual', body: 'Answers in French and English, day and night, never puts callers on hold.' },
-        { icon: CalendarDays, title: 'Booking in your calendar', body: 'Takes appointments, syncs Google Calendar, texts the confirmation.' },
-        { icon: ShieldCheck, title: 'GDPR compliant', body: 'Transfers covered by standard contractual clauses, spam shield included, consent asked at pickup.' },
+        { icon: CalendarDays, title: 'Booking in your calendar', body: 'Takes appointments, syncs Google or Outlook, texts the confirmation when the text channel is enabled and a mobile number is provided.' },
+        { icon: ShieldCheck, title: 'GDPR compliant', body: 'Transfers covered by standard contractual clauses, spam shield included, recording announced at pickup when enabled.' },
       ];
 
   return (

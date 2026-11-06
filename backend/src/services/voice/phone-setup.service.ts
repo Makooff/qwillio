@@ -131,7 +131,7 @@ class PhoneSetupService {
    * moitié créé, et c'est plus difficile à rattraper qu'un état `failed` avec
    * sa raison écrite.
    */
-  async ensureLine(clientId: string, assistantIdOverride?: string): Promise<LineOutcome> {
+  async ensureLine(clientId: string, assistantIdOverride?: string, options?: { runtime: 'core' | 'vapi' }): Promise<LineOutcome> {
     const client = await prisma.client.findUnique({
       where: { id: clientId },
       select: {
@@ -158,7 +158,7 @@ class PhoneSetupService {
        chez Vapi mais n'est pas encore écrit sur la fiche client, et lire la base
        ici rendrait `null` alors que l'assistant existe. Passer l'identifiant
        évite de réordonner les écritures de l'onboarding pour ce seul besoin. */
-    const assistantId = assistantIdOverride ?? client.vapiAssistantId;
+    const assistantId = options?.runtime === 'core' ? null : assistantIdOverride ?? client.vapiAssistantId;
 
     /* CHAQUE CLIENT A SA LIGNE, ESSAI COMPRIS.
      *
@@ -183,6 +183,7 @@ class PhoneSetupService {
       client.id,
       assistantId,
       hasPaidSubscription(client.subscriptionStatus),
+      options?.runtime,
     );
   }
 
@@ -195,6 +196,7 @@ class PhoneSetupService {
     clientId: string,
     assistantId: string | null,
     peutAcheter: boolean,
+    runtime: 'core' | 'vapi' = 'vapi',
   ): Promise<LineOutcome> {
     /* LE STOCK D'ABORD, ET SANS ASSISTANT.
        Ces numéros sont déjà achetés, déjà couverts par le dossier
@@ -205,6 +207,13 @@ class PhoneSetupService {
        configuré — c'est-à-dire tous, entre le paiement et l'onboarding. */
     const fromStock = await this.takeFromStock(clientId, assistantId ?? '');
     if (fromStock) return fromStock;
+
+    if (runtime === 'core') {
+      // Auto-buy below is the retained Vapi provisioner, not a SIP provisioner.
+      // Keep the exclusive configured fallback usable; exhausted SIP stock
+      // remains visible to the operator instead of creating a legacy assistant.
+      return this.fallBackToShared(clientId, 'Stock SIP épuisé. Réapprovisionner le stock pour attribuer une ligne dédiée; ligne de repli si disponible.');
+    }
 
     /* Le stock est vide. À partir d'ici on DÉPENSE, donc les deux gardes. */
     if (!peutAcheter) {

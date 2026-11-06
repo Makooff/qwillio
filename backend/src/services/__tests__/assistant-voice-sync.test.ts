@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { env } from '../../config/env';
 
 /**
  * L'assistant qui DÉCROCHE doit porter la voix que le client a CHOISIE.
@@ -84,6 +85,8 @@ function sentVoice(): Record<string, any> {
 describe('syncVapiAssistant — la voix choisie atteint l\'assistant qui décroche', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Explicitly exercise the retained Vapi rollback, not the default core.
+    Object.assign(env, { VOICE_RUNTIME: 'vapi' });
     updateAssistant.mockResolvedValue({});
     findUnique.mockResolvedValue({
       id: 'c1',

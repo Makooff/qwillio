@@ -48,6 +48,16 @@ afterEach(() => {
 });
 
 describe('ClientBookings, le calendrier', () => {
+  it('signale une suppression externe en attente au lieu de prétendre que tout est synchronisé', async () => {
+    post.mockResolvedValue({ data: { ok: true, calendarSync: 'retained', retryable: true, warning: 'calendar_sync_pending' } });
+    mount();
+    fireEvent.click(await screen.findByRole('gridcell', { name: /Mardi 15 septembre/ }));
+    fireEvent.click(screen.getByRole('button', { name: /Paul Matthieu/ }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Annuler le rendez-vous de Paul Matthieu' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Annuler le rendez-vous' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(/agenda externe.*en attente/i);
+    await waitFor(() => expect(screen.queryByText('Paul Matthieu')).toBeNull());
+  });
   it('charge le mois affiché et porte le compte sur chaque jour', async () => {
     mount();
     await waitFor(() => expect(get).toHaveBeenCalledWith('/my-dashboard/bookings?from=2026-09-01&to=2026-09-30&limit=500'));

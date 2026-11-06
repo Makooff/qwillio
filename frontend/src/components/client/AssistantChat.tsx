@@ -1202,7 +1202,11 @@ export default function AssistantChat({
             </div>
             <VapiLiveCall
               isFr={isFr}
-              endpoint="/my-dashboard/assistant/voice-config"
+              endpoint={`/my-dashboard/assistant/voice-config?mode=${mode === 'onboarding' ? 'onboarding' : 'config'}`}
+              onSetupUpdate={({ configChanged, completed }) => {
+                if (configChanged) onConfigChanged?.();
+                if (completed) onCompleted?.();
+              }}
               autoStart
               onEnded={() => {
                 setVoiceOpen(false);

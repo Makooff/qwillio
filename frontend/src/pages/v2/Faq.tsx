@@ -17,7 +17,7 @@ type QA = { q: string; a: string };
 const FAQ_FR: QA[] = [
   {
     q: 'Est-ce qu’il prend vraiment le rendez-vous pendant l’appel ?',
-    a: "Oui, avec votre agenda Google ou Outlook connecté. Il vérifie vos disponibilités, propose un créneau libre puis enregistre la réservation confirmée. Vos clients peuvent aussi déplacer ou annuler un rendez-vous pendant l’appel. Si le créneau vient d’être réservé, il propose une autre heure. Sans agenda connecté, il note la demande et les coordonnées pour vous permettre de rappeler.",
+    a: "Oui, avec votre agenda Google ou Outlook connecté. Il vérifie vos disponibilités, propose un créneau libre puis enregistre la réservation confirmée. Pour retrouver, déplacer ou annuler un rendez-vous existant, la demande passe à votre équipe après vérification d’identité. Si le créneau vient d’être réservé, il propose une autre heure. Sans agenda connecté, il note la demande et les coordonnées pour vous permettre de rappeler.",
   },
   {
     q: 'Que se passe-t-il quand il me passe l’appel ?',
@@ -53,11 +53,11 @@ const FAQ_FR: QA[] = [
   },
   {
     q: 'Et s’il ne sait pas répondre ?',
-    a: "Il transfère vers vous selon vos règles ou prend les coordonnées pour vous permettre de rappeler. Lorsqu’une action échoue, il peut proposer ce même repli. Cela ne couvre pas toutes les pannes ou les coupures de ligne. Un bilan hebdomadaire peut vous être envoyé par email et par SMS selon les canaux activés, notamment pour repérer les questions sans réponse dans votre FAQ.",
+    a: "Il transfère vers vous selon vos règles ou prend les coordonnées pour vous permettre de rappeler. Lorsqu’une action échoue, il peut proposer ce même repli. Cela ne couvre pas toutes les pannes ou les coupures de ligne. Un bilan hebdomadaire peut signaler les questions sans réponse dans votre FAQ : ordonnanceur actif, email configuré et adresse de contact renseignée sont requis pour l’envoi email, si des points exploitables sont détectés. Le SMS dépend du canal activé et du mobile renseigné.",
   },
   {
     q: 'Combien ça coûte ?',
-    a: "Le plan Solo est à 99 € par mois : 250 minutes incluses, soit environ 100 appels. Au-delà, les minutes supplémentaires sont à 0,45 €. Les plans supérieurs ajoutent du volume et des fonctions avancées : Starter 249 € (750 min), Pro 599 € (2 000 min), Enterprise 1 290 € (5 000 min). Le rappel automatique la veille du rendez-vous est inclus sur tous les plans. 7 jours d'essai gratuit, remise de 20 % en annuel.",
+    a: "Le plan Solo est à 99 € par mois : 250 minutes incluses. Au-delà, les minutes supplémentaires sont à 0,45 €. Les plans supérieurs ajoutent du volume et des fonctions avancées : Starter 249 € (750 min), Pro 599 € (2 000 min), Enterprise 1 290 € (5 000 min). Le rappel automatique la veille du rendez-vous est inclus sur tous les plans (par SMS si le canal est activé, sinon par email). 7 jours d'essai gratuit, carte requise à l'inscription et rien n'est débité avant la fin, remise de 20 % en annuel.",
   },
   {
     q: 'Puis-je résilier facilement ?',
@@ -68,7 +68,7 @@ const FAQ_FR: QA[] = [
 const FAQ_EN: QA[] = [
   {
     q: 'Does it really book the appointment during the call?',
-    a: "Yes, with your Google or Outlook calendar connected. It checks availability, offers a free slot and records the confirmed booking. Customers can also reschedule or cancel an appointment during the call. If the slot has just been taken, it offers another time. Without a connected calendar, it records the request and contact details so you can call back.",
+    a: "Yes, with your Google or Outlook calendar connected. It checks availability, offers a free slot and records the confirmed booking. Requests to look up, reschedule or cancel an existing booking go to your team for identity verification. If the slot has just been taken, it offers another time. Without a connected calendar, it records the request and contact details so you can call back.",
   },
   {
     q: 'What happens when it hands the call over to me?',
@@ -104,11 +104,11 @@ const FAQ_EN: QA[] = [
   },
   {
     q: 'What if it does not know the answer?',
-    a: 'It transfers according to your rules or collects contact details so you can call back. If an action fails, it can offer this same fallback. This cannot cover every outage or disconnected line. A weekly report can be sent by email and text depending on enabled channels, including questions your FAQ could not answer.',
+    a: 'It transfers according to your rules or collects contact details so you can call back. If an action fails, it can offer this same fallback. This cannot cover every outage or disconnected line. A weekly report can highlight questions your FAQ could not answer: scheduler active, email configured and a contact address provided are required for email dispatch when actionable findings are detected. Texts depend on an enabled channel and a mobile number.',
   },
   {
     q: 'How much does it cost?',
-    a: 'The Solo plan is €99 per month: 250 minutes included, roughly 100 calls. Beyond that, extra minutes are €0.45. Higher plans add volume and advanced features: Starter €249 (750 min), Pro €599 (2,000 min), Enterprise €1,290 (5,000 min). The automatic day-before appointment reminder is included on every plan. 7-day free trial, 20% off annually.',
+    a: 'The Solo plan is €99 per month: 250 minutes included. Beyond that, extra minutes are €0.45. Higher plans add volume and advanced features: Starter €249 (750 min), Pro €599 (2,000 min), Enterprise €1,290 (5,000 min). The automatic day-before appointment reminder is included on every plan (by text if the channel is enabled, otherwise by email). 7-day free trial, card required at signup and nothing charged until it ends, 20% off annually.',
   },
   {
     q: 'Can I cancel easily?',
@@ -203,8 +203,8 @@ export default function Faq() {
           <RevealV2 index={1} className="flex flex-col items-start gap-5 lg:items-end pb-1">
             <p className="text-q2-fog text-[15px] leading-relaxed max-w-[320px] lg:text-right q2-body-text">
               {isFr
-                ? '7 jours d\u2019essai gratuit. 15 minutes de setup.'
-                : '7-day free trial. 15 minutes to set up.'}
+                ? '7 jours d\u2019essai gratuit, carte requise. Mise en service après configuration et test de ligne.'
+                : '7-day free trial, card required. Activation after configuration and line testing.'}
             </p>
             <div className="flex flex-wrap gap-3 lg:justify-end">
               <PillLink to="/register" variant="chromatic" size="lg">

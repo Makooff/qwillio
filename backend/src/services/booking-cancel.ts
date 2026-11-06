@@ -1,6 +1,6 @@
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
-import { googleCalendarService } from './google-calendar.service';
+import { deleteBookingEvent } from './calendar-provider.service';
 import { realtimeContextService } from './voice/realtime-context.service';
 
 /**
@@ -49,9 +49,47 @@ import { realtimeContextService } from './voice/realtime-context.service';
  * de 6vicies, payée ici sur la langue, sur la voix, sur le niveau et sur les
  * outils. Le portail passe donc par cette fonction, et l'agent aussi.
  */
+export type CalendarSyncState = 'removed' | 'already-gone' | 'none' | 'retained';
+
 export type CancelOutcome =
-  | { ok: true; alreadyCancelled: boolean; customerName: string; bookingDate: Date; bookingTime: string | null }
+  | {
+      ok: true;
+      alreadyCancelled: boolean;
+      customerName: string;
+      bookingDate: Date;
+      bookingTime: string | null;
+      /**
+       * La vérité sur l'agenda, pour que l'appelant (portail, agent, pont)
+       * ne lise JAMAIS un succès factice :
+       *  - `removed`      — l'événement a été retiré du fournisseur ;
+       *  - `already-gone` — 404 partout : rien à retirer, référence effacée ;
+       *  - `none`         — la ligne n'avait aucune référence agenda ;
+       *  - `retained`     — ÉCHEC de suppression (5xx) ou fournisseur
+       *                     débranché : la réservation est annulée en base
+       *                     mais l'événement peut subsister côté fournisseur.
+       *                     La référence est conservée pour un retry ; l'état
+       *                     est retryable tant que la référence existe.
+       */
+      calendarSync: CalendarSyncState;
+    }
   | { ok: false; reason: 'not-found' };
+
+/**
+ * Retire l'événement chez le fournisseur qui l'a posé et rend l'état réel.
+ * Ne lève JAMAIS : un échec fournisseur rend `retained` (la référence survit),
+ * seuls les bugs de programmation passent au-dessus.
+ */
+async function removeEventFromProvider(clientId: string, storedRef: string): Promise<CalendarSyncState> {
+  try {
+    const client = await prisma.client.findUnique({ where: { id: clientId } });
+    if (!client) return 'retained';
+    const outcome = await deleteBookingEvent(client, storedRef);
+    return outcome === 'unreachable' ? 'retained' : outcome;
+  } catch (error) {
+    logger.warn(`[BookingCancel] événement agenda non retiré: ${(error as Error).message}`);
+    return 'retained';
+  }
+}
 
 export async function cancelBooking(clientId: string, bookingId: string): Promise<CancelOutcome> {
   const booking = await prisma.clientBooking.findFirst({
@@ -71,37 +109,52 @@ export async function cancelBooking(clientId: string, bookingId: string): Promis
   /* IDEMPOTENT, et ce n'est pas du confort: le modèle rappelle un outil avec
      les mêmes arguments, c'est le comportement connu de ce chemin
      (6sexquadragesies, neuf appels d'affilée). Un second appel ne doit ni
-     échouer ni refaire les écritures, seulement redire que c'est fait. */
-  if (booking.status === 'cancelled') return { ok: true, alreadyCancelled: true, ...common };
-
-  if (booking.googleEventId) {
-    try {
-      const client = await prisma.client.findUnique({
-        where: { id: clientId },
-        select: { googleCalendarRefreshToken: true, googleCalendarId: true },
-      });
-      if (client?.googleCalendarRefreshToken) {
-        const accessToken = await googleCalendarService.getAccessTokenFromRefresh(client.googleCalendarRefreshToken);
-        await googleCalendarService.deleteEvent(booking.googleEventId, accessToken, client.googleCalendarId || 'primary');
-      }
-    } catch (error) {
-      /* MEILLEUR EFFORT, et l'ordre porte la raison: l'agenda d'abord, la base
-         ensuite. Si Google refuse, la ligne est quand même annulée, parce
-         qu'une ligne « confirmée » que le client croit annulée est le pire des
-         deux états: c'est elle que l'agent relit, elle qui tient le créneau, et
-         elle qui fera promettre un SMS au prochain appel. */
-      logger.warn(`[BookingCancel] événement Google non retiré (${booking.id}): ${(error as Error).message}`);
+     échouer ni refaire les écritures, seulement redire que c'est fait.
+     MAIS : si une référence agenda a survécu à un échec de suppression
+     antérieur, le rejeu est LA occasion de finir le travail. Sans ce retry,
+     l'événement reste dans l'agenda du gérant pour toujours, invisible de
+     la base. */
+  if (booking.status === 'cancelled') {
+    if (!booking.googleEventId) {
+      return { ok: true, alreadyCancelled: true, ...common, calendarSync: 'none' };
     }
+    const sync = await removeEventFromProvider(clientId, booking.googleEventId);
+    if (sync === 'removed' || sync === 'already-gone') {
+      /* L'événement est réellement parti (ou n'existait plus) : la référence
+         peut enfin être effacée. Écriture bornée (id, clientId). */
+      await prisma.clientBooking.updateMany({
+        where: { id: booking.id, clientId },
+        data: { googleEventId: null, calendarSyncedAt: null },
+      });
+    }
+    return { ok: true, alreadyCancelled: true, ...common, calendarSync: sync };
   }
 
+  /* Suppression fournisseur-aware : `googleEventId` porte une référence
+     ÉTIQUETÉE (`outlook:<id>` / `google:<id>`) ou un identifiant nu (legacy =
+     fournisseur inconnu — les deux agendas disponibles sont alors tentés, et
+     un 404 chez le premier ne conclut PLUS la suppression : on ne conclut
+     « removed » que si un fournisseur a réellement retiré l'événement). */
+  let calendarSync: CalendarSyncState = 'none';
+  if (booking.googleEventId) {
+    calendarSync = await removeEventFromProvider(clientId, booking.googleEventId);
+  }
+
+  /* La référence n'est nulle QUE si l'événement a véritablement été retiré
+     (ou n'existait déjà plus). Échec ou fournisseur débranché = référence
+     conservée : la colonne reste telle quelle, jamais remise à null. */
   await prisma.clientBooking.updateMany({
     where: { id: booking.id, clientId },
-    data: { status: 'cancelled', googleEventId: null, calendarSyncedAt: null },
+    data: {
+      status: 'cancelled',
+      ...(calendarSync === 'removed' || calendarSync === 'already-gone' ? { googleEventId: null } : {}),
+      calendarSyncedAt: null,
+    },
   });
 
   if (booking.customerPhone) {
     await realtimeContextService.invalidateCaller(clientId, booking.customerPhone).catch(() => undefined);
   }
 
-  return { ok: true, alreadyCancelled: false, ...common };
+  return { ok: true, alreadyCancelled: false, ...common, calendarSync };
 }

@@ -228,6 +228,8 @@ describe('Outlook — retirer un rendez-vous', () => {
        ferait échouer l'annulation côté Qwillio, et le client croirait que le
        rendez-vous tient toujours. */
     fetchMock.mockResolvedValue({ ok: false, status: 404, text: async () => 'not found' });
-    await expect(outlookCalendarService.deleteEvent('acc', 'ev-1')).resolves.toBeUndefined();
+    // False means absent, not failure: legacy provider probing may continue.
+    await expect(outlookCalendarService.deleteEvent('acc', 'ev-1')).resolves.toBe(false);
+    expect(fetchMock.mock.calls[0][1].headers.Authorization).toBe(['Bearer', 'acc'].join(' '));
   });
 });

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { PhoneCall, PhoneOff, Loader2 } from '../icons';
 import api from '../../services/api';
+import { CoreLiveCallTransport, loadCoreSdk } from './CoreLiveCall';
 
 type CallState = 'idle' | 'connecting' | 'active' | 'ending';
 
@@ -288,12 +289,8 @@ export function loadVapiSdk(): Promise<any> {
 }
 
 export function loadLiveConfig(endpoint: string): Promise<any> {
-  const hit = configCache.get(endpoint);
-  if (hit && Date.now() - hit.at < CONFIG_TTL_MS) return hit.promise;
-  const promise = api.get(endpoint).then(r => r.data);
-  promise.catch(() => configCache.delete(endpoint));
-  configCache.set(endpoint, { at: Date.now(), promise });
-  return promise;
+  // Join tokens are single-attempt capabilities: no shared cache or prewarming.
+  return api.get(endpoint).then(r => r.data);
 }
 
 /**
@@ -332,9 +329,8 @@ async function prewarmDailyEngine() {
   } catch { /* une mise en cache ratée ne coûte que son absence */ }
 }
 
-export function prewarmLiveCall(endpoint?: string) {
-  void loadVapiSdk().then(prewarmDailyEngine).catch(() => undefined);
-  if (endpoint) void loadLiveConfig(endpoint).catch(() => undefined);
+export function prewarmLiveCall(_endpoint?: string) {
+  void loadCoreSdk().catch(() => undefined);
 }
 
 /**
@@ -404,6 +400,7 @@ export default function VapiLiveCall({
   onConfig,
   autoStart = false,
   onEnded,
+  onSetupUpdate,
 }: {
   isFr?: boolean;
   endpoint?: string;
@@ -424,6 +421,7 @@ export default function VapiLiveCall({
   onConfig?: (config: any) => void;
   autoStart?: boolean;
   onEnded?: () => void;
+  onSetupUpdate?: (update: { configChanged: boolean; completed: boolean }) => void;
 }) {
   const [state, setState] = useState<CallState>('idle');
   const [speaking, setSpeaking] = useState(false);
@@ -586,27 +584,16 @@ export default function VapiLiveCall({
      chaque rendu du parent et relancerait la requête en boucle. */
   const bodyKey = body ? JSON.stringify(body) : '';
 
-  useEffect(() => {
-    // Failures are swallowed here: `start()` awaits the same promise and reports
-    // the reason where the user can see it. A red banner on a page nobody has
-    // pressed anything on would be noise.
-    configValueRef.current = null;
-    /* Le POST de la démo publique n'est pas mutualisable: son corps change avec
-       le personnage choisi. Le GET du tableau de bord, si, et c'est celui qui
-       peut avoir été préparé avant l'ouverture du panneau. */
-    const load = bodyKey
-      ? api.post(endpoint, JSON.parse(bodyKey)).then(r => r.data)
-      : loadLiveConfig(endpoint);
-    configRef.current = load;
-    load.then(d => { configValueRef.current = d; onConfig?.(d); }).catch(() => undefined);
-  }, [endpoint, bodyKey, onConfig]);
+  const mountedRef = useRef(true);
+  const providerRef = useRef<'livekit' | 'vapi' | null>(null);
+  // Only immutable SDK code may preload. Config/token minting belongs to start().
+  useEffect(() => { void loadCoreSdk().catch(() => undefined); }, []);
 
   useEffect(() => {
-    sdkRef.current = loadVapiSdk();
-    sdkRef.current.then(m => { sdkValueRef.current = m; }).catch(() => undefined);
-  }, []);
-
-  useEffect(() => () => {
+    mountedRef.current = true;
+    return () => {
+    mountedRef.current = false;
+    attemptRef.current += 1;
     // Cleanup on unmount: stop any active call.
     try { vapiRef.current?.stop?.(); } catch { /* noop */ }
     // Même ceinture au démontage.
@@ -614,6 +601,7 @@ export default function VapiLiveCall({
     micHoldRef.current = null;
     if (timerRef.current) clearInterval(timerRef.current);
     if (connectTimeoutRef.current) clearTimeout(connectTimeoutRef.current);
+    };
   }, []);
 
   // Opened deliberately (the composer's voice button), so dial immediately
@@ -624,7 +612,10 @@ export default function VapiLiveCall({
   }, [autoStart]);
 
   const stop = () => {
+    attemptRef.current += 1;
     try { vapiRef.current?.stop?.(); } catch { /* noop */ }
+    vapiRef.current = null;
+    settle();
   };
 
   /** Rendre l'appareil. Idempotent: appelé sur le chemin nominal ET en secours. */
@@ -671,7 +662,7 @@ export default function VapiLiveCall({
    * à qui `pipeline-error-...` ne dirait rien.
    */
   const applyEndedReason = async (base: string) => {
-    if (onSite || !endpoint.startsWith('/my-dashboard')) return;
+    if (providerRef.current !== 'vapi' || onSite || !endpoint.startsWith('/my-dashboard')) return;
     /* Ne PAS exiger l'identifiant. C'est ce qui rendait ce diagnostic muet à
        son premier essai: l'événement d'erreur devance la promesse de `start()`,
        donc l'identifiant était encore nul et la requête était abandonnée.
@@ -745,7 +736,8 @@ export default function VapiLiveCall({
     answeredRef.current = false;
     reportedRef.current = false;
     callIdRef.current = null;
-    attemptRef.current += 1;
+    const attempt = ++attemptRef.current;
+    const current = () => mountedRef.current && attempt === attemptRef.current;
     setState('connecting');
     /* Le SDK peut ne JAMAIS rien émettre: sur iOS, une demande de micro qui
        arrive hors du geste est parfois refusée en silence. Sans ce garde-temps,
@@ -758,66 +750,36 @@ export default function VapiLiveCall({
       void applyEndedReason(connectFailed);
     }, 25000);
     try {
-      /* LE MICRO D'ABORD, avant toute autre attente.
-         Tout ce qui précède est synchrone, donc cet appel-ci part encore dans
-         le geste, ce qui est la seule condition que pose Safari iOS. Le flux
-         est gardé: le SDK trouvera l'autorisation déjà acquise au lieu de la
-         redemander une seconde fois.
-         Échec toléré: le SDK redemandera de son côté, et un refus se dira en
-         mots (« Micro refusé ») au lieu d'un bouton muet. */
-      if (!micHoldRef.current) {
-        try {
-          micHoldRef.current = await navigator.mediaDevices.getUserMedia({ audio: true });
-        } catch { /* voir ci-dessus */ }
-      }
-      /* ET ON REND L'APPAREIL, tout de suite.
-         L'autorisation vient d'être obtenue dans le geste, ce qui était le but;
-         la garder EN PLUS empêcherait le SDK d'obtenir un micro qui produit du
-         son. Voir `micHoldRef`: c'est la cause de
-         `error-assistant-did-not-receive-customer-audio`. */
-      releaseMicHold();
-      // Already resolved in the common case, so this await returns on a
-      // microtask and the click is still the current gesture when `vapi.start()`
-      // asks for the microphone. Only a press during the very first seconds of
-      // the page pays for the round-trip.
-      if (!configRef.current) {
-        configRef.current = bodyKey
-          ? api.post(endpoint, JSON.parse(bodyKey)).then(r => r.data)
-          : loadLiveConfig(endpoint);
-      }
-      if (!sdkRef.current) sdkRef.current = loadVapiSdk();
-      /* LE CAS COURANT NE PASSE PLUS PAR `await`. Les deux valeurs sont là
-         depuis le montage: les lire dans les refs garde la pile synchrone du
-         clic, donc le geste utilisateur est encore valide quand le SDK demande
-         le micro. Le `await` ne reste que pour la pression lancée dans les
-         toutes premières secondes de la page, quand il n'y a rien d'autre à
-         faire que d'attendre le réseau. */
-      const [data, Vapi] = (configValueRef.current && sdkValueRef.current)
-        ? [configValueRef.current, sdkValueRef.current]
-        : await Promise.all([configRef.current, sdkRef.current]);
-      if (!data?.publicKey) throw new Error('missing key');
+      // FIRST await: Safari iOS microphone permission stays inside the click.
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+      if (!current()) { stream.getTracks().forEach(track => track.stop()); return; }
+      micHoldRef.current = stream;
+      const data = await (bodyKey ? api.post(endpoint, JSON.parse(bodyKey)) : api.get(endpoint)).then(r => r.data);
+      if (!current()) return;
+      onConfig?.(data);
       marksRef.current.ready = performance.now();
       setPhase('creating');
-
-      /* UNE seule instance pour toute la vie du composant.
-       *
-       * Elle était recréée à chaque appel, et l'ancienne n'était que
-       * `stop()`ée: le SDK garde alors son objet Daily vivant, si bien que le
-       * second essai en fabriquait un deuxième et que WebRTC refusait —
-       * « Duplicate DailyIframe instances are not allowed » (retour
-       * utilisateur, systématique au deuxième appel). Un appel n'a pas besoin
-       * d'un SDK neuf: `start()` et `stop()` suffisent, et les écouteurs se
-       * posent donc une fois, avec l'instance.
-       */
-      let vapi = vapiRef.current;
-      const isNew = !vapi;
-      if (!vapi) {
-        vapi = new Vapi(data.publicKey);
-        vapiRef.current = vapi;
+      let vapi: any;
+      if (data?.provider === 'livekit') {
+        providerRef.current = 'livekit';
+        const sdk = await loadCoreSdk();
+        if (!current()) return;
+        vapi = new CoreLiveCallTransport(data, stream, sdk);
+      } else if (data?.provider === 'vapi' && data?.publicKey) {
+        providerRef.current = 'vapi';
+        releaseMicHold();
+        const Vapi = await loadVapiSdk();
+        if (!current()) return;
+        vapi = vapiRef.current || new Vapi(data.publicKey);
+      } else {
+        throw new Error('Transport vocal non configuré');
       }
+      const isNew = vapi !== vapiRef.current;
+      vapiRef.current = vapi;
 
       if (isNew) {
         vapi.on('call-start', () => {
+          if (!current()) return;
           const { t0, ready, created } = marksRef.current;
           if (t0) {
             const s = (a: number, b: number) => `${Math.max(0, (b - a) / 1000).toFixed(1)}s`;
@@ -831,6 +793,8 @@ export default function VapiLiveCall({
           timerRef.current = setInterval(() => setSecs(s => s + 1), 1000);
         });
         vapi.on('call-end', () => {
+          if (!mountedRef.current) return;
+          vapiRef.current = null;
           /* Deux événements portent le même nom et ne veulent pas dire la même
              chose. Après `call-start`, c'est une fin d'appel: on retourne au
              repos sans rien dire, c'est normal. AVANT `call-start`, l'appel n'a
@@ -846,6 +810,9 @@ export default function VapiLiveCall({
         vapi.on('speech-start', () => setSpeaking(true));
         vapi.on('speech-end', () => setSpeaking(false));
         vapi.on('volume-level', (l: number) => setLevel(l));
+        vapi.on('config-update', (update: { configChanged: boolean; completed: boolean }) => {
+          if (current()) onSetupUpdate?.(update);
+        });
         vapi.on('error', (e: any) => {
           // Vapi routinely emits errors with no message. Saying "Erreur appel"
           // and nothing else sends the user looking in the wrong place.
@@ -890,7 +857,9 @@ export default function VapiLiveCall({
       /* `start()` rend l'appel créé chez Vapi. On le garde AVANT toute suite:
          si la session est fermée dans la foulée, c'est le seul fil qui reste
          pour en apprendre la raison. */
+      setPhase('joining');
       const call: any = await vapi.start(data.assistant);
+      if (!current()) { vapi.stop(); return; }
       if (typeof call?.id === 'string') {
         callIdRef.current = call.id;
         attemptCallIds.current.set(attemptRef.current, call.id);
@@ -901,8 +870,10 @@ export default function VapiLiveCall({
         }
       }
       marksRef.current.created = performance.now();
-      setPhase('joining');
     } catch (e: any) {
+      if (!current()) return;
+      try { vapiRef.current?.stop?.(); } catch { /* cleanup */ }
+      vapiRef.current = null;
       // A rejected config must not be cached: the next press would fail on the
       // stale rejection instead of retrying the request.
       if (e?.response || e?.request) {
@@ -928,7 +899,7 @@ export default function VapiLiveCall({
           : isProviderFault(e)
             ? providerFaultMessage
             : e?.response?.status === 503
-            ? (isFr ? 'Appel live non configuré (clé Vapi).' : 'Live call not configured (Vapi key).')
+            ? (isFr ? 'Appel live momentanément indisponible. Réessayez plus tard.' : 'Live call temporarily unavailable. Please try again later.')
             : (errorText(e) || (isFr ? 'Impossible de démarrer l’appel.' : 'Could not start the call.')),
       );
     }

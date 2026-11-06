@@ -105,8 +105,8 @@ export default function Home() {
       icon: CalendarCheck,
       title: isFr ? 'Elle vérifie le créneau' : 'She checks the slot',
       desc: isFr
-        ? 'Avec votre agenda Google ou Outlook connecté, elle vérifie les disponibilités avant de confirmer. Vos clients peuvent aussi déplacer ou annuler un rendez-vous pendant l’appel.'
-        : 'With your Google or Outlook calendar connected, she checks availability before confirming. Your customers can also reschedule or cancel an appointment during the call.',
+        ? 'Avec votre agenda Google ou Outlook connecté, elle vérifie les disponibilités avant de confirmer. Pour retrouver, déplacer ou annuler un rendez-vous existant, la demande passe à votre équipe après vérification d’identité.'
+        : 'With your Google or Outlook calendar connected, she checks availability before confirming. Requests to look up, reschedule or cancel an existing booking go to your team for identity verification.',
     },
     {
       icon: Sparkles,
@@ -232,8 +232,8 @@ export default function Home() {
       icon: Mic2,
       label: isFr ? 'Appelez-la pour l’essayer' : 'Call her to try her out',
       desc: isFr
-        ? 'Un vrai appel test dans le navigateur, avec sa vraie voix et votre vraie config.'
-        : 'A real test call in the browser, with her real voice and your real setup.',
+        ? 'Essayez la voix de démonstration dans votre navigateur : un vrai appel test sur une configuration de démo publique, distincte des réglages de votre compte.'
+        : 'Try the demo voice in your browser: a real test call on a public demo configuration, separate from your account settings.',
     },
   ];
 

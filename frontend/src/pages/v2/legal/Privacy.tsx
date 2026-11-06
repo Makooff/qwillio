@@ -81,7 +81,8 @@ export default function Privacy() {
      rapports d'erreur, Google reçoit les créneaux, Anthropic sert le module
      Comptabilité: aucun des quatre n'était listé. */
   const subProcessors = [
-    { name: 'Vapi', purpose: isFr ? 'Orchestration vocale IA' : 'AI voice orchestration', region: 'USA' },
+    { name: 'LiveKit', purpose: isFr ? 'Orchestration vocale temps réel et média des appels' : 'Realtime voice orchestration and call media', region: 'USA / EU' },
+    { name: 'Vapi', purpose: isFr ? 'Orchestration vocale IA (repli explicite uniquement, VOICE_RUNTIME=vapi)' : 'AI voice orchestration (explicit rollback only, VOICE_RUNTIME=vapi)', region: 'USA' },
     { name: 'Twilio', purpose: isFr ? 'Téléphonie et SMS' : 'Telephony and SMS', region: 'USA' },
     { name: 'Deepgram', purpose: isFr ? "Transcription de la parole (contenu des appels)" : 'Speech transcription (call audio)', region: 'USA' },
     { name: 'ElevenLabs', purpose: isFr ? 'Synthèse vocale' : 'Voice synthesis', region: 'USA / EU' },
@@ -289,8 +290,8 @@ export default function Privacy() {
               'calendar.events',
               isFr ? 'Créer et modifier des événements' : 'Create and update events',
               isFr
-                ? 'Inscrire le rendez-vous pris pendant l’appel, puis le déplacer ou l’annuler si l’appelant rappelle.'
-                : 'Write the appointment booked during the call, then move or cancel it if the caller calls back.',
+                ? 'Inscrire le nouveau rendez-vous pris pendant l’appel. Les demandes de consultation, modification ou annulation d’un rendez-vous existant passent à votre équipe pour vérification d’identité.'
+                : 'Write a new appointment booked during the call. Requests to look up, change or cancel an existing booking go to your team for identity verification.',
             ],
           ]}
         />
@@ -322,7 +323,8 @@ export default function Privacy() {
       <LegalSection id="data-retention" title={isFr ? 'Conservation des données' : 'Data retention'}>
         {/* La durée des enregistrements n'est plus une valeur fixe: chaque
             client la règle entre 30 jours et 5 ans dans ses Paramètres, et la
-            purge quotidienne l'applique réellement, y compris chez Vapi.
+            purge quotidienne l'applique réellement, y compris chez notre
+            fournisseur de téléphonie.
             Annoncer « 90 jours » tout court serait faux dans les deux sens. */}
         <LegalList
           items={
