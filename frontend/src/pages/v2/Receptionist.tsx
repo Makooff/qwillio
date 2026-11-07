@@ -334,11 +334,11 @@ export default function Receptionist() {
                 <H2 id="pillars-heading" className="max-w-[560px]">
                   {isFr ? (
                     <>
-                      La conversation avance, <SerifWord>le travail aussi.</SerifWord>
+                      La conversation avance, <SerifWord>le travail aussi</SerifWord>
                     </>
                   ) : (
                     <>
-                      The conversation moves, <SerifWord>so does the work.</SerifWord>
+                      The conversation moves, <SerifWord>so does the work</SerifWord>
                     </>
                   )}
                 </H2>
@@ -433,11 +433,11 @@ export default function Receptionist() {
             <H2 id="config-heading" onDark className="max-w-[520px]">
               {isFr ? (
                 <>
-                  Dites-lui ce qui change, <SerifWord>il change.</SerifWord>
+                  Dites-lui ce qui change, <SerifWord>il change</SerifWord>
                 </>
               ) : (
                 <>
-                  Tell it what changed, <SerifWord>it changes.</SerifWord>
+                  Tell it what changed, <SerifWord>it changes</SerifWord>
                 </>
               )}
             </H2>
@@ -489,11 +489,11 @@ export default function Receptionist() {
               <TextReveal>
                 {isFr ? (
                   <>
-                    Choisissez qui <SerifWord>décroche.</SerifWord>
+                    Choisissez qui <SerifWord>décroche</SerifWord>
                   </>
                 ) : (
                   <>
-                    Choose who <SerifWord>answers.</SerifWord>
+                    Choose who <SerifWord>answers</SerifWord>
                   </>
                 )}
               </TextReveal>
@@ -520,11 +520,11 @@ export default function Receptionist() {
             <H2 id="knowledge-heading" className="max-w-[460px]">
               {isFr ? (
                 <>
-                  Il répond avec vos mots, <SerifWord>pas les nôtres.</SerifWord>
+                  Il répond avec vos mots, <SerifWord>pas les nôtres</SerifWord>
                 </>
               ) : (
                 <>
-                  It answers in your words, <SerifWord>not ours.</SerifWord>
+                  It answers in your words, <SerifWord>not ours</SerifWord>
                 </>
               )}
             </H2>
@@ -551,11 +551,11 @@ export default function Receptionist() {
             <H2 id="after-heading" className="max-w-[520px] mb-7 sm:mb-10">
               {isFr ? (
                 <>
-                  Ce qui vous revient, <SerifWord>et ce qui est cadré.</SerifWord>
+                  Ce qui vous revient, <SerifWord>et ce qui est cadré</SerifWord>
                 </>
               ) : (
                 <>
-                  What comes back to you, <SerifWord>and what is fenced in.</SerifWord>
+                  What comes back to you, <SerifWord>and what is fenced in</SerifWord>
                 </>
               )}
             </H2>

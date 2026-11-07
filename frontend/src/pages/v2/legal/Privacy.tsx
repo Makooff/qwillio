@@ -158,11 +158,11 @@ export default function Privacy() {
       title={
         isFr ? (
           <>
-            Politique de <SerifWord>confidentialité.</SerifWord>
+            Politique de <SerifWord>confidentialité</SerifWord>
           </>
         ) : (
           <>
-            Privacy <SerifWord>policy.</SerifWord>
+            Privacy <SerifWord>policy</SerifWord>
           </>
         )
       }

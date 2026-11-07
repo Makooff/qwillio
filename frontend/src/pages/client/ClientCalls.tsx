@@ -508,13 +508,13 @@ export default function ClientCalls() {
                   <div className="flex items-center gap-3 min-w-0">
                     <div
                       className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                        call.isLead ? 'bg-amber-400/10' : 'bg-[#7349fe]/10'
+                        'bg-white/[0.05]'
                       }`}
                       aria-hidden="true"
                     >
                       {call.isLead
-                        ? <Users size={14} className="text-amber-400" />
-                        : <Phone size={14} className="text-[#7349fe]" />
+                        ? <Users size={14} className="text-white/45" />
+                        : <Phone size={14} className="text-white/45" />
                       }
                     </div>
                     <div className="min-w-0">
@@ -526,8 +526,8 @@ export default function ClientCalls() {
                       )}
                     </div>
                     {call.isLead && (
-                      <span className="text-[10px] font-semibold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full flex-shrink-0">
-                        LEAD
+                      <span className="text-[11px] font-medium text-[#b9a8ff] bg-[#7a5fff]/[0.12] px-2 py-0.5 rounded-full flex-shrink-0">
+                        Lead
                       </span>
                     )}
                   </div>
@@ -550,13 +550,13 @@ export default function ClientCalls() {
                   <div className="flex items-center gap-3">
                     <div
                       className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 ${
-                        call.isLead ? 'bg-amber-400/10' : 'bg-[#7349fe]/10'
+                        'bg-white/[0.05]'
                       }`}
                       aria-hidden="true"
                     >
                       {call.isLead
-                        ? <Users size={16} className="text-amber-400" />
-                        : <Phone size={16} className="text-[#7349fe]" />
+                        ? <Users size={16} className="text-white/45" />
+                        : <Phone size={16} className="text-white/45" />
                       }
                     </div>
                     <div className="flex-1 min-w-0">
@@ -604,13 +604,13 @@ export default function ClientCalls() {
                 <div className="flex items-center gap-4">
                   <div
                     className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 ${
-                      selectedCall.isLead ? 'bg-amber-400/10' : 'bg-[#7349fe]/10'
+                      'bg-white/[0.05]'
                     }`}
                     aria-hidden="true"
                   >
                     {selectedCall.isLead
-                      ? <Users size={22} className="text-amber-400" />
-                      : <Phone size={22} className="text-[#7349fe]" />
+                      ? <Users size={22} className="text-white/45" />
+                      : <Phone size={22} className="text-white/45" />
                     }
                   </div>
                   <div>
@@ -630,7 +630,7 @@ export default function ClientCalls() {
                     { label: 'Résultat', value: outcomeLabel(selectedCall.outcome) },
                   ].map((m) => (
                     <div key={m.label} className="rounded-xl bg-white/[0.04] border border-white/[0.07] p-3">
-                      <p className="text-[10px] text-[#A1A1A8] uppercase tracking-wide mb-1">{m.label}</p>
+                      <p className="text-[11px] text-[#A1A1A8] mb-1">{m.label}</p>
                       {/* Plus de `capitalize`: les libellés sont désormais des
                         phrases françaises, et la règle les rendait
                         « Rendez-Vous Pris ». */}
@@ -638,7 +638,7 @@ export default function ClientCalls() {
                     </div>
                   ))}
                   <div className="rounded-xl bg-white/[0.04] border border-white/[0.07] p-3">
-                    <p className="text-[10px] text-[#A1A1A8] uppercase tracking-wide mb-1">Sentiment</p>
+                    <p className="text-[11px] text-[#A1A1A8] mb-1">Sentiment</p>
                     <SentimentBadge sentiment={selectedCall.sentiment} />
                   </div>
                 </div>
@@ -646,7 +646,7 @@ export default function ClientCalls() {
                 {/* Tags */}
                 <div className="flex flex-wrap gap-2">
                   {selectedCall.isLead && (
-                    <span className="text-xs font-semibold text-amber-400 bg-amber-400/10 px-2.5 py-1 rounded-full">
+                    <span className="text-xs font-medium text-[#b9a8ff] bg-[#7a5fff]/[0.12] px-2.5 py-1 rounded-full">
                       Lead qualifié
                     </span>
                   )}
@@ -680,7 +680,7 @@ export default function ClientCalls() {
                           style={{ width: `${selectedCall.leadScore * 10}%` }}
                         />
                       </div>
-                      <span className="text-sm font-bold text-[#7349fe]">{selectedCall.leadScore}/10</span>
+                      <span className="text-sm font-medium text-white/90">{selectedCall.leadScore}/10</span>
                     </div>
                   </div>
                 )}
@@ -743,8 +743,8 @@ export default function ClientCalls() {
                                on lit un compte rendu, on ne rejoue pas la
                                conversation. Deux couleurs suffisent à savoir
                                qui parle sans relire l'étiquette. */
-                            <span className={`mr-2 text-[11px] font-semibold uppercase tracking-wide ${
-                              line.who === 'agent' ? 'text-[#7349fe]' : 'text-[#A1A1A8]'
+                            <span className={`mr-2 text-[11px] font-medium ${
+ line.who === 'agent' ? 'text-[#7349fe]' : 'text-[#A1A1A8]'
                             }`}>
                               {line.who === 'agent' ? 'IA' : 'Appelant'}
                             </span>

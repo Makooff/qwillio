@@ -55,9 +55,11 @@ export function Eyebrow({
     tone === 'indigo'
       ? onDark
         ? 'text-q2-lift'
-        : 'text-q2-indigo'
+        : 'text-[color:var(--q2-indigo-ink)]'
       : tone === 'violet'
-        ? 'text-q2-violet'
+        ? onDark
+          ? 'text-q2-violet'
+          : 'text-[color:var(--q2-violet-ink)]'
         : onDark
           ? 'text-q2-fog'
           : 'text-q2-body';

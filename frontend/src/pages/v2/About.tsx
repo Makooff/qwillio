@@ -113,11 +113,11 @@ export default function About() {
             <Display>
               {isFr ? (
                 <>
-                  Nous bâtissons l'IA <SerifWord>qui décroche.</SerifWord>
+                  Nous bâtissons l'IA <SerifWord>qui décroche</SerifWord>
                 </>
               ) : (
                 <>
-                  Building the AI <SerifWord>that picks up.</SerifWord>
+                  Building the AI <SerifWord>that picks up</SerifWord>
                 </>
               )}
             </Display>

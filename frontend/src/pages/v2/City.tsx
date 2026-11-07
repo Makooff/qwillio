@@ -134,11 +134,11 @@ export default function City() {
             <Display className="mb-7">
               {isFr ? (
                 <>
-                  La réceptionniste IA pour les entreprises de <SerifWord>{name}.</SerifWord>
+                  La réceptionniste IA pour les entreprises de <SerifWord>{name}</SerifWord>
                 </>
               ) : (
                 <>
-                  The AI receptionist for businesses in <SerifWord>{name}.</SerifWord>
+                  The AI receptionist for businesses in <SerifWord>{name}</SerifWord>
                 </>
               )}
             </Display>

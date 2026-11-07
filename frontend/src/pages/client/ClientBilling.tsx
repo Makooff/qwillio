@@ -449,7 +449,7 @@ export default function ClientBilling() {
         <div className="flex items-start justify-between gap-4 mb-5">
           <div>
             <p className="text-xs mb-1" style={{ color: t.textSec }}>Plan actuel</p>
-            <p className="text-2xl font-bold" style={{ color: t.text }}>{currentPlan.name}</p>
+            <p className="text-2xl font-semibold" style={{ color: t.text }}>{currentPlan.name}</p>
             {overview?.renewalDate && !isCancelled && (
               <p className="text-xs mt-1" style={{ color: t.textSec }}>
                 Renouvellement le {formatDate(overview.renewalDate)}
@@ -466,7 +466,7 @@ export default function ClientBilling() {
                   backend (`annualTotalEur`), donc ils cohèrent entre eux. */}
               {currentPeriod === 'annual' ? (
                 <>
-                  <span className="text-2xl font-bold" style={{ color: t.text }}>
+                  <span className="text-2xl font-semibold" style={{ color: t.text }}>
                     {annualMonthlyEquivalentEur(currentPlan.monthly).toLocaleString()}€
                   </span>
                   <span className="text-xs" style={{ color: t.textSec }}>/mois</span>
@@ -476,7 +476,7 @@ export default function ClientBilling() {
                 </>
               ) : (
                 <>
-                  <span className="text-2xl font-bold" style={{ color: t.text }}>{currentPlan.monthly.toLocaleString()}€</span>
+                  <span className="text-2xl font-semibold" style={{ color: t.text }}>{currentPlan.monthly.toLocaleString()}€</span>
                   <span className="text-xs" style={{ color: t.textSec }}>/mois</span>
                 </>
               )}
@@ -519,7 +519,7 @@ export default function ClientBilling() {
             de nulle part ailleurs. */}
         {currentPlan.features.length > 0 && (
           <div className="mt-5 pt-5 border-t border-white/[0.06]">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-3" style={{ color: t.textSec }}>
+            <p className="text-[11px] font-medium mb-3" style={{ color: t.textSec }}>
               Ce que votre plan inclut
             </p>
             <ul className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-2">
@@ -585,7 +585,7 @@ export default function ClientBilling() {
             <div className="flex items-center gap-4">
               {overview.superagent.priceEur !== null && !overview.superagent.included && (
                 <div className="text-right">
-                  <span className="text-lg font-bold" style={{ color: t.text }}>
+                  <span className="text-lg font-semibold" style={{ color: t.text }}>
                     +{overview.superagent.priceEur}€
                   </span>
                   <span className="text-xs" style={{ color: t.textSec }}>
@@ -639,7 +639,7 @@ export default function ClientBilling() {
                 {période === 'monthly' ? 'Mensuel' : 'Annuel'}
                 {période === 'annual' && (
                   <span
-                    className="text-[10px] font-semibold tracking-[0.08em] uppercase px-1.5 py-0.5 rounded-full"
+                    className="text-[11px] font-medium px-1.5 py-0.5 rounded-full"
                     style={billingChoice === 'annual'
                       ? { background: 'rgba(255,255,255,0.16)', color: '#fff' }
                       : { background: 'rgba(255,255,255,0.06)', color: t.textSec }}
@@ -672,7 +672,7 @@ export default function ClientBilling() {
                 {/* Badge */}
                 {isCurrent && (
                   <span
-                    className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px] font-bold px-3 py-0.5 rounded-full text-white whitespace-nowrap"
+                    className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px] font-semibold px-3 py-0.5 rounded-full text-white whitespace-nowrap"
                     style={{ background: t.success }}
                   >
                     ACTUEL
@@ -683,7 +683,7 @@ export default function ClientBilling() {
                      mauve, fond transparent, texte mauve clair (AA sur fond
                      sombre). */
                   <span
-                    className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px] font-bold px-3 py-0.5 rounded-full whitespace-nowrap border"
+                    className="absolute -top-2.5 left-1/2 -translate-x-1/2 text-[10px] font-semibold px-3 py-0.5 rounded-full whitespace-nowrap border"
                     style={{ background: 'transparent', borderColor: t.brand, color: t.brandHi }}
                   >
                     Recommandé
@@ -691,9 +691,9 @@ export default function ClientBilling() {
                 )}
 
                 <div className="mb-4">
-                  <p className="text-base font-bold mb-1" style={{ color: t.text }}>{plan.name}</p>
+                  <p className="text-base font-semibold mb-1" style={{ color: t.text }}>{plan.name}</p>
                   <div className="flex items-baseline gap-1">
-                    <span className="text-xl font-bold" style={{ color: t.text }}>
+                    <span className="text-xl font-semibold" style={{ color: t.text }}>
                       {(billingChoice === 'annual'
                         ? annualMonthlyEquivalentEur(plan.monthly)
                         : plan.monthly).toLocaleString()}€
@@ -929,7 +929,7 @@ export default function ClientBilling() {
             className="space-y-3"
           >
             <p className="text-xs" style={{ color: t.textSec }}>
-              Tapez <span className="font-mono font-bold" style={{ color: t.text }}>ANNULER</span> pour confirmer l'annulation.
+              Tapez <span className="font-mono font-semibold" style={{ color: t.text }}>ANNULER</span> pour confirmer l'annulation.
             </p>
             <div className="flex flex-col sm:flex-row gap-3 max-w-sm">
               <input

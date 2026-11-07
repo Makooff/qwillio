@@ -547,11 +547,11 @@ export default function Vertical({ secteur: secteurProp }: { secteur?: string } 
             <H2>
               {isFr ? (
                 <>
-                  Un cas <SerifWord>concret.</SerifWord>
+                  Un cas <SerifWord>concret</SerifWord>
                 </>
               ) : (
                 <>
-                  A concrete <SerifWord>scenario.</SerifWord>
+                  A concrete <SerifWord>scenario</SerifWord>
                 </>
               )}
             </H2>

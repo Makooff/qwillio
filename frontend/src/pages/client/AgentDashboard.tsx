@@ -292,7 +292,7 @@ export default function AgentDashboard() {
       {/* Module Cards */}
       <section aria-label="Modules" className="mb-8">
         <h2
-          className="text-[13px] font-semibold uppercase tracking-wider mb-4"
+          className="text-[13px] font-medium mb-4"
           style={{ color: TEXT_SECONDARY }}
         >
           Vos modules

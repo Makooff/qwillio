@@ -140,7 +140,7 @@ export default function Agent() {
               isFr ? 'Suivi terrain par QR code' : 'Field tracking by QR code',
             ].map((line, i, arr) => (
               <li key={line} className="flex items-start gap-4">
-                <span className="q2-eyebrow text-q2-violet tabular-nums pt-1 w-6 shrink-0">
+                <span className="q2-eyebrow text-[color:var(--q2-violet-ink)] tabular-nums pt-1 w-6 shrink-0">
                   {String(i + 1).padStart(2, '0')}
                 </span>
                 <span
@@ -200,7 +200,7 @@ export default function Agent() {
                 <Eyebrow tone="violet">
                   Qwillio Agent · {isFr ? 'Modules IA' : 'AI Modules'}
                 </Eyebrow>
-                <span className="q2-eyebrow text-q2-violet rounded-full border border-q2-violet/30 px-3 py-1">
+                <span className="q2-eyebrow text-[color:var(--q2-violet-ink)] rounded-full border border-q2-violet/30 px-3 py-1">
                   {isFr ? 'Bientôt' : 'Coming soon'}
                 </span>
               </div>
@@ -379,11 +379,11 @@ export default function Agent() {
             <Display as="h2" onDark>
               {isFr ? (
                 <>
-                  Confiez votre business <SerifWord>à un seul agent.</SerifWord>
+                  Confiez votre business <SerifWord>à un seul agent</SerifWord>
                 </>
               ) : (
                 <>
-                  Hand your business <SerifWord>to one agent.</SerifWord>
+                  Hand your business <SerifWord>to one agent</SerifWord>
                 </>
               )}
             </Display>

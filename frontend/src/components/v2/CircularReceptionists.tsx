@@ -138,7 +138,7 @@ function PersonaCard({
     >
       <div className="flex items-center gap-3 mb-1.5 flex-wrap justify-center sm:justify-start">
         <p className="text-xl text-q2-ink font-normal">{preset.name}</p>
-        <span className="q2-eyebrow text-q2-indigo">
+        <span className="q2-eyebrow text-[color:var(--q2-indigo-ink)]">
           {isFr ? preset.personalityFr : preset.personalityEn}
         </span>
         {preview}

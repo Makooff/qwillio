@@ -5,7 +5,7 @@ import {
   Calculator,
 } from '../../components/icons';
 import {
-  ResponsiveContainer, AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+  ResponsiveContainer, AreaChart, Area, BarChart, Bar, Cell,
   XAxis, YAxis, CartesianGrid, Tooltip,
 } from 'recharts';
 import { fetchLive, peekLive } from '../../services/liveData';
@@ -25,11 +25,28 @@ const TOOLTIP_STYLE = {
   boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
 };
 
+/* Le sentiment est un SIGNAL, pas une palette: vert et rouge sourds pour ce
+   qui va bien et mal, gris pour le neutre. Le jaune vif d'avant faisait du
+   neutre l'état le plus voyant du graphique. */
 const SENTIMENT_COLORS: Record<string, string> = {
-  positive: '#34d399',
-  neutral: '#fbbf24',
-  negative: '#f87171',
+  positive: '#6fbf95',
+  neutral: '#5c5c66',
+  negative: '#d77a74',
 };
+
+/* Les clés viennent de l'API en anglais, et le portail les affichait telles
+   quelles (« positive », « negative ») sur une page en français. */
+const SENTIMENT_LABELS: Record<string, string> = {
+  positive: 'Positif',
+  neutral: 'Neutre',
+  negative: 'Négatif',
+};
+
+/* Une couleur par graphique: l'accent marque ce qui compte (le pic), le reste
+   est dans le gris du texte. Deux séries entièrement mauves ne disaient pas
+   où regarder. */
+const ACCENT = '#7a5fff';
+const QUIET_BAR = 'rgba(255,255,255,0.14)';
 
 type Period = 7 | 30 | 90;
 
@@ -179,6 +196,9 @@ export default function ClientAnalytics() {
     ? Object.entries(data.peakDays).map(([d, v]) => ({ day: dayNames[parseInt(d)] ?? d, calls: v }))
     : [];
 
+  const peakHour = hourData.reduce((m, h) => Math.max(m, h.calls), 0);
+  const peakDay = dayData.reduce((m, d) => Math.max(m, d.calls), 0);
+
   /* Le vrai abonnement du client, ou rien. Le repli à 197 était un chiffre
      inventé, et il n'existe dans aucun forfait: le ROI affiché ne parlait donc
      pas du client qui le lisait. Sans montant connu, le calcul ne s'affiche
@@ -236,20 +256,22 @@ export default function ClientAnalytics() {
 
       {/* Area chart – full width */}
       <section className="rounded-2xl border border-white/[0.06] bg-white/[0.04] p-6">
-        <h3 className="text-sm font-semibold text-white/90 mb-0.5">Volume d'appels</h3>
-        <p className="text-xs text-white/40 mb-5">Tendances quotidiennes sur {period} jours</p>
+        <h3 className="text-sm font-medium text-white/90 mb-0.5">Volume d'appels</h3>
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-5">
+          <p className="text-xs text-white/40">Par jour, sur {period} jours</p>
+          <div className="flex items-center gap-4 text-[11px] text-white/50">
+            <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-3 rounded-full" style={{ background: ACCENT }} aria-hidden="true" />Appels</span>
+            <span className="inline-flex items-center gap-1.5"><span className="h-0.5 w-3 rounded-full bg-white/45" aria-hidden="true" />Leads</span>
+          </div>
+        </div>
         <div className="h-60">
           {daily.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <AreaChart data={daily} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
                 <defs>
                   <linearGradient id="gCalls" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#7349fe" stopOpacity={0.35} />
-                    <stop offset="100%" stopColor="#7349fe" stopOpacity={0} />
-                  </linearGradient>
-                  <linearGradient id="gLeads" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#CD6AFB" stopOpacity={0.25} />
-                    <stop offset="100%" stopColor="#CD6AFB" stopOpacity={0} />
+                    <stop offset="0%" stopColor={ACCENT} stopOpacity={0.18} />
+                    <stop offset="100%" stopColor={ACCENT} stopOpacity={0} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.05)" vertical={false} />
@@ -262,8 +284,8 @@ export default function ClientAnalytics() {
                 />
                 <YAxis tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} axisLine={false} tickLine={false} width={28} />
                 <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ stroke: 'rgba(255,255,255,0.1)', strokeWidth: 1 }} />
-                <Area type="monotone" dataKey="calls" stroke="#7349fe" fill="url(#gCalls)" strokeWidth={2} name="Appels" />
-                <Area type="monotone" dataKey="leads" stroke="#CD6AFB" fill="url(#gLeads)" strokeWidth={2} name="Leads" />
+                <Area type="monotone" dataKey="calls" stroke={ACCENT} fill="url(#gCalls)" strokeWidth={2} name="Appels" />
+                <Area type="monotone" dataKey="leads" stroke="rgba(255,255,255,0.45)" fill="none" strokeWidth={1.5} name="Leads" />
               </AreaChart>
             </ResponsiveContainer>
           ) : emptyChart}
@@ -274,37 +296,34 @@ export default function ClientAnalytics() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         {/* Sentiment donut */}
         <section className="rounded-2xl border border-white/[0.06] bg-white/[0.04] p-6">
-          <h3 className="text-sm font-semibold text-white/90 mb-0.5">Sentiment</h3>
+          <h3 className="text-sm font-medium text-white/90 mb-0.5">Sentiment</h3>
           <p className="text-xs text-white/40 mb-4">Satisfaction des appelants</p>
           {sentimentPie.length > 0 ? (
-            <div className="flex flex-col items-center gap-4">
-              <ResponsiveContainer width="100%" height={140}>
-                <PieChart>
-                  <Pie data={sentimentPie} cx="50%" cy="50%" innerRadius={42} outerRadius={64} paddingAngle={3} dataKey="value">
-                    {sentimentPie.map((entry, i) => (
-                      <Cell key={i} fill={SENTIMENT_COLORS[entry.name] ?? '#8B8BA7'} />
-                    ))}
-                  </Pie>
-                  <Tooltip contentStyle={TOOLTIP_STYLE} />
-                </PieChart>
-              </ResponsiveContainer>
+            <div className="flex flex-col gap-4">
+              {/* Une part se lit sur UNE barre empilée. L'anneau à trois
+                  couleurs vives demandait de comparer des angles. */}
+              <div className="flex h-2 w-full gap-0.5 overflow-hidden rounded-full" aria-hidden="true">
+                {sentimentPie.map((p) => (
+                  <span key={p.name} className="h-full" style={{ flexGrow: p.value, background: SENTIMENT_COLORS[p.name] ?? '#5c5c66' }} />
+                ))}
+              </div>
               <ul className="w-full space-y-2">
                 {sentimentPie.map((s, i) => {
                   const total = sentimentPie.reduce((sum, p) => sum + p.value, 0);
                   return (
                     <li key={i} className="flex items-center gap-2.5">
-                      <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: SENTIMENT_COLORS[s.name] ?? '#8B8BA7' }} />
-                      <span className="text-[12.5px] text-white/80 capitalize flex-1">{s.name}</span>
-                      <span className="text-[11px] text-white/40">{Math.round((s.value / total) * 100)}%</span>
-                      <span className="text-[12px] font-semibold text-white/70">{s.value}</span>
+                      <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: SENTIMENT_COLORS[s.name] ?? '#5c5c66' }} />
+                      <span className="text-[12.5px] text-white/80 flex-1">{SENTIMENT_LABELS[s.name] ?? s.name}</span>
+                      <span className="text-[11px] tabular-nums text-white/40">{Math.round((s.value / total) * 100)}%</span>
+                      <span className="w-10 text-right text-[12px] font-medium tabular-nums text-white/70">{s.value}</span>
                     </li>
                   );
                 })}
               </ul>
               {summary.satisfactionScore !== undefined && (
                 <div className="w-full pt-3 border-t border-white/[0.06]">
-                  <p className="text-[10px] text-white/40 mb-0.5">Score satisfaction</p>
-                  <p className="text-xl font-bold text-[#8a6fff]">{summary.satisfactionScore}%</p>
+                  <p className="text-[11px] text-white/40 mb-0.5">Score de satisfaction</p>
+                  <p className="text-xl font-medium tabular-nums text-white/90">{summary.satisfactionScore}%</p>
                 </div>
               )}
             </div>
@@ -315,7 +334,7 @@ export default function ClientAnalytics() {
 
         {/* Peak hours */}
         <section className="rounded-2xl border border-white/[0.06] bg-white/[0.04] p-6">
-          <h3 className="text-sm font-semibold text-white/90 mb-0.5">Heures de pointe</h3>
+          <h3 className="text-sm font-medium text-white/90 mb-0.5">Heures de pointe</h3>
           <p className="text-xs text-white/40 mb-4">Quand vos appels arrivent</p>
           <div className="h-48">
             {hourData.length > 0 ? (
@@ -325,7 +344,11 @@ export default function ClientAnalytics() {
                   <XAxis dataKey="hour" tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} axisLine={false} tickLine={false} width={28} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-                  <Bar dataKey="calls" fill="#7349fe" radius={[4, 4, 0, 0]} name="Appels" />
+                  <Bar dataKey="calls" radius={[4, 4, 0, 0]} name="Appels">
+                    {hourData.map((h) => (
+                      <Cell key={h.hour} fill={h.calls === peakHour ? ACCENT : QUIET_BAR} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             ) : emptyChart}
@@ -334,7 +357,7 @@ export default function ClientAnalytics() {
 
         {/* Day distribution */}
         <section className="rounded-2xl border border-white/[0.06] bg-white/[0.04] p-6">
-          <h3 className="text-sm font-semibold text-white/90 mb-0.5">Appels par jour</h3>
+          <h3 className="text-sm font-medium text-white/90 mb-0.5">Appels par jour</h3>
           <p className="text-xs text-white/40 mb-4">Jours les plus chargés</p>
           <div className="h-48">
             {dayData.length > 0 ? (
@@ -344,7 +367,11 @@ export default function ClientAnalytics() {
                   <XAxis dataKey="day" tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fontSize: 10, fill: 'rgba(255,255,255,0.3)' }} axisLine={false} tickLine={false} width={28} />
                   <Tooltip contentStyle={TOOLTIP_STYLE} cursor={{ fill: 'rgba(255,255,255,0.04)' }} />
-                  <Bar dataKey="calls" fill="#9d8bff" radius={[4, 4, 0, 0]} name="Appels" />
+                  <Bar dataKey="calls" radius={[4, 4, 0, 0]} name="Appels">
+                    {dayData.map((d) => (
+                      <Cell key={d.day} fill={d.calls === peakDay ? ACCENT : QUIET_BAR} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             ) : emptyChart}
@@ -354,7 +381,7 @@ export default function ClientAnalytics() {
 
       {/* Conversion funnel */}
       <section className="rounded-2xl border border-white/[0.06] bg-white/[0.04] p-6">
-        <h3 className="text-sm font-semibold text-white/90 mb-4">Entonnoir de conversion</h3>
+        <h3 className="text-sm font-medium text-white/90 mb-4">Entonnoir de conversion</h3>
         <div className="grid grid-cols-3 divide-x divide-white/[0.06]">
           {funnelData.map((f, i) => {
             const passPct = i < funnelData.length - 1 && f.value > 0
@@ -362,14 +389,14 @@ export default function ClientAnalytics() {
               : null;
             return (
               <div key={i} className="px-3 sm:px-6 py-1 first:pl-0 last:pr-0">
-                <p className="text-[20px] sm:text-[26px] font-semibold tabular-nums text-white/90 leading-none">{f.value}</p>
-                <p className="text-[10px] sm:text-[11px] text-white/40 mt-1.5 leading-tight">{f.stage}</p>
+                <p className="text-[20px] sm:text-[26px] font-medium tabular-nums text-white/90 leading-none">{f.value}</p>
+                <p className="text-[11px] text-white/40 mt-1.5 leading-tight">{f.stage}</p>
                 {passPct !== null && (
                   <div className="mt-3">
                     <div className="h-[3px] rounded-full bg-white/[0.08] overflow-hidden">
                       <div className="h-full rounded-full bg-white/70" style={{ width: `${Math.min(100, passPct)}%` }} />
                     </div>
-                    <p className="text-[10px] text-white/30 mt-1 tabular-nums">{passPct}%</p>
+                    <p className="text-[11px] text-white/30 mt-1 tabular-nums">{passPct}%</p>
                   </div>
                 )}
               </div>
@@ -380,7 +407,7 @@ export default function ClientAnalytics() {
 
       {/* ROI calculator */}
       <section className="rounded-2xl border border-white/[0.06] bg-white/[0.04] p-6">
-        <h3 className="text-sm font-semibold text-white/90 mb-4 flex items-center gap-2">
+        <h3 className="text-sm font-medium text-white/90 mb-4 flex items-center gap-2">
           <Calculator size={15} className="text-white/40" />
           Calculateur ROI
         </h3>
@@ -410,32 +437,32 @@ export default function ClientAnalytics() {
           {/* Middle metrics */}
           <div className="space-y-3">
             <div className="rounded-xl bg-white/[0.03] border border-white/[0.07] p-4">
-              <p className="text-[10px] text-white/40 mb-1">Leads captés (Qwillio)</p>
-              <p className="text-xl font-bold tabular-nums text-white/90">{totalLeads}</p>
+              <p className="text-[11px] text-white/40 mb-1">Leads captés (Qwillio)</p>
+              <p className="text-xl font-medium tabular-nums text-white/90">{totalLeads}</p>
             </div>
             <div className="rounded-xl bg-white/[0.03] border border-white/[0.07] p-4">
-              <p className="text-[10px] text-white/40 mb-1">Équivalent coût manuel</p>
-              <p className="text-xl font-bold tabular-nums text-white/90">{leadsValue.toLocaleString('fr-FR')} €</p>
+              <p className="text-[11px] text-white/40 mb-1">Équivalent coût manuel</p>
+              <p className="text-xl font-medium tabular-nums text-white/90">{leadsValue.toLocaleString('fr-FR')} €</p>
             </div>
           </div>
           {/* ROI result */}
           <div className="space-y-3">
             <div className="rounded-xl bg-white/[0.03] border border-white/[0.07] p-4">
-              <p className="text-[10px] text-white/40 mb-1">Revenus potentiels</p>
-              <p className="text-xl font-bold tabular-nums text-white/90">{Math.round(potentialRevenue).toLocaleString('fr-FR')} €</p>
+              <p className="text-[11px] text-white/40 mb-1">Revenus potentiels</p>
+              <p className="text-xl font-medium tabular-nums text-white/90">{Math.round(potentialRevenue).toLocaleString('fr-FR')} €</p>
             </div>
             {monthlyFee > 0 ? (
               <div className={`rounded-xl p-4 border ${roi >= 0 ? 'bg-emerald-400/[0.07] border-emerald-400/20' : 'bg-red-400/[0.07] border-red-400/20'}`}>
-                <p className="text-[10px] text-white/40 mb-1">
+                <p className="text-[11px] text-white/40 mb-1">
                   ROI estimé · abonnement {monthlyFee.toLocaleString('fr-FR')} €/mois
                 </p>
-                <p className={`text-2xl font-bold ${roi >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
+                <p className={`text-2xl font-medium ${roi >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>
                   {roi >= 0 ? '+' : ''}{roi}%
                 </p>
               </div>
             ) : (
               <div className="rounded-xl p-4 border border-white/[0.07] bg-white/[0.02]">
-                <p className="text-[10px] text-white/40 mb-1">ROI estimé</p>
+                <p className="text-[11px] text-white/40 mb-1">ROI estimé</p>
                 <p className="text-[12px] text-white/45 leading-relaxed">
                   Disponible dès que votre abonnement est actif: le calcul se fait
                   sur son montant réel.
