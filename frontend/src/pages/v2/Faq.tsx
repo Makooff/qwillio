@@ -161,11 +161,11 @@ export default function Faq() {
             <Display>
               {isFr ? (
                 <>
-                  Questions <SerifWord>fréquentes.</SerifWord>
+                  Questions <SerifWord>fréquentes</SerifWord>
                 </>
               ) : (
                 <>
-                  Frequently asked <SerifWord>questions.</SerifWord>
+                  Frequently asked <SerifWord>questions</SerifWord>
                 </>
               )}
             </Display>

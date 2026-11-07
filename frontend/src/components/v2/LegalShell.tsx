@@ -275,7 +275,7 @@ export function LegalNote({
 }) {
   return (
     <aside role="note" aria-label={ariaLabel} className="mb-14 rounded-[20px] bg-q2-band p-8">
-      <p className="q2-eyebrow text-q2-indigo mb-3">{label}</p>
+      <p className="q2-eyebrow text-[color:var(--q2-indigo-ink)] mb-3">{label}</p>
       <div className="text-[15px] leading-[1.6] text-q2-graphite">{children}</div>
     </aside>
   );

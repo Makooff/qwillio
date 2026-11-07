@@ -32,6 +32,12 @@
   --q2-violet: #cd6bfb;
   --q2-deep: #7349fe;
   --q2-lift: #b9a8ff;
+  /* Le mauve écrit en TEXTE sur le canvas. Le violet de marque fait 2,9:1 sur
+     le crème, l'indigo 4,2:1: lisibles en aplat, pas en lettres de 13 px. Ces
+     deux encres sont la même teinte assombrie juste au-dessus de 4,5:1, et
+     reprennent la valeur de marque sur le canvas sombre, où elle passe. */
+  --q2-indigo-ink: #7349fe;
+  --q2-violet-ink: #9b3fd0;
   /* Registre drenched */
   /* DEUX NOIRS, ET RIEN ENTRE LES DEUX (demande utilisateur: « les couleurs de
      fond, les gris, remplace-les par ces deux couleurs #111111 et plus sombre
@@ -135,6 +141,8 @@
      couche de plus entre l'oeil et l'image, là où l'opacité laisse la vidéo
      seule à l'écran. */
   --q2-hero-media: 0.36;
+  --q2-indigo-ink: #b9a8ff;
+  --q2-violet-ink: #cd6bfb;
 }
 
 /* Le thème suit le système tant que personne n'a tranché. Dès qu'un choix est
@@ -158,6 +166,8 @@
     --q2-ok-brd: #1f4433;
     /* Voir le bloc `[data-theme='dark']`: même mesure, même valeur. */
     --q2-hero-media: 0.36;
+    --q2-indigo-ink: #b9a8ff;
+    --q2-violet-ink: #cd6bfb;
   }
 }
 
@@ -213,11 +223,14 @@ html {
   font-weight: 400;
 }
 
+/* Surtitre en casse de phrase, à la taille d'un libellé. Il était en
+   capitales espacées à 11 px: le registre de tous les gabarits, et le moins
+   lisible des textes de la page. La couleur sémantique reste. */
 .q2-eyebrow {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.18em;
-  text-transform: uppercase;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  letter-spacing: 0;
 }
 
 /* Corps: tracking légèrement positif (contraste voulu avec le display négatif) */

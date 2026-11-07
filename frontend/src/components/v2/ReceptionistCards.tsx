@@ -146,7 +146,7 @@ function AgendaCard({ isFr }: { isFr: boolean }) {
       <div className="p-4 sm:p-5">
         <div className="mb-2 grid grid-cols-7 gap-1.5">
           {WEEKDAYS_FR.map((d) => (
-            <div key={d} className="text-center text-[10px] uppercase tracking-wider" style={{ color: C.ter }}>
+            <div key={d} className="text-center text-[11px]" style={{ color: C.ter }}>
               {d}
             </div>
           ))}
@@ -222,7 +222,7 @@ function BriefCard({ isFr }: { isFr: boolean }) {
         </div>
 
         <div className="rounded-xl p-3" style={{ background: C.well, border: `1px solid ${C.border}` }}>
-          <p className="mb-1 text-[10px] uppercase tracking-wider" style={{ color: C.ter }}>
+          <p className="mb-1 text-[11px]" style={{ color: C.ter }}>
             {isFr ? 'Résumé IA' : 'AI summary'}
           </p>
           <p className="text-[12.5px] leading-relaxed" style={{ color: C.text }}>
@@ -321,7 +321,7 @@ function TranscriptCard({ isFr }: { isFr: boolean }) {
             <p key={i} className="text-[12.5px] leading-relaxed">
               {line.who && (
                 <span
-                  className="mr-1.5 text-[10.5px] font-semibold uppercase tracking-wide"
+                  className="mr-1.5 text-[11px] font-medium"
                   style={{ color: line.who === 'agent' ? C.brandHi : C.sec }}
                 >
                   {line.who === 'agent' ? 'IA' : 'Appelant'}

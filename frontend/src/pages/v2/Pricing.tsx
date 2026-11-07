@@ -437,7 +437,7 @@ export default function Pricing() {
             >
               {isFr ? 'Annuel' : 'Annual'}
               <span
-                className={`text-[10px] font-semibold tracking-[0.08em] uppercase px-1.5 py-0.5 rounded-full ${
+                className={`text-[11px] font-medium px-1.5 py-0.5 rounded-full ${
                   billing === 'annual' ? 'bg-white/15 text-white' : 'bg-q2-plate text-q2-graphite'
                 }`}
               >
@@ -453,7 +453,7 @@ export default function Pricing() {
                 <RevealV2 key={tier.id} index={i} as="li" className="border-b border-q2-plate">
                   <article className="py-8 md:py-10">
                     {tier.flag && (
-                      <span className="q2-eyebrow text-q2-indigo inline-flex items-center rounded-full border border-q2-plate px-3 py-1.5 mb-5">
+                      <span className="q2-eyebrow text-[color:var(--q2-indigo-ink)] inline-flex items-center rounded-full border border-q2-plate px-3 py-1.5 mb-5">
                         {tier.flag}
                       </span>
                     )}
@@ -507,7 +507,7 @@ export default function Pricing() {
             <RevealV2 index={1} className="lg:sticky lg:top-24">
               <CardV2 variant="canvas" large hover className="md:p-10">
                 {pro.badge && (
-                  <span className="q2-eyebrow text-q2-indigo inline-flex items-center rounded-full border border-q2-indigo/30 px-3 py-1.5 mb-7">
+                  <span className="q2-eyebrow text-[color:var(--q2-indigo-ink)] inline-flex items-center rounded-full border border-q2-indigo/30 px-3 py-1.5 mb-7">
                     {pro.badge}
                   </span>
                 )}
@@ -560,11 +560,11 @@ export default function Pricing() {
               <H2 id="roi-heading">
                 {isFr ? (
                   <>
-                    Une réceptionniste, <SerifWord>{savingsPct}&nbsp;% moins chère.</SerifWord>
+                    Une réceptionniste, <SerifWord>{savingsPct}&nbsp;% moins chère</SerifWord>
                   </>
                 ) : (
                   <>
-                    A receptionist, <SerifWord>{savingsPct}% cheaper.</SerifWord>
+                    A receptionist, <SerifWord>{savingsPct}% cheaper</SerifWord>
                   </>
                 )}
               </H2>
@@ -638,7 +638,7 @@ export default function Pricing() {
                       <caption className="sr-only">{group.label}</caption>
                       <thead>
                         <tr className="border-b border-q2-plate">
-                          <th scope="col" className="text-left py-3 pr-4 font-normal text-q2-body text-xs uppercase tracking-[0.12em]">
+                          <th scope="col" className="text-left py-3 pr-4 font-normal text-q2-body text-xs">
                             {isFr ? 'Fonction' : 'Feature'}
                           </th>
                           {tiers.map((t) => (

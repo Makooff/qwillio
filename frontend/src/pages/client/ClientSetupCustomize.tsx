@@ -135,7 +135,7 @@ export default function ClientSetupCustomize() {
       render: () => (
         <div className="space-y-5">
           <div>
-            <label className="block text-[12px] font-semibold uppercase tracking-wider mb-2" style={{ color: pro.textSec }}>
+            <label className="block text-[12px] font-medium mb-2" style={{ color: pro.textSec }}>
               Prénom de l'IA
             </label>
             <input value={agentName} onChange={e => setAgentName(e.target.value)}
@@ -145,7 +145,7 @@ export default function ClientSetupCustomize() {
             </p>
           </div>
           <div>
-            <label className="block text-[12px] font-semibold uppercase tracking-wider mb-2" style={{ color: pro.textSec }}>
+            <label className="block text-[12px] font-medium mb-2" style={{ color: pro.textSec }}>
               Langue
             </label>
             <div className="grid grid-cols-2 gap-2">
@@ -182,14 +182,14 @@ export default function ClientSetupCustomize() {
       render: () => (
         <div className="space-y-5">
           <div>
-            <label className="block text-[12px] font-semibold uppercase tracking-wider mb-2" style={{ color: pro.textSec }}>
+            <label className="block text-[12px] font-medium mb-2" style={{ color: pro.textSec }}>
               Nom de l'entreprise
             </label>
             <input value={businessName} onChange={e => setBusinessName(e.target.value)}
                    placeholder="Ex. Plomberie Dupont" className={inputCls} />
           </div>
           <div>
-            <label className="block text-[12px] font-semibold uppercase tracking-wider mb-2" style={{ color: pro.textSec }}>
+            <label className="block text-[12px] font-medium mb-2" style={{ color: pro.textSec }}>
               Type d'entreprise
             </label>
             <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
@@ -270,7 +270,7 @@ export default function ClientSetupCustomize() {
       isValid: () => true,
       render: () => (
         <div>
-          <label className="block text-[12px] font-semibold uppercase tracking-wider mb-2" style={{ color: pro.textSec }}>
+          <label className="block text-[12px] font-medium mb-2" style={{ color: pro.textSec }}>
             Précisions
           </label>
           <textarea value={personalityNotes} onChange={e => setPersonalityNotes(e.target.value)}
@@ -352,7 +352,7 @@ export default function ClientSetupCustomize() {
                 <span className="col-span-3 text-[13.5px] font-medium" style={{ color: pro.text }}>{d.l}</span>
                 <button type="button"
                         onClick={() => setWeekHours(w => ({ ...w, [d.k]: { ...w[d.k], open: !w[d.k].open } }))}
-                        className="col-span-3 h-9 px-3 rounded-lg text-[11.5px] font-semibold uppercase tracking-wider transition-colors"
+                        className="col-span-3 h-9 px-3 rounded-lg text-[11.5px] font-medium transition-colors"
                         style={{
                           background: h.open ? 'rgba(34,197,94,0.10)' : 'rgba(239,68,68,0.08)',
                           color:      h.open ? pro.ok : pro.bad,
@@ -444,7 +444,7 @@ export default function ClientSetupCustomize() {
                 style={{ color: pro.textSec }}>
           <ArrowLeft size={13} /> {step === 0 ? 'Quitter' : 'Précédent'}
         </button>
-        <span className="text-[11.5px] font-semibold uppercase tracking-wider" style={{ color: pro.textTer }}>
+        <span className="text-[11.5px] font-medium " style={{ color: pro.textTer }}>
           Étape {step + 1} / {totalSteps}
         </span>
       </div>

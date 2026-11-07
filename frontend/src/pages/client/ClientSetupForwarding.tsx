@@ -140,7 +140,7 @@ export default function ClientSetupForwarding() {
           cause de « le renvoi ne marche pas ». */}
       {renvoi.voicemailRisk && (
         <div className="rounded-2xl border border-amber-400/20 bg-amber-400/[0.04] p-4 mb-4">
-          <p className="text-[11px] uppercase tracking-wider text-amber-300/80 mb-2">À faire en premier</p>
+          <p className="text-[11px] text-amber-300/80 mb-2">À faire en premier</p>
           <p className="text-[13px] font-semibold text-[#F2F2F2] mb-1">Coupez la messagerie de votre opérateur</p>
           <p className="text-[12px] text-[#C8C8D0] mb-3 leading-relaxed">
             Votre messagerie est un renvoi posé sur votre ligne, avec un délai plus court que le vôtre.
@@ -160,7 +160,7 @@ export default function ClientSetupForwarding() {
 
       {/* Quick action — one-tap GSM code */}
       <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-4 mb-6">
-        <p className="text-[11px] uppercase tracking-wider text-[#9A9AA5] mb-2">Activation en 1 clic</p>
+        <p className="text-[11px] text-[#9A9AA5] mb-2">Activation en 1 clic</p>
         <div className="flex items-center gap-2">
           <a
             href={forwardLink}
@@ -193,7 +193,7 @@ export default function ClientSetupForwarding() {
 
       {/* Step-by-step */}
       <div className="mb-6">
-        <p className="text-[11px] uppercase tracking-wider text-[#9A9AA5] mb-3">Étape par étape : {platform === 'android' ? 'Android' : 'iPhone'}</p>
+        <p className="text-[11px] text-[#9A9AA5] mb-3">Étape par étape : {platform === 'android' ? 'Android' : 'iPhone'}</p>
         <div className="rounded-2xl border border-white/[0.06] bg-white/[0.03] overflow-hidden">
           {steps.map((s, i) => (
             <motion.div key={i}

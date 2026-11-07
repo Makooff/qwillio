@@ -287,7 +287,7 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
                 ) : (
                   <>
                     <section aria-label="Cet appelant">
-                      <h4 className="mb-1 flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-white/45"><Users size={12} aria-hidden="true" /> Cet appelant</h4>
+                      <h4 className="mb-1 flex items-center gap-1.5 text-[11px] text-white/45"><Users size={12} aria-hidden="true" /> Cet appelant</h4>
                       {ctx.caller ? (
                         <p className="text-[12.5px] text-white/75">
                           {ctx.caller.knownName ? <span className="text-[#F5F5F7]">{ctx.caller.knownName}</span> : 'Connu'}
@@ -301,7 +301,7 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
                     </section>
 
                     <section aria-label="Lead">
-                      <h4 className="mb-1 flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-white/45"><Clock size={12} aria-hidden="true" /> Lead</h4>
+                      <h4 className="mb-1 flex items-center gap-1.5 text-[11px] text-white/45"><Clock size={12} aria-hidden="true" /> Lead</h4>
                       {ctx.lead ? (
                         <p className="text-[12.5px] text-white/75">
                           {ctx.lead.summary || 'Lead qualifié'}{typeof ctx.lead.leadScore === 'number' ? ` · score ${ctx.lead.leadScore}` : ''}
@@ -312,7 +312,7 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
                     </section>
 
                     <section aria-label="Appels">
-                      <h4 className="mb-1 flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-white/45"><Phone size={12} aria-hidden="true" /> Appels ({ctx.calls.length})</h4>
+                      <h4 className="mb-1 flex items-center gap-1.5 text-[11px] text-white/45"><Phone size={12} aria-hidden="true" /> Appels ({ctx.calls.length})</h4>
                       {ctx.calls.length === 0 ? (
                         <p className="text-[12.5px] text-white/55">Aucun appel enregistré sur ce numéro.</p>
                       ) : (
@@ -329,7 +329,7 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
 
                     {ctx.otherBookings.length > 0 && (
                       <section aria-label="Autres rendez-vous">
-                        <h4 className="mb-1 flex items-center gap-1.5 text-[11px] uppercase tracking-wider text-white/45"><Calendar size={12} aria-hidden="true" /> Autres rendez-vous</h4>
+                        <h4 className="mb-1 flex items-center gap-1.5 text-[11px] text-white/45"><Calendar size={12} aria-hidden="true" /> Autres rendez-vous</h4>
                         <ul className="space-y-0.5">
                           {ctx.otherBookings.slice(0, 3).map(o => (
                             <li key={o.id} className="text-[12.5px] text-white/70">
@@ -404,7 +404,7 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.28, ease: EASE }}
       >
-        <h1 className="text-[22px] font-semibold tracking-tight text-white/90">Rendez-vous</h1>
+        <h1 className="text-[22px] font-medium tracking-tight text-white/90">Rendez-vous</h1>
         <p className="mt-1 text-[12.5px] text-white/50" aria-live="polite">{subtitle}</p>
       </motion.header>
 
@@ -518,11 +518,11 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
           <section aria-label={`Calendrier, ${monthLabel(month)}`} className="rounded-2xl border border-white/[0.07] bg-white/[0.02] p-3 sm:p-4">
             <div className="mb-2 grid grid-cols-7 gap-1.5 sm:gap-2">
               {WEEKDAYS_FR.map(d => (
-                <div key={d} className="rounded-lg bg-white/[0.04] py-1 text-center text-[11px] uppercase tracking-wider text-white/50">{d}</div>
+                <div key={d} className="rounded-lg bg-white/[0.04] py-1 text-center text-[11px] text-white/50">{d}</div>
               ))}
             </div>
             <div className="grid grid-cols-7 gap-1.5 sm:gap-2" role="grid">
-              {cells.map((cell, idx) => {
+              {cells.map((cell) => {
                 const dayBookings = byDay.get(cell.iso) ?? [];
                 const count = dayBookings.length;
                 const selected = selectedDay === cell.iso;
@@ -534,9 +534,12 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
                     aria-selected={selected}
                     aria-label={`${dayLabel(cell.iso)}${count ? `, ${count} rendez-vous` : ''}`}
                     onClick={() => { setSelectedDay(selected ? null : cell.iso); setExpanded(null); }}
-                    initial={reduced ? { opacity: 0 } : { opacity: 0, y: 8, x: 6 }}
-                    animate={{ opacity: 1, y: 0, x: 0 }}
-                    transition={{ duration: 0.24, ease: EASE, delay: reduced ? 0 : 0.1 + Math.min(idx, 42) * 0.015 }}
+                    /* Le mois entre d'un seul fondu. Chaque case arrivait en
+                       diagonale, l'une après l'autre: quarante-deux petites
+                       entrées pour une grille qu'on veut lire d'un coup. */
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.2, ease: EASE, delay: reduced ? 0 : 0.08 }}
                     /* Hauteur: 96 px sur TOUS les écrans avant, pour une case
                        de 42 px de large sur téléphone, donc une case deux fois
                        plus haute que large et un mois de 620 px. `h-14` en
@@ -550,7 +553,7 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
                       active:scale-[0.98]`}
                     style={{ borderRadius: 16 }}
                   >
-                    <span className={`px-0.5 text-[12.5px] leading-none tabular-nums ${cell.isToday ? 'font-semibold text-[#7349fe]' : cell.inMonth ? 'text-white/85' : 'text-white/30'}`}>
+                    <span className={`px-0.5 text-[12.5px] leading-none tabular-nums ${cell.isToday ? 'font-semibold text-[#b9a8ff]' : cell.inMonth ? 'text-white/85' : 'text-white/30'}`}>
                       {cell.day}
                     </span>
                     {/* Le NOMBRE, dans un rond centré sur la case (demande
@@ -563,7 +566,7 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
                         personne. */}
                     {count > 0 && (
                       <span className="flex flex-1 items-center justify-center" aria-hidden="true">
-                        <span className="flex h-[26px] w-[26px] items-center justify-center rounded-full bg-[#7349fe] text-[11.5px] font-semibold tabular-nums leading-none text-white sm:h-8 sm:w-8 sm:text-[12.5px]">
+                        <span className="flex h-[26px] w-[26px] items-center justify-center rounded-full bg-white/[0.10] text-[11.5px] font-medium tabular-nums leading-none text-white/90 sm:h-8 sm:w-8 sm:text-[12.5px]">
                           {count}
                         </span>
                       </span>

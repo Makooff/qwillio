@@ -302,7 +302,7 @@ export default function Gdpr() {
           {isFr ? " avec l'objet suivant :" : ' with the following subject:'}
         </LegalP>
         <div className="rounded-[20px] bg-q2-band p-6 mb-5">
-          <p className="q2-eyebrow text-q2-indigo mb-2">{isFr ? 'Modèle' : 'Template'}</p>
+          <p className="q2-eyebrow text-[color:var(--q2-indigo-ink)] mb-2">{isFr ? 'Modèle' : 'Template'}</p>
           <code className="font-mono text-sm text-q2-ink block">
             {isFr ? 'RGPD : [Votre droit]' : 'GDPR Request: [Right]'}
           </code>

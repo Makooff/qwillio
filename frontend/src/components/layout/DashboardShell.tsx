@@ -256,7 +256,7 @@ export default function DashboardShell(props: DashboardShellProps) {
       >
         <QwillioLogo size={32} />
         {!collapsed && (
-          <span className="text-base font-bold tracking-tight" style={{ color: t.text }}>
+          <span className="text-base font-medium tracking-tight" style={{ color: t.text }}>
             Qwillio{brandSuffix
               ? (
                 <>
@@ -273,14 +273,8 @@ export default function DashboardShell(props: DashboardShellProps) {
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto overflow-x-hidden scrollbar-hide min-h-0 pb-2">
-        {!collapsed && (
-          <p
-            className="px-3 mb-2 text-[10px] font-semibold uppercase tracking-[0.12em]"
-            style={{ color: t.textTer }}
-          >
-            Menu
-          </p>
-        )}
+        {/* Plus de surtitre « MENU » au-dessus d'un groupe unique: il nommait
+            ce que la colonne est déjà, en capitales espacées. */}
         <div className="space-y-0.5">
           {primaryNav.map(item => <SidebarLink key={item.path} item={item} />)}
         </div>
@@ -338,7 +332,7 @@ export default function DashboardShell(props: DashboardShellProps) {
             className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0"
             style={{ background: t.accentGrad }}
           >
-            <span className="text-[10px] font-bold" style={{ color: '#fff' }}>{initials}</span>
+            <span className="text-[10px] font-semibold" style={{ color: '#fff' }}>{initials}</span>
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
@@ -542,7 +536,7 @@ export default function DashboardShell(props: DashboardShellProps) {
               className="w-8 h-8 rounded-full flex items-center justify-center focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40"
               style={{ background: t.accentGrad }}
             >
-              <span className="text-xs font-bold" style={{ color: '#fff' }}>{initials}</span>
+              <span className="text-xs font-semibold" style={{ color: '#fff' }}>{initials}</span>
             </Link>
           </div>
         </header>

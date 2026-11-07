@@ -83,11 +83,11 @@ export default function Sla() {
       title={
         isFr ? (
           <>
-            Engagement de niveau de <SerifWord>service.</SerifWord>
+            Engagement de niveau de <SerifWord>service</SerifWord>
           </>
         ) : (
           <>
-            Service Level <SerifWord>Agreement.</SerifWord>
+            Service Level <SerifWord>Agreement</SerifWord>
           </>
         )
       }

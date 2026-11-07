@@ -226,7 +226,7 @@ export default function ClientSetupGuide() {
   return (
     <main className="max-w-[720px] space-y-6">
       <header>
-        <p className="text-[12px] uppercase tracking-wider text-white/40">
+        <p className="text-[12px] text-white/40">
           Question {index + 1} sur {steps.length}
         </p>
         <h1 className="mt-1 text-[22px] font-semibold tracking-tight text-white/90">Compléter votre réceptionniste</h1>
@@ -306,7 +306,7 @@ export default function ClientSetupGuide() {
                         type="button"
                         onClick={() => setHours(w => ({ ...w, [d.k]: { ...w[d.k], open: !w[d.k].open } }))}
                         aria-pressed={h.open}
-                        className="col-span-3 h-8 px-3 rounded-lg text-[11.5px] font-semibold uppercase tracking-wider transition-colors"
+                        className="col-span-3 h-8 px-3 rounded-lg text-[11.5px] font-medium transition-colors"
                         style={{ background: h.open ? 'rgba(34,197,94,0.10)' : 'rgba(239,68,68,0.08)', color: h.open ? '#22C55E' : '#EF4444' }}
                       >
                         {h.open ? 'Ouvert' : 'Fermé'}

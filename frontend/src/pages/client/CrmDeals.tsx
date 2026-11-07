@@ -115,7 +115,7 @@ function DealCard({ deal, stage, overlay = false }: { deal: Deal; stage: typeof 
           <div className="flex items-center justify-between mb-2">
             {/* Pas d'icone dollar devant un montant en euros: `fmt` porte deja
                 le symbole, et ce n'etait pas le bon. */}
-            <span className="text-xs font-bold text-[#7349fe]">{fmt(deal.value)}</span>
+            <span className="text-xs font-semibold text-[#7349fe]">{fmt(deal.value)}</span>
             <div className="flex items-center gap-1">
               <TrendingUp size={11} className="text-[#cd6afb]" />
               <span className="text-[10px] font-semibold text-[#cd6afb]">{deal.probability}%</span>
@@ -285,7 +285,7 @@ function StageColumn({
           <span className="text-xs font-semibold" style={{ color: stage.color }}>{stage.label}</span>
           <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-white/[0.08] text-[#A1A1A8]">{deals.length}</span>
         </div>
-        <span className="text-xs font-bold text-[#F5F5F7]">{fmt(total)}</span>
+        <span className="text-xs font-semibold text-[#F5F5F7]">{fmt(total)}</span>
       </div>
 
       <SortableContext items={deals.map(d => d.id)} strategy={verticalListSortingStrategy}>
@@ -451,7 +451,7 @@ export default function CrmDeals() {
   return (
     <div>
       {/* La MÊME entête que les autres pages du portail, et non plus la sienne.
-          Elle portait un titre en `text-2xl font-bold` là où le reste du
+          Elle portait un titre en `text-2xl font-semibold` là où le reste du
           dashboard est en `22px semibold`, et trois cartes encadrées là où les
           autres pages posent une rangée de chiffres séparée par des filets.
           Deux grammaires pour la même chose: on lisait deux produits. */}

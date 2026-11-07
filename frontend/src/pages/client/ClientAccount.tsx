@@ -51,7 +51,7 @@ interface SectionHeadProps {
 
 function SectionHead({ title }: SectionHeadProps) {
   return (
-    <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em] mb-3 px-1" style={{ color: C.textSec }}>{title}</h2>
+    <h2 className="text-[12px] font-medium mb-3 px-1" style={{ color: C.textSec }}>{title}</h2>
   );
 }
 
@@ -711,7 +711,7 @@ export default function ClientAccount() {
             <p className="text-[16px] font-semibold truncate" style={{ color: C.text }}>{user?.name ?? 'Utilisateur'}</p>
             <p className="text-[12.5px] truncate" style={{ color: C.textSec }}>{user?.email}</p>
           </div>
-          <span className="text-[10.5px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full"
+          <span className="text-[11px] font-medium px-2.5 py-1 rounded-full"
                 style={{ background: 'rgba(255,255,255,0.06)', color: C.text }}>
             {planLabel}
           </span>
@@ -730,7 +730,7 @@ export default function ClientAccount() {
                 transition={{ duration: 0.18 }} className="overflow-hidden" style={{ borderTop: `1px solid ${C.border}` }}>
                 <div className="p-5 space-y-3">
                   <div>
-                    <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Nom complet</label>
+                    <label className="text-[11px] font-medium" style={{ color: C.textTer }}>Nom complet</label>
                     <input type="text" value={name} onChange={e => setName(e.target.value)}
                       className={inputCls + ' mt-1.5'}
                       style={{ borderColor: C.border }}
@@ -738,7 +738,7 @@ export default function ClientAccount() {
                       onBlur={e => e.currentTarget.style.borderColor = C.border} />
                   </div>
                   <div>
-                    <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Email de connexion</label>
+                    <label className="text-[11px] font-medium" style={{ color: C.textTer }}>Email de connexion</label>
                     <input type="email" value={user?.email ?? ''} disabled
                       className={inputCls + ' mt-1.5'} style={{ borderColor: C.border }} />
                   </div>
@@ -769,13 +769,13 @@ export default function ClientAccount() {
                     </div>
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                       <div>
-                        <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Nouvelle adresse</label>
+                        <label className="text-[11px] font-medium" style={{ color: C.textTer }}>Nouvelle adresse</label>
                         <input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)}
                           autoComplete="email" placeholder="vous@exemple.be"
                           className={inputCls + ' mt-1.5'} style={{ borderColor: C.border }} />
                       </div>
                       <div>
-                        <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Mot de passe actuel</label>
+                        <label className="text-[11px] font-medium" style={{ color: C.textTer }}>Mot de passe actuel</label>
                         <input type="password" value={emailPw} onChange={e => setEmailPw(e.target.value)}
                           autoComplete="current-password"
                           className={inputCls + ' mt-1.5'} style={{ borderColor: C.border }} />
@@ -812,7 +812,7 @@ export default function ClientAccount() {
                 transition={{ duration: 0.18 }} className="overflow-hidden" style={{ borderTop: `1px solid ${C.border}` }}>
                 <div className="p-5 space-y-3">
                   <div>
-                    <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Mot de passe actuel</label>
+                    <label className="text-[11px] font-medium" style={{ color: C.textTer }}>Mot de passe actuel</label>
                     <div className="relative mt-1.5">
                       <input type={showPw ? 'text' : 'password'} value={currentPw} onChange={e => setCurrentPw(e.target.value)}
                         className={inputCls + ' pr-10'} style={{ borderColor: C.border }} />
@@ -829,12 +829,12 @@ export default function ClientAccount() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Nouveau</label>
+                      <label className="text-[11px] font-medium" style={{ color: C.textTer }}>Nouveau</label>
                       <input type={showPw ? 'text' : 'password'} value={newPw} onChange={e => setNewPw(e.target.value)}
                         className={inputCls + ' mt-1.5'} style={{ borderColor: C.border }} />
                     </div>
                     <div>
-                      <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Confirmer</label>
+                      <label className="text-[11px] font-medium" style={{ color: C.textTer }}>Confirmer</label>
                       <input type={showPw ? 'text' : 'password'} value={confirmPw} onChange={e => setConfirmPw(e.target.value)}
                         className={inputCls + ' mt-1.5'} style={{ borderColor: C.border }} />
                     </div>
@@ -902,7 +902,7 @@ export default function ClientAccount() {
                       <div className="space-y-3">
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                           <div>
-                            <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>
+                            <label className="text-[11px] font-medium" style={{ color: C.textTer }}>
                               Nom de l'entreprise
                             </label>
                             <input type="text" value={deleteConfirm} onChange={e => setDeleteConfirm(e.target.value)}
@@ -910,7 +910,7 @@ export default function ClientAccount() {
                               className={inputCls + ' mt-1.5'} style={{ borderColor: C.border }} />
                           </div>
                           <div>
-                            <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Mot de passe</label>
+                            <label className="text-[11px] font-medium" style={{ color: C.textTer }}>Mot de passe</label>
                             <input type="password" value={deletePw} onChange={e => setDeletePw(e.target.value)}
                               autoComplete="current-password"
                               className={inputCls + ' mt-1.5'} style={{ borderColor: C.border }} />
@@ -1091,7 +1091,7 @@ export default function ClientAccount() {
                 transition={{ duration: 0.18 }} className="overflow-hidden" style={{ borderTop: `1px solid ${C.border}` }}>
                 <div className="p-5 space-y-3">
                   <div>
-                    <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Nom de l'entreprise</label>
+                    <label className="text-[11px] font-medium" style={{ color: C.textTer }}>Nom de l'entreprise</label>
                     <input type="text" value={businessName} onChange={e => setBusinessName(e.target.value)}
                       placeholder="Ex: Plomberie Dupont"
                       className={inputCls + ' mt-1.5'} style={{ borderColor: C.border }} />
@@ -1099,7 +1099,7 @@ export default function ClientAccount() {
                   </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Métier</label>
+                      <label className="text-[11px] font-medium" style={{ color: C.textTer }}>Métier</label>
                       <select value={businessType} onChange={e => setBusinessType(e.target.value)}
                         className={selectCls + ' mt-1.5'} style={{ borderColor: C.border }}>
                         {BUSINESS_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
@@ -1107,7 +1107,7 @@ export default function ClientAccount() {
                       <p className="text-[11px] mt-1" style={{ color: C.textTer }}>Il décide des questions que l'IA sait poser.</p>
                     </div>
                     <div>
-                      <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Langue de l'agent</label>
+                      <label className="text-[11px] font-medium" style={{ color: C.textTer }}>Langue de l'agent</label>
                       <select value={agentLanguage} onChange={e => setAgentLanguage(e.target.value)}
                         className={selectCls + ' mt-1.5'} style={{ borderColor: C.border }}>
                         <option value="fr">Français</option>
@@ -1125,7 +1125,7 @@ export default function ClientAccount() {
                       un client d'un autre État membre perd l'autoliquidation.
                       C'est la première chose que son comptable réclame. */}
                   <div>
-                    <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Numéro de TVA</label>
+                    <label className="text-[11px] font-medium" style={{ color: C.textTer }}>Numéro de TVA</label>
                     <input
                       type="text"
                       value={vatNumber}
@@ -1169,22 +1169,22 @@ export default function ClientAccount() {
                 <div className="p-5 space-y-3">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div>
-                      <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Téléphone de contact</label>
+                      <label className="text-[11px] font-medium" style={{ color: C.textTer }}>Téléphone de contact</label>
                       <input type="tel" value={contactPhone} onChange={e => setContactPhone(e.target.value)}
                         placeholder="+32 470 00 00 00" className={inputCls + ' mt-1.5'} style={{ borderColor: C.border }} />
                     </div>
                     <div>
-                      <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Adresse</label>
+                      <label className="text-[11px] font-medium" style={{ color: C.textTer }}>Adresse</label>
                       <input type="text" value={address} onChange={e => setAddress(e.target.value)}
                         placeholder="123 Rue Principale" className={inputCls + ' mt-1.5'} style={{ borderColor: C.border }} />
                     </div>
                     <div>
-                      <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Ville</label>
+                      <label className="text-[11px] font-medium" style={{ color: C.textTer }}>Ville</label>
                       <input type="text" value={city} onChange={e => setCity(e.target.value)}
                         placeholder="Bruxelles" className={inputCls + ' mt-1.5'} style={{ borderColor: C.border }} />
                     </div>
                     <div>
-                      <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Code postal</label>
+                      <label className="text-[11px] font-medium" style={{ color: C.textTer }}>Code postal</label>
                       <input type="text" value={postalCode} onChange={e => setPostalCode(e.target.value)}
                         placeholder="1000" className={inputCls + ' mt-1.5'} style={{ borderColor: C.border }} />
                     </div>
@@ -1293,7 +1293,7 @@ export default function ClientAccount() {
                         style={{ borderColor: C.borderHi, background: 'rgba(255,255,255,0.02)' }}
                       >
                         <div>
-                          <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Nature</label>
+                          <label className="text-[11px] font-medium" style={{ color: C.textTer }}>Nature</label>
                           <select
                             value={draft.kind}
                             onChange={e => setDraft(d => ({ ...d, kind: e.target.value as KnowledgeKind }))}
@@ -1306,7 +1306,7 @@ export default function ClientAccount() {
                           <p className="text-[11.5px] mt-1.5" style={{ color: C.textTer }}>{KIND_META[draft.kind].hint}</p>
                         </div>
                         <div>
-                          <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>Intitulé</label>
+                          <label className="text-[11px] font-medium" style={{ color: C.textTer }}>Intitulé</label>
                           <input
                             type="text" value={draft.title} maxLength={KNOWLEDGE_MAX_TITLE}
                             placeholder={KIND_META[draft.kind].placeholder}
@@ -1317,7 +1317,7 @@ export default function ClientAccount() {
                           />
                         </div>
                         <div>
-                          <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>
+                          <label className="text-[11px] font-medium" style={{ color: C.textTer }}>
                             {draft.kind === 'faq' ? 'Réponse' : 'Détail'}
                           </label>
                           <textarea
@@ -1332,7 +1332,7 @@ export default function ClientAccount() {
                           </p>
                         </div>
                         <div>
-                          <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>
+                          <label className="text-[11px] font-medium" style={{ color: C.textTer }}>
                             Mots-clés <span className="normal-case tracking-normal">(séparés par des virgules, facultatif)</span>
                           </label>
                           <input
@@ -1389,13 +1389,13 @@ export default function ClientAccount() {
                             <div className="flex-1 min-w-0">
                               <div className="flex items-center gap-2 flex-wrap">
                                 <span
-                                  className="text-[10.5px] uppercase tracking-wider font-semibold px-1.5 py-0.5 rounded"
+                                  className="text-[11px] font-medium px-1.5 py-0.5 rounded"
                                   style={{ background: 'rgba(115,73,254,0.14)', color: '#B9A2FF' }}
                                 >
                                   {KIND_META[entry.kind]?.label ?? entry.kind}
                                 </span>
                                 {!entry.isActive && (
-                                  <span className="text-[10.5px] uppercase tracking-wider" style={{ color: C.textTer }}>inactive</span>
+                                  <span className="text-[11px] " style={{ color: C.textTer }}>inactive</span>
                                 )}
                               </div>
                               <p className="text-[13px] font-medium mt-1.5 break-words" style={{ color: C.text }}>{entry.title}</p>
@@ -1539,7 +1539,7 @@ export default function ClientAccount() {
 
                   <div className="flex flex-wrap items-end gap-3">
                     <div className="flex-1 min-w-[160px]">
-                      <label className="text-[11px] uppercase tracking-wider font-medium" style={{ color: C.textTer }}>
+                      <label className="text-[11px] font-medium" style={{ color: C.textTer }}>
                         Durée précise (jours)
                       </label>
                       <input

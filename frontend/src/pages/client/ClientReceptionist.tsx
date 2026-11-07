@@ -762,7 +762,7 @@ export default function ClientReceptionist() {
         {/* —— Services / Menu / Tarifs —— */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
-            <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5]">
+            <label className="flex items-center gap-2 text-[11px] font-medium text-[#9A9AA5]">
               <Tag size={12} /> Services, menu, tarifs
             </label>
             <span className="text-[11px] text-[#6B6B75]">{items.length} élément{items.length > 1 ? 's' : ''}</span>
@@ -818,7 +818,7 @@ export default function ClientReceptionist() {
 
         {/* —— Horaires hebdomadaires —— */}
         <div className="mb-6">
-          <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-3">
+          <label className="flex items-center gap-2 text-[11px] font-medium text-[#9A9AA5] mb-3">
             <Clock3 size={12} /> Horaires d'ouverture
           </label>
           <div className="rounded-xl border border-white/[0.06] overflow-hidden divide-y divide-white/[0.04]">
@@ -830,7 +830,7 @@ export default function ClientReceptionist() {
                   <button
                     type="button"
                     onClick={() => setWeekHours(w => ({ ...w, [d.k]: { ...w[d.k], open: !w[d.k].open } }))}
-                    className="col-span-3 h-8 px-3 rounded-lg text-[11.5px] font-semibold uppercase tracking-wider transition-colors"
+                    className="col-span-3 h-8 px-3 rounded-lg text-[11.5px] font-medium transition-colors"
                     style={{
                       background: h.open ? 'rgba(34,197,94,0.10)' : 'rgba(239,68,68,0.08)',
                       color:      h.open ? '#22C55E' : '#EF4444',
@@ -867,7 +867,7 @@ export default function ClientReceptionist() {
             niches, et ne peut donc pas diverger de celle du backend. */}
         {presets?.fields?.length ? (
           <div className="mb-6">
-            <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-1">
+            <label className="flex items-center gap-2 text-[11px] font-medium text-[#9A9AA5] mb-1">
               <BookOpen size={12} /> Précisions {businessType ? `« ${BUSINESS_TYPE_LABELS[businessType] ?? businessType} »` : 'métier'}
             </label>
             <p className="text-[11.5px] text-[#6B6B75] mb-3 leading-relaxed">
@@ -902,7 +902,7 @@ export default function ClientReceptionist() {
         {/* —— FAQ —— */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
-            <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5]">
+            <label className="flex items-center gap-2 text-[11px] font-medium text-[#9A9AA5]">
               <HelpCircle size={12} /> FAQ
             </label>
             <span className="text-[11px] text-[#6B6B75]">{faqEntries.length} question{faqEntries.length > 1 ? 's' : ''}</span>
@@ -1127,7 +1127,7 @@ export default function ClientReceptionist() {
             {/* Read proof: next events from the connected calendar */}
             {gcal?.connected && (gcal.upcoming?.length ?? 0) > 0 && (
               <div className="mt-3 pt-3 border-t border-white/[0.04] space-y-1.5">
-                <p className="text-[10px] uppercase tracking-wide text-[#8B8BA7]">Prochains rendez-vous</p>
+                <p className="text-[11px] text-[#8B8BA7]">Prochains rendez-vous</p>
                 {gcal.upcoming!.map(ev => (
                   <div key={ev.id} className="flex items-center justify-between gap-3 text-[12px]">
                     <span className="truncate text-white/80">{ev.summary}</span>
