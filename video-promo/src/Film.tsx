@@ -1,7 +1,7 @@
 import React from 'react';
 import { AbsoluteFill, Audio, Img, staticFile, useCurrentFrame } from 'remotion';
-import { Phone } from '../../frontend/src/components/icons';
-import { BookingsPage, CallDrawer, CallsPage, Cursor, H, navY, OverviewPage, Page, Sidebar, W } from './app-ui';
+import { Calendar, Phone } from '../../frontend/src/components/icons';
+import { BookedChip, CALLER, CallerHead, CallsChart, CELL, Gauge, Kpi, LeadChip, LiveCallCard, MonthGrid, Positive, SAT7, ScoreBar, StatBox, SummaryBox, UpCard } from './elements';
 import { C, EASE_EXPO, EASE_IN_OUT, mix, p, rise, useOutfit } from './lib';
 import frames from './logo-frames.json';
 import { FPS, T } from './timeline';
@@ -59,8 +59,8 @@ function Opening({ t }: { t: number }) {
       {(() => {
         const shake = [T.ring1, T.ring2].some((rt) => t >= rt && t < rt + 0.6) ? Math.sin(t * 60) * 9 : 0;
         return (
-          <div style={{ position: 'absolute', left: 960 - 60, top: 440 - 60, width: 120, height: 120, borderRadius: 9999, background: C.sidebar, border: `1px solid ${C.line}`, display: 'grid', placeItems: 'center', transform: `rotate(${shake}deg)`, ...rise(t, 0.1, 0.5, 0) }}>
-            <Phone size={46} color="#F2F2F2" />
+          <div style={{ position: 'absolute', left: 960 - 60, top: 440 - 60, width: 120, height: 120, borderRadius: 9999, background: C.sidebar, border: `1px solid ${C.line}`, display: 'grid', placeItems: 'center', ...rise(t, 0.1, 0.5, 0) }}>
+            <div style={{ transform: `rotate(${shake}deg)`, display: 'grid' }}><Phone size={46} color="#F2F2F2" /></div>
           </div>
         );
       })()}
@@ -87,82 +87,127 @@ function Opening({ t }: { t: number }) {
   );
 }
 
-/* ---------------------------------------------------------------- la caméra sur l'app */
+/* ---------------------------------------------------------------- les scènes : des éléments, pas des pages */
 
-type Key = [number, number, number, number]; // temps, x, y, zoom (coordonnées de l'app 1600×900)
-const CAMERA: Key[] = [
-  [T.shellIn, 800, 450, 1],
-  [T.callAnswered - 0.3, 800, 450, 1],
-  [T.callAnswered + 0.8, 720, 360, 1.45],
-  [T.clickBookings - 0.9, 720, 360, 1.45],
-  [T.clickBookings - 0.2, 800, 450, 1],
-  [T.bookingsIn + 0.6, 800, 450, 1],
-  [T.badgeBump - 0.4, 985, 430, 1.3],
-  [T.clickCalls - 0.7, 985, 430, 1.3],
-  [T.clickCalls - 0.1, 800, 450, 1],
-  [T.drawerIn + 0.3, 800, 450, 1],
-  [T.drawerIn + 1.0, 1007, 430, 1.35],
-  [T.clickOverview - 0.8, 1007, 430, 1.35],
-  [T.clickOverview - 0.1, 800, 450, 1],
-  [T.overviewIn + 0.3, 800, 450, 1],
-  [T.outro, 760, 430, 1.08],
-];
-function camera(t: number) {
-  let a = CAMERA[0], b = CAMERA[0];
-  for (let i = 0; i < CAMERA.length - 1; i++) if (t >= CAMERA[i][0]) { a = CAMERA[i]; b = CAMERA[i + 1]; }
-  if (t >= CAMERA[CAMERA.length - 1][0]) a = b = CAMERA[CAMERA.length - 1];
-  const k = a === b ? 0 : p(t, a[0], b[0] - a[0], EASE_IN_OUT);
-  return { x: mix(a[1], b[1], k), y: mix(a[2], b[2], k), z: mix(a[3], b[3], k) };
+const S = { call: 2.05, grid: 1.05, up: 1.35, sheet: 1.6 };
+
+/** Entrée et sortie d'une scène : fondu, légère montée, et une poussée lente de caméra. */
+function stage(t: number, a: number, b: number) {
+  const inK = p(t, a, 0.6, EASE_EXPO);
+  const outK = p(t, b - 0.45, 0.45);
+  const push = 1 + 0.035 * p(t, a, b - a, (x) => x);
+  return { opacity: inK * (1 - outK), scale: (0.96 + 0.04 * inK) * push * (1 - 0.03 * outK) };
 }
 
-type CKey = [number, number, number];
-const CURSOR: CKey[] = [
-  [T.clickBookings - 1.0, 980, 560],
-  [T.clickBookings - 0.05, 110, navY('bookings')],
-  [T.badgeBump - 0.2, 972, 420],
-  [T.clickCalls - 0.75, 972, 420],
-  [T.clickCalls - 0.05, 110, navY('calls')],
-  [T.rowIn + 0.4, 600, 520],
-  [T.clickRow - 0.05, 520, 345],
-  [T.clickOverview - 0.8, 760, 420],
-  [T.clickOverview - 0.05, 110, navY('overview')],
-  [T.overviewIn + 0.9, 420, 520],
-];
-const CLICKS = [T.clickBookings, T.clickCalls, T.clickRow, T.clickOverview];
-function cursorAt(t: number) {
-  let a = CURSOR[0], b = CURSOR[0];
-  for (let i = 0; i < CURSOR.length - 1; i++) if (t >= CURSOR[i][0]) { a = CURSOR[i]; b = CURSOR[i + 1]; }
-  if (t >= CURSOR[CURSOR.length - 1][0]) a = b = CURSOR[CURSOR.length - 1];
-  const k = a === b ? 0 : p(t, a[0], b[0] - a[0], EASE_IN_OUT);
-  const press = Math.max(0, ...CLICKS.map((c) => 1 - Math.abs(t - c) / 0.1));
-  return { x: mix(a[1], b[1], k), y: mix(a[2], b[2], k), press };
-}
-
-function App({ t }: { t: number }) {
-  const page: Page = t < T.bookingsIn ? 'calls' : t < T.callsIn ? 'bookings' : t < T.overviewIn ? 'calls' : 'overview';
-  const active: Page = t < T.clickBookings ? 'calls' : t < T.clickCalls ? 'bookings' : t < T.clickOverview ? 'calls' : 'overview';
-  const cam = camera(t);
-  const enter = p(t, T.shellIn, 0.8, EASE_EXPO);
-  const leave = p(t, T.outro, 0.5);
-  const S = 1.2 * cam.z * (0.94 + 0.06 * enter) * (1 - 0.06 * leave);
-  const cur = cursorAt(t);
-  const cursorOn = t > CURSOR[0][0] && t < T.overviewIn + 1.6;
-  // Un changement de page est instantané dans l'app ; un fondu de 120 ms suffit à l'œil.
-  const swap = [T.bookingsIn, T.callsIn, T.overviewIn].reduce((m, s) => Math.min(m, Math.abs(t - s)), 9);
-  const pageFade = swap < 0.12 ? 0.6 + swap * 3.3 : 1;
+function Backdrop({ hue = 'rgba(122,95,255,0.10)' }: { hue?: string }) {
   return (
-    <AbsoluteFill style={{ background: '#000', opacity: enter * (1 - leave) }}>
-      <div style={{ position: 'absolute', left: 960, top: 540, width: W, height: H, transformOrigin: '0 0', transform: `scale(${S}) translate(${-cam.x}px, ${-cam.y}px)`, background: C.sidebar, overflow: 'hidden' }}>
-        <Sidebar active={active} />
-        <div style={{ position: 'absolute', left: 222, top: 0, width: W - 222, height: H, background: C.panel, borderTopLeftRadius: 45, borderTop: `2px solid ${C.panelBorder}`, borderLeft: `2px solid ${C.panelBorder}`, overflow: 'hidden' }}>
-          <div style={{ position: 'absolute', inset: 0, opacity: pageFade }}>
-            {page === 'calls' && <CallsPage t={t} />}
-            {page === 'bookings' && <BookingsPage t={t} />}
-            {page === 'overview' && <OverviewPage t={t} />}
-          </div>
+    <AbsoluteFill style={{ background: C.panel }}>
+      <AbsoluteFill style={{ background: `radial-gradient(55% 55% at 50% 45%, ${hue}, transparent 70%)` }} />
+    </AbsoluteFill>
+  );
+}
+
+function CallScene({ t }: { t: number }) {
+  const st = stage(t, T.callIn, T.callOut);
+  const chipK = p(t, T.bookedChip, 0.5, EASE_EXPO);
+  return (
+    <AbsoluteFill style={{ opacity: st.opacity }}>
+      <Backdrop />
+      <div style={{ position: 'absolute', left: 960, top: 450, transform: `translate(-50%, -50%) scale(${S.call * st.scale})` }}>
+        <LiveCallCard t={t} />
+      </div>
+      {t >= T.bookedChip && (
+        <div style={{ position: 'absolute', left: 960, top: 450 + 125 * S.call, transform: `translate(-50%, ${(1 - chipK) * -40}px) scale(${1.7 * (0.9 + 0.1 * chipK)})`, opacity: chipK, ...ff }}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, fontSize: 13, fontWeight: 600, color: '#fff', padding: '7px 14px', borderRadius: 9999, background: C.deep, boxShadow: '0 12px 30px rgba(115,73,254,0.35)' }}>
+            <Calendar size={15} color="#fff" />Rendez-vous créé · samedi 9 h 30
+          </span>
         </div>
-        {page === 'calls' && t >= T.callsIn && <CallDrawer t={t} />}
-        {cursorOn && <Cursor x={cur.x} y={cur.y} press={cur.press} />}
+      )}
+    </AbsoluteFill>
+  );
+}
+
+function GridScene({ t }: { t: number }) {
+  const st = stage(t, T.gridIn, T.gridOut);
+  const gx = 140, gy = 150; // coin de la grille à l'écran
+  const colX = 1130, colY = 230; // colonne « À venir »
+  const fly = p(t, T.upcomingIn, 0.75, EASE_IN_OUT);
+  const land = p(t, T.upcomingIn + 0.55, 0.5, EASE_EXPO);
+  // La carte part du centre de la case du samedi 7 et se pose en tête de colonne.
+  const fromX = gx + (SAT7.x + CELL.w / 2) * S.grid, fromY = gy + (SAT7.y + CELL.h / 2) * S.grid;
+  const toX = colX + 210 * S.up, toY = colY + 76 + 33 * S.up;
+  const x = mix(fromX, toX, fly), y = mix(fromY, toY, fly) - Math.sin(Math.PI * fly) * 90;
+  const sc = mix(0.25, S.up, fly);
+  const glow = 1 - p(t, T.upcomingIn + 1.6, 1.4);
+  return (
+    <AbsoluteFill style={{ opacity: st.opacity }}>
+      <Backdrop hue="rgba(122,95,255,0.07)" />
+      <div style={{ position: 'absolute', left: 0, top: 0, width: 1920, height: 1080, transform: `scale(${st.scale})`, transformOrigin: '50% 45%' }}>
+        <div style={{ position: 'absolute', left: gx, top: gy, transform: `scale(${S.grid})`, transformOrigin: '0 0' }}><MonthGrid t={t} /></div>
+        <div style={{ position: 'absolute', left: colX, top: colY - 70, fontSize: 15 * S.up, fontWeight: 600, color: C.text, ...rise(t, T.gridIn + 0.4, 0.6, 14), ...ff }}>À venir</div>
+        <div style={{ position: 'absolute', left: colX, top: colY + 40, fontSize: 12.5 * S.up, fontWeight: 600, color: C.text, ...rise(t, T.gridIn + 0.5, 0.6, 14), ...ff }}>Samedi 7 novembre</div>
+        {/* les cartes déjà là, poussées vers le bas quand la nouvelle se pose */}
+        {[['16:00', 'Inès Haddad', 'Coupe et barbe · +32 471 00 70 00'], ['10:00', 'Chloé Wouters', 'Brushing · +32 471 00 90 00']].map(([tm, n, sub], i) => (
+          <div key={n} style={{ position: 'absolute', left: colX, top: colY + 76 + (i + land) * 80 * S.up + (i === 1 ? 40 : 0), ...rise(t, T.gridIn + 0.6 + i * 0.08, 0.6, 14) }}>
+            <div style={{ transform: `scale(${S.up})`, transformOrigin: '0 0', position: 'relative' }}>
+              {i === 1 && <div style={{ position: 'absolute', top: -34, fontSize: 12.5, fontWeight: 600, color: C.text, ...ff }}>Lundi 9 novembre</div>}
+              <UpCard time={tm} name={n} sub={sub} />
+            </div>
+          </div>
+        ))}
+        {t >= T.upcomingIn && (
+          <div style={{ position: 'absolute', left: x, top: y, transform: `translate(-50%, -50%) scale(${sc})`, opacity: Math.min(1, fly * 3) }}>
+            <UpCard time="09:30" name={CALLER.name} sub={`Coupe · ${CALLER.num}`} style={{ background: `rgba(122,95,255,${0.06 + 0.14 * glow})`, border: `1px solid rgba(122,95,255,${0.2 + 0.5 * glow})`, boxShadow: `0 20px 50px rgba(0,0,0,${0.5 * (1 - land)})` }} />
+          </div>
+        )}
+      </div>
+    </AbsoluteFill>
+  );
+}
+
+function SheetScene({ t }: { t: number }) {
+  const st = stage(t, T.sheetIn, T.sheetOut);
+  // Chaque pièce arrive de son côté, puis tout se range : la fiche se construit.
+  const piece = (a: number, dx: number, dy: number) => {
+    const k = p(t, a, 0.7, EASE_EXPO);
+    return { opacity: k, transform: `translate(${(1 - k) * dx}px, ${(1 - k) * dy}px) scale(${0.94 + 0.06 * k})` };
+  };
+  const scoreK = p(t, T.scoreIn, 1.0, EASE_EXPO);
+  return (
+    <AbsoluteFill style={{ opacity: st.opacity }}>
+      <Backdrop hue="rgba(245,181,68,0.05)" />
+      <div style={{ position: 'absolute', left: 960, top: 500, transform: `translate(-50%, -50%) scale(${S.sheet * st.scale})` }}>
+        <div style={{ position: 'relative', width: 400, height: 520 }}>
+          <div style={{ position: 'absolute', left: 0, top: 0, ...piece(T.sheetIn, 0, -40) }}><CallerHead /></div>
+          <div style={{ position: 'absolute', left: 0, top: 72, ...piece(T.stats[0], -60, 0) }}><StatBox label="Durée">52s</StatBox></div>
+          <div style={{ position: 'absolute', left: 206, top: 72, ...piece(T.stats[1], 60, 0) }}><StatBox label="Date">03/11/2026 19:42</StatBox></div>
+          <div style={{ position: 'absolute', left: 0, top: 148, ...piece(T.stats[2], -60, 0) }}><StatBox label="Résultat">Rendez-vous pris</StatBox></div>
+          <div style={{ position: 'absolute', left: 206, top: 148, ...piece(T.stats[3], 60, 0) }}><StatBox label="Sentiment"><Positive /></StatBox></div>
+          <div style={{ position: 'absolute', left: 0, top: 232, display: 'flex', gap: 10, ...piece(T.chipsIn, 0, 30) }}>
+            <LeadChip />
+            {t >= T.bookingChip && <span style={{ opacity: p(t, T.bookingChip, 0.3), transform: `scale(${0.9 + 0.1 * p(t, T.bookingChip, 0.4, EASE_EXPO)})`, display: 'inline-block' }}><BookedChip /></span>}
+          </div>
+          <div style={{ position: 'absolute', left: 0, top: 280, ...piece(T.scoreIn, 0, 30) }}><ScoreBar k={scoreK} /></div>
+          <div style={{ position: 'absolute', left: 0, top: 350, ...piece(T.summaryStart - 0.4, 0, 40) }}><SummaryBox t={t} /></div>
+        </div>
+      </div>
+    </AbsoluteFill>
+  );
+}
+
+function MonthScene({ t }: { t: number }) {
+  const st = stage(t, T.monthIn, T.monthOut);
+  const draw = p(t, T.monthIn + 0.4, 1.9, EASE_EXPO);
+  const count = Math.round(129 * p(t, T.monthIn + 0.3, 1.7, EASE_EXPO));
+  return (
+    <AbsoluteFill style={{ opacity: st.opacity }}>
+      <Backdrop hue="rgba(255,255,255,0.04)" />
+      <div style={{ position: 'absolute', inset: 0, transform: `scale(${st.scale})`, transformOrigin: '50% 45%' }}>
+        {[['Taux de conversion', '18%'], ['Appels traités', String(count)], ['Score sentiment', '71%']].map(([l, v], i) => (
+          <div key={l} style={{ position: 'absolute', left: 170 + i * 420, top: 130, ...rise(t, T.monthIn + 0.1 + i * 0.08, 0.6, 14) }}><div style={{ transform: 'scale(1.4)', transformOrigin: '0 0' }}><Kpi label={l} value={v} /></div></div>
+        ))}
+        <div style={{ position: 'absolute', left: 170, top: 370 }}><CallsChart k={draw} width={1080} height={320} /></div>
+        <div style={{ position: 'absolute', left: 1400, top: 330, ...rise(t, T.monthIn + 0.3, 0.7, 20) }}><div style={{ transform: 'scale(1.25)', transformOrigin: '0 0' }}><Gauge k={draw} value={count} /></div></div>
       </div>
     </AbsoluteFill>
   );
@@ -171,10 +216,10 @@ function App({ t }: { t: number }) {
 /* ---------------------------------------------------------------- légendes */
 
 const CAPTIONS: Array<[number, number, string]> = [
-  [T.callAnswered + 0.6, T.clickBookings - 1.0, 'Un client appelle. Elle décroche.'],
-  [T.badgeBump - 0.2, T.clickCalls - 0.8, 'Le rendez-vous est déjà dans l’agenda.'],
-  [T.summaryStart, T.clickOverview - 0.8, 'Le résumé vous attend.'],
-  [T.overviewIn + 0.5, T.outro - 0.1, 'Vous, vous travaillez.'],
+  [T.callAnswered + 0.6, T.callOut - 0.5, 'Un client appelle. Elle décroche.'],
+  [T.badgeBump - 0.2, T.gridOut - 0.45, 'Le rendez-vous est déjà dans l’agenda.'],
+  [T.summaryStart, T.sheetOut - 0.45, 'Le résumé vous attend.'],
+  [T.monthIn + 0.5, T.monthOut - 0.45, 'Vous, vous travaillez.'],
 ];
 function Captions({ t }: { t: number }) {
   return (
@@ -198,14 +243,17 @@ function Captions({ t }: { t: number }) {
 export const Film: React.FC = () => {
   useOutfit();
   const t = useCurrentFrame() / FPS;
-  const splashOn = t >= T.splashStart - 0.1 && t < T.shellIn + 0.8;
-  const splashFade = 1 - p(t, T.shellIn - 0.1, 0.7);
-  const endOn = t >= T.outro + 0.3;
+  const splashOn = t >= T.splashStart - 0.1 && t < T.splashOut + 0.5;
+  const splashFade = 1 - p(t, T.splashOut, 0.45);
+  const endOn = t >= T.monthOut - 0.1;
   const jo = JOURNEYS.open, jc = JOURNEYS.close;
   return (
     <AbsoluteFill style={{ background: '#000' }}>
       {t < T.openingEnd && <Opening t={t} />}
-      {t >= T.shellIn && t < T.endSplashStart + 0.5 && <App t={t} />}
+      {t >= T.callIn && t < T.callOut + 0.1 && <CallScene t={t} />}
+      {t >= T.gridIn && t < T.gridOut + 0.1 && <GridScene t={t} />}
+      {t >= T.sheetIn && t < T.sheetOut + 0.1 && <SheetScene t={t} />}
+      {t >= T.monthIn && t < T.monthOut + 0.1 && <MonthScene t={t} />}
       {splashOn && (
         <AbsoluteFill style={{ background: '#000', opacity: splashFade }}>
           <Mark which="open" id="mo" k={(t - T.splashStart) / FORMED} />
@@ -214,7 +262,7 @@ export const Film: React.FC = () => {
       )}
       <Captions t={t} />
       {endOn && (
-        <AbsoluteFill style={{ background: '#000', opacity: p(t, T.outro + 0.3, 0.4) }}>
+        <AbsoluteFill style={{ background: '#000', opacity: p(t, T.monthOut - 0.1, 0.4) }}>
           <Mark which="close" id="mc" k={(t - T.endSplashStart) / FORMED} />
           <div style={{ position: 'absolute', left: 0, right: 0, top: jc.y + jc.lobeR + 56, textAlign: 'center', fontSize: 64, fontWeight: 600, letterSpacing: '-0.025em', color: '#FDFDFF', opacity: p(t, T.endSplashFormed, 0.5, (x) => x), ...ff }}>Qwillio</div>
           <div style={{ position: 'absolute', left: 0, right: 0, top: jc.y + jc.lobeR + 170, textAlign: 'center', fontSize: 44, fontWeight: 300, letterSpacing: '-0.02em', color: C.text2, ...rise(t, T.endLine, 0.7), ...ff }}>Votre réceptionniste. Toujours là.</div>

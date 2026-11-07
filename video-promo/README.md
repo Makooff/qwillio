@@ -2,30 +2,36 @@
 
 42 secondes, 1920×1080, 60 images par seconde, rendu avec **Remotion**. Pas de musique : un son par événement.
 
-## Ce que montre le film : le produit, pas le site
+## Ce que montre le film : des éléments du produit, pas des captures
 
-Le film se passe dans le **portail client** (`frontend/src/pages/client/*`). Un appel arrive en
-direct sur la page Appels, le rendez-vous tombe dans l'agenda, la fiche d'appel s'ouvre avec
-son résumé IA, puis la vue d'ensemble du mois. Un curseur fait les clics qu'un gérant ferait.
+Pas d'enregistrement d'écran ni de page entière : le film sort chaque ÉLÉMENT du portail
+client et le met en scène seul, en grand, sur fond sombre.
 
-Ce qui vient du portail, et pas d'une imitation :
+1. la carte « En cours » d'un appel (`LiveCalls`), où la conversation s'écrit en direct, puis
+   la puce « Rendez-vous créé » qui en sort ;
+2. la grille de l'agenda (`ClientBookings`) : la case du samedi passe de 1 à 2, et la carte du
+   rendez-vous s'envole de la case jusqu'à la colonne « À venir » ;
+3. la fiche d'appel, reconstruite pièce par pièce : appelant, durée, date, résultat, sentiment,
+   puces, score de lead, puis le résumé IA qui s'écrit ;
+4. le mois (`ClientOverview`) : indicateurs, courbe des appels, jauge.
 
-- **les valeurs** : fonds, bordures, rayons et tailles ont été relevés sur le portail lui-même
-  (styles calculés de `ClientLayout`, `ClientBookings`, `ClientCalls`, `LiveCalls`) ;
+Chaque élément est redessiné seul (`src/elements.tsx`), avec ce qui vient du portail :
+
+- **les valeurs** : fonds, bordures, rayons et tailles, relevés sur le portail rendu avec des
+  données de démonstration (styles calculés) ;
 - **les icônes** : la façade du portail, `frontend/src/components/icons.tsx`, importée telle
   quelle (`remotion.config.ts` lui donne le même React que le film) ;
 - **la grille de l'agenda** : `monthGrid` de `frontend/src/utils/month-grid.ts` ;
 - **le logo** : les trajectoires de l'animation d'ouverture de l'app, calculées par
   `liquidJourney` (`frontend/src/components/blobPath.ts`, le code de `SplashScreen.tsx`).
 
-Aucun bouton du site (« L'entendre décrocher », « Essayer 7 jours ») n'y figure : ce sont des
-appels à l'action d'une page web, pas des éléments du produit.
+Aucun bouton du site n'y figure.
 
 ## Le son
 
 `src/timeline.ts` est le seul endroit qui dit QUAND : les scènes le lisent, et
-`scripts/sfx.mjs` en tire la liste des sons. 26 sons, dans 12 familles (sonnerie, notification
-en verre, clic de souris, pastille qui rebondit, carte qui se pose, panneau qui glisse, logo…).
+`scripts/sfx.mjs` en tire la liste des sons. 27 sons, dans 11 familles (sonnerie, notification
+en verre, pastille qui rebondit, carte qui se pose, barre qui se remplit, logo…).
 Chaque occurrence a sa graine, qui fait varier sa hauteur, sa durée et sa place en stéréo :
 aucun son n'est rejoué à l'identique.
 
@@ -33,7 +39,7 @@ aucun son n'est rejoué à l'identique.
 
 Rien d'invérifiable (`DA/voix.md`). Les noms, numéros et rendez-vous sont fictifs et les
 numéros de l'ouverture sont masqués. Ce qui est montré existe dans le portail : appel en
-direct, agenda, fiche d'appel avec résumé IA et score de lead, vue d'ensemble.
+direct, agenda, fiche d'appel avec résumé IA et score de lead, vue d'ensemble du mois.
 
 ## Régénérer
 

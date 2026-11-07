@@ -15,68 +15,68 @@ export const T = {
   missed: [1.5, 2.9, 3.7, 4.4],
   openingEnd: 5.5,
 
-  // L'animation d'ouverture de l'app, puis le logo devient celui de la barre latérale.
+  // L'animation d'ouverture de l'app.
   splashStart: 5.6,
   splashFormed: 8.1, // 2,5 s de trajet, comme SplashScreen.tsx
-  shellIn: 9.0,
+  splashOut: 8.9,
 
-  // Page Appels : l'appel en direct.
-  callAnswered: 10.2,
+  // Scène 1 : la carte « En cours », seule à l'écran.
+  callIn: 9.0,
+  callAnswered: 9.6,
   lines: [
-    { who: 'user', at: 10.8, end: 12.4, text: 'Bonjour, vous auriez une place samedi matin pour une coupe ?' },
-    { who: 'ai', at: 12.9, end: 14.8, text: 'Samedi, j’ai 9 h 30 ou 11 h. Lequel vous arrange ?' },
-    { who: 'user', at: 15.3, end: 15.9, text: '9 h 30, parfait.' },
-    { who: 'ai', at: 16.3, end: 18.2, text: 'C’est noté pour samedi 9 h 30. Je vous envoie la confirmation par SMS.' },
+    { who: 'user', at: 10.2, end: 11.8, text: 'Bonjour, vous auriez une place samedi matin pour une coupe ?' },
+    { who: 'ai', at: 12.2, end: 14.0, text: 'Samedi, j’ai 9 h 30 ou 11 h. Lequel vous arrange ?' },
+    { who: 'user', at: 14.4, end: 15.0, text: '9 h 30, parfait.' },
+    { who: 'ai', at: 15.4, end: 17.2, text: 'C’est noté pour samedi 9 h 30. Je vous envoie la confirmation par SMS.' },
   ],
+  bookedChip: 17.5, // « Rendez-vous créé » sort de la carte
+  callOut: 18.2,
 
-  // Rendez-vous : le créneau tombe dans l'agenda.
-  clickBookings: 19.4,
-  bookingsIn: 19.6,
-  badgeBump: 21.2,
-  upcomingIn: 21.9,
+  // Scène 2 : la grille de l'agenda, et la carte « À venir ».
+  gridIn: 18.3,
+  badgeBump: 19.6,
+  upcomingIn: 20.3,
+  gridOut: 24.0,
 
-  // Retour aux appels : la fiche et son résumé.
-  clickCalls: 25.6,
-  callsIn: 25.8,
-  rowIn: 26.5,
-  clickRow: 27.6,
-  drawerIn: 27.8,
-  summaryStart: 28.5,
-  summaryEnd: 30.3,
-  bookingChip: 30.6,
+  // Scène 3 : la fiche d'appel, pièce par pièce.
+  sheetIn: 24.1,
+  stats: [24.5, 24.62, 24.74, 24.86],
+  chipsIn: 25.4,
+  scoreIn: 25.8,
+  summaryStart: 26.4,
+  summaryEnd: 28.6,
+  bookingChip: 29.0,
+  sheetOut: 30.6,
 
-  // Vue d'ensemble : le mois.
-  clickOverview: 32.6,
-  overviewIn: 32.8,
+  // Scène 4 : le mois.
+  monthIn: 30.7,
+  monthOut: 36.3,
 
   // Fin.
-  outro: 36.6,
-  endSplashStart: 37.0,
-  endSplashFormed: 39.5,
-  endLine: 40.0,
-  endSub: 40.5,
+  endSplashStart: 36.8,
+  endSplashFormed: 39.3,
+  endLine: 39.8,
+  endSub: 40.3,
   fadeOut: 41.3,
 } as const;
 
 /**
- * Les sons. Moins nombreux qu'avant, et jamais deux fois le même : chaque
- * famille a son timbre, et chaque occurrence sa graine, qui fait varier la
- * hauteur et l'attaque. Un son marque un ÉVÉNEMENT (un appel qui arrive, un
- * clic, un rendez-vous qui se pose), pas chaque mot qui apparaît.
+ * Les sons. Un son marque un ÉVÉNEMENT, jamais chaque mot qui apparaît, et
+ * chaque occurrence a sa graine (hauteur, durée, place en stéréo) : aucun son
+ * n'est rejoué à l'identique.
  */
 export type CueKind =
   | 'ring' // la sonnerie, deux fois seulement
   | 'notify' // un appel manqué : verre léger
   | 'swell' // les lobes se mettent en route
-  | 'logo' // le logo se forme : pop rond et grave
-  | 'air' // l'interface apparaît
+  | 'logo' // le logo se forme
+  | 'air' // un élément entre en scène
   | 'answer' // l'appel est décroché
-  | 'voice' // une réplique commence : petite note boisée
-  | 'click' // clic de souris
-  | 'bump' // la pastille passe de 1 à 2
+  | 'voice' // une réplique commence
+  | 'bump' // une pastille ou une puce qui rebondit
   | 'land' // une carte se pose
   | 'confirm' // validation : deux notes
-  | 'slide'; // un panneau glisse
+  | 'slide'; // une barre qui se remplit, un panneau qui glisse
 
 export interface Cue { t: number; kind: CueKind; seed: number; gain?: number }
 
@@ -89,19 +89,20 @@ export const CUES: Cue[] = [
   ...T.missed.map((t, i) => cue(t, 'notify', 0.9 - i * 0.1)),
   cue(T.splashStart, 'swell', 0.7),
   cue(T.splashFormed - 0.05, 'logo'),
-  cue(T.shellIn + 0.1, 'air', 0.6),
+  cue(T.callIn, 'air', 0.6),
   cue(T.callAnswered, 'answer'),
   ...T.lines.map((l) => cue(l.at, 'voice', l.who === 'ai' ? 0.8 : 0.55)),
-  cue(T.clickBookings, 'click'),
-  cue(T.badgeBump, 'bump'),
-  cue(T.upcomingIn, 'land'),
-  cue(T.clickCalls, 'click', 0.9),
-  cue(T.rowIn, 'land', 0.7),
-  cue(T.clickRow, 'click', 0.85),
-  cue(T.drawerIn, 'slide', 0.7),
+  cue(T.bookedChip, 'bump'),
+  cue(T.gridIn, 'air', 0.55),
+  cue(T.badgeBump, 'bump', 0.9),
+  cue(T.upcomingIn + 0.35, 'land'),
+  cue(T.sheetIn, 'land', 0.75),
+  cue(T.stats[0], 'land', 0.45),
+  cue(T.stats[2], 'land', 0.4),
+  cue(T.scoreIn, 'slide', 0.6),
   cue(T.bookingChip, 'confirm'),
-  cue(T.clickOverview, 'click', 0.85),
-  cue(T.outro, 'air', 0.5),
+  cue(T.monthIn, 'air', 0.55),
+  cue(T.monthIn + 0.4, 'slide', 0.5),
   cue(T.endSplashStart, 'swell', 0.6),
   cue(T.endSplashFormed - 0.05, 'logo'),
 ];
