@@ -5,7 +5,7 @@
 import fs from 'fs';
 import { liquidJourney } from '../../frontend/src/components/blobPath.ts';
 
-const W = 1920, H = 1080;
+let W = 1920, H = 1080;
 // Constantes de SplashScreen.tsx, à l'échelle du film.
 const ORB = { r: 116, leftX: 190, rightX: 322 };
 const START_R = 0.34;
@@ -27,5 +27,9 @@ function journey(logo, my) {
 }
 
 const data = { open: journey(360, 500), close: journey(300, 400) };
+// Format vertical (pub 9:16) : mêmes trajectoires, recalculées pour 1080×1920.
+W = 1080; H = 1920;
+data.vopen = journey(340, 860);
+data.vclose = journey(300, 760);
 fs.writeFileSync('src/logo-frames.json', JSON.stringify(data));
 console.log('frames', data.open.left.length);

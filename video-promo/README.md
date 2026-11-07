@@ -1,4 +1,39 @@
-# Film promotionnel Qwillio
+# Qwillio en vidéo
+
+Deux compositions Remotion vivent ici :
+
+- **`QwillioPub`** : la pub verticale 9:16, « Le coup de feu » (30 s). C'est la version en cours.
+- **`QwillioFilm`** : le film 16:9 en éléments du portail (variante non retenue).
+
+## La pub verticale : « Le coup de feu »
+
+Construite comme une pub d'opérateur : une situation, le problème, puis la même situation
+rejouée avec Qwillio. Vendredi 20 h, le coup de feu ; le téléphone vibre, personne ne
+décroche, les appels manqués s'empilent ; Camille raccroche et réserve en face. « Un appel
+manqué, c'est une table vide. » Puis l'ouverture de l'app, et « Cette fois… » : elle décroche,
+elle réserve (tap sur 19:30), elle reconnaît Camille, vous lisez la note.
+
+- **Le motion** reprend la référence fournie : fond clair qui respire, texte mot à mot qui sort
+  du flou, objets qui s'empilent, une idée par plan.
+- **La DA** est celle de Qwillio : Outfit 300, un mot en italique serif par phrase, les mauves
+  du logo dans le fond pastel.
+- **Les illustrations sont celles du site** : `ProductIllustration`
+  (`frontend/src/components/v2/ProductIllustration.tsx`) est importée telle quelle, avec sa
+  feuille et `styles/v2.css`, rendue à largeur mobile pour qu'elle s'empile en hauteur.
+  `src/site-illustrations.css` ne fait que repointer ses photos vers le dossier servi par
+  Remotion.
+- **Le logo** est l'animation d'ouverture de l'app (`liquidJourney`), recalculée en 1080×1920.
+- **Le son** : 20 sons, un par événement (vibration du téléphone, notifications, tap, logo…),
+  déclarés dans `src/pub/timeline.ts`, que l'image lit aussi.
+
+```bash
+npm install
+npm run build:pub
+```
+
+---
+
+## Le film 16:9 (variante)
 
 42 secondes, 1920×1080, 60 images par seconde, rendu avec **Remotion**. Pas de musique : un son par événement.
 

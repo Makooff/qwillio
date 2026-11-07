@@ -10,7 +10,10 @@ import wave
 import numpy as np
 
 SR = 48000
-spec = json.load(open('scripts/sfx.json'))
+import sys
+SRC = sys.argv[1] if len(sys.argv) > 1 else 'scripts/sfx.json'
+DST = sys.argv[2] if len(sys.argv) > 2 else 'public/sounds.wav'
+spec = json.load(open(SRC))
 N = int(SR * spec['duration'])
 mix = np.zeros((2, N))
 
@@ -172,9 +175,41 @@ def slide(rng, v):
     return y * np.sin(np.pi * np.minimum(1, t / 0.45)) ** 2 * 0.5
 
 
+def buzz(rng, v):
+    # Un téléphone qui vibre sur le comptoir : trois secousses sourdes.
+    out = np.zeros(int(0.62 * SR))
+    for i in range(3):
+        n = int(0.14 * SR)
+        t = T(n)
+        f = 140 * v
+        y = np.sign(np.sin(2 * np.pi * f * t)) * 0.5 + np.sin(2 * np.pi * f * 2 * t) * 0.3
+        y = lowpass(y, 700) * np.sin(np.pi * t / 0.14) ** 0.6
+        i0 = int(i * 0.2 * SR)
+        out[i0:i0 + n] += y
+    return out * 0.55
+
+
+def tap(rng, v):
+    # Le doigt qui touche l'écran : un petit choc mat, puis une note claire.
+    n = int(0.25 * SR)
+    t = T(n)
+    knock = np.sin(2 * np.pi * np.cumsum(260 * v + 300 * np.exp(-t / 0.006)) / SR) * env(n, 0.0005, 0.018)
+    ping = np.sin(2 * np.pi * note(88) * v * t) * env(n, 0.001, 0.06) * 0.35
+    return knock * 0.7 + ping
+
+
+def whisper(rng, v):
+    # Un souffle très court qui pose une phrase clé, sans note.
+    n = int(0.45 * SR)
+    t = T(n)
+    y = lowpass(highpass(noise(0.45, rng), 900), 4200 * v)
+    return y * np.sin(np.pi * t / 0.45) ** 2 * 0.22
+
+
 KINDS = {
     'ring': ring, 'notify': notify, 'swell': swell, 'logo': logo, 'air': air, 'answer': answer,
     'click': click, 'bump': bump, 'land': land, 'confirm': confirm, 'slide': slide,
+    'buzz': buzz, 'tap': tap, 'whisper': whisper,
 }
 
 
@@ -207,7 +242,7 @@ for ch in (0, 1):
     mix[ch] += 0.14 * np.fft.irfft(np.fft.rfft(mix[ch], M) * np.fft.rfft(ir, M), M)[:N]
 
 mix /= np.abs(mix).max() / 0.89
-w = wave.open('public/sounds.wav', 'wb')
+w = wave.open(DST, 'wb')
 w.setnchannels(2)
 w.setsampwidth(2)
 w.setframerate(SR)

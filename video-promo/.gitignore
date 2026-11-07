@@ -1,7 +1,11 @@
 node_modules/
 out/
 scripts/sfx.json
+scripts/sfx-pub.json
 public/sounds.wav
+public/sounds-pub.wav
 public/qwillio-logo-512.svg
 public/marie.webp
+public/service-cafe.mp4
+public/marketing/
 src/logo-frames.json
