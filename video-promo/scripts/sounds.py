@@ -206,10 +206,20 @@ def whisper(rng, v):
     return y * np.sin(np.pi * t / 0.45) ** 2 * 0.22
 
 
+def hang(rng, v):
+    # La tonalité de fin d'appel : trois bips courts.
+    out = np.zeros(int(1.1 * SR))
+    for i in range(3):
+        b = tone(425 * v, 0.2, 0.5, 0.004) * np.minimum(1, (0.2 - T(int(0.2 * SR))) / 0.01)
+        i0 = int(i * 0.34 * SR)
+        out[i0:i0 + len(b)] += b * 0.35
+    return out
+
+
 KINDS = {
     'ring': ring, 'notify': notify, 'swell': swell, 'logo': logo, 'air': air, 'answer': answer,
     'click': click, 'bump': bump, 'land': land, 'confirm': confirm, 'slide': slide,
-    'buzz': buzz, 'tap': tap, 'whisper': whisper,
+    'buzz': buzz, 'tap': tap, 'whisper': whisper, 'hang': hang,
 }
 
 
