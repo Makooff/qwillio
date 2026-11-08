@@ -96,13 +96,10 @@ const buzzes = (r: { at: number; out: number }, seed: number) => {
 };
 export const CUES: Cue[] = [
   { t: 0.05, kind: 'swell', seed: 500, gain: 0.45 },
-  ...VLINES.map((l, i) => ({ t: l.at, kind: 'bump' as const, seed: 530 + i, gain: 0.26 })),
   ...buzzes(T.known.ring, 540),
   { t: T.known.answer, kind: 'click', seed: 550, gain: 0.7 },
   { t: T.agenda.bump, kind: 'bump', seed: 551, gain: 0.6 },
   { t: T.agenda.upcoming, kind: 'sparkle', seed: 552, gain: 0.45 },
-  { t: T.k3.at - 0.1, kind: 'tap', seed: 553, gain: 0.35 },
-  { t: T.k4.at - 0.1, kind: 'tap', seed: 554, gain: 0.35 },
   ...buzzes(T.urgent.ring, 560),
   { t: T.message.at + 0.9, kind: 'sparkle', seed: 565, gain: 0.35 },
   { t: T.learn.learned, kind: 'confirm', seed: 570, gain: 0.7 },

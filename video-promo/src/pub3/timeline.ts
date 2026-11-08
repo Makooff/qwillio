@@ -117,7 +117,6 @@ const cuts = [
   T.booked.at, T.mac.at, T.payoff.at,
 ];
 export const CUES: Cue[] = [
-  ...NLINES.map((l, i) => ({ t: l.at, kind: 'bump' as const, seed: 360 + i, gain: 0.28 })),
   { t: T.ring.at, kind: 'tap', seed: 380, gain: 0.5 },
   ...buzzes(T.ring.at, T.ring.out, 300),
   { t: T.missed, kind: 'sparkle', seed: 381, gain: 0.35 },

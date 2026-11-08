@@ -16,6 +16,7 @@ import { MacBookBookings } from '../pub2/mac';
 import { Device, IncomingCall, LockScreen, Notification } from './ios';
 import narration from './narration';
 import { ShaderOrb } from './ShaderOrb';
+import { Sfx, glitch, tracking, wordIn } from '../fx';
 import { CALL, CALL_SHOTS, DURATION, FPS, NLine, NLINES, Shot, T } from './timeline';
 
 const INK = '#1D1D1F';
@@ -30,6 +31,9 @@ const between = (t: number, a: number, b: number) => t >= a && t < b;
 
 /* ------------------------------------------------------------------ le texte : lu, puis il sort du flou mot à mot */
 
+/** La phrase où Julie part en face : celle qui glitche. */
+const GLITCH_LINE = 3;
+
 function Said({ line, t, size = 92, y = 330 }: { line: NLine; t: number; size?: number; y?: number }) {
   if (!between(t, line.at - 0.05, line.out + 0.05)) return null;
   const n = narration[line.n];
@@ -37,9 +41,12 @@ function Said({ line, t, size = 92, y = 330 }: { line: NLine; t: number; size?: 
   return (
     <div style={{ position: 'absolute', left: 70, right: 70, top: y, transform: 'translateY(-50%)', textAlign: 'center', fontSize: size, fontWeight: 300, letterSpacing: '-0.03em', lineHeight: 1.08, color: INK, ...ff }}>
       {n.words.map((w, i) => {
-        const k = p(t, line.at + w.start - 0.06, 0.38, EASE_OUT);
+        const at = line.at + w.start - 0.04;
+        const inS = wordIn(t, at);
+        // « en face » : le moment où ça tourne mal se dédouble (glitch).
+        const g = line.n === GLITCH_LINE && i >= 3 ? glitch(t, line.at + n.words[3].start + 0.05) : {};
         return (
-          <span key={i} style={{ display: 'inline-block', marginRight: '0.24em', opacity: Math.min(1, k * 1.5) * (1 - outK), filter: `blur(${(1 - k) * 16 + outK * 12}px)`, ...(n.serif.includes(i) ? serif : {}) }}>{w.w}</span>
+          <span key={i} style={{ display: 'inline-block', marginRight: '0.24em', ...inS, opacity: Number(inS.opacity) * (1 - outK), filter: `blur(${(1 - Math.min(1, Number(inS.opacity))) * 14 + outK * 12}px)`, ...(n.serif.includes(i) ? serif : {}), ...g, transform: `${inS.transform} ${g.transform ?? ''}` }}>{w.w}</span>
         );
       })}
     </div>
@@ -63,7 +70,7 @@ function Chapter({ t, from, to, n, label }: { t: number; from: number; to: numbe
   if (!between(t, from - 0.1, to + 0.1)) return null;
   const k = p(t, from, 0.5, EASE_OUT) * (1 - p(t, to - 0.3, 0.3));
   return (
-    <div style={{ position: 'absolute', left: 0, right: 0, top: 150, textAlign: 'center', fontSize: 28, fontWeight: 500, letterSpacing: '0.2em', color: BODY, opacity: k, filter: `blur(${(1 - k) * 8}px)`, ...ff }}>
+    <div style={{ position: 'absolute', left: 0, right: 0, top: 150, textAlign: 'center', fontSize: 28, fontWeight: 500, letterSpacing: tracking(t, from), color: BODY, opacity: k, filter: `blur(${(1 - k) * 8}px)`, ...ff }}>
       <span style={{ color: INDIGO }}>{n}</span>&nbsp;&nbsp;·&nbsp;&nbsp;{label.toUpperCase()}
     </div>
   );
@@ -301,7 +308,13 @@ export const Pub3: React.FC = () => {
       {[...NLINES, T.n11].map((l) => <Sequence key={`n${l.n}`} from={at(l.at)} layout="none"><Audio src={staticFile(narration[l.n].file)} volume={1.05} /></Sequence>)}
       {/* La cuisine, à peine : la plaque, pas la salle. */}
       <Sequence from={0} durationInFrames={at(T.out1)} layout="none"><Audio src={staticFile('media/sizzle.mp3')} volume={(f) => 0.14 * Math.min(1, f / 20) * Math.min(1, (at(T.out1) - f) / 30)} /></Sequence>
-      {[T.missed, T.booked.at + 0.15].map((s) => <Sequence key={s} from={at(s)} durationInFrames={at(1)} layout="none"><Audio src={staticFile('media/pop.mp3')} volume={0.5} /></Sequence>)}
+      {/* Les sons de la référence, chacun sur son animation. */}
+      {[...NLINES, T.n11].flatMap((l) => narration[l.n].words.map((w, i) => <Sfx key={`w${l.n}-${i}`} at={l.at + w.start - 0.04} name="type" gain={0.32} />))}
+      <Sfx at={T.n4.at + narration[3].words[3].start + 0.05} name="glitch" gain={0.55} />
+      <Sfx at={T.n6.at + narration[5].words[narration[5].words.length - 1].start} name="thump" gain={0.7} />
+      {[0.1, T.shots2[0].at + 0.05].map((s) => <Sfx key={`c${s}`} at={s} name="tracking" gain={0.4} />)}
+      {[T.ring.at, T.missed, T.ring2.at, T.booked.at + 0.15].map((s) => <Sfx key={`p${s}`} at={s} name="pop" gain={0.6} />)}
+      <Sfx at={T.call.at + 0.2} name="click" gain={0.6} />
       <Audio src={staticFile('sounds-pub3.wav')} />
     </AbsoluteFill>
   );

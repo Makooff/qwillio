@@ -15,6 +15,7 @@ import { MacBookBookings } from '../pub2/mac';
 import { Canvas, Frame, Phone, STAGE, buzzAngle, reveal, spring } from '../pub3/Pub3';
 import { IncomingCall, LockScreen, Notification } from '../pub3/ios';
 import { ShaderOrb } from '../pub3/ShaderOrb';
+import { Sfx, glitch, wordIn } from '../fx';
 import { Engines, MessageNote, VoiceClone } from './illustrations';
 import voices from './voices';
 import { CLIPS, DURATION, FPS, T, VLine, VLINES } from './timeline';
@@ -39,8 +40,10 @@ function Said({ line, t, size = 88, y = 300 }: { line: VLine; t: number; size?: 
   return (
     <div style={{ position: 'absolute', left: 70, right: 70, top: y, transform: 'translateY(-50%)', textAlign: 'center', fontSize: size, fontWeight: 300, letterSpacing: '-0.03em', lineHeight: 1.08, color: INK, ...ff }}>
       {n.words.map((w, i) => {
-        const k = p(t, line.at + w.start - 0.06, 0.38, EASE_OUT);
-        return <span key={i} style={{ display: 'inline-block', marginRight: '0.24em', opacity: Math.min(1, k * 1.5) * (1 - outK), filter: `blur(${(1 - k) * 16 + outK * 12}px)`, ...(n.serif.includes(i) ? serif : {}) }}>{w.w}</span>;
+        const inS = wordIn(t, line.at + w.start - 0.04);
+        // « urgence » se dédouble : le glitch dit l'alerte.
+        const g = line.id === 'v5' && i === 1 ? glitch(t, line.at + w.start + 0.05) : {};
+        return <span key={i} style={{ display: 'inline-block', marginRight: '0.24em', ...inS, opacity: Number(inS.opacity) * (1 - outK), filter: `blur(${(1 - Math.min(1, Number(inS.opacity))) * 14 + outK * 12}px)`, ...(n.serif.includes(i) ? serif : {}), ...g, transform: `${inS.transform} ${g.transform ?? ''}` }}>{w.w}</span>;
       })}
     </div>
   );
@@ -293,7 +296,16 @@ export const Pub4: React.FC = () => {
       {/* ------------------------------ le son ------------------------------ */}
       <Audio src={staticFile('media/music.mp3')} startFrom={at(20)} volume={(f) => musicVolume(f / FPS)} />
       {SOURCES.map((s) => <Sequence key={s.file} from={at(s.at)} layout="none"><Audio src={staticFile(s.file)} /></Sequence>)}
-      <Sequence from={at(T.message.at + 0.9)} durationInFrames={at(1)} layout="none"><Audio src={staticFile('media/pop.mp3')} volume={0.45} /></Sequence>
+      {/* Les sons de la référence, chacun sur son animation. */}
+      {[...VLINES, T.v8].flatMap((l) => voices.lines[l.id].words.map((w, i) => <Sfx key={`w${l.id}-${i}`} at={l.at + w.start - 0.04} name="type" gain={0.32} />))}
+      <Sfx at={T.v5.at + voices.lines.v5.words[1].start + 0.05} name="glitch" gain={0.55} />
+      {[T.known.ring.at, T.urgent.ring.at, T.message.at + 0.4].map((s) => <Sfx key={`p${s}`} at={s} name="pop" gain={0.6} />)}
+      <Sfx at={T.known.answer} name="click" gain={0.6} />
+      {[T.k3.at - 0.1, T.k4.at - 0.1].map((s) => <Sfx key={`l${s}`} at={s} name="click" gain={0.5} />)}
+      {[0, 1, 2, 3].map((i) => <Sfx key={`m${i}`} at={T.message.at + 0.8 + i * 0.22} name="click" gain={0.35} />)}
+      {[0, 1, 2].map((i) => <Sfx key={`e${i}`} at={T.tech.at + 0.85 + i * 0.35} name="click" gain={0.4} />)}
+      {[0, 0.9].map((d) => <Sfx key={`k${d}`} at={T.clone.at + 0.7 + d} name="counter" gain={0.4} />)}
+      <Sfx at={T.learn.at + 0.2} name="pop" gain={0.5} />
       <Audio src={staticFile('sounds-pub4.wav')} />
     </AbsoluteFill>
   );
