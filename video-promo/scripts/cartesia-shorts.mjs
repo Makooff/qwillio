@@ -20,7 +20,9 @@ const GEMMA = '62ae83ad-4f6a-430b-af41-a9bede9286ca'; // en : britannique
 const ISA = '60e94cf5-8069-459f-a91e-3ff852a51107'; // nl
 // Par langue : qui raconte (et répond), et les deux appelants, filtrés téléphone.
 const VOICES = {
-  fr: { agent: SARAH, M: 'ce74c4da-4aee-435d-bc6d-81d1a9367e12' /* Marc */, F: '63fdecc2-4e1d-4aa3-a442-27204e3cd3b5' /* Léonie */ },
+  // Accent de Paris exigé : Cartesia nomme l'accent de chaque voix (`accents`,
+  // `country`). Marc et Léonie, pris d'abord, étaient fr-CA : québécois.
+  fr: { agent: SARAH, M: 'bfd5390b-e4f9-4e44-95ab-9ebd223acd62' /* Pierre, fr-FR */, F: '735287ee-ce91-4b08-8de4-63315c5ba1fb' /* Emmanuelle, fr-FR */ },
   en: { agent: GEMMA, M: 'ef191366-f52f-447a-a398-ed8c0f2943a1' /* Archie */, F: 'e8e5fffb-252c-436d-b842-8879b84445b6' /* Cathy */ },
   nl: { agent: ISA, M: 'da743a82-ddf2-4d9b-8eb8-ff67ca0b138e' /* Stijn */, F: '0eb213fe-4658-45bc-9442-33a48b24b133' /* Sanne */ },
 };

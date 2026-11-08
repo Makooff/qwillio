@@ -118,6 +118,7 @@ const data = {
  },
  "shorts": {
   "fr-s01": {
+   "lang": "fr",
    "slug": "appel-manque",
    "music": 20,
    "scenes": [
@@ -132,7 +133,7 @@ const data = {
      },
      "say": {
       "file": "voices/shorts/s01-n0.mp3",
-      "duration": 2.64,
+      "duration": 2.56,
       "serif": [
        8
       ],
@@ -143,19 +144,19 @@ const data = {
        },
        {
         "w": "appel",
-        "start": 0.121
+        "start": 0.12
        },
        {
         "w": "manqué,",
-        "start": 0.521
+        "start": 0.441
        },
        {
         "w": "c’est",
-        "start": 1.069
+        "start": 1.084
        },
        {
         "w": "un",
-        "start": 1.4
+        "start": 1.32
        },
        {
         "w": "client",
@@ -163,15 +164,15 @@ const data = {
        },
        {
         "w": "qui",
-        "start": 1.72
+        "start": 1.8
        },
        {
         "w": "réserve",
-        "start": 1.96
+        "start": 1.88
        },
        {
         "w": "ailleurs.",
-        "start": 2.282
+        "start": 2.28
        }
       ]
      }
@@ -182,30 +183,30 @@ const data = {
      },
      "say": {
       "file": "voices/shorts/s01-n1.mp3",
-      "duration": 2.88,
+      "duration": 2.8,
       "serif": [
        4
       ],
       "words": [
        {
         "w": "Avec",
-        "start": 0.116
+        "start": 0.114
        },
        {
         "w": "Qwillio,",
-        "start": 0.362
+        "start": 0.442
        },
        {
         "w": "quelqu’un",
-        "start": 1.073
+        "start": 0.995
        },
        {
         "w": "décroche.",
-        "start": 1.324
+        "start": 1.329
        },
        {
         "w": "Toujours.",
-        "start": 2.271
+        "start": 2.255
        }
       ]
      },
@@ -213,27 +214,27 @@ const data = {
       {
        "who": "caller",
        "file": "voices/shorts/s01-1-0-tel.mp3",
-       "duration": 3.12,
+       "duration": 2.88,
        "words": [
         {
          "w": "Bonsoir,",
-         "start": 0.129
+         "start": 0.12
         },
         {
          "w": "vous",
-         "start": 1.204
+         "start": 0.972
         },
         {
          "w": "auriez",
-         "start": 1.4
+         "start": 1.56
         },
         {
          "w": "une",
-         "start": 1.48
+         "start": 1.64
         },
         {
          "w": "table",
-         "start": 1.724
+         "start": 1.64
         },
         {
          "w": "pour",
@@ -241,30 +242,30 @@ const data = {
         },
         {
          "w": "quatre",
-         "start": 2.05
+         "start": 2.043
         },
         {
          "w": "ce",
-         "start": 2.6
+         "start": 2.52
         },
         {
          "w": "soir",
-         "start": 2.68
+         "start": 2.6
         },
         {
          "w": "?",
-         "start": 2.84
+         "start": 2.68
         }
        ]
       },
       {
        "who": "agent",
        "file": "voices/shorts/s01-1-1.mp3",
-       "duration": 3.2,
+       "duration": 2.96,
        "words": [
         {
          "w": "Bonsoir",
-         "start": 0.125
+         "start": 0.124
         },
         {
          "w": "!",
@@ -272,11 +273,11 @@ const data = {
         },
         {
          "w": "Oui,",
-         "start": 0.865
+         "start": 0.796
         },
         {
          "w": "à",
-         "start": 1.453
+         "start": 1.322
         },
         {
          "w": "vingt",
@@ -284,31 +285,31 @@ const data = {
         },
         {
          "w": "heures",
-         "start": 1.8
+         "start": 1.56
         },
         {
          "w": "trente.",
-         "start": 1.801
+         "start": 1.721
         },
         {
          "w": "C’est",
-         "start": 2.381
+         "start": 2.197
         },
         {
          "w": "à",
-         "start": 2.68
+         "start": 2.44
         },
         {
          "w": "quel",
-         "start": 2.76
+         "start": 2.52
         },
         {
          "w": "nom",
-         "start": 2.84
+         "start": 2.6
         },
         {
          "w": "?",
-         "start": 2.96
+         "start": 2.72
         }
        ]
       }
@@ -322,22 +323,22 @@ const data = {
      },
      "say": {
       "file": "voices/shorts/s01-n2.mp3",
-      "duration": 1.84,
+      "duration": 1.92,
       "serif": [
        5
       ],
       "words": [
        {
         "w": "Et",
-        "start": 0.118
+        "start": 0.117
        },
        {
         "w": "la",
-        "start": 0.2
+        "start": 0.28
        },
        {
         "w": "réservation",
-        "start": 0.362
+        "start": 0.361
        },
        {
         "w": "arrive",
@@ -345,7 +346,7 @@ const data = {
        },
        {
         "w": "toute",
-        "start": 1.32
+        "start": 1.321
        },
        {
         "w": "seule.",
@@ -354,10 +355,10 @@ const data = {
       ]
      }
     }
-   ],
-   "lang": "fr"
+   ]
   },
   "fr-s02": {
+   "lang": "fr",
    "slug": "trois-heures",
    "music": 45,
    "scenes": [
@@ -367,34 +368,34 @@ const data = {
      },
      "say": {
       "file": "voices/shorts/s02-n0.mp3",
-      "duration": 1.36,
+      "duration": 1.44,
       "serif": [
        5
       ],
       "words": [
        {
         "w": "Il",
-        "start": 0.105
+        "start": 0.106
        },
        {
         "w": "est",
-        "start": 0.28
+        "start": 0.36
        },
        {
         "w": "trois",
-        "start": 0.441
+        "start": 0.44
        },
        {
         "w": "heures",
-        "start": 0.68
+        "start": 0.684
        },
        {
         "w": "du",
-        "start": 0.92
+        "start": 0.84
        },
        {
         "w": "matin.",
-        "start": 1.001
+        "start": 1.08
        }
       ]
      }
@@ -415,23 +416,23 @@ const data = {
       "words": [
        {
         "w": "Votre",
-        "start": 0.114
+        "start": 0.115
        },
        {
         "w": "cabinet",
-        "start": 0.442
+        "start": 0.441
        },
        {
         "w": "est",
-        "start": 0.76
+        "start": 0.84
        },
        {
         "w": "fermé.",
-        "start": 0.921
+        "start": 0.841
        },
        {
         "w": "Le",
-        "start": 1.647
+        "start": 1.659
        },
        {
         "w": "téléphone",
@@ -452,74 +453,74 @@ const data = {
       {
        "who": "caller",
        "file": "voices/shorts/s02-2-0-tel.mp3",
-       "duration": 3.04,
+       "duration": 2.72,
        "words": [
         {
          "w": "Bonjour,",
-         "start": 0.121
+         "start": 0.113
         },
         {
          "w": "je",
-         "start": 0.853
+         "start": 0.843
         },
         {
          "w": "voudrais",
-         "start": 1.08
+         "start": 0.92
         },
         {
          "w": "un",
-         "start": 1.4
+         "start": 1.24
         },
         {
          "w": "rendez-vous",
-         "start": 1.401
+         "start": 1.321
         },
         {
          "w": "pour",
-         "start": 1.8
+         "start": 1.56
         },
         {
          "w": "un",
-         "start": 2.04
+         "start": 1.88
         },
         {
          "w": "détartrage.",
-         "start": 2.128
+         "start": 1.886
         }
        ]
       },
       {
        "who": "agent",
        "file": "voices/shorts/s02-2-1.mp3",
-       "duration": 3.28,
+       "duration": 3.44,
        "words": [
         {
          "w": "Bien",
-         "start": 0.112
+         "start": 0.118
         },
         {
          "w": "sûr.",
-         "start": 0.282
+         "start": 0.441
         },
         {
          "w": "Je",
-         "start": 1.062
+         "start": 1.142
         },
         {
          "w": "vous",
-         "start": 1.4
+         "start": 1.48
         },
         {
          "w": "propose",
-         "start": 1.401
+         "start": 1.481
         },
         {
          "w": "mardi",
-         "start": 1.801
+         "start": 1.961
         },
         {
          "w": "à",
-         "start": 2.2
+         "start": 2.28
         },
         {
          "w": "neuf",
@@ -531,34 +532,34 @@ const data = {
         },
         {
          "w": "ça",
-         "start": 2.719
+         "start": 2.955
         },
         {
          "w": "vous",
-         "start": 3
+         "start": 3.16
         },
         {
          "w": "va",
-         "start": 3.08
+         "start": 3.16
         },
         {
          "w": "?",
-         "start": 3.16
+         "start": 3.24
         }
        ]
       },
       {
        "who": "caller",
        "file": "voices/shorts/s02-2-2-tel.mp3",
-       "duration": 1.44,
+       "duration": 1.28,
        "words": [
         {
          "w": "Parfait,",
-         "start": 0.117
+         "start": 0.104
         },
         {
          "w": "merci.",
-         "start": 0.761
+         "start": 0.606
         }
        ]
       }
@@ -572,34 +573,34 @@ const data = {
      },
      "say": {
       "file": "voices/shorts/s02-n3.mp3",
-      "duration": 2.08,
+      "duration": 2.4,
       "serif": [
        3
       ],
       "words": [
        {
         "w": "Vous",
-        "start": 0.109
+        "start": 0.111
        },
        {
         "w": "dormez.",
-        "start": 0.201
+        "start": 0.36
        },
        {
         "w": "Elle,",
-        "start": 1.027
+        "start": 1.151
        },
        {
         "w": "non.",
-        "start": 1.636
+        "start": 1.895
        }
       ]
      }
     }
-   ],
-   "lang": "fr"
+   ]
   },
   "fr-s03": {
+   "lang": "fr",
    "slug": "trois-langues",
    "music": 70,
    "scenes": [
@@ -609,14 +610,14 @@ const data = {
      },
      "say": {
       "file": "voices/shorts/s03-n0.mp3",
-      "duration": 2.88,
+      "duration": 2.96,
       "serif": [
        10
       ],
       "words": [
        {
         "w": "À",
-        "start": 0.114
+        "start": 0.11
        },
        {
         "w": "Bruxelles,",
@@ -624,15 +625,15 @@ const data = {
        },
        {
         "w": "vos",
-        "start": 0.974
+        "start": 1.06
        },
        {
         "w": "clients",
-        "start": 1.161
+        "start": 1.321
        },
        {
         "w": "ne",
-        "start": 1.48
+        "start": 1.56
        },
        {
         "w": "parlent",
@@ -640,23 +641,23 @@ const data = {
        },
        {
         "w": "pas",
-        "start": 1.88
+        "start": 1.962
        },
        {
         "w": "tous",
-        "start": 1.96
+        "start": 2.122
        },
        {
         "w": "la",
-        "start": 2.2
-       },
-       {
-        "w": "même",
         "start": 2.36
        },
        {
+        "w": "même",
+        "start": 2.6
+       },
+       {
         "w": "langue.",
-        "start": 2.44
+        "start": 2.76
        }
       ]
      }
@@ -670,31 +671,31 @@ const data = {
        "who": "agent",
        "tag": "FR",
        "file": "voices/shorts/s03-1-0.mp3",
-       "duration": 2.48,
+       "duration": 2.64,
        "words": [
         {
          "w": "Bonjour,",
-         "start": 0.119
+         "start": 0.121
         },
         {
          "w": "cabinet",
-         "start": 0.755
+         "start": 0.835
         },
         {
          "w": "Delvaux,",
-         "start": 1.161
+         "start": 1.32
         },
         {
          "w": "je",
-         "start": 1.735
+         "start": 1.78
         },
         {
          "w": "vous",
-         "start": 1.96
+         "start": 2.04
         },
         {
          "w": "écoute.",
-         "start": 2.041
+         "start": 2.121
         }
        ]
       },
@@ -702,31 +703,31 @@ const data = {
        "who": "agent",
        "tag": "EN",
        "file": "voices/shorts/s03-1-1.mp3",
-       "duration": 3.04,
+       "duration": 3.12,
        "words": [
         {
          "w": "Hello,",
-         "start": 0.122
+         "start": 0.119
         },
         {
          "w": "Delvaux",
-         "start": 0.828
+         "start": 0.768
         },
         {
          "w": "practice,",
-         "start": 1.267
+         "start": 1.242
         },
         {
          "w": "how",
-         "start": 2.094
+         "start": 2.15
         },
         {
          "w": "can",
-         "start": 2.2
+         "start": 2.36
         },
         {
          "w": "I",
-         "start": 2.36
+         "start": 2.44
         },
         {
          "w": "help?",
@@ -738,31 +739,31 @@ const data = {
        "who": "agent",
        "tag": "NL",
        "file": "voices/shorts/s03-1-2.mp3",
-       "duration": 3.28,
+       "duration": 3.12,
        "words": [
         {
          "w": "Goedendag,",
-         "start": 0.134
+         "start": 0.181
         },
         {
          "w": "praktijk",
-         "start": 0.972
+         "start": 1.041
         },
         {
          "w": "Delvaux,",
-         "start": 1.407
+         "start": 1.484
         },
         {
          "w": "waarmee",
-         "start": 2.15
+         "start": 2.24
         },
         {
          "w": "kan",
-         "start": 2.521
+         "start": 2.44
         },
         {
          "w": "ik",
-         "start": 2.76
+         "start": 2.68
         },
         {
          "w": "helpen?",
@@ -778,14 +779,14 @@ const data = {
      },
      "say": {
       "file": "voices/shorts/s03-n2.mp3",
-      "duration": 2.64,
+      "duration": 2.72,
       "serif": [
        8
       ],
       "words": [
        {
         "w": "Elle",
-        "start": 0.116
+        "start": 0.115
        },
        {
         "w": "répond",
@@ -793,7 +794,7 @@ const data = {
        },
        {
         "w": "dans",
-        "start": 0.601
+        "start": 0.6
        },
        {
         "w": "la",
@@ -805,7 +806,7 @@ const data = {
        },
        {
         "w": "Avec",
-        "start": 1.568
+        "start": 1.649
        },
        {
         "w": "le",
@@ -813,19 +814,19 @@ const data = {
        },
        {
         "w": "bon",
-        "start": 2.04
+        "start": 2.2
        },
        {
         "w": "accent.",
-        "start": 2.281
+        "start": 2.361
        }
       ]
      }
     }
-   ],
-   "lang": "fr"
+   ]
   },
   "fr-s04": {
+   "lang": "fr",
    "slug": "reconnait",
    "music": 95,
    "scenes": [
@@ -839,14 +840,14 @@ const data = {
      },
      "say": {
       "file": "voices/shorts/s04-n0.mp3",
-      "duration": 2,
+      "duration": 2.16,
       "serif": [
        4
       ],
       "words": [
        {
         "w": "Et",
-        "start": 0.28
+        "start": 0.2
        },
        {
         "w": "si",
@@ -854,23 +855,23 @@ const data = {
        },
        {
         "w": "votre",
-        "start": 0.681
+        "start": 0.761
        },
        {
         "w": "téléphone",
-        "start": 1.002
+        "start": 1.081
        },
        {
         "w": "savait",
-        "start": 1.321
+        "start": 1.482
        },
        {
         "w": "qui",
-        "start": 1.481
+        "start": 1.721
        },
        {
         "w": "appelle ?",
-        "start": 1.68
+        "start": 1.88
        }
       ]
      }
@@ -889,113 +890,113 @@ const data = {
       {
        "who": "agent",
        "file": "voices/shorts/s04-1-0.mp3",
-       "duration": 2.8,
+       "duration": 2.64,
        "words": [
         {
          "w": "Bonjour",
-         "start": 0.115
+         "start": 0.114
         },
         {
          "w": "Monsieur",
-         "start": 0.441
+         "start": 0.52
         },
         {
          "w": "Leroy",
-         "start": 0.761
+         "start": 0.681
         },
         {
          "w": "!",
-         "start": 1.027
+         "start": 0.92
         },
         {
          "w": "C’est",
-         "start": 1.294
+         "start": 1.16
         },
         {
          "w": "pour",
-         "start": 1.64
+         "start": 1.48
         },
         {
          "w": "votre",
-         "start": 1.72
+         "start": 1.561
         },
         {
          "w": "rendez-vous",
-         "start": 2.041
+         "start": 1.881
         },
         {
          "w": "de",
-         "start": 2.36
+         "start": 2.28
         },
         {
          "w": "jeudi",
-         "start": 2.44
+         "start": 2.28
         },
         {
          "w": "?",
-         "start": 2.56
+         "start": 2.4
         }
        ]
       },
       {
        "who": "caller",
        "file": "voices/shorts/s04-1-1-tel.mp3",
-       "duration": 2.08,
+       "duration": 2.16,
        "words": [
         {
          "w": "Oui,",
-         "start": 0.116
+         "start": 0.108
         },
         {
          "w": "je",
-         "start": 0.671
+         "start": 0.684
         },
         {
          "w": "peux",
-         "start": 0.76
+         "start": 0.84
         },
         {
          "w": "le",
-         "start": 1
+         "start": 0.92
         },
         {
          "w": "décaler",
-         "start": 1.001
+         "start": 1.082
         },
         {
          "w": "à",
-         "start": 1.32
+         "start": 1.48
         },
         {
          "w": "vendredi",
-         "start": 1.481
+         "start": 1.482
         },
         {
          "w": "?",
-         "start": 1.721
+         "start": 1.761
         }
        ]
       },
       {
        "who": "agent",
        "file": "voices/shorts/s04-1-2.mp3",
-       "duration": 3.52,
+       "duration": 4.08,
        "words": [
         {
          "w": "C’est",
-         "start": 0.112
+         "start": 0.105
         },
         {
          "w": "fait,",
-         "start": 0.28
+         "start": 0.36
         },
         {
          "w": "vendredi",
-         "start": 0.752
+         "start": 0.723
         },
         {
          "w": "même",
-         "start": 1.24
+         "start": 1.32
         },
         {
          "w": "heure.",
@@ -1003,31 +1004,31 @@ const data = {
         },
         {
          "w": "Je",
-         "start": 1.76
+         "start": 2.021
         },
         {
          "w": "vous",
-         "start": 1.801
+         "start": 2.36
         },
         {
          "w": "envoie",
-         "start": 2.041
+         "start": 2.443
         },
         {
          "w": "un",
-         "start": 2.44
+         "start": 3
         },
         {
          "w": "SMS",
-         "start": 2.44
+         "start": 3
         },
         {
          "w": "de",
-         "start": 2.76
+         "start": 3.32
         },
         {
          "w": "confirmation.",
-         "start": 2.762
+         "start": 3.402
         }
        ]
       }
@@ -1048,7 +1049,7 @@ const data = {
       "words": [
        {
         "w": "Elle",
-        "start": 0.11
+        "start": 0.112
        },
        {
         "w": "se",
@@ -1060,31 +1061,31 @@ const data = {
        },
        {
         "w": "de",
-        "start": 0.76
+        "start": 0.762
        },
        {
         "w": "vos",
-        "start": 0.919
+        "start": 0.84
        },
        {
         "w": "clients.",
-        "start": 1.08
+        "start": 0.92
        },
        {
         "w": "Comme",
-        "start": 1.733
+        "start": 1.756
        },
        {
         "w": "vous.",
-        "start": 2.12
+        "start": 2.2
        }
       ]
      }
     }
-   ],
-   "lang": "fr"
+   ]
   },
   "fr-s05": {
+   "lang": "fr",
    "slug": "urgence",
    "music": 120,
    "scenes": [
@@ -1094,34 +1095,34 @@ const data = {
      },
      "say": {
       "file": "voices/shorts/s05-n0.mp3",
-      "duration": 2.24,
+      "duration": 1.84,
       "serif": [
        5
       ],
       "words": [
        {
         "w": "Certains",
-        "start": 0.189
+        "start": 0.116
        },
        {
         "w": "appels",
-        "start": 0.682
+        "start": 0.529
        },
        {
         "w": "ne",
-        "start": 1.202
+        "start": 0.84
        },
        {
         "w": "peuvent",
-        "start": 1.32
+        "start": 0.92
        },
        {
         "w": "pas",
-        "start": 1.562
+        "start": 1.163
        },
        {
         "w": "attendre.",
-        "start": 1.727
+        "start": 1.561
        }
       ]
      }
@@ -1134,94 +1135,94 @@ const data = {
       {
        "who": "caller",
        "file": "voices/shorts/s05-1-0-tel.mp3",
-       "duration": 3.84,
+       "duration": 3.04,
        "words": [
         {
          "w": "Bonjour,",
-         "start": 0.13
+         "start": 0.129
         },
         {
          "w": "j’ai",
-         "start": 0.945
+         "start": 0.838
         },
         {
          "w": "une",
-         "start": 1.16
+         "start": 1.08
         },
         {
          "w": "fuite",
-         "start": 1.242
+         "start": 1.24
         },
         {
          "w": "d’eau,",
-         "start": 1.561
+         "start": 1.4
         },
         {
          "w": "c’est",
-         "start": 2.16
+         "start": 1.72
         },
         {
          "w": "vraiment",
-         "start": 2.844
+         "start": 2.041
         },
         {
          "w": "urgent",
-         "start": 3.243
+         "start": 2.521
         },
         {
          "w": "!",
-         "start": 3.522
+         "start": 2.721
         }
        ]
       },
       {
        "who": "agent",
        "file": "voices/shorts/s05-1-1.mp3",
-       "duration": 2.64,
+       "duration": 2.88,
        "words": [
         {
          "w": "Je",
-         "start": 0.107
+         "start": 0.161
         },
         {
          "w": "vous",
-         "start": 0.2
+         "start": 0.44
         },
         {
          "w": "passe",
-         "start": 0.36
+         "start": 0.52
         },
         {
          "w": "le",
-         "start": 0.6
+         "start": 0.76
         },
         {
          "w": "responsable",
-         "start": 0.602
+         "start": 0.762
         },
         {
          "w": "tout",
-         "start": 1.161
-        },
-        {
-         "w": "de",
          "start": 1.4
         },
         {
+         "w": "de",
+         "start": 1.48
+        },
+        {
          "w": "suite,",
-         "start": 1.401
+         "start": 1.481
         },
         {
          "w": "ne",
-         "start": 1.866
+         "start": 2.069
         },
         {
          "w": "quittez",
-         "start": 2.041
+         "start": 2.28
         },
         {
          "w": "pas.",
-         "start": 2.44
+         "start": 2.6
         }
        ]
       }
@@ -1237,62 +1238,62 @@ const data = {
      },
      "say": {
       "file": "voices/shorts/s05-n2.mp3",
-      "duration": 3.92,
+      "duration": 4.16,
       "serif": [
        10
       ],
       "words": [
        {
         "w": "Les",
-        "start": 0.113
+        "start": 0.118
        },
        {
         "w": "urgences,",
-        "start": 0.283
+        "start": 0.362
        },
        {
         "w": "elle",
-        "start": 1.062
+        "start": 1.151
        },
        {
         "w": "vous",
-        "start": 1.32
-       },
-       {
-        "w": "les",
         "start": 1.4
        },
        {
+        "w": "les",
+        "start": 1.48
+       },
+       {
         "w": "passe.",
-        "start": 1.404
+        "start": 1.561
        },
        {
         "w": "Le",
-        "start": 2.26
+        "start": 2.458
        },
        {
         "w": "reste,",
-        "start": 2.521
+        "start": 2.761
        },
        {
         "w": "elle",
-        "start": 3.203
+        "start": 3.43
        },
        {
         "w": "le",
-        "start": 3.4
+        "start": 3.72
        },
        {
         "w": "gère.",
-        "start": 3.481
+        "start": 3.801
        }
       ]
      }
     }
-   ],
-   "lang": "fr"
+   ]
   },
   "fr-s06": {
+   "lang": "fr",
    "slug": "invente-rien",
    "music": 150,
    "scenes": [
@@ -1313,15 +1314,15 @@ const data = {
        },
        {
         "w": "pire",
-        "start": 0.526
+        "start": 0.529
        },
        {
         "w": "réceptionniste ?",
-        "start": 0.963
+        "start": 0.965
        },
        {
         "w": "Celle",
-        "start": 1.695
+        "start": 1.776
        },
        {
         "w": "qui",
@@ -1329,7 +1330,7 @@ const data = {
        },
        {
         "w": "invente.",
-        "start": 2.202
+        "start": 2.282
        }
       ]
      }
@@ -1342,38 +1343,38 @@ const data = {
       {
        "who": "caller",
        "file": "voices/shorts/s06-1-0-tel.mp3",
-       "duration": 1.52,
+       "duration": 1.44,
        "words": [
         {
          "w": "Vous",
-         "start": 0.114
+         "start": 0.102
         },
         {
          "w": "acceptez",
-         "start": 0.281
+         "start": 0.36
         },
         {
          "w": "les",
-         "start": 0.68
+         "start": 0.6
         },
         {
          "w": "chèques-repas",
-         "start": 0.765
+         "start": 0.683
         },
         {
          "w": "?",
-         "start": 1.083
+         "start": 1.001
         }
        ]
       },
       {
        "who": "agent",
        "file": "voices/shorts/s06-1-1.mp3",
-       "duration": 4.08,
+       "duration": 4.16,
        "words": [
         {
          "w": "Je",
-         "start": 0.114
+         "start": 0.106
         },
         {
          "w": "préfère",
@@ -1381,35 +1382,35 @@ const data = {
         },
         {
          "w": "ne",
-         "start": 0.68
+         "start": 0.6
         },
         {
          "w": "pas",
-         "start": 0.681
+         "start": 0.68
         },
         {
          "w": "vous",
-         "start": 0.92
+         "start": 0.84
         },
         {
          "w": "dire",
-         "start": 0.921
+         "start": 1
         },
         {
          "w": "de",
-         "start": 1.24
+         "start": 1.16
         },
         {
          "w": "bêtise.",
-         "start": 1.241
+         "start": 1.162
         },
         {
          "w": "Je",
-         "start": 1.985
+         "start": 1.978
         },
         {
          "w": "pose",
-         "start": 2.2
+         "start": 2.28
         },
         {
          "w": "la",
@@ -1417,23 +1418,23 @@ const data = {
         },
         {
          "w": "question,",
-         "start": 2.521
+         "start": 2.523
         },
         {
          "w": "et",
-         "start": 3.195
+         "start": 3.274
         },
         {
          "w": "on",
-         "start": 3.4
-        },
-        {
-         "w": "vous",
          "start": 3.48
         },
         {
+         "w": "vous",
+         "start": 3.56
+        },
+        {
          "w": "rappelle.",
-         "start": 3.561
+         "start": 3.641
         }
        ]
       }
@@ -1447,18 +1448,18 @@ const data = {
      },
      "say": {
       "file": "voices/shorts/s06-n2.mp3",
-      "duration": 2.48,
+      "duration": 2.64,
       "serif": [
        7
       ],
       "words": [
        {
         "w": "Vous",
-        "start": 0.107
+        "start": 0.104
        },
        {
         "w": "répondez",
-        "start": 0.28
+        "start": 0.201
        },
        {
         "w": "une",
@@ -1466,31 +1467,31 @@ const data = {
        },
        {
         "w": "fois.",
-        "start": 0.68
+        "start": 0.76
        },
        {
         "w": "Elle",
-        "start": 1.342
+        "start": 1.413
        },
        {
         "w": "le",
-        "start": 1.56
-       },
-       {
-        "w": "saura",
         "start": 1.64
        },
        {
+        "w": "saura",
+        "start": 1.721
+       },
+       {
         "w": "toujours.",
-        "start": 1.964
+        "start": 2.123
        }
       ]
      }
     }
-   ],
-   "lang": "fr"
+   ]
   },
   "fr-s07": {
+   "lang": "fr",
    "slug": "message",
    "music": 175,
    "scenes": [
@@ -1511,11 +1512,11 @@ const data = {
        },
        {
         "w": "êtes",
-        "start": 0.28
+        "start": 0.36
        },
        {
         "w": "avec",
-        "start": 0.44
+        "start": 0.52
        },
        {
         "w": "un",
@@ -1527,7 +1528,7 @@ const data = {
        },
        {
         "w": "Le",
-        "start": 1.411
+        "start": 1.426
        },
        {
         "w": "téléphone",
@@ -1535,7 +1536,7 @@ const data = {
        },
        {
         "w": "sonne.",
-        "start": 2.121
+        "start": 2.122
        }
       ]
      }
@@ -1548,11 +1549,11 @@ const data = {
       {
        "who": "caller",
        "file": "voices/shorts/s07-1-0-tel.mp3",
-       "duration": 3.92,
+       "duration": 3.12,
        "words": [
         {
          "w": "C’est",
-         "start": 0.11
+         "start": 0.116
         },
         {
          "w": "pour",
@@ -1560,86 +1561,86 @@ const data = {
         },
         {
          "w": "Marc.",
-         "start": 0.444
+         "start": 0.521
         },
         {
          "w": "Il",
-         "start": 1.636
+         "start": 1.233
         },
         {
          "w": "peut",
-         "start": 2.12
+         "start": 1.56
         },
         {
          "w": "me",
-         "start": 2.28
+         "start": 1.72
         },
         {
          "w": "rappeler",
-         "start": 2.281
+         "start": 1.801
         },
         {
          "w": "après",
-         "start": 2.682
+         "start": 2.2
         },
         {
          "w": "dix-sept",
-         "start": 3.004
+         "start": 2.441
         },
         {
          "w": "heures",
-         "start": 3.402
+         "start": 2.841
         },
         {
          "w": "?",
-         "start": 3.601
+         "start": 2.92
         }
        ]
       },
       {
        "who": "agent",
        "file": "voices/shorts/s07-1-1.mp3",
-       "duration": 3.68,
+       "duration": 3.36,
        "words": [
         {
          "w": "C’est",
-         "start": 0.111
+         "start": 0.112
         },
         {
          "w": "noté",
-         "start": 0.36
+         "start": 0.28
         },
         {
          "w": "pour",
-         "start": 0.68
+         "start": 0.6
         },
         {
          "w": "Marc,",
-         "start": 0.762
+         "start": 0.761
         },
         {
          "w": "après",
-         "start": 1.387
+         "start": 1.231
         },
         {
          "w": "dix-sept",
-         "start": 1.643
+         "start": 1.482
         },
         {
          "w": "heures.",
-         "start": 2.2
+         "start": 1.96
         },
         {
          "w": "Je",
-         "start": 2.795
+         "start": 2.481
         },
         {
          "w": "lui",
-         "start": 3.08
+         "start": 2.84
         },
         {
          "w": "transmets.",
-         "start": 3.163
+         "start": 2.842
         }
        ]
       }
@@ -1651,14 +1652,14 @@ const data = {
      },
      "say": {
       "file": "voices/shorts/s07-n2.mp3",
-      "duration": 3.04,
+      "duration": 3.12,
       "serif": [
        7
       ],
       "words": [
        {
         "w": "Le",
-        "start": 0.107
+        "start": 0.109
        },
        {
         "w": "message",
@@ -1666,11 +1667,11 @@ const data = {
        },
        {
         "w": "arrive.",
-        "start": 0.521
+        "start": 0.601
        },
        {
         "w": "Pour",
-        "start": 1.397
+        "start": 1.352
        },
        {
         "w": "qui,",
@@ -1678,23 +1679,23 @@ const data = {
        },
        {
         "w": "et",
-        "start": 2.272
+        "start": 2.231
        },
        {
         "w": "quand",
-        "start": 2.44
+        "start": 2.52
        },
        {
         "w": "rappeler.",
-        "start": 2.681
+        "start": 2.761
        }
       ]
      }
     }
-   ],
-   "lang": "fr"
+   ]
   },
   "fr-s08": {
+   "lang": "fr",
    "slug": "annuler",
    "music": 200,
    "scenes": [
@@ -1704,7 +1705,7 @@ const data = {
      },
      "say": {
       "file": "voices/shorts/s08-n0.mp3",
-      "duration": 2.48,
+      "duration": 2.64,
       "serif": [
        9
       ],
@@ -1715,39 +1716,39 @@ const data = {
        },
        {
         "w": "rendez-vous",
-        "start": 0.28
+        "start": 0.281
        },
        {
         "w": "annulé",
-        "start": 0.603
+        "start": 0.681
        },
        {
         "w": "ne",
-        "start": 1.081
+        "start": 1.223
        },
        {
         "w": "devrait",
-        "start": 1.24
+        "start": 1.32
        },
        {
         "w": "pas",
-        "start": 1.4
-       },
-       {
-        "w": "vous",
-        "start": 1.56
-       },
-       {
-        "w": "coûter",
         "start": 1.641
        },
        {
+        "w": "vous",
+        "start": 1.8
+       },
+       {
+        "w": "coûter",
+        "start": 1.88
+       },
+       {
         "w": "un",
-        "start": 2.04
+        "start": 2.12
        },
        {
         "w": "appel.",
-        "start": 2.12
+        "start": 2.281
        }
       ]
      }
@@ -1760,50 +1761,50 @@ const data = {
       {
        "who": "caller",
        "file": "voices/shorts/s08-1-0-tel.mp3",
-       "duration": 2.8,
+       "duration": 2.64,
        "words": [
         {
          "w": "Bonjour,",
-         "start": 0.121
+         "start": 0.129
         },
         {
          "w": "je",
-         "start": 0.827
+         "start": 0.836
         },
         {
          "w": "dois",
-         "start": 1
+         "start": 1.08
         },
         {
          "w": "annuler",
-         "start": 1.168
+         "start": 1.328
         },
         {
          "w": "mon",
-         "start": 1.64
+         "start": 1.56
         },
         {
          "w": "rendez-vous",
-         "start": 1.721
+         "start": 1.801
         },
         {
          "w": "de",
-         "start": 2.2
+         "start": 2.12
         },
         {
          "w": "jeudi.",
-         "start": 2.201
+         "start": 2.121
         }
        ]
       },
       {
        "who": "agent",
        "file": "voices/shorts/s08-1-1.mp3",
-       "duration": 3.12,
+       "duration": 3.04,
        "words": [
         {
          "w": "C’est",
-         "start": 0.106
+         "start": 0.089
         },
         {
          "w": "fait,",
@@ -1811,19 +1812,19 @@ const data = {
         },
         {
          "w": "votre",
-         "start": 0.673
+         "start": 0.75
         },
         {
          "w": "rendez-vous",
-         "start": 1.003
+         "start": 0.925
         },
         {
          "w": "de",
-         "start": 1.4
+         "start": 1.48
         },
         {
          "w": "jeudi",
-         "start": 1.401
+         "start": 1.481
         },
         {
          "w": "est",
@@ -1831,11 +1832,11 @@ const data = {
         },
         {
          "w": "annulé.",
-         "start": 1.88
+         "start": 1.96
         },
         {
          "w": "Bonne",
-         "start": 2.391
+         "start": 2.342
         },
         {
          "w": "journée",
@@ -1843,7 +1844,7 @@ const data = {
         },
         {
          "w": "!",
-         "start": 2.84
+         "start": 2.8
         }
        ]
       }
@@ -1855,14 +1856,14 @@ const data = {
      },
      "say": {
       "file": "voices/shorts/s08-n2.mp3",
-      "duration": 3.36,
+      "duration": 3.52,
       "serif": [
        7
       ],
       "words": [
        {
         "w": "Elle",
-        "start": 0.113
+        "start": 0.112
        },
        {
         "w": "prend,",
@@ -1870,35 +1871,35 @@ const data = {
        },
        {
         "w": "déplace",
-        "start": 0.936
+        "start": 0.896
        },
        {
         "w": "et",
-        "start": 1.7
+        "start": 1.711
        },
        {
         "w": "annule.",
-        "start": 1.801
+        "start": 1.88
        },
        {
         "w": "Votre",
-        "start": 2.385
+        "start": 2.534
        },
        {
         "w": "agenda",
-        "start": 2.68
+        "start": 2.76
        },
        {
         "w": "suit.",
-        "start": 3.001
+        "start": 3.161
        }
       ]
      }
     }
-   ],
-   "lang": "fr"
+   ]
   },
   "fr-s09": {
+   "lang": "fr",
    "slug": "coiffeur",
    "music": 225,
    "scenes": [
@@ -1911,22 +1912,22 @@ const data = {
      },
      "say": {
       "file": "voices/shorts/s09-n0.mp3",
-      "duration": 2.64,
+      "duration": 2.48,
       "serif": [
        7
       ],
       "words": [
        {
         "w": "Les",
-        "start": 0.115
+        "start": 0.117
        },
        {
         "w": "mains",
-        "start": 0.28
+        "start": 0.36
        },
        {
         "w": "dans",
-        "start": 0.52
+        "start": 0.44
        },
        {
         "w": "les",
@@ -1934,19 +1935,19 @@ const data = {
        },
        {
         "w": "cheveux,",
-        "start": 0.682
+        "start": 0.761
        },
        {
         "w": "impossible",
-        "start": 1.335
+        "start": 1.203
        },
        {
         "w": "de",
-        "start": 1.88
+        "start": 1.8
        },
        {
         "w": "décrocher.",
-        "start": 2.041
+        "start": 1.882
        }
       ]
      }
@@ -1959,74 +1960,74 @@ const data = {
       {
        "who": "caller",
        "file": "voices/shorts/s09-1-0-tel.mp3",
-       "duration": 3.04,
+       "duration": 2.88,
        "words": [
         {
          "w": "Bonjour,",
-         "start": 0.121
+         "start": 0.125
         },
         {
          "w": "une",
-         "start": 0.89
+         "start": 0.951
         },
         {
          "w": "coupe",
-         "start": 1.001
+         "start": 1.24
         },
         {
          "w": "samedi",
-         "start": 1.322
+         "start": 1.4
         },
         {
          "w": "matin,",
-         "start": 1.561
+         "start": 1.64
         },
         {
          "w": "c’est",
-         "start": 2.277
+         "start": 2.186
         },
         {
          "w": "possible",
-         "start": 2.491
+         "start": 2.378
         },
         {
          "w": "?",
-         "start": 2.706
+         "start": 2.569
         }
        ]
       },
       {
        "who": "agent",
        "file": "voices/shorts/s09-1-1.mp3",
-       "duration": 3.12,
+       "duration": 3.04,
        "words": [
         {
          "w": "Samedi",
-         "start": 0.119
+         "start": 0.122
         },
         {
          "w": "à",
-         "start": 0.52
+         "start": 0.68
         },
         {
          "w": "dix",
-         "start": 0.6
+         "start": 0.68
         },
         {
          "w": "heures,",
-         "start": 0.84
+         "start": 1
         },
         {
          "w": "c’est",
-         "start": 1.319
+         "start": 1.41
         },
         {
          "w": "libre.",
-         "start": 1.48
+         "start": 1.8
         },
         {
          "w": "C’est",
-         "start": 2.095
+         "start": 2.199
         },
         {
          "w": "à",
@@ -2034,7 +2035,7 @@ const data = {
         },
         {
          "w": "quel",
-         "start": 2.52
+         "start": 2.6
         },
         {
          "w": "nom",
@@ -2049,22 +2050,22 @@ const data = {
       {
        "who": "caller",
        "file": "voices/shorts/s09-1-2-tel.mp3",
-       "duration": 1.44,
+       "duration": 0.96,
        "words": [
         {
          "w": "Sophie",
-         "start": 0.127
+         "start": 0.07
         },
         {
          "w": "Lambert.",
-         "start": 0.792
+         "start": 0.441
         }
        ]
       },
       {
        "who": "agent",
        "file": "voices/shorts/s09-1-3.mp3",
-       "duration": 2.16,
+       "duration": 2.32,
        "words": [
         {
          "w": "C’est",
@@ -2072,23 +2073,23 @@ const data = {
         },
         {
          "w": "réservé,",
-         "start": 0.28
+         "start": 0.361
         },
         {
          "w": "Sophie.",
-         "start": 0.873
+         "start": 1.136
         },
         {
          "w": "À",
-         "start": 1.53
+         "start": 1.68
         },
         {
          "w": "samedi",
-         "start": 1.641
+         "start": 1.882
         },
         {
          "w": "!",
-         "start": 1.84
+         "start": 2.081
         }
        ]
       }
@@ -2102,18 +2103,18 @@ const data = {
      },
      "say": {
       "file": "voices/shorts/s09-n2.mp3",
-      "duration": 1.6,
+      "duration": 1.44,
       "serif": [
        5
       ],
       "words": [
        {
         "w": "Elle",
-        "start": 0.122
+        "start": 0.111
        },
        {
         "w": "réserve",
-        "start": 0.361
+        "start": 0.281
        },
        {
         "w": "pendant",
@@ -2129,15 +2130,15 @@ const data = {
        },
        {
         "w": "coupez.",
-        "start": 1.081
+        "start": 1.163
        }
       ]
      }
     }
-   ],
-   "lang": "fr"
+   ]
   },
   "fr-s10": {
+   "lang": "fr",
    "slug": "avant-apres",
    "music": 250,
    "scenes": [
@@ -2155,15 +2156,15 @@ const data = {
       "words": [
        {
         "w": "Une",
-        "start": 0.101
+        "start": 0.108
        },
        {
         "w": "messagerie",
-        "start": 0.202
+        "start": 0.361
        },
        {
         "w": "pleine.",
-        "start": 0.762
+        "start": 0.764
        }
       ]
      }
@@ -2178,7 +2179,7 @@ const data = {
      },
      "say": {
       "file": "voices/shorts/s10-n1.mp3",
-      "duration": 1.76,
+      "duration": 1.6,
       "serif": [
        5
       ],
@@ -2189,23 +2190,23 @@ const data = {
        },
        {
         "w": "clients",
-        "start": 0.281
+        "start": 0.361
        },
        {
         "w": "qui",
-        "start": 0.76
+        "start": 0.68
        },
        {
         "w": "ne",
-        "start": 0.84
+        "start": 0.76
        },
        {
         "w": "rappellent",
-        "start": 0.841
+        "start": 0.921
        },
        {
         "w": "jamais.",
-        "start": 1.242
+        "start": 1.161
        }
       ]
      }
@@ -2217,22 +2218,22 @@ const data = {
      },
      "say": {
       "file": "voices/shorts/s10-n2.mp3",
-      "duration": 1.36,
+      "duration": 1.2,
       "serif": [
        2
       ],
       "words": [
        {
         "w": "Chaque",
-        "start": 0.108
+        "start": 0.109
        },
        {
         "w": "appel",
-        "start": 0.442
+        "start": 0.441
        },
        {
         "w": "décroché.",
-        "start": 0.682
+        "start": 0.681
        }
       ]
      }
@@ -2250,11 +2251,11 @@ const data = {
       "words": [
        {
         "w": "Et",
-        "start": 0.116
+        "start": 0.117
        },
        {
         "w": "chaque",
-        "start": 0.28
+        "start": 0.36
        },
        {
         "w": "rendez-vous",
@@ -2262,7 +2263,7 @@ const data = {
        },
        {
         "w": "dans",
-        "start": 1
+        "start": 0.92
        },
        {
         "w": "l’agenda.",
@@ -2271,10 +2272,10 @@ const data = {
       ]
      }
     }
-   ],
-   "lang": "fr"
+   ]
   },
   "fr-s11": {
+   "lang": "fr",
    "slug": "essayez",
    "music": 275,
    "scenes": [
@@ -2284,18 +2285,18 @@ const data = {
      },
      "say": {
       "file": "voices/shorts/s11-n0.mp3",
-      "duration": 1.6,
+      "duration": 1.68,
       "serif": [
        5
       ],
       "words": [
        {
         "w": "Ne",
-        "start": 0.102
+        "start": 0.103
        },
        {
         "w": "nous",
-        "start": 0.28
+        "start": 0.2
        },
        {
         "w": "croyez",
@@ -2307,11 +2308,11 @@ const data = {
        },
        {
         "w": "sur",
-        "start": 0.92
+        "start": 0.921
        },
        {
         "w": "parole.",
-        "start": 1.002
+        "start": 1.081
        }
       ]
      }
@@ -2328,19 +2329,19 @@ const data = {
        "words": [
         {
          "w": "Bonjour",
-         "start": 0.125
+         "start": 0.119
         },
         {
          "w": "!",
-         "start": 0.403
+         "start": 0.36
         },
         {
          "w": "Je",
-         "start": 0.817
+         "start": 0.754
         },
         {
          "w": "suis",
-         "start": 1
+         "start": 1.08
         },
         {
          "w": "la",
@@ -2352,27 +2353,27 @@ const data = {
         },
         {
          "w": "de",
-         "start": 2.04
+         "start": 1.961
         },
         {
          "w": "Qwillio.",
-         "start": 2.044
+         "start": 2.043
         },
         {
          "w": "Posez-moi",
-         "start": 2.879
+         "start": 2.842
         },
         {
          "w": "une",
-         "start": 3.24
+         "start": 3.32
         },
         {
          "w": "question,",
-         "start": 3.481
+         "start": 3.321
         },
         {
          "w": "je",
-         "start": 3.935
+         "start": 4.029
         },
         {
          "w": "vous",
@@ -2380,7 +2381,7 @@ const data = {
         },
         {
          "w": "écoute.",
-         "start": 4.282
+         "start": 4.281
         }
        ]
       }
@@ -2392,7 +2393,7 @@ const data = {
      },
      "say": {
       "file": "voices/shorts/s11-n2.mp3",
-      "duration": 2.32,
+      "duration": 2.24,
       "serif": [
        4
       ],
@@ -2407,21 +2408,20 @@ const data = {
        },
        {
         "w": "Elle",
-        "start": 1.409
+        "start": 1.466
        },
        {
         "w": "vous",
-        "start": 1.8
+        "start": 1.64
        },
        {
         "w": "attend.",
-        "start": 1.801
+        "start": 1.88
        }
       ]
      }
     }
-   ],
-   "lang": "fr"
+   ]
   },
   "en-s01": {
    "lang": "en",

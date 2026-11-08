@@ -16,9 +16,8 @@ La piste (public/music-minimal.mp3), 108 bpm, fa majeur, I-V-vi-IV :
 Des sections de huit mesures retirent ou rajoutent des couches : chaque vidéo
 démarre à un endroit différent (`music` dans scripts/cartesia-shorts.mjs).
 
-La signature (public/jingle.mp3), environ 3 s : cinq notes de cloche douce,
-do - fa - la - sol, puis fa tenu, sur un accord de fa qui s'ouvre. Le fa final
-tombe à 1,0 s : c'est lui qu'on cale sur le logo formé.
+La signature (public/jingle.mp3), 3 s : trois notes de cloche pure, do - la -
+fa. Le fa final tombe à 1,0 s : c'est lui qu'on cale sur le logo formé.
 
   python scripts/music-minimal.py
 """
@@ -215,25 +214,13 @@ tr.r += lp(arp.r, 5000) + er * 0.5
 master(tr, -16, 'public/music-minimal.mp3', fade_in=1.0, fade_out=3.0)
 
 # ================================================================== la signature
-JDUR = 3.2
+# Minimale (deuxième retour du propriétaire) : trois notes de cloche pure qui
+# descendent sur l'accord de fa, do6 - la5 - fa5, et rien d'autre qu'un écho.
+JDUR = 3.0
 jg = Track(JDUR)
-# do5 - fa5 - la5 - sol5, puis fa5 tenu : « Qwil-li-o » qui se pose
-melody = [(0.00, 72, 0.9), (0.20, 77, 0.9), (0.40, 81, 1.0), (0.62, 79, 0.85), (1.00, 77, 1.1)]
-for at, m, g in melody:
-    dec = 1.6 if at >= 1.0 else 3.4
-    jg.add(bell(hz(m), 2.2, dec), at, pan=0.0, gain=0.22 * g)
-    jg.add(bell(hz(m + 12), 1.2, dec * 1.8), at + 0.004, pan=0.3, gain=0.05 * g)
-# l'accord de fa qui s'ouvre sous la dernière note
-chord = np.zeros(int(2.4 * SR))
-for m in (53, 57, 60, 65, 69):
-    chord += pad_note(hz(m), 2.4)
-tt = np.arange(len(chord)) / SR
-chord = lp(chord / 5 * np.minimum(1, tt / 0.5) * np.exp(-np.maximum(0, tt - 0.8) * 1.6), 2200)
-jg.add(chord, 0.75, gain=0.35)
-# une basse de fa qui assoit la fin
-tt = np.arange(int(1.6 * SR)) / SR
-jg.add(lp(np.sin(2 * np.pi * hz(41) * tt) * np.exp(-tt * 2.2) * np.minimum(1, tt * 100) * np.minimum(1, (1.6 - tt) / 0.2), 300), 1.0, gain=0.4)
-el, er = echo(jg.l, jg.r, BEAT * 0.5, fb=0.28, taps=3, tone=5000)
-jg.l += el * 0.4
-jg.r += er * 0.4
-master(jg, -15, 'public/jingle.mp3', fade_in=0.0, fade_out=0.4)
+for at, m, g, dec in ((0.56, 84, 0.8, 3.0), (0.76, 81, 0.85, 2.8), (1.00, 77, 1.0, 1.4)):
+    jg.add(bell(hz(m), 2.0, dec), at, gain=0.24 * g)
+el, er = echo(jg.l, jg.r, BEAT * 0.5, fb=0.3, taps=3, tone=5000)
+jg.l += el * 0.35
+jg.r += er * 0.35
+master(jg, -17, 'public/jingle.mp3', fade_in=0.0, fade_out=0.4)
