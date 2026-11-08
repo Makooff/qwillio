@@ -32,6 +32,11 @@ interface Entry {
   setup: 'url' | 'oauth' | 'apiKey' | 'none';
   benefit: string;
   connected: boolean;
+  /* L'adresse du compte branché (Google/Outlook), rendue par le catalogue pour
+     qu'on sache QUEL agenda est connecté — sinon on vérifie « Test Qwillio »
+     dans le mauvais compte. Absente pour les intégrations qui n'ont pas de
+     compte d'agenda (Slack, webhooks…). */
+  accountEmail?: string | null;
 }
 
 const SECTIONS: { verb: Verb; icon: typeof PhoneCall; title: string; blurb: string }[] = [
@@ -306,6 +311,11 @@ export default function ClientIntegrations() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-[#F5F5F7]">{entry.name}</p>
+                        {entry.connected && entry.accountEmail && (
+                          <p className="mt-0.5 truncate text-[12px] text-[#8B8BA7]" title={entry.accountEmail}>
+                            Compte connecté : <span className="text-[#c9c9d6]">{entry.accountEmail}</span>
+                          </p>
+                        )}
                         <p className="mt-1 text-[13px] leading-relaxed text-[#8B8BA7]">{entry.benefit}</p>
                       </div>
                       <span className={`shrink-0 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium ${b.cls}`}>
