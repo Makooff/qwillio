@@ -216,8 +216,12 @@ export const Pub4: React.FC = () => {
 
       {/* 2. L'agenda : le portail, dans Safari, sur le MacBook du site. */}
       {between(t, T.agenda.at, T.agenda.out) && (() => {
-        const z = p(t, T.agenda.at, T.agenda.out - T.agenda.at, EASE_IN_OUT);
-        const s = mix(0.6, 1.7, z), fx = mix(930, 1075, z), fy = mix(730, 540, z);
+        // Le Mac entier d'abord : à 0,78, le fond gris de la photo couvre déjà
+        // toute la carte (1 600 × 0,78 dépasse ses 1 180 px de haut), donc aucune
+        // bande d'une autre couleur. Il reste entier un instant, puis la caméra
+        // s'approche de la réservation de Julie.
+        const z = p(t, T.agenda.at + 0.7, T.agenda.out - T.agenda.at - 0.9, EASE_IN_OUT);
+        const s = mix(0.78, 2.6, z), fx = mix(975, 1075, z), fy = mix(800, 540, z);
         const k = sceneAlpha(t, T.agenda);
         return (
           <div style={{ position: 'absolute', left: 80, top: 500, width: 920, height: 1180, borderRadius: 48, overflow: 'hidden', background: '#E7E7E7', opacity: k, transform: `scale(${0.96 + 0.04 * k})`, boxShadow: `0 0 0 1px ${PLATE}, 0 50px 90px -40px rgba(60,30,120,0.35)` }}>

@@ -263,10 +263,12 @@ export const Pub3: React.FC = () => {
 
       {/* Déjà dans l'agenda */}
       {between(t, T.mac.at, T.mac.out) && (() => {
-        const z = p(t, T.mac.at, T.mac.out - T.mac.at, EASE_IN_OUT);
-        // La page remplit la carte dès la première image (plus de fond gris ni
-        // de bord blanc), puis la caméra s'approche du rendez-vous de Julie.
-        const s = mix(2.35, 3.1, z), fx = mix(960, 1080, z), fy = mix(630, 525, z);
+        // Le Mac entier d'abord : à 0,78, le fond gris de la photo couvre déjà
+        // toute la carte (1 600 × 0,78 dépasse ses 1 180 px de haut), donc aucune
+        // bande d'une autre couleur. Il reste entier un instant, puis la caméra
+        // s'approche de la réservation de Julie.
+        const z = p(t, T.mac.at + 0.7, T.mac.out - T.mac.at - 0.9, EASE_IN_OUT);
+        const s = mix(0.78, 3.0, z), fx = mix(975, 1080, z), fy = mix(800, 525, z);
         const k = p(t, T.mac.at, 0.45, EASE_OUT) * (1 - p(t, T.mac.out - 0.3, 0.3));
         return (
           <div style={{ position: 'absolute', left: 80, top: 500, width: 920, height: 1180, borderRadius: 48, overflow: 'hidden', background: '#E7E7E7', opacity: k, transform: `scale(${0.96 + 0.04 * k})`, filter: `blur(${(1 - k) * 12}px)`, boxShadow: `0 0 0 1px ${PLATE}, 0 50px 90px -40px rgba(60,30,120,0.35)` }}>
