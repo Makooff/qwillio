@@ -132,18 +132,37 @@ function useVoices() {
   return CALL.map((l) => useAudioData(staticFile(l.file)));
 }
 
+/** Le niveau de la voix, image par image, sur toute la durée de l'appel. Le
+ * rond en a besoin cumulé : sa vitesse suit la voix, donc sa phase est la
+ * somme des niveaux passés. Calculé une fois, puis lu. */
+function useCallLevels(voices: ReturnType<typeof useVoices>) {
+  return React.useMemo(() => {
+    if (voices.some((v) => !v)) return null;
+    const n = Math.ceil((T.call.out - T.call.at) * FPS) + 1;
+    const lv = new Float32Array(n), phase = new Float32Array(n);
+    for (let f = 0; f < n; f++) {
+      const t = T.call.at + f / FPS;
+      const sp = CALL.find((l) => t >= l.at && t <= l.end + 0.05);
+      if (sp) {
+        const s = visualizeAudio({ fps: FPS, frame: Math.round((t - sp.at) * FPS), audioData: voices[CALL.indexOf(sp)]!, numberOfSamples: 32, smoothing: true });
+        lv[f] = Math.min(1, Math.sqrt(s.slice(1, 8).reduce((a, b) => a + b, 0)) * 1.4);
+      }
+      // Lissé sur ~80 ms, pour que le rond respire au lieu de trembler.
+      if (f > 0) lv[f] = lv[f - 1] + (lv[f] - lv[f - 1]) * 0.25;
+      phase[f] = (f > 0 ? phase[f - 1] : 0) + (0.8 + 2.6 * lv[f]) / FPS;
+    }
+    return { lv, phase };
+  }, [voices]);
+}
+
 function CallScene({ t }: { t: number }) {
   const voices = useVoices();
+  const levels = useCallLevels(voices);
   const k = p(t, T.call.at + 0.2, 0.7, EASE_EXPO) * (1 - p(t, T.call.out - 0.45, 0.45));
   const speaking = CALL.find((l) => t >= l.at && t <= l.end + 0.05);
-  let level = 0;
-  if (speaking) {
-    const v = voices[CALL.indexOf(speaking)];
-    if (v) {
-      const s = visualizeAudio({ fps: FPS, frame: Math.round((t - speaking.at) * FPS), audioData: v, numberOfSamples: 32, smoothing: true });
-      level = Math.min(1, Math.sqrt(s.slice(1, 8).reduce((a, b) => a + b, 0)) * 1.4);
-    }
-  }
+  const fi = Math.max(0, Math.min(Math.round((t - T.call.at) * FPS), (levels?.lv.length ?? 1) - 1));
+  const level = levels ? levels.lv[fi] : 0;
+  const phase = T.call.at * 0.8 + (levels ? levels.phase[fi] : (t - T.call.at) * 0.8);
   const active = p(t, T.call.answered, 0.6, EASE_OUT);
   const timer = `0:${String(Math.floor(Math.max(0, t - T.call.answered))).padStart(2, '0')}`;
   const shown = CALL.filter((l) => t >= l.at - 0.05);
@@ -151,7 +170,7 @@ function CallScene({ t }: { t: number }) {
   return (
     <AbsoluteFill style={{ opacity: k }}>
       <div style={{ position: 'absolute', left: (1080 - SIZE) / 2, top: 760, filter: `blur(${(1 - k) * 16}px)`, transform: `scale(${0.92 + 0.08 * spring(p(t, T.call.at + 0.2, 1, (v) => v))})` }}>
-        <ShaderOrb size={SIZE} time={t * 1.0} active={active} timer={timer} level={level} />
+        <ShaderOrb size={SIZE} time={phase} active={active} timer={timer} level={level} />
       </div>
       <div style={{ position: 'absolute', left: 80, right: 80, top: 1370, height: 420, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', gap: 22, ...ff }}>
         {shown.slice(-2).map((l) => {
