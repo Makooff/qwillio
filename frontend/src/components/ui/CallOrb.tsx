@@ -5,8 +5,8 @@ import { useEffect, useRef } from 'react';
  * Repris du fichier Figma Make « Shader Reminder » (7wYeHdH9iallsagJqpUmot) :
  *  - `flowingWavesShader` tel quel : neuf itérations de cosinus, une couleur
  *    divisée par |sin(t - y - x)|, le centre assombri à 30 % entre 0,3 et 0,5
- *    rayon, rien hors du cercle. La palette passe aux couleurs de Qwillio
- *    (indigo #7A5FFF vers violet #CD6BFB), plus vive une fois l'appel établi ;
+ *    rayon, rien hors du cercle. Palette gris et noir (la neutre du
+ *    fichier), un peu plus claire une fois l'appel établi ;
  *  - `CenterReminderDisplay` : disque de 70 %, noir à 30 %, flou 16 px, liseré
  *    blanc à 10 %, l'emoji d'appel au centre et le décompte au-dessus.
  * Ajout propre à Qwillio : le rond réagit à `level`, le niveau de la voix de
@@ -37,9 +37,9 @@ void main() {
     uv.x += warp / i * cos(i * 2.5 * uv.y + iTime);
     uv.y += warp / i * cos(i * 1.5 * uv.x + iTime);
   }
-  // Indigo #7A5FFF vers violet #CD6BFB au fil des vagues.
-  float m = 0.5 + 0.5 * sin(uv.x * 1.3 + iTime * 0.4);
-  vec3 base = mix(vec3(0.478, 0.373, 1.0), vec3(0.804, 0.420, 0.984), m) * (0.16 + 0.06 * active + 0.08 * level);
+  // Gris et noir : la palette neutre du fichier, un peu plus claire une
+  // fois l'appel pris et quand la voix monte.
+  vec3 base = vec3(0.1 + 0.025 * active + 0.06 * level);
   vec3 col = base / abs(sin(iTime - uv.y - uv.x));
   col = mix(col * 0.3, col, centerDim);
   gl_FragColor = vec4(col, 1.0);

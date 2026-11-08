@@ -5,7 +5,7 @@
  *    neuf itérations de cosinus qui tordent l'espace, une couleur divisée par
  *    |sin(t - y - x)|, le centre assombri à 30 % entre 0,3 et 0,5 rayon, et tout
  *    ce qui sort du cercle jeté. Les deux palettes du fichier sont gardées :
- *    remplacées par les couleurs de Qwillio (indigo vers violet), sans ombre.
+ *    ramenées au gris et noir (la palette neutre du fichier), sans ombre.
  *  - `CenterReminderDisplay` : un disque de 70 %, noir à 30 %, flou de 16 px
  *    (`backdrop-blur-lg`), liseré blanc à 10 %, l'heure au-dessus du message.
  *    Le message est ici l'emoji d'appel.
@@ -35,9 +35,9 @@ function drawWaves(ctx: CanvasRenderingContext2D, res: number, time: number, act
   const img = ctx.createImageData(res, res);
   const d = img.data;
   const r = res / 2;
-  // Palette : celle de Qwillio, l'indigo #7A5FFF qui glisse vers le violet
-  // #CD6BFB au fil des vagues, plus vive une fois l'appel pris.
-  const gain = 0.16 + 0.06 * active + 0.08 * level;
+  // Palette : gris et noir, la palette neutre d'origine du fichier (0,1),
+  // un peu plus claire une fois l'appel pris et quand la voix monte.
+  const gain = 0.1 + 0.025 * active + 0.06 * level;
   // La voix tord davantage les vagues : 0,6 au repos, jusqu'à 0,85.
   const warp = 0.6 + 0.25 * level;
   for (let py = 0; py < res; py++) {
@@ -53,8 +53,7 @@ function drawWaves(ctx: CanvasRenderingContext2D, res: number, time: number, act
         uy += (warp / i) * Math.cos(i * 1.5 * ux + time);
       }
       const s = Math.abs(Math.sin(time - uy - ux)) || 1e-6;
-      const m = 0.5 + 0.5 * Math.sin(ux * 1.3 + time * 0.4);
-      const br = (0.478 + 0.326 * m) * gain, bg = (0.373 + 0.047 * m) * gain, bb = (1.0 - 0.016 * m) * gain;
+      const br = gain, bg = gain, bb = gain;
       const dim = smoothstep(r * 0.3, r * 0.5, dist);
       const k = 0.3 + 0.7 * dim;
       // L'antialiasing du bord, que le `discard` du fichier n'a pas mais que le

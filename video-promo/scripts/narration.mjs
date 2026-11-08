@@ -5,23 +5,24 @@
 // flou au moment où il est dit. La clé est injectée par le proxy.
 // Usage : NODE_USE_ENV_PROXY=1 node scripts/narration.mjs [voiceId]
 import fs from 'fs';
+import { stripTags } from './voices-tags.mjs';
 
-const VOICE = process.argv[2] ?? 'cjVigY5qzO86Huf0OWal'; // Eric, « Smooth, Trustworthy »
+const VOICE = process.argv[2] ?? 'necQJzI1X0vLpdnJteap'; // M. Laurent, parisien, « Warm, friendly & reassuring »
 const MODEL = process.env.MODEL ?? 'eleven_v3';
 
 // `say` est ce qui est lu, `show` ce qui est affiché (les chiffres s'écrivent).
 export const NARRATION = [
-  { id: 'n1', say: 'Samedi, vingt heures douze.', show: 'Samedi, 20 h 12.', serif: [1, 2, 3] },
-  { id: 'n2', say: 'Le téléphone vibre.', show: 'Le téléphone vibre.', serif: [2] },
-  { id: 'n3', say: 'Les mains dans la pâte.', show: 'Les mains dans la pâte.', serif: [4] },
-  { id: 'n4', say: 'Julie réserve en face.', show: 'Julie réserve en face.', serif: [2, 3] },
-  { id: 'n5', say: 'Même soirée.', show: 'Même soirée.', serif: [1] },
-  { id: 'n6', say: 'Cette fois…', show: 'Cette fois…', serif: [1] },
-  { id: 'n7', say: 'Réservé. Les mains toujours dans la pâte.', show: 'Réservé. Les mains toujours dans la pâte.', serif: [6] },
-  { id: 'n8', say: 'Déjà dans votre agenda.', show: 'Déjà dans votre agenda.', serif: [3] },
-  { id: 'n9', say: 'Julie a sa table.', show: 'Julie a sa table.', serif: [] },
-  { id: 'n10', say: 'Vous, vos pizzas.', show: 'Vous, vos pizzas.', serif: [2] },
-  { id: 'n11', say: 'Qwillio. Elle décroche quand vous ne pouvez pas.', show: 'Elle décroche quand vous ne pouvez pas.', serif: [4, 5, 6] },
+  { id: 'n1', tag: '[softly]', say: 'Samedi, vingt heures douze.', show: 'Samedi, 20 h 12.', serif: [1, 2, 3] },
+  { id: 'n2', tag: '[tense]', say: 'Le téléphone vibre.', show: 'Le téléphone vibre.', serif: [2] },
+  { id: 'n3', tag: '[sighs]', say: 'Les mains dans la pâte.', show: 'Les mains dans la pâte.', serif: [4] },
+  { id: 'n4', tag: '[disappointed]', say: 'Julie réserve en face.', show: 'Julie réserve en face.', serif: [2, 3] },
+  { id: 'n5', tag: '[warmly]', say: 'Même soirée.', show: 'Même soirée.', serif: [1] },
+  { id: 'n6', tag: '[confident]', say: 'Cette fois…', show: 'Cette fois…', serif: [1] },
+  { id: 'n7', tag: '[satisfied]', say: 'Réservé. Les mains toujours dans la pâte.', show: 'Réservé. Les mains toujours dans la pâte.', serif: [6] },
+  { id: 'n8', tag: '[smiling]', say: 'Déjà dans votre agenda.', show: 'Déjà dans votre agenda.', serif: [3] },
+  { id: 'n9', tag: '[warmly]', say: 'Julie a sa table.', show: 'Julie a sa table.', serif: [] },
+  { id: 'n10', tag: '[playfully]', say: 'Vous, vos pizzas.', show: 'Vous, vos pizzas.', serif: [2] },
+  { id: 'n11', tag: '[warmly]', say: 'Qwillio. Elle décroche quand vous ne pouvez pas.', show: 'Elle décroche quand vous ne pouvez pas.', serif: [4, 5, 6] },
 ];
 
 const out = [];
@@ -29,12 +30,12 @@ for (const l of NARRATION) {
   const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${VOICE}/with-timestamps?output_format=mp3_44100_128`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'xi-api-key': 'proxy-injected' },
-    body: JSON.stringify({ text: l.say, model_id: MODEL, language_code: 'fr', voice_settings: { stability: 0.5, similarity_boost: 0.8, style: 0.3, use_speaker_boost: true } }),
+    body: JSON.stringify({ text: MODEL === 'eleven_v3' ? `${l.tag} ${l.say}` : l.say, model_id: MODEL, language_code: 'fr', voice_settings: { stability: 0.5, similarity_boost: 0.8, style: 0.3, use_speaker_boost: true } }),
   });
   if (!res.ok) { console.error(l.id, res.status, await res.text()); process.exit(1); }
   const j = await res.json();
   fs.writeFileSync(`public/voices/${l.id}.mp3`, Buffer.from(j.audio_base64, 'base64'));
-  const a = j.alignment;
+  const a = stripTags(j.alignment);
   // Mots lus, avec leur début et leur fin.
   const spoken = [];
   let cur = null;
