@@ -7,6 +7,7 @@ import {
 } from '../icons';
 import api, { apiBaseUrl } from '../../services/api';
 import VapiLiveCall, { prewarmLiveCall } from './VapiLiveCall';
+import CallOrb from '../ui/CallOrb';
 
 const cn = (...c: (string | false | null | undefined)[]) => c.filter(Boolean).join(' ');
 
@@ -443,6 +444,12 @@ export default function AssistantChat({
       setCallError(message ? { message, detail } : null),
     [],
   );
+  /* L'appel test en cours, et le niveau de la voix de l'agent : de quoi faire
+     vivre le rond de l'appel (ui/CallOrb) au-dessus de la conversation, comme
+     sur le site et dans la pub. La pilule reste le bouton ; le rond montre. */
+  const [testCall, setTestCall] = useState(false);
+  const [testLevel, setTestLevel] = useState(0);
+  const handleTestLevel = useCallback((l: number, speaking: boolean) => setTestLevel(speaking ? l : 0), []);
   const [showIntro, setShowIntro] = useState(() => {
     try { return localStorage.getItem('qw.chatIntroSeen') !== '1'; } catch { return false; }
   });
@@ -995,7 +1002,7 @@ export default function AssistantChat({
                 Le micro n'est plus demandé ici: c'est ce bouton-ci qui lance
                 l'appel, donc le SDK le demande lui-même à l'intérieur du geste,
                 sans qu'une sonde ait à tenir un flux à sa place. */}
-            <VapiLiveCall variant="pill" isFr={isFr} onError={handleCallError} />
+            <VapiLiveCall variant="pill" isFr={isFr} onError={handleCallError} onActive={setTestCall} onLevel={handleTestLevel} />
           </div>
         </div>
 
@@ -1058,6 +1065,25 @@ export default function AssistantChat({
         })()}
       </div>
       )}
+
+      {/* L'appel test, en cours : le rond respire avec la voix de l'agent. */}
+      <AnimatePresence initial={false}>
+        {testCall && (
+          <motion.div
+            key="test-call-orb"
+            className="flex flex-col items-center gap-3 pt-5 pb-2 border-b border-white/[0.06]"
+            initial={reduceMotion ? false : { opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: 'auto' }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
+          >
+            <CallOrb size={140} level={testLevel} active />
+            <p className="text-[12px] text-[#9A9AA5]">
+              {isFr ? 'Appel test en cours · parlez-lui normalement' : 'Test call live · just talk to her'}
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">

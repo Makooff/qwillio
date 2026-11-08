@@ -1,0 +1,10 @@
+<svg preserveAspectRatio="none" overflow="visible" style="display: block;" width="27.4012" height="13" viewBox="0 0 27.4012 13" fill="none" xmlns="http://www.w3.org/2000/svg">
+<g id="_StatusBar-battery">
+<mask id="stroke0_0_146" fill="white">
+<path d="M0 4C0 1.79086 1.79086 0 4 0H21C23.2091 0 25 1.79086 25 4V9C25 11.2091 23.2091 13 21 13H4C1.79086 13 0 11.2091 0 9V4Z" fill-rule="evenodd" clip-rule="evenodd"/>
+</mask>
+<path id="Outline" opacity="0.35" d="M4 13H21C23.2091 13 25 11.2091 25 9V4C25 1.79086 23.2091 0 21 0H4C1.79086 0 0 1.79086 0 4V9C0 11.2091 1.79086 13 4 13Z" stroke-width="2" stroke="black" mask="url(#stroke0_0_146)"/>
+<path id="Battery End" opacity="0.4" d="M26 5V9.22034C26.8491 8.86291 27.4012 8.0314 27.4012 7.11017C27.4012 6.18894 26.8491 5.35744 26 5" fill="black"/>
+<path id="Fill" d="M2 4C2 2.89543 2.89543 2 4 2H21C22.1046 2 23 2.89543 23 4V9C23 10.1046 22.1046 11 21 11H4C2.89543 11 2 10.1046 2 9V4Z" fill="black"/>
+</g>
+</svg>

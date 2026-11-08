@@ -4,6 +4,7 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion';
 import { X } from '../icons';
 import VapiLiveCall from '../client/VapiLiveCall';
 import { apiBaseUrl } from '../../services/api';
+import CallOrb from '../ui/CallOrb';
 
 /* Essai en direct, en carte.
  *
@@ -61,33 +62,6 @@ export const SCENARIOS: Scenario[] = [
   { fr: 'Vous appelez un cabinet vétérinaire pour votre chien.',        en: 'You are calling a vet for your dog.',                  businessName: 'Clinique des Quatre Pattes', businessType: 'veterinary', city: 'Louvain' },
 ];
 
-/** Le diagramme, réactif à la voix de Marie et à rien d'autre. */
-function VoiceRing({ level, active }: { level: number; active: boolean }) {
-  /* Des poids FIXES appliqués au niveau réel: le profil reste stable et seule
-     la hauteur bouge. Une animation aléatoire s'agiterait pareil quel que soit
-     le niveau, donc ne montrerait rien. */
-  const weights = useMemo(
-    () => [0.35, 0.55, 0.75, 0.92, 1, 0.92, 0.75, 0.55, 0.35, 0.6, 0.85, 1, 0.85, 0.6, 0.35],
-    [],
-  );
-  return (
-    <div className="flex items-end justify-center gap-[3px] h-10" aria-hidden="true">
-      {weights.map((w, i) => (
-        <span
-          key={i}
-          className="w-[3px] rounded-full"
-          style={{
-            height: `${active ? Math.max(8, Math.min(100, level * 170 * w)) : 8}%`,
-            background: 'var(--q2-indigo)',
-            opacity: active ? 0.45 + Math.min(level, 1) * 0.55 : 0.25,
-            transition: 'height 90ms linear, opacity 140ms linear',
-          }}
-        />
-      ))}
-    </div>
-  );
-}
-
 export default function TryVoiceCard({
   open,
   onClose,
@@ -103,6 +77,7 @@ export default function TryVoiceCard({
   const reduced = useReducedMotion();
   const [level, setLevel] = useState(0);
   const [speaking, setSpeaking] = useState(false);
+  const [inCall, setInCall] = useState(false);
 
   /* Tiré à l'ouverture, pas au montage: deux essais de suite ne doivent pas
      rejouer la même scène.
@@ -262,28 +237,41 @@ export default function TryVoiceCard({
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.12, duration: 0.3, ease: [0.16, 1, 0.3, 1] }}
             >
-              <span className="relative">
-                {/* L'anneau respire avec sa voix, autour de son visage. */}
-                <span
-                  aria-hidden="true"
-                  className="absolute inset-0 rounded-full"
-                  style={{
-                    background: 'var(--q2-indigo)',
-                    transform: `scale(${1 + Math.min(level, 1) * 0.28})`,
-                    opacity: speaking ? 0.10 + Math.min(level, 1) * 0.26 : 0,
-                    transition: 'transform 90ms linear, opacity 160ms linear',
-                  }}
-                />
-                <img
-                  src={`/characters/${receptionniste?.id ?? 'marie'}.webp`}
-                  alt={receptionniste?.name ?? 'Marie'}
-                  width={120}
-                  height={120}
-                  className="relative block h-[120px] w-[120px] rounded-full object-cover border border-q2-plate bg-q2-band"
-                />
+              {/* Avant l'appel : son portrait, c'est elle qu'on va entendre.
+                  Dès qu'elle décroche, le portrait laisse place au rond de
+                  l'appel (ui/CallOrb, repris du fichier Figma « Shader
+                  Reminder »), qui respire avec sa voix. Les deux occupent la
+                  même place : rien ne bouge autour. */}
+              <span className="relative grid place-items-center h-[160px] w-[160px]">
+                <AnimatePresence initial={false} mode="popLayout">
+                  {inCall ? (
+                    <motion.span
+                      key="orb"
+                      initial={reduced ? false : { opacity: 0, scale: 0.85, filter: 'blur(8px)' }}
+                      animate={{ opacity: 1, scale: 1, filter: 'blur(0px)' }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}
+                    >
+                      <CallOrb size={160} level={speaking ? level : 0} active />
+                    </motion.span>
+                  ) : (
+                    <motion.img
+                      key="portrait"
+                      src={`/characters/${receptionniste?.id ?? 'marie'}.webp`}
+                      alt={receptionniste?.name ?? 'Marie'}
+                      width={120}
+                      height={120}
+                      initial={reduced ? false : { opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9, filter: 'blur(6px)' }}
+                      transition={{ duration: 0.2, ease: [0.16, 1, 0.3, 1] }}
+                      className="block h-[120px] w-[120px] rounded-full object-cover border border-q2-plate bg-q2-band"
+                    />
+                  )}
+                </AnimatePresence>
               </span>
 
-              <p className="mt-4 text-[19px] font-medium text-q2-ink">
+              <p className="mt-2 text-[19px] font-medium text-q2-ink">
                 {receptionniste?.name ?? 'Marie'}
               </p>
               {/* L'accroche du personnage, pas une mention generique : elle dit
@@ -293,8 +281,6 @@ export default function TryVoiceCard({
                 {(isFr ? receptionniste?.taglineFr : receptionniste?.taglineEn)
                   || (isFr ? 'Réceptionniste · français' : 'Receptionist · French')}
               </p>
-
-              <VoiceRing level={level} active={speaking} />
 
               {/* Le scénario: ce qu'on lit est exactement ce que Marie croit. */}
               <p className="mt-1 mb-5 text-center text-[13.5px] leading-relaxed text-q2-body q2-body-text">
@@ -308,6 +294,7 @@ export default function TryVoiceCard({
                   body={body}
                   tone="site"
                   onLevel={onLevel}
+                  onActive={setInCall}
                   /* Le diagramme est au-dessus, en grand: les cinq petites
                      barres du composant diraient la même chose deux fois. */
                   showBars={false}

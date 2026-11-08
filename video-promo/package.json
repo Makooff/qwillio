@@ -1,0 +1,39 @@
+{
+  "name": "qwillio-video-promo",
+  "private": true,
+  "description": "Film promotionnel Qwillio, rendu avec Remotion, \u00e0 partir des \u00e9crans du portail client.",
+  "scripts": {
+    "prepare-assets": "node scripts/copy-assets.mjs && node --experimental-strip-types scripts/logo-frames.mjs",
+    "studio": "remotion studio src/index.ts",
+    "sfx": "node --experimental-strip-types scripts/sfx.mjs",
+    "sounds": "python3 scripts/sounds.py",
+    "render": "remotion render src/index.ts QwillioFilm out/qwillio-promo.mp4",
+    "build": "npm run prepare-assets && npm run sfx && npm run sounds && npm run render",
+    "sfx:pub": "node --experimental-strip-types scripts/sfx.mjs pub",
+    "sounds:pub": "python3 scripts/sounds.py scripts/sfx-pub.json public/sounds-pub.wav",
+    "render:pub": "remotion render src/index.ts QwillioPub out/qwillio-pub-vertical.mp4",
+    "build:pub": "npm run prepare-assets && npm run sfx:pub && npm run sounds:pub && npm run render:pub",
+    "sfx:pub3": "node --experimental-strip-types scripts/sfx.mjs pub3",
+    "sounds:pub3": "python3 scripts/sounds.py scripts/sfx-pub3.json public/sounds-pub3.wav",
+    "render:pub3": "remotion render src/index.ts QwillioPub3 out/qwillio-pub-v3.mp4 --concurrency=4",
+    "build:pub3": "npm run prepare-assets && npm run sfx:pub3 && npm run sounds:pub3 && npm run render:pub3",
+    "transcribe": "node scripts/transcribe-call.mjs"
+  },
+  "dependencies": {
+    "@fontsource/gelasio": "^5.3.0",
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/outfit": "5.2.8",
+    "@remotion/cli": "4.0.290",
+    "@remotion/fonts": "4.0.290",
+    "@remotion/media-utils": "^4.0.290",
+    "react": "19.0.0",
+    "react-coolicons": "3.1.0",
+    "react-dom": "19.0.0",
+    "remotion": "4.0.290"
+  },
+  "devDependencies": {
+    "@types/react": "19.0.0",
+    "typescript": "5.7.3"
+  },
+  "type": "module"
+}

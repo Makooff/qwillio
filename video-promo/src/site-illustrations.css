@@ -1,0 +1,10 @@
+/* Les illustrations du site (components/v2/ProductIllustration) écrivent leurs
+   photos en chemin racine, servi par le site depuis `public/`. Le serveur de
+   Remotion sert le même dossier sous `/public/` : on repointe les mêmes fichiers,
+   copiés depuis frontend/public/marketing par scripts/copy-assets.mjs. */
+.pi { --pi-photo: url('/public/marketing/scene-service-blur.webp'); }
+.pi[data-kind='transfer'], .pi[data-kind='intake'] { --pi-photo: url('/public/marketing/scene-restaurant-blur.webp'); }
+.pi[data-kind='setup'] { --pi-photo: url('/public/marketing/scene-business-blur.webp'); }
+.pi[data-kind='returning'] { --pi-photo: url('/public/marketing/unique-summary-blur.webp'); }
+.pi[data-kind='conversation'] { --pi-photo: url('/public/marketing/unique-test-blur.webp'); }
+.pi[data-kind='knowledge'] { --pi-photo: url('/public/marketing/unique-knowledge-blur.webp'); }
