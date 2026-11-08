@@ -17,6 +17,11 @@ import { businessTimezone, zonedInstant, ymdOf } from '../utils/zoned-time';
 const OAUTH_SCOPES = [
   'https://www.googleapis.com/auth/calendar.events',
   'https://www.googleapis.com/auth/calendar.freebusy',
+  /* `userinfo.email` ne lit qu'une chose : l'adresse du compte branché. Rien de
+     l'agenda, rien des contacts. Sans elle, la page Intégrations ne peut pas
+     dire QUEL compte Google est connecté — et le client vérifie « Test Qwillio »
+     dans le mauvais agenda. Même permission que `User.Read` côté Outlook. */
+  'https://www.googleapis.com/auth/userinfo.email',
 ];
 
 // ═══════════════════════════════════════════════════════════
@@ -140,6 +145,27 @@ export class GoogleCalendarService {
     if (!created?.id) throw new Error('Google Calendar created no event id');
     logger.info(`Google Calendar test event created: ${created.id}`);
     return { id: created.id, summary, start: event.start.dateTime, end: event.end.dateTime };
+  }
+
+  /**
+   * Le compte Google branché — pour l'afficher sur la page Intégrations.
+   *
+   * N'appelle que l'endpoint `userinfo`, qui ne rend que l'identité du titulaire
+   * du jeton (email, nom, photo). C'est la seule manière fiable de savoir QUEL
+   * compte a été connecté : le calendrier « primary » porte comme identifiant
+   * l'adresse elle-même, et un client qui vérifie « Test Qwillio » dans le
+   * mauvais onglet Google conclut à tort que l'intégration ne marche pas.
+   * Miroir de `getConnectedAccount` côté Outlook.
+   */
+  async getConnectedAccount(accessToken: string): Promise<{ email: string | null; name: string | null }> {
+    const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!response.ok) {
+      throw new Error(`Google userinfo failed (${response.status})`);
+    }
+    const me = await response.json() as { email?: string; name?: string };
+    return { email: me.email || null, name: me.name || null };
   }
 
   /**

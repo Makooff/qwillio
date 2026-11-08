@@ -3,6 +3,8 @@ import { findIntegration, isConnectable, catalogueForBusinessType } from '../con
 import { authMiddleware, clientMiddleware } from '../middleware/auth.middleware';
 import { requireCapability } from '../middleware/plan.middleware';
 import { prisma } from '../config/database';
+import { googleCalendarService } from '../services/google-calendar.service';
+import { outlookCalendarService } from '../services/outlook-calendar.service';
 
 const router = Router();
 
@@ -483,10 +485,42 @@ router.get('/integrations/catalog', async (req: Request, res: Response) => {
        de le rebrancher. */
     if (client?.outlookRefreshToken) connectedIds.add('outlook-calendar');
 
-    const catalogue = catalogueForBusinessType(client?.businessType).map(entry => ({
-      ...entry,
-      connected: connectedIds.has(entry.id),
-    }));
+    /* L'adresse du compte branché — pour afficher QUEL agenda est connecté.
+     *
+     * Les jetons d'agenda vivent sur la fiche client, pas dans `crmIntegration` :
+     * sans cette lecture, la page Intégrations affiche « Connecté » sans dire à
+     * quel compte, et le client vérifie « Test Qwillio » dans le mauvais agenda.
+     * Best-effort : un jeton révoqué ou un fournisseur lent ne doit pas casser
+     * le chargement du catalogue — l'email reste simplement absent. */
+    const [googleAccount, outlookAccount] = await Promise.all([
+      client?.googleCalendarRefreshToken
+        ? googleCalendarService.getAccessTokenFromRefresh(client.googleCalendarRefreshToken)
+            .then(t => googleCalendarService.getConnectedAccount(t))
+            .catch(() => ({ email: null, name: null }))
+        : Promise.resolve({ email: null, name: null }),
+      client?.outlookRefreshToken
+        ? outlookCalendarService.getAccessTokenFromRefresh(
+            client.outlookRefreshToken,
+            /* Microsoft tourne le refresh token : le nouveau doit être réécrit
+               avant que l'ancien ne soit révoqué (voir outlook-calendar.service). */
+            async next => { await prisma.client.update({ where: { id: clientId }, data: { outlookRefreshToken: next } }); },
+          )
+            .then(t => outlookCalendarService.getConnectedAccount(t))
+            .catch(() => ({ email: null, name: null }))
+        : Promise.resolve({ email: null, name: null }),
+    ]);
+
+    const catalogue = catalogueForBusinessType(client?.businessType).map(entry => {
+      const accountEmail =
+        entry.id === 'google-calendar' ? googleAccount.email
+        : entry.id === 'outlook-calendar' ? outlookAccount.email
+        : null;
+      return {
+        ...entry,
+        connected: connectedIds.has(entry.id),
+        ...(accountEmail ? { accountEmail } : {}),
+      };
+    });
 
     res.json({ businessType: client?.businessType ?? null, integrations: catalogue });
   } catch (error: any) {
