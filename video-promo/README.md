@@ -29,6 +29,10 @@ La version en cours. `npm run build:pub3` produit `out/qwillio-pub-v3.mp4`.
 - **Pendant l'appel**, plusieurs plans du même tournage se suivent
   (`CALL_SHOTS`), chacun plus court que son rush : l'image ne fige jamais, quelle
   que soit la durée de l'appel réel.
+- **Les voix** viennent de Cartesia, le moteur du produit (`scripts/cartesia-voices.mjs`) :
+  Sarah (« Delivery Liaison ») pour la réceptionniste, Manon pour Julie, Henri
+  pour la narration, chacune avec une émotion par réplique. La clé Cartesia est
+  injectée par le proxy de l'environnement.
 - **L'appel** vient de `src/pub/call.ts`. Aujourd'hui des voix de synthèse ;
   avec l'enregistrement réel d'un appel à la réceptionniste :
 
