@@ -53,14 +53,14 @@ export default [
  {
   "id": "n3",
   "file": "voices/n3.mp3",
-  "duration": 1.28,
+  "duration": 2.72,
   "serif": [
-   4
+   6
   ],
   "words": [
    {
     "w": "Les",
-    "start": 0.106
+    "start": 0.118
    },
    {
     "w": "mains",
@@ -68,42 +68,58 @@ export default [
    },
    {
     "w": "dans",
-    "start": 0.6
+    "start": 0.52
    },
    {
     "w": "la",
     "start": 0.68
    },
    {
-    "w": "pâte.",
-    "start": 0.762
+    "w": "pâte,",
+    "start": 0.681
+   },
+   {
+    "w": "personne",
+    "start": 1.498
+   },
+   {
+    "w": "ne",
+    "start": 2.12
+   },
+   {
+    "w": "décroche.",
+    "start": 2.121
    }
   ]
  },
  {
   "id": "n4",
   "file": "voices/n4.mp3",
-  "duration": 1.52,
+  "duration": 1.76,
   "serif": [
-   2,
-   3
+   3,
+   4
   ],
   "words": [
    {
+    "w": "Alors",
+    "start": 0.114
+   },
+   {
     "w": "Julie",
-    "start": 0.119
+    "start": 0.441
    },
    {
     "w": "réserve",
-    "start": 0.522
+    "start": 0.761
    },
    {
     "w": "en",
-    "start": 0.84
+    "start": 1.16
    },
    {
     "w": "face.",
-    "start": 1.081
+    "start": 1.241
    }
   ]
  },

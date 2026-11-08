@@ -35,8 +35,11 @@ const CALL = [
 const NARRATION = [
   { id: 'n1', emotion: 'mysterious', say: 'Samedi, vingt heures douze.', show: 'Samedi, 20 h 12.', serif: [1, 2, 3] },
   { id: 'n2', emotion: 'anxious', say: 'Le téléphone vibre.', show: 'Le téléphone vibre.', serif: [2] },
-  { id: 'n3', emotion: 'frustrated', say: 'Les mains dans la pâte.', show: 'Les mains dans la pâte.', serif: [4] },
-  { id: 'n4', emotion: 'sad', say: 'Julie réserve en face.', show: 'Julie réserve en face.', serif: [2, 3] },
+  // La cause est dite : personne ne décroche, ALORS elle réserve ailleurs
+  // (retour du propriétaire : « on ne comprend pas qu'elle réserve en face
+  // parce que personne ne décroche »).
+  { id: 'n3', emotion: 'frustrated', say: 'Les mains dans la pâte, personne ne décroche.', show: 'Les mains dans la pâte, personne ne décroche.', serif: [6] },
+  { id: 'n4', emotion: 'sad', say: 'Alors Julie réserve en face.', show: 'Alors Julie réserve en face.', serif: [3, 4] },
   { id: 'n5', emotion: 'calm', say: 'Même soirée.', show: 'Même soirée.', serif: [1] },
   { id: 'n6', emotion: 'excited', say: 'Cette fois…', show: 'Cette fois…', serif: [1] },
   { id: 'n7', emotion: 'happy', say: 'Réservé. Les mains toujours dans la pâte.', show: 'Réservé. Les mains toujours dans la pâte.', serif: [6] },
@@ -80,8 +83,16 @@ for (const l of CALL) {
 fs.writeFileSync('src/pub/call.json', JSON.stringify(call, null, 1));
 fs.writeFileSync('src/pub/call.ts', `// Généré par scripts/cartesia-voices.mjs, ne pas éditer.\nexport default ${JSON.stringify(call)} as Array<{ id: string; who: 'agent' | 'caller'; text: string; file: string; duration: number; words: Array<{ w: string; start: number; end: number }> }>;\n`);
 
+// ONLY=n3,n4 ne refait que ces phrases : les autres prises sont gardées telles
+// que le propriétaire les a validées.
+const ONLY = process.env.ONLY ? process.env.ONLY.split(',') : null;
+const prevNarr = fs.existsSync('src/pub3/narration.ts')
+  ? JSON.parse(fs.readFileSync('src/pub3/narration.ts', 'utf8').replace(/^[\s\S]*?export default /, '').replace(/ as Array[\s\S]*$/, ''))
+  : [];
 const narration = [];
 for (const l of NARRATION) {
+  const keep = ONLY && !ONLY.includes(l.id) && prevNarr.find((p) => p.id === l.id);
+  if (keep) { narration.push(keep); continue; }
   const s = await speak(VOICES.narrator, l.say, l.emotion, `public/voices/${l.id}`);
   // Les mots affichés reçoivent le minutage des mots lus ; quand ils diffèrent
   // (chiffres, « Qwillio. » en tête), à proportion de la durée.

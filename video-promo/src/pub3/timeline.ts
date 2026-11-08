@@ -23,7 +23,7 @@ export interface Shot { at: number; out: number; name: string; from: number }
 
 /** Les répliques de l'appel. Un enregistrement réel porte ses propres temps
  * (`offset`) : on garde alors ses silences tels qu'ils ont été dits. */
-const CALL_AT = 14.7;
+const CALL_AT = 15.4;
 type Raw = (typeof call)[number] & { offset?: number };
 const raw = call as Raw[];
 const base = raw[0].offset ?? 0;
@@ -40,29 +40,29 @@ export const T = {
   shots1: [
     { at: 0, out: 2.6, name: 'dough', from: 0.6 },
     { at: 2.6, out: 4.6, name: 'sauce', from: 0.5 },
-    { at: 4.6, out: 7.0, name: 'oven', from: 1.6 },
-    { at: 7.0, out: 8.9, name: 'ovenhot', from: 0.6 },
+    { at: 4.6, out: 7.3, name: 'oven', from: 1.6 },
+    { at: 7.3, out: 9.6, name: 'ovenhot', from: 0.6 },
   ] as Shot[],
   frameIn: 0.0,
   n1: say(0.25, 0),
   phoneIn: 1.5,
-  ring: { at: 2.0, out: 6.6 },
+  ring: { at: 2.0, out: 6.9 },
   n2: say(3.0, 1),
-  n3: say(4.65, 2),
-  missed: 6.6,
-  n4: say(7.0, 3, 0.25),
-  out1: 8.9,
+  n3: say(4.5, 2, 0.25),
+  missed: 6.9,
+  n4: say(7.5, 3, 0.3),
+  out1: 9.6,
 
   // L'ouverture de l'app
-  splash: { at: 8.9, formed: 10.55, out: 11.2 },
+  splash: { at: 9.6, formed: 11.25, out: 11.9 },
 
   // 02 · Avec Qwillio : la même soirée.
-  shots2: [{ at: 11.2, out: 14.5, name: 'dough', from: 4.6 }] as Shot[],
-  n5: say(11.4, 4, 0.1),
-  phone2In: 11.5,
-  ring2: { at: 12.1, out: 14.4 },
-  n6: say(13.2, 5, 0.05),
-  call: { at: 14.5, answered: CALL_AT, out: E },
+  shots2: [{ at: 11.9, out: 15.2, name: 'dough', from: 4.6 }] as Shot[],
+  n5: say(12.1, 4, 0.1),
+  phone2In: 12.2,
+  ring2: { at: 12.8, out: 15.1 },
+  n6: say(13.9, 5, 0.05),
+  call: { at: 15.2, answered: CALL_AT, out: E },
 
   // Ce qui reste après l'appel.
   booked: { at: E, out: E + 3.55, shot: { name: 'knead', from: 2 } },

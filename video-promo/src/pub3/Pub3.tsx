@@ -264,7 +264,9 @@ export const Pub3: React.FC = () => {
       {/* Déjà dans l'agenda */}
       {between(t, T.mac.at, T.mac.out) && (() => {
         const z = p(t, T.mac.at, T.mac.out - T.mac.at, EASE_IN_OUT);
-        const s = mix(0.55, 1.75, z), fx = mix(915, 1075, z), fy = mix(740, 540, z);
+        // La page remplit la carte dès la première image (plus de fond gris ni
+        // de bord blanc), puis la caméra s'approche du rendez-vous de Julie.
+        const s = mix(2.35, 3.1, z), fx = mix(960, 1080, z), fy = mix(630, 525, z);
         const k = p(t, T.mac.at, 0.45, EASE_OUT) * (1 - p(t, T.mac.out - 0.3, 0.3));
         return (
           <div style={{ position: 'absolute', left: 80, top: 500, width: 920, height: 1180, borderRadius: 48, overflow: 'hidden', background: '#E7E7E7', opacity: k, transform: `scale(${0.96 + 0.04 * k})`, filter: `blur(${(1 - k) * 12}px)`, boxShadow: `0 0 0 1px ${PLATE}, 0 50px 90px -40px rgba(60,30,120,0.35)` }}>
