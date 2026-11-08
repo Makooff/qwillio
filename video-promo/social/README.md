@@ -8,18 +8,19 @@ avec sa couverture (`-cover.jpg`).
 |---|---|---|---|
 | A | `frontend/public/qwillio-pub-v3.mp4` | 48 s | Le film : la pizzeria, avant et après Qwillio |
 | B | `frontend/public/qwillio-pub-features.mp4` | 51 s | Tout ce qu'elle sait faire, en une minute |
-| 1 | `s01-appel-manque.mp4` | 21 s | Un appel manqué, c'est un client qui réserve ailleurs |
-| 2 | `s02-trois-heures.mp4` | 22 s | 3 h du matin : le cabinet dort, elle prend le rendez-vous |
+| 1 | `s01-appel-manque.mp4` | 22 s | Un appel manqué, c'est un client qui réserve ailleurs |
+| 2 | `s02-trois-heures.mp4` | 23 s | 3 h du matin : le cabinet dort, elle prend le rendez-vous |
 | 3 | `s03-trois-langues.mp4` | 22 s | Français, anglais, néerlandais, avec le bon accent |
 | 4 | `s04-reconnait.mp4` | 21 s | Elle reconnaît le client au numéro et déplace son rendez-vous |
 | 5 | `s05-urgence.mp4` | 20 s | Les urgences vous sont passées, le reste est géré |
-| 6 | `s06-invente-rien.mp4` | 19 s | Elle n'invente pas : elle demande, puis elle apprend |
-| 7 | `s07-message.mp4` | 20 s | Le message noté : pour qui, et quand rappeler |
-| 8 | `s08-annuler.mp4` | 19 s | Annuler un rendez-vous sans vous déranger |
-| 9 | `s09-coiffeur.mp4` | 22 s | Les mains dans les cheveux, elle réserve à votre place |
-| 10 | `s10-avant-apres.mp4` | 15 s | Avant, après |
-| 11 | `s11-essayez.mp4` | 15 s | Ne nous croyez pas sur parole : appelez-la |
+| 6 | `s06-invente-rien.mp4` | 20 s | Elle n'invente pas : elle demande, puis elle apprend |
+| 7 | `s07-message.mp4` | 21 s | Le message noté : pour qui, et quand rappeler |
+| 8 | `s08-annuler.mp4` | 20 s | Annuler un rendez-vous sans vous déranger |
+| 9 | `s09-coiffeur.mp4` | 23 s | Les mains dans les cheveux, elle réserve à votre place |
+| 10 | `s10-avant-apres.mp4` | 16 s | Avant, après |
+| 11 | `s11-essayez.mp4` | 16 s | Ne nous croyez pas sur parole : appelez-la |
 
+Les couvertures sont prises quand la première phrase est entière à l'écran.
 Les vidéos se refont avec `node scripts/cartesia-shorts.mjs` (textes et voix),
 puis `npx remotion render src/index.ts Short-sXX-...`. Le texte de chaque vidéo
 vit dans ce script, nulle part ailleurs.
