@@ -60,9 +60,8 @@ const SECTORS: Record<string, Sector> = {
       {
         titleFr: 'Conforme RGPD',
         titleEn: 'GDPR compliant',
-        bodyFr:
-          "Vous traitez les données de vos clients. L'enregistrement est annoncé au décrochage, rien n'est vendu ni utilisé pour entraîner un modèle externe sans votre accord, et tout s'efface sur demande.",
-        bodyEn: 'You handle your clients\' data. Recording is announced at pickup, nothing is sold or used to train an external model without your consent, and everything is erased on request.',
+        bodyFr: "L'enregistrement, lorsqu'il est activé, est annoncé au décrochage, rien n'est vendu ni utilisé pour entraîner un modèle externe sans votre accord, et tout s'efface sur demande.",
+        bodyEn: 'You handle your clients\' data. When enabled, recording is announced at pickup, nothing is sold or used to train an external model without your consent, and everything is erased on request.',
       },
       {
         titleFr: 'Un revenu récurrent en plus',
@@ -85,9 +84,9 @@ const SECTORS: Record<string, Sector> = {
     painEn:
       'You are hands-deep in a pipe, your phone rings, no one picks up. In 60 seconds your customer calls the next plumber on the list. 5 missed calls a week can add up to thousands of euros in lost revenue a year.',
     scenarioFr:
-      "Chaudière qui lâche un dimanche soir. Qwillio décroche, prend l'adresse, propose un créneau d'urgence, vous envoie le rendez-vous par SMS et pose la ligne dans votre agenda.",
+      "Chaudière qui lâche un dimanche soir. Qwillio décroche, prend l'adresse, propose un créneau d'urgence, vous envoie le rendez-vous par SMS si le canal est activé et pose la ligne dans votre agenda.",
     scenarioEn:
-      'Boiler dies on a Sunday night. Qwillio picks up, takes the address, offers an emergency slot, texts you the appointment and drops it into your calendar.',
+      'Boiler dies on a Sunday night. Qwillio picks up, takes the address, offers an emergency slot, texts you the appointment if the text channel is enabled and drops it into your calendar.',
     wins: [
       {
         titleFr: 'Urgences 24/7',
@@ -99,14 +98,14 @@ const SECTORS: Record<string, Sector> = {
       {
         titleFr: 'Devis rapide',
         titleEn: 'Fast quote intake',
-        bodyFr: "Qualifie type d'intervention, adresse, urgence, prend photos par SMS entrant.",
-        bodyEn: 'Qualifies intervention type, address, urgency, receives photos via inbound SMS.',
+        bodyFr: "Qualifie type d'intervention, adresse, urgence, et peut recevoir des précisions par SMS (canal SMS activé et mobile renseigné).",
+        bodyEn: 'Qualifies intervention type, address, urgency, and can receive details by text (texting enabled and mobile provided).',
       },
       {
         titleFr: 'Agenda intégré',
         titleEn: 'Calendar integrated',
-        bodyFr: 'Pose le RDV direct dans Google Calendar ou Cal.com. Zéro double booking.',
-        bodyEn: 'Books straight into Google Calendar or Cal.com. Zero double bookings.',
+        bodyFr: 'Pose le RDV direct dans votre agenda Google ou Outlook connecté. Zéro double booking.',
+        bodyEn: 'Books straight into your connected Google or Outlook calendar. Zero double bookings.',
       },
     ],
     plan: 'solo',
@@ -122,9 +121,9 @@ const SECTORS: Record<string, Sector> = {
     painEn:
       "Your receptionist is overwhelmed at 12:30 sharp. 30% of callers hang up before she picks up. Every no-show that isn't rebooked costs €85.",
     scenarioFr:
-      "Un patient annule mardi à 15 h. Qwillio note l'annulation, propose deux créneaux alternatifs, reprogramme, envoie confirmation SMS et libère le créneau pour le prochain appelant.",
+      "Un patient annule mardi à 15 h. Qwillio note l'annulation, propose deux créneaux alternatifs, reprogramme, envoie la confirmation par SMS si le canal est activé et libère le créneau pour le prochain appelant.",
     scenarioEn:
-      'A patient cancels Tuesday 3pm. Qwillio logs the cancellation, offers two alternative slots, rebooks, sends a SMS confirmation and releases the slot to the next caller.',
+      'A patient cancels Tuesday 3pm. Qwillio logs the cancellation, offers two alternative slots, rebooks, texts the confirmation if the text channel is enabled and releases the slot to the next caller.',
     wins: [
       {
         titleFr: 'Anti no-show',
@@ -141,8 +140,8 @@ const SECTORS: Record<string, Sector> = {
       {
         titleFr: 'Fiches patients',
         titleEn: 'Patient records',
-        bodyFr: "Push la fiche complète dans votre logiciel de gestion (Doctolib, Softpro, etc.).",
-        bodyEn: 'Pushes the full record into your practice software (Doctolib, Softpro, etc.).',
+        bodyFr: "Transmet la fiche complète à votre logiciel de gestion via webhook (Zapier, Make, n8n) — la fiche patient reste aussi disponible dans votre portail.",
+        bodyEn: 'Sends the full record to your practice software over a webhook (Zapier, Make, n8n) — the patient record also stays available in your portal.',
       },
     ],
     plan: 'starter',
@@ -177,8 +176,8 @@ const SECTORS: Record<string, Sector> = {
       {
         titleFr: 'Conforme RGPD',
         titleEn: 'GDPR compliant',
-        bodyFr: "Enregistrement annoncé au décrochage, aucune donnée vendue ni utilisée pour entraîner un modèle externe sans votre accord, effacement sur demande.",
-        bodyEn: 'Recording announced at pickup, no data sold or used to train an external model without your consent, erasure on request.',
+        bodyFr: "Enregistrement, lorsqu'il est activé, annoncé au décrochage, aucune donnée vendue ni utilisée pour entraîner un modèle externe sans votre accord, effacement sur demande.",
+        bodyEn: 'When enabled, recording is announced at pickup, no data sold or used to train an external model without your consent, erasure on request.',
       },
     ],
     plan: 'pro',
@@ -194,9 +193,9 @@ const SECTORS: Record<string, Sector> = {
     painEn:
       'You are under a hood, the phone rings, no one answers. The customer calls the garage next door. 4 missed calls a week can cost thousands in lost services and tyres a year.',
     scenarioFr:
-      "Un client veut un devis freins. Qwillio prend la marque, le modèle, le kilométrage, propose un créneau atelier, envoie la confirmation par SMS et pose le RDV dans votre planning.",
+      "Un client veut un devis freins. Qwillio prend la marque, le modèle, le kilométrage, propose un créneau atelier, envoie la confirmation par SMS si le canal est activé et pose le RDV dans votre planning.",
     scenarioEn:
-      'A customer wants a brake quote. Qwillio takes the make, model, mileage, offers a workshop slot, texts the confirmation and books it into your schedule.',
+      'A customer wants a brake quote. Qwillio takes the make, model, mileage, offers a workshop slot, texts the confirmation if the text channel is enabled and books it into your schedule.',
     wins: [
       {
         titleFr: 'RDV atelier',
@@ -230,9 +229,9 @@ const SECTORS: Record<string, Sector> = {
     painEn:
       'During a session you cannot pick up. Every patient who hits voicemail and hangs up is an empty slot and €40 gone. Over a month it adds up fast.',
     scenarioFr:
-      "Un patient appelle pour une séance de rééducation. Qwillio propose deux créneaux, réserve, envoie un SMS de rappel la veille et libère automatiquement le créneau si le patient annule.",
+      "Un patient appelle pour une séance de rééducation. Qwillio propose deux créneaux, réserve, envoie un rappel la veille (SMS si le canal est activé, sinon par email) et libère automatiquement le créneau si le patient annule.",
     scenarioEn:
-      'A patient calls for a rehab session. Qwillio offers two slots, books, sends a reminder SMS the day before and frees the slot automatically on cancellation.',
+      'A patient calls for a rehab session. Qwillio offers two slots, books, sends a reminder the day before (SMS if the text channel is enabled, otherwise by email) and frees the slot automatically on cancellation.',
     wins: [
       {
         titleFr: 'Agenda plein',
@@ -243,8 +242,8 @@ const SECTORS: Record<string, Sector> = {
       {
         titleFr: 'Anti no-show',
         titleEn: 'Anti no-show',
-        bodyFr: 'Rappel SMS la veille, reprogrammation en 60 s si le patient annule.',
-        bodyEn: 'SMS reminder the day before, rebooks in 60 seconds on cancellation.',
+        bodyFr: 'Rappel SMS la veille (SMS activés et mobile renseigné), reprogrammation en 60 s si le patient annule.',
+        bodyEn: 'SMS reminder the day before (texting enabled and mobile provided), rebooks in 60 seconds on cancellation.',
       },
       {
         titleFr: 'Bilingue',
@@ -279,8 +278,8 @@ const SECTORS: Record<string, Sector> = {
       {
         titleFr: 'Confidentiel',
         titleEn: 'Confidential',
-        bodyFr: 'RGPD, enregistrement annoncé à chaque appel, effacement sur demande.',
-        bodyEn: 'GDPR, recording announced on every call, erasure on request.',
+        bodyFr: 'RGPD, enregistrement annoncé à chaque appel lorsqu’il est activé, effacement sur demande.',
+        bodyEn: 'GDPR, recording announced on every call when enabled, erasure on request.',
       },
       {
         titleFr: 'Filtrage',
@@ -302,9 +301,9 @@ const SECTORS: Record<string, Sector> = {
     painEn:
       'At 8pm no one has time to pick up. Every missed call is an empty table or a customer gone to a competitor. One missed seating a night weighs heavy over the month.',
     scenarioFr:
-      "Un client appelle pour réserver une table de 4 samedi soir. Qwillio vérifie la disponibilité, prend le nom, propose une alternative si complet, confirme par SMS et note les allergies éventuelles.",
+      "Un client appelle pour réserver une table de 4 samedi soir. Qwillio vérifie la disponibilité, prend le nom, propose une alternative si complet, confirme par SMS si le canal est activé et note les allergies éventuelles.",
     scenarioEn:
-      'A guest calls to book a table for 4 on Saturday night. Qwillio checks availability, takes the name, offers an alternative if full, confirms by SMS and notes any allergies.',
+      'A guest calls to book a table for 4 on Saturday night. Qwillio checks availability, takes the name, offers an alternative if full, confirms by text if the text channel is enabled and notes any allergies.',
     wins: [
       {
         titleFr: 'Réservations 24/7',
@@ -321,8 +320,8 @@ const SECTORS: Record<string, Sector> = {
       {
         titleFr: 'Confirmation SMS',
         titleEn: 'SMS confirmation',
-        bodyFr: 'Le client reçoit sa confirmation, vous réduisez les no-shows.',
-        bodyEn: 'The guest gets their confirmation, you cut no-shows.',
+        bodyFr: 'Le client reçoit sa confirmation par SMS (SMS activés et mobile renseigné), vous réduisez les no-shows.',
+        bodyEn: 'The guest gets their confirmation by text (texting enabled and mobile provided), you cut no-shows.',
       },
     ],
     plan: 'starter',
@@ -351,8 +350,8 @@ const SECTORS: Record<string, Sector> = {
       {
         titleFr: 'Prise de visite',
         titleEn: 'Viewing booking',
-        bodyFr: 'Pose la visite dans votre agenda et confirme au prospect par SMS.',
-        bodyEn: 'Books the viewing into your calendar and confirms by SMS.',
+        bodyFr: 'Pose la visite dans votre agenda et confirme au prospect par SMS si le canal est activé.',
+        bodyEn: 'Books the viewing into your calendar and confirms by text if the text channel is enabled.',
       },
       {
         titleFr: 'Vendeurs & acheteurs',
@@ -387,8 +386,8 @@ const SECTORS: Record<string, Sector> = {
       {
         titleFr: 'Anti no-show',
         titleEn: 'Anti no-show',
-        bodyFr: 'Rappel SMS la veille, reprogrammation immédiate en cas d\'annulation.',
-        bodyEn: 'SMS reminder the day before, instant rebooking on cancellation.',
+        bodyFr: 'Rappel SMS la veille (SMS activés et mobile renseigné), reprogrammation immédiate en cas d\'annulation.',
+        bodyEn: 'SMS reminder the day before (texting enabled and mobile provided), instant rebooking on cancellation.',
       },
       {
         titleFr: 'Zéro fauteuil vide',
@@ -444,8 +443,8 @@ const OBJECTIONS_EN: FaqEntry[] = [
 const INCLUDED_FR = [
   'Voix française native, accent belge ou français',
   'Bilingue français / anglais en cours d\'appel',
-  'Prise de RDV Google Calendar, Cal.com, Calendly',
-  'SMS de confirmation au client',
+  'Prise de RDV : agenda Google ou Outlook connecté',
+  'SMS de confirmation au client (SMS activés et mobile renseigné)',
   'Email récap au patron après chaque appel',
   'Transcript complet + sentiment',
   'Routage urgences / commercial / spam',
@@ -455,8 +454,8 @@ const INCLUDED_FR = [
 const INCLUDED_EN = [
   'French-native voice, Belgian or French accent',
   'Bilingual French / English mid-call',
-  'Calendar booking: Google Calendar, Cal.com, Calendly',
-  'SMS confirmation to the customer',
+  'Calendar booking: Google or Outlook calendar connected',
+  'SMS confirmation to the customer (texting enabled and mobile provided)',
   'Email recap to the owner after each call',
   'Full transcript + sentiment',
   'Routing: emergencies / sales / spam',

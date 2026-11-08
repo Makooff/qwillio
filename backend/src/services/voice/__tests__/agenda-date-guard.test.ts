@@ -21,7 +21,7 @@ const { getProfile, freeSlots, createBooking, needsNameReadBack, findBooking, fi
 
 vi.mock('../../../config/database', () => ({
   prisma: {
-    clientBooking: { create: createBooking, update: updateBooking, findFirst: findBooking, findMany: findBookings },
+    clientBooking: { create: createBooking, update: updateBooking, updateMany: vi.fn(async () => ({ count: 1 })), findFirst: findBooking, findMany: findBookings },
     // Pas d'agenda lié: la synchronisation, lancée sans être attendue, s'arrête là.
     client: { findUnique: vi.fn(() => Promise.resolve(null)) },
   },

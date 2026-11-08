@@ -191,7 +191,11 @@ export default function ComparisonPage() {
                 </RevealV2>
               );
             })}
-          </article>
+            {page.sources?.length > 0 && <p className="text-xs text-[var(--q2-muted)]">
+            {lang === 'fr' ? 'Sources officielles : ' : 'Official sources: '}
+            {page.sources.map(source => <a key={source.url} href={source.url} target="_blank" rel="noopener noreferrer" className="underline underline-offset-4">{source.label}</a>)}
+          </p>}
+        </article>
         </Container>
       </Section>
 
@@ -199,7 +203,7 @@ export default function ComparisonPage() {
         <Container className="grid lg:grid-cols-[1.4fr_1fr] gap-10 items-end">
           <RevealV2>
             <h2 className="q2-h2 text-white max-w-[640px]">
-              {isFr ? 'Testez Qwillio en 15 minutes.' : 'Try Qwillio in 15 minutes.'}
+              {isFr ? 'Testez votre accueil avant le renvoi.' : 'Test your reception before forwarding.'}
             </h2>
           </RevealV2>
           <RevealV2 index={1} className="flex flex-col items-start gap-5 lg:items-end pb-1">

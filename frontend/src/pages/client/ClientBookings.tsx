@@ -205,7 +205,10 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
     setBusy(target.id);
     setProblem(null);
     try {
-      await api.post(`/my-dashboard/bookings/${target.id}/cancel`);
+      const { data } = await api.post(`/my-dashboard/bookings/${target.id}/cancel`);
+      if (data.calendarSync === 'retained') {
+        setProblem('Le rendez-vous est annulé dans Qwillio. La suppression dans votre agenda externe est en attente de synchronisation.');
+      }
       setBookings(list => list.filter(b => b.id !== target.id));
       if (expanded === target.id) setExpanded(null);
       invalidateLive('/my-dashboard/');
@@ -611,7 +614,7 @@ export default function ClientBookings({ initialMonth }: { initialMonth?: Date }
       <ConfirmDialog
         open={toCancel !== null}
         title="Annuler ce rendez-vous ?"
-        message={toCancel ? `${toCancel.customerName}, ${dayLabel(bookingDay(toCancel))}${toCancel.bookingTime ? ` à ${toCancel.bookingTime}` : ''}. Le créneau est libéré et l’événement retiré de votre agenda. L’appelant n’est pas prévenu.` : ''}
+        message={toCancel ? `${toCancel.customerName}, ${dayLabel(bookingDay(toCancel))}${toCancel.bookingTime ? ` à ${toCancel.bookingTime}` : ''}. Le créneau sera libéré dans Qwillio et la suppression dans votre agenda connecté sera tentée. L’appelant n’est pas prévenu.` : ''}
         confirmLabel="Annuler le rendez-vous"
         cancelLabel="Garder"
         variant="danger"

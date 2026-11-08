@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { voiceCoreAuth } from '../middleware/voice-core.middleware';
+import webSetupRouter from './voice-core-web-setup.routes';
 import { realtimeContextService, shouldRecord } from '../services/voice/realtime-context.service';
 import { twilioRecordingService } from '../services/voice/twilio-recording.service';
 import { clientCallService } from '../services/client-call.service';
@@ -19,6 +20,8 @@ import {
 import { normalizeLeadPhone } from '../services/lead-identity';
 import { isPlaceholderName } from '../utils/spelled-name';
 import { workerCalendarService } from '../services/voice/worker-calendar.service';
+import { moveBookingEvent } from '../services/calendar-provider.service';
+import { cancelBooking as annulerReservation } from '../services/booking-cancel';
 import {
   voiceCompletionInbox,
   type VoiceCompletionPayload,
@@ -46,6 +49,7 @@ const router = Router();
 import {persistCompletedVoiceMetadata} from '../services/voice/voice-core-metadata';
 import { signRuntimeScope } from '../services/voice/learning-runtime-scope';
 router.use(voiceCoreAuth);
+router.use('/web-setup', webSetupRouter);
 
 /**
  * Les écritures d'un même numéro.
@@ -139,17 +143,8 @@ router.get('/context/by-number/:trunkNumber', async (req, res) => {
        ou `cartesia`) : choisir un clone ElevenLabs ne le transforme pas en
        voix Cartesia. Le contrat worker utilise le nom canonique `elevenlabs`.
        `null` = le worker garde ses voix par défaut. */
-    const voixChoisie = profil.customVoice;
-    const voice = voixChoisie && typeof voixChoisie.voiceId === 'string'
-      && voixChoisie.voiceId.trim()
-      && voixChoisie.voiceId.trim().length <= 128
-      ? {
-          voiceId: voixChoisie.voiceId.trim(),
-          name: typeof voixChoisie.name === 'string' ? voixChoisie.name.trim().slice(0, 120) : '',
-          cloned: voixChoisie.cloned === true,
-          provider: voixChoisie.provider === 'cartesia' ? 'cartesia' as const : 'elevenlabs' as const,
-        }
-      : null;
+    const { coreProfileVoice } = await import('../services/voice/core-profile-voice');
+    const voice = coreProfileVoice(profil);
 
     return res.json({
       learningAssertion: learningClient ? signRuntimeScope(learningClient, appele,
@@ -911,6 +906,15 @@ router.patch('/bookings/:id', async (req, res) => {
   if (!clientId || !jour || !heure) return res.status(400).json({ error: 'missing_booking_fields' });
 
   try {
+    /* L'ANCIEN ÉVÉNEMENT PART D'ABORD, comme `moveCalendarEvent` du chemin
+       Vapi : recréer sans effacer laissait l'ancien créneau occupé dans
+       l'agenda du gérant — le doublon que ce garde-fou existe pour fermer.
+       `findFirst` borné au clientId : un identifiant deviné ne doit révéler
+       ni lire le rendez-vous d'un autre commerce. */
+    const avant = await prisma.clientBooking.findFirst({
+      where: { id: String(req.params.id), clientId: String(clientId), status: 'confirmed' },
+      select: { googleEventId: true },
+    });
     /* `updateMany` avec le clientId dans le WHERE, jamais `update` sur le
        seul id : un identifiant deviné ne doit pas déplacer le rendez-vous
        d'un autre commerce. */
@@ -920,16 +924,21 @@ router.patch('/bookings/:id', async (req, res) => {
     });
     if (!touche.count) return res.status(404).json({ error: 'unknown_booking' });
 
+    const calendarOk = await moveBookingEvent(
+      String(clientId), String(req.params.id), avant?.googleEventId ?? null,
+      () => toolRuntimeService.syncBookingToCalendar(String(clientId), String(req.params.id)),
+    );
+
     const maj = await prisma.clientBooking.findUnique({
-      where: { id: String(req.params.id) },
+      where: { id: String(req.params.id), clientId: String(clientId) },
       select: CHAMPS,
     });
-    res.json({ booking: maj ? enBooking(maj) : null });
-
-    void toolRuntimeService
-      .syncBookingToCalendar(String(clientId), String(req.params.id))
-      .catch((e) => logger.warn(`[voice-core] agenda non resynchronisé: ${e.message}`));
-    return;
+    return res.json({
+      booking: maj ? enBooking(maj) : null,
+      calendarSync: calendarOk ? 'synced' : 'pending',
+      retryable: !calendarOk,
+      ...(!calendarOk ? { warning: 'calendar_sync_pending' } : {}),
+    });
   } catch (error) {
     if (estCreneauPris(error)) return res.status(409).json({ error: 'slot_taken' });
     logger.error('[voice-core] déplacement refusé:', error);
@@ -949,12 +958,16 @@ router.post('/bookings/:id/cancel', async (req, res) => {
   if (!clientId) return res.status(400).json({ error: 'bad_client' });
 
   try {
-    const touche = await prisma.clientBooking.updateMany({
-      where: { id: String(req.params.id), clientId: String(clientId), status: 'confirmed' },
-      data: { status: 'cancelled' },
-    });
-    if (!touche.count) return res.status(404).json({ error: 'unknown_booking' });
-    return res.json({ ok: true });
+    /* LA MÊME FONCTION QUE LE PORTAIL ET QUE LE CHEMIN VAPI. Annuler n'est
+       pas une écriture, c'en est quatre : l'événement agenda part, le statut
+       passe à `cancelled`, `googleEventId` repart à null et le cache appelant
+       est invalidé. Le `updateMany` seul laissait l'événement dans l'agenda
+       du gérant après que l'appelant a entendu « c'est annulé ». La fonction
+       est bornée au (id, clientId) : pas d'annulation croisée entre tenants,
+       et un rejeu sur une ligne déjà annulée rend ok sans rien réécrire. */
+    const outcome = await annulerReservation(String(clientId), String(req.params.id));
+    if (!outcome.ok) return res.status(404).json({ error: 'unknown_booking' });
+    return res.json({ ok: true, ...(outcome.calendarSync ? { calendarSync: outcome.calendarSync } : {}), ...(outcome.calendarSync === 'retained' ? { retryable: true, warning: 'calendar_sync_pending' } : {}) });
   } catch (error) {
     logger.error('[voice-core] annulation refusée:', error);
     return res.status(500).json({ error: 'cancel_failed' });

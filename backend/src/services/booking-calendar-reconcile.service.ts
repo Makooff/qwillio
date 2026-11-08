@@ -35,11 +35,13 @@ class BookingCalendarReconcileService {
     const pending = await prisma.clientBooking.findMany({
       where: {
         calendarSyncedAt: null,
-        status: 'confirmed',
-        bookingDate: { gte: now },
+        OR: [
+          { status: 'confirmed', bookingDate: { gte: now } },
+          { status: 'cancelled', googleEventId: { not: null } },
+        ],
         calendarSyncAttempts: { lt: MAX_SYNC_ATTEMPTS },
       },
-      select: { id: true, clientId: true },
+      select: { id: true, clientId: true, status: true, googleEventId: true },
       orderBy: { bookingDate: 'asc' },
       take: 200,
     });
@@ -53,8 +55,10 @@ class BookingCalendarReconcileService {
     report.givenUp = await prisma.clientBooking.count({
       where: {
         calendarSyncedAt: null,
-        status: 'confirmed',
-        bookingDate: { gte: now },
+        OR: [
+          { status: 'confirmed', bookingDate: { gte: now } },
+          { status: 'cancelled', googleEventId: { not: null } },
+        ],
         calendarSyncAttempts: { gte: MAX_SYNC_ATTEMPTS },
       },
     });
@@ -70,9 +74,28 @@ class BookingCalendarReconcileService {
       // Séquentiel, et c'est voulu: une rafale parallèle vers l'API Google
       // déclencherait la limitation de débit, ce qui transformerait un retard
       // rattrapable en échecs comptabilisés.
-      const ok = await toolRuntimeService
-        .syncBookingToCalendar(booking.clientId, booking.id)
-        .catch(() => false);
+      let ok = false;
+      try {
+        if (booking.status === 'cancelled') {
+          const { cancelBooking } = await import('./booking-cancel');
+          const outcome = await cancelBooking(booking.clientId, booking.id);
+          ok = outcome.ok && outcome.calendarSync !== 'retained';
+          if (!ok) {
+            await prisma.clientBooking.updateMany({
+              where: { id: booking.id, clientId: booking.clientId, status: 'cancelled' },
+              data: { calendarSyncAttempts: { increment: 1 } },
+            });
+          }
+        } else if (booking.googleEventId) {
+          const { moveBookingEvent } = await import('./calendar-provider.service');
+          ok = await moveBookingEvent(booking.clientId, booking.id, booking.googleEventId,
+            () => toolRuntimeService.syncBookingToCalendar(booking.clientId, booking.id));
+        } else {
+          ok = await toolRuntimeService.syncBookingToCalendar(booking.clientId, booking.id);
+        }
+      } catch (error) {
+        logger.warn(`[BookingReconcile] pending (${booking.id}): ${(error as Error).message}`);
+      }
       if (ok) report.repaired += 1;
       else report.stillFailing += 1;
     }

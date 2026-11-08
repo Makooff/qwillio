@@ -1,7 +1,9 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 
-const { findMany, count, syncBookingToCalendar } = vi.hoisted(() => ({
+const { findMany, count, syncBookingToCalendar, moveBookingEvent, cancelBooking } = vi.hoisted(() => ({
   findMany: vi.fn(),
+  moveBookingEvent: vi.fn(),
+  cancelBooking: vi.fn(),
   count: vi.fn(),
   syncBookingToCalendar: vi.fn(),
 }));
@@ -16,6 +18,9 @@ vi.mock('../voice/tool-runtime.service', () => ({
   toolRuntimeService: { syncBookingToCalendar },
 }));
 
+vi.mock('../calendar-provider.service', () => ({moveBookingEvent}));
+vi.mock('../booking-cancel', () => ({cancelBooking}));
+
 import { bookingCalendarReconcileService, MAX_SYNC_ATTEMPTS } from '../booking-calendar-reconcile.service';
 
 const NOW = new Date('2026-08-13T12:00:00Z');
@@ -26,6 +31,20 @@ beforeEach(() => {
 });
 
 describe('réconciliation des synchronisations calendrier', () => {
+  it('retente la suppression de l’ancien événement avant toute recréation', async () => {
+    findMany.mockResolvedValue([{id:'b1',clientId:'c1',status:'confirmed',googleEventId:'outlook:old'}]);
+    moveBookingEvent.mockResolvedValue(false);
+    expect(await bookingCalendarReconcileService.reconcilePendingSyncs(NOW)).toMatchObject({stillFailing:1,repaired:0});
+    expect(moveBookingEvent).toHaveBeenCalledWith('c1','b1','outlook:old',expect.any(Function));
+    expect(syncBookingToCalendar).not.toHaveBeenCalled();
+  });
+  it('reprend les annulations dont la référence a survécu à un échec', async () => {
+    findMany.mockResolvedValue([{id:'b1',clientId:'c1',status:'cancelled',googleEventId:'outlook:old'}]);
+    cancelBooking.mockResolvedValue({ok:true,calendarSync:'removed'});
+    expect(await bookingCalendarReconcileService.reconcilePendingSyncs(NOW)).toMatchObject({repaired:1});
+    expect(cancelBooking).toHaveBeenCalledWith('c1','b1');
+    expect(syncBookingToCalendar).not.toHaveBeenCalled();
+  });
   it('ne cherche que les rendez-vous À VENIR et non encore synchronisés', async () => {
     findMany.mockResolvedValue([]);
 
@@ -33,10 +52,10 @@ describe('réconciliation des synchronisations calendrier', () => {
 
     const where = findMany.mock.calls[0][0].where;
     expect(where.calendarSyncedAt).toBeNull();
-    expect(where.status).toBe('confirmed');
+    expect(where.OR).toEqual(expect.arrayContaining([{status:'confirmed',bookingDate:{gte:NOW}},{status:'cancelled',googleEventId:{not:null}}]));
     // Recréer un événement pour un rendez-vous passé ne rend service à
     // personne et polluerait l'agenda du client.
-    expect(where.bookingDate).toEqual({ gte: NOW });
+    expect(where.OR[0].bookingDate).toEqual({ gte: NOW });
     expect(where.calendarSyncAttempts).toEqual({ lt: MAX_SYNC_ATTEMPTS });
   });
 
