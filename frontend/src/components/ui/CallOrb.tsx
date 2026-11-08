@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { PhoneCall } from '../icons';
 
 /* Le rond de l'appel en direct.
  *
@@ -8,7 +9,8 @@ import { useEffect, useRef } from 'react';
  *    rayon, rien hors du cercle. Palette gris et noir (la neutre du
  *    fichier), un peu plus claire une fois l'appel établi ;
  *  - `CenterReminderDisplay` : disque de 70 %, noir à 30 %, flou 16 px, liseré
- *    blanc à 10 %, l'emoji d'appel au centre et le décompte au-dessus.
+ *    blanc à 10 %, l'icône d'appel de Qwillio (`PhoneCall`, coolicons) au centre
+ *    et le décompte au-dessus.
  * Ajout propre à Qwillio : le rond réagit à `level`, le niveau de la voix de
  * l'agent que le SDK émet déjà (`volume-level`). Quand elle parle, les vagues
  * accélèrent, se tordent davantage et s'éclairent ; quand elle écoute, elles
@@ -166,7 +168,7 @@ export default function CallOrb({
               {label}
             </span>
           )}
-          <span style={{ fontSize: inner * 0.32, lineHeight: 1 }}>📞</span>
+          <PhoneCall size={Math.round(inner * 0.3)} color="rgba(250,250,250,0.92)" strokeWidth={1.6} />
         </div>
       </div>
     </div>

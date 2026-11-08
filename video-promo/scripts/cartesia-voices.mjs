@@ -19,7 +19,9 @@ const SR = 44100;
 export const VOICES = {
   agent: process.env.AGENT ?? '90358bc7-3328-4b93-a942-d0447d7d4b5c', // Sarah - Delivery Liaison (choix du propriétaire)
   caller: process.env.CALLER ?? '2f8e82c4-cb94-4e6d-8b6a-29bf58ceb60a', // Manon - Bright Belle
-  narrator: process.env.NARRATOR ?? 'd9f4af15-c402-4f50-bbda-d8823d028d6a', // Henri - Express Host
+  // La narration prend la voix de Sarah : la plus naturelle des essais
+  // (retour du propriétaire), avec des émotions plus marquées.
+  narrator: process.env.NARRATOR ?? '90358bc7-3328-4b93-a942-d0447d7d4b5c',
 };
 
 // L'accueil reprend celui du produit (generateFirstMessage) : elle s'annonce
@@ -34,17 +36,17 @@ const CALL = [
 
 // `say` est lu, `show` est affiché (les chiffres s'écrivent).
 const NARRATION = [
-  { id: 'n1', emotion: 'calm', say: 'Samedi, vingt heures douze.', show: 'Samedi, 20 h 12.', serif: [1, 2, 3] },
+  { id: 'n1', emotion: 'mysterious', say: 'Samedi, vingt heures douze.', show: 'Samedi, 20 h 12.', serif: [1, 2, 3] },
   { id: 'n2', emotion: 'anxious', say: 'Le téléphone vibre.', show: 'Le téléphone vibre.', serif: [2] },
-  { id: 'n3', emotion: 'tired', say: 'Les mains dans la pâte.', show: 'Les mains dans la pâte.', serif: [4] },
-  { id: 'n4', emotion: 'disappointed', say: 'Julie réserve en face.', show: 'Julie réserve en face.', serif: [2, 3] },
+  { id: 'n3', emotion: 'frustrated', say: 'Les mains dans la pâte.', show: 'Les mains dans la pâte.', serif: [4] },
+  { id: 'n4', emotion: 'sad', say: 'Julie réserve en face.', show: 'Julie réserve en face.', serif: [2, 3] },
   { id: 'n5', emotion: 'calm', say: 'Même soirée.', show: 'Même soirée.', serif: [1] },
-  { id: 'n6', emotion: 'confident', say: 'Cette fois…', show: 'Cette fois…', serif: [1] },
-  { id: 'n7', emotion: 'content', say: 'Réservé. Les mains toujours dans la pâte.', show: 'Réservé. Les mains toujours dans la pâte.', serif: [6] },
-  { id: 'n8', emotion: 'happy', say: 'Déjà dans votre agenda.', show: 'Déjà dans votre agenda.', serif: [3] },
-  { id: 'n9', emotion: 'content', say: 'Julie a sa table.', show: 'Julie a sa table.', serif: [] },
-  { id: 'n10', emotion: 'happy', say: 'Vous, vos pizzas.', show: 'Vous, vos pizzas.', serif: [2] },
-  { id: 'n11', emotion: 'content', say: 'Qwillio. Elle décroche quand vous ne pouvez pas.', show: 'Elle décroche quand vous ne pouvez pas.', serif: [4, 5, 6] },
+  { id: 'n6', emotion: 'excited', say: 'Cette fois…', show: 'Cette fois…', serif: [1] },
+  { id: 'n7', emotion: 'happy', say: 'Réservé. Les mains toujours dans la pâte.', show: 'Réservé. Les mains toujours dans la pâte.', serif: [6] },
+  { id: 'n8', emotion: 'excited', say: 'Déjà dans votre agenda.', show: 'Déjà dans votre agenda.', serif: [3] },
+  { id: 'n9', emotion: 'happy', say: 'Julie a sa table.', show: 'Julie a sa table.', serif: [] },
+  { id: 'n10', emotion: 'joking/comedic', say: 'Vous, vos pizzas.', show: 'Vous, vos pizzas.', serif: [2] },
+  { id: 'n11', emotion: 'affectionate', say: 'Qwillio. Elle décroche quand vous ne pouvez pas.', show: 'Elle décroche quand vous ne pouvez pas.', serif: [4, 5, 6] },
 ];
 
 /** Une phrase : l'audio (MP3 écrit sur disque) et le minutage de ses mots. */
@@ -85,8 +87,31 @@ async function speak(voice, text, emotion, out) {
 
 fs.mkdirSync('public/voices', { recursive: true });
 
+// Julie garde la voix de la version précédente (ElevenLabs, fichiers `c?-A`),
+// choisie par le propriétaire : on relit son minutage au lieu de la régénérer.
+function elevenLine(l) {
+  const j = JSON.parse(fs.readFileSync(`public/voices/${l.id}-A.json`, 'utf8'));
+  const a = j.alignment, st = a.character_start_times_seconds, en = a.character_end_times_seconds;
+  const words = [];
+  let cur = null;
+  a.characters.forEach((c, i) => {
+    if (/\s/.test(c)) { if (cur) words.push(cur); cur = null; return; }
+    if (!cur) cur = { w: '', start: st[i], end: en[i] };
+    cur.w += c; cur.end = en[i];
+  });
+  if (cur) words.push(cur);
+  return { id: l.id, who: l.who, text: j.text, file: `voices/${l.id}-A.mp3`, duration: +en[en.length - 1].toFixed(3), words };
+}
+
+// Les prises de la réceptionniste déjà validées par le propriétaire sont
+// gardées : une régénération donnerait une autre interprétation. REGEN_AGENT=1
+// pour les refaire.
+const previous = fs.existsSync('src/pub/call.json') ? JSON.parse(fs.readFileSync('src/pub/call.json', 'utf8')) : [];
 const call = [];
 for (const l of CALL) {
+  const kept = previous.find((p) => p.id === l.id && p.file === `voices/cx-${l.id}.mp3`);
+  if (l.who === 'agent' && kept && !process.env.REGEN_AGENT && fs.existsSync(`public/${kept.file}`)) { call.push(kept); console.log(l.id, '(prise gardée)'); continue; }
+  if (l.who === 'caller' && process.env.CALLER_FROM !== 'cartesia') { call.push(elevenLine(l)); console.log(l.id, '(voix ElevenLabs précédente)'); continue; }
   const s = await speak(VOICES[l.who], l.text, l.emotion, `public/voices/cx-${l.id}`);
   call.push({ id: l.id, who: l.who, text: l.text, file: `voices/cx-${l.id}.mp3`, duration: +s.duration.toFixed(3), words: s.words.map((w) => ({ w: w.w, start: +w.start.toFixed(3), end: +w.end.toFixed(3) })) });
   console.log(l.id, s.duration.toFixed(2) + 's', s.words.length, 'mots');

@@ -67,78 +67,78 @@
   "id": "c1",
   "who": "caller",
   "text": "Bonsoir ! Vous auriez une table pour quatre, ce soir, vers vingt heures ?",
-  "file": "voices/cx-c1.mp3",
-  "duration": 4.64,
+  "file": "voices/c1-A.mp3",
+  "duration": 3.855,
   "words": [
    {
     "w": "Bonsoir",
-    "start": 0.134,
-    "end": 0.567
+    "start": 0,
+    "end": 0.488
    },
    {
     "w": "!",
-    "start": 0.567,
-    "end": 1
+    "start": 0.58,
+    "end": 0.615
    },
    {
     "w": "Vous",
-    "start": 1.279,
-    "end": 1.4
+    "start": 0.998,
+    "end": 1.161
    },
    {
     "w": "auriez",
-    "start": 1.48,
-    "end": 1.64
+    "start": 1.207,
+    "end": 1.428
    },
    {
     "w": "une",
-    "start": 1.64,
-    "end": 1.88
+    "start": 1.498,
+    "end": 1.579
    },
    {
     "w": "table",
-    "start": 1.882,
-    "end": 2.2
+    "start": 1.602,
+    "end": 1.834
    },
    {
     "w": "pour",
-    "start": 2.2,
-    "end": 2.44
+    "start": 1.869,
+    "end": 1.985
    },
    {
     "w": "quatre,",
-    "start": 2.44,
-    "end": 2.68
+    "start": 2.043,
+    "end": 2.392
    },
    {
     "w": "ce",
-    "start": 2.828,
-    "end": 3.08
+    "start": 2.415,
+    "end": 2.496
    },
    {
     "w": "soir,",
-    "start": 3.08,
-    "end": 3.56
+    "start": 2.543,
+    "end": 2.879
    },
    {
     "w": "vers",
-    "start": 3.741,
-    "end": 3.96
+    "start": 2.914,
+    "end": 3.077
    },
    {
     "w": "vingt",
-    "start": 3.96,
-    "end": 4.2
+    "start": 3.1,
+    "end": 3.274
    },
    {
     "w": "heures",
-    "start": 4.281,
-    "end": 4.401
+    "start": 3.32,
+    "end": 3.541
    },
    {
     "w": "?",
-    "start": 4.401,
-    "end": 4.52
+    "start": 3.564,
+    "end": 3.855
    }
   ]
  },
@@ -210,33 +210,33 @@
   "id": "c2",
   "who": "caller",
   "text": "Parfait, au nom de Julie.",
-  "file": "voices/cx-c2.mp3",
-  "duration": 1.92,
+  "file": "voices/c2-A.mp3",
+  "duration": 1.44,
   "words": [
    {
     "w": "Parfait,",
-    "start": 0.11,
-    "end": 0.52
+    "start": 0,
+    "end": 0.441
    },
    {
     "w": "au",
-    "start": 0.928,
-    "end": 1
+    "start": 0.464,
+    "end": 0.534
    },
    {
     "w": "nom",
-    "start": 1,
-    "end": 1.24
+    "start": 0.58,
+    "end": 0.697
    },
    {
     "w": "de",
-    "start": 1.32,
-    "end": 1.4
+    "start": 0.731,
+    "end": 0.801
    },
    {
     "w": "Julie.",
-    "start": 1.481,
-    "end": 1.8
+    "start": 0.848,
+    "end": 1.44
    }
   ]
  },

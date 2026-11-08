@@ -8,22 +8,13 @@
  *    ramenées au gris et noir (la palette neutre du fichier), sans ombre.
  *  - `CenterReminderDisplay` : un disque de 70 %, noir à 30 %, flou de 16 px
  *    (`backdrop-blur-lg`), liseré blanc à 10 %, l'heure au-dessus du message.
- *    Le message est ici l'emoji d'appel.
+ *    Le message est ici l'icône d'appel de Qwillio.
  * Le shader est recalculé en JavaScript, pixel par pixel, à partir du temps de
  * la vidéo et non de l'horloge : chaque image du rendu est donc reproductible.
  */
 import React, { useLayoutEffect, useRef } from 'react';
-import { continueRender, delayRender, staticFile } from 'remotion';
-import { loadFont } from '@remotion/fonts';
+import { Phone as CiPhone } from 'react-coolicons';
 
-// Noto Color Emoji (OFL) : sans elle, Chromium retombe sur un glyphe gris.
-let emojiLoaded = false;
-function useEmojiFont() {
-  if (emojiLoaded) return;
-  emojiLoaded = true;
-  const h = delayRender('emoji');
-  loadFont({ family: 'QEmoji', url: staticFile('fonts/NotoColorEmoji.ttf') }).then(() => continueRender(h));
-}
 
 const smoothstep = (a: number, b: number, x: number) => {
   const k = Math.max(0, Math.min(1, (x - a) / (b - a)));
@@ -69,7 +60,6 @@ function drawWaves(ctx: CanvasRenderingContext2D, res: number, time: number, act
 }
 
 export function ShaderOrb({ size, time, active, timer, level = 0 }: { size: number; time: number; active: number; timer: string; level?: number }) {
-  useEmojiFont();
   const ref = useRef<HTMLCanvasElement>(null);
   const RES = 360;
   useLayoutEffect(() => {
@@ -84,7 +74,8 @@ export function ShaderOrb({ size, time, active, timer, level = 0 }: { size: numb
       <canvas ref={ref} width={RES} height={RES} style={{ width: size, height: size, borderRadius: '50%', display: 'block', position: 'relative' }} />
       <div style={{ position: 'absolute', left: (size - inner) / 2, top: (size - inner) / 2, width: inner, height: inner, borderRadius: '50%', background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(16px)', WebkitBackdropFilter: 'blur(16px)', border: '1px solid rgba(255,255,255,0.1)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', fontFamily: 'Inter, sans-serif' }}>
         <div style={{ fontSize: inner * 0.07, color: 'rgba(250,250,250,0.8)', marginBottom: inner * 0.05, fontVariantNumeric: 'tabular-nums' }}>{timer}</div>
-        <div style={{ fontSize: inner * 0.32, lineHeight: 1, fontFamily: 'QEmoji' }}>📞</div>
+        {/* L'icône d'appel de Qwillio : le Phone de coolicons, comme dans le produit. */}
+        <CiPhone width={inner * 0.3} height={inner * 0.3} color="rgba(250,250,250,0.92)" strokeWidth={1.6} />
       </div>
     </div>
   );

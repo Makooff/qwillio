@@ -12,11 +12,11 @@ export default [
   "words": [
    {
     "w": "Samedi,",
-    "start": 0.121
+    "start": 0.126
    },
    {
     "w": "20",
-    "start": 0.911
+    "start": 0.907
    },
    {
     "w": "h",
@@ -24,7 +24,7 @@ export default [
    },
    {
     "w": "12.",
-    "start": 1.4
+    "start": 1.481
    }
   ]
  },
@@ -38,7 +38,7 @@ export default [
   "words": [
    {
     "w": "Le",
-    "start": 0.093
+    "start": 0.111
    },
    {
     "w": "téléphone",
@@ -46,21 +46,21 @@ export default [
    },
    {
     "w": "vibre.",
-    "start": 0.681
+    "start": 0.761
    }
   ]
  },
  {
   "id": "n3",
   "file": "voices/n3.mp3",
-  "duration": 1.36,
+  "duration": 1.28,
   "serif": [
    4
   ],
   "words": [
    {
     "w": "Les",
-    "start": 0.1
+    "start": 0.106
    },
    {
     "w": "mains",
@@ -68,22 +68,22 @@ export default [
    },
    {
     "w": "dans",
-    "start": 0.598
-   },
-   {
-    "w": "la",
     "start": 0.6
    },
    {
+    "w": "la",
+    "start": 0.68
+   },
+   {
     "w": "pâte.",
-    "start": 0.843
+    "start": 0.762
    }
   ]
  },
  {
   "id": "n4",
   "file": "voices/n4.mp3",
-  "duration": 1.92,
+  "duration": 1.52,
   "serif": [
    2,
    3
@@ -91,26 +91,26 @@ export default [
   "words": [
    {
     "w": "Julie",
-    "start": 0.126
+    "start": 0.119
    },
    {
     "w": "réserve",
-    "start": 0.756
+    "start": 0.522
    },
    {
     "w": "en",
-    "start": 1.32
+    "start": 0.84
    },
    {
     "w": "face.",
-    "start": 1.321
+    "start": 1.081
    }
   ]
  },
  {
   "id": "n5",
   "file": "voices/n5.mp3",
-  "duration": 0.96,
+  "duration": 0.88,
   "serif": [
    1
   ],
@@ -121,81 +121,81 @@ export default [
    },
    {
     "w": "soirée.",
-    "start": 0.52
+    "start": 0.361
    }
   ]
  },
  {
   "id": "n6",
   "file": "voices/n6.mp3",
-  "duration": 0.8,
+  "duration": 1.04,
   "serif": [
    1
   ],
   "words": [
    {
     "w": "Cette",
-    "start": 0.108
+    "start": 0.163
    },
    {
     "w": "fois…",
-    "start": 0.44
+    "start": 0.522
    }
   ]
  },
  {
   "id": "n7",
   "file": "voices/n7.mp3",
-  "duration": 2.72,
+  "duration": 2.56,
   "serif": [
    6
   ],
   "words": [
    {
     "w": "Réservé.",
-    "start": 0.121
+    "start": 0.124
    },
    {
     "w": "Les",
-    "start": 1.161
+    "start": 1.054
    },
    {
     "w": "mains",
-    "start": 1.48
+    "start": 1.4
    },
    {
     "w": "toujours",
-    "start": 1.585
+    "start": 1.562
    },
    {
     "w": "dans",
-    "start": 2.04
+    "start": 1.88
    },
    {
     "w": "la",
-    "start": 2.12
+    "start": 2.04
    },
    {
     "w": "pâte.",
-    "start": 2.281
+    "start": 2.042
    }
   ]
  },
  {
   "id": "n8",
   "file": "voices/n8.mp3",
-  "duration": 1.6,
+  "duration": 1.44,
   "serif": [
    3
   ],
   "words": [
    {
     "w": "Déjà",
-    "start": 0.113
+    "start": 0.117
    },
    {
     "w": "dans",
-    "start": 0.603
+    "start": 0.52
    },
    {
     "w": "votre",
@@ -203,19 +203,19 @@ export default [
    },
    {
     "w": "agenda.",
-    "start": 0.922
+    "start": 0.841
    }
   ]
  },
  {
   "id": "n9",
   "file": "voices/n9.mp3",
-  "duration": 1.28,
+  "duration": 1.12,
   "serif": [],
   "words": [
    {
     "w": "Julie",
-    "start": 0.118
+    "start": 0.119
    },
    {
     "w": "a",
@@ -223,40 +223,40 @@ export default [
    },
    {
     "w": "sa",
-    "start": 0.68
+    "start": 0.6
    },
    {
     "w": "table.",
-    "start": 0.841
+    "start": 0.681
    }
   ]
  },
  {
   "id": "n10",
   "file": "voices/n10.mp3",
-  "duration": 1.6,
+  "duration": 1.52,
   "serif": [
    2
   ],
   "words": [
    {
     "w": "Vous,",
-    "start": 0.112
+    "start": 0.174
    },
    {
     "w": "vos",
-    "start": 0.712
+    "start": 0.815
    },
    {
     "w": "pizzas.",
-    "start": 0.843
+    "start": 1.002
    }
   ]
  },
  {
   "id": "n11",
   "file": "voices/n11.mp3",
-  "duration": 2.72,
+  "duration": 2.56,
   "serif": [
    4,
    5,
@@ -265,15 +265,15 @@ export default [
   "words": [
    {
     "w": "Elle",
-    "start": 1.008
+    "start": 1.032
    },
    {
     "w": "décroche",
-    "start": 1.322
+    "start": 1.321
    },
    {
     "w": "quand",
-    "start": 1.72
+    "start": 1.8
    },
    {
     "w": "vous",
@@ -285,7 +285,7 @@ export default [
    },
    {
     "w": "pouvez",
-    "start": 2.121
+    "start": 2.04
    },
    {
     "w": "pas.",
