@@ -201,7 +201,7 @@ function CallScene({ t }: { t: number }) {
 /** La musique respire autour de la voix : -8 dB sous la narration, -16 dB sous l'appel. */
 function musicVolume(t: number) {
   const fadeIn = p(t, 0, 0.6, (x) => x);
-  const fadeOut = 1 - p(t, DURATION - 1.6, 1.6);
+  const fadeOut = 1 - p(t, T.end.at - 0.3, 0.8); // la musique s'efface, la signature prend le relais
   const underCall = p(t, T.call.at - 0.3, 0.5) * (1 - p(t, T.call.out - 0.3, 0.7));
   const underVoice = Math.max(...NLINES.map((l) => p(t, l.at - 0.15, 0.2) * (1 - p(t, l.out - 0.3, 0.4))), p(t, T.n11.at - 0.15, 0.2));
   const duck = 1 - 0.84 * underCall - 0.6 * underVoice * (1 - underCall);
@@ -311,6 +311,7 @@ export const Pub3: React.FC = () => {
       {[T.ring.at, T.missed, T.ring2.at, T.booked.at + 0.15].map((s) => <Sfx key={`p${s}`} at={s} name="pop" gain={0.6} />)}
       <Sfx at={T.call.at + 0.2} name="click" gain={0.6} />
       <Audio src={staticFile('sounds-pub3.wav')} />
+      <Sequence from={at(T.end.jingle)} layout="none"><Audio src={staticFile('jingle.mp3')} volume={0.9} /></Sequence>
     </AbsoluteFill>
   );
 };

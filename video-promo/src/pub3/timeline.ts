@@ -73,8 +73,9 @@ export const T = {
   n9: say(E + 6.8, 8, 0.1),
   n10: say(E + 8.2, 9, 0.2),
 
-  end: { at: E + 9.75, formed: E + 11.35, line: E + 11.0 },
-  n11: say(E + 10.5, 10, 1.4),
+  // La signature sonore (public/jingle.mp3) finit sur le logo formé, le slogan parlé vient après.
+  end: { at: E + 9.75, formed: E + 11.35, line: E + 11.6, jingle: E + 10.35 },
+  n11: say(E + 11.65, 10, 1.4),
 };
 
 export const DURATION = T.n11.out + 0.9;
@@ -131,5 +132,4 @@ export const CUES: Cue[] = [
   { t: T.mac.upcoming, kind: 'sparkle', seed: 342, gain: 0.45 },
   { t: T.end.at - 1.1, kind: 'riser', seed: 343, gain: 0.5 },
   { t: T.end.at + 0.02, kind: 'swell', seed: 344, gain: 0.5 },
-  { t: T.end.formed - 0.05, kind: 'logo', seed: 345 },
 ];

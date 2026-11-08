@@ -74,8 +74,9 @@ export const T = {
   tech: { at: cloneOut, out: techOut },
   v10: say(cloneOut + 0.15, 'v10', 0.3),
 
-  end: { at: techOut, formed: techOut + 1.8 },
-  v8: say(techOut + 1.6, 'v8', 1.6),
+  // La signature sonore (public/jingle.mp3) finit sur le logo formé, le slogan parlé vient après.
+  end: { at: techOut, formed: techOut + 1.8, jingle: techOut + 0.8 },
+  v8: say(techOut + 2.1, 'v8', 1.6),
 };
 
 export const DURATION = T.v8.out + 0.8;
@@ -106,5 +107,4 @@ export const CUES: Cue[] = [
   { t: T.clone.ready, kind: 'confirm', seed: 575, gain: 0.6 },
   { t: T.end.at - 1.1, kind: 'riser', seed: 571, gain: 0.5 },
   { t: T.end.at + 0.02, kind: 'swell', seed: 572, gain: 0.5 },
-  { t: T.end.formed - 0.05, kind: 'logo', seed: 573 },
 ];

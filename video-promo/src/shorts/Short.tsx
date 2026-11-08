@@ -95,7 +95,10 @@ export function buildTimeline(id: string) {
   });
   const endAt = cursor;
   const fin = data.end[sh.lang];
-  const end = { at: endAt, formed: endAt + 1.4, say: { ...fin, at: endAt + 1.0, out: endAt + 1.0 + fin.duration + 0.5 } };
+  // La signature sonore (public/jingle.mp3) : sa dernière note, à 1,0 s, tombe
+  // sur le logo formé ; le slogan parlé vient après, pour ne pas la couvrir.
+  const formed = endAt + 1.4;
+  const end = { at: endAt, formed, jingle: formed - 1.0, say: { ...fin, at: formed + 0.3, out: formed + 0.3 + fin.duration + 0.5 } };
   return { id, lang: sh.lang, music: sh.music, scenes, end, duration: end.say.out + 1.0 };
 }
 export type Timeline = ReturnType<typeof buildTimeline>;
@@ -359,7 +362,7 @@ export const Short: React.FC<{ id: string; format: Format }> = ({ id, format }) 
   const talking = (x: number) => Math.max(0, ...narr.map((l) => p(x, l.at - 0.15, 0.2) * (1 - p(x, l.out - 0.3, 0.4))), ...lines.map((l) => p(x, l.at - 0.2, 0.2) * (1 - p(x, l.end, 0.4))));
   // La musique minimale (scripts/music-minimal.py) : plus présente entre les
   // phrases, presque effacée sous les voix.
-  const music = (x: number) => 0.6 * p(x, 0, 0.6, (y) => y) * (1 - p(x, T.duration - 1.4, 1.4)) * (1 - 0.72 * talking(x));
+  const music = (x: number) => 0.6 * p(x, 0, 0.6, (y) => y) * (1 - p(x, T.end.at - 0.3, 0.8)) * (1 - 0.72 * talking(x));
 
   return (
     <AbsoluteFill>
@@ -380,6 +383,7 @@ export const Short: React.FC<{ id: string; format: Format }> = ({ id, format }) 
 
       {/* ------------------------------ le son ------------------------------ */}
       <Audio src={staticFile('music-minimal.mp3')} startFrom={at(T.music)} volume={(f) => music(f / fps)} />
+      <Sequence from={at(T.end.jingle)} layout="none"><Audio src={staticFile('jingle.mp3')} volume={0.9} /></Sequence>
       {narr.map((l) => <Sequence key={`n${l.file}`} from={at(l.at)} layout="none"><Audio src={staticFile(l.file)} /></Sequence>)}
       {lines.map((l) => <Sequence key={`l${l.file}`} from={at(l.at)} layout="none"><Audio src={staticFile(l.file)} /></Sequence>)}
       {narr.flatMap((l) => l.words.map((w, i) => <Sfx key={`w${l.file}-${i}`} at={l.at + w.start - 0.04} name="type" gain={0.3} />))}

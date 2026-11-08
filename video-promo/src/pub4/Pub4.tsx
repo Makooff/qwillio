@@ -166,7 +166,7 @@ function LearnCard({ t }: { t: number }) {
 
 function musicVolume(t: number) {
   const fadeIn = p(t, 0, 0.8, (x) => x);
-  const fadeOut = 1 - p(t, DURATION - 1.6, 1.6);
+  const fadeOut = 1 - p(t, T.end.at - 0.3, 0.8); // la musique s'efface, la signature prend le relais
   const talking = Math.max(
     ...VLINES.map((l) => p(t, l.at - 0.15, 0.2) * (1 - p(t, l.out - 0.3, 0.4))),
     ...CLIPS.map((c) => p(t, c.at - 0.2, 0.2) * (1 - p(t, c.end, 0.4))),
@@ -305,6 +305,7 @@ export const Pub4: React.FC = () => {
       {[0, 0.9].map((d) => <Sfx key={`k${d}`} at={T.clone.at + 0.7 + d} name="counter" gain={0.4} />)}
       <Sfx at={T.learn.at + 0.2} name="pop" gain={0.5} />
       <Audio src={staticFile('sounds-pub4.wav')} />
+      <Sequence from={at(T.end.jingle)} layout="none"><Audio src={staticFile('jingle.mp3')} volume={0.9} /></Sequence>
     </AbsoluteFill>
   );
 };
