@@ -76,6 +76,14 @@ class VoiceCloneService {
     if (!r.ok) {
       const detail = await r.text().catch(() => '');
       logger.warn(`[VoiceClone] add failed ${r.status} for ${clientId}: ${detail.slice(0, 300)}`);
+      /* ElevenLabs signale le forfait gratuit par un 400 `paid_plan_required`,
+         PAS par un 401 comme on l'a longtemps cru (le 401, lui, signale une
+         clé invalide). Le détecter explicitement évite au client un
+         « réessayez dans un instant » qui ne changera jamais rien : aucun
+         nouvel essai ne fait apparaître une fonctionnalité payante. */
+      if (/paid_plan_required|payment_required|can_not_use_instant_voice_cloning/i.test(detail)) {
+        throw new VoiceCloneError('elevenlabs_plan_required', 402, r.status);
+      }
       // 401 here is almost always a free plan rather than a bad key: the same
       // key works for the voice previews. Saying so saves an hour of guessing.
       throw new VoiceCloneError('elevenlabs_clone_failed', 502, r.status);
