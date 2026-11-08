@@ -96,7 +96,6 @@ const buzzes = (r: { at: number; out: number }, seed: number) => {
 };
 export const CUES: Cue[] = [
   { t: 0.05, kind: 'swell', seed: 500, gain: 0.45 },
-  ...SCENES.slice(1).map((s, i) => ({ t: s.at - 0.12, kind: 'whoosh' as const, seed: 510 + i, gain: 0.4 })),
   ...VLINES.map((l, i) => ({ t: l.at, kind: 'bump' as const, seed: 530 + i, gain: 0.26 })),
   ...buzzes(T.known.ring, 540),
   { t: T.known.answer, kind: 'click', seed: 550, gain: 0.7 },

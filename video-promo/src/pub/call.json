@@ -67,7 +67,7 @@
   "id": "c1",
   "who": "caller",
   "text": "Bonsoir ! Vous auriez une table pour quatre, ce soir, vers vingt heures ?",
-  "file": "voices/c1-A.mp3",
+  "file": "voices/c1-A-tel.mp3",
   "duration": 3.855,
   "words": [
    {
@@ -210,7 +210,7 @@
   "id": "c2",
   "who": "caller",
   "text": "Parfait, au nom de Julie.",
-  "file": "voices/c2-A.mp3",
+  "file": "voices/c2-A-tel.mp3",
   "duration": 1.44,
   "words": [
    {

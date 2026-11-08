@@ -117,17 +117,13 @@ const cuts = [
   T.booked.at, T.mac.at, T.payoff.at,
 ];
 export const CUES: Cue[] = [
-  { t: 0.0, kind: 'whoosh', seed: 400, gain: 0.5 },
   ...NLINES.map((l, i) => ({ t: l.at, kind: 'bump' as const, seed: 360 + i, gain: 0.28 })),
-  ...cuts.map((t, i) => ({ t: t - 0.12, kind: 'whoosh' as const, seed: 410 + i, gain: 0.32 })),
-  { t: T.phoneIn - 0.05, kind: 'whoosh', seed: 440, gain: 0.45 },
   { t: T.ring.at, kind: 'tap', seed: 380, gain: 0.5 },
   ...buzzes(T.ring.at, T.ring.out, 300),
   { t: T.missed, kind: 'sparkle', seed: 381, gain: 0.35 },
   { t: T.out1 - 1.3, kind: 'riser', seed: 382, gain: 0.55 },
   { t: T.splash.at + 0.02, kind: 'swell', seed: 321, gain: 0.55 },
   { t: T.splash.formed - 0.05, kind: 'logo', seed: 322 },
-  { t: T.phone2In - 0.05, kind: 'whoosh', seed: 441, gain: 0.45 },
   { t: T.ring2.at, kind: 'tap', seed: 383, gain: 0.5 },
   ...buzzes(T.ring2.at, T.ring2.out, 330),
   { t: T.call.at + 0.05, kind: 'click', seed: 384, gain: 0.7 },

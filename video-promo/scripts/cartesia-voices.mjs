@@ -10,6 +10,7 @@
 // l'écran. Écrit src/pub/call.{json,ts} (l'appel) et src/pub3/narration.ts.
 // La clé n'est jamais ici : le proxy de l'environnement l'injecte (X-API-Key).
 import fs from 'fs';
+import { execFileSync } from 'child_process';
 import { speak } from './cartesia-lib.mjs';
 
 
@@ -64,7 +65,11 @@ function elevenLine(l) {
     cur.w += c; cur.end = en[i];
   });
   if (cur) words.push(cur);
-  return { id: l.id, who: l.who, text: j.text, file: `voices/${l.id}-A.mp3`, duration: +en[en.length - 1].toFixed(3), words };
+  // Julie appelle : sa voix passe par une ligne téléphonique (bande 300-3 300 Hz,
+  // compression, échantillonnage à 8 kHz), pour qu'on entende qu'elle est au
+  // bout du fil et que Sarah, elle, est dans la pièce.
+  execFileSync('ffmpeg', ['-v', 'error', '-y', '-i', `public/voices/${l.id}-A.mp3`, '-af', 'highpass=f=320,lowpass=f=3300,acompressor=threshold=-20dB:ratio=4:attack=5:release=60,aresample=8000,aresample=44100,volume=1.5', `public/voices/${l.id}-A-tel.mp3`]);
+  return { id: l.id, who: l.who, text: j.text, file: `voices/${l.id}-A-tel.mp3`, duration: +en[en.length - 1].toFixed(3), words };
 }
 
 // Les prises de la réceptionniste déjà validées par le propriétaire sont
