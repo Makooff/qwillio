@@ -18,6 +18,8 @@ export const LINES = [
   { id: 'v5', emotion: 'serious', say: 'Une urgence ? Elle vous la passe.', serif: [5] },
   { id: 'v6', emotion: 'calm', say: 'Elle note chaque message.', serif: [3] },
   { id: 'v7', emotion: 'curious', say: 'Ce qu’elle ne sait pas, elle l’apprend.', serif: [5] },
+  { id: 'v9', emotion: 'excited', say: 'Elle peut même parler avec votre voix.', serif: [6] },
+  { id: 'v10', emotion: 'confident', say: 'Et derrière, les meilleurs modèles de voix et de compréhension, en temps réel.', serif: [11, 12] },
   { id: 'v8', emotion: 'affectionate', say: 'Qwillio. Elle décroche quand vous ne pouvez pas.', show: 'Elle décroche quand vous ne pouvez pas.', serif: [4, 5, 6] },
 ];
 
@@ -25,13 +27,21 @@ export const LINES = [
 export const CLIPS = [
   { id: 'k1', lang: 'fr', emotion: 'happy', say: 'Bonjour Monsieur Leroy ! C’est pour votre rendez-vous de jeudi ?' },
   { id: 'k2', lang: 'fr', emotion: 'content', say: 'Bonjour, Le Comptoir, je vous écoute.' },
-  { id: 'k3', lang: 'en', emotion: 'content', say: 'Hello, Le Comptoir, how can I help?' },
-  { id: 'k4', lang: 'nl', emotion: 'content', say: 'Goedenavond, Le Comptoir, waarmee kan ik helpen?' },
+  // Chaque langue a sa voix native, donc son accent (retour du propriétaire) :
+  // Gemma, britannique, et Isa, néerlandaise (catalogue Cartesia).
+  { id: 'k3', lang: 'en', voice: '62ae83ad-4f6a-430b-af41-a9bede9286ca', emotion: 'content', say: 'Hello, Le Comptoir, how can I help?' },
+  { id: 'k4', lang: 'nl', voice: '60e94cf5-8069-459f-a91e-3ff852a51107', emotion: 'content', say: 'Goedenavond, Le Comptoir, waarmee kan ik helpen?' },
 ];
 
 fs.mkdirSync('public/voices', { recursive: true });
+// ONLY=v9,k3 ne refait que ces prises ; les autres, déjà validées, sont gardées.
+const ONLY = process.env.ONLY ? process.env.ONLY.split(',') : null;
+const prev = fs.existsSync('src/pub4/voices.ts')
+  ? JSON.parse(fs.readFileSync('src/pub4/voices.ts', 'utf8').replace(/^[\s\S]*?const voices = /, '').replace(/;\nexport default[\s\S]*$/, ''))
+  : { lines: {}, clips: {} };
 const out = { lines: {}, clips: {} };
 for (const l of LINES) {
+  if (ONLY && !ONLY.includes(l.id) && prev.lines[l.id]) { out.lines[l.id] = prev.lines[l.id]; continue; }
   const s = await speak(SARAH, l.say, l.emotion, `public/voices/v4-${l.id}`);
   const shown = (l.show ?? l.say).split(' ');
   const lead = s.words.slice(Math.max(0, s.words.length - shown.length));
@@ -40,7 +50,8 @@ for (const l of LINES) {
   console.log(l.id, s.duration.toFixed(2) + 's', l.say);
 }
 for (const c of CLIPS) {
-  const s = await speak(SARAH, c.say, c.emotion, `public/voices/v4-${c.id}`, c.lang);
+  if (ONLY && !ONLY.includes(c.id) && prev.clips[c.id]) { out.clips[c.id] = prev.clips[c.id]; continue; }
+  const s = await speak(c.voice ?? SARAH, c.say, c.emotion, `public/voices/v4-${c.id}`, c.lang);
   out.clips[c.id] = { file: `voices/v4-${c.id}.mp3`, duration: +s.duration.toFixed(3), lang: c.lang, words: s.words.map((w) => ({ w: w.w, start: +w.start.toFixed(3), end: +w.end.toFixed(3) })) };
   console.log(c.id, s.duration.toFixed(2) + 's', c.say);
 }

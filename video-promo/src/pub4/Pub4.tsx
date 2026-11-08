@@ -1,7 +1,7 @@
 /**
  * « Elle ne fait pas que décrocher » — pub n° 2, verticale 9:16.
  *
- * Six fonctions du produit, une scène chacune, dans le langage de la pub n° 1 :
+ * Huit fonctions du produit, une scène chacune, dans le langage de la pub n° 1 :
  * fond clair, cadres arrondis, iPhone du kit iOS, rond de l'appel (fichier
  * Figma Make « Shader Reminder », gris et noir). Sarah lit chaque phrase et le
  * rond respire avec sa voix, narration comprise : c'est elle, la réceptionniste.
@@ -15,6 +15,7 @@ import { MacBookBookings } from '../pub2/mac';
 import { Canvas, Frame, Phone, STAGE, buzzAngle, reveal, spring } from '../pub3/Pub3';
 import { IncomingCall, LockScreen, Notification } from '../pub3/ios';
 import { ShaderOrb } from '../pub3/ShaderOrb';
+import { Engines, MessageNote, VoiceClone } from './illustrations';
 import voices from './voices';
 import { CLIPS, DURATION, FPS, T, VLine, VLINES } from './timeline';
 
@@ -46,15 +47,18 @@ function Said({ line, t, size = 88, y = 300 }: { line: VLine; t: number; size?: 
 }
 
 /** Une réplique de la réceptionniste, mot à mot, sous le rond. */
-function Spoken({ t, id, start, y = 1390, tag }: { t: number; id: string; start: number; y?: number; tag?: string }) {
+/** `until` coupe la réplique avant la suivante : sans lui, « Goedenavond »
+ * s'écrivait par-dessus « Hello ». */
+function Spoken({ t, id, start, y = 1390, tag, until }: { t: number; id: string; start: number; y?: number; tag?: string; until?: number }) {
   const c = voices.clips[id];
-  if (!between(t, start - 0.1, start + c.duration + 1.2)) return null;
-  const outK = p(t, start + c.duration + 0.8, 0.4);
+  const end = until ?? start + c.duration + 1.2;
+  if (!between(t, start - 0.1, end)) return null;
+  const outK = p(t, end - 0.3, 0.3);
   return (
     <div style={{ position: 'absolute', left: 90, right: 90, top: y, textAlign: 'center', opacity: 1 - outK, ...ff }}>
       <div style={{ fontSize: 24, letterSpacing: '0.16em', fontWeight: 600, color: INDIGO, marginBottom: 10 }}>
         {tag ? <span style={{ padding: '4px 12px', borderRadius: 999, border: `1px solid ${INDIGO}55`, marginRight: 12 }}>{tag}</span> : null}
-        SARAH · RÉCEPTIONNISTE IA
+        {tag ? 'RÉCEPTIONNISTE IA' : 'SARAH · RÉCEPTIONNISTE IA'}
       </div>
       <div style={{ fontSize: 46, lineHeight: 1.24, fontWeight: 300, color: INK, letterSpacing: '-0.015em' }}>
         {c.words.map((w, i) => {
@@ -229,7 +233,7 @@ export const Pub4: React.FC = () => {
         <AbsoluteFill style={{ opacity: sceneAlpha(t, T.langs) }}>
           <LangPills t={t} />
           <Orb t={t} size={520} y={800} levels={levels} />
-          <Spoken t={t} id="k3" start={T.k3.at} tag="EN" />
+          <Spoken t={t} id="k3" start={T.k3.at} tag="EN" until={T.k4.at - 0.05} />
           {t >= T.k4.at - 0.1 && <Spoken t={t} id="k4" start={T.k4.at} tag="NL" />}
         </AbsoluteFill>
       )}
@@ -245,20 +249,30 @@ export const Pub4: React.FC = () => {
         </AbsoluteFill>
       )}
 
-      {/* 5. Elle note chaque message. */}
+      {/* 5. Elle note chaque message : une fiche au dessin du site, pas un téléphone de plus. */}
       {between(t, T.message.at, T.message.out) && (
-        <AbsoluteFill style={{ opacity: sceneAlpha(t, T.message) }}>
-          <Frame t={t} rect={STAGE} shots={[{ at: T.message.at, out: T.message.out, name: 'cheese', from: 0.5 }]} alpha={1} />
-          <Phone t={t} inAt={T.message.at + 0.1} outAt={T.message.out}>
-            <LockScreen time="21:40" date="mardi 10 novembre" wallpaper={WALL}>
-              {t >= T.message.notif && <div style={reveal(t, T.message.notif)}><Notification kind="qwillio" title="Message de Julie Martin" desc="Rappeler après 17 h · +32 471 52 18 90" time="maintenant" /></div>}
-            </LockScreen>
-          </Phone>
+        <AbsoluteFill style={{ opacity: sceneAlpha(t, T.message), transform: `scale(${0.96 + 0.04 * spring(p(t, T.message.at, 1, (x) => x))})` }}>
+          <MessageNote t={t} from={T.message.at + 0.4} />
         </AbsoluteFill>
       )}
 
       {/* 6. Elle apprend. */}
       {between(t, T.learn.at, T.learn.out) && <AbsoluteFill style={{ opacity: sceneAlpha(t, T.learn) }}><LearnCard t={t} /></AbsoluteFill>}
+
+      {/* 7. Elle peut même parler avec votre voix. */}
+      {between(t, T.clone.at, T.clone.out) && (
+        <AbsoluteFill style={{ opacity: sceneAlpha(t, T.clone), transform: `scale(${0.96 + 0.04 * spring(p(t, T.clone.at, 1, (x) => x))})` }}>
+          <VoiceClone t={t} from={T.clone.at + 0.35} ready={T.clone.ready} />
+        </AbsoluteFill>
+      )}
+
+      {/* 8. Les meilleurs moteurs, en temps réel : le rond au-dessus de la fiche. */}
+      {between(t, T.tech.at, T.tech.out) && (
+        <AbsoluteFill style={{ opacity: sceneAlpha(t, T.tech) }}>
+          <Orb t={t} size={300} y={520} levels={levels} />
+          <div style={{ position: 'absolute', inset: 0, transform: 'translateY(260px)' }}><Engines t={t} from={T.tech.at + 0.5} /></div>
+        </AbsoluteFill>
+      )}
 
       {VLINES.map((l) => <Said key={l.id} line={l} t={t} />)}
 
@@ -275,7 +289,7 @@ export const Pub4: React.FC = () => {
       {/* ------------------------------ le son ------------------------------ */}
       <Audio src={staticFile('media/music.mp3')} startFrom={at(20)} volume={(f) => musicVolume(f / FPS)} />
       {SOURCES.map((s) => <Sequence key={s.file} from={at(s.at)} layout="none"><Audio src={staticFile(s.file)} /></Sequence>)}
-      <Sequence from={at(T.message.notif)} durationInFrames={at(1)} layout="none"><Audio src={staticFile('media/pop.mp3')} volume={0.5} /></Sequence>
+      <Sequence from={at(T.message.at + 0.9)} durationInFrames={at(1)} layout="none"><Audio src={staticFile('media/pop.mp3')} volume={0.45} /></Sequence>
       <Audio src={staticFile('sounds-pub4.wav')} />
     </AbsoluteFill>
   );

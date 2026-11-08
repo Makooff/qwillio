@@ -232,6 +232,105 @@ const voices = {
     }
    ]
   },
+  "v9": {
+   "file": "voices/v4-v9.mp3",
+   "duration": 1.68,
+   "serif": [
+    6
+   ],
+   "words": [
+    {
+     "w": "Elle",
+     "start": 0.112
+    },
+    {
+     "w": "peut",
+     "start": 0.28
+    },
+    {
+     "w": "même",
+     "start": 0.44
+    },
+    {
+     "w": "parler",
+     "start": 0.521
+    },
+    {
+     "w": "avec",
+     "start": 0.92
+    },
+    {
+     "w": "votre",
+     "start": 1.08
+    },
+    {
+     "w": "voix.",
+     "start": 1.241
+    }
+   ]
+  },
+  "v10": {
+   "file": "voices/v4-v10.mp3",
+   "duration": 4.32,
+   "serif": [
+    11,
+    12
+   ],
+   "words": [
+    {
+     "w": "Et",
+     "start": 0.117
+    },
+    {
+     "w": "derrière,",
+     "start": 0.201
+    },
+    {
+     "w": "les",
+     "start": 1.033
+    },
+    {
+     "w": "meilleurs",
+     "start": 1.321
+    },
+    {
+     "w": "modèles",
+     "start": 1.641
+    },
+    {
+     "w": "de",
+     "start": 1.88
+    },
+    {
+     "w": "voix",
+     "start": 2.04
+    },
+    {
+     "w": "et",
+     "start": 2.44
+    },
+    {
+     "w": "de",
+     "start": 2.52
+    },
+    {
+     "w": "compréhension,",
+     "start": 2.522
+    },
+    {
+     "w": "en",
+     "start": 3.403
+    },
+    {
+     "w": "temps",
+     "start": 3.561
+    },
+    {
+     "w": "réel.",
+     "start": 3.881
+    }
+   ]
+  },
   "v8": {
    "file": "voices/v4-v8.mp3",
    "duration": 2.72,
@@ -374,85 +473,85 @@ const voices = {
   },
   "k3": {
    "file": "voices/v4-k3.mp3",
-   "duration": 2.32,
+   "duration": 2.56,
    "lang": "en",
    "words": [
     {
      "w": "Hello,",
-     "start": 0.118,
-     "end": 0.52
+     "start": 0.121,
+     "end": 0.6
     },
     {
      "w": "Le",
-     "start": 0.739,
+     "start": 0.786,
      "end": 0.84
     },
     {
      "w": "Comptoir,",
-     "start": 0.841,
-     "end": 1.32
+     "start": 0.843,
+     "end": 1.48
     },
     {
      "w": "how",
-     "start": 1.536,
-     "end": 1.56
-    },
-    {
-     "w": "can",
-     "start": 1.56,
+     "start": 1.691,
      "end": 1.8
     },
     {
+     "w": "can",
+     "start": 1.8,
+     "end": 1.96
+    },
+    {
      "w": "I",
-     "start": 1.88,
-     "end": 1.88
+     "start": 2.04,
+     "end": 2.04
     },
     {
      "w": "help?",
-     "start": 1.96,
-     "end": 2.2
+     "start": 2.042,
+     "end": 2.52
     }
    ]
   },
   "k4": {
    "file": "voices/v4-k4.mp3",
-   "duration": 3.04,
+   "duration": 3.2,
    "lang": "nl",
    "words": [
     {
      "w": "Goedenavond,",
-     "start": 0.143,
-     "end": 0.92
+     "start": 0.134,
+     "end": 0.76
     },
     {
      "w": "Le",
-     "start": 1.066,
-     "end": 1.24
+     "start": 0.952,
+     "end": 1.16
     },
     {
      "w": "Comptoir,",
-     "start": 1.322,
+     "start": 1.164,
      "end": 1.72
     },
     {
      "w": "waarmee",
-     "start": 1.893,
-     "end": 2.2
-    },
-    {
-     "w": "kan",
-     "start": 2.28,
-     "end": 2.36
-    },
-    {
-     "w": "ik",
-     "start": 2.36,
+     "start": 2.1,
      "end": 2.52
     },
     {
+     "w": "kan",
+     "start": 2.6,
+     "end": 2.6
+    },
+    {
+     "w": "ik",
+     "start": 2.68,
+     "end": 2.76
+    },
+    {
      "w": "helpen?",
-     "start": 2.521,
-     "end": 2.92
+     "start": 2.76,
+     "end": 3.08
     }
    ]
   }
