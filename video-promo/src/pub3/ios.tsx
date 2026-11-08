@@ -17,19 +17,18 @@ export const W = 393, H = 852;
 const sf: React.CSSProperties = { fontFamily: 'Inter, sans-serif', fontFeatureSettings: '"case" 1, "cv11"' };
 const icon = (n: string) => staticFile(`ios/${n}.svg`);
 
-/** Barre d'état avec l'île dynamique (1503:15313), en blanc sur le fond d'écran. */
+/** Barre d'état avec l'île dynamique (1503:15313), en mode clair comme dans le kit. */
 function StatusBar({ time }: { time: string }) {
   return (
     <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 59, display: 'flex', alignItems: 'flex-end', ...sf }}>
       <div style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: 10, paddingBottom: 3 }}>
-        <span style={{ fontSize: 16, fontWeight: 600, letterSpacing: -0.32, color: '#fff', width: 54, textAlign: 'center' }}>{time}</span>
+        <span style={{ fontSize: 16, fontWeight: 600, letterSpacing: -0.32, color: '#000', width: 54, textAlign: 'center' }}>{time}</span>
       </div>
       <div style={{ height: '100%', display: 'flex', alignItems: 'center' }}>
         <div style={{ width: 125, height: 37, borderRadius: 100, background: '#000' }} />
       </div>
       <div style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingRight: 11 }}>
-        {/* L'export du kit est noir (mode clair) : on l'inverse pour le fond sombre. */}
-        <Img src={icon('status-right')} style={{ width: 78.4, height: 13, filter: 'invert(1)' }} />
+        <Img src={icon('status-right')} style={{ width: 78.4, height: 13 }} />
       </div>
     </div>
   );
@@ -93,10 +92,10 @@ export function IncomingCall({ name, initials, sub = 'mobile' }: { name: string;
 export function LockScreen({ time, date, wallpaper, children, banner }: { time: string; date: string; wallpaper: string; children?: React.ReactNode; banner?: React.ReactNode }) {
   return (
     <div style={{ position: 'relative', width: W, height: H, overflow: 'hidden', background: '#000' }}>
-      <Img src={staticFile(wallpaper)} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', filter: 'brightness(0.62) saturate(1.1)' }} />
+      <Img src={staticFile(wallpaper)} style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }} />
       <StatusBar time={time} />
-      <div style={{ position: 'absolute', left: 0, right: 0, top: 88, textAlign: 'center', fontSize: 22, fontWeight: 500, lineHeight: '24px', letterSpacing: 0.38, color: 'rgba(255,255,255,0.88)', ...sf }}>{date}</div>
-      <div style={{ position: 'absolute', left: 0, right: 0, top: 105, textAlign: 'center', fontSize: 100, fontWeight: 500, lineHeight: '119px', letterSpacing: -2.12, color: 'rgba(255,255,255,0.92)', ...sf }}>{time}</div>
+      <div style={{ position: 'absolute', left: 0, right: 0, top: 88, textAlign: 'center', fontSize: 22, fontWeight: 500, lineHeight: '24px', letterSpacing: 0.38, color: '#fff', mixBlendMode: 'overlay', ...sf }}>{date}</div>
+      <div style={{ position: 'absolute', left: 0, right: 0, top: 105, textAlign: 'center', fontSize: 100, fontWeight: 500, lineHeight: '119px', letterSpacing: -2.12, color: '#fff', mixBlendMode: 'overlay', ...sf }}>{time}</div>
       <div style={{ position: 'absolute', left: 10, right: 10, bottom: 120, display: 'flex', flexDirection: 'column', gap: 8, alignItems: 'center' }}>{children}</div>
       <div style={{ position: 'absolute', left: 46, right: 46, bottom: 50, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Img src={icon('flashlight')} style={{ width: 50, height: 50 }} />

@@ -22,7 +22,12 @@ export const VIDEOS = {
   ovenhot: 42481, // hot-oven-baking-pizzas
   sliced: 42487, // pizza-while-someone-takes-a-slice
   table: 44007, // man-and-woman-taking-a-slice-of-pizza
+  knead: 42467, // hands-of-a-baker-kneading-a-dough
+  cheese: 42475, // spreading-cheese-on-a-pizza
+  pepperoni: 42477, // putting-pepperoni-on-a-pizza
 };
+// La musique de la v3 : « Discover », Mixkit, sous la « Mixkit Music Free License ».
+export const MUSIC = { music: 587 };
 export const SOUNDS = {
   ambience: 478, // Restaurant crowd talking ambience
   sizzle: 2826, // Frying fish on a hot pan
@@ -42,4 +47,5 @@ const get = async (url, out) => {
   console.log('ok', out);
 };
 for (const [k, id] of Object.entries(VIDEOS)) await get(`https://assets.mixkit.co/videos/${id}/${id}-720.mp4`, `public/media/${k}.mp4`);
+for (const [k, id] of Object.entries(MUSIC)) await get(`https://assets.mixkit.co/music/${id}/${id}.mp3`, `public/media/${k}.mp3`);
 for (const [k, id] of Object.entries(SOUNDS)) await get(`https://assets.mixkit.co/active_storage/sfx/${id}/${id}-preview.mp3`, `public/media/${k}.mp3`);

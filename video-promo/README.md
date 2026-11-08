@@ -20,7 +20,15 @@ La version en cours. `npm run build:pub3` produit `out/qwillio-pub-v3.mp4`.
   36:7378, notification 1259:11286, appel entrant 34:147) : cotes, rayons, flous
   et icônes SVG du kit (`public/ios/`). Seule la police diffère, SF Pro n'étant
   licenciée que sur les plateformes Apple.
-- **Aucune sonnerie Apple** : le téléphone vibre (son de synthèse `buzz`).
+- **Aucune sonnerie Apple** : le téléphone vibre (son de synthèse `buzz`). Un pop
+  discret à chaque phrase, un pop Mixkit aux notifications.
+- **Musique** : « Discover » (Mixkit, Mixkit Music Free License), prise à 16,4 s
+  pour que sa montée tombe sur l'ouverture de l'app, retirée sous les voix.
+- **Fond d'écran** : celui du kit (iPhone 14 Midnight), qui est une image Apple ;
+  à remplacer avant une diffusion payante si le doute juridique pèse.
+- **Pendant l'appel**, plusieurs plans du même tournage se suivent
+  (`CALL_SHOTS`), chacun plus court que son rush : l'image ne fige jamais, quelle
+  que soit la durée de l'appel réel.
 - **L'appel** vient de `src/pub/call.ts`. Aujourd'hui des voix de synthèse ;
   avec l'enregistrement réel d'un appel à la réceptionniste :
 

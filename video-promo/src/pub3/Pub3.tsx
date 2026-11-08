@@ -14,7 +14,7 @@ import { EASE_EXPO, EASE_IN_OUT, EASE_OUT, mix, p, useOutfit } from '../lib';
 import { J, Mark, Words, useFonts } from '../pub2/Pub2';
 import { MacBookBookings } from '../pub2/mac';
 import { Device, IncomingCall, LockScreen, Notification } from './ios';
-import { CALL, DURATION, FPS, Shot, T } from './timeline';
+import { CALL, CALL_SHOTS, DURATION, FPS, Shot, T } from './timeline';
 
 const INK = '#1D1D1F';
 const BODY = '#777169';
@@ -149,6 +149,17 @@ function CallPanel({ t }: { t: number }) {
   );
 }
 
+/* ------------------------------------------------------------------ la musique */
+
+const MUSIC_FROM = 16.4;
+function musicVolume(t: number) {
+  const fadeIn = Math.min(1, t / 1.2);
+  const fadeOut = 1 - p(t, DURATION - 2.2, 2.2);
+  // Sous l'appel, la musique se retire derrière les voix, puis revient.
+  const duck = 1 - 0.78 * p(t, T.call.at - 0.4, 0.6) * (1 - p(t, T.call.out - 0.2, 0.8));
+  return 0.42 * fadeIn * fadeOut * duck;
+}
+
 /* ------------------------------------------------------------------ la pub */
 
 export const Pub3: React.FC = () => {
@@ -160,9 +171,8 @@ export const Pub3: React.FC = () => {
   const toWide = p(t, T.call.at, 0.9, EASE_IN_OUT);
   const back = p(t, T.call.out - 0.5, 0.9, EASE_IN_OUT);
   const rect = lerpRect(STAGE, WIDE, toWide * (1 - back));
-  const callShot: Shot = { at: T.call.at, out: T.booked.at, ...T.callShot };
   const bookedShot: Shot = { at: T.booked.at, out: T.booked.out, ...T.booked.shot };
-  const shots: Shot[] = [...T.shots1, ...T.shots2, callShot, bookedShot];
+  const shots: Shot[] = [...T.shots1, ...T.shots2, ...CALL_SHOTS, bookedShot];
   const shot = shots.find((s) => between(t, s.at, s.out));
   const frameAlpha = between(t, 0, T.out1)
     ? p(t, T.frameIn, 0.7, EASE_OUT) * (1 - p(t, T.out1 - 0.35, 0.35))
@@ -178,7 +188,7 @@ export const Pub3: React.FC = () => {
       {shot && <Frame t={t} rect={rect} shot={shot} alpha={frameAlpha} />}
 
       <Phone t={t} inAt={T.phoneIn} outAt={T.out1} angle={buzzAngle(t, T.ring)}>
-        <LockScreen time="20:12" date="samedi 7 novembre" wallpaper="media/wall.jpg"
+        <LockScreen time="20:12" date="samedi 7 novembre" wallpaper="ios/wallpaper-iphone14-midnight.png"
           banner={between(t, T.ring.at + 0.1, T.missed) ? <div style={reveal(t, T.ring.at + 0.1)}><IncomingCall name="Julie Martin" initials="JM" /></div> : undefined}>
           {t >= T.missed && <div style={reveal(t, T.missed)}><Notification kind="phone" title="Appel manqué" desc="Julie Martin" time="maintenant" /></div>}
         </LockScreen>
@@ -196,7 +206,7 @@ export const Pub3: React.FC = () => {
 
       {/* ------------------------------ 02 · Avec Qwillio ------------------------------ */}
       <Phone t={t} inAt={T.shots2[0].at + 0.6} outAt={T.call.at + 0.5} angle={buzzAngle(t, T.ring2)}>
-        <LockScreen time="20:12" date="samedi 7 novembre" wallpaper="media/wall.jpg"
+        <LockScreen time="20:12" date="samedi 7 novembre" wallpaper="ios/wallpaper-iphone14-midnight.png"
           banner={t >= T.ring2.at ? <div style={reveal(t, T.ring2.at)}><IncomingCall name="Julie Martin" initials="JM" /></div> : undefined} />
       </Phone>
       {[T.l5, T.l6].map((l, i) => <Words key={i} line={l} t={t} size={92} y={330} />)}
@@ -205,7 +215,7 @@ export const Pub3: React.FC = () => {
 
       {/* Après l'appel : la réservation arrive sur le téléphone, le four tourne toujours. */}
       <Phone t={t} inAt={T.booked.at + 0.1} outAt={T.booked.out}>
-        <LockScreen time="20:13" date="samedi 7 novembre" wallpaper="media/wall.jpg">
+        <LockScreen time="20:13" date="samedi 7 novembre" wallpaper="ios/wallpaper-iphone14-midnight.png">
           {t >= T.booked.at + 0.1 && <div style={reveal(t, T.booked.at + 0.1)}><Notification kind="qwillio" title="Nouvelle réservation" desc="Julie Martin · 4 personnes · ce soir 20:30" time="maintenant" /></div>}
         </LockScreen>
       </Phone>
@@ -247,11 +257,11 @@ export const Pub3: React.FC = () => {
       )}
 
       {/* ------------------------------ le son ------------------------------ */}
-      <Sequence from={0} durationInFrames={at(T.out1)} layout="none"><Audio src={staticFile('media/ambience.mp3')} volume={(f) => 0.32 * Math.min(1, f / 30) * Math.min(1, (at(T.out1) - f) / 40)} /></Sequence>
-      <Sequence from={at(T.shots2[0].at)} durationInFrames={at(T.booked.out - T.shots2[0].at)} layout="none"><Audio src={staticFile('media/ambience.mp3')} startFrom={at(4)} volume={(f) => (f < at(T.call.at - T.shots2[0].at) ? 0.26 : 0.07) * Math.min(1, f / 30)} /></Sequence>
+      {/* La musique (« Discover », Mixkit) : on entre au milieu du morceau pour que
+          sa montée tombe sur l'ouverture de l'app ; elle s'efface sous les voix. */}
+      <Audio src={staticFile('media/music.mp3')} startFrom={at(MUSIC_FROM)} volume={(f) => musicVolume(f / FPS)} />
       {CALL.map((l) => <Sequence key={l.id} from={at(l.at)} layout="none"><Audio src={staticFile(l.file)} /></Sequence>)}
-      <Sequence from={at(T.payoff.at)} durationInFrames={at(T.payoff.out - T.payoff.at)} layout="none"><Audio src={staticFile('media/ambience.mp3')} startFrom={at(9)} volume={0.32} /></Sequence>
-      <Sequence from={at(T.l10.at)} durationInFrames={at(1.5)} layout="none"><Audio src={staticFile('media/clink.mp3')} volume={0.5} /></Sequence>
+      {[T.missed, T.booked.at + 0.1].map((s) => <Sequence key={s} from={at(s)} durationInFrames={at(1)} layout="none"><Audio src={staticFile('media/pop.mp3')} volume={0.55} /></Sequence>)}
       <Audio src={staticFile('sounds-pub3.wav')} />
     </AbsoluteFill>
   );
