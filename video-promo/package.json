@@ -17,7 +17,11 @@
     "sounds:pub3": "python3 scripts/sounds.py scripts/sfx-pub3.json public/sounds-pub3.wav",
     "render:pub3": "remotion render src/index.ts QwillioPub3 out/qwillio-pub-v3.mp4 --concurrency=4",
     "build:pub3": "npm run prepare-assets && npm run sfx:pub3 && npm run sounds:pub3 && npm run render:pub3",
-    "transcribe": "node scripts/transcribe-call.mjs"
+    "transcribe": "node scripts/transcribe-call.mjs",
+    "sfx:pub4": "node --experimental-strip-types scripts/sfx.mjs pub4",
+    "sounds:pub4": "python3 scripts/sounds.py scripts/sfx-pub4.json public/sounds-pub4.wav",
+    "render:pub4": "remotion render src/index.ts QwillioPub4 out/qwillio-pub-features.mp4 --concurrency=4",
+    "build:pub4": "npm run prepare-assets && npm run sfx:pub4 && npm run sounds:pub4 && npm run render:pub4"
   },
   "dependencies": {
     "@fontsource/gelasio": "^5.3.0",

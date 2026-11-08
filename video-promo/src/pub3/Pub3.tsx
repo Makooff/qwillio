@@ -48,7 +48,7 @@ function Said({ line, t, size = 92, y = 330 }: { line: NLine; t: number; size?: 
 
 /* ------------------------------------------------------------------ le fond */
 
-function Canvas({ t }: { t: number }) {
+export function Canvas({ t }: { t: number }) {
   const a = Math.sin(t * 0.3), b = Math.cos(t * 0.23);
   return (
     <AbsoluteFill style={{ background: '#FDFCFC' }}>
@@ -71,14 +71,14 @@ function Chapter({ t, from, to, n, label }: { t: number; from: number; to: numbe
 
 /* ------------------------------------------------------------------ le cadre vidéo */
 
-type Rect = { x: number; y: number; w: number; h: number };
-const STAGE: Rect = { x: 80, y: 500, w: 760, h: 1020 };
+export type Rect = { x: number; y: number; w: number; h: number };
+export const STAGE: Rect = { x: 80, y: 500, w: 760, h: 1020 };
 const CALLR: Rect = { x: 80, y: 230, w: 920, h: 470 };
 const lerpRect = (a: Rect, b: Rect, k: number): Rect => ({ x: mix(a.x, b.x, k), y: mix(a.y, b.y, k), w: mix(a.w, b.w, k), h: mix(a.h, b.h, k) });
 
 /** Le cadre : les plans s'y fondent l'un dans l'autre en 0,3 s (flou, léger
  * zoom), au lieu d'une coupe sèche. */
-function Frame({ t, rect, shots, alpha }: { t: number; rect: Rect; shots: Shot[]; alpha: number }) {
+export function Frame({ t, rect, shots, alpha }: { t: number; rect: Rect; shots: Shot[]; alpha: number }) {
   if (alpha <= 0) return null;
   const XF = 0.3;
   const live = shots.filter((s) => t >= s.at - 0.02 && t < s.out + XF);
@@ -99,7 +99,7 @@ function Frame({ t, rect, shots, alpha }: { t: number; rect: Rect; shots: Shot[]
 
 /* ------------------------------------------------------------------ le téléphone */
 
-function buzzAngle(t: number, ring: { at: number; out: number }) {
+export function buzzAngle(t: number, ring: { at: number; out: number }) {
   if (!between(t, ring.at, ring.out)) return 0;
   const local = (t - ring.at) % 1.5;
   if (local > 0.6) return 0;
@@ -107,9 +107,9 @@ function buzzAngle(t: number, ring: { at: number; out: number }) {
 }
 
 /** Un ressort amorti : arrive, dépasse à peine, se pose. */
-const spring = (x: number) => (x <= 0 ? 0 : x >= 1 ? 1 : 1 - Math.exp(-6 * x) * Math.cos(7 * x));
+export const spring = (x: number) => (x <= 0 ? 0 : x >= 1 ? 1 : 1 - Math.exp(-6 * x) * Math.cos(7 * x));
 
-function Phone({ t, inAt, outAt, children, angle = 0, x = 560, y = 800, scale = 1.03 }: { t: number; inAt: number; outAt: number; children: React.ReactNode; angle?: number; x?: number; y?: number; scale?: number }) {
+export function Phone({ t, inAt, outAt, children, angle = 0, x = 560, y = 800, scale = 1.03 }: { t: number; inAt: number; outAt: number; children: React.ReactNode; angle?: number; x?: number; y?: number; scale?: number }) {
   if (!between(t, inAt - 0.05, outAt + 0.05)) return null;
   const s = spring(p(t, inAt, 0.9, (v) => v));
   const fade = p(t, inAt, 0.35, EASE_OUT) * (1 - p(t, outAt - 0.35, 0.35, EASE_OUT));
@@ -120,7 +120,7 @@ function Phone({ t, inAt, outAt, children, angle = 0, x = 560, y = 800, scale = 
   );
 }
 
-const reveal = (t: number, from: number, dur = 0.5) => {
+export const reveal = (t: number, from: number, dur = 0.5) => {
   const k = spring(p(t, from, dur * 1.6, (v) => v));
   const o = p(t, from, dur * 0.6, EASE_OUT);
   return { opacity: o, filter: `blur(${(1 - o) * 8}px)`, transform: `scale(${0.9 + 0.1 * k})` } as React.CSSProperties;
