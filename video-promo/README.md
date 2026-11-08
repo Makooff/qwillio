@@ -5,6 +5,38 @@ Deux compositions Remotion vivent ici :
 - **`QwillioPub`** : la pub verticale 9:16, « Le coup de feu » (30 s). C'est la version en cours.
 - **`QwillioFilm`** : le film 16:9 en éléments du portail (variante non retenue).
 
+## La pub verticale v3 : « Samedi, 20 h 12 » (`QwillioPub3`)
+
+La version en cours. `npm run build:pub3` produit `out/qwillio-pub-v3.mp4`.
+
+- **Un seul tournage.** Tous les plans de cuisine viennent de la même série
+  Mixkit (42464 à 42487 : même plan de travail, même four, même tablier), pour
+  que la pub se lise comme un petit film d'une seule soirée et non comme des
+  rushs assemblés. Licence « Mixkit Stock Video Free License », vérifiée plan par
+  plan ; aucun plan « Restricted ». Ce sont des images d'illustration, pas un client.
+- **Fond clair, vidéos dans des cadres arrondis**, comme les visuels du site. Le
+  téléphone est posé à cheval sur le coin du cadre.
+- **Le téléphone vient du kit Figma « iOS 16 UI Kit »** (écran verrouillé
+  36:7378, notification 1259:11286, appel entrant 34:147) : cotes, rayons, flous
+  et icônes SVG du kit (`public/ios/`). Seule la police diffère, SF Pro n'étant
+  licenciée que sur les plateformes Apple.
+- **Aucune sonnerie Apple** : le téléphone vibre (son de synthèse `buzz`).
+- **L'appel** vient de `src/pub/call.ts`. Aujourd'hui des voix de synthèse ;
+  avec l'enregistrement réel d'un appel à la réceptionniste :
+
+  ```bash
+  NODE_USE_ENV_PROXY=1 NODE_EXTRA_CA_CERTS=/root/.ccr/ca-bundle.crt \
+    node scripts/transcribe-call.mjs ~/appel.m4a --from=3 --to=28
+  npm run build:pub3
+  ```
+
+  Le script découpe l'extrait, le transcrit (ElevenLabs Scribe, mots horodatés et
+  diarisation), coupe une piste par réplique et réécrit `call.ts`. La frise de la
+  v3 garde les vrais silences de la conversation et se recale seule. Vérifier
+  dans la sortie que « AGENT » est bien la réceptionniste, sinon relancer avec
+  `--agent=speaker_1`. La réponse brute est gardée (et ignorée par git) dans
+  `scripts/transcript-raw.json` : recouper autrement ne repaie pas la transcription.
+
 ## La pub verticale : « Le coup de feu »
 
 Construite comme une pub d'opérateur : une situation, le problème, puis la même situation

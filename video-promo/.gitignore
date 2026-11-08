@@ -13,3 +13,6 @@ scripts/sfx-pub.json
 scripts/sfx-pub2.json
 scripts/sfx.json
 src/logo-frames.json
+scripts/transcript-raw.json
+public/sounds-pub3.wav
+scripts/sfx-pub3.json

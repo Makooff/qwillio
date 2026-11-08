@@ -22,7 +22,7 @@ const ff: React.CSSProperties = { fontFamily: 'Outfit, sans-serif' };
 const serif: React.CSSProperties = { fontFamily: 'QSerif, Georgia, serif', fontStyle: 'italic', fontWeight: 400, letterSpacing: '-0.01em' };
 
 let fontsLoaded = false;
-function useFonts() {
+export function useFonts() {
   if (fontsLoaded) return;
   fontsLoaded = true;
   const h = delayRender('fonts pub2');
@@ -34,7 +34,7 @@ function useFonts() {
 
 /* ------------------------------------------------------------------ texte : il sort du flou, il ne bouge pas */
 
-function Words({ line, t, color = INK, size = 104, y = 960, shadow = false }: { line: Line; t: number; color?: string; size?: number; y?: number; shadow?: boolean }) {
+export function Words({ line, t, color = INK, size = 104, y = 960, shadow = false }: { line: Line; t: number; color?: string; size?: number; y?: number; shadow?: boolean }) {
   if (t < line.at - 0.05 || t > line.out + 0.05) return null;
   const outK = p(t, line.out - 0.25, 0.25);
   return (
@@ -85,11 +85,11 @@ const pathAt = (c: Compiled, k: number) => {
   for (let j = 0; j < a.length; j++) s += (a[j] + (b[j] - a[j]) * f).toFixed(2) + c.parts[j + 1];
   return s;
 };
-const J = {
+export const J = {
   open: { l: compile(frames.vopen.left), r: compile(frames.vopen.right), R: frames.vopen.lobeR, y: frames.vopen.markY },
   close: { l: compile(frames.vclose.left), r: compile(frames.vclose.right), R: frames.vclose.lobeR, y: frames.vclose.markY },
 };
-function Mark({ which, k, id }: { which: 'open' | 'close'; k: number; id: string }) {
+export function Mark({ which, k, id }: { which: 'open' | 'close'; k: number; id: string }) {
   const j = J[which], L = pathAt(j.l, k), R = pathAt(j.r, k);
   return (
     <svg width={1080} height={1920} viewBox="0 0 1080 1920" style={{ position: 'absolute', inset: 0 }}>

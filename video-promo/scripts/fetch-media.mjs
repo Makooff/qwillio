@@ -14,6 +14,14 @@ export const VIDEOS = {
   hangup: 39815, // young-woman-ending-a-call (vertical)
   room: 4385, // customers-in-a-minimalist-style-restaurant
   friends: 43248, // friends-sharing-time-together-in-the-cafeteria
+  // La v3 : un seul tournage, la même cuisine de pizzeria plan après plan
+  // (42464-42487, même plan de travail, même four, même tablier).
+  dough: 42469, // chef-shaping-a-pizza
+  sauce: 42474, // smearing-sauce-on-the-pizza
+  oven: 42480, // chef-puts-the-pizza-in-the-oven
+  ovenhot: 42481, // hot-oven-baking-pizzas
+  sliced: 42487, // pizza-while-someone-takes-a-slice
+  table: 44007, // man-and-woman-taking-a-slice-of-pizza
 };
 export const SOUNDS = {
   ambience: 478, // Restaurant crowd talking ambience
