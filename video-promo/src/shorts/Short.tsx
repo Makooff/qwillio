@@ -20,11 +20,37 @@ import { Canvas, Phone, buzzAngle, reveal, spring } from '../pub3/Pub3';
 import { IncomingCall, LockScreen, Notification } from '../pub3/ios';
 import { ShaderOrb } from '../pub3/ShaderOrb';
 import { Sfx, wordIn } from '../fx';
-import { MessageNote } from '../pub4/illustrations';
+import { SiteFrame } from '../pub4/illustrations';
+import { Check, MessageSquare, Send } from '../../../frontend/src/components/icons';
 import data from './data';
-import type { Line, Narr, SceneData } from './types';
+import type { Lang, Line, Narr, SceneData } from './types';
 
 export const SHORT_FPS = 30;
+
+/* ------------------------------------------------------------------ langues et formats */
+
+/** Ce que l'image écrit elle-même, dans la langue de la vidéo. */
+const STR: Record<Lang, { agent: string; caller: string; now: string; date: string; missed: string; mobile: string; unanswered: string; learned: string; cta: string; note: { chip: string; title: string; rows: [string, string][]; sent: string } }> = {
+  fr: { agent: 'RÉCEPTIONNISTE IA', caller: 'APPELANT', now: 'maintenant', date: 'mardi 10 novembre', missed: 'Appel manqué', mobile: 'mobile', unanswered: 'QUESTION SANS RÉPONSE · APPEL DE 12:42', learned: 'Elle le saura au prochain appel.', cta: 'Essayez-la sur qwillio.com',
+    note: { chip: 'Nouveau message', title: 'Julie Martin a appelé', rows: [['Pour', 'Marc'], ['Rappeler', 'après 17 h'], ['Numéro', '+32 471 52 18 90'], ['Motif', 'Une table pour huit, vendredi']], sent: 'Envoyé à Marc par SMS' } },
+  en: { agent: 'AI RECEPTIONIST', caller: 'CALLER', now: 'now', date: 'Tuesday 10 November', missed: 'Missed call', mobile: 'mobile', unanswered: 'UNANSWERED QUESTION · CALL AT 12:42', learned: 'She’ll know on the next call.', cta: 'Try her at qwillio.com',
+    note: { chip: 'New message', title: 'Julie Martin called', rows: [['For', 'Marc'], ['Call back', 'after 5 pm'], ['Number', '+32 471 52 18 90'], ['Reason', 'A table for eight, Friday']], sent: 'Sent to Marc by text' } },
+  nl: { agent: 'AI-RECEPTIONIST', caller: 'BELLER', now: 'nu', date: 'dinsdag 10 november', missed: 'Gemiste oproep', mobile: 'mobiel', unanswered: 'ONBEANTWOORDE VRAAG · OPROEP VAN 12:42', learned: 'Bij de volgende oproep weet ze het.', cta: 'Probeer haar op qwillio.com',
+    note: { chip: 'Nieuw bericht', title: 'Julie Martin belde', rows: [['Voor', 'Marc'], ['Terugbellen', 'na 17 u'], ['Nummer', '+32 471 52 18 90'], ['Reden', 'Een tafel voor acht, vrijdag']], sent: 'Per sms naar Marc gestuurd' } },
+};
+
+/**
+ * Deux formats. 9:16 pour TikTok, Reels (Instagram, Facebook) et Shorts ; 4:5
+ * pour les fils Instagram, Facebook et LinkedIn, où une vidéo verticale est
+ * recadrée. En 4:5, le milieu (téléphone, rond, fiches) est le même dessin,
+ * réduit à 68 % ; les textes, eux, sont reposés à leur taille pour rester
+ * lisibles dans un fil.
+ */
+export type Format = '9x16' | '4x5';
+export const FORMATS: Record<Format, { w: number; h: number; sayY: number; saySize: number; typeY: number; typeSize: number; tagY: number; spokenY: number; langsSpokenY: number; spokenSize: number; brandY: number; body: { k: number; dy: number }; end: { k: number; dy: number } }> = {
+  '9x16': { w: 1080, h: 1920, sayY: 300, saySize: 80, typeY: 900, typeSize: 108, tagY: 690, spokenY: 1240, langsSpokenY: 1280, spokenSize: 48, brandY: 120, body: { k: 1, dy: 0 }, end: { k: 1, dy: 0 } },
+  '4x5': { w: 1080, h: 1350, sayY: 220, saySize: 66, typeY: 700, typeSize: 92, tagY: 470, spokenY: 960, langsSpokenY: 985, spokenSize: 42, brandY: 64, body: { k: 0.68, dy: -190 }, end: { k: 0.75, dy: -300 } },
+};
 const INK = '#1D1D1F';
 const BODY = '#777169';
 const PLATE = '#EBE8E4';
@@ -68,13 +94,14 @@ export function buildTimeline(id: string) {
     return s;
   });
   const endAt = cursor;
-  const end = { at: endAt, formed: endAt + 1.4, say: { ...data.end, at: endAt + 1.0, out: endAt + 1.0 + data.end.duration + 0.5 } };
-  return { id, music: sh.music, scenes, end, duration: end.say.out + 1.0 };
+  const fin = data.end[sh.lang];
+  const end = { at: endAt, formed: endAt + 1.4, say: { ...fin, at: endAt + 1.0, out: endAt + 1.0 + fin.duration + 0.5 } };
+  return { id, lang: sh.lang, music: sh.music, scenes, end, duration: end.say.out + 1.0 };
 }
 export type Timeline = ReturnType<typeof buildTimeline>;
 
 export const SHORT_IDS = Object.keys(data.shorts);
-export const shortName = (id: string) => `Short-${id}-${data.shorts[id].slug}`;
+export const shortName = (id: string, f: Format) => `Short-${id}-${data.shorts[id].slug}-${f}`;
 
 /* ------------------------------------------------------------------ le texte */
 
@@ -92,7 +119,7 @@ function Said({ line, t, size = 80, y = 300 }: { line: TNarr; t: number; size?: 
 }
 
 /** La réplique en cours, mot à mot : qui parle au-dessus, ce qui est dit dessous. */
-function Spoken({ t, l, y = 1240 }: { t: number; l: TLine; y?: number }) {
+function Spoken({ t, l, y, size, lang }: { t: number; l: TLine; y: number; size: number; lang: Lang }) {
   if (!between(t, l.at - 0.1, l.until)) return null;
   const outK = p(t, l.until - 0.25, 0.25);
   const agent = l.who === 'agent';
@@ -100,9 +127,9 @@ function Spoken({ t, l, y = 1240 }: { t: number; l: TLine; y?: number }) {
     <div style={{ position: 'absolute', left: 90, right: 90, top: y, textAlign: 'center', opacity: 1 - outK, ...ff }}>
       <div style={{ fontSize: 24, letterSpacing: '0.16em', fontWeight: 600, color: agent ? INDIGO : BODY, marginBottom: 12 }}>
         {l.tag ? <span style={{ padding: '4px 12px', borderRadius: 999, border: `1px solid ${INDIGO}55`, marginRight: 12 }}>{l.tag}</span> : null}
-        {agent ? 'RÉCEPTIONNISTE IA' : 'APPELANT'}
+        {agent ? STR[lang].agent : STR[lang].caller}
       </div>
-      <div style={{ fontSize: 48, lineHeight: 1.22, fontWeight: agent ? 300 : 400, color: agent ? INK : '#44403B', letterSpacing: '-0.015em', ...(agent ? {} : { fontStyle: 'normal' }) }}>
+      <div style={{ fontSize: size, lineHeight: 1.22, fontWeight: agent ? 300 : 400, color: agent ? INK : '#44403B', letterSpacing: '-0.015em', ...(agent ? {} : { fontStyle: 'normal' }) }}>
         {l.words.map((w, i) => {
           const k = p(t, l.at + w.start - 0.04, 0.2, EASE_OUT);
           return <span key={i} style={{ display: 'inline-block', marginRight: '0.26em', opacity: k, filter: `blur(${(1 - k) * 10}px)` }}>{w.w}</span>;
@@ -191,12 +218,12 @@ function LangPills({ t, s }: { t: number; s: TScene }) {
   );
 }
 
-function LearnCard({ t, s, question, answer }: { t: number; s: TScene; question: string; answer: string }) {
+function LearnCard({ t, s, question, answer, lang }: { t: number; s: TScene; question: string; answer: string; lang: Lang }) {
   const typed = Math.max(0, Math.min(answer.length, Math.floor((t - s.typed!) * 26)));
   const done = p(t, s.learned!, 0.45, EASE_OUT);
   return (
     <div style={{ position: 'absolute', left: 90, right: 90, top: 560, borderRadius: 44, background: '#fff', padding: '40px 44px', boxShadow: `0 0 0 1px ${PLATE}, 0 50px 90px -40px rgba(60,30,120,0.35)`, ...ff, ...reveal(t, s.card, 0.6) }}>
-      <div style={{ fontSize: 24, letterSpacing: '0.16em', fontWeight: 600, color: BODY }}>QUESTION SANS RÉPONSE · APPEL DE 12:42</div>
+      <div style={{ fontSize: 24, letterSpacing: '0.16em', fontWeight: 600, color: BODY }}>{STR[lang].unanswered}</div>
       <div style={{ fontSize: 50, fontWeight: 300, color: INK, marginTop: 18, letterSpacing: '-0.02em' }}>« {question} »</div>
       <div style={{ marginTop: 36, padding: '26px 30px', borderRadius: 26, background: '#F5F3F1', fontSize: 38, color: INK, minHeight: 60 }}>
         {answer.slice(0, typed)}
@@ -204,7 +231,7 @@ function LearnCard({ t, s, question, answer }: { t: number; s: TScene; question:
       </div>
       <div style={{ marginTop: 30, display: 'flex', alignItems: 'center', gap: 16, opacity: done, filter: `blur(${(1 - done) * 8}px)` }}>
         <span style={{ width: 44, height: 44, borderRadius: 999, background: INK, color: '#fff', display: 'grid', placeItems: 'center', fontSize: 26, transform: `scale(${0.6 + 0.4 * spring(p(t, s.learned!, 0.8, (x) => x))})` }}>✓</span>
-        <span style={{ fontSize: 32, color: INK }}>Elle le saura au prochain appel.</span>
+        <span style={{ fontSize: 32, color: INK }}>{STR[lang].learned}</span>
       </div>
     </div>
   );
@@ -223,29 +250,59 @@ function MacCard({ t, s }: { t: number; s: TScene }) {
   );
 }
 
+/** « Elle note chaque message » : la fiche que le gérant reçoit, dans la langue de la vidéo. */
+function MessageNote({ t, from, lang }: { t: number; from: number; lang: Lang }) {
+  const n = STR[lang].note;
+  const ap = (f: number) => {
+    const k = p(t, f, 0.45, EASE_OUT);
+    return { opacity: k, filter: `blur(${(1 - k) * 6}px)`, transform: `translateY(${(1 - k) * 10}px)` } as React.CSSProperties;
+  };
+  return (
+    <SiteFrame kind="summary">
+      <span className="pi__card" style={{ gap: 12 }}>
+        <span className="pi__chip" style={ap(from)}><MessageSquare />{n.chip}</span>
+        <span className="pi__title" style={ap(from + 0.15)}>{n.title}</span>
+        <span style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+          {n.rows.map(([label, value], i) => (
+            <span key={label} style={{ ...ap(from + 0.4 + i * 0.22), gridColumn: i === 3 ? '1 / -1' : undefined }}>
+              <span className="pi__field-label" style={{ display: 'block' }}>{label}</span>
+              <span className={i === 0 ? 'pi__field pi__field--active' : 'pi__field'}>{value}</span>
+            </span>
+          ))}
+        </span>
+        <span className="pi__chip" style={ap(from + 1.5)}><Send />{n.sent}<Check /></span>
+      </span>
+    </SiteFrame>
+  );
+}
+
 /* ------------------------------------------------------------------ une scène */
 
-function Scene({ t, s, prev, levels, fps }: { t: number; s: TScene; prev?: TScene; levels: Levels; fps: number }) {
+type Fmt = (typeof FORMATS)[Format];
+
+function Scene({ t, s, prev, levels, fps, lang, F }: { t: number; s: TScene; prev?: TScene; levels: Levels; fps: number; lang: Lang; F: Fmt }) {
   const v = s.visual;
+  const L = STR[lang];
   const k = p(t, s.at, 0.35, EASE_OUT) * (1 - p(t, s.out - 0.3, 0.3));
   const pop = 0.95 + 0.05 * spring(p(t, s.at, 0.9, (x) => x));
   let body: React.ReactNode = null;
+  let over: React.ReactNode = null; // les textes posés hors réduction (4:5)
   if (v.kind === 'ring') {
-    const banner = t >= s.ring!.at && t < s.ring!.out ? <div style={reveal(t, s.ring!.at)}><IncomingCall name={v.name} initials={v.initials} sub={v.sub ?? 'mobile'} /></div> : undefined;
-    const missed = s.missed !== undefined && t >= s.missed ? <div style={reveal(t, s.missed)}><Notification kind="phone" title="Appel manqué" desc={v.name} time="maintenant" /></div> : undefined;
+    const banner = t >= s.ring!.at && t < s.ring!.out ? <div style={reveal(t, s.ring!.at)}><IncomingCall name={v.name} initials={v.initials} sub={v.sub ?? L.mobile} /></div> : undefined;
+    const missed = s.missed !== undefined && t >= s.missed ? <div style={reveal(t, s.missed)}><Notification kind="phone" title={L.missed} desc={v.name} time={L.now} /></div> : undefined;
     body = (
       <>
         {v.footage && <Footage t={t} name={v.footage} from={0.6} at={s.at} out={s.out} />}
         <Phone t={t} inAt={s.at + 0.05} outAt={s.out + 0.3} angle={buzzAngle(t, s.ring!)} x={v.footage ? 560 : 324} y={v.footage ? 800 : 560}>
-          <LockScreen time={v.time} date="mardi 10 novembre" wallpaper={WALL} banner={banner}>{missed}</LockScreen>
+          <LockScreen time={v.time} date={L.date} wallpaper={WALL} banner={banner}>{missed}</LockScreen>
         </Phone>
       </>
     );
   } else if (v.kind === 'notif') {
     body = (
       <Phone t={t} inAt={s.at + 0.05} outAt={s.out + 0.3} x={324} y={560}>
-        <LockScreen time="20:14" date="mardi 10 novembre" wallpaper={WALL}>
-          {t >= s.card && <div style={reveal(t, s.card)}><Notification kind="qwillio" title={v.title} desc={v.desc} time="maintenant" /></div>}
+        <LockScreen time="20:14" date={L.date} wallpaper={WALL}>
+          {t >= s.card && <div style={reveal(t, s.card)}><Notification kind="qwillio" title={v.title} desc={v.desc} time={L.now} /></div>}
         </LockScreen>
       </Phone>
     );
@@ -256,39 +313,43 @@ function Scene({ t, s, prev, levels, fps }: { t: number; s: TScene; prev?: TScen
       <>
         {v.chip && <ClientChip t={t} from={s.at + 0.2} chip={v.chip} />}
         <Orb t={t} size={500} y={640} levels={levels} fps={fps} timer={answered !== undefined || s.tlines.length ? `0:${String(sec).padStart(2, '0')}` : ''} />
-        {s.tlines.map((l, i) => <Spoken key={i} t={t} l={l} />)}
       </>
     );
+    over = s.tlines.map((l, i) => <Spoken key={i} t={t} l={l} y={F.spokenY} size={F.spokenSize} lang={lang} />);
   } else if (v.kind === 'langs') {
     body = (
       <>
         <LangPills t={t} s={s} />
         <Orb t={t} size={500} y={680} levels={levels} fps={fps} />
-        {s.tlines.map((l, i) => <Spoken key={i} t={t} l={l} y={1280} />)}
       </>
     );
-  } else if (v.kind === 'learn') body = <LearnCard t={t} s={s} question={v.question} answer={v.answer} />;
-  else if (v.kind === 'message') body = <MessageNote t={t} from={s.card} />;
+    over = s.tlines.map((l, i) => <Spoken key={i} t={t} l={l} y={F.langsSpokenY} size={F.spokenSize} lang={lang} />);
+  } else if (v.kind === 'learn') body = <LearnCard t={t} s={s} question={v.question} answer={v.answer} lang={lang} />;
+  else if (v.kind === 'message') body = <MessageNote t={t} from={s.card} lang={lang} />;
   else if (v.kind === 'mac') body = <MacCard t={t} s={s} />;
   else if (v.kind === 'type' && v.tag) {
     const tk = reveal(t, s.at + 0.05, 0.5);
-    body = <div style={{ position: 'absolute', left: 0, right: 0, top: 690, textAlign: 'center', ...ff }}><span style={{ display: 'inline-block', padding: '10px 28px', borderRadius: 999, fontSize: 30, fontWeight: 600, letterSpacing: '0.18em', color: v.tag === 'APRÈS' ? '#fff' : INK, background: v.tag === 'APRÈS' ? INK : '#fff', boxShadow: `0 0 0 1px ${PLATE}`, ...tk }}>{v.tag}</span></div>;
+    const dark = ['APRÈS', 'AFTER', 'NA'].includes(v.tag);
+    over = <div style={{ position: 'absolute', left: 0, right: 0, top: F.tagY, textAlign: 'center', ...ff }}><span style={{ display: 'inline-block', padding: '10px 28px', borderRadius: 999, fontSize: 30, fontWeight: 600, letterSpacing: '0.18em', color: dark ? '#fff' : INK, background: dark ? INK : '#fff', boxShadow: `0 0 0 1px ${PLATE}`, ...tk }}>{v.tag}</span></div>;
   }
   return (
     <AbsoluteFill style={{ opacity: k, transform: `scale(${pop})` }}>
-      {body}
-      {s.tsay && <Said line={s.tsay} t={t} size={v.kind === 'type' ? 108 : 80} y={v.kind === 'type' ? 900 : 300} />}
+      <AbsoluteFill style={{ transformOrigin: '540px 1000px', transform: `translateY(${F.body.dy}px) scale(${F.body.k})` }}>{body}</AbsoluteFill>
+      {over}
+      {s.tsay && <Said line={s.tsay} t={t} size={v.kind === 'type' ? F.typeSize : F.saySize} y={v.kind === 'type' ? F.typeY : F.sayY} />}
     </AbsoluteFill>
   );
 }
 
 /* ------------------------------------------------------------------ la vidéo */
 
-export const Short: React.FC<{ id: string }> = ({ id }) => {
+export const Short: React.FC<{ id: string; format: Format }> = ({ id, format }) => {
   useOutfit();
   useFonts();
   const { fps } = useVideoConfig();
+  const F = FORMATS[format];
   const T = React.useMemo(() => buildTimeline(id), [id]);
+  const L = STR[T.lang];
   const t = useCurrentFrame() / fps;
   const levels = useVoiceLevels(T, fps);
   const at = (s: number) => Math.round(s * fps);
@@ -296,27 +357,29 @@ export const Short: React.FC<{ id: string }> = ({ id }) => {
   const narr = [...T.scenes.flatMap((s) => (s.tsay ? [s.tsay] : [])), T.end.say];
   const lines = T.scenes.flatMap((s) => s.tlines);
   const talking = (x: number) => Math.max(0, ...narr.map((l) => p(x, l.at - 0.15, 0.2) * (1 - p(x, l.out - 0.3, 0.4))), ...lines.map((l) => p(x, l.at - 0.2, 0.2) * (1 - p(x, l.end, 0.4))));
-  const music = (x: number) => 0.45 * p(x, 0, 0.6, (y) => y) * (1 - p(x, T.duration - 1.4, 1.4)) * (1 - 0.7 * talking(x));
+  // La musique minimale (scripts/music-minimal.py) : plus présente entre les
+  // phrases, presque effacée sous les voix.
+  const music = (x: number) => 0.6 * p(x, 0, 0.6, (y) => y) * (1 - p(x, T.duration - 1.4, 1.4)) * (1 - 0.72 * talking(x));
 
   return (
     <AbsoluteFill>
       <Canvas t={t} />
       {t < T.end.at && (
-        <div style={{ position: 'absolute', left: 0, right: 0, top: 120, textAlign: 'center', fontSize: 30, fontWeight: 600, letterSpacing: '-0.01em', color: INK, opacity: 0.55 * (1 - p(t, T.end.at - 0.4, 0.4)), ...ff }}>Qwillio</div>
+        <div style={{ position: 'absolute', left: 0, right: 0, top: F.brandY, textAlign: 'center', fontSize: 30, fontWeight: 600, letterSpacing: '-0.01em', color: INK, opacity: 0.55 * (1 - p(t, T.end.at - 0.4, 0.4)), ...ff }}>Qwillio</div>
       )}
-      {T.scenes.map((s, i) => between(t, s.at, s.out + 0.05) && <Scene key={i} t={t} s={s} prev={T.scenes[i - 1]} levels={levels} fps={fps} />)}
+      {T.scenes.map((s, i) => between(t, s.at, s.out + 0.05) && <Scene key={i} t={t} s={s} prev={T.scenes[i - 1]} levels={levels} fps={fps} lang={T.lang} F={F} />)}
 
       {t >= T.end.at && (
-        <AbsoluteFill>
+        <AbsoluteFill style={{ transformOrigin: '540px 960px', transform: `translateY(${F.end.dy}px) scale(${F.end.k})` }}>
           <Mark which="close" id={`c-${id}`} k={(t - T.end.at) / (T.end.formed - T.end.at)} />
           <div style={{ position: 'absolute', left: 0, right: 0, top: J.close.y + J.close.R + 70, textAlign: 'center', fontSize: 84, fontWeight: 600, letterSpacing: '-0.025em', color: INK, opacity: p(t, T.end.formed - 0.3, 0.4, (x) => x), filter: `blur(${(1 - p(t, T.end.formed - 0.3, 0.4)) * 10}px)`, ...ff }}>Qwillio</div>
           <Said line={T.end.say} t={t} size={52} y={J.close.y + J.close.R + 250} />
-          <div style={{ position: 'absolute', left: 0, right: 0, top: J.close.y + J.close.R + 380, textAlign: 'center', fontSize: 34, color: BODY, opacity: p(t, T.end.say.at + 1.4, 0.5), filter: `blur(${(1 - p(t, T.end.say.at + 1.4, 0.5)) * 10}px)`, ...ff }}>Essayez-la sur qwillio.com</div>
+          <div style={{ position: 'absolute', left: 0, right: 0, top: J.close.y + J.close.R + 380, textAlign: 'center', fontSize: 34, color: BODY, opacity: p(t, T.end.say.at + 1.4, 0.5), filter: `blur(${(1 - p(t, T.end.say.at + 1.4, 0.5)) * 10}px)`, ...ff }}>{L.cta}</div>
         </AbsoluteFill>
       )}
 
       {/* ------------------------------ le son ------------------------------ */}
-      <Audio src={staticFile('media/music.mp3')} startFrom={at(T.music)} volume={(f) => music(f / fps)} />
+      <Audio src={staticFile('music-minimal.mp3')} startFrom={at(T.music)} volume={(f) => music(f / fps)} />
       {narr.map((l) => <Sequence key={`n${l.file}`} from={at(l.at)} layout="none"><Audio src={staticFile(l.file)} /></Sequence>)}
       {lines.map((l) => <Sequence key={`l${l.file}`} from={at(l.at)} layout="none"><Audio src={staticFile(l.file)} /></Sequence>)}
       {narr.flatMap((l) => l.words.map((w, i) => <Sfx key={`w${l.file}-${i}`} at={l.at + w.start - 0.04} name="type" gain={0.3} />))}

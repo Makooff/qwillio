@@ -11,5 +11,6 @@ export type Visual =
   | { kind: 'message' }
   | { kind: 'mac' };
 export type SceneData = { visual: Visual; say?: Narr; lines?: Line[] };
-export type ShortData = { slug: string; music: number; scenes: SceneData[] };
-export type ShortsData = { end: Narr; shorts: Record<string, ShortData> };
+export type Lang = 'fr' | 'en' | 'nl';
+export type ShortData = { lang: Lang; slug: string; music: number; scenes: SceneData[] };
+export type ShortsData = { end: Record<Lang, Narr>; shorts: Record<string, ShortData> };

@@ -293,7 +293,7 @@ export const Pub4: React.FC = () => {
       )}
 
       {/* ------------------------------ le son ------------------------------ */}
-      <Audio src={staticFile('media/music.mp3')} startFrom={at(20)} volume={(f) => musicVolume(f / FPS)} />
+      <Audio src={staticFile('music-minimal.mp3')} startFrom={at(60)} volume={(f) => musicVolume(f / FPS)} />
       {SOURCES.map((s) => <Sequence key={s.file} from={at(s.at)} layout="none"><Audio src={staticFile(s.file)} /></Sequence>)}
       {/* Les sons de la référence, chacun sur son animation. */}
       {[...VLINES, T.v8].flatMap((l) => voices.lines[l.id].words.map((w, i) => <Sfx key={`w${l.id}-${i}`} at={l.at + w.start - 0.04} name="type" gain={0.32} />))}

@@ -300,7 +300,7 @@ export const Pub3: React.FC = () => {
       )}
 
       {/* ------------------------------ le son ------------------------------ */}
-      <Audio src={staticFile('media/music.mp3')} volume={(f) => musicVolume(f / FPS)} />
+      <Audio src={staticFile('music-minimal.mp3')} startFrom={at(150)} volume={(f) => musicVolume(f / FPS)} />
       {[...NLINES, T.n11].map((l) => <Sequence key={`n${l.n}`} from={at(l.at)} layout="none"><Audio src={staticFile(narration[l.n].file)} volume={1.05} /></Sequence>)}
       {/* La cuisine, à peine : la plaque, pas la salle. */}
       <Sequence from={0} durationInFrames={at(T.out1)} layout="none"><Audio src={staticFile('media/sizzle.mp3')} volume={(f) => 0.14 * Math.min(1, f / 20) * Math.min(1, (at(T.out1) - f) / 30)} /></Sequence>
