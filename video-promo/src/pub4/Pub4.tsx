@@ -15,7 +15,7 @@ import { MacBookBookings } from '../pub2/mac';
 import { Canvas, Frame, Phone, STAGE, buzzAngle, reveal, spring } from '../pub3/Pub3';
 import { IncomingCall, LockScreen, Notification } from '../pub3/ios';
 import { ShaderOrb } from '../pub3/ShaderOrb';
-import { Sfx, glitch, wordIn } from '../fx';
+import { Sfx, wordIn } from '../fx';
 import { Engines, MessageNote, VoiceClone } from './illustrations';
 import voices from './voices';
 import { CLIPS, DURATION, FPS, T, VLine, VLINES } from './timeline';
@@ -41,8 +41,7 @@ function Said({ line, t, size = 88, y = 300 }: { line: VLine; t: number; size?: 
     <div style={{ position: 'absolute', left: 70, right: 70, top: y, transform: 'translateY(-50%)', textAlign: 'center', fontSize: size, fontWeight: 300, letterSpacing: '-0.03em', lineHeight: 1.08, color: INK, ...ff }}>
       {n.words.map((w, i) => {
         const inS = wordIn(t, line.at + w.start - 0.04);
-        // « urgence » se dédouble : le glitch dit l'alerte.
-        const g = line.id === 'v5' && i === 1 ? glitch(t, line.at + w.start + 0.05) : {};
+        const g: React.CSSProperties = {};
         return <span key={i} style={{ display: 'inline-block', marginRight: '0.24em', ...inS, opacity: Number(inS.opacity) * (1 - outK), filter: `blur(${(1 - Math.min(1, Number(inS.opacity))) * 14 + outK * 12}px)`, ...(n.serif.includes(i) ? serif : {}), ...g, transform: `${inS.transform} ${g.transform ?? ''}` }}>{w.w}</span>;
       })}
     </div>
@@ -298,7 +297,6 @@ export const Pub4: React.FC = () => {
       {SOURCES.map((s) => <Sequence key={s.file} from={at(s.at)} layout="none"><Audio src={staticFile(s.file)} /></Sequence>)}
       {/* Les sons de la référence, chacun sur son animation. */}
       {[...VLINES, T.v8].flatMap((l) => voices.lines[l.id].words.map((w, i) => <Sfx key={`w${l.id}-${i}`} at={l.at + w.start - 0.04} name="type" gain={0.32} />))}
-      <Sfx at={T.v5.at + voices.lines.v5.words[1].start + 0.05} name="glitch" gain={0.55} />
       {[T.known.ring.at, T.urgent.ring.at, T.message.at + 0.4].map((s) => <Sfx key={`p${s}`} at={s} name="pop" gain={0.6} />)}
       <Sfx at={T.known.answer} name="click" gain={0.6} />
       {[T.k3.at - 0.1, T.k4.at - 0.1].map((s) => <Sfx key={`l${s}`} at={s} name="click" gain={0.5} />)}

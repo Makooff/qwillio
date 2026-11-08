@@ -15,14 +15,14 @@
  * image du rendu est reproductible.
  */
 import React from 'react';
-import { Audio, Sequence, staticFile } from 'remotion';
+import { Audio, Sequence, staticFile, useVideoConfig } from 'remotion';
 import { EASE_OUT, p } from './lib';
 
-export type SfxName = 'type' | 'click' | 'pop' | 'glitch' | 'tracking' | 'counter' | 'thump';
-const FPS = 60;
+export type SfxName = 'type' | 'click' | 'pop' | 'glitch' | 'tracking' | 'counter' | 'thump' | 'buzz';
 
 /** Un son de la référence, posé à l'instant `at`. */
 export function Sfx({ at, name, gain = 1 }: { at: number; name: SfxName; gain?: number }) {
+  const { fps: FPS } = useVideoConfig();
   return (
     <Sequence from={Math.max(0, Math.round(at * FPS))} durationInFrames={Math.round(1.2 * FPS)} layout="none">
       <Audio src={staticFile(`media/sfx/${name}.wav`)} volume={gain} />

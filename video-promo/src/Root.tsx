@@ -8,6 +8,7 @@ import { Pub2, DURATION as PUB2_DURATION } from './pub2/Pub2';
 import { Pub3, DURATION as PUB3_DURATION } from './pub3/Pub3';
 import { Pub4, DURATION as PUB4_DURATION } from './pub4/Pub4';
 import { DURATION, FPS } from './timeline';
+import { SHORT_FPS, SHORT_IDS, Short, buildTimeline, shortName } from './shorts/Short';
 
 export const RemotionRoot: React.FC = () => (
   <>
@@ -17,5 +18,9 @@ export const RemotionRoot: React.FC = () => (
   <Composition id="QwillioPub2" component={Pub2} durationInFrames={Math.round(PUB2_DURATION * 60)} fps={60} width={1080} height={1920} />
   <Composition id="QwillioPub3" component={Pub3} durationInFrames={Math.round(PUB3_DURATION * 60)} fps={60} width={1080} height={1920} />
   <Composition id="QwillioPub4" component={Pub4} durationInFrames={Math.round(PUB4_DURATION * 60)} fps={60} width={1080} height={1920} />
+  {/* La série courte : une composition par vidéo (src/shorts). */}
+  {SHORT_IDS.map((id) => (
+    <Composition key={id} id={shortName(id)} component={Short} defaultProps={{ id }} durationInFrames={Math.round(buildTimeline(id).duration * SHORT_FPS)} fps={SHORT_FPS} width={1080} height={1920} />
+  ))}
   </>
 );
