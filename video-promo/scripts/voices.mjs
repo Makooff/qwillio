@@ -3,6 +3,8 @@
 // suive exactement la voix. La clé est injectée par le proxy de l'environnement :
 // aucune clé n'est lue ni écrite ici.
 // Usage : node scripts/voices.mjs [agentVoiceId] [callerVoiceId] [suffixe]
+// Variables : ONLY=agent|caller (ne régénère qu'une voix), MODEL=eleven_v3 …
+// eleven_v3 est le plus naturel ; sa stabilité n'accepte que 0, 0,5 ou 1.
 import fs from 'fs';
 
 const AGENT = process.argv[2] ?? 'EXAVITQu4vr4xnSDxMaL';
@@ -19,15 +21,22 @@ export const LINES = [
   { id: 'a3', who: 'agent', text: 'C’est noté, Julie. Vous recevez la confirmation par SMS.' },
 ];
 
+const ONLY = process.env.ONLY;
+const MODEL = process.env.MODEL ?? 'eleven_multilingual_v2';
+const SETTINGS = MODEL === 'eleven_v3'
+  ? { stability: 0.5, similarity_boost: 0.8, style: 0.35, use_speaker_boost: true }
+  : { stability: 0.45, similarity_boost: 0.8, style: 0.25, use_speaker_boost: true };
 for (const l of LINES) {
+  if (ONLY && l.who !== ONLY) continue;
   const voice = l.who === 'agent' ? AGENT : CALLER;
   const res = await fetch(`https://api.elevenlabs.io/v1/text-to-speech/${voice}/with-timestamps?output_format=mp3_44100_128`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'xi-api-key': 'proxy-injected' },
     body: JSON.stringify({
       text: l.text,
-      model_id: 'eleven_multilingual_v2',
-      voice_settings: { stability: 0.45, similarity_boost: 0.8, style: 0.25, use_speaker_boost: true },
+      model_id: MODEL,
+      language_code: 'fr',
+      voice_settings: SETTINGS,
     }),
   });
   if (!res.ok) { console.error(l.id, res.status, await res.text()); process.exit(1); }

@@ -216,7 +216,47 @@ def hang(rng, v):
     return out
 
 
+def whoosh(rng, v):
+    # Un souffle qui passe : bruit filtré dont la coupure monte puis redescend,
+    # balayé de gauche à droite par le placement (voir `place`).
+    dur = 0.42 * v
+    n = int(dur * SR)
+    t = T(n)
+    x = noise(dur, rng)
+    y = np.zeros(n)
+    a = 0.0
+    fc = 400 + 5200 * np.sin(np.pi * np.minimum(1, t / dur)) ** 2
+    al = 1 - np.exp(-2 * np.pi * fc / SR)
+    for i in range(n):
+        a += al[i] * (x[i] - a)
+        y[i] = a
+    return highpass(y, 180) * np.sin(np.pi * t / dur) ** 2 * 0.9
+
+
+def riser(rng, v):
+    # La montée avant une bascule : souffle et ton qui grimpent, coupés net.
+    dur = 1.3
+    n = int(dur * SR)
+    t = T(n)
+    k = (t / dur) ** 2.2
+    f = 180 * v * (1 + 5 * k)
+    tone_ = np.sin(2 * np.pi * np.cumsum(f) / SR) * 0.25 + np.sin(2 * np.pi * np.cumsum(f * 1.5) / SR) * 0.12
+    hiss = lowpass(noise(dur, rng), 1500 + 9000 * k[-1]) * 0.6
+    return (tone_ + hiss * k) * k * np.minimum(1, (dur - t) / 0.02)
+
+
+def sparkle(rng, v):
+    # Trois notes de verre en cascade, très courtes.
+    out = np.zeros(int(0.9 * SR))
+    for j, m in enumerate([93, 98, 100]):
+        s = tone(note(m) * v, 0.6, 0.12, 0.001, ((1, 1), (2.76, 0.3)))
+        i0 = int(j * 0.055 * SR)
+        out[i0:i0 + len(s)] += s[: len(out) - i0] * (0.8 - j * 0.15)
+    return out * 0.4
+
+
 KINDS = {
+    'whoosh': whoosh, 'riser': riser, 'sparkle': sparkle,
     'ring': ring, 'notify': notify, 'swell': swell, 'logo': logo, 'air': air, 'answer': answer,
     'click': click, 'bump': bump, 'land': land, 'confirm': confirm, 'slide': slide,
     'buzz': buzz, 'tap': tap, 'whisper': whisper, 'hang': hang,

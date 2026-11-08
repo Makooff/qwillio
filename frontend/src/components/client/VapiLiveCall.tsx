@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { PhoneCall, PhoneOff, Loader2 } from '../icons';
 import api from '../../services/api';
+import CallOrb from '../ui/CallOrb';
 
 type CallState = 'idle' | 'connecting' | 'active' | 'ending';
 
@@ -402,6 +403,12 @@ export default function VapiLiveCall({
    */
   onError,
   onConfig,
+  /**
+   * L'appel est établi (ou ne l'est plus). C'est ce qui permet au parent de
+   * montrer le rond de l'appel (`ui/CallOrb`) au lieu de le deviner à partir
+   * du niveau, qui retombe à zéro dès que l'agent se tait.
+   */
+  onActive,
   autoStart = false,
   onEnded,
 }: {
@@ -422,6 +429,7 @@ export default function VapiLiveCall({
    * voix clonée l'emporte. Optionnel: personne d'autre ne s'en sert.
    */
   onConfig?: (config: any) => void;
+  onActive?: (active: boolean) => void;
   autoStart?: boolean;
   onEnded?: () => void;
 }) {
@@ -945,6 +953,7 @@ export default function VapiLiveCall({
   const ss = String(secs % 60).padStart(2, '0');
   const active = state === 'active';
   const busy = active || state === 'connecting';
+  useEffect(() => { onActive?.(active); }, [active, onActive]);
 
   /* LA PILULE: le bouton EST l'appel.
    *
@@ -1138,26 +1147,10 @@ export default function VapiLiveCall({
         </p>
       )}
 
-      {active && showBars && (
-        <div className="flex items-end gap-0.5 h-6 flex-shrink-0" aria-hidden="true">
-          {/* Les barres portaient un `Math.random()`: elles s'agitaient dès que
-              quelqu'un parlait, quelle que soit l'intensité, donc elles ne
-              montraient rien. Chacune a maintenant un poids FIXE appliqué au
-              niveau réel: le profil reste stable, seule la hauteur bouge, et
-              elle bouge avec la voix. */}
-          {[0.55, 0.8, 1, 0.8, 0.55].map((weight, i) => (
-            <span
-              key={i}
-              className="w-0.5 rounded-full"
-              style={{
-                height: `${Math.max(12, Math.min(100, level * 150 * weight))}%`,
-                background: 'var(--q2-indigo)',
-                transition: 'height 90ms linear',
-              }}
-            />
-          ))}
-        </div>
-      )}
+      {/* Le rond de l'appel (ui/CallOrb), le même que sur le site et dans la
+          pub : il remplace les cinq barres, qu'un niveau de voix faisait
+          bouger sans rien dire de plus. */}
+      {active && showBars && <CallOrb size={48} level={level} active />}
     </div>
   );
 }

@@ -4,26 +4,47 @@
  * Le fond clair du site. Une seule cuisine, plan après plan, dans un cadre
  * arrondi comme les visuels du site ; le téléphone du kit iOS posé à cheval sur
  * son coin. Deux chapitres : sans Qwillio, puis la même soirée avec.
- * Le texte sort du flou, il ne bouge pas. Les objets entrent par le flou et une
- * mise à l'échelle très courte, jamais par une translation.
+ * Une voix narrative lit chaque phrase ; chaque mot sort du flou quand il est dit.
+ * Pendant l'appel, le rond du fichier Figma Make « Shader Reminder ».
  */
 import React from 'react';
 import { AbsoluteFill, Audio, OffthreadVideo, Sequence, staticFile, useCurrentFrame } from 'remotion';
 import { useAudioData, visualizeAudio } from '@remotion/media-utils';
 import { EASE_EXPO, EASE_IN_OUT, EASE_OUT, mix, p, useOutfit } from '../lib';
-import { J, Mark, Words, useFonts } from '../pub2/Pub2';
+import { J, Mark, useFonts } from '../pub2/Pub2';
 import { MacBookBookings } from '../pub2/mac';
 import { Device, IncomingCall, LockScreen, Notification } from './ios';
-import { CALL, CALL_SHOTS, DURATION, FPS, Shot, T } from './timeline';
+import narration from './narration';
+import { ShaderOrb } from './ShaderOrb';
+import { CALL, CALL_SHOTS, DURATION, FPS, NLine, NLINES, Shot, T } from './timeline';
 
 const INK = '#1D1D1F';
 const BODY = '#777169';
 const PLATE = '#EBE8E4';
 const INDIGO = '#7A5FFF';
+const WALL = 'ios/wallpaper-iphone14-midnight.png';
 const ff: React.CSSProperties = { fontFamily: 'Outfit, sans-serif' };
 const serif: React.CSSProperties = { fontFamily: 'QSerif, Georgia, serif', fontStyle: 'italic', fontWeight: 400 };
 const at = (s: number) => Math.round(s * FPS);
 const between = (t: number, a: number, b: number) => t >= a && t < b;
+
+/* ------------------------------------------------------------------ le texte : lu, puis il sort du flou mot à mot */
+
+function Said({ line, t, size = 92, y = 330 }: { line: NLine; t: number; size?: number; y?: number }) {
+  if (!between(t, line.at - 0.05, line.out + 0.05)) return null;
+  const n = narration[line.n];
+  const outK = p(t, line.out - 0.28, 0.28, EASE_OUT);
+  return (
+    <div style={{ position: 'absolute', left: 70, right: 70, top: y, transform: 'translateY(-50%)', textAlign: 'center', fontSize: size, fontWeight: 300, letterSpacing: '-0.03em', lineHeight: 1.08, color: INK, ...ff }}>
+      {n.words.map((w, i) => {
+        const k = p(t, line.at + w.start - 0.06, 0.38, EASE_OUT);
+        return (
+          <span key={i} style={{ display: 'inline-block', marginRight: '0.24em', opacity: Math.min(1, k * 1.5) * (1 - outK), filter: `blur(${(1 - k) * 16 + outK * 12}px)`, ...(n.serif.includes(i) ? serif : {}) }}>{w.w}</span>
+        );
+      })}
+    </div>
+  );
+}
 
 /* ------------------------------------------------------------------ le fond */
 
@@ -33,16 +54,14 @@ function Canvas({ t }: { t: number }) {
     <AbsoluteFill style={{ background: '#FDFCFC' }}>
       <AbsoluteFill style={{ background: `radial-gradient(60% 38% at ${82 + a * 4}% ${70 + b * 3}%, rgba(205,107,251,0.16), transparent 72%)` }} />
       <AbsoluteFill style={{ background: `radial-gradient(55% 32% at ${12 - b * 4}% ${30 + a * 3}%, rgba(122,95,255,0.12), transparent 72%)` }} />
-      {/* Une trame de points, comme les planches du site : présente, pas lue. */}
       <AbsoluteFill style={{ backgroundImage: 'radial-gradient(rgba(29,29,31,0.07) 1.2px, transparent 1.4px)', backgroundSize: '36px 36px', maskImage: 'linear-gradient(180deg, transparent 0%, #000 30%, #000 70%, transparent 100%)', WebkitMaskImage: 'linear-gradient(180deg, transparent 0%, #000 30%, #000 70%, transparent 100%)' }} />
     </AbsoluteFill>
   );
 }
 
-/** Le numéro de chapitre, en petites capitales, en haut de page. */
 function Chapter({ t, from, to, n, label }: { t: number; from: number; to: number; n: string; label: string }) {
   if (!between(t, from - 0.1, to + 0.1)) return null;
-  const k = p(t, from, 0.6, EASE_OUT) * (1 - p(t, to - 0.3, 0.3));
+  const k = p(t, from, 0.5, EASE_OUT) * (1 - p(t, to - 0.3, 0.3));
   return (
     <div style={{ position: 'absolute', left: 0, right: 0, top: 150, textAlign: 'center', fontSize: 28, fontWeight: 500, letterSpacing: '0.2em', color: BODY, opacity: k, filter: `blur(${(1 - k) * 8}px)`, ...ff }}>
       <span style={{ color: INDIGO }}>{n}</span>&nbsp;&nbsp;·&nbsp;&nbsp;{label.toUpperCase()}
@@ -54,24 +73,32 @@ function Chapter({ t, from, to, n, label }: { t: number; from: number; to: numbe
 
 type Rect = { x: number; y: number; w: number; h: number };
 const STAGE: Rect = { x: 80, y: 500, w: 760, h: 1020 };
-const WIDE: Rect = { x: 80, y: 240, w: 920, h: 560 };
+const CALLR: Rect = { x: 80, y: 230, w: 920, h: 470 };
 const lerpRect = (a: Rect, b: Rect, k: number): Rect => ({ x: mix(a.x, b.x, k), y: mix(a.y, b.y, k), w: mix(a.w, b.w, k), h: mix(a.h, b.h, k) });
 
-/** Le plan en cours : un seul cadre, des coupes franches entre les plans du même tournage. */
-function Frame({ t, rect, shot, alpha }: { t: number; rect: Rect; shot: Shot; alpha: number }) {
-  const k = p(t, shot.at, shot.out - shot.at, (x) => x);
+/** Le cadre : les plans s'y fondent l'un dans l'autre en 0,3 s (flou, léger
+ * zoom), au lieu d'une coupe sèche. */
+function Frame({ t, rect, shots, alpha }: { t: number; rect: Rect; shots: Shot[]; alpha: number }) {
+  if (alpha <= 0) return null;
+  const XF = 0.3;
+  const live = shots.filter((s) => t >= s.at - 0.02 && t < s.out + XF);
   return (
-    <div style={{ position: 'absolute', left: rect.x, top: rect.y, width: rect.w, height: rect.h, borderRadius: 48, overflow: 'hidden', opacity: alpha, background: '#EBE8E4', boxShadow: `0 0 0 1px ${PLATE}, 0 50px 90px -40px rgba(60,30,120,0.35), 0 20px 40px -24px rgba(0,0,0,0.25)` }}>
-      <Sequence from={at(shot.at)} durationInFrames={Math.max(1, at(shot.out - shot.at))} layout="none">
-        <OffthreadVideo src={staticFile(`media/${shot.name}.mp4`)} startFrom={at(shot.from)} muted style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: `scale(${1.06 - 0.05 * k})` }} />
-      </Sequence>
+    <div style={{ position: 'absolute', left: rect.x, top: rect.y, width: rect.w, height: rect.h, borderRadius: 48, overflow: 'hidden', opacity: alpha, transform: `scale(${0.96 + 0.04 * alpha})`, background: '#1a1714', boxShadow: `0 0 0 1px ${PLATE}, 0 50px 90px -40px rgba(60,30,120,0.35), 0 20px 40px -24px rgba(0,0,0,0.25)` }}>
+      {live.map((s) => {
+        const k = p(t, s.at, s.out - s.at, (x) => x);
+        const inK = p(t, s.at, XF, EASE_OUT);
+        return (
+          <Sequence key={s.at} from={at(s.at)} durationInFrames={Math.max(1, at(s.out - s.at + XF))} layout="none">
+            <OffthreadVideo src={staticFile(`media/${s.name}.mp4`)} startFrom={at(s.from)} muted style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', opacity: inK, filter: inK < 1 ? `blur(${(1 - inK) * 14}px)` : undefined, transform: `scale(${1.12 - 0.07 * k - 0.04 * inK})` }} />
+          </Sequence>
+        );
+      })}
     </div>
   );
 }
 
 /* ------------------------------------------------------------------ le téléphone */
 
-/** Les vibrations : une légère rotation, au rythme du moteur, pas un tremblement. */
 function buzzAngle(t: number, ring: { at: number; out: number }) {
   if (!between(t, ring.at, ring.out)) return 0;
   const local = (t - ring.at) % 1.5;
@@ -79,85 +106,85 @@ function buzzAngle(t: number, ring: { at: number; out: number }) {
   return Math.sin(t * 90) * 0.9 * Math.sin((local / 0.6) * Math.PI);
 }
 
-function Phone({ t, inAt, outAt, children, angle = 0 }: { t: number; inAt: number; outAt: number; children: React.ReactNode; angle?: number }) {
+/** Un ressort amorti : arrive, dépasse à peine, se pose. */
+const spring = (x: number) => (x <= 0 ? 0 : x >= 1 ? 1 : 1 - Math.exp(-6 * x) * Math.cos(7 * x));
+
+function Phone({ t, inAt, outAt, children, angle = 0, x = 560, y = 800, scale = 1.03 }: { t: number; inAt: number; outAt: number; children: React.ReactNode; angle?: number; x?: number; y?: number; scale?: number }) {
   if (!between(t, inAt - 0.05, outAt + 0.05)) return null;
-  const k = p(t, inAt, 0.8, EASE_EXPO) * (1 - p(t, outAt - 0.4, 0.4, EASE_OUT));
+  const s = spring(p(t, inAt, 0.9, (v) => v));
+  const fade = p(t, inAt, 0.35, EASE_OUT) * (1 - p(t, outAt - 0.35, 0.35, EASE_OUT));
   return (
-    <div style={{ position: 'absolute', left: 560, top: 800, opacity: Math.min(1, k * 1.4), filter: `blur(${(1 - k) * 16}px)`, transform: `scale(${0.94 + 0.06 * k}) rotate(${angle - 3}deg)`, transformOrigin: '50% 60%' }}>
-      <Device scale={1.03}>{children}</Device>
+    <div style={{ position: 'absolute', left: x, top: y, opacity: fade, filter: `blur(${(1 - fade) * 16}px)`, transform: `scale(${0.9 + 0.1 * s}) rotate(${angle - 3 + (1 - s) * 4}deg)`, transformOrigin: '50% 60%' }}>
+      <Device scale={scale}>{children}</Device>
     </div>
   );
 }
 
-/** Une notification ou une bannière qui arrive par le flou. */
 const reveal = (t: number, from: number, dur = 0.5) => {
-  const k = p(t, from, dur, EASE_EXPO);
-  return { opacity: k, filter: `blur(${(1 - k) * 8}px)`, transform: `scale(${0.96 + 0.04 * k})` } as React.CSSProperties;
+  const k = spring(p(t, from, dur * 1.6, (v) => v));
+  const o = p(t, from, dur * 0.6, EASE_OUT);
+  return { opacity: o, filter: `blur(${(1 - o) * 8}px)`, transform: `scale(${0.9 + 0.1 * k})` } as React.CSSProperties;
 };
 
-/* ------------------------------------------------------------------ l'appel, sur fond clair */
+/* ------------------------------------------------------------------ l'appel : le rond du fichier Figma, et la transcription */
 
 function useVoices() {
   return CALL.map((l) => useAudioData(staticFile(l.file)));
 }
 
-function CallPanel({ t }: { t: number }) {
+function CallScene({ t }: { t: number }) {
   const voices = useVoices();
-  const k = p(t, T.call.at + 0.35, 0.7, EASE_EXPO) * (1 - p(t, T.call.out - 0.5, 0.5));
+  const k = p(t, T.call.at + 0.2, 0.7, EASE_EXPO) * (1 - p(t, T.call.out - 0.45, 0.45));
   const speaking = CALL.find((l) => t >= l.at && t <= l.end + 0.05);
-  const idx = speaking ? CALL.indexOf(speaking) : -1;
-  let bars = new Array(44).fill(0.05);
-  if (speaking && voices[idx]) {
-    const v = visualizeAudio({ fps: FPS, frame: Math.round((t - speaking.at) * FPS), audioData: voices[idx]!, numberOfSamples: 64, smoothing: true });
-    bars = bars.map((_, i) => Math.min(1, 0.07 + Math.sqrt(v[Math.floor(i * 0.7) + 2]) * 1.6));
+  let level = 0;
+  if (speaking) {
+    const v = voices[CALL.indexOf(speaking)];
+    if (v) {
+      const s = visualizeAudio({ fps: FPS, frame: Math.round((t - speaking.at) * FPS), audioData: v, numberOfSamples: 32, smoothing: true });
+      level = Math.min(1, Math.sqrt(s.slice(1, 8).reduce((a, b) => a + b, 0)) * 1.4);
+    }
   }
-  const timer = Math.max(0, t - T.call.answered);
+  const active = p(t, T.call.answered, 0.6, EASE_OUT);
+  const timer = `0:${String(Math.floor(Math.max(0, t - T.call.answered))).padStart(2, '0')}`;
   const shown = CALL.filter((l) => t >= l.at - 0.05);
+  const SIZE = 560;
   return (
-    <div style={{ position: 'absolute', left: 80, right: 80, top: 860, opacity: k, filter: `blur(${(1 - k) * 14}px)`, ...ff }}>
-      <div style={{ borderRadius: 44, background: '#FFFFFF', boxShadow: `0 0 0 1px ${PLATE}, 0 40px 80px -40px rgba(60,30,120,0.30)`, padding: '34px 40px 44px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 18 }}>
-          <span style={{ position: 'relative', width: 18, height: 18 }}>
-            <span style={{ position: 'absolute', inset: -((t * 1.1) % 1) * 12, borderRadius: 9999, background: INDIGO, opacity: 0.35 * (1 - ((t * 1.1) % 1)) }} />
-            <span style={{ position: 'absolute', inset: 0, borderRadius: 9999, background: INDIGO }} />
-          </span>
-          <span style={{ fontSize: 32, fontWeight: 600, color: INK }}>En cours</span>
-          <span style={{ fontSize: 30, color: BODY, fontVariantNumeric: 'tabular-nums' }}>+32 471 52 18 90</span>
-          <span style={{ marginLeft: 'auto', fontSize: 30, color: BODY, fontVariantNumeric: 'tabular-nums' }}>{`0:${String(Math.floor(timer)).padStart(2, '0')}`}</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 7, height: 96, margin: '30px 0 12px' }}>
-          {bars.map((b, i) => <i key={i} style={{ flex: 1, height: `${b * 100}%`, borderRadius: 6, background: speaking?.who === 'caller' ? '#C9C3BB' : INDIGO }} />)}
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 30, marginTop: 24, minHeight: 470, justifyContent: 'flex-end' }}>
-          {shown.slice(-3).map((l) => {
-            const old = l !== speaking && t > l.end + 0.2;
-            return (
-              <div key={l.id} style={{ opacity: old ? 0.4 : 1 }}>
-                <div style={{ fontSize: 24, letterSpacing: '0.16em', fontWeight: 600, color: l.who === 'agent' ? INDIGO : BODY, marginBottom: 8 }}>{l.who === 'agent' ? 'MARIE · RÉCEPTIONNISTE IA' : 'JULIE'}</div>
-                <div style={{ fontSize: 46, lineHeight: 1.24, fontWeight: 300, color: INK, letterSpacing: '-0.015em' }}>
-                  {l.words.map((w, i) => {
-                    const wk = p(t, l.at + w.start - 0.04, 0.22, EASE_OUT);
-                    return <span key={i} style={{ display: 'inline-block', marginRight: '0.26em', opacity: wk, filter: `blur(${(1 - wk) * 10}px)` }}>{w.w}</span>;
-                  })}
-                </div>
-              </div>
-            );
-          })}
-        </div>
+    <AbsoluteFill style={{ opacity: k }}>
+      <div style={{ position: 'absolute', left: (1080 - SIZE) / 2, top: 760, filter: `blur(${(1 - k) * 16}px)`, transform: `scale(${0.92 + 0.08 * spring(p(t, T.call.at + 0.2, 1, (v) => v))})` }}>
+        <ShaderOrb size={SIZE} time={t * 1.0} active={active} timer={timer} level={level} />
       </div>
-    </div>
+      <div style={{ position: 'absolute', left: 80, right: 80, top: 1370, height: 420, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start', gap: 22, ...ff }}>
+        {shown.slice(-2).map((l) => {
+          const old = l !== speaking && t > l.end + 0.2;
+          return (
+            <div key={l.id} style={{ opacity: old ? 0.38 : 1, textAlign: 'center' }}>
+              <div style={{ fontSize: 24, letterSpacing: '0.16em', fontWeight: 600, color: l.who === 'agent' ? INDIGO : BODY, marginBottom: 6 }}>{l.who === 'agent' ? 'MARIE · RÉCEPTIONNISTE IA' : 'JULIE'}</div>
+              <div style={{ fontSize: 44, lineHeight: 1.24, fontWeight: 300, color: INK, letterSpacing: '-0.015em' }}>
+                {l.words.map((w, i) => {
+                  const wk = p(t, l.at + w.start - 0.04, 0.22, EASE_OUT);
+                  return <span key={i} style={{ display: 'inline-block', marginRight: '0.26em', opacity: wk, filter: `blur(${(1 - wk) * 10}px)` }}>{w.w}</span>;
+                })}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+      {CALL.map((l) => <Sequence key={l.id} from={at(l.at)} layout="none"><Audio src={staticFile(l.file)} /></Sequence>)}
+    </AbsoluteFill>
   );
 }
 
-/* ------------------------------------------------------------------ la musique */
+/* ------------------------------------------------------------------ le mixage */
 
-const MUSIC_FROM = 16.4;
+/** La musique respire autour de la voix : -8 dB sous la narration, -16 dB sous l'appel. */
 function musicVolume(t: number) {
-  const fadeIn = Math.min(1, t / 1.2);
-  const fadeOut = 1 - p(t, DURATION - 2.2, 2.2);
-  // Sous l'appel, la musique se retire derrière les voix, puis revient.
-  const duck = 1 - 0.78 * p(t, T.call.at - 0.4, 0.6) * (1 - p(t, T.call.out - 0.2, 0.8));
-  return 0.42 * fadeIn * fadeOut * duck;
+  const fadeIn = p(t, 0, 0.6, (x) => x);
+  const fadeOut = 1 - p(t, DURATION - 1.6, 1.6);
+  const underCall = p(t, T.call.at - 0.3, 0.5) * (1 - p(t, T.call.out - 0.3, 0.7));
+  const underVoice = Math.max(...NLINES.map((l) => p(t, l.at - 0.15, 0.2) * (1 - p(t, l.out - 0.3, 0.4))), p(t, T.n11.at - 0.15, 0.2));
+  const duck = 1 - 0.84 * underCall - 0.6 * underVoice * (1 - underCall);
+  const logoLift = 1 + 0.35 * (p(t, T.splash.at, 0.3) * (1 - p(t, T.splash.out - 0.2, 0.4)));
+  return 0.5 * fadeIn * fadeOut * Math.max(0.12, duck) * logoLift;
 }
 
 /* ------------------------------------------------------------------ la pub */
@@ -167,101 +194,91 @@ export const Pub3: React.FC = () => {
   useFonts();
   const t = useCurrentFrame() / FPS;
 
-  // Le cadre : en scène, puis élargi en haut pendant l'appel, puis de retour.
-  const toWide = p(t, T.call.at, 0.9, EASE_IN_OUT);
-  const back = p(t, T.call.out - 0.5, 0.9, EASE_IN_OUT);
-  const rect = lerpRect(STAGE, WIDE, toWide * (1 - back));
+  // Le cadre : en scène, puis remonté en bandeau pendant l'appel, puis de retour.
+  const toCall = p(t, T.call.at, 0.8, EASE_IN_OUT);
+  const back = p(t, T.call.out - 0.4, 0.8, EASE_IN_OUT);
+  const rect = lerpRect(STAGE, CALLR, toCall * (1 - back));
   const bookedShot: Shot = { at: T.booked.at, out: T.booked.out, ...T.booked.shot };
   const shots: Shot[] = [...T.shots1, ...T.shots2, ...CALL_SHOTS, bookedShot];
-  const shot = shots.find((s) => between(t, s.at, s.out));
-  const frameAlpha = between(t, 0, T.out1)
-    ? p(t, T.frameIn, 0.7, EASE_OUT) * (1 - p(t, T.out1 - 0.35, 0.35))
-    : p(t, T.shots2[0].at, 0.6, EASE_OUT) * (1 - p(t, T.booked.out - 0.35, 0.35));
+  const frameAlpha = between(t, 0, T.out1 + 0.1)
+    ? p(t, T.frameIn, 0.5, EASE_OUT) * (1 - p(t, T.out1 - 0.3, 0.3))
+    : p(t, T.shots2[0].at, 0.5, EASE_OUT) * (1 - p(t, T.booked.out - 0.3, 0.3));
 
   return (
     <AbsoluteFill>
       <Canvas t={t} />
 
-      {/* ------------------------------ 01 · Sans Qwillio ------------------------------ */}
-      <Chapter t={t} from={0.3} to={T.out1} n="01" label="Sans Qwillio" />
-      <Chapter t={t} from={T.shots2[0].at + 0.1} to={T.call.at + 0.4} n="02" label="Avec Qwillio" />
-      {shot && <Frame t={t} rect={rect} shot={shot} alpha={frameAlpha} />}
+      <Chapter t={t} from={0.1} to={T.out1} n="01" label="Sans Qwillio" />
+      <Chapter t={t} from={T.shots2[0].at + 0.05} to={T.call.at + 0.3} n="02" label="Avec Qwillio" />
+      <Frame t={t} rect={rect} shots={shots} alpha={frameAlpha} />
 
+      {/* 01 · le téléphone vibre, personne ne décroche */}
       <Phone t={t} inAt={T.phoneIn} outAt={T.out1} angle={buzzAngle(t, T.ring)}>
-        <LockScreen time="20:12" date="samedi 7 novembre" wallpaper="ios/wallpaper-iphone14-midnight.png"
-          banner={between(t, T.ring.at + 0.1, T.missed) ? <div style={reveal(t, T.ring.at + 0.1)}><IncomingCall name="Julie Martin" initials="JM" /></div> : undefined}>
+        <LockScreen time="20:12" date="samedi 7 novembre" wallpaper={WALL}
+          banner={between(t, T.ring.at, T.missed) ? <div style={reveal(t, T.ring.at)}><IncomingCall name="Julie Martin" initials="JM" /></div> : undefined}>
           {t >= T.missed && <div style={reveal(t, T.missed)}><Notification kind="phone" title="Appel manqué" desc="Julie Martin" time="maintenant" /></div>}
         </LockScreen>
       </Phone>
 
-      {[T.l1, T.l2, T.l3, T.l4].map((l, i) => <Words key={i} line={l} t={t} size={92} y={330} />)}
-
-      {/* ------------------------------ l'ouverture de l'app ------------------------------ */}
+      {/* L'ouverture de l'app */}
       {between(t, T.splash.at, T.splash.out) && (
-        <AbsoluteFill style={{ opacity: 1 - p(t, T.splash.out - 0.35, 0.35) }}>
+        <AbsoluteFill style={{ opacity: 1 - p(t, T.splash.out - 0.3, 0.3) }}>
           <Mark which="open" id="o3" k={(t - T.splash.at) / (T.splash.formed - T.splash.at)} />
-          <div style={{ position: 'absolute', left: 0, right: 0, top: J.open.y + J.open.R + 90, textAlign: 'center', fontSize: 92, fontWeight: 600, letterSpacing: '-0.025em', color: INK, opacity: p(t, T.splash.formed, 0.5, (x) => x), ...ff }}>Qwillio</div>
+          <div style={{ position: 'absolute', left: 0, right: 0, top: J.open.y + J.open.R + 90, textAlign: 'center', fontSize: 92, fontWeight: 600, letterSpacing: '-0.025em', color: INK, opacity: p(t, T.splash.formed - 0.25, 0.4, (x) => x), filter: `blur(${(1 - p(t, T.splash.formed - 0.25, 0.4)) * 10}px)`, ...ff }}>Qwillio</div>
         </AbsoluteFill>
       )}
 
-      {/* ------------------------------ 02 · Avec Qwillio ------------------------------ */}
-      <Phone t={t} inAt={T.shots2[0].at + 0.6} outAt={T.call.at + 0.5} angle={buzzAngle(t, T.ring2)}>
-        <LockScreen time="20:12" date="samedi 7 novembre" wallpaper="ios/wallpaper-iphone14-midnight.png"
+      {/* 02 · le même appel, cette fois pris */}
+      <Phone t={t} inAt={T.phone2In} outAt={T.call.at + 0.35} angle={buzzAngle(t, T.ring2)}>
+        <LockScreen time="20:12" date="samedi 7 novembre" wallpaper={WALL}
           banner={t >= T.ring2.at ? <div style={reveal(t, T.ring2.at)}><IncomingCall name="Julie Martin" initials="JM" /></div> : undefined} />
       </Phone>
-      {[T.l5, T.l6].map((l, i) => <Words key={i} line={l} t={t} size={92} y={330} />)}
 
-      {between(t, T.call.at, T.call.out + 0.1) && <CallPanel t={t} />}
+      {between(t, T.call.at, T.call.out + 0.1) && <CallScene t={t} />}
 
-      {/* Après l'appel : la réservation arrive sur le téléphone, le four tourne toujours. */}
-      <Phone t={t} inAt={T.booked.at + 0.1} outAt={T.booked.out}>
-        <LockScreen time="20:13" date="samedi 7 novembre" wallpaper="ios/wallpaper-iphone14-midnight.png">
-          {t >= T.booked.at + 0.1 && <div style={reveal(t, T.booked.at + 0.1)}><Notification kind="qwillio" title="Nouvelle réservation" desc="Julie Martin · 4 personnes · ce soir 20:30" time="maintenant" /></div>}
+      <Phone t={t} inAt={T.booked.at + 0.05} outAt={T.booked.out}>
+        <LockScreen time="20:13" date="samedi 7 novembre" wallpaper={WALL}>
+          {t >= T.booked.at + 0.15 && <div style={reveal(t, T.booked.at + 0.15)}><Notification kind="qwillio" title="Nouvelle réservation" desc="Julie Martin · 4 personnes · ce soir 20:30" time="maintenant" /></div>}
         </LockScreen>
       </Phone>
-      <Words line={T.l7} t={t} size={88} y={330} />
 
-      {/* Déjà dans l'agenda : le portail, dans Safari, sur le MacBook du site */}
+      {/* Déjà dans l'agenda */}
       {between(t, T.mac.at, T.mac.out) && (() => {
         const z = p(t, T.mac.at, T.mac.out - T.mac.at, EASE_IN_OUT);
-        // Le Mac vit dans un cadre arrondi, comme les plans filmés : de l'ordinateur
-        // entier à la journée de samedi et à la colonne « À venir ».
-        const s = mix(0.4, 1.75, z), fx = mix(915, 1075, z), fy = mix(760, 540, z);
-        const k = p(t, T.mac.at, 0.6, EASE_OUT) * (1 - p(t, T.mac.out - 0.35, 0.35));
+        const s = mix(0.55, 1.75, z), fx = mix(915, 1075, z), fy = mix(740, 540, z);
+        const k = p(t, T.mac.at, 0.45, EASE_OUT) * (1 - p(t, T.mac.out - 0.3, 0.3));
         return (
-          <div style={{ position: 'absolute', left: 80, top: 500, width: 920, height: 1180, borderRadius: 48, overflow: 'hidden', background: '#E7E7E7', opacity: k, filter: `blur(${(1 - Math.min(1, k * 1.5)) * 12}px)`, boxShadow: `0 0 0 1px ${PLATE}, 0 50px 90px -40px rgba(60,30,120,0.35)` }}>
+          <div style={{ position: 'absolute', left: 80, top: 500, width: 920, height: 1180, borderRadius: 48, overflow: 'hidden', background: '#E7E7E7', opacity: k, transform: `scale(${0.96 + 0.04 * k})`, filter: `blur(${(1 - k) * 12}px)`, boxShadow: `0 0 0 1px ${PLATE}, 0 50px 90px -40px rgba(60,30,120,0.35)` }}>
             <div style={{ position: 'absolute', left: 460, top: 600, transformOrigin: '0 0', transform: `scale(${s}) translate(${-fx}px, ${-fy}px)` }}>
               <MacBookBookings t={t} bump={T.mac.bump} upcoming={T.mac.upcoming} />
             </div>
           </div>
         );
       })()}
-      <Words line={T.l8} t={t} size={92} y={330} />
 
-      {/* La chute : Julie et ses amis, à table */}
-      {between(t, T.payoff.at, T.payoff.out) && (
-        <Frame t={t} rect={STAGE} shot={{ at: T.payoff.at, out: T.payoff.out, ...T.payoff.shot }} alpha={p(t, T.payoff.at, 0.6, EASE_OUT) * (1 - p(t, T.payoff.out - 0.35, 0.35))} />
+      {/* Julie à table */}
+      {between(t, T.payoff.at, T.payoff.out + 0.05) && (
+        <Frame t={t} rect={STAGE} shots={[{ at: T.payoff.at, out: T.payoff.out, ...T.payoff.shot }]} alpha={p(t, T.payoff.at, 0.45, EASE_OUT) * (1 - p(t, T.payoff.out - 0.3, 0.3))} />
       )}
-      {[T.l9, T.l10].map((l, i) => <Words key={i} line={l} t={t} size={96} y={330} />)}
+
+      {NLINES.map((l) => <Said key={l.n} line={l} t={t} />)}
 
       {/* Fin */}
       {t >= T.end.at && (
         <AbsoluteFill>
           <Mark which="close" id="c3" k={(t - T.end.at) / (T.end.formed - T.end.at)} />
-          <div style={{ position: 'absolute', left: 0, right: 0, top: J.close.y + J.close.R + 70, textAlign: 'center', fontSize: 84, fontWeight: 600, letterSpacing: '-0.025em', color: INK, opacity: p(t, T.end.formed - 0.1, 0.5, (x) => x), ...ff }}>Qwillio</div>
-          <div style={{ position: 'absolute', left: 80, right: 80, top: J.close.y + J.close.R + 220, textAlign: 'center', fontSize: 52, fontWeight: 300, letterSpacing: '-0.02em', lineHeight: 1.2, color: '#44403B', opacity: p(t, T.end.line, 0.6), filter: `blur(${(1 - p(t, T.end.line, 0.6)) * 14}px)`, ...ff }}>
-            Elle décroche quand vous <span style={serif}>ne pouvez pas.</span>
-          </div>
-          <div style={{ position: 'absolute', left: 0, right: 0, top: J.close.y + J.close.R + 380, textAlign: 'center', fontSize: 34, color: BODY, opacity: p(t, T.end.sub, 0.6), filter: `blur(${(1 - p(t, T.end.sub, 0.6)) * 10}px)`, ...ff }}>qwillio.com</div>
+          <div style={{ position: 'absolute', left: 0, right: 0, top: J.close.y + J.close.R + 70, textAlign: 'center', fontSize: 84, fontWeight: 600, letterSpacing: '-0.025em', color: INK, opacity: p(t, T.end.formed - 0.3, 0.4, (x) => x), filter: `blur(${(1 - p(t, T.end.formed - 0.3, 0.4)) * 10}px)`, ...ff }}>Qwillio</div>
+          <Said line={T.n11} t={t} size={52} y={J.close.y + J.close.R + 250} />
+          <div style={{ position: 'absolute', left: 0, right: 0, top: J.close.y + J.close.R + 380, textAlign: 'center', fontSize: 34, color: BODY, opacity: p(t, T.n11.at + 1.6, 0.5), filter: `blur(${(1 - p(t, T.n11.at + 1.6, 0.5)) * 10}px)`, ...ff }}>qwillio.com</div>
         </AbsoluteFill>
       )}
 
       {/* ------------------------------ le son ------------------------------ */}
-      {/* La musique (« Discover », Mixkit) : on entre au milieu du morceau pour que
-          sa montée tombe sur l'ouverture de l'app ; elle s'efface sous les voix. */}
-      <Audio src={staticFile('media/music.mp3')} startFrom={at(MUSIC_FROM)} volume={(f) => musicVolume(f / FPS)} />
-      {CALL.map((l) => <Sequence key={l.id} from={at(l.at)} layout="none"><Audio src={staticFile(l.file)} /></Sequence>)}
-      {[T.missed, T.booked.at + 0.1].map((s) => <Sequence key={s} from={at(s)} durationInFrames={at(1)} layout="none"><Audio src={staticFile('media/pop.mp3')} volume={0.55} /></Sequence>)}
+      <Audio src={staticFile('media/music.mp3')} volume={(f) => musicVolume(f / FPS)} />
+      {[...NLINES, T.n11].map((l) => <Sequence key={`n${l.n}`} from={at(l.at)} layout="none"><Audio src={staticFile(narration[l.n].file)} volume={1.05} /></Sequence>)}
+      {/* La cuisine, à peine : la plaque, pas la salle. */}
+      <Sequence from={0} durationInFrames={at(T.out1)} layout="none"><Audio src={staticFile('media/sizzle.mp3')} volume={(f) => 0.14 * Math.min(1, f / 20) * Math.min(1, (at(T.out1) - f) / 30)} /></Sequence>
+      {[T.missed, T.booked.at + 0.15].map((s) => <Sequence key={s} from={at(s)} durationInFrames={at(1)} layout="none"><Audio src={staticFile('media/pop.mp3')} volume={0.5} /></Sequence>)}
       <Audio src={staticFile('sounds-pub3.wav')} />
     </AbsoluteFill>
   );

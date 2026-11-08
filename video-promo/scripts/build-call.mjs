@@ -5,10 +5,13 @@
 import fs from 'fs';
 import { execFileSync } from 'child_process';
 
-const SUFFIX = process.argv[2] ?? '-A';
+// Usage : node scripts/build-call.mjs [suffixe réceptionniste] [suffixe appelante]
+const AGENT_SUFFIX = process.argv[2] ?? '-A';
+const CALLER_SUFFIX = process.argv[3] ?? AGENT_SUFFIX;
 const ids = ['a1', 'c1', 'a2', 'c2', 'a3'];
 const out = [];
 for (const id of ids) {
+  const SUFFIX = id.startsWith('a') ? AGENT_SUFFIX : CALLER_SUFFIX;
   const j = JSON.parse(fs.readFileSync(`public/voices/${id}${SUFFIX}.json`, 'utf8'));
   const a = j.alignment;
   let text = j.text, start = 0, file = `voices/${id}${SUFFIX}.mp3`;

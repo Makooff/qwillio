@@ -3,81 +3,86 @@
  *
  * Une seule cuisine, filmée plan après plan (le même tournage Mixkit), posée
  * dans un cadre arrondi sur le fond clair du site. Le téléphone est celui du
- * kit iOS. L'appel est celui de `src/pub/call.ts` : aujourd'hui des voix de
- * synthèse, demain l'enregistrement réel transcrit par `scripts/transcribe-call.mjs`.
- * Tout se recale seul sur la durée de l'appel.
- * Le seul endroit qui dit QUAND. Tout est en secondes.
+ * kit iOS, le rond de l'appel celui du fichier Figma Make « Shader Reminder ».
+ * Une voix narrative lit chaque phrase affichée (scripts/narration.mjs) : la
+ * frise se cale sur sa durée réelle. L'appel vient de `src/pub/call.ts`, voix
+ * de synthèse aujourd'hui, enregistrement réel demain (scripts/transcribe-call.mjs).
+ * Tout se recale seul. Le seul endroit qui dit QUAND, en secondes.
  */
 import call from '../pub/call.ts';
+import narration from './narration.ts';
 
 export const FPS = 60;
 
-export interface Line { at: number; out: number; words: string[]; serif?: number[] }
+/** Une phrase lue : `n` est son index dans narration.ts. */
+export interface NLine { at: number; n: number; out: number }
+const say = (at: number, n: number, hold = 0.35): NLine => ({ at, n, out: at + narration[n].duration + hold });
 
 /** Un plan filmé : quel fichier, à partir de quelle seconde du rush. */
 export interface Shot { at: number; out: number; name: string; from: number }
 
-/** Les répliques. Un enregistrement réel porte ses propres temps (`offset`) :
- * on garde alors ses silences tels qu'ils ont été dits. */
-const CALL_AT = 21.2;
+/** Les répliques de l'appel. Un enregistrement réel porte ses propres temps
+ * (`offset`) : on garde alors ses silences tels qu'ils ont été dits. */
+const CALL_AT = 14.7;
 type Raw = (typeof call)[number] & { offset?: number };
 const raw = call as Raw[];
 const base = raw[0].offset ?? 0;
 let cursor = CALL_AT;
 export const CALL = raw.map((l) => {
   const at = l.offset !== undefined ? CALL_AT + l.offset - base : cursor;
-  cursor = at + l.duration + 0.3;
+  cursor = at + l.duration + 0.18;
   return { ...l, at, end: at + l.duration };
 });
-const callEnd = CALL[CALL.length - 1].end + 0.6;
+const E = CALL[CALL.length - 1].end + 0.45; // la fin de l'appel
 
 export const T = {
-  // 1. Le coup de feu
+  // 01 · Sans Qwillio : le coup de feu, le téléphone, l'appel perdu.
   shots1: [
-    { at: 0, out: 3.8, name: 'dough', from: 0.6 },
-    { at: 3.8, out: 6.6, name: 'sauce', from: 0.4 },
-    { at: 6.6, out: 10.6, name: 'oven', from: 1.2 },
-    { at: 10.6, out: 13.4, name: 'ovenhot', from: 0.5 },
+    { at: 0, out: 2.6, name: 'dough', from: 0.6 },
+    { at: 2.6, out: 4.6, name: 'sauce', from: 0.5 },
+    { at: 4.6, out: 7.0, name: 'oven', from: 1.6 },
+    { at: 7.0, out: 8.9, name: 'ovenhot', from: 0.6 },
   ] as Shot[],
-  frameIn: 0.15,
-  l1: { at: 0.5, out: 3.6, words: ['Samedi,', '20 h 12.'], serif: [1] } as Line,
-  phoneIn: 2.4,
-  ring: { at: 3.1, out: 9.4 },
-  l2: { at: 3.9, out: 6.4, words: ['Le', 'téléphone', 'vibre.'], serif: [2] } as Line,
-  l3: { at: 6.7, out: 9.3, words: ['Les', 'mains', 'dans', 'la', 'pâte.'], serif: [4] } as Line,
-  missed: 9.5,
-  l4: { at: 9.6, out: 13.2, words: ['Julie', 'réserve', 'en', 'face.'], serif: [2, 3] } as Line,
-  out1: 13.4,
+  frameIn: 0.0,
+  n1: say(0.25, 0),
+  phoneIn: 1.5,
+  ring: { at: 2.0, out: 6.6 },
+  n2: say(3.0, 1),
+  n3: say(4.65, 2),
+  missed: 6.6,
+  n4: say(7.0, 3, 0.25),
+  out1: 8.9,
 
-  // 2. L'ouverture de l'app
-  splash: { at: 13.4, formed: 15.9, out: 16.9 },
+  // L'ouverture de l'app
+  splash: { at: 8.9, formed: 10.55, out: 11.2 },
 
-  // 3. Même soirée, avec Qwillio
-  shots2: [
-    { at: 16.9, out: 21.2, name: 'dough', from: 4.4 },
-  ] as Shot[],
-  l5: { at: 17.1, out: 19.6, words: ['Même', 'soirée.'], serif: [1] } as Line,
-  ring2: { at: 18.2, out: 21.0 },
-  l6: { at: 19.6, out: 21.1, words: ['Cette', 'fois…'], serif: [1] } as Line,
-  call: { at: 21.0, answered: CALL_AT, out: callEnd },
+  // 02 · Avec Qwillio : la même soirée.
+  shots2: [{ at: 11.2, out: 14.5, name: 'dough', from: 4.6 }] as Shot[],
+  n5: say(11.4, 4, 0.1),
+  phone2In: 11.5,
+  ring2: { at: 12.1, out: 14.4 },
+  n6: say(13.2, 5, 0.05),
+  call: { at: 14.5, answered: CALL_AT, out: E },
 
-  // 4. Ce qui reste après l'appel
-  booked: { at: callEnd, out: callEnd + 3.2, shot: { name: 'knead', from: 2 } },
-  l7: { at: callEnd + 0.15, out: callEnd + 3.0, words: ['Réservé.', 'Les', 'mains', 'toujours', 'dans', 'la', 'pâte.'], serif: [6] } as Line,
-  mac: { at: callEnd + 3.2, out: callEnd + 7.6, bump: callEnd + 4.4, upcoming: callEnd + 5.0 },
-  l8: { at: callEnd + 3.35, out: callEnd + 7.45, words: ['Déjà', 'dans', 'votre', 'agenda.'], serif: [3] } as Line,
-  payoff: { at: callEnd + 7.6, out: callEnd + 10.6, shot: { name: 'table', from: 0.3 } },
-  l9: { at: callEnd + 7.75, out: callEnd + 9.15, words: ['Julie', 'a', 'sa', 'table.'] } as Line,
-  l10: { at: callEnd + 9.15, out: callEnd + 10.45, words: ['Vous,', 'vos', 'pizzas.'], serif: [2] } as Line,
+  // Ce qui reste après l'appel.
+  booked: { at: E, out: E + 3.55, shot: { name: 'knead', from: 2 } },
+  n7: say(E + 0.2, 6, 0.2),
+  mac: { at: E + 3.55, out: E + 6.6, bump: E + 4.5, upcoming: E + 4.9 },
+  n8: say(E + 3.75, 7, 0.9),
+  payoff: { at: E + 6.6, out: E + 9.75, shot: { name: 'table', from: 0.3 } },
+  n9: say(E + 6.8, 8, 0.1),
+  n10: say(E + 8.2, 9, 0.2),
 
-  end: { at: callEnd + 10.6, formed: callEnd + 12.8, line: callEnd + 12.6, sub: callEnd + 13.0 },
+  end: { at: E + 9.75, formed: E + 11.35, line: E + 11.0 },
+  n11: say(E + 10.5, 10, 1.4),
 };
 
-export const DURATION = T.end.at + 3.6;
+export const DURATION = T.n11.out + 0.9;
+export const NLINES: NLine[] = [T.n1, T.n2, T.n3, T.n4, T.n5, T.n6, T.n7, T.n8, T.n9, T.n10];
 
 /** Pendant l'appel, la cuisine continue : des plans du même tournage, à la
- * suite, jamais plus longs que leur rush (sinon l'image fige). La liste tourne
- * aussi longtemps que dure l'appel, quelle que soit sa longueur. */
+ * suite, chacun plus court que son rush (sinon l'image fige). La liste tourne
+ * aussi longtemps que dure l'appel. */
 const CALL_POOL = [
   { name: 'pepperoni', from: 0.3, len: 6.4 },
   { name: 'ovenhot', from: 0.3, len: 6.4 },
@@ -88,32 +93,48 @@ const CALL_POOL = [
 export const CALL_SHOTS: Shot[] = [];
 for (let s = T.call.at, i = 0; s < T.call.out; i++) {
   const c = CALL_POOL[i % CALL_POOL.length];
-  const len = Math.min(c.len - 0.3, 4.6);
+  const len = Math.min(c.len - 0.3, 3.6);
   CALL_SHOTS.push({ at: s, out: Math.min(T.call.out, s + len), name: c.name, from: c.from });
   s += len;
 }
 
-/** Les phrases à l'écran : un pop discret à chacune. */
-const LINES: Line[] = [T.l1, T.l2, T.l3, T.l4, T.l5, T.l6, T.l7, T.l8, T.l9, T.l10];
+/* ------------------------------------------------------------------ le son */
 
 /** Les sons de synthèse (scripts/sounds.py). Aucune sonnerie Apple : le
- * téléphone vibre sur le plan de travail, c'est tout. */
-export type CueKind = 'buzz' | 'notify' | 'swell' | 'logo' | 'confirm' | 'bump' | 'tap';
+ * téléphone vibre sur le plan de travail. Chaque coupe a son souffle, chaque
+ * phrase son pop, chaque bascule sa montée et son impact. */
+export type CueKind = 'buzz' | 'swell' | 'logo' | 'confirm' | 'bump' | 'tap' | 'whoosh' | 'riser' | 'click' | 'sparkle';
 export interface Cue { t: number; kind: CueKind; seed: number; gain?: number }
 const buzzes = (from: number, to: number, seed: number) => {
   const out: Cue[] = [];
-  for (let s = from, i = 0; s < to - 0.5; s += 1.5, i++) out.push({ t: s, kind: 'buzz', seed: seed + i, gain: 0.55 });
+  for (let s = from, i = 0; s < to - 0.4; s += 1.5, i++) out.push({ t: s, kind: 'buzz', seed: seed + i, gain: 0.6 });
   return out;
 };
+const cuts = [
+  ...T.shots1.slice(1).map((s) => s.at),
+  T.shots2[0].at,
+  ...CALL_SHOTS.slice(1).map((s) => s.at),
+  T.booked.at, T.mac.at, T.payoff.at,
+];
 export const CUES: Cue[] = [
-  ...LINES.map((l, i) => ({ t: l.at, kind: 'bump' as const, seed: 360 + i, gain: 0.32 })),
-  { t: T.ring.at + 0.1, kind: 'tap', seed: 380, gain: 0.5 },
-  { t: T.ring2.at, kind: 'tap', seed: 381, gain: 0.5 },
+  { t: 0.0, kind: 'whoosh', seed: 400, gain: 0.5 },
+  ...NLINES.map((l, i) => ({ t: l.at, kind: 'bump' as const, seed: 360 + i, gain: 0.28 })),
+  ...cuts.map((t, i) => ({ t: t - 0.12, kind: 'whoosh' as const, seed: 410 + i, gain: 0.32 })),
+  { t: T.phoneIn - 0.05, kind: 'whoosh', seed: 440, gain: 0.45 },
+  { t: T.ring.at, kind: 'tap', seed: 380, gain: 0.5 },
   ...buzzes(T.ring.at, T.ring.out, 300),
-  { t: T.splash.at + 0.05, kind: 'swell', seed: 321, gain: 0.6 },
+  { t: T.missed, kind: 'sparkle', seed: 381, gain: 0.35 },
+  { t: T.out1 - 1.3, kind: 'riser', seed: 382, gain: 0.55 },
+  { t: T.splash.at + 0.02, kind: 'swell', seed: 321, gain: 0.55 },
   { t: T.splash.formed - 0.05, kind: 'logo', seed: 322 },
+  { t: T.phone2In - 0.05, kind: 'whoosh', seed: 441, gain: 0.45 },
+  { t: T.ring2.at, kind: 'tap', seed: 383, gain: 0.5 },
   ...buzzes(T.ring2.at, T.ring2.out, 330),
+  { t: T.call.at + 0.05, kind: 'click', seed: 384, gain: 0.7 },
+  { t: T.booked.at + 0.15, kind: 'confirm', seed: 340, gain: 0.75 },
   { t: T.mac.bump, kind: 'bump', seed: 341, gain: 0.6 },
-  { t: T.end.at + 0.05, kind: 'swell', seed: 342, gain: 0.5 },
-  { t: T.end.formed - 0.05, kind: 'logo', seed: 343 },
+  { t: T.mac.upcoming, kind: 'sparkle', seed: 342, gain: 0.45 },
+  { t: T.end.at - 1.1, kind: 'riser', seed: 343, gain: 0.5 },
+  { t: T.end.at + 0.02, kind: 'swell', seed: 344, gain: 0.5 },
+  { t: T.end.formed - 0.05, kind: 'logo', seed: 345 },
 ];

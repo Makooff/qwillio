@@ -26,8 +26,8 @@ export const VIDEOS = {
   cheese: 42475, // spreading-cheese-on-a-pizza
   pepperoni: 42477, // putting-pepperoni-on-a-pizza
 };
-// La musique de la v3 : « Discover », Mixkit, sous la « Mixkit Music Free License ».
-export const MUSIC = { music: 587 };
+// La musique de la v3 : « Driving Ambition », Mixkit, sous la « Mixkit Music Free License ».
+export const MUSIC = { music: 32 };
 export const SOUNDS = {
   ambience: 478, // Restaurant crowd talking ambience
   sizzle: 2826, // Frying fish on a hot pan
