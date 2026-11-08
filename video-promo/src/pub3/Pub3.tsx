@@ -16,7 +16,7 @@ import { MacBookBookings } from '../pub2/mac';
 import { Device, IncomingCall, LockScreen, Notification } from './ios';
 import narration from './narration';
 import { ShaderOrb } from './ShaderOrb';
-import { Sfx, glitch, tracking, wordIn } from '../fx';
+import { Sfx, tracking, wordIn } from '../fx';
 import { CALL, CALL_SHOTS, DURATION, FPS, NLine, NLINES, Shot, T } from './timeline';
 
 const INK = '#1D1D1F';
@@ -31,9 +31,6 @@ const between = (t: number, a: number, b: number) => t >= a && t < b;
 
 /* ------------------------------------------------------------------ le texte : lu, puis il sort du flou mot à mot */
 
-/** La phrase où Julie part en face : celle qui glitche. */
-const GLITCH_LINE = 3;
-
 function Said({ line, t, size = 92, y = 330 }: { line: NLine; t: number; size?: number; y?: number }) {
   if (!between(t, line.at - 0.05, line.out + 0.05)) return null;
   const n = narration[line.n];
@@ -43,8 +40,7 @@ function Said({ line, t, size = 92, y = 330 }: { line: NLine; t: number; size?: 
       {n.words.map((w, i) => {
         const at = line.at + w.start - 0.04;
         const inS = wordIn(t, at);
-        // « en face » : le moment où ça tourne mal se dédouble (glitch).
-        const g = line.n === GLITCH_LINE && i >= 3 ? glitch(t, line.at + n.words[3].start + 0.05) : {};
+        const g: React.CSSProperties = {};
         return (
           <span key={i} style={{ display: 'inline-block', marginRight: '0.24em', ...inS, opacity: Number(inS.opacity) * (1 - outK), filter: `blur(${(1 - Math.min(1, Number(inS.opacity))) * 14 + outK * 12}px)`, ...(n.serif.includes(i) ? serif : {}), ...g, transform: `${inS.transform} ${g.transform ?? ''}` }}>{w.w}</span>
         );
@@ -310,7 +306,6 @@ export const Pub3: React.FC = () => {
       <Sequence from={0} durationInFrames={at(T.out1)} layout="none"><Audio src={staticFile('media/sizzle.mp3')} volume={(f) => 0.14 * Math.min(1, f / 20) * Math.min(1, (at(T.out1) - f) / 30)} /></Sequence>
       {/* Les sons de la référence, chacun sur son animation. */}
       {[...NLINES, T.n11].flatMap((l) => narration[l.n].words.map((w, i) => <Sfx key={`w${l.n}-${i}`} at={l.at + w.start - 0.04} name="type" gain={0.32} />))}
-      <Sfx at={T.n4.at + narration[3].words[3].start + 0.05} name="glitch" gain={0.55} />
       <Sfx at={T.n6.at + narration[5].words[narration[5].words.length - 1].start} name="thump" gain={0.7} />
       {[0.1, T.shots2[0].at + 0.05].map((s) => <Sfx key={`c${s}`} at={s} name="tracking" gain={0.4} />)}
       {[T.ring.at, T.missed, T.ring2.at, T.booked.at + 0.15].map((s) => <Sfx key={`p${s}`} at={s} name="pop" gain={0.6} />)}
