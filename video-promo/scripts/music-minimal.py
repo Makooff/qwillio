@@ -16,8 +16,7 @@ La piste (public/music-minimal.mp3), 108 bpm, fa majeur, I-V-vi-IV :
 Des sections de huit mesures retirent ou rajoutent des couches : chaque vidéo
 démarre à un endroit différent (`music` dans scripts/cartesia-shorts.mjs).
 
-La signature (public/jingle.mp3), 3 s : trois notes de cloche pure, do - la -
-fa. Le fa final tombe à 1,0 s : c'est lui qu'on cale sur le logo formé.
+La signature du logo vit dans scripts/jingle.py, qui reprend ces briques.
 
   python scripts/music-minimal.py
 """
@@ -213,14 +212,3 @@ tr.l += lp(arp.l, 5000) + el * 0.5
 tr.r += lp(arp.r, 5000) + er * 0.5
 master(tr, -16, 'public/music-minimal.mp3', fade_in=1.0, fade_out=3.0)
 
-# ================================================================== la signature
-# Minimale (deuxième retour du propriétaire) : trois notes de cloche pure qui
-# descendent sur l'accord de fa, do6 - la5 - fa5, et rien d'autre qu'un écho.
-JDUR = 3.0
-jg = Track(JDUR)
-for at, m, g, dec in ((0.56, 84, 0.8, 3.0), (0.76, 81, 0.85, 2.8), (1.00, 77, 1.0, 1.4)):
-    jg.add(bell(hz(m), 2.0, dec), at, gain=0.24 * g)
-el, er = echo(jg.l, jg.r, BEAT * 0.5, fb=0.3, taps=3, tone=5000)
-jg.l += el * 0.35
-jg.r += er * 0.35
-master(jg, -17, 'public/jingle.mp3', fade_in=0.0, fade_out=0.4)

@@ -6,7 +6,8 @@ if (process.env.REMOTION_CHROME) Config.setBrowserExecutable(process.env.REMOTIO
 Config.setVideoImageFormat('jpeg');
 Config.setJpegQuality(95);
 Config.setCodec('h264');
-Config.setCrf(18);
+// Un rendu audio seul (REMOTION_AUDIO_ONLY=1) refuse toute option vidéo.
+if (!process.env.REMOTION_AUDIO_ONLY) Config.setCrf(18);
 Config.setPixelFormat('yuv420p');
 
 // La façade d'icônes du portail (frontend/src/components/icons.tsx) est importée
