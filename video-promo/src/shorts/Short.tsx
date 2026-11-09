@@ -19,7 +19,7 @@ import { MacBookBookings } from '../pub2/mac';
 import { Canvas, Phone, buzzAngle, reveal, spring } from '../pub3/Pub3';
 import { IncomingCall, LockScreen, Notification } from '../pub3/ios';
 import { ShaderOrb } from '../pub3/ShaderOrb';
-import { Sfx, wordIn } from '../fx';
+import { Sfx, phraseChunks, wordIn } from '../fx';
 import { SiteFrame } from '../pub4/illustrations';
 import { Check, MessageSquare, Send } from '../../../frontend/src/components/icons';
 import data from './data';
@@ -110,10 +110,18 @@ export const shortName = (id: string, f: Format) => `Short-${id}-${data.shorts[i
 
 function Said({ line, t, size = 80, y = 300 }: { line: TNarr; t: number; size?: number; y?: number }) {
   if (!between(t, line.at - 0.05, line.out + 0.05)) return null;
-  const outK = p(t, line.out - 0.25, 0.25, EASE_OUT);
+  // Le morceau de phrase en cours : il reste jusqu'au début du suivant.
+  const groups = phraseChunks(line.words);
+  const startOf = (g: number[]) => line.at + line.words[g[0]].start - 0.06;
+  let gi = 0;
+  for (let k = 0; k < groups.length; k++) if (t >= startOf(groups[k])) gi = k;
+  const g = groups[gi];
+  const end = gi < groups.length - 1 ? startOf(groups[gi + 1]) : line.out;
+  const outK = p(t, end - 0.2, 0.2, EASE_OUT);
   return (
     <div style={{ position: 'absolute', left: 70, right: 70, top: y, transform: 'translateY(-50%)', textAlign: 'center', fontSize: size, fontWeight: 300, letterSpacing: '-0.03em', lineHeight: 1.08, color: INK, ...ff }}>
-      {line.words.map((w, i) => {
+      {g.map((i) => {
+        const w = line.words[i];
         const inS = wordIn(t, line.at + w.start - 0.04);
         return <span key={i} style={{ display: 'inline-block', marginRight: '0.24em', ...inS, opacity: Number(inS.opacity) * (1 - outK), filter: `blur(${(1 - Math.min(1, Number(inS.opacity))) * 14 + outK * 12}px)`, ...(line.serif.includes(i) ? serif : {}) }}>{w.w}</span>;
       })}

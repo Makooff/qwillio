@@ -59,3 +59,25 @@ export function tracking(t: number, from: number, wide = 0.9, tight = 0.2): stri
   const k = p(t, from, 0.7, EASE_OUT);
   return `${wide + (tight - wide) * k}em`;
 }
+
+/**
+ * Une phrase longue, découpée en morceaux lisibles : on coupe après une
+ * ponctuation, ou au plus tard au septième mot. Une narration parlée en vraies
+ * phrases ne tient pas d'un bloc à l'écran ; on affiche le morceau en cours,
+ * comme des sous-titres.
+ */
+export function phraseChunks(words: { w: string }[], max = 7): number[][] {
+  const out: number[][] = [];
+  let cur: number[] = [];
+  words.forEach((w, i) => {
+    cur.push(i);
+    const stop = /[,.!?…:;]$/.test(w.w) && cur.length >= 2;
+    if (stop || cur.length >= max) { out.push(cur); cur = []; }
+  });
+  if (cur.length) {
+    // un dernier morceau d'un seul mot se rattache au précédent
+    if (cur.length === 1 && out.length) out[out.length - 1].push(...cur);
+    else out.push(cur);
+  }
+  return out;
+}
