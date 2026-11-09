@@ -15,7 +15,7 @@ import { MacBookBookings } from '../pub2/mac';
 import { Canvas, Frame, Phone, STAGE, buzzAngle, reveal, spring } from '../pub3/Pub3';
 import { IncomingCall, LockScreen, Notification } from '../pub3/ios';
 import { ShaderOrb } from '../pub3/ShaderOrb';
-import { Sfx, phraseChunks, wordIn } from '../fx';
+import { Sfx, phraseChunks, titleTimes, wordIn } from '../fx';
 import { Engines, MessageNote, VoiceClone } from './illustrations';
 import voices from './voices';
 import { CLIPS, DURATION, FPS, T, VLine, VLINES } from './timeline';
@@ -36,6 +36,19 @@ const sceneAlpha = (t: number, s: { at: number; out: number }) => p(t, s.at, 0.4
 function Said({ line, t, size = 88, y = 300 }: { line: VLine; t: number; size?: number; y?: number }) {
   if (!between(t, line.at - 0.05, line.out + 0.05)) return null;
   const n = voices.lines[line.id];
+  if (n.title) {
+    // la voix dit la phrase, l'écran garde le titre court
+    const ws = titleTimes(n.title, n.words, n.duration);
+    const outT = p(t, line.out - 0.28, 0.28, EASE_OUT);
+    return (
+      <div style={{ position: 'absolute', left: 70, right: 70, top: y, transform: 'translateY(-50%)', textAlign: 'center', fontSize: size, fontWeight: 300, letterSpacing: '-0.03em', lineHeight: 1.08, color: INK, ...ff }}>
+        {ws.map((w, i) => {
+          const inS = wordIn(t, line.at + w.start - 0.04);
+          return <span key={i} style={{ display: 'inline-block', marginRight: '0.24em', ...inS, opacity: Number(inS.opacity) * (1 - outT), filter: `blur(${(1 - Math.min(1, Number(inS.opacity))) * 14 + outT * 12}px)`, ...((n.titleSerif ?? []).includes(i) ? serif : {}) }}>{w.w}</span>;
+        })}
+      </div>
+    );
+  }
   // La narration parle en vraies phrases : on affiche le morceau en cours.
   const groups = phraseChunks(n.words);
   const startOf = (g: number[]) => line.at + n.words[g[0]].start - 0.06;
@@ -302,7 +315,7 @@ export const Pub4: React.FC = () => {
       <Audio src={staticFile('music-minimal.mp3')} startFrom={at(60)} volume={(f) => musicVolume(f / FPS)} />
       {SOURCES.map((s) => <Sequence key={s.file} from={at(s.at)} layout="none"><Audio src={staticFile(s.file)} /></Sequence>)}
       {/* Les sons de la référence, chacun sur son animation. */}
-      {[...VLINES, T.v8].flatMap((l) => voices.lines[l.id].words.map((w, i) => <Sfx key={`w${l.id}-${i}`} at={l.at + w.start - 0.04} name="type" gain={0.32} />))}
+      {[...VLINES, T.v8].flatMap((l) => { const n = voices.lines[l.id]; return (n.title ? titleTimes(n.title, n.words, n.duration) : n.words).map((w, i) => <Sfx key={`w${l.id}-${i}`} at={l.at + w.start - 0.04} name="type" gain={0.32} />); })}
       {[T.known.ring.at, T.urgent.ring.at, T.message.at + 0.4].map((s) => <Sfx key={`p${s}`} at={s} name="pop" gain={0.6} />)}
       <Sfx at={T.known.answer} name="click" gain={0.6} />
       {[T.k3.at - 0.1, T.k4.at - 0.1].map((s) => <Sfx key={`l${s}`} at={s} name="click" gain={0.5} />)}

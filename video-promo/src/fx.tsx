@@ -81,3 +81,16 @@ export function phraseChunks(words: { w: string }[], max = 7): number[][] {
   }
   return out;
 }
+
+/**
+ * Le titre court, pendant que la voix dit la phrase entière (retour du
+ * propriétaire : « des vraies phrases à l'audio, les mêmes titres en texte »).
+ * Ses mots apparaissent au rythme de la voix, répartis sur le début de la
+ * phrase (au plus 0,3 s par mot), pour que le titre soit entier bien avant la fin.
+ */
+export function titleTimes(title: string, words: { start: number }[], duration: number) {
+  const ws = title.split(' ');
+  const first = words[0]?.start ?? 0;
+  const span = Math.min(duration * 0.6, ws.length * 0.3);
+  return ws.map((w, i) => ({ w, start: first + (ws.length > 1 ? (i / (ws.length - 1)) * span : 0) }));
+}

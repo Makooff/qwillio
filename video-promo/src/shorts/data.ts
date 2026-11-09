@@ -218,6 +218,10 @@ const data = {
         "w": "ailleurs.",
         "start": 6.444
        }
+      ],
+      "title": "Un appel manqué, c’est un client qui réserve ailleurs.",
+      "titleSerif": [
+       8
       ]
      }
     },
@@ -260,6 +264,10 @@ const data = {
         "w": "plutôt.",
         "start": 2.601
        }
+      ],
+      "title": "Avec Qwillio, quelqu’un décroche. Toujours.",
+      "titleSerif": [
+       4
       ]
      },
      "lines": [
@@ -436,6 +444,10 @@ const data = {
         "w": "téléphone.",
         "start": 3.724
        }
+      ],
+      "title": "Et la réservation arrive toute seule.",
+      "titleSerif": [
+       5
       ]
      }
     }
@@ -509,6 +521,10 @@ const data = {
         "w": "longtemps.",
         "start": 3.001
        }
+      ],
+      "title": "Il est trois heures du matin.",
+      "titleSerif": [
+       5
       ]
      }
     },
@@ -550,6 +566,10 @@ const data = {
         "w": "rendez-vous.",
         "start": 2.041
        }
+      ],
+      "title": "Votre cabinet est fermé. Le téléphone sonne.",
+      "titleSerif": [
+       6
       ]
      }
     },
@@ -730,6 +750,10 @@ const data = {
         "w": "agenda.",
         "start": 2.841
        }
+      ],
+      "title": "Vous dormez. Elle, non.",
+      "titleSerif": [
+       3
       ]
      }
     }
@@ -807,6 +831,10 @@ const data = {
         "w": "anglais.",
         "start": 4.521
        }
+      ],
+      "title": "À Bruxelles, vos clients ne parlent pas tous la même langue.",
+      "titleSerif": [
+       10
       ]
      }
     },
@@ -988,6 +1016,10 @@ const data = {
         "w": "hésiter.",
         "start": 3.322
        }
+      ],
+      "title": "Elle répond dans la leur. Avec le bon accent.",
+      "titleSerif": [
+       8
       ]
      }
     }
@@ -1049,6 +1081,10 @@ const data = {
         "w": "appelle ?",
         "start": 1.92
        }
+      ],
+      "title": "Et si votre téléphone savait qui appelle ?",
+      "titleSerif": [
+       4
       ]
      }
     },
@@ -1275,6 +1311,10 @@ const data = {
         "w": "reste.",
         "start": 3.561
        }
+      ],
+      "title": "Elle se souvient de vos clients. Comme vous.",
+      "titleSerif": [
+       7
       ]
      }
     }
@@ -1340,6 +1380,10 @@ const data = {
         "w": "attendre.",
         "start": 2.122
        }
+      ],
+      "title": "Certains appels ne peuvent pas attendre.",
+      "titleSerif": [
+       5
       ]
      }
     },
@@ -1527,6 +1571,10 @@ const data = {
         "w": "charge.",
         "start": 4.202
        }
+      ],
+      "title": "Les urgences, elle vous les passe. Le reste, elle le gère.",
+      "titleSerif": [
+       10
       ]
      }
     }
@@ -1584,6 +1632,10 @@ const data = {
         "w": "réponse.",
         "start": 2.841
        }
+      ],
+      "title": "La pire réceptionniste ? Celle qui invente.",
+      "titleSerif": [
+       5
       ]
      }
     },
@@ -1773,6 +1825,10 @@ const data = {
         "w": "saura.",
         "start": 4.841
        }
+      ],
+      "title": "Vous répondez une fois. Elle le saura toujours.",
+      "titleSerif": [
+       7
       ]
      }
     }
@@ -1842,6 +1898,10 @@ const data = {
         "w": "sonner.",
         "start": 2.601
        }
+      ],
+      "title": "Vous êtes avec un client. Le téléphone sonne.",
+      "titleSerif": [
+       7
       ]
      }
     },
@@ -2033,6 +2093,10 @@ const data = {
         "w": "rappeler.",
         "start": 4.841
        }
+      ],
+      "title": "Le message arrive. Pour qui, et quand rappeler.",
+      "titleSerif": [
+       7
       ]
      }
     }
@@ -2110,6 +2174,10 @@ const data = {
         "w": "fil.",
         "start": 2.68
        }
+      ],
+      "title": "Un rendez-vous annulé ne devrait pas vous coûter un appel.",
+      "titleSerif": [
+       9
       ]
      }
     },
@@ -2289,6 +2357,10 @@ const data = {
         "w": "seul.",
         "start": 4.92
        }
+      ],
+      "title": "Elle prend, déplace et annule. Votre agenda suit.",
+      "titleSerif": [
+       7
       ]
      }
     }
@@ -2365,6 +2437,10 @@ const data = {
         "w": "décrocher.",
         "start": 3.002
        }
+      ],
+      "title": "Les mains dans les cheveux, impossible de décrocher.",
+      "titleSerif": [
+       7
       ]
      }
     },
@@ -2552,6 +2628,10 @@ const data = {
         "w": "coupez.",
         "start": 2.041
        }
+      ],
+      "title": "Elle réserve pendant que vous coupez.",
+      "titleSerif": [
+       5
       ]
      }
     }
@@ -2594,6 +2674,10 @@ const data = {
         "w": "pleine…",
         "start": 1.724
        }
+      ],
+      "title": "Une messagerie pleine.",
+      "titleSerif": [
+       2
       ]
      }
     },
@@ -2644,6 +2728,10 @@ const data = {
         "w": "jamais.",
         "start": 1.247
        }
+      ],
+      "title": "Des clients qui ne rappellent jamais.",
+      "titleSerif": [
+       5
       ]
      }
     },
@@ -2683,6 +2771,10 @@ const data = {
         "w": "réponse.",
         "start": 2.121
        }
+      ],
+      "title": "Chaque appel décroché.",
+      "titleSerif": [
+       2
       ]
      }
     },
@@ -2729,6 +2821,10 @@ const data = {
         "w": "agenda.",
         "start": 2.201
        }
+      ],
+      "title": "Et chaque rendez-vous dans l’agenda.",
+      "titleSerif": [
+       4
       ]
      }
     }
@@ -2786,6 +2882,10 @@ const data = {
         "w": "parole.",
         "start": 1.8
        }
+      ],
+      "title": "Ne nous croyez pas sur parole.",
+      "titleSerif": [
+       5
       ]
      }
     },
@@ -2890,6 +2990,10 @@ const data = {
         "w": "attend.",
         "start": 1.561
        }
+      ],
+      "title": "Appelez-la vous-même. Elle vous attend.",
+      "titleSerif": [
+       4
       ]
      }
     }
@@ -2996,6 +3100,10 @@ const data = {
         "w": "else.",
         "start": 5.561
        }
+      ],
+      "title": "A missed call is a customer booking somewhere else.",
+      "titleSerif": [
+       8
       ]
      }
     },
@@ -3042,6 +3150,10 @@ const data = {
         "w": "listen.",
         "start": 3.001
        }
+      ],
+      "title": "With Qwillio, someone always picks up.",
+      "titleSerif": [
+       3
       ]
      },
      "lines": [
@@ -3202,6 +3314,10 @@ const data = {
         "w": "phone.",
         "start": 3
        }
+      ],
+      "title": "And the booking just shows up.",
+      "titleSerif": [
+       5
       ]
      }
     }
@@ -3267,6 +3383,10 @@ const data = {
         "w": "ago.",
         "start": 3.161
        }
+      ],
+      "title": "It’s three in the morning.",
+      "titleSerif": [
+       4
       ]
      }
     },
@@ -3320,6 +3440,10 @@ const data = {
         "w": "appointment.",
         "start": 2.288
        }
+      ],
+      "title": "Your practice is closed. The phone rings.",
+      "titleSerif": [
+       6
       ]
      }
     },
@@ -3472,6 +3596,10 @@ const data = {
         "w": "calendar.",
         "start": 2.841
        }
+      ],
+      "title": "You’re asleep. She isn’t.",
+      "titleSerif": [
+       3
       ]
      }
     }
@@ -3545,6 +3673,10 @@ const data = {
         "w": "English.",
         "start": 4.525
        }
+      ],
+      "title": "In Brussels, your customers don’t all speak the same language.",
+      "titleSerif": [
+       9
       ]
      }
     },
@@ -3722,6 +3854,10 @@ const data = {
         "w": "accent.",
         "start": 3.166
        }
+      ],
+      "title": "She answers in theirs. With the right accent.",
+      "titleSerif": [
+       7
       ]
      }
     }
@@ -3783,6 +3919,10 @@ const data = {
         "w": "calling?",
         "start": 2.041
        }
+      ],
+      "title": "What if your phone knew who was calling?",
+      "titleSerif": [
+       4
       ]
      }
     },
@@ -3997,6 +4137,10 @@ const data = {
         "w": "rest.",
         "start": 4.681
        }
+      ],
+      "title": "She remembers your customers. Just like you do.",
+      "titleSerif": [
+       3
       ]
      }
     }
@@ -4038,6 +4182,10 @@ const data = {
         "w": "wait.",
         "start": 1.481
        }
+      ],
+      "title": "Some calls can’t wait.",
+      "titleSerif": [
+       3
       ]
      }
     },
@@ -4217,6 +4365,10 @@ const data = {
         "w": "handles.",
         "start": 4.603
        }
+      ],
+      "title": "Emergencies go straight to you. She handles the rest.",
+      "titleSerif": [
+       8
       ]
      }
     }
@@ -4286,6 +4438,12 @@ const data = {
         "w": "answer.",
         "start": 2.922
        }
+      ],
+      "title": "The worst receptionist? The one who makes things up.",
+      "titleSerif": [
+       6,
+       7,
+       8
       ]
      }
     },
@@ -4435,6 +4593,10 @@ const data = {
         "w": "know.",
         "start": 3.721
        }
+      ],
+      "title": "Answer once. She’ll always know.",
+      "titleSerif": [
+       4
       ]
      }
     }
@@ -4492,6 +4654,10 @@ const data = {
         "w": "ringing.",
         "start": 2.121
        }
+      ],
+      "title": "You’re with a client. The phone rings.",
+      "titleSerif": [
+       6
       ]
      }
     },
@@ -4683,6 +4849,11 @@ const data = {
         "w": "back.",
         "start": 5.722
        }
+      ],
+      "title": "The message arrives. Who it’s for, and when to call back.",
+      "titleSerif": [
+       9,
+       10
       ]
      }
     }
@@ -4736,6 +4907,11 @@ const data = {
         "w": "call.",
         "start": 2.121
        }
+      ],
+      "title": "A cancellation shouldn’t cost you a phone call.",
+      "titleSerif": [
+       6,
+       7
       ]
      }
     },
@@ -4897,6 +5073,11 @@ const data = {
         "w": "itself.",
         "start": 4.121
        }
+      ],
+      "title": "She books, moves and cancels. Your calendar keeps up.",
+      "titleSerif": [
+       7,
+       8
       ]
      }
     }
@@ -4973,6 +5154,11 @@ const data = {
         "w": "up.",
         "start": 3.24
        }
+      ],
+      "title": "Hands in someone’s hair, no way to pick up.",
+      "titleSerif": [
+       7,
+       8
       ]
      }
     },
@@ -5160,6 +5346,10 @@ const data = {
         "w": "cut.",
         "start": 1.562
        }
+      ],
+      "title": "She books while you cut.",
+      "titleSerif": [
+       4
       ]
      }
     }
@@ -5206,6 +5396,10 @@ const data = {
         "w": "voicemail…",
         "start": 1.646
        }
+      ],
+      "title": "A full voicemail.",
+      "titleSerif": [
+       2
       ]
      }
     },
@@ -5252,6 +5446,11 @@ const data = {
         "w": "back.",
         "start": 1.804
        }
+      ],
+      "title": "Customers who never call back.",
+      "titleSerif": [
+       3,
+       4
       ]
      }
     },
@@ -5291,6 +5490,10 @@ const data = {
         "w": "answer.",
         "start": 1.721
        }
+      ],
+      "title": "Every call answered.",
+      "titleSerif": [
+       2
       ]
      }
     },
@@ -5339,6 +5542,10 @@ const data = {
         "w": "calendar.",
         "start": 2.201
        }
+      ],
+      "title": "And every appointment in the calendar.",
+      "titleSerif": [
+       5
       ]
      }
     }
@@ -5396,6 +5603,10 @@ const data = {
         "w": "it.",
         "start": 1.801
        }
+      ],
+      "title": "Don’t take our word for it.",
+      "titleSerif": [
+       5
       ]
      }
     },
@@ -5480,6 +5691,10 @@ const data = {
         "w": "waiting.",
         "start": 1.564
        }
+      ],
+      "title": "Call her yourself. She’s waiting.",
+      "titleSerif": [
+       4
       ]
      }
     }
@@ -5578,6 +5793,11 @@ const data = {
         "w": "anders.",
         "start": 5.729
        }
+      ],
+      "title": "Een gemiste oproep is een klant die ergens anders reserveert.",
+      "titleSerif": [
+       7,
+       8
       ]
      }
     },
@@ -5628,6 +5848,10 @@ const data = {
         "w": "maar.",
         "start": 2.84
        }
+      ],
+      "title": "Met Qwillio neemt er altijd iemand op.",
+      "titleSerif": [
+       4
       ]
      },
      "lines": [
@@ -5796,6 +6020,10 @@ const data = {
         "w": "binnen.",
         "start": 3.642
        }
+      ],
+      "title": "En de reservering komt vanzelf binnen.",
+      "titleSerif": [
+       4
       ]
      }
     }
@@ -5869,6 +6097,10 @@ const data = {
         "w": "dicht.",
         "start": 3.162
        }
+      ],
+      "title": "Het is drie uur ’s nachts.",
+      "titleSerif": [
+       4
       ]
      }
     },
@@ -5922,6 +6154,10 @@ const data = {
         "w": "maken.",
         "start": 1.881
        }
+      ],
+      "title": "Je praktijk is gesloten. De telefoon gaat.",
+      "titleSerif": [
+       6
       ]
      }
     },
@@ -6086,6 +6322,10 @@ const data = {
         "w": "gezet.",
         "start": 2.763
        }
+      ],
+      "title": "Jij slaapt. Zij niet.",
+      "titleSerif": [
+       3
       ]
      }
     }
@@ -6171,6 +6411,10 @@ const data = {
         "w": "Engels.",
         "start": 4.445
        }
+      ],
+      "title": "In Brussel spreken je klanten niet allemaal dezelfde taal.",
+      "titleSerif": [
+       8
       ]
      }
     },
@@ -6340,6 +6584,10 @@ const data = {
         "w": "accent.",
         "start": 3.004
        }
+      ],
+      "title": "Zij antwoordt in de hunne. Met het juiste accent.",
+      "titleSerif": [
+       7
       ]
      }
     }
@@ -6401,6 +6649,10 @@ const data = {
         "w": "belt?",
         "start": 1.884
        }
+      ],
+      "title": "Wat als je telefoon wist wie er belt?",
+      "titleSerif": [
+       4
       ]
      }
     },
@@ -6607,6 +6859,10 @@ const data = {
         "w": "rest.",
         "start": 3.481
        }
+      ],
+      "title": "Ze onthoudt je klanten. Net als jij.",
+      "titleSerif": [
+       5
       ]
      }
     }
@@ -6652,6 +6908,10 @@ const data = {
         "w": "wachten.",
         "start": 1.801
        }
+      ],
+      "title": "Sommige oproepen kunnen niet wachten.",
+      "titleSerif": [
+       4
       ]
      }
     },
@@ -6843,6 +7103,10 @@ const data = {
         "w": "zelf.",
         "start": 4.281
        }
+      ],
+      "title": "Noodgevallen geeft ze aan jou door. De rest regelt ze zelf.",
+      "titleSerif": [
+       10
       ]
      }
     }
@@ -6908,6 +7172,10 @@ const data = {
         "w": "verzinnen.",
         "start": 3.162
        }
+      ],
+      "title": "De slechtste receptioniste ? Die dingen verzint.",
+      "titleSerif": [
+       5
       ]
      }
     },
@@ -7085,6 +7353,10 @@ const data = {
         "w": "het.",
         "start": 4.602
        }
+      ],
+      "title": "Je antwoordt één keer. Zij weet het voorgoed.",
+      "titleSerif": [
+       7
       ]
      }
     }
@@ -7150,6 +7422,10 @@ const data = {
         "w": "rinkelen.",
         "start": 2.601
        }
+      ],
+      "title": "Je bent bij een klant. De telefoon gaat.",
+      "titleSerif": [
+       7
       ]
      }
     },
@@ -7345,6 +7621,10 @@ const data = {
         "w": "bellen.",
         "start": 5.56
        }
+      ],
+      "title": "Het bericht komt binnen. Voor wie, en wanneer terugbellen.",
+      "titleSerif": [
+       8
       ]
      }
     }
@@ -7398,6 +7678,10 @@ const data = {
         "w": "kosten.",
         "start": 2.281
        }
+      ],
+      "title": "Een annulering zou je geen telefoontje mogen kosten.",
+      "titleSerif": [
+       5
       ]
      }
     },
@@ -7567,6 +7851,10 @@ const data = {
         "w": "aan.",
         "start": 6.279
        }
+      ],
+      "title": "Ze boekt, verzet en annuleert. Je agenda volgt.",
+      "titleSerif": [
+       7
       ]
      }
     }
@@ -7643,6 +7931,10 @@ const data = {
         "w": "opnemen.",
         "start": 3.166
        }
+      ],
+      "title": "Handen in het haar, onmogelijk om op te nemen.",
+      "titleSerif": [
+       4
       ]
      }
     },
@@ -7806,6 +8098,10 @@ const data = {
         "w": "knipt.",
         "start": 1.541
        }
+      ],
+      "title": "Ze boekt terwijl jij knipt.",
+      "titleSerif": [
+       4
       ]
      }
     }
@@ -7852,6 +8148,10 @@ const data = {
         "w": "voicemail…",
         "start": 2.007
        }
+      ],
+      "title": "Een volle voicemail.",
+      "titleSerif": [
+       2
       ]
      }
     },
@@ -7894,6 +8194,11 @@ const data = {
         "w": "terugbelden.",
         "start": 1.371
        }
+      ],
+      "title": "Klanten die nooit terugbellen.",
+      "titleSerif": [
+       2,
+       3
       ]
      }
     },
@@ -7933,6 +8238,10 @@ const data = {
         "w": "antwoord.",
         "start": 1.645
        }
+      ],
+      "title": "Elke oproep beantwoord.",
+      "titleSerif": [
+       2
       ]
      }
     },
@@ -7981,6 +8290,10 @@ const data = {
         "w": "agenda.",
         "start": 2.043
        }
+      ],
+      "title": "En elke afspraak in je agenda.",
+      "titleSerif": [
+       5
       ]
      }
     }
@@ -8038,6 +8351,10 @@ const data = {
         "w": "geloven.",
         "start": 1.882
        }
+      ],
+      "title": "Geloof ons niet op ons woord.",
+      "titleSerif": [
+       5
       ]
      }
     },
@@ -8150,6 +8467,10 @@ const data = {
         "w": "je.",
         "start": 1.88
        }
+      ],
+      "title": "Bel haar zelf. Ze wacht op je.",
+      "titleSerif": [
+       5
       ]
      }
     }

@@ -44,6 +44,10 @@ const voices = {
      "w": "plutôt.",
      "start": 3.001
     }
+   ],
+   "title": "Votre réceptionniste ne fait pas que décrocher.",
+   "titleSerif": [
+    5
    ]
   },
   "v2": {
@@ -97,6 +101,10 @@ const voices = {
      "w": "suite.",
      "start": 2.681
     }
+   ],
+   "title": "Elle reconnaît vos clients.",
+   "titleSerif": [
+    3
    ]
   },
   "v3": {
@@ -174,6 +182,10 @@ const voices = {
      "w": "doigt.",
      "start": 4.92
     }
+   ],
+   "title": "Elle prend, déplace et annule vos rendez-vous.",
+   "titleSerif": [
+    6
    ]
   },
   "v4": {
@@ -223,6 +235,10 @@ const voices = {
      "w": "accent.",
      "start": 3.48
     }
+   ],
+   "title": "Elle parle français, anglais et néerlandais.",
+   "titleSerif": [
+    5
    ]
   },
   "v5": {
@@ -272,6 +288,10 @@ const voices = {
      "w": "immédiatement.",
      "start": 2.529
     }
+   ],
+   "title": "Une urgence ? Elle vous la passe.",
+   "titleSerif": [
+    5
    ]
   },
   "v6": {
@@ -341,6 +361,10 @@ const voices = {
      "w": "rappeler.",
      "start": 4.761
     }
+   ],
+   "title": "Elle note chaque message.",
+   "titleSerif": [
+    3
    ]
   },
   "v7": {
@@ -406,6 +430,10 @@ const voices = {
      "w": "souvient.",
      "start": 3.8
     }
+   ],
+   "title": "Ce qu’elle ne sait pas, elle l’apprend.",
+   "titleSerif": [
+    5
    ]
   },
   "v9": {
@@ -447,6 +475,10 @@ const voices = {
      "w": "voix.",
      "start": 1.88
     }
+   ],
+   "title": "Elle peut même parler avec votre voix.",
+   "titleSerif": [
+    6
    ]
   },
   "v10": {
@@ -737,4 +769,4 @@ const voices = {
   }
  }
 };
-export default voices as { lines: Record<string, { file: string; duration: number; serif: number[]; words: { w: string; start: number }[] }>; clips: Record<string, { file: string; duration: number; lang: string; words: { w: string; start: number; end: number }[] }> };
+export default voices as { lines: Record<string, { file: string; duration: number; serif: number[]; words: { w: string; start: number }[]; title?: string; titleSerif?: number[] }>; clips: Record<string, { file: string; duration: number; lang: string; words: { w: string; start: number; end: number }[] }> };

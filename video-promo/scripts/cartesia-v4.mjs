@@ -11,14 +11,14 @@ const SARAH = '90358bc7-3328-4b93-a942-d0447d7d4b5c';
 // `say` est lu, `show` affiché. Chaque phrase annonce une fonction réelle du
 // produit (voir le README) : rien qui ne soit dans le code.
 export const LINES = [
-  { id: 'v1', emotion: 'confident', say: 'Votre réceptionniste ne fait pas que décrocher. Regardez plutôt.', serif: [8] },
-  { id: 'v2', emotion: 'happy', say: 'Quand un client fidèle appelle, elle le reconnaît tout de suite.', serif: [10] },
-  { id: 'v3', emotion: 'excited', say: 'Elle prend vos rendez-vous, les déplace, les annule, sans que vous ayez à lever le petit doigt.', serif: [16] },
-  { id: 'v4', emotion: 'enthusiastic', say: 'Elle parle français, anglais et néerlandais, chacun avec son accent.', serif: [9] },
-  { id: 'v5', emotion: 'serious', say: 'Et quand c’est vraiment urgent, elle vous passe l’appel immédiatement.', serif: [9] },
-  { id: 'v6', emotion: 'calm', say: 'Chaque message est noté, avec le nom, le numéro, et le bon moment pour rappeler.', serif: [14] },
-  { id: 'v7', emotion: 'curious', say: 'Ce qu’elle ne sait pas, elle vous le demande. Et ensuite, elle s’en souvient.', serif: [13] },
-  { id: 'v9', emotion: 'excited', say: 'Elle peut même parler avec votre propre voix.', serif: [7] },
+  { id: 'v1', emotion: 'confident', say: 'Votre réceptionniste ne fait pas que décrocher. Regardez plutôt.', serif: [8] , title: 'Votre réceptionniste ne fait pas que décrocher.', titleSerif: [5] },
+  { id: 'v2', emotion: 'happy', say: 'Quand un client fidèle appelle, elle le reconnaît tout de suite.', serif: [10] , title: 'Elle reconnaît vos clients.', titleSerif: [3] },
+  { id: 'v3', emotion: 'excited', say: 'Elle prend vos rendez-vous, les déplace, les annule, sans que vous ayez à lever le petit doigt.', serif: [16] , title: 'Elle prend, déplace et annule vos rendez-vous.', titleSerif: [6] },
+  { id: 'v4', emotion: 'enthusiastic', say: 'Elle parle français, anglais et néerlandais, chacun avec son accent.', serif: [9] , title: 'Elle parle français, anglais et néerlandais.', titleSerif: [5] },
+  { id: 'v5', emotion: 'serious', say: 'Et quand c’est vraiment urgent, elle vous passe l’appel immédiatement.', serif: [9] , title: 'Une urgence\u00a0? Elle vous la passe.', titleSerif: [5] },
+  { id: 'v6', emotion: 'calm', say: 'Chaque message est noté, avec le nom, le numéro, et le bon moment pour rappeler.', serif: [14] , title: 'Elle note chaque message.', titleSerif: [3] },
+  { id: 'v7', emotion: 'curious', say: 'Ce qu’elle ne sait pas, elle vous le demande. Et ensuite, elle s’en souvient.', serif: [13] , title: 'Ce qu’elle ne sait pas, elle l’apprend.', titleSerif: [5] },
+  { id: 'v9', emotion: 'excited', say: 'Elle peut même parler avec votre propre voix.', serif: [7] , title: 'Elle peut même parler avec votre voix.', titleSerif: [6] },
   { id: 'v10', emotion: 'confident', say: 'Et derrière, les meilleurs modèles de voix et de compréhension, en temps réel.', serif: [11, 12] },
   { id: 'v8', emotion: 'affectionate', say: 'Qwillio. Elle décroche quand vous ne pouvez pas.', show: 'Elle décroche quand vous ne pouvez pas.', serif: [4, 5, 6] },
 ];
@@ -40,13 +40,15 @@ const prev = fs.existsSync('src/pub4/voices.ts')
   ? JSON.parse(fs.readFileSync('src/pub4/voices.ts', 'utf8').replace(/^[\s\S]*?const voices = /, '').replace(/;\nexport default[\s\S]*$/, ''))
   : { lines: {}, clips: {} };
 const out = { lines: {}, clips: {} };
+// La voix dit une vraie phrase, l'écran garde le titre court (`title`).
+const withTitle = (e, l) => (l.title ? { ...e, title: l.title, titleSerif: l.titleSerif ?? [] } : e);
 for (const l of LINES) {
-  if (ONLY && !ONLY.includes(l.id) && prev.lines[l.id]) { out.lines[l.id] = prev.lines[l.id]; continue; }
+  if (ONLY && !ONLY.includes(l.id) && prev.lines[l.id]) { out.lines[l.id] = withTitle(prev.lines[l.id], l); continue; }
   const s = await speak(SARAH, l.say, l.emotion, `public/voices/v4-${l.id}`);
   const shown = (l.show ?? l.say).split(' ');
   const lead = s.words.slice(Math.max(0, s.words.length - shown.length));
   const words = shown.map((w, i) => ({ w, start: +(lead.length === shown.length ? lead[i] : lead[Math.floor((i / shown.length) * lead.length)]).start.toFixed(3) }));
-  out.lines[l.id] = { file: `voices/v4-${l.id}.mp3`, duration: +s.duration.toFixed(3), serif: l.serif, words };
+  out.lines[l.id] = withTitle({ file: `voices/v4-${l.id}.mp3`, duration: +s.duration.toFixed(3), serif: l.serif, words }, l);
   console.log(l.id, s.duration.toFixed(2) + 's', l.say);
 }
 for (const c of CLIPS) {
@@ -55,4 +57,4 @@ for (const c of CLIPS) {
   out.clips[c.id] = { file: `voices/v4-${c.id}.mp3`, duration: +s.duration.toFixed(3), lang: c.lang, words: s.words.map((w) => ({ w: w.w, start: +w.start.toFixed(3), end: +w.end.toFixed(3) })) };
   console.log(c.id, s.duration.toFixed(2) + 's', c.say);
 }
-fs.writeFileSync('src/pub4/voices.ts', `// Généré par scripts/cartesia-v4.mjs, ne pas éditer.\nconst voices = ${JSON.stringify(out, null, 1)};\nexport default voices as { lines: Record<string, { file: string; duration: number; serif: number[]; words: { w: string; start: number }[] }>; clips: Record<string, { file: string; duration: number; lang: string; words: { w: string; start: number; end: number }[] }> };\n`);
+fs.writeFileSync('src/pub4/voices.ts', `// Généré par scripts/cartesia-v4.mjs, ne pas éditer.\nconst voices = ${JSON.stringify(out, null, 1)};\nexport default voices as { lines: Record<string, { file: string; duration: number; serif: number[]; words: { w: string; start: number }[]; title?: string; titleSerif?: number[] }>; clips: Record<string, { file: string; duration: number; lang: string; words: { w: string; start: number; end: number }[] }> };\n`);

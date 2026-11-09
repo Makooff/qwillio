@@ -1,5 +1,5 @@
 export type Word = { w: string; start: number };
-export type Narr = { file: string; duration: number; serif: number[]; words: Word[] };
+export type Narr = { file: string; duration: number; serif: number[]; words: Word[]; title?: string; titleSerif?: number[] };
 export type Line = { who: 'agent' | 'caller'; tag?: string; file: string; duration: number; words: Word[] };
 export type Visual =
   | { kind: 'type'; tag?: string }

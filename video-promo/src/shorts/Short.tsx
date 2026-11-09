@@ -19,7 +19,7 @@ import { MacBookBookings } from '../pub2/mac';
 import { Canvas, Phone, buzzAngle, reveal, spring } from '../pub3/Pub3';
 import { IncomingCall, LockScreen, Notification } from '../pub3/ios';
 import { ShaderOrb } from '../pub3/ShaderOrb';
-import { Sfx, phraseChunks, wordIn } from '../fx';
+import { Sfx, phraseChunks, titleTimes, wordIn } from '../fx';
 import { SiteFrame } from '../pub4/illustrations';
 import { Check, MessageSquare, Send } from '../../../frontend/src/components/icons';
 import data from './data';
@@ -110,6 +110,7 @@ export const shortName = (id: string, f: Format) => `Short-${id}-${data.shorts[i
 
 function Said({ line, t, size = 80, y = 300 }: { line: TNarr; t: number; size?: number; y?: number }) {
   if (!between(t, line.at - 0.05, line.out + 0.05)) return null;
+  if (line.title) return <Title line={line} t={t} size={size} y={y} />;
   // Le morceau de phrase en cours : il reste jusqu'au début du suivant.
   const groups = phraseChunks(line.words);
   const startOf = (g: number[]) => line.at + line.words[g[0]].start - 0.06;
@@ -124,6 +125,19 @@ function Said({ line, t, size = 80, y = 300 }: { line: TNarr; t: number; size?: 
         const w = line.words[i];
         const inS = wordIn(t, line.at + w.start - 0.04);
         return <span key={i} style={{ display: 'inline-block', marginRight: '0.24em', ...inS, opacity: Number(inS.opacity) * (1 - outK), filter: `blur(${(1 - Math.min(1, Number(inS.opacity))) * 14 + outK * 12}px)`, ...(line.serif.includes(i) ? serif : {}) }}>{w.w}</span>;
+      })}
+    </div>
+  );
+}
+
+function Title({ line, t, size, y }: { line: TNarr; t: number; size: number; y: number }) {
+  const ws = titleTimes(line.title!, line.words, line.duration);
+  const outK = p(t, line.out - 0.25, 0.25, EASE_OUT);
+  return (
+    <div style={{ position: 'absolute', left: 70, right: 70, top: y, transform: 'translateY(-50%)', textAlign: 'center', fontSize: size, fontWeight: 300, letterSpacing: '-0.03em', lineHeight: 1.08, color: INK, ...ff }}>
+      {ws.map((w, i) => {
+        const inS = wordIn(t, line.at + w.start - 0.04);
+        return <span key={i} style={{ display: 'inline-block', marginRight: '0.24em', ...inS, opacity: Number(inS.opacity) * (1 - outK), filter: `blur(${(1 - Math.min(1, Number(inS.opacity))) * 14 + outK * 12}px)`, ...((line.titleSerif ?? []).includes(i) ? serif : {}) }}>{w.w}</span>;
       })}
     </div>
   );
@@ -394,7 +408,7 @@ export const Short: React.FC<{ id: string; format: Format }> = ({ id, format }) 
       <Sequence from={at(T.end.jingle)} layout="none"><Audio src={staticFile('jingle.mp3')} volume={0.9} /></Sequence>
       {narr.map((l) => <Sequence key={`n${l.file}`} from={at(l.at)} layout="none"><Audio src={staticFile(l.file)} /></Sequence>)}
       {lines.map((l) => <Sequence key={`l${l.file}`} from={at(l.at)} layout="none"><Audio src={staticFile(l.file)} /></Sequence>)}
-      {narr.flatMap((l) => l.words.map((w, i) => <Sfx key={`w${l.file}-${i}`} at={l.at + w.start - 0.04} name="type" gain={0.3} />))}
+      {narr.flatMap((l) => (l.title ? titleTimes(l.title, l.words, l.duration) : l.words).map((w, i) => <Sfx key={`w${l.file}-${i}`} at={l.at + w.start - 0.04} name="type" gain={0.3} />))}
       {T.scenes.flatMap((s, i) => {
         const v = s.visual;
         const out: React.ReactNode[] = [];
