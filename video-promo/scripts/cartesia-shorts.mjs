@@ -359,7 +359,12 @@ function estimate(text, mp3) {
   return { duration: dur, words };
 }
 
-async function narr(lang, name, l) {
+/** Une prise existante se garde si son texte n'a pas bougé et que son
+ * minutage est réel (pas estimé) : on ne repaie pas Cartesia pour rien. */
+const same = (entry, text) => entry && !entry.estimated && entry.words.map((w) => w.w).join(' ').replace(/\s+/g, ' ') === text.replace(/\s+/g, ' ');
+
+async function narr(lang, name, l, old) {
+  if (!RECOVER && same(old, l.show ?? l.text) && fs.existsSync(`public/${old.file}`)) return old;
   if (RECOVER) {
     const mp3 = `${DIR}/${name}.mp3`;
     if (!fresh(mp3)) return null; // pas refait : l'appelant garde l'entrée d'avant
@@ -372,6 +377,12 @@ async function narr(lang, name, l) {
 }
 
 const out = { end: {}, shorts: {} };
+function save() {
+  const all = { end: { ...prev.end, ...out.end }, shorts: { ...prev.shorts, ...out.shorts } };
+  for (const k of Object.keys(all.shorts)) all.shorts[k].lang ??= k.slice(0, 2);
+  fs.mkdirSync('src/shorts', { recursive: true });
+  fs.writeFileSync(PREV, `// Généré par scripts/cartesia-shorts.mjs, ne pas éditer.\nconst data = ${JSON.stringify(all, null, 1)};\nexport default data as unknown as import('./types').ShortsData;\n`);
+}
 for (const lang of Object.keys(SCRIPTS)) {
   const endName = lang === 'fr' ? 'end' : `${lang}-end`;
   out.end[lang] = prev.end?.[lang] && !(ONLY && ONLY.includes(`${lang}-end`)) ? prev.end[lang] : await narr(lang, endName, END[lang]);
@@ -383,7 +394,7 @@ for (const lang of Object.keys(SCRIPTS)) {
     const scenes = [];
     for (const [i, sc] of sh.scenes.entries()) {
       const s = { visual: sc.visual };
-      if (sc.say) s.say = (await narr(lang, `${pre}-n${i}`, sc.say)) ?? prev.shorts[key]?.scenes?.[i]?.say;
+      if (sc.say) s.say = (await narr(lang, `${pre}-n${i}`, sc.say, prev.shorts[key]?.scenes?.[i]?.say)) ?? prev.shorts[key]?.scenes?.[i]?.say;
       if (sc.lines) {
         s.lines = [];
         for (const [j, l] of sc.lines.entries()) {
@@ -397,6 +408,8 @@ for (const lang of Object.keys(SCRIPTS)) {
             s.lines.push({ who: l.who, tag: l.tag, file: file.replace(/^public\//, ''), duration: +e.duration.toFixed(3), words: e.words, estimated: true });
             continue;
           }
+          const was = prev.shorts[key]?.scenes?.[i]?.lines?.[j];
+          if (same(was, l.say) && fs.existsSync(`public/${was.file}`)) { s.lines.push(was); continue; }
           const r = await speak(voice, l.say, l.emotion, base, l.lang ?? lang);
           const file = l.who === 'caller' ? phoneLine(`${base}.mp3`) : `${base}.mp3`;
           s.lines.push({ who: l.who, tag: l.tag, file: file.replace(/^public\//, ''), duration: +r.duration.toFixed(3), words: r.words.map((w) => ({ w: w.w, start: +w.start.toFixed(3) })) });
@@ -406,8 +419,7 @@ for (const lang of Object.keys(SCRIPTS)) {
     }
     out.shorts[key] = { lang, slug: sh.slug, music: sh.music, scenes };
     console.log(key, sh.slug, 'ok');
+    save(); // à chaque vidéo : si Cartesia refuse au milieu, le minutage déjà payé reste
   }
 }
-for (const k of Object.keys(out.shorts)) out.shorts[k].lang ??= k.slice(0, 2);
-fs.mkdirSync('src/shorts', { recursive: true });
-fs.writeFileSync(PREV, `// Généré par scripts/cartesia-shorts.mjs, ne pas éditer.\nconst data = ${JSON.stringify(out, null, 1)};\nexport default data as unknown as import('./types').ShortsData;\n`);
+save();

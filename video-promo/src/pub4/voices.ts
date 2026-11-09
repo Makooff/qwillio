@@ -3,113 +3,189 @@ const voices = {
  "lines": {
   "v1": {
    "file": "voices/v4-v1.mp3",
-   "duration": 2.48,
+   "duration": 3.36,
    "serif": [
-    5
+    8
    ],
    "words": [
     {
      "w": "Votre",
-     "start": 0.119
+     "start": 0.116
     },
     {
      "w": "réceptionniste",
-     "start": 0.446
+     "start": 0.368
     },
     {
      "w": "ne",
-     "start": 1.244
+     "start": 1.237
     },
     {
      "w": "fait",
-     "start": 1.48
+     "start": 1.32
     },
     {
      "w": "pas",
-     "start": 1.482
+     "start": 1.481
     },
     {
      "w": "que",
-     "start": 1.8
+     "start": 1.562
     },
     {
      "w": "décrocher.",
      "start": 1.802
+    },
+    {
+     "w": "Regardez",
+     "start": 2.652
+    },
+    {
+     "w": "plutôt.",
+     "start": 3.001
     }
    ]
   },
   "v2": {
    "file": "voices/v4-v2.mp3",
-   "duration": 1.2,
+   "duration": 3.12,
    "serif": [
-    3
+    10
    ],
    "words": [
     {
-     "w": "Elle",
-     "start": 0.112
+     "w": "Quand",
+     "start": 0.118
+    },
+    {
+     "w": "un",
+     "start": 0.44
+    },
+    {
+     "w": "client",
+     "start": 0.52
+    },
+    {
+     "w": "fidèle",
+     "start": 0.682
+    },
+    {
+     "w": "appelle,",
+     "start": 1.082
+    },
+    {
+     "w": "elle",
+     "start": 1.782
+    },
+    {
+     "w": "le",
+     "start": 1.96
     },
     {
      "w": "reconnaît",
-     "start": 0.36
+     "start": 1.961
     },
     {
-     "w": "vos",
-     "start": 0.68
+     "w": "tout",
+     "start": 2.443
     },
     {
-     "w": "clients.",
-     "start": 0.761
+     "w": "de",
+     "start": 2.52
+    },
+    {
+     "w": "suite.",
+     "start": 2.681
     }
    ]
   },
   "v3": {
    "file": "voices/v4-v3.mp3",
-   "duration": 2.72,
+   "duration": 5.2,
    "serif": [
-    6
+    16
    ],
    "words": [
     {
      "w": "Elle",
-     "start": 0.113
+     "start": 0.128
     },
     {
-     "w": "prend,",
+     "w": "prend",
      "start": 0.36
     },
     {
-     "w": "déplace",
-     "start": 0.866
-    },
-    {
-     "w": "et",
-     "start": 1.717
-    },
-    {
-     "w": "annule",
-     "start": 1.96
-    },
-    {
      "w": "vos",
-     "start": 2.2
+     "start": 0.6
     },
     {
-     "w": "rendez-vous.",
-     "start": 2.281
+     "w": "rendez-vous,",
+     "start": 0.683
+    },
+    {
+     "w": "les",
+     "start": 1.542
+    },
+    {
+     "w": "déplace,",
+     "start": 1.644
+    },
+    {
+     "w": "les",
+     "start": 2.58
+    },
+    {
+     "w": "annule,",
+     "start": 2.761
+    },
+    {
+     "w": "sans",
+     "start": 3.57
+    },
+    {
+     "w": "que",
+     "start": 3.72
+    },
+    {
+     "w": "vous",
+     "start": 3.96
+    },
+    {
+     "w": "ayez",
+     "start": 4.12
+    },
+    {
+     "w": "à",
+     "start": 4.28
+    },
+    {
+     "w": "lever",
+     "start": 4.28
+    },
+    {
+     "w": "le",
+     "start": 4.52
+    },
+    {
+     "w": "petit",
+     "start": 4.681
+    },
+    {
+     "w": "doigt.",
+     "start": 4.92
     }
    ]
   },
   "v4": {
    "file": "voices/v4-v4.mp3",
-   "duration": 2.64,
+   "duration": 3.84,
    "serif": [
-    5
+    9
    ],
    "words": [
     {
      "w": "Elle",
-     "start": 0.117
+     "start": 0.114
     },
     {
      "w": "parle",
@@ -121,90 +197,162 @@ const voices = {
     },
     {
      "w": "anglais",
-     "start": 1.351
+     "start": 1.279
     },
     {
      "w": "et",
-     "start": 1.906
+     "start": 1.834
     },
     {
-     "w": "néerlandais.",
-     "start": 2.041
+     "w": "néerlandais,",
+     "start": 1.882
+    },
+    {
+     "w": "chacun",
+     "start": 2.73
+    },
+    {
+     "w": "avec",
+     "start": 3.001
+    },
+    {
+     "w": "son",
+     "start": 3.32
+    },
+    {
+     "w": "accent.",
+     "start": 3.48
     }
    ]
   },
   "v5": {
    "file": "voices/v4-v5.mp3",
-   "duration": 2.16,
+   "duration": 3.28,
    "serif": [
-    5
+    9
    ],
    "words": [
     {
-     "w": "Une",
-     "start": 0.103
+     "w": "Et",
+     "start": 0.117
     },
     {
-     "w": "urgence",
-     "start": 0.361
+     "w": "quand",
+     "start": 0.36
     },
     {
-     "w": "?",
-     "start": 0.561
+     "w": "c’est",
+     "start": 0.52
     },
     {
-     "w": "Elle",
-     "start": 1.12
+     "w": "vraiment",
+     "start": 0.522
+    },
+    {
+     "w": "urgent,",
+     "start": 1.081
+    },
+    {
+     "w": "elle",
+     "start": 1.547
     },
     {
      "w": "vous",
-     "start": 1.48
+     "start": 1.8
     },
     {
-     "w": "la",
-     "start": 1.48
+     "w": "passe",
+     "start": 1.88
     },
     {
-     "w": "passe.",
-     "start": 1.641
+     "w": "l’appel",
+     "start": 2.041
+    },
+    {
+     "w": "immédiatement.",
+     "start": 2.529
     }
    ]
   },
   "v6": {
    "file": "voices/v4-v6.mp3",
-   "duration": 1.44,
+   "duration": 5.12,
    "serif": [
-    3
+    14
    ],
    "words": [
     {
-     "w": "Elle",
-     "start": 0.112
+     "w": "Chaque",
+     "start": 0.118
     },
     {
-     "w": "note",
-     "start": 0.36
+     "w": "message",
+     "start": 0.441
     },
     {
-     "w": "chaque",
-     "start": 0.529
+     "w": "est",
+     "start": 0.92
     },
     {
-     "w": "message.",
-     "start": 0.921
+     "w": "noté,",
+     "start": 1
+    },
+    {
+     "w": "avec",
+     "start": 1.491
+    },
+    {
+     "w": "le",
+     "start": 1.96
+    },
+    {
+     "w": "nom,",
+     "start": 1.961
+    },
+    {
+     "w": "le",
+     "start": 2.636
+    },
+    {
+     "w": "numéro,",
+     "start": 2.761
+    },
+    {
+     "w": "et",
+     "start": 3.812
+    },
+    {
+     "w": "le",
+     "start": 3.88
+    },
+    {
+     "w": "bon",
+     "start": 4.04
+    },
+    {
+     "w": "moment",
+     "start": 4.28
+    },
+    {
+     "w": "pour",
+     "start": 4.52
+    },
+    {
+     "w": "rappeler.",
+     "start": 4.761
     }
    ]
   },
   "v7": {
    "file": "voices/v4-v7.mp3",
-   "duration": 1.92,
+   "duration": 4.08,
    "serif": [
-    5
+    13
    ],
    "words": [
     {
      "w": "Ce",
-     "start": 0.107
+     "start": 0.076
     },
     {
      "w": "qu’elle",
@@ -212,7 +360,7 @@ const voices = {
     },
     {
      "w": "ne",
-     "start": 0.44
+     "start": 0.52
     },
     {
      "w": "sait",
@@ -220,32 +368,60 @@ const voices = {
     },
     {
      "w": "pas,",
-     "start": 0.601
+     "start": 0.681
     },
     {
      "w": "elle",
-     "start": 1.292
+     "start": 1.343
     },
     {
-     "w": "l’apprend.",
-     "start": 1.401
+     "w": "vous",
+     "start": 1.48
+    },
+    {
+     "w": "le",
+     "start": 1.48
+    },
+    {
+     "w": "demande.",
+     "start": 1.642
+    },
+    {
+     "w": "Et",
+     "start": 2.536
+    },
+    {
+     "w": "ensuite,",
+     "start": 2.841
+    },
+    {
+     "w": "elle",
+     "start": 3.402
+    },
+    {
+     "w": "s’en",
+     "start": 3.64
+    },
+    {
+     "w": "souvient.",
+     "start": 3.8
     }
    ]
   },
   "v9": {
    "file": "voices/v4-v9.mp3",
-   "duration": 1.68,
+   "duration": 2.16,
    "serif": [
-    6
+    7
    ],
    "words": [
     {
      "w": "Elle",
-     "start": 0.112
+     "start": 0.114
     },
     {
      "w": "peut",
-     "start": 0.28
+     "start": 0.36
     },
     {
      "w": "même",
@@ -253,19 +429,23 @@ const voices = {
     },
     {
      "w": "parler",
-     "start": 0.521
+     "start": 0.6
     },
     {
      "w": "avec",
-     "start": 0.92
+     "start": 1
     },
     {
      "w": "votre",
-     "start": 1.08
+     "start": 1.161
+    },
+    {
+     "w": "propre",
+     "start": 1.482
     },
     {
      "w": "voix.",
-     "start": 1.241
+     "start": 1.88
     }
    ]
   },
