@@ -7,15 +7,34 @@ droit à payer, aucun risque de blocage pour droits d'auteur.
 
 ## Quel fichier pour quel réseau
 
-| Réseau | Où | Format | Dossier |
-|---|---|---|---|
-| TikTok | vidéo | 9:16 | `fr/9x16`, `nl/9x16`, `en/9x16` + la couverture `-cover.jpg` |
-| Instagram | Reel | 9:16 | `*/9x16` + la couverture |
-| Instagram | publication dans le fil, carrousel | 4:5 | `*/4x5` |
-| Facebook | Reel | 9:16 | `*/9x16` |
-| Facebook | publication de page | 4:5 | `*/4x5` |
-| LinkedIn | publication | 4:5 | `*/4x5` (en 9:16, LinkedIn recadre la vidéo sur ordinateur) |
-| YouTube | Shorts | 9:16 | `*/9x16` |
+Tout est déjà au bon format : rien à recadrer.
+
+### Vidéos (`<langue>/<format>/sXX-slug.mp4`)
+
+| Réseau | Emplacement | Format | Taille | Fichier |
+|---|---|---|---|---|
+| TikTok | vidéo | 9:16 | 1080 × 1920 | `*/9x16/*.mp4` + couverture `-cover.jpg` |
+| Instagram | Reel | 9:16 | 1080 × 1920 | `*/9x16/*.mp4` + couverture |
+| Instagram | Story | 9:16 | 1080 × 1920 | `*/9x16/*.mp4` |
+| Instagram | publication dans le fil | 4:5 | 1080 × 1350 | `*/4x5/*.mp4` |
+| Facebook | Reel, Story | 9:16 | 1080 × 1920 | `*/9x16/*.mp4` |
+| Facebook | publication de page | 4:5 | 1080 × 1350 | `*/4x5/*.mp4` |
+| LinkedIn | publication | 4:5 | 1080 × 1350 | `*/4x5/*.mp4` (le 9:16 est recadré sur ordinateur) |
+| YouTube | Shorts | 9:16 | 1080 × 1920 | `*/9x16/*.mp4` |
+
+### Posts photo (`posts/<langue>/<format>/post-NN.png`)
+
+| Réseau | Emplacement | Format | Taille | Dossier |
+|---|---|---|---|---|
+| Instagram | fil, carrousel | 4:5 | 1080 × 1350 | `posts/*/4x5` |
+| Instagram, Facebook | Story | 9:16 | 1080 × 1920 | `posts/*/9x16` (haut et bas laissés libres pour l'interface) |
+| Facebook | publication de page | 4:5 | 1080 × 1350 | `posts/*/4x5` |
+| LinkedIn | publication, carrousel | 4:5 ou 1:1 | 1080 × 1350 / 1080 × 1080 | `posts/*/4x5`, `posts/*/1x1` |
+| X, Google Business | publication | 1:1 | 1080 × 1080 | `posts/*/1x1` |
+
+Six posts par langue : 01 · 24 h/24, 02 · trois langues, 03 · la réservation,
+04 · elle n'invente rien, 05 · le message, 06 · les urgences. Les six se
+publient aussi ensemble, en carrousel, sur Instagram et LinkedIn.
 
 Le 4:5 n'est pas un recadrage du 9:16 : le même dessin est recomposé pour le
 format, avec des textes à leur taille, lisibles dans un fil.
@@ -75,28 +94,55 @@ sur LinkedIn et Facebook, garder le son d'origine.
 
 ## Les bios
 
+Une par réseau, chacune sous la limite de caractères du réseau. Le néerlandais
+vouvoie (« u »), comme les vidéos et les posts.
+
 **Instagram** (150 caractères au plus)
-- FR : Qwillio · réceptionniste IA 📞 Elle décroche quand vous ne pouvez pas. Français, néerlandais, anglais, 24 h/24. Appelez-la ⬇️
-- NL : Qwillio · AI-receptioniste 📞 Zij neemt op als jij het niet kan. Nederlands, Frans, Engels, 24/7. Bel haar ⬇️
-- EN : Qwillio · AI receptionist 📞 She picks up when you can't. French, Dutch, English, 24/7. Call her ⬇️
+- FR : Qwillio · réceptionniste IA 📞 Elle décroche quand vous ne pouvez pas. Français, néerlandais, anglais, 24 h/24. Essayez-la ⬇️
+- NL : Qwillio · AI-receptioniste 📞 Zij neemt op als u het niet kan. Nederlands, Frans, Engels, 24/7. Probeer haar ⬇️
+- EN : Qwillio · AI receptionist 📞 She picks up when you can't. French, Dutch, English, 24/7. Try her ⬇️
 
 **TikTok** (80 caractères au plus)
 - FR : Réceptionniste IA qui décroche quand vous ne pouvez pas 📞
-- NL : De AI-receptioniste die opneemt als jij het niet kan 📞
+- NL : De AI-receptioniste die opneemt als u het niet kan 📞
 - EN : The AI receptionist that picks up when you can't 📞
+
+**Facebook, bio courte de la page** (101 caractères au plus)
+- FR : La réceptionniste IA qui décroche à votre place, 24 h/24, en français, néerlandais et anglais.
+- NL : De AI-receptioniste die voor u opneemt, 24/7, in het Nederlands, Frans en Engels.
+- EN : The AI receptionist that answers for you, 24/7, in French, Dutch and English.
 
 **LinkedIn, slogan de la page** (120 caractères au plus)
 - FR : La réceptionniste IA des commerces et cabinets : chaque appel décroché, chaque rendez-vous dans l'agenda.
 - NL : De AI-receptioniste voor zaken en praktijken: elke oproep beantwoord, elke afspraak in de agenda.
 - EN : The AI receptionist for local businesses: every call answered, every appointment in the calendar.
 
+**YouTube, description de la chaîne**
+- FR : Qwillio, la réceptionniste IA des commerces et des cabinets. Des vidéos courtes pour voir ce qu'elle fait quand vous ne pouvez pas décrocher : rendez-vous, messages, urgences, en trois langues. Essayez-la sur qwillio.com.
+- NL : Qwillio, de AI-receptioniste voor zaken en praktijken. Korte video's over wat ze doet als u niet kan opnemen: afspraken, berichten, dringende oproepen, in drie talen. Probeer haar op qwillio.com.
+- EN : Qwillio, the AI receptionist for local businesses and practices. Short videos showing what she does when you can't pick up: appointments, messages, emergencies, in three languages. Try her at qwillio.com.
+
 **LinkedIn « À propos » et Facebook « Intro »**
 - FR : Qwillio est une réceptionniste IA pour les commerces, cabinets et artisans. Elle décroche à toute heure, en français, néerlandais ou anglais, reconnaît vos clients, prend, déplace et annule les rendez-vous dans votre agenda, vous passe les urgences et note chaque message. Ce qu'elle ne sait pas, elle ne l'invente pas : elle vous le demande, et s'en souvient. Essayez-la sur qwillio.com.
-- NL : Qwillio is een AI-receptioniste voor zaken, praktijken en vakmensen. Ze neemt op elk uur op, in het Nederlands, Frans of Engels, herkent je klanten, boekt, verzet en annuleert afspraken in je agenda, verbindt dringende oproepen door en noteert elk bericht. Wat ze niet weet, verzint ze niet: ze vraagt het jou, en onthoudt het. Probeer haar op qwillio.com.
+- NL : Qwillio is een AI-receptioniste voor zaken, praktijken en vakmensen. Ze neemt op elk uur op, in het Nederlands, Frans of Engels, herkent uw klanten, boekt, verzet en annuleert afspraken in uw agenda, verbindt dringende oproepen door en noteert elk bericht. Wat ze niet weet, verzint ze niet: ze vraagt het u, en onthoudt het. Probeer haar op qwillio.com.
 - EN : Qwillio is an AI receptionist for local businesses, practices and trades. She answers at any hour, in French, Dutch or English, recognises your customers, books, moves and cancels appointments in your calendar, puts emergencies through to you and takes every message. What she doesn't know, she doesn't make up: she asks you, and remembers. Try her at qwillio.com.
 
 **Lien de la bio** : qwillio.com (la page d'accueil permet d'appeler la réceptionniste
 depuis le navigateur).
+
+## Les textes des posts photo
+
+Un texte par post, à coller sous l'image. Mêmes hashtags sur Instagram ; sur
+LinkedIn et Facebook, trois au plus.
+
+| # | FR | NL | EN |
+|---|---|---|---|
+| 01 | Un appel manqué, c'est un client qui appelle ailleurs. Qwillio décroche à toute heure, même quand vous avez les mains prises. #receptionniste #ia #commercelocal | Een gemiste oproep is een klant die elders belt. Qwillio neemt op elk uur op, ook als u de handen vol hebt. #receptioniste #ai #lokaleondernemer | A missed call is a customer calling someone else. Qwillio picks up at any hour, even when your hands are full. #receptionist #ai #smallbusiness |
+| 02 | Français, néerlandais, anglais : chaque appelant entend une voix native, avec le bon accent. Pensé pour Bruxelles. #bruxelles #belgique #multilingue | Nederlands, Frans, Engels: elke beller hoort een native stem, met het juiste accent. Gemaakt voor Brussel. #brussel #belgie #meertalig | French, Dutch, English: every caller hears a native voice, with the right accent. Built for Brussels. #brussels #belgium #multilingual |
+| 03 | 20 h 30, nouvelle réservation. Vous étiez en service, elle était au téléphone. #restaurant #reservation #ia | 20.30 u, nieuwe reservering. U stond in de keuken, zij aan de telefoon. #restaurant #reservering #ai | 8:30 p.m., new booking. You were on shift, she was on the phone. #restaurant #booking #ai |
+| 04 | Elle ne sait pas ? Elle ne l'invente pas. Elle vous pose la question, et s'en souvient pour tous les appels suivants. #confiance #serviceclient #ia | Weet ze het niet? Dan verzint ze het niet. Ze vraagt het u, en onthoudt het voor elke volgende oproep. #vertrouwen #klantenservice #ai | Doesn't know? She won't make it up. She asks you, and remembers it for every call after. #trust #customerservice #ai |
+| 05 | « Pour Marc, rappeler après 17 h. » Chaque message noté, envoyé par SMS à la bonne personne. #organisation #pme #receptionniste | „Voor Marc, terugbellen na 17 u.” Elk bericht genoteerd, per sms naar de juiste persoon. #organisatie #kmo #receptioniste | "For Marc, call back after 5 p.m." Every message taken, sent by text to the right person. #organisation #smallbusiness #receptionist |
+| 06 | Une fuite d'eau ne peut pas attendre. Elle vous passe l'appel tout de suite, et gère le reste. #artisan #urgence #plombier | Een waterlek kan niet wachten. Ze verbindt u meteen door, en regelt de rest. #vakman #dringend #loodgieter | A burst pipe can't wait. She puts the call straight through, and handles the rest. #trades #emergency #plumber |
 
 ---
 

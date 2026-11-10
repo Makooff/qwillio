@@ -221,36 +221,62 @@ export const POSTS: Record<Lang, PostData[]> = {
     { stat: 'Pour Marc', small: 'Nouveau message · rappeler après 17 h', l1: 'Chaque message noté.', l2: 'Pour qui, et quand rappeler.', sub: 'Envoyé par SMS à la bonne personne.', t: 13 },
     { stat: 'Urgent', small: 'Appel transféré tout de suite', l1: 'Les urgences vous arrivent.', l2: 'Le reste, elle le gère.', sub: 'Elle trie les appels comme une vraie réceptionniste.', t: 16 },
   ],
-  en: [],
-  nl: [],
+  en: [
+    { stat: '24/7', small: 'Even at 3 a.m.', l1: 'Every call answered.', l2: 'Even when you’re busy.', sub: 'The AI receptionist for shops and practices.', t: 1 },
+    { stat: 'FR · NL · EN', small: 'A native voice for each language', l1: 'Three languages.', l2: 'With the right accent.', sub: 'Built for Brussels and all of Belgium.', t: 4 },
+    { stat: '20:30', small: 'New booking · Julie Martin', l1: 'The booking comes in.', l2: 'While you work.', sub: 'She books, moves and cancels your appointments.', t: 7 },
+    { stat: '?', small: 'Unanswered question', l1: 'She never makes things up.', l2: 'She asks you, then remembers.', sub: 'Your answer serves every call after.', t: 10 },
+    { stat: 'For Marc', small: 'New message · call back after 5 p.m.', l1: 'Every message taken.', l2: 'Who it’s for, and when to call back.', sub: 'Sent by text to the right person.', t: 13 },
+    { stat: 'Urgent', small: 'Call transferred right away', l1: 'Emergencies reach you.', l2: 'She handles the rest.', sub: 'She sorts calls like a real receptionist.', t: 16 },
+  ],
+  nl: [
+    { stat: '24/7', small: 'Zelfs om 3 uur ’s nachts', l1: 'Elke oproep beantwoord.', l2: 'Ook als u het druk hebt.', sub: 'De AI-receptioniste voor zaken en praktijken.', t: 1 },
+    { stat: 'FR · NL · EN', small: 'Een native stem per taal', l1: 'Drie talen.', l2: 'Met het juiste accent.', sub: 'Gemaakt voor Brussel en heel België.', t: 4 },
+    { stat: '20:30', small: 'Nieuwe reservering · Julie Martin', l1: 'De reservering komt binnen.', l2: 'Terwijl u werkt.', sub: 'Ze boekt, verplaatst en annuleert uw afspraken.', t: 7 },
+    { stat: '?', small: 'Onbeantwoorde vraag', l1: 'Ze verzint niets.', l2: 'Ze vraagt het u, en onthoudt het.', sub: 'Uw antwoord helpt bij elke volgende oproep.', t: 10 },
+    { stat: 'Voor Marc', small: 'Nieuw bericht · terugbellen na 17 u', l1: 'Elk bericht genoteerd.', l2: 'Voor wie, en wanneer terugbellen.', sub: 'Per sms naar de juiste persoon.', t: 13 },
+    { stat: 'Dringend', small: 'Oproep meteen doorgeschakeld', l1: 'Noodgevallen bereiken u.', l2: 'De rest regelt zij.', sub: 'Ze sorteert oproepen als een echte receptioniste.', t: 16 },
+  ],
 };
 
-export const Post: React.FC<{ lang: Lang; index: number }> = ({ lang, index }) => {
+/** Les formats d'image : 4:5 pour les fils (Instagram, Facebook, LinkedIn),
+ *  1:1 pour LinkedIn et Facebook, 9:16 pour les stories. */
+export const POST_FORMATS = { '4x5': { w: 1080, h: 1350 }, '1x1': { w: 1080, h: 1080 }, '9x16': { w: 1080, h: 1920 } } as const;
+export type PostFormat = keyof typeof POST_FORMATS;
+
+export const Post: React.FC<{ lang: Lang; index: number; fmt?: PostFormat }> = ({ lang, index, fmt = '4x5' }) => {
   useOutfit();
   useFonts();
   const d = POSTS[lang][index];
-  const W = 1080, H = 1350;
-  const panel = { x: 70, y: 90, w: W - 140, h: 780 };
-  const size = panel.w * 0.86;
+  const { w: W, h: H } = POST_FORMATS[fmt];
+  // La mise en page de 4:5 sert de référence ; le carré resserre le panneau, la story l'allonge.
+  const L = fmt === '4x5'
+    ? { top: 90, ph: 780, head: 70, label: 40, stat: 210, h1: 70, gap: 50, sub: 230 }
+    : fmt === '1x1'
+      ? { top: 70, ph: 560, head: 54, label: 34, stat: 150, h1: 60, gap: 40, sub: 196 }
+      : { top: 200, ph: 1000, head: 90, label: 44, stat: 300, h1: 78, gap: 70, sub: 260 };
+  const panel = { x: 70, y: L.top, w: W - 140, h: L.ph };
+  const size = panel.w * (fmt === '1x1' ? 0.7 : 0.86);
+  const statSize = (d.stat.length > 6 ? 128 : 160) * (fmt === '1x1' ? 0.8 : 1);
   return (
     <AbsoluteFill style={{ background: '#FFFFFF' }}>
       <div style={{ position: 'absolute', left: panel.x, top: panel.y, width: panel.w, height: panel.h, background: PANEL, overflow: 'hidden' }}>
         <div style={{ position: 'absolute', left: -panel.x, top: -panel.y, width: W, height: H }}>
-          <Sphere t={d.t} size={size} cx={W / 2} top={panel.y + panel.h - size * 0.42} seed={index} />
+          <Sphere t={d.t} size={size} cx={W / 2} top={panel.y + panel.h - size * (fmt === '1x1' ? 0.3 : 0.42)} seed={index} />
         </div>
       </div>
-      <TopLabel lang={lang} y={panel.y + 70} size={40} />
-      <div style={{ position: 'absolute', left: panel.x, width: panel.w, top: panel.y + 210, textAlign: 'center', ...ff }}>
-        <div style={{ fontSize: d.stat.length > 6 ? 128 : 160, fontWeight: 500, letterSpacing: '-0.05em', lineHeight: 1, color: INDIGO }}>{d.stat}</div>
+      <TopLabel lang={lang} y={panel.y + L.head} size={L.label} />
+      <div style={{ position: 'absolute', left: panel.x, width: panel.w, top: panel.y + L.stat, textAlign: 'center', ...ff }}>
+        <div style={{ fontSize: statSize, fontWeight: 500, letterSpacing: '-0.05em', lineHeight: 1, color: INDIGO }}>{d.stat}</div>
         <div style={{ marginTop: 16, fontSize: 28, color: INDIGO, opacity: 0.85 }}>{d.small}</div>
       </div>
-      <div style={{ position: 'absolute', left: 70, right: 70, top: panel.y + panel.h + 50, fontSize: 70, fontWeight: 500, letterSpacing: '-0.04em', lineHeight: 1.06, ...ff }}>
+      <div style={{ position: 'absolute', left: 70, right: 70, top: panel.y + panel.h + L.gap, fontSize: L.h1, fontWeight: 500, letterSpacing: '-0.04em', lineHeight: 1.06, ...ff }}>
         <div style={{ color: INK }}>{d.l1}</div>
         <div style={{ color: GRAY }}>{d.l2}</div>
       </div>
-      <div style={{ position: 'absolute', left: 70, right: 70, top: panel.y + panel.h + 230, fontSize: 28, color: GRAY, ...ff }}>{d.sub}</div>
-      <Logo x={70} y={H - 110} h={46} />
-      <Cta right={70} y={H - 120} label={CTA[lang]} size={28} />
+      {fmt !== '1x1' && <div style={{ position: 'absolute', left: 70, right: 70, top: panel.y + panel.h + L.sub, fontSize: 28, color: GRAY, ...ff }}>{d.sub}</div>}
+      <Logo x={70} y={H - (fmt === '9x16' ? 190 : 110)} h={46} />
+      <Cta right={70} y={H - (fmt === '9x16' ? 200 : 120)} label={CTA[lang]} size={28} />
     </AbsoluteFill>
   );
 };
