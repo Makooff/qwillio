@@ -127,7 +127,7 @@ export const CUES: Cue[] = [
   { t: T.ring2.at, kind: 'tap', seed: 383, gain: 0.5 },
   ...buzzes(T.ring2.at, T.ring2.out, 330),
   { t: T.call.at + 0.05, kind: 'click', seed: 384, gain: 0.7 },
-  { t: T.booked.at + 0.15, kind: 'confirm', seed: 340, gain: 0.75 },
+  // la notification de réservation sonne avec le pop (Sfx), plus de « confirm » synthétisé
   { t: T.mac.bump, kind: 'bump', seed: 341, gain: 0.6 },
   { t: T.mac.upcoming, kind: 'sparkle', seed: 342, gain: 0.45 },
   { t: T.end.at - 1.1, kind: 'riser', seed: 343, gain: 0.5 },

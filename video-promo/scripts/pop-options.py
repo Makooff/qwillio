@@ -86,3 +86,14 @@ with wave.open('public/media/sfx/softpop.wav', 'wb') as w:
     w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR)
     w.writeframes((soft * 32767).astype(np.int16).tobytes())
 print('public/media/sfx/softpop.wav')
+
+# Le son des notifications et de tout ce qui apparaît (public/media/sfx/pop.wav) :
+# la bulle A, sans silence devant. Le propriétaire n'aimait pas le pop de la
+# vidéo de référence sur les notifications : « un pop je veux ».
+s, t = sweep(260, 980, 0.12, 0.018)
+bub = s * np.exp(-t * 38) * np.minimum(1, t * 3000)
+bub = bub / np.max(np.abs(bub)) * 0.8
+with wave.open('public/media/sfx/pop.wav', 'wb') as w:
+    w.setnchannels(1); w.setsampwidth(2); w.setframerate(SR)
+    w.writeframes((bub * 32767).astype(np.int16).tobytes())
+print('public/media/sfx/pop.wav')
