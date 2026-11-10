@@ -92,7 +92,7 @@ export const J = {
 export function Mark({ which, k, id }: { which: 'open' | 'close'; k: number; id: string }) {
   const j = J[which], L = pathAt(j.l, k), R = pathAt(j.r, k);
   return (
-    <svg width={1080} height={1920} viewBox="0 0 1080 1920" style={{ position: 'absolute', inset: 0 }}>
+    <svg width={1080} height={1920} viewBox="0 0 1080 1920" style={{ position: 'absolute', inset: 0, overflow: 'visible' }}>
       <defs><clipPath id={id}><path d={L} /></clipPath></defs>
       <path d={R} fill="#CD6BFB" /><path d={L} fill="#7A5FFF" />
       <g clipPath={`url(#${id})`}><path d={R} fill="#7349FE" /></g>

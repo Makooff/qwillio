@@ -42,8 +42,6 @@ export function CineBackdrop({ t, h }: { t: number; h: number }) {
       <AbsoluteFill style={{ background: 'radial-gradient(120% 70% at 50% 18%, #FFFFFF 0%, #F6F4F1 45%, #E9E6E1 100%)' }} />
       {/* le sol, qui s'assombrit doucement vers la caméra */}
       <div style={{ position: 'absolute', left: 0, right: 0, top: horizon, bottom: 0, background: 'linear-gradient(180deg, rgba(226,222,216,0) 0%, rgba(214,209,202,0.55) 55%, rgba(198,192,184,0.75) 100%)' }} />
-      {/* la lueur de marque, derrière le sujet */}
-      <div style={{ position: 'absolute', left: '50%', top: h * 0.42, width: 1100, height: 1100, marginLeft: -550, marginTop: -550, borderRadius: '50%', background: 'radial-gradient(closest-side, rgba(122,95,255,0.30), rgba(205,107,251,0.16) 45%, rgba(205,107,251,0) 72%)', transform: `scale(${0.92 + 0.08 * breathe})`, filter: 'blur(40px)' }} />
       {/* un rai de lumière qui traverse lentement, très léger */}
       <div style={{ position: 'absolute', top: -200, bottom: -200, width: 520, left: `${-40 + ((t * 6) % 140)}%`, background: 'linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.35), rgba(255,255,255,0))', transform: 'skewX(-18deg)', filter: 'blur(30px)' }} />
     </AbsoluteFill>
