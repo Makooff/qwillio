@@ -17,12 +17,13 @@ import { EASE_IN_OUT, EASE_OUT, mix, p, useOutfit } from '../lib';
 import { J, Mark, useFonts } from '../pub2/Pub2';
 import { MacBookBookings } from '../pub2/mac';
 import { Canvas, Phone, buzzAngle, reveal, spring } from '../pub3/Pub3';
-import { IncomingCall, LockScreen, Notification } from '../pub3/ios';
+import { Device, IncomingCall, LockScreen, Notification } from '../pub3/ios';
 import { ShaderOrb } from '../pub3/ShaderOrb';
 import { Sfx, phraseChunks, titleTimes, wordIn } from '../fx';
 import { SiteFrame } from '../pub4/illustrations';
 import { Check, MessageSquare, Send } from '../../../frontend/src/components/icons';
 import data from './data';
+import { CameraRig, CineBackdrop, CineCtx, CineFinish, CineTitle, OrbStage, Phone3D, useCine } from './cine';
 import type { Lang, Line, Narr, SceneData } from './types';
 
 export const SHORT_FPS = 30;
@@ -109,7 +110,12 @@ export const shortName = (id: string, f: Format) => `Short-${id}-${data.shorts[i
 /* ------------------------------------------------------------------ le texte */
 
 function Said({ line, t, size = 80, y = 300 }: { line: TNarr; t: number; size?: number; y?: number }) {
+  const cine = useCine();
   if (!between(t, line.at - 0.05, line.out + 0.05)) return null;
+  if (cine) {
+    const words = line.title ? titleTimes(line.title, line.words, line.duration) : line.words;
+    return <CineTitle words={words} serifIdx={line.title ? line.titleSerif ?? [] : line.serif} at={line.at} out={line.out} t={t} size={Math.round(size * 1.22)} y={y} />;
+  }
   if (line.title) return <Title line={line} t={t} size={size} y={y} />;
   // Le morceau de phrase en cours : il reste jusqu'au début du suivant.
   const groups = phraseChunks(line.words);
@@ -196,6 +202,13 @@ type Levels = ReturnType<typeof useVoiceLevels>;
 
 function Orb({ t, size, y, levels, fps, timer = '' }: { t: number; size: number; y: number; levels: Levels; fps: number; timer?: string }) {
   const f = Math.min(Math.round(t * fps), (levels?.lv.length ?? 1) - 1);
+  if (useCine()) {
+    return (
+      <OrbStage t={t} x={(1080 - size) / 2} y={y} size={size} level={levels ? levels.lv[f] : 0}>
+        <ShaderOrb size={size} time={levels ? levels.phase[f] : t * 0.8} active={1} level={levels ? levels.lv[f] : 0} timer={timer} />
+      </OrbStage>
+    );
+  }
   return (
     <div style={{ position: 'absolute', left: (1080 - size) / 2, top: y }}>
       <ShaderOrb size={size} time={levels ? levels.phase[f] : t * 0.8} active={1} level={levels ? levels.lv[f] : 0} timer={timer} />
@@ -209,8 +222,9 @@ function Orb({ t, size, y, levels, fps, timer = '' }: { t: number; size: number;
 function Footage({ t, name, from, at, out }: { t: number; name: string; from: number; at: number; out: number }) {
   const { fps } = useVideoConfig();
   const k = p(t, at, out - at, (x) => x);
+  const cine = useCine();
   return (
-    <div style={{ position: 'absolute', left: 80, top: 500, width: 760, height: 1020, borderRadius: 48, overflow: 'hidden', background: '#1a1714', boxShadow: `0 0 0 1px ${PLATE}, 0 50px 90px -40px rgba(60,30,120,0.35)` }}>
+    <div style={{ position: 'absolute', left: 80, top: 500, width: 760, height: 1020, borderRadius: 48, overflow: 'hidden', background: '#1a1714', boxShadow: `0 0 0 1px ${PLATE}, 0 50px 90px -40px rgba(60,30,120,0.35)`, ...(cine ? { transform: 'translateZ(-260px) rotateY(8deg)', boxShadow: '0 80px 120px -50px rgba(40,20,80,0.45)' } : {}) }}>
       <Sequence from={Math.round(at * fps)} durationInFrames={Math.max(1, Math.round((out - at) * fps))} layout="none">
         <OffthreadVideo src={staticFile(`media/${name}.mp4`)} startFrom={Math.round(from * fps)} muted style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transform: `scale(${1.12 - 0.07 * k})` }} />
       </Sequence>
@@ -305,7 +319,17 @@ function MessageNote({ t, from, lang }: { t: number; from: number; lang: Lang })
 
 type Fmt = (typeof FORMATS)[Format];
 
-function Scene({ t, s, prev, levels, fps, lang, F }: { t: number; s: TScene; prev?: TScene; levels: Levels; fps: number; lang: Lang; F: Fmt }) {
+function AnyPhone(props: { t: number; inAt: number; outAt: number; children: React.ReactNode; angle?: number; x?: number; y?: number }) {
+  if (!useCine()) return <Phone {...props} />;
+  return (
+    <Phone3D t={props.t} inAt={props.inAt} outAt={props.outAt} x={props.x ?? 560} y={props.y ?? 800} angle={props.angle} w={432} h={904}>
+      <Device scale={1.03}>{props.children}</Device>
+    </Phone3D>
+  );
+}
+
+function Scene({ t, s, prev, levels, fps, lang, F, index = 0 }: { t: number; s: TScene; prev?: TScene; levels: Levels; fps: number; lang: Lang; F: Fmt; index?: number }) {
+  const cine = useCine();
   const v = s.visual;
   const L = STR[lang];
   const k = p(t, s.at, 0.35, EASE_OUT) * (1 - p(t, s.out - 0.3, 0.3));
@@ -318,19 +342,30 @@ function Scene({ t, s, prev, levels, fps, lang, F }: { t: number; s: TScene; pre
     body = (
       <>
         {v.footage && <Footage t={t} name={v.footage} from={0.6} at={s.at} out={s.out} />}
-        <Phone t={t} inAt={s.at + 0.05} outAt={s.out + 0.3} angle={buzzAngle(t, s.ring!)} x={v.footage ? 560 : 324} y={v.footage ? 800 : 560}>
+        <AnyPhone t={t} inAt={s.at + 0.05} outAt={s.out + 0.3} angle={buzzAngle(t, s.ring!)} x={v.footage ? 560 : 324} y={v.footage ? 800 : 560}>
           <LockScreen time={v.time} date={L.date} wallpaper={WALL} banner={banner}>{missed}</LockScreen>
-        </Phone>
+        </AnyPhone>
       </>
     );
   } else if (v.kind === 'notif') {
     body = (
-      <Phone t={t} inAt={s.at + 0.05} outAt={s.out + 0.3} x={324} y={560}>
+      <AnyPhone t={t} inAt={s.at + 0.05} outAt={s.out + 0.3} x={324} y={560}>
         <LockScreen time="20:14" date={L.date} wallpaper={WALL}>
           {t >= s.card && <div style={reveal(t, s.card)}><Notification kind="qwillio" title={v.title} desc={v.desc} time={L.now} /></div>}
         </LockScreen>
-      </Phone>
+      </AnyPhone>
     );
+    if (cine && t >= s.card + 0.25) {
+      const k2 = 1 - Math.pow(2, -10 * Math.min(1, (t - s.card - 0.25) / 0.9));
+      body = (
+        <>
+          {body}
+          <div style={{ position: 'absolute', left: 540 - 186, top: 1000, width: 373, transformOrigin: '50% 50%', opacity: Math.min(1, k2 * 1.5), transform: `translateZ(${60 + 220 * k2}px) translateY(${(1 - k2) * 80}px) rotateX(${(1 - k2) * 25}deg) scale(${1.4 + 0.5 * k2})`, borderRadius: 23, background: 'rgba(250,250,252,0.97)', boxShadow: '0 30px 60px -20px rgba(40,20,80,0.35), 0 0 0 1px rgba(0,0,0,0.04)' }}>
+            <Notification kind="qwillio" title={v.title} desc={v.desc} time={L.now} />
+          </div>
+        </>
+      );
+    }
   } else if (v.kind === 'orb') {
     const answered = prev?.visual.kind === 'ring' ? s.at : undefined;
     const sec = Math.max(0, Math.floor(t - s.at));
@@ -357,6 +392,18 @@ function Scene({ t, s, prev, levels, fps, lang, F }: { t: number; s: TScene; pre
     const dark = ['APRÈS', 'AFTER', 'NA'].includes(v.tag);
     over = <div style={{ position: 'absolute', left: 0, right: 0, top: F.tagY, textAlign: 'center', ...ff }}><span style={{ display: 'inline-block', padding: '10px 28px', borderRadius: 999, fontSize: 30, fontWeight: 600, letterSpacing: '0.18em', color: dark ? '#fff' : INK, background: dark ? INK : '#fff', boxShadow: `0 0 0 1px ${PLATE}`, ...tk }}>{v.tag}</span></div>;
   }
+  if (cine) {
+    // la scène est un plan : la caméra tourne autour, les titres restent à l'écran
+    return (
+      <AbsoluteFill>
+        <CameraRig t={t} at={s.at} out={s.out} index={index}>
+          <AbsoluteFill style={{ transformStyle: 'preserve-3d', transformOrigin: '540px 1000px', transform: `translateY(${F.body.dy}px) scale(${F.body.k})` }}>{body}</AbsoluteFill>
+        </CameraRig>
+        {over}
+        {s.tsay && <Said line={s.tsay} t={t} size={v.kind === 'type' ? F.typeSize : F.saySize} y={v.kind === 'type' ? F.typeY : F.sayY} />}
+      </AbsoluteFill>
+    );
+  }
   return (
     <AbsoluteFill style={{ opacity: k, transform: `scale(${pop})` }}>
       <AbsoluteFill style={{ transformOrigin: '540px 1000px', transform: `translateY(${F.body.dy}px) scale(${F.body.k})` }}>{body}</AbsoluteFill>
@@ -368,7 +415,7 @@ function Scene({ t, s, prev, levels, fps, lang, F }: { t: number; s: TScene; pre
 
 /* ------------------------------------------------------------------ la vidéo */
 
-export const Short: React.FC<{ id: string; format: Format }> = ({ id, format }) => {
+export const Short: React.FC<{ id: string; format: Format; cine?: boolean }> = ({ id, format, cine = false }) => {
   useOutfit();
   useFonts();
   const { fps } = useVideoConfig();
@@ -387,16 +434,23 @@ export const Short: React.FC<{ id: string; format: Format }> = ({ id, format }) 
   const music = (x: number) => 0.6 * p(x, 0, 0.6, (y) => y) * (1 - p(x, T.end.at - 0.3, 0.8)) * (1 - 0.72 * talking(x));
 
   return (
+    <CineCtx.Provider value={cine}>
     <AbsoluteFill>
-      <Canvas t={t} />
-      {t < T.end.at && (
+      {cine ? <CineBackdrop t={t} h={F.h} /> : <Canvas t={t} />}
+      {t < T.end.at && !cine && (
         <div style={{ position: 'absolute', left: 0, right: 0, top: F.brandY, textAlign: 'center', fontSize: 30, fontWeight: 600, letterSpacing: '-0.01em', color: INK, opacity: 0.55 * (1 - p(t, T.end.at - 0.4, 0.4)), ...ff }}>Qwillio</div>
       )}
-      {T.scenes.map((s, i) => between(t, s.at, s.out + 0.05) && <Scene key={i} t={t} s={s} prev={T.scenes[i - 1]} levels={levels} fps={fps} lang={T.lang} F={F} />)}
+      {T.scenes.map((s, i) => between(t, s.at, s.out + 0.05) && <Scene key={i} t={t} s={s} prev={T.scenes[i - 1]} levels={levels} fps={fps} lang={T.lang} F={F} index={i} />)}
 
       {t >= T.end.at && (
         <AbsoluteFill style={{ transformOrigin: '540px 960px', transform: `translateY(${F.end.dy}px) scale(${F.end.k})` }}>
-          <Mark which="close" id={`c-${id}`} k={(t - T.end.at) / (T.end.formed - T.end.at)} />
+          {cine ? (
+            <AbsoluteFill style={{ perspective: 1400 }}>
+              <AbsoluteFill style={{ transform: `rotateY(${(1 - Math.min(1, (t - T.end.at) / 1.6)) ** 3 * 50}deg) translateZ(${(1 - Math.min(1, (t - T.end.at) / 1.6)) ** 3 * -300}px)`, WebkitBoxReflect: 'below -560px linear-gradient(transparent 82%, rgba(255,255,255,0.18))' } as React.CSSProperties}>
+                <Mark which="close" id={`c-${id}`} k={(t - T.end.at) / (T.end.formed - T.end.at)} />
+              </AbsoluteFill>
+            </AbsoluteFill>
+          ) : <Mark which="close" id={`c-${id}`} k={(t - T.end.at) / (T.end.formed - T.end.at)} />}
           <div style={{ position: 'absolute', left: 0, right: 0, top: J.close.y + J.close.R + 70, textAlign: 'center', fontSize: 84, fontWeight: 600, letterSpacing: '-0.025em', color: INK, opacity: p(t, T.end.formed - 0.3, 0.4, (x) => x), filter: `blur(${(1 - p(t, T.end.formed - 0.3, 0.4)) * 10}px)`, ...ff }}>Qwillio</div>
           <Said line={T.end.say} t={t} size={52} y={J.close.y + J.close.R + 250} />
           <div style={{ position: 'absolute', left: 0, right: 0, top: J.close.y + J.close.R + 380, textAlign: 'center', fontSize: 34, color: BODY, opacity: p(t, T.end.say.at + 1.4, 0.5), filter: `blur(${(1 - p(t, T.end.say.at + 1.4, 0.5)) * 10}px)`, ...ff }}>{L.cta}</div>
@@ -425,6 +479,8 @@ export const Short: React.FC<{ id: string; format: Format }> = ({ id, format }) 
         if (v.kind === 'type' && v.tag) out.push(<Sfx key={`tg${i}`} at={s.at + 0.05} name="thump" gain={0.45} />);
         return out;
       })}
+      {cine && <CineFinish w={F.w} h={F.h} />}
     </AbsoluteFill>
+    </CineCtx.Provider>
   );
 };
