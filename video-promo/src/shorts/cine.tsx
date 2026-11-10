@@ -54,17 +54,19 @@ const TONES = {
 } as const;
 const L = (tone: keyof typeof TONES, move: Look['move'], skin: Look['skin'], align: Look['align'], logo: Look['logo']): Look => ({ tone: TONES[tone] as unknown as Look['tone'], move, skin, align, logo });
 export const LOOKS: Look[] = [
+  // La DA reste celle de la vidéo 1 (studio clair, bulles blanc et indigo) :
+  // « garde la DA qu'on a fait avant ». Ce qui varie, c'est la mise en scène.
   L('cream', 'orbit', 'brand', 'center', 1), // s01, validée
-  L('stone', 'dolly', 'ink', 'left', -1),
-  L('sand', 'crane', 'soft', 'center', 0),
-  L('mist', 'slide', 'outline', 'left', 1),
-  L('linen', 'roll', 'brand', 'center', -1),
-  L('sand', 'dolly', 'ink', 'center', 1),
-  L('stone', 'crane', 'brand', 'left', 0),
-  L('cream', 'slide', 'soft', 'center', -1),
-  L('mist', 'orbit', 'ink', 'left', 0),
-  L('linen', 'crane', 'outline', 'center', 1),
-  L('sand', 'roll', 'brand', 'left', -1),
+  L('cream', 'dolly', 'brand', 'left', -1),
+  L('cream', 'crane', 'brand', 'center', 0),
+  L('cream', 'slide', 'brand', 'left', 1),
+  L('cream', 'roll', 'brand', 'center', -1),
+  L('cream', 'dolly', 'brand', 'center', 1),
+  L('cream', 'crane', 'brand', 'left', 0),
+  L('cream', 'slide', 'brand', 'center', -1),
+  L('cream', 'orbit', 'brand', 'left', 0),
+  L('cream', 'crane', 'brand', 'center', 1),
+  L('cream', 'roll', 'brand', 'left', -1),
 ];
 export const lookFor = (id: string) => LOOKS[(Number((id.match(/s(\d+)/) ?? [])[1] ?? 1) - 1) % LOOKS.length];
 export const LookCtx = React.createContext<Look>(LOOKS[0]);
