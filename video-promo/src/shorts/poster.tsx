@@ -21,6 +21,7 @@ import { useFonts } from '../pub2/Pub2';
 import type { Lang } from './types';
 import { STR, type Fmt, type TLine, type TNarr, type TScene, type Timeline } from './Short';
 import { titleTimes } from '../fx';
+import { ShaderOrb } from '../pub3/ShaderOrb';
 
 export const INK = '#111113';
 export const GRAY = '#8C8C8F';
@@ -139,8 +140,7 @@ function sceneStat(s: TScene, t: number, lang: Lang): { big: string; small: stri
  * La vidéo en style affiche : même frise, mêmes voix que les autres versions
  * (src/shorts/Short.tsx), seul le dessin change.
  */
-export function Poster({ T, t, levels, fps, F }: { T: Timeline; t: number; levels: { lv: Float32Array } | null; fps: number; F: Fmt }) {
-  const frame = useCurrentFrame();
+export function Poster({ T, t, levels, fps, F }: { T: Timeline; t: number; levels: { lv: Float32Array; phase: Float32Array } | null; fps: number; F: Fmt }) {
   const lang = T.lang;
   const W = F.w, H = F.h;
   const tall = H > 1500;
@@ -153,8 +153,9 @@ export function Poster({ T, t, levels, fps, F }: { T: Timeline; t: number; level
   // la sphère monte au début, et grandit à la fin
   const rise = expo(p(t, 0, 1.6, (x) => x));
   const grow = expo(p(t, T.end.at, 1.4, (x) => x));
-  const size = panel.w * ((tall ? 0.98 : 0.8) + 0.25 * grow);
-  const sphereTop = panel.y + panel.h - size * (0.4 + 0.05 * grow) * rise - 10 + (1 - rise) * 200;
+  const orb = tall ? 420 : 300;
+  const orbTop = panel.y + panel.h - orb - (tall ? 110 : 60) + (1 - rise) * 60;
+  const phase = levels && 'phase' in levels ? (levels as { phase: Float32Array }).phase[f] : t * 0.8;
   // le chiffre de la scène, qui se change en fondu
   const stat = end ? { big: 'Qwillio', small: '' } : sceneStat(cur, t, lang);
   const statK = end ? expo(p(t, T.end.at + 0.3, 0.8, (x) => x)) : expo(p(t, cur.at + 0.1, 0.7, (x) => x)) * (1 - p(t, cur.out - 0.25, 0.25));
@@ -173,14 +174,16 @@ export function Poster({ T, t, levels, fps, F }: { T: Timeline; t: number; level
     <AbsoluteFill style={{ background: '#FFFFFF' }}>
       {/* le panneau et sa sphère */}
       <div style={{ position: 'absolute', left: panel.x, top: panel.y, width: panel.w, height: panel.h, background: PANEL, overflow: 'hidden' }}>
-        <div style={{ position: 'absolute', left: -panel.x, top: -panel.y, width: W, height: H }}>
-          <Sphere t={t} size={size} cx={W / 2} top={sphereTop} level={level} buzz={ringing} seed={frame % 5} />
-        </div>
+      </div>
+      {/* Pas de sphère violette en fondu sur les vidéos (retour du propriétaire) :
+          le rond gris de l'appel, celui du produit, qui respire avec la voix. */}
+      <div style={{ position: 'absolute', left: W / 2 - orb / 2, top: orbTop, transform: `scale(${(0.9 + 0.1 * rise) * (1 + 0.01 * Math.sin(ringing * 60))})`, opacity: rise }}>
+        <ShaderOrb size={orb} time={phase} active={1} level={level} timer="" />
       </div>
       <TopLabel lang={lang} y={panel.y + (tall ? 105 : 70)} size={tall ? 46 : 40} />
       {/* le chiffre */}
       {stat.big && (
-        <div style={{ position: 'absolute', left: panel.x, width: panel.w, top: panel.y + (tall ? 380 : 230), textAlign: 'center', opacity: statK, transform: `translateY(${(1 - statK) * 24}px)`, filter: `blur(${(1 - statK) * 8}px)`, ...ff }}>
+        <div style={{ position: 'absolute', left: panel.x, width: panel.w, top: panel.y + (tall ? 250 : 170), textAlign: 'center', opacity: statK, transform: `translateY(${(1 - statK) * 24}px)`, filter: `blur(${(1 - statK) * 8}px)`, ...ff }}>
           <div style={{ fontSize: stat.big.length > 6 ? (tall ? 150 : 120) : (tall ? 190 : 150), fontWeight: 500, letterSpacing: '-0.05em', lineHeight: 1, color: INDIGO }}>{stat.big}</div>
           {stat.small && <div style={{ marginTop: 18, fontSize: tall ? 34 : 28, color: INDIGO, opacity: 0.85, letterSpacing: '-0.01em' }}>{stat.small}</div>}
         </div>
