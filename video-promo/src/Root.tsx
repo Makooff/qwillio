@@ -20,11 +20,7 @@ export const RemotionRoot: React.FC = () => (
   <Composition id="QwillioPub4" component={Pub4} durationInFrames={Math.round(PUB4_DURATION * 60)} fps={60} width={1080} height={1920} />
   {/* La série courte : une composition par vidéo (src/shorts). */}
   {SHORT_IDS.flatMap((id) => (Object.keys(FORMATS) as Format[]).map((format) => (
-    <Composition key={`${id}-${format}`} id={shortName(id, format)} component={Short} defaultProps={{ id, format }} durationInFrames={Math.round(buildTimeline(id).duration * SHORT_FPS)} fps={SHORT_FPS} width={FORMATS[format].w} height={FORMATS[format].h} />
+    <Composition key={`${id}-${format}`} id={shortName(id, format)} component={Short} defaultProps={{ id, format, cine: true }} durationInFrames={Math.round(buildTimeline(id).duration * SHORT_FPS)} fps={SHORT_FPS} width={FORMATS[format].w} height={FORMATS[format].h} />
   )))}
-  {/* L'essai « cinéma » (src/shorts/cine.tsx) : 3D, lumière, caméra. */}
-  {SHORT_IDS.map((id) => (
-    <Composition key={`${id}-cine`} id={`${shortName(id, '9x16')}-cine`} component={Short} defaultProps={{ id, format: '9x16' as Format, cine: true }} durationInFrames={Math.round(buildTimeline(id).duration * SHORT_FPS)} fps={SHORT_FPS} width={1080} height={1920} />
-  ))}
   </>
 );

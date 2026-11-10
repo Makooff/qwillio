@@ -135,23 +135,14 @@ export function Phone3D({ t, inAt, outAt, x, y, children, angle = 0, w = 446, h 
 }
 
 /**
- * Le décor du rond de l'appel : il flotte, se reflète dans le sol, et des
- * ondes s'élargissent à plat sur le sol quand la voix monte.
+ * Le décor du rond de l'appel : il flotte et se reflète dans le sol. Les ondes
+ * animées au sol ont été retirées (« ça fait trop cheap », le propriétaire).
  */
 export function OrbStage({ t, x, y, size, level, children }: { t: number; x: number; y: number; size: number; level: number; children: React.ReactNode }) {
   const bob = Math.sin(t * 1.3) * 12;
   const floorY = y + size + 70;
   return (
     <>
-      {/* les ondes, couchées sur le sol */}
-      <div style={{ position: 'absolute', left: x + size / 2, top: floorY, width: 0, height: 0, perspective: 900 }}>
-        {[0, 1, 2].map((i) => {
-          const ph = ((t * 0.55 + i / 3) % 1);
-          const r = 140 + ph * 420;
-          const a = (1 - ph) * (0.25 + 0.6 * level);
-          return <div key={i} style={{ position: 'absolute', left: -r, top: -r, width: r * 2, height: r * 2, borderRadius: '50%', border: '2px solid rgba(122,95,255,0.9)', opacity: a, transform: 'rotateX(78deg)' }} />;
-        })}
-      </div>
       <ContactShadow x={x + size / 2} y={floorY - 26} w={size * 0.8} k={0.8} />
       <div style={{ position: 'absolute', left: x, top: y + bob, width: size, height: size, transform: 'translateZ(60px)', WebkitBoxReflect: 'below 50px linear-gradient(transparent 60%, rgba(255,255,255,0.28))' } as React.CSSProperties}>
         {children}
