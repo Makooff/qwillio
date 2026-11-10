@@ -171,6 +171,46 @@ function Spoken({ t, l, y, size, lang }: { t: number; l: TLine; y: number; size:
   );
 }
 
+/** L'appel en fil de messages : l'appelant d'abord, la réponse s'ajoute dessous.
+ *  Rien ne disparaît pendant l'appel ; quand le fil déborde, il glisse vers le haut. */
+function ChatThread({ t, s, y, bottom, size, lang }: { t: number; s: TScene; y: number; bottom: number; size: number; lang: Lang }) {
+  const fs = Math.round(size * 0.86);
+  const side = 80, maxW = (1080 - side * 2) * 0.8, pad = 26, gap = 20, label = 34;
+  const perLine = (maxW - pad * 2) / (fs * 0.5);
+  const height = (l: TLine) => {
+    const chars = l.words.map((w) => w.w).join(' ').length;
+    return label + pad * 2 + Math.max(1, Math.ceil(chars / perLine)) * fs * 1.25;
+  };
+  const items = s.tlines.map((l) => ({ l, h: height(l), k: p(t, l.at - 0.3, 0.5, EASE_OUT) }));
+  let acc = 0;
+  const placed = items.map((it) => { const top = acc; acc += (it.h + gap) * it.k; return { ...it, top }; });
+  const scroll = Math.max(0, acc - (bottom - y));
+  const outK = p(t, s.out - 0.35, 0.35);
+  if (!items.some((it) => it.k > 0)) return null;
+  return (
+    <div style={{ position: 'absolute', left: 0, right: 0, top: y - 40, height: bottom - y + 40, overflow: 'hidden', opacity: 1 - outK, WebkitMaskImage: 'linear-gradient(180deg, transparent 0, #000 36px)', maskImage: 'linear-gradient(180deg, transparent 0, #000 36px)', ...ff }}>
+      {placed.map(({ l, k, top }, i) => {
+        if (k <= 0) return null;
+        const agent = l.who === 'agent';
+        return (
+          <div key={i} style={{ position: 'absolute', top: 40 + top - scroll, left: side, right: side, display: 'flex', flexDirection: 'column', alignItems: agent ? 'flex-end' : 'flex-start', opacity: Math.min(1, k * 1.4), transform: `translateY(${(1 - k) * 28}px) scale(${0.95 + 0.05 * k})`, transformOrigin: agent ? '100% 0' : '0 0' }}>
+            <div style={{ height: label, fontSize: 21, letterSpacing: '0.14em', fontWeight: 600, color: agent ? INDIGO : BODY, padding: '0 8px' }}>
+              {l.tag ? <span style={{ padding: '3px 10px', borderRadius: 999, border: `1px solid ${INDIGO}55`, marginRight: 10 }}>{l.tag}</span> : null}
+              {agent ? STR[lang].agent : STR[lang].caller}
+            </div>
+            <div style={{ maxWidth: maxW, padding: `${pad}px ${pad + 6}px`, borderRadius: 34, borderBottomLeftRadius: agent ? 34 : 10, borderBottomRightRadius: agent ? 10 : 34, background: agent ? INDIGO : '#FFFFFF', color: agent ? '#FFFFFF' : INK, boxShadow: agent ? '0 18px 40px -18px rgba(90,60,220,0.55)' : `0 14px 34px -18px rgba(40,30,60,0.28), 0 0 0 1px ${PLATE}`, fontSize: fs, lineHeight: 1.25, fontWeight: 400, letterSpacing: '-0.01em' }}>
+              {l.words.map((w, j) => {
+                const wk = p(t, l.at + w.start - 0.04, 0.2, EASE_OUT);
+                return <span key={j} style={{ display: 'inline-block', marginRight: '0.26em', opacity: 0.18 + 0.82 * wk }}>{w.w}</span>;
+              })}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ la voix de Sarah, pour le rond */
 
 export function useVoiceLevels(T: Timeline, fps: number) {
@@ -376,7 +416,7 @@ function Scene({ t, s, prev, levels, fps, lang, F, index = 0 }: { t: number; s: 
         <Orb t={t} size={500} y={640} levels={levels} fps={fps} timer={answered !== undefined || s.tlines.length ? `0:${String(sec).padStart(2, '0')}` : ''} />
       </>
     );
-    over = s.tlines.map((l, i) => <Spoken key={i} t={t} l={l} y={F.spokenY} size={F.spokenSize} lang={lang} />);
+    over = <ChatThread t={t} s={s} y={F.spokenY - (F.h > 1500 ? 40 : 0)} bottom={F.h - (F.h > 1500 ? 90 : 50)} size={F.spokenSize} lang={lang} />;
   } else if (v.kind === 'langs') {
     body = (
       <>
@@ -384,7 +424,7 @@ function Scene({ t, s, prev, levels, fps, lang, F, index = 0 }: { t: number; s: 
         <Orb t={t} size={500} y={680} levels={levels} fps={fps} />
       </>
     );
-    over = s.tlines.map((l, i) => <Spoken key={i} t={t} l={l} y={F.langsSpokenY} size={F.spokenSize} lang={lang} />);
+    over = <ChatThread t={t} s={s} y={F.langsSpokenY - (F.h > 1500 ? 40 : 0)} bottom={F.h - (F.h > 1500 ? 90 : 50)} size={F.spokenSize} lang={lang} />;
   } else if (v.kind === 'learn') body = <LearnCard t={t} s={s} question={v.question} answer={v.answer} lang={lang} />;
   else if (v.kind === 'message') body = <MessageNote t={t} from={s.card} lang={lang} />;
   else if (v.kind === 'mac') body = <MacCard t={t} s={s} />;
