@@ -46,7 +46,8 @@ export type Look = {
   logo: 1 | -1 | 0;
 };
 const TONES = {
-  cream: { wall: ['#FFFFFF', '#F6F4F1', '#E9E6E1'], base: '#F3F1EE', floor: '226,222,216|214,209,202|198,192,184', light: '50% 18%' },
+  // blanc neutre, sans beige : « il y a un fond beige que j'aime pas »
+  cream: { wall: ['#FFFFFF', '#F7F7F8', '#EBEBED'], base: '#F4F4F5', floor: '228,228,231|212,212,216|194,194,199', light: '50% 18%' },
   stone: { wall: ['#FFFFFF', '#F1F2F4', '#E0E2E6'], base: '#EEF0F2', floor: '224,226,230|208,211,217|190,194,201', light: '30% 14%' },
   sand: { wall: ['#FFFDF8', '#F6EFE4', '#E9DDCB'], base: '#F3ECE1', floor: '230,220,204|216,203,184|200,186,165', light: '70% 16%' },
   mist: { wall: ['#FCFDFE', '#EEF1F5', '#DEE3EA'], base: '#ECEFF3', floor: '226,230,236|210,216,224|192,199,209', light: '50% 8%' },
