@@ -23,6 +23,7 @@ import { Sfx, phraseChunks, titleTimes, wordIn } from '../fx';
 import { SiteFrame } from '../pub4/illustrations';
 import { Check, MessageSquare, Send } from '../../../frontend/src/components/icons';
 import data from './data';
+import { Poster } from './poster';
 import { CameraRig, CineBackdrop, CineCtx, CineFinish, CineTitle, OrbStage, Phone3D, useCine } from './cine';
 import type { Lang, Line, Narr, SceneData } from './types';
 
@@ -31,7 +32,7 @@ export const SHORT_FPS = 30;
 /* ------------------------------------------------------------------ langues et formats */
 
 /** Ce que l'image écrit elle-même, dans la langue de la vidéo. */
-const STR: Record<Lang, { agent: string; caller: string; now: string; date: string; missed: string; mobile: string; unanswered: string; learned: string; cta: string; note: { chip: string; title: string; rows: [string, string][]; sent: string } }> = {
+export const STR: Record<Lang, { agent: string; caller: string; now: string; date: string; missed: string; mobile: string; unanswered: string; learned: string; cta: string; note: { chip: string; title: string; rows: [string, string][]; sent: string } }> = {
   fr: { agent: 'RÉCEPTIONNISTE IA', caller: 'APPELANT', now: 'maintenant', date: 'mardi 10 novembre', missed: 'Appel manqué', mobile: 'mobile', unanswered: 'QUESTION SANS RÉPONSE · APPEL DE 12:42', learned: 'Elle le saura au prochain appel.', cta: 'Essayez-la sur qwillio.com',
     note: { chip: 'Nouveau message', title: 'Julie Martin a appelé', rows: [['Pour', 'Marc'], ['Rappeler', 'après 17 h'], ['Numéro', '+32 471 52 18 90'], ['Motif', 'Une table pour huit, vendredi']], sent: 'Envoyé à Marc par SMS' } },
   en: { agent: 'AI RECEPTIONIST', caller: 'CALLER', now: 'now', date: 'Tuesday 10 November', missed: 'Missed call', mobile: 'mobile', unanswered: 'UNANSWERED QUESTION · CALL AT 12:42', learned: 'She’ll know on the next call.', cta: 'Try her at qwillio.com',
@@ -63,9 +64,9 @@ const between = (t: number, a: number, b: number) => t >= a && t < b;
 
 /* ------------------------------------------------------------------ la frise */
 
-type TNarr = Narr & { at: number; out: number };
-type TLine = Line & { at: number; end: number; until: number };
-type TScene = SceneData & { at: number; out: number; tsay?: TNarr; tlines: TLine[]; ring?: { at: number; out: number }; card: number; missed?: number; typed?: number; learned?: number };
+export type TNarr = Narr & { at: number; out: number };
+export type TLine = Line & { at: number; end: number; until: number };
+export type TScene = SceneData & { at: number; out: number; tsay?: TNarr; tlines: TLine[]; ring?: { at: number; out: number }; card: number; missed?: number; typed?: number; learned?: number };
 
 const MIN: Record<string, number> = { ring: 2.6, notif: 2.8, mac: 3.8, learn: 4.4, message: 3.6, langs: 0, orb: 0, type: 0 };
 
@@ -172,7 +173,7 @@ function Spoken({ t, l, y, size, lang }: { t: number; l: TLine; y: number; size:
 
 /* ------------------------------------------------------------------ la voix de Sarah, pour le rond */
 
-function useVoiceLevels(T: Timeline, fps: number) {
+export function useVoiceLevels(T: Timeline, fps: number) {
   const sources = React.useMemo(() => [
     ...T.scenes.flatMap((s) => [
       ...(s.tsay ? [{ at: s.tsay.at, file: s.tsay.file, duration: s.tsay.duration }] : []),
@@ -317,7 +318,7 @@ function MessageNote({ t, from, lang }: { t: number; from: number; lang: Lang })
 
 /* ------------------------------------------------------------------ une scène */
 
-type Fmt = (typeof FORMATS)[Format];
+export type Fmt = (typeof FORMATS)[Format];
 
 function AnyPhone(props: { t: number; inAt: number; outAt: number; children: React.ReactNode; angle?: number; x?: number; y?: number }) {
   if (!useCine()) return <Phone {...props} />;
@@ -415,7 +416,7 @@ function Scene({ t, s, prev, levels, fps, lang, F, index = 0 }: { t: number; s: 
 
 /* ------------------------------------------------------------------ la vidéo */
 
-export const Short: React.FC<{ id: string; format: Format; cine?: boolean }> = ({ id, format, cine = false }) => {
+export const Short: React.FC<{ id: string; format: Format; cine?: boolean; poster?: boolean }> = ({ id, format, cine = false, poster = false }) => {
   useOutfit();
   useFonts();
   const { fps } = useVideoConfig();
@@ -436,6 +437,7 @@ export const Short: React.FC<{ id: string; format: Format; cine?: boolean }> = (
   return (
     <CineCtx.Provider value={cine}>
     <AbsoluteFill>
+      {poster ? <Poster T={T} t={t} levels={levels} fps={fps} F={F} /> : (<>
       {cine ? <CineBackdrop t={t} h={F.h} /> : <Canvas t={t} />}
       {t < T.end.at && !cine && (
         <div style={{ position: 'absolute', left: 0, right: 0, top: F.brandY, textAlign: 'center', fontSize: 30, fontWeight: 600, letterSpacing: '-0.01em', color: INK, opacity: 0.55 * (1 - p(t, T.end.at - 0.4, 0.4)), ...ff }}>Qwillio</div>
@@ -457,6 +459,7 @@ export const Short: React.FC<{ id: string; format: Format; cine?: boolean }> = (
         </AbsoluteFill>
       )}
 
+      </>)}
       {/* ------------------------------ le son ------------------------------ */}
       <Audio src={staticFile('music-minimal.mp3')} startFrom={at(T.music)} volume={(f) => music(f / fps)} />
       <Sequence from={at(T.end.jingle)} layout="none"><Audio src={staticFile('jingle.mp3')} volume={0.9} /></Sequence>
@@ -479,7 +482,7 @@ export const Short: React.FC<{ id: string; format: Format; cine?: boolean }> = (
         if (v.kind === 'type' && v.tag) out.push(<Sfx key={`tg${i}`} at={s.at + 0.05} name="thump" gain={0.45} />);
         return out;
       })}
-      {cine && <CineFinish w={F.w} h={F.h} />}
+      {cine && !poster && <CineFinish w={F.w} h={F.h} />}
     </AbsoluteFill>
     </CineCtx.Provider>
   );
