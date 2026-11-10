@@ -24,7 +24,7 @@ import { SiteFrame } from '../pub4/illustrations';
 import { Check, MessageSquare, Send } from '../../../frontend/src/components/icons';
 import data from './data';
 import { Poster } from './poster';
-import { CameraRig, CineBackdrop, CineCtx, CineFinish, CineTitle, OrbStage, Phone3D, useCine } from './cine';
+import { CameraRig, CineBackdrop, CineCtx, CineFinish, CineTitle, LookCtx, OrbStage, Phone3D, lookFor, useCine, useLook } from './cine';
 import type { Lang, Line, Narr, SceneData } from './types';
 
 export const SHORT_FPS = 30;
@@ -186,7 +186,24 @@ function ChatThread({ t, s, y, bottom, size, lang }: { t: number; s: TScene; y: 
   const placed = items.map((it) => { const top = acc; acc += (it.h + gap) * it.k; return { ...it, top }; });
   const scroll = Math.max(0, acc - (bottom - y));
   const outK = p(t, s.out - 0.35, 0.35);
+  const skin = useLook().skin;
   if (!items.some((it) => it.k > 0)) return null;
+  // La peau des bulles change d'une vidéo à l'autre ; la règle reste : l'appelant à gauche, elle à droite.
+  const look = (agent: boolean): React.CSSProperties => {
+    if (skin === 'ink') return agent
+      ? { background: INK, color: '#FFFFFF', boxShadow: '0 18px 40px -18px rgba(0,0,0,0.5)' }
+      : { background: '#FFFFFF', color: INK, boxShadow: `0 14px 34px -18px rgba(40,30,60,0.28), 0 0 0 1px ${PLATE}` };
+    if (skin === 'soft') return agent
+      ? { background: '#EEE9FF', color: '#3B2A9E', boxShadow: '0 0 0 1px rgba(122,95,255,0.18)' }
+      : { background: '#F4F2EF', color: INK, boxShadow: `0 0 0 1px ${PLATE}` };
+    if (skin === 'outline') return agent
+      ? { background: INDIGO, color: '#FFFFFF', boxShadow: 'none' }
+      : { background: 'rgba(255,255,255,0.35)', color: INK, boxShadow: `inset 0 0 0 2px ${INK}22` };
+    return agent
+      ? { background: INDIGO, color: '#FFFFFF', boxShadow: '0 18px 40px -18px rgba(90,60,220,0.55)' }
+      : { background: '#FFFFFF', color: INK, boxShadow: `0 14px 34px -18px rgba(40,30,60,0.28), 0 0 0 1px ${PLATE}` };
+  };
+  const radius = skin === 'outline' || skin === 'ink' ? 22 : 34;
   return (
     <div style={{ position: 'absolute', left: 0, right: 0, top: y - 40, height: bottom - y + 40, overflow: 'hidden', opacity: 1 - outK, WebkitMaskImage: 'linear-gradient(180deg, transparent 0, #000 36px)', maskImage: 'linear-gradient(180deg, transparent 0, #000 36px)', ...ff }}>
       {placed.map(({ l, k, top }, i) => {
@@ -194,11 +211,11 @@ function ChatThread({ t, s, y, bottom, size, lang }: { t: number; s: TScene; y: 
         const agent = l.who === 'agent';
         return (
           <div key={i} style={{ position: 'absolute', top: 40 + top - scroll, left: side, right: side, display: 'flex', flexDirection: 'column', alignItems: agent ? 'flex-end' : 'flex-start', opacity: Math.min(1, k * 1.4), transform: `translateY(${(1 - k) * 28}px) scale(${0.95 + 0.05 * k})`, transformOrigin: agent ? '100% 0' : '0 0' }}>
-            <div style={{ height: label, fontSize: 21, letterSpacing: '0.14em', fontWeight: 600, color: agent ? INDIGO : BODY, padding: '0 8px' }}>
+            <div style={{ height: label, fontSize: 21, letterSpacing: '0.14em', fontWeight: 600, color: agent ? (skin === 'ink' ? INK : INDIGO) : BODY, padding: '0 8px' }}>
               {l.tag ? <span style={{ padding: '3px 10px', borderRadius: 999, border: `1px solid ${INDIGO}55`, marginRight: 10 }}>{l.tag}</span> : null}
               {agent ? STR[lang].agent : STR[lang].caller}
             </div>
-            <div style={{ maxWidth: maxW, padding: `${pad}px ${pad + 6}px`, borderRadius: 34, borderBottomLeftRadius: agent ? 34 : 10, borderBottomRightRadius: agent ? 10 : 34, background: agent ? INDIGO : '#FFFFFF', color: agent ? '#FFFFFF' : INK, boxShadow: agent ? '0 18px 40px -18px rgba(90,60,220,0.55)' : `0 14px 34px -18px rgba(40,30,60,0.28), 0 0 0 1px ${PLATE}`, fontSize: fs, lineHeight: 1.25, fontWeight: 400, letterSpacing: '-0.01em' }}>
+            <div style={{ maxWidth: maxW, padding: `${pad}px ${pad + 6}px`, borderRadius: radius, borderBottomLeftRadius: agent ? radius : 8, borderBottomRightRadius: agent ? 8 : radius, ...look(agent), fontSize: fs, lineHeight: 1.25, fontWeight: 400, letterSpacing: '-0.01em' }}>
               {l.words.map((w, j) => {
                 const wk = p(t, l.at + w.start - 0.04, 0.2, EASE_OUT);
                 return <span key={j} style={{ display: 'inline-block', marginRight: '0.26em', opacity: 0.18 + 0.82 * wk }}>{w.w}</span>;
@@ -456,6 +473,12 @@ function Scene({ t, s, prev, levels, fps, lang, F, index = 0 }: { t: number; s: 
 
 /* ------------------------------------------------------------------ la vidéo */
 
+/** L'entrée du logo : il pivote depuis la droite, depuis la gauche, ou monte de face. */
+function logoIn(dt: number, side: 1 | -1 | 0) {
+  const r = (1 - Math.min(1, dt / 1.6)) ** 3;
+  return side === 0 ? `translateY(${r * 140}px) rotateX(${r * -40}deg) translateZ(${r * -260}px)` : `rotateY(${side * r * 50}deg) translateZ(${r * -300}px)`;
+}
+
 export const Short: React.FC<{ id: string; format: Format; cine?: boolean; poster?: boolean }> = ({ id, format, cine = false, poster = false }) => {
   useOutfit();
   useFonts();
@@ -465,6 +488,7 @@ export const Short: React.FC<{ id: string; format: Format; cine?: boolean; poste
   const L = STR[T.lang];
   const t = useCurrentFrame() / fps;
   const levels = useVoiceLevels(T, fps);
+  const look = lookFor(id);
   const at = (s: number) => Math.round(s * fps);
 
   const narr = [...T.scenes.flatMap((s) => (s.tsay ? [s.tsay] : [])), T.end.say];
@@ -476,6 +500,7 @@ export const Short: React.FC<{ id: string; format: Format; cine?: boolean; poste
 
   return (
     <CineCtx.Provider value={cine}>
+    <LookCtx.Provider value={look}>
     <AbsoluteFill>
       {poster ? <Poster T={T} t={t} levels={levels} fps={fps} F={F} /> : (<>
       {cine ? <CineBackdrop t={t} h={F.h} /> : <Canvas t={t} />}
@@ -488,7 +513,7 @@ export const Short: React.FC<{ id: string; format: Format; cine?: boolean; poste
         <AbsoluteFill style={{ transformOrigin: '540px 960px', transform: `translateY(${F.end.dy}px) scale(${F.end.k})` }}>
           {cine ? (
             <AbsoluteFill style={{ perspective: 1400 }}>
-              <AbsoluteFill style={{ transform: `rotateY(${(1 - Math.min(1, (t - T.end.at) / 1.6)) ** 3 * 50}deg) translateZ(${(1 - Math.min(1, (t - T.end.at) / 1.6)) ** 3 * -300}px)`, WebkitBoxReflect: 'below -560px linear-gradient(transparent 82%, rgba(255,255,255,0.18))' } as React.CSSProperties}>
+              <AbsoluteFill style={{ transform: logoIn(t - T.end.at, look.logo), WebkitBoxReflect: 'below -560px linear-gradient(transparent 82%, rgba(255,255,255,0.18))' } as React.CSSProperties}>
                 <Mark which="close" id={`c-${id}`} k={(t - T.end.at) / (T.end.formed - T.end.at)} />
               </AbsoluteFill>
             </AbsoluteFill>
@@ -524,6 +549,7 @@ export const Short: React.FC<{ id: string; format: Format; cine?: boolean; poste
       })}
       {cine && !poster && <CineFinish w={F.w} h={F.h} />}
     </AbsoluteFill>
+    </LookCtx.Provider>
     </CineCtx.Provider>
   );
 };

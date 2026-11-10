@@ -29,19 +29,61 @@ const serif: React.CSSProperties = { fontFamily: 'QSerif, Georgia, serif', fontS
 const expo = (x: number) => (x >= 1 ? 1 : 1 - Math.pow(2, -10 * x));
 const smooth = (x: number) => x * x * (3 - 2 * x);
 
+
+/* ------------------------------------------------------------------ les variations */
+
+/**
+ * Chaque vidéo a son « look », pour que la série ne soit pas un copier-coller
+ * (retour du propriétaire) : le ton du studio, le mouvement de caméra, la
+ * peau des bulles de l'appel, l'alignement des titres et l'entrée du logo.
+ * Le premier look est celui de la vidéo 1, validée telle quelle.
+ */
+export type Look = {
+  tone: { wall: [string, string, string]; base: string; floor: string; light: string };
+  move: 'orbit' | 'dolly' | 'crane' | 'slide' | 'roll';
+  skin: 'brand' | 'ink' | 'soft' | 'outline';
+  align: 'center' | 'left';
+  logo: 1 | -1 | 0;
+};
+const TONES = {
+  cream: { wall: ['#FFFFFF', '#F6F4F1', '#E9E6E1'], base: '#F3F1EE', floor: '226,222,216|214,209,202|198,192,184', light: '50% 18%' },
+  stone: { wall: ['#FFFFFF', '#F1F2F4', '#E0E2E6'], base: '#EEF0F2', floor: '224,226,230|208,211,217|190,194,201', light: '30% 14%' },
+  sand: { wall: ['#FFFDF8', '#F6EFE4', '#E9DDCB'], base: '#F3ECE1', floor: '230,220,204|216,203,184|200,186,165', light: '70% 16%' },
+  mist: { wall: ['#FCFDFE', '#EEF1F5', '#DEE3EA'], base: '#ECEFF3', floor: '226,230,236|210,216,224|192,199,209', light: '50% 8%' },
+  linen: { wall: ['#FFFFFF', '#F4F2EF', '#E4E0DA'], base: '#EFECE8', floor: '222,218,212|206,200,193|186,180,172', light: '24% 22%' },
+} as const;
+const L = (tone: keyof typeof TONES, move: Look['move'], skin: Look['skin'], align: Look['align'], logo: Look['logo']): Look => ({ tone: TONES[tone] as unknown as Look['tone'], move, skin, align, logo });
+export const LOOKS: Look[] = [
+  L('cream', 'orbit', 'brand', 'center', 1), // s01, validée
+  L('stone', 'dolly', 'ink', 'left', -1),
+  L('sand', 'crane', 'soft', 'center', 0),
+  L('mist', 'slide', 'outline', 'left', 1),
+  L('linen', 'roll', 'brand', 'center', -1),
+  L('sand', 'dolly', 'ink', 'center', 1),
+  L('stone', 'crane', 'brand', 'left', 0),
+  L('cream', 'slide', 'soft', 'center', -1),
+  L('mist', 'orbit', 'ink', 'left', 0),
+  L('linen', 'crane', 'outline', 'center', 1),
+  L('sand', 'roll', 'brand', 'left', -1),
+];
+export const lookFor = (id: string) => LOOKS[(Number((id.match(/s(\d+)/) ?? [])[1] ?? 1) - 1) % LOOKS.length];
+export const LookCtx = React.createContext<Look>(LOOKS[0]);
+export const useLook = () => React.useContext(LookCtx);
+
 /* ------------------------------------------------------------------ le studio */
 
 /** Un studio clair à fond infini : le mur, le sol, la ligne d'horizon fondue,
  * et une grande lueur de marque qui respire derrière le sujet. */
 export function CineBackdrop({ t, h }: { t: number; h: number }) {
   const horizon = h * 0.64;
-  const breathe = 0.5 + 0.5 * Math.sin(t * 0.6);
+  const { tone } = useLook();
+  const [f0, f1, f2] = tone.floor.split('|');
   return (
-    <AbsoluteFill style={{ background: '#F3F1EE', overflow: 'hidden' }}>
-      {/* le mur, plus clair en haut au centre : la lumière vient de face */}
-      <AbsoluteFill style={{ background: 'radial-gradient(120% 70% at 50% 18%, #FFFFFF 0%, #F6F4F1 45%, #E9E6E1 100%)' }} />
+    <AbsoluteFill style={{ background: tone.base, overflow: 'hidden' }}>
+      {/* le mur, plus clair là d'où vient la lumière (elle change d'une vidéo à l'autre) */}
+      <AbsoluteFill style={{ background: `radial-gradient(120% 70% at ${tone.light}, ${tone.wall[0]} 0%, ${tone.wall[1]} 45%, ${tone.wall[2]} 100%)` }} />
       {/* le sol, qui s'assombrit doucement vers la caméra */}
-      <div style={{ position: 'absolute', left: 0, right: 0, top: horizon, bottom: 0, background: 'linear-gradient(180deg, rgba(226,222,216,0) 0%, rgba(214,209,202,0.55) 55%, rgba(198,192,184,0.75) 100%)' }} />
+      <div style={{ position: 'absolute', left: 0, right: 0, top: horizon, bottom: 0, background: `linear-gradient(180deg, rgba(${f0},0) 0%, rgba(${f1},0.55) 55%, rgba(${f2},0.75) 100%)` }} />
       {/* un rai de lumière qui traverse lentement, très léger */}
       <div style={{ position: 'absolute', top: -200, bottom: -200, width: 520, left: `${-40 + ((t * 6) % 140)}%`, background: 'linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.35), rgba(255,255,255,0))', transform: 'skewX(-18deg)', filter: 'blur(30px)' }} />
     </AbsoluteFill>
@@ -75,17 +117,36 @@ export function CineFinish({ w, h }: { w: number; h: number }) {
  */
 export function CameraRig({ t, at, out, index, children, origin = '540px 1000px' }: { t: number; at: number; out: number; index: number; children: React.ReactNode; origin?: string }) {
   const dir = index % 2 ? -1 : 1;
+  const { move } = useLook();
   const inK = expo(p(t, at, 1.1, (x) => x));
   const live = p(t, at, Math.max(0.1, out - at), (x) => x);
   const outK = smooth(p(t, out - 0.45, 0.45, (x) => x));
-  const ry = dir * (22 * (1 - inK) - 5 * live) - dir * 18 * outK;
-  const rx = 6 * (1 - inK) + 2 * Math.sin(live * Math.PI);
-  const z = -420 * (1 - inK) + 90 * live - 260 * outK;
+  let ry = 0, rx = 0, rz = 0, z = 0, tx = 0, ty = 0;
+  if (move === 'orbit') { // pivote autour du sujet, le sens alterne
+    ry = dir * (22 * (1 - inK) - 5 * live) - dir * 18 * outK;
+    rx = 6 * (1 - inK) + 2 * Math.sin(live * Math.PI);
+    z = -420 * (1 - inK) + 90 * live - 260 * outK;
+  } else if (move === 'dolly') { // travelling avant, sans pivot, et on traverse la scène pour sortir
+    rx = 3 * (1 - inK);
+    z = -620 * (1 - inK) + 120 * live + 380 * outK;
+  } else if (move === 'crane') { // la grue descend sur le sujet, remonte pour partir
+    rx = -16 * (1 - inK) + 1.5 * Math.sin(live * Math.PI) + 10 * outK;
+    ty = -220 * (1 - inK) - 180 * outK;
+    z = -300 * (1 - inK) + 70 * live - 200 * outK;
+  } else if (move === 'slide') { // travelling latéral, la scène suivante arrive du côté opposé
+    tx = dir * 360 * (1 - inK) - dir * 40 * live - dir * 320 * outK;
+    ry = -dir * 10 * (1 - inK) + dir * 3 * live + dir * 8 * outK;
+    z = -200 * (1 - inK) + 60 * live - 120 * outK;
+  } else { // roll : une légère bascule de l'horizon, comme une caméra à l'épaule posée
+    rz = dir * 6 * (1 - inK) - dir * 1.2 * live - dir * 5 * outK;
+    rx = 4 * (1 - inK);
+    z = -360 * (1 - inK) + 80 * live - 220 * outK;
+  }
   const blur = (1 - inK) * 12 + outK * 10;
   return (
     <AbsoluteFill style={{ opacity: Math.min(1, inK * 1.4) * (1 - outK), filter: blur > 0.2 ? `blur(${blur}px)` : undefined }}>
       <AbsoluteFill style={{ perspective: 1500, perspectiveOrigin: origin }}>
-        <AbsoluteFill style={{ transformStyle: 'preserve-3d', transformOrigin: origin, transform: `translateZ(${z}px) rotateX(${rx}deg) rotateY(${ry}deg)` }}>
+        <AbsoluteFill style={{ transformStyle: 'preserve-3d', transformOrigin: origin, transform: `translate3d(${tx}px, ${ty}px, ${z}px) rotateX(${rx}deg) rotateY(${ry}deg) rotateZ(${rz}deg)` }}>
           {children}
         </AbsoluteFill>
       </AbsoluteFill>
@@ -158,10 +219,11 @@ export function OrbStage({ t, x, y, size, level, children }: { t: number; x: num
  * la voix, puis la ligne entière part vers le haut quand la phrase se termine.
  */
 export function CineTitle({ words, serifIdx, at, out, t, size, y }: { words: { w: string; start: number }[]; serifIdx: number[]; at: number; out: number; t: number; size: number; y: number }) {
+  const left = useLook().align === 'left';
   if (t < at - 0.05 || t > out + 0.05) return null;
   const outK = smooth(p(t, out - 0.35, 0.35, (x) => x));
   return (
-    <div style={{ position: 'absolute', left: 60, right: 60, top: y, transform: `translateY(-50%) translateY(${-outK * 40}px)`, textAlign: 'center', fontSize: size, fontWeight: 600, letterSpacing: '-0.045em', lineHeight: 1.04, color: INK, opacity: 1 - outK, ...ff }}>
+    <div style={{ position: 'absolute', left: left ? 84 : 60, right: left ? 120 : 60, top: y, transform: `translateY(-50%) translateY(${-outK * 40}px)`, textAlign: left ? 'left' : 'center', fontSize: size, fontWeight: 600, letterSpacing: '-0.045em', lineHeight: 1.04, color: INK, opacity: 1 - outK, ...ff }}>
       {words.map((w, i) => {
         const k = expo(p(t, at + w.start - 0.06, 0.7, (x) => x));
         return (
