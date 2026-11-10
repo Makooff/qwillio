@@ -408,7 +408,8 @@ export const Short: React.FC<{ id: string; format: Format }> = ({ id, format }) 
       <Sequence from={at(T.end.jingle)} layout="none"><Audio src={staticFile('jingle.mp3')} volume={0.9} /></Sequence>
       {narr.map((l) => <Sequence key={`n${l.file}`} from={at(l.at)} layout="none"><Audio src={staticFile(l.file)} /></Sequence>)}
       {lines.map((l) => <Sequence key={`l${l.file}`} from={at(l.at)} layout="none"><Audio src={staticFile(l.file)} /></Sequence>)}
-      {narr.flatMap((l) => (l.title ? titleTimes(l.title, l.words, l.duration) : l.words).map((w, i) => <Sfx key={`w${l.file}-${i}`} at={l.at + w.start - 0.04} name="type" gain={0.3} />))}
+      {/* une bulle douce quand un titre apparaît, pas un clic par mot */}
+      {narr.map((l) => <Sfx key={`w${l.file}`} at={l.at + (l.words[0]?.start ?? 0) - 0.04} name="softpop" gain={0.45} />)}
       {T.scenes.flatMap((s, i) => {
         const v = s.visual;
         const out: React.ReactNode[] = [];

@@ -315,7 +315,8 @@ export const Pub4: React.FC = () => {
       <Audio src={staticFile('music-minimal.mp3')} startFrom={at(60)} volume={(f) => musicVolume(f / FPS)} />
       {SOURCES.map((s) => <Sequence key={s.file} from={at(s.at)} layout="none"><Audio src={staticFile(s.file)} /></Sequence>)}
       {/* Les sons de la référence, chacun sur son animation. */}
-      {[...VLINES, T.v8].flatMap((l) => { const n = voices.lines[l.id]; return (n.title ? titleTimes(n.title, n.words, n.duration) : n.words).map((w, i) => <Sfx key={`w${l.id}-${i}`} at={l.at + w.start - 0.04} name="type" gain={0.32} />); })}
+      {/* une bulle douce quand un titre apparaît, pas un clic par mot */}
+      {[...VLINES, T.v8].map((l) => <Sfx key={`w${l.id}`} at={l.at + (voices.lines[l.id].words[0]?.start ?? 0) - 0.04} name="softpop" gain={0.45} />)}
       {[T.known.ring.at, T.urgent.ring.at, T.message.at + 0.4].map((s) => <Sfx key={`p${s}`} at={s} name="pop" gain={0.6} />)}
       <Sfx at={T.known.answer} name="click" gain={0.6} />
       {[T.k3.at - 0.1, T.k4.at - 0.1].map((s) => <Sfx key={`l${s}`} at={s} name="click" gain={0.5} />)}

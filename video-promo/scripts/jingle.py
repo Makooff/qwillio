@@ -1,17 +1,16 @@
-"""Le son du logo (public/jingle.mp3) : le « pop » des effets sonores.
+"""Le son du logo (public/jingle.mp3) : le pop D de scripts/pop-options.py.
 
-Le propriétaire a écarté toutes les signatures musicales (mélodies, accord,
-souffle) : « plutôt les pop fx ». C'est donc le pop de la vidéo de référence
-(public/media/sfx/pop.wav, voir src/fx.tsx), précédé d'une seconde de silence :
-la frise lance ce fichier une seconde avant le logo formé, le pop tombe dessus.
+Choisi à l'oreille par le propriétaire parmi quatre pops (bulle, goutte,
+bouchon, bulle + note) : la bulle suivie d'une petite note claire. Le fichier
+commence par une seconde de silence : la frise le lance une seconde avant le
+logo formé, le pop tombe dessus.
 
   python scripts/jingle.py
 """
-import subprocess
+import runpy
+import pathlib
+import shutil
 
-subprocess.run([
-    'ffmpeg', '-v', 'error', '-y', '-i', 'public/media/sfx/pop.wav',
-    '-af', 'adelay=1000|1000,apad=pad_dur=1.0,volume=0.9',
-    '-b:a', '192k', 'public/jingle.mp3',
-], check=True)
-print('public/jingle.mp3 <- pop')
+runpy.run_path(str(pathlib.Path(__file__).with_name('pop-options.py')))
+shutil.copy('out/pop-d.mp3', 'public/jingle.mp3')
+print('public/jingle.mp3 <- pop D')

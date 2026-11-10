@@ -18,7 +18,7 @@ import React from 'react';
 import { Audio, Sequence, staticFile, useVideoConfig } from 'remotion';
 import { EASE_OUT, p } from './lib';
 
-export type SfxName = 'type' | 'click' | 'pop' | 'glitch' | 'tracking' | 'counter' | 'thump' | 'buzz';
+export type SfxName = 'type' | 'click' | 'pop' | 'glitch' | 'tracking' | 'counter' | 'thump' | 'buzz' | 'softpop';
 
 /** Un son de la référence, posé à l'instant `at`. */
 export function Sfx({ at, name, gain = 1 }: { at: number; name: SfxName; gain?: number }) {

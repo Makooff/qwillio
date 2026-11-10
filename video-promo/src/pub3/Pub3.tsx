@@ -305,7 +305,8 @@ export const Pub3: React.FC = () => {
       {/* La cuisine, à peine : la plaque, pas la salle. */}
       <Sequence from={0} durationInFrames={at(T.out1)} layout="none"><Audio src={staticFile('media/sizzle.mp3')} volume={(f) => 0.14 * Math.min(1, f / 20) * Math.min(1, (at(T.out1) - f) / 30)} /></Sequence>
       {/* Les sons de la référence, chacun sur son animation. */}
-      {[...NLINES, T.n11].flatMap((l) => narration[l.n].words.map((w, i) => <Sfx key={`w${l.n}-${i}`} at={l.at + w.start - 0.04} name="type" gain={0.32} />))}
+      {/* une bulle douce quand un titre apparaît, pas un clic par mot */}
+      {[...NLINES, T.n11].map((l) => <Sfx key={`w${l.n}`} at={l.at + (narration[l.n].words[0]?.start ?? 0) - 0.04} name="softpop" gain={0.45} />)}
       <Sfx at={T.n6.at + narration[5].words[narration[5].words.length - 1].start} name="thump" gain={0.7} />
       {[0.1, T.shots2[0].at + 0.05].map((s) => <Sfx key={`c${s}`} at={s} name="tracking" gain={0.4} />)}
       {[T.ring.at, T.missed, T.ring2.at, T.booked.at + 0.15].map((s) => <Sfx key={`p${s}`} at={s} name="pop" gain={0.6} />)}
