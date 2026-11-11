@@ -295,7 +295,7 @@ export default function DashboardShell(props: DashboardShellProps) {
       {showHelp && !collapsed && (
         <div className="flex-shrink-0 space-y-0.5 mb-1">
           <a
-            href="mailto:contact@qwillio.com"
+            href="mailto:support@qwillio.com"
             className="flex items-center gap-3 px-3 py-2 rounded-[10px] transition-colors hover:bg-white/[0.03]"
             style={{ color: t.textSec }}
           >

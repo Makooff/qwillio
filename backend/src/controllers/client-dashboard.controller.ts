@@ -2874,7 +2874,7 @@ export class ClientDashboardController {
           .replace(/"/g, '&quot;');
 
         await emailService.send({
-          to: env.RESEND_REPLY_TO || 'contact@qwillio.com',
+          to: env.RESEND_REPLY_TO || 'support@qwillio.com',
           subject: `[Support] ${subject} — ${client?.businessName || user?.email}`,
           html: `
             <h3>Support request from ${esc(user?.name)} (${esc(user?.email)})</h3>

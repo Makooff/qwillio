@@ -26,7 +26,7 @@ vi.mock('../../config/logger', () => ({
 }));
 
 vi.mock('../../config/env', () => ({
-  env: { RESEND_REPLY_TO: 'contact@qwillio.com' },
+  env: { RESEND_REPLY_TO: 'support@qwillio.com' },
 }));
 
 import { ClientDashboardController } from '../client-dashboard.controller';

@@ -89,7 +89,7 @@ export default function Register() {
     } catch {
       // L'échec était silencieux: on cliquait, rien ne bougeait, rien ne le
       // disait. Un renvoi qui échoue doit se voir.
-      setResendError("L'envoi a échoué. Réessayez dans un instant, ou écrivez-nous à contact@qwillio.com.");
+      setResendError("L'envoi a échoué. Réessayez dans un instant, ou écrivez-nous à support@qwillio.com.");
     } finally { setResending(false); }
   }
 
