@@ -19,6 +19,8 @@ export class ProspectsController {
       if (query.minInterest !== undefined) where.interestLevel = { gte: query.minInterest };
       // Calling by hand means a row without a number is noise.
       if (query.hasPhone === 'true') where.phone = { not: null };
+      if (query.contacted === 'true') where.lastContactDate = { not: null };
+      if (query.contacted === 'false') where.lastContactDate = null;
       if (query.search) {
         where.OR = [
           { businessName: { contains: query.search, mode: 'insensitive' } },
@@ -36,12 +38,21 @@ export class ProspectsController {
           orderBy: { [query.sortBy]: query.sortOrder },
           skip: (query.page - 1) * query.limit,
           take: query.limit,
+          include: {
+            // La derniere note suffit a la liste; l'historique se lit dans la fiche.
+            prospectNotes: { orderBy: { createdAt: 'desc' }, take: 1, select: { body: true, createdAt: true } },
+            _count: { select: { prospectNotes: true } },
+          },
         }),
         prisma.prospect.count({ where }),
       ]);
 
       res.json({
-        data: prospects,
+        data: prospects.map(({ prospectNotes, _count, ...p }) => ({
+          ...p,
+          lastNote: prospectNotes[0] ?? null,
+          notesCount: _count.prospectNotes,
+        })),
         pagination: {
           total,
           page: query.page,

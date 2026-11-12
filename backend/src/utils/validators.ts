@@ -41,6 +41,8 @@ export const prospectQuerySchema = z.object({
   hasPhone: z.enum(['true', 'false']).optional(),
   search: z.string().optional(),
   favorite: z.enum(['true', 'false']).optional(),
+  // « Mes prospects »: ceux que le fondateur a deja appeles au moins une fois.
+  contacted: z.enum(['true', 'false']).optional(),
   dateFrom: z.string().optional(),
   dateTo: z.string().optional(),
   // Whitelisted: this value is interpolated straight into Prisma's orderBy.

@@ -5,7 +5,7 @@ import { Search, X, LayoutDashboard, Users, Phone, TrendingUp, Settings, BarChar
 const COMMANDS = [
   { label: 'Dashboard', path: '/admin', icon: LayoutDashboard, shortcut: 'G O' },
   { label: 'Clients', path: '/admin/clients', icon: Users, shortcut: 'G C' },
-  { label: 'Prospects', path: '/admin/prospects', icon: TrendingUp, shortcut: 'G P' },
+  { label: 'Mes prospects', path: '/admin/mes-prospects', icon: TrendingUp },
   { label: 'Calls', path: '/admin/calls', icon: Phone, shortcut: 'G A' },
   { label: 'Leads', path: '/admin/leads', icon: Zap, shortcut: 'G L' },
   { label: 'Billing', path: '/admin/billing', icon: FileText, shortcut: 'G B' },

@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, Phone, Zap, Settings, ExternalLink, FlaskConical, PhoneForwarded,
+  LayoutDashboard, Users, Phone, Zap, Settings, ExternalLink, FlaskConical, PhoneForwarded, Contact,
 } from '../icons';
 import { t } from '../../styles/admin-theme';
 import CommandPalette from '../ui/CommandPalette';
@@ -10,6 +10,7 @@ import DashboardShell, { NavItem } from './DashboardShell';
 const PRIMARY_NAV: NavItem[] = [
   { path: '/admin',          icon: LayoutDashboard, label: 'Dashboard', exact: true },
   { path: '/admin/leads',    icon: Zap,             label: 'Leads' },
+  { path: '/admin/mes-prospects', icon: Contact,     label: 'Mes prospects' },
   { path: '/admin/calls',    icon: Phone,           label: 'Appels' },
   { path: '/admin/clients',  icon: Users,           label: 'Clients' },
   { path: '/admin/lab',      icon: FlaskConical,    label: 'Banc d\'essai' },
@@ -22,14 +23,17 @@ const PRIMARY_NAV: NavItem[] = [
 const MOBILE_NAV: NavItem[] = [
   { icon: LayoutDashboard, label: 'Home',       path: '/admin',          exact: true },
   { icon: Zap,             label: 'Leads',      path: '/admin/leads' },
+  /* Cinq places: Paramètres reste dans le tiroir, « Mes prospects » se
+     consulte au téléphone, entre deux appels. */
+  { icon: Contact,         label: 'Prospects',  path: '/admin/mes-prospects' },
   { icon: Phone,           label: 'Appels',     path: '/admin/calls' },
   { icon: Users,           label: 'Clients',    path: '/admin/clients' },
-  { icon: Settings,        label: 'Paramètres', path: '/admin/settings' },
 ];
 
 const PAGE_TITLES: Record<string, string> = {
   '/admin':          'Dashboard',
   '/admin/leads':    'Leads',
+  '/admin/mes-prospects': 'Mes prospects',
   '/admin/calls':    'Appels',
   '/admin/clients':  'Clients',
   '/admin/lab':      "Banc d'essai",
