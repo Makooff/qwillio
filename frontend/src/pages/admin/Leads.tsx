@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
   RefreshCw, Search, X, Zap, Star, SlidersHorizontal, Bookmark,
-  ClipboardList, Palette, Phone, Loader2, Copy, Check, UserPlus, Trash2,
+  ClipboardList, Palette, Phone, Loader2, Copy, Check, UserPlus, Trash2, StickyNote,
 } from '../../components/icons';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
@@ -13,6 +13,9 @@ import ToastContainer from '../../components/ui/Toast';
 import Pagination from '../../components/ui/Pagination';
 import SlideSheet from '../../components/ui/SlideSheet';
 import Modal from '../../components/ui/Modal';
+import ProspectNotes, {
+  OutcomePicker, ProspectNote, prospectStatusColor, prospectStatusLabel,
+} from '../../components/admin/ProspectNotes';
 
 /**
  * Prospection, built for calling by hand.
@@ -43,6 +46,7 @@ interface Lead {
   createdAt: string;
   lastContactDate?: string;
   isFavorite?: boolean;
+  notesCount?: number;
 }
 
 interface SavedSearch {
@@ -81,7 +85,6 @@ interface Script {
   objectionHandlers: Record<string, string>; rawFull: string;
 }
 
-type PillColor = 'neutral' | 'ok' | 'warn' | 'bad' | 'info' | 'accent';
 
 // ─── Constants ────────────────────────────────────────────────────────────────
 
@@ -131,22 +134,10 @@ const STATUSES = [
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function statusColor(s: string): PillColor {
-  switch (s?.toLowerCase()) {
-    case 'hot_lead': return 'ok';
-    case 'converted': return 'accent';
-    case 'contacted': return 'info';
-    default: return 'neutral';
-  }
-}
-
-function statusLabel(s: string): string {
-  const map: Record<string, string> = {
-    new: 'Nouveau', contacted: 'Appelé', hot_lead: 'Chaud',
-    converted: 'Client', rejected: 'Refusé', exhausted: 'Épuisé',
-  };
-  return map[s?.toLowerCase()] || s || '—';
-}
+// Libellés et couleurs partagés avec « Mes prospects », pour que les deux
+// écrans nomment la même issue de la même façon.
+const statusColor = prospectStatusColor;
+const statusLabel = prospectStatusLabel;
 
 /** Strips anything a dialer would choke on, keeping a leading +. */
 function telHref(phone?: string): string | null {
@@ -244,7 +235,11 @@ export default function AdminLeads() {
     if (debounced) params.set('search', debounced);
     if (niche) params.set('niche', niche);
     if (minInterest) params.set('minInterest', minInterest);
-    if (status !== 'all') params.set('status', status);
+    // « Déjà appelés » veut dire appelés au moins une fois, quelle qu'en soit
+    // l'issue: depuis qu'on pose « à rappeler » ou « intéressé », le statut
+    // `contacted` seul n'en couvre plus qu'une partie.
+    if (status === 'contacted') params.set('contacted', 'true');
+    else if (status !== 'all') params.set('status', status);
     if (favOnly) params.set('favorite', 'true');
     if (phoneOnly) params.set('hasPhone', 'true');
     try {
@@ -296,6 +291,12 @@ export default function AdminLeads() {
       : l)));
     api.post(`/prospects/${lead.id}/touch`).catch(() => { /* the call still happened */ });
   };
+
+  const briefId = brief?.id;
+  const onNotesChange = useCallback((count: number, _last: ProspectNote | null) => {
+    if (!briefId) return;
+    setLeads(ls => ls.map(l => (l.id === briefId ? { ...l, notesCount: count } : l)));
+  }, [briefId]);
 
   const openBrief = async (lead: Lead) => {
     setBriefLoading(true);
@@ -570,7 +571,16 @@ export default function AdminLeads() {
                   </button>
 
                   <div className="flex-1 min-w-0">
-                    <p className="text-[13.5px] font-medium truncate" style={{ color: pro.text }}>{lead.businessName}</p>
+                    <p className="text-[13.5px] font-medium truncate flex items-center gap-1.5" style={{ color: pro.text }}>
+                      <span className="truncate">{lead.businessName}</span>
+                      {!!lead.notesCount && (
+                        <span className="inline-flex items-center gap-0.5 text-[11px] font-normal flex-shrink-0"
+                              title={`${lead.notesCount} note${lead.notesCount > 1 ? 's' : ''}`}
+                              style={{ color: pro.textTer }}>
+                          <StickyNote size={12} /> {lead.notesCount}
+                        </span>
+                      )}
+                    </p>
                     <p className="text-[11.5px] truncate" style={{ color: pro.textTer }}>
                       {[lead.city, lead.googleRating ? `★ ${Number(lead.googleRating).toFixed(1)}` : null,
                         lead.googleReviewsCount ? `${lead.googleReviewsCount} avis` : null,
@@ -681,12 +691,23 @@ export default function AdminLeads() {
               </div>
             )}
 
-            {brief.notes && (
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.08em] mb-2" style={{ color: pro.textTer }}>Notes</p>
-                <p className="text-[13px] leading-relaxed whitespace-pre-wrap" style={{ color: pro.textSec }}>{brief.notes}</p>
-              </div>
-            )}
+            <OutcomePicker
+              prospectId={brief.id}
+              status={brief.status}
+              onChange={next => {
+                setBrief(b => (b ? { ...b, status: next } : b));
+                setLeads(ls => ls.map(l => (l.id === brief.id ? { ...l, status: next } : l)));
+                toast('Issue enregistrée');
+              }}
+              onError={msg => toast(msg, 'error')}
+            />
+
+            <ProspectNotes
+              prospectId={brief.id}
+              legacyNotes={brief.notes}
+              onCountChange={onNotesChange}
+              onError={msg => toast(msg, 'error')}
+            />
 
             <div className="flex items-center gap-2 pt-2">
               {telHref(brief.phone) && (

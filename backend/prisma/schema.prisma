@@ -212,8 +212,10 @@ model Prospect {
   quotes                Quote[]
   smsLogs               SmsLog[]
   linkedInOutreach      LinkedInOutreach[]
+  prospectNotes         ProspectNote[]
 
   @@index([status])
+  @@index([lastContactDate])
   @@index([businessType])
   @@index([city])
   @@index([score])
@@ -2275,4 +2277,21 @@ model LearningPattern {
 
   @@index([status])
   @@map("learning_pattern")
+}
+
+/// Notes datees prises par le fondateur sur un prospect (avant, pendant ou
+/// apres un appel). Une ligne par note plutot qu'un champ texte unique: un
+/// historique d'echanges se relit dans l'ordre, et deux onglets ouverts ne
+/// s'ecrasent pas l'un l'autre comme ils le feraient sur `prospects.notes`.
+model ProspectNote {
+  id         String   @id @default(uuid()) @db.Uuid
+  prospectId String   @map("prospect_id") @db.Uuid
+  body       String
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @default(now()) @updatedAt @map("updated_at")
+
+  prospect Prospect @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+
+  @@index([prospectId, createdAt])
+  @@map("prospect_notes")
 }
