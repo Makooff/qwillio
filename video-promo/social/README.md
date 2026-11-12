@@ -94,6 +94,8 @@ sur LinkedIn et Facebook, garder le son d'origine.
 
 ## Les bios
 
+**Identifiant** : `@qwillio.belgium` (Instagram ; le même partout où il est libre : TikTok, Facebook, YouTube). Nom affiché : « Qwillio ». E-mail des comptes : `social@qwillio.com`.
+
 Une par réseau, chacune sous la limite de caractères du réseau. Le néerlandais
 vouvoie (« u »), comme les vidéos et les posts.
 
