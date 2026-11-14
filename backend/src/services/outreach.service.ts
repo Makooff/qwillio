@@ -1,13 +1,13 @@
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
-import { env } from '../config/env';
 import { emailService } from './email.service';
 import { smsService } from './sms.service';
 import { smsReadiness } from './sms-ready';
 import { toE164 } from '../utils/sms-e164';
 import { phoneForms } from '../utils/phone-forms';
 import {
-  OUTREACH_TEMPLATES, OutreachError, addressKind, findTemplate, isEmail, renderOutreach,
+  OUTREACH_SENDERS, OUTREACH_TEMPLATES, OutreachError, addressKind, defaultSenderKey, findTemplate, fromHeader,
+  isEmail, renderOutreach, resolveSenderAddress,
   type OutreachSender, type Rendered,
 } from '../config/outreach-templates';
 
@@ -40,6 +40,8 @@ export interface OutreachRequest {
   to?: string | null;
   vars?: Record<string, unknown>;
   sender: OutreachSender;
+  /** La clé d'une adresse de `OUTREACH_SENDERS`. Absente : celle du modèle. */
+  fromKey?: string | null;
   accord?: boolean;
 }
 
@@ -49,7 +51,7 @@ export type OutreachFailure =
   | 'missing_field' | 'missing_sender' | 'missing_video' | 'sms_unavailable' | 'send_failed';
 
 export type OutreachResult =
-  | { ok: true; channel: 'email' | 'sms'; to: string; segments?: number }
+  | { ok: true; channel: 'email' | 'sms'; to: string; segments?: number; from?: string }
   | { ok: false; error: OutreachFailure; field?: string; detail?: string };
 
 interface Target {
@@ -68,9 +70,9 @@ const PROSPECT_FIELDS = {
 class OutreachService {
   templates() {
     return {
-      templates: OUTREACH_TEMPLATES,
+      templates: OUTREACH_TEMPLATES.map(t => ({ ...t, defaultFrom: t.channel === 'email' ? defaultSenderKey(t.id) : null })),
+      senders: OUTREACH_SENDERS,
       sms: smsReadiness(),
-      replyTo: env.RESEND_REPLY_TO,
     };
   }
 
@@ -144,6 +146,9 @@ class OutreachService {
     return {
       ok: true as const,
       rendered,
+      from: rendered.channel === 'email'
+        ? fromHeader(String(req.sender?.prenom ?? ''), resolveSenderAddress(req.templateId, req.fromKey).address)
+        : null,
       /* Le destinataire peut manquer pendant qu'on redige : l'apercu ne s'en
          offusque pas, c'est l'envoi qui refusera. */
       recipient: 'error' in target
@@ -152,7 +157,7 @@ class OutreachService {
     };
   }
 
-  async send(req: OutreachRequest, replyTo?: string | null): Promise<OutreachResult> {
+  async send(req: OutreachRequest): Promise<OutreachResult> {
     const target = await this.resolveTarget(req);
     if ('error' in target) return { ok: false, error: target.error };
     if (target.consentRequired && req.accord !== true) return { ok: false, error: 'consent_required' };
@@ -161,20 +166,24 @@ class OutreachService {
     if ('error' in rendered) return { ok: false, error: rendered.error, field: rendered.field };
 
     if (rendered.channel === 'email') {
+      const expediteur = resolveSenderAddress(req.templateId, req.fromKey);
       try {
         await emailService.send({
           to: target.to,
           subject: rendered.subject,
           html: rendered.html,
-          replyTo: replyTo && isEmail(replyTo) ? replyTo : undefined,
-          tags: [{ name: 'type', value: 'outreach' }, { name: 'template', value: req.templateId }],
+          /* Le mail part d'un alias de la boîte principale, et la réponse y
+             revient : même adresse en « De » et en « Répondre à ». */
+          from: fromHeader(String(req.sender?.prenom ?? ''), expediteur.address),
+          replyTo: expediteur.address,
+          tags: [{ name: 'type', value: 'outreach' }, { name: 'template', value: req.templateId }, { name: 'from', value: expediteur.key }],
         });
       } catch (error) {
         logger.warn(`[Outreach] mail « ${req.templateId} » non parti: ${(error as Error).message}`);
         return { ok: false, error: 'send_failed' };
       }
       await this.markTouched(target.prospectId);
-      return { ok: true, channel: 'email', to: target.to };
+      return { ok: true, channel: 'email', to: target.to, from: expediteur.address };
     }
 
     const ready = smsReadiness();

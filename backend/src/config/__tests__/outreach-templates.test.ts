@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import {
-  OUTREACH_TEMPLATES, OutreachError, addressKind, renderOutreach, safeLink, smsSegments, toGsm,
+  OUTREACH_SENDERS, OUTREACH_TEMPLATES, OutreachError, addressKind, fromHeader, renderOutreach, resolveSenderAddress,
+  safeLink, smsSegments, toGsm,
 } from '../outreach-templates';
 
 const sender = { prenom: 'Matthieu', nom: 'Dupont', telephone: '+32 470 12 34 56', lienVideo: 'https://youtu.be/abc' };
@@ -105,5 +106,25 @@ describe('le type d\'adresse', () => {
     expect(addressKind('Contact@garage.be')).toBe('generic');
     expect(addressKind('jean.dupont@gmail.com')).toBe('personal');
     expect(addressKind('plomberiedupont@gmail.com')).toBe('personal');
+  });
+});
+
+describe('l\'adresse d\'envoi', () => {
+  it('ne propose que des adresses du domaine où l\'on peut répondre', () => {
+    for (const o of OUTREACH_SENDERS) expect(o.address).toMatch(/^[a-z]+@qwillio\.com$/);
+    expect(OUTREACH_SENDERS.map(o => o.key)).not.toContain('noreply');
+  });
+
+  it('retombe sur l\'adresse du modèle pour une clé inconnue', () => {
+    expect(resolveSenderAddress('apporteur', 'nimporte')).toEqual({ key: 'partenaires', address: 'partenaires@qwillio.com' });
+    expect(resolveSenderAddress('dernier', null)).toEqual({ key: 'hello', address: 'hello@qwillio.com' });
+    expect(resolveSenderAddress('dernier', 'support').address).toBe('support@qwillio.com');
+  });
+
+  it('ne laisse pas un prénom saisi ouvrir une seconde adresse dans l\'en-tête', () => {
+    const header = fromHeader('Mathieu" <pirate@exemple.com>\r\nBcc: x', 'hello@qwillio.com');
+    expect(header.endsWith(' de Qwillio <hello@qwillio.com>')).toBe(true);
+    expect(header.slice(0, -'<hello@qwillio.com>'.length)).not.toMatch(/[<>"\r\n]/);
+    expect(fromHeader('', 'hello@qwillio.com')).toBe('Qwillio <hello@qwillio.com>');
   });
 });

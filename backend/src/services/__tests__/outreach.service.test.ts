@@ -9,7 +9,6 @@ const readyMock = vi.hoisted(() => ({ smsReadiness: vi.fn() }));
 
 vi.mock('../../config/database', () => ({ prisma: prismaMock }));
 vi.mock('../../config/logger', () => ({ logger: { info: vi.fn(), warn: vi.fn(), error: vi.fn(), debug: vi.fn() } }));
-vi.mock('../../config/env', () => ({ env: { RESEND_REPLY_TO: 'contact@qwillio.com' } }));
 vi.mock('../email.service', () => ({ emailService: emailMock }));
 vi.mock('../sms.service', () => ({ smsService: smsMock }));
 vi.mock('../sms-ready', () => readyMock);
@@ -36,12 +35,26 @@ describe('le mail', () => {
   it('part vers l\'adresse générale de la fiche, sans accord à attester', async () => {
     const r = await outreachService.send(
       { channel: 'email', templateId: 'appel_manque', prospectId: 'p1', vars: { heure: '14 h 10' }, sender },
-      'moi@qwillio.com',
     );
-    expect(r).toMatchObject({ ok: true, channel: 'email', to: 'info@plomberie.be' });
+    expect(r).toMatchObject({ ok: true, channel: 'email', to: 'info@plomberie.be', from: 'hello@qwillio.com' });
     const sent = emailMock.send.mock.calls[0][0];
     expect(sent.subject).toBe('Appel manqué à 14 h 10');
-    expect(sent.replyTo).toBe('moi@qwillio.com');
+    expect(sent.from).toBe('Matthieu de Qwillio <hello@qwillio.com>');
+    // La réponse revient à l'adresse qui a écrit, donc dans la boîte principale.
+    expect(sent.replyTo).toBe('hello@qwillio.com');
+  });
+
+  it('écrit aux apporteurs depuis partenaires@, sauf adresse choisie', async () => {
+    const base = { channel: 'email' as const, templateId: 'apporteur', prospectId: 'p1', vars: { jour1: 'jeudi', jour2: 'vendredi' }, sender };
+    await outreachService.send(base);
+    expect(emailMock.send.mock.calls[0][0].from).toContain('<partenaires@qwillio.com>');
+    await outreachService.send({ ...base, fromKey: 'support' });
+    expect(emailMock.send.mock.calls[1][0].from).toContain('<support@qwillio.com>');
+  });
+
+  it('ignore une adresse d\'envoi hors de la liste fermée', async () => {
+    await outreachService.send({ channel: 'email', templateId: 'dernier', prospectId: 'p1', sender, fromKey: 'pdg@autre-domaine.com' });
+    expect(emailMock.send.mock.calls[0][0].from).toBe('Matthieu de Qwillio <hello@qwillio.com>');
   });
 
   it('avance le statut sans compter un appel', async () => {

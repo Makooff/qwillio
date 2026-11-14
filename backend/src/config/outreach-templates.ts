@@ -158,6 +158,46 @@ export const OUTREACH_TEMPLATES: OutreachTemplate[] = [
   },
 ];
 
+// ── Les adresses d'envoi ─────────────────────────────────────────────────────
+
+/**
+ * Les adresses du domaine depuis lesquelles un mail de prospection peut partir.
+ *
+ * Ce sont des alias de la boîte principale (support@) : une réponse à l'une
+ * d'elles arrive dans la même boîte. La liste est FERMÉE, et c'est le serveur
+ * qui la tient : une adresse d'expéditeur venue du navigateur permettrait
+ * d'écrire au nom de n'importe qui sur le domaine. `noreply@` n'y figure pas,
+ * un prospect doit pouvoir répondre ; `social@` non plus, ce n'est pas son rôle.
+ */
+export const OUTREACH_SENDERS = [
+  { key: 'hello', address: 'hello@qwillio.com', label: 'hello@qwillio.com', hint: 'Prospection' },
+  { key: 'contact', address: 'contact@qwillio.com', label: 'contact@qwillio.com', hint: 'Contact général' },
+  { key: 'partenaires', address: 'partenaires@qwillio.com', label: 'partenaires@qwillio.com', hint: 'Apporteurs et partenaires' },
+  { key: 'support', address: 'support@qwillio.com', label: 'support@qwillio.com', hint: 'Boîte principale' },
+] as const;
+export type OutreachSenderKey = typeof OUTREACH_SENDERS[number]['key'];
+
+/** L'adresse qui convient au modèle quand l'expéditeur n'en a pas choisi une. */
+export function defaultSenderKey(templateId: string): OutreachSenderKey {
+  return templateId === 'apporteur' ? 'partenaires' : 'hello';
+}
+
+/** Rend l'adresse choisie si elle est dans la liste, sinon celle du modèle. */
+export function resolveSenderAddress(templateId: string, key: unknown): { key: OutreachSenderKey; address: string } {
+  const found = OUTREACH_SENDERS.find(o => o.key === key) ?? OUTREACH_SENDERS.find(o => o.key === defaultSenderKey(templateId))!;
+  return { key: found.key, address: found.address };
+}
+
+/**
+ * L'en-tête « De ». Le nom affiché vient d'un champ de saisie : on en retire
+ * tout ce qui pourrait fermer le nom et ouvrir une seconde adresse, ou couper
+ * la ligne d'en-tête.
+ */
+export function fromHeader(prenom: string, address: string): string {
+  const name = prenom.replace(/[<>"\\,;:\r\n]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 40);
+  return name ? `${name} de Qwillio <${address}>` : `Qwillio <${address}>`;
+}
+
 export function findTemplate(id: string): OutreachTemplate | undefined {
   return OUTREACH_TEMPLATES.find(t => t.id === id);
 }
@@ -244,32 +284,42 @@ export function smsSegments(text: string): number {
 
 // ── La mise en page du mail ──────────────────────────────────────────────────
 
+/* La marque, telle que le site la porte : le logo aux deux cercles, Outfit,
+   l'encre et l'indigo. Le logo est servi par le site (`frontend/public`), donc
+   il existe en production avant que le premier mail ne parte. */
 const INK = '#1d1d1f';
 const MUTED = '#6b6660';
 const RULE = '#ebe8e4';
 const VIOLET = '#7A5FFF';
+const LILAC = '#f4eefe';
+const LOGO_URL = 'https://qwillio.com/logo-qw.png';
+const SITE_URL = 'https://qwillio.com';
 const FONT = "'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif";
 
 function para(html: string): string {
   return `<p style="margin:0 0 16px 0;font-family:${FONT};font-size:15px;line-height:1.65;color:${INK};">${html}</p>`;
 }
 
-/** La video : un bloc sobre, une seule action. Pas d'image, donc rien a bloquer. */
+/**
+ * La video : le seul bloc illustre du mail, dans le registre du site (fond
+ * lilas, titre en Outfit, bouton en pilule). Le degrade est un confort : un
+ * client de messagerie qui l'ignore affiche le lilas uni.
+ */
 function videoBlock(link: string): string {
   return `
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:8px 0 24px 0;">
     <tr>
-      <td style="border:1px solid ${RULE};border-radius:14px;padding:18px 20px;background:#faf9f8;">
-        <p style="margin:0 0 4px 0;font-family:${FONT};font-size:12px;letter-spacing:0.06em;text-transform:uppercase;color:${MUTED};">Démonstration, 45 secondes</p>
-        <p style="margin:0 0 14px 0;font-family:${FONT};font-size:15px;line-height:1.5;color:${INK};">Ce que votre client entend quand vous ne pouvez pas décrocher.</p>
+      <td bgcolor="${LILAC}" style="border-radius:18px;padding:24px 24px 22px 24px;background:${LILAC};background-image:linear-gradient(135deg,#ffffff 0%,${LILAC} 55%,#ecdcfd 100%);">
+        <p style="margin:0 0 8px 0;font-family:${FONT};font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:${VIOLET};">Démonstration, 45 secondes</p>
+        <p style="margin:0 0 18px 0;font-family:${FONT};font-size:20px;font-weight:600;line-height:1.25;letter-spacing:-0.01em;color:${INK};">Ce que votre client entend quand vous ne pouvez pas décrocher.</p>
         <table role="presentation" cellpadding="0" cellspacing="0" border="0">
           <tr>
             <td bgcolor="${VIOLET}" style="border-radius:999px;background:${VIOLET};">
-              <a href="${escapeHtml(link)}" style="display:inline-block;padding:11px 22px;font-family:${FONT};font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:999px;">&#9654;&nbsp; Voir la vidéo</a>
+              <a href="${escapeHtml(link)}" style="display:inline-block;padding:12px 24px;font-family:${FONT};font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:999px;">&#9654;&nbsp; Voir la vidéo</a>
             </td>
           </tr>
         </table>
-        <p style="margin:12px 0 0 0;font-family:${FONT};font-size:12px;line-height:1.5;color:${MUTED};word-break:break-all;">${escapeHtml(link)}</p>
+        <p style="margin:14px 0 0 0;font-family:${FONT};font-size:12px;line-height:1.5;color:${MUTED};word-break:break-all;">${escapeHtml(link)}</p>
       </td>
     </tr>
   </table>`;
@@ -295,6 +345,7 @@ function shell(opts: { subject: string; preheader: string; body: string; sender:
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light only">
   <title>${escapeHtml(opts.subject)}</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&display=swap" rel="stylesheet">
 </head>
 <body bgcolor="#ffffff" style="margin:0;padding:0;background:#ffffff;color:${INK};-webkit-font-smoothing:antialiased;">
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;font-size:1px;line-height:1px;color:transparent;">${escapeHtml(opts.preheader)}</div>
@@ -304,8 +355,10 @@ function shell(opts: { subject: string; preheader: string; body: string; sender:
         <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;">
           <tr>
             <td style="padding:0 0 28px 0;">
-              <span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${VIOLET};vertical-align:middle;"></span>
-              <span style="font-family:${FONT};font-size:17px;font-weight:600;letter-spacing:-0.01em;color:${INK};vertical-align:middle;margin-left:7px;">Qwillio</span>
+              <a href="${SITE_URL}" style="text-decoration:none;">
+                <img src="${LOGO_URL}" width="34" height="34" alt="" style="display:inline-block;vertical-align:middle;border:0;">
+                <span style="font-family:${FONT};font-size:19px;font-weight:600;letter-spacing:-0.02em;color:${INK};vertical-align:middle;margin-left:8px;">Qwillio</span>
+              </a>
             </td>
           </tr>
           <tr>
@@ -316,7 +369,7 @@ function shell(opts: { subject: string; preheader: string; body: string; sender:
           </tr>
           <tr>
             <td style="padding:26px 0 0 0;">
-              <p style="margin:0;font-family:${FONT};font-size:12px;line-height:1.6;color:${MUTED};">Si ce n'est pas pour vous, répondez « stop » et je ne vous écris plus.</p>
+              <p style="margin:0;font-family:${FONT};font-size:12px;line-height:1.6;color:${MUTED};">Si ce n'est pas pour vous, répondez « stop » et je ne vous écris plus.<br><a href="${SITE_URL}" style="color:${MUTED};text-decoration:underline;">qwillio.com</a></p>
             </td>
           </tr>
         </table>

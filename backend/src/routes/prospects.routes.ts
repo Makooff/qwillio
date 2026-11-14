@@ -3,8 +3,8 @@ import { prospectsController } from '../controllers/prospects.controller';
 import { authMiddleware, adminMiddleware, AuthRequest } from '../middleware/auth.middleware';
 import { prospectWorkbenchService, savedSearchService } from '../services/prospect-workbench.service';
 import { logger } from '../config/logger';
-import { prisma } from '../config/database';
 import { outreachService, type OutreachRequest } from '../services/outreach.service';
+import { callListService } from '../services/call-list.service';
 
 const router = Router();
 
@@ -72,6 +72,7 @@ function outreachRequest(body: any): OutreachRequest {
     to: typeof b.to === 'string' ? b.to : null,
     vars: b.vars && typeof b.vars === 'object' ? b.vars : {},
     sender: b.sender && typeof b.sender === 'object' ? b.sender : { prenom: '' },
+    fromKey: typeof b.fromKey === 'string' ? b.fromKey : null,
     accord: b.accord === true,
   };
 }
@@ -91,13 +92,7 @@ router.post('/outreach/preview', async (req: AuthRequest, res: Response) => {
 
 router.post('/outreach/send', async (req: AuthRequest, res: Response) => {
   try {
-    /* Les réponses reviennent à CELUI QUI ENVOIE, pas à la boîte générale:
-       un prospect qui répond « oui » doit tomber chez la personne qui va le
-       rappeler dans l'heure. */
-    const me = req.userId
-      ? await prisma.user.findUnique({ where: { id: req.userId }, select: { email: true } })
-      : null;
-    const result = await outreachService.send(outreachRequest(req.body), me?.email ?? null);
+    const result = await outreachService.send(outreachRequest(req.body));
     if (!result.ok) {
       const status = result.error === 'send_failed' || result.error === 'sms_unavailable' ? 502 : 400;
       return res.status(status).json(result);
@@ -109,6 +104,27 @@ router.post('/outreach/send', async (req: AuthRequest, res: Response) => {
   }
 });
 
+// ─── La liste d'appels et son journal ─────────────────────
+// `/call-list` et `/call-list/stats` avant `/:id`, sinon ils sont pris pour un identifiant.
+
+router.get('/call-list', async (_req: AuthRequest, res: Response) => {
+  try {
+    res.json({ data: await callListService.list() });
+  } catch (err: any) {
+    logger.error('[prospects] call list failed', err);
+    res.status(500).json({ error: 'call_list_failed' });
+  }
+});
+
+router.get('/call-list/stats', async (req: AuthRequest, res: Response) => {
+  try {
+    res.json(await callListService.stats(Number(req.query.days) || 30));
+  } catch (err: any) {
+    logger.error('[prospects] call stats failed', err);
+    res.status(500).json({ error: 'call_stats_failed' });
+  }
+});
+
 // ─── Prospects ────────────────────────────────────────────
 
 router.get('/', (req, res) => prospectsController.list(req, res));
@@ -117,6 +133,38 @@ router.get('/:id', (req, res) => prospectsController.getById(req, res));
 router.put('/:id', (req, res) => prospectsController.update(req, res));
 router.patch('/:id/favorite', (req, res) => prospectsController.setFavorite(req, res));
 router.delete('/:id', (req, res) => prospectsController.delete(req, res));
+
+/** Ajoute la fiche à la liste d'appels, ou l'en retire. */
+router.post('/:id/call-list', async (req: AuthRequest, res: Response) => {
+  try {
+    const updated = await callListService.setInList(String(req.params.id), req.body?.inList !== false);
+    if (!updated) return res.status(404).json({ error: 'not_found' });
+    res.json(updated);
+  } catch (err: any) {
+    logger.error('[prospects] call list toggle failed', err);
+    res.status(500).json({ error: 'call_list_failed' });
+  }
+});
+
+router.get('/:id/call-logs', async (req: AuthRequest, res: Response) => {
+  try {
+    res.json({ data: await callListService.logs(String(req.params.id)) });
+  } catch (err: any) {
+    res.status(500).json({ error: 'call_logs_failed' });
+  }
+});
+
+/** Consigne un appel passé à la main: l'issue, l'objection, la note. */
+router.post('/:id/call-logs', async (req: AuthRequest, res: Response) => {
+  try {
+    const result = await callListService.log(String(req.params.id), req.userId ?? null, req.body || {});
+    if (!result.ok) return res.status(result.status).json({ error: result.error });
+    res.status(201).json(result);
+  } catch (err: any) {
+    logger.error('[prospects] call log failed', err);
+    res.status(500).json({ error: 'call_log_failed' });
+  }
+});
 
 /** Everything worth reading before dialling. */
 router.get('/:id/brief', async (req: AuthRequest, res: Response) => {

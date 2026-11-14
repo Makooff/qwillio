@@ -198,12 +198,17 @@ model Prospect {
   scriptVariantUsed     String?               @map("script_variant_used") @db.VarChar(10)
   state                 String?               @db.VarChar(50)
   isFavorite            Boolean               @default(false) @map("is_favorite")
+  /// La liste d'appels du fondateur: posée quand il ajoute la fiche à « À
+  /// appeler », retirée (null) quand il l'en sort. Une date plutôt qu'un
+  /// booléen: elle donne aussi l'ordre d'ajout.
+  callListAt            DateTime?             @map("call_list_at")
   // Sales script written for THIS business, generated on demand and kept so
   // reopening it costs nothing. The generator's own cache is keyed by niche,
   // which is why it cannot be relied on for per-prospect copy.
   salesScript           Json?                 @map("sales_script")
   salesScriptAt         DateTime?             @map("sales_script_at")
   calls                 Call[]
+  callLogs              ProspectCallLog[]
   campaignSends         CampaignSend[]
   clients               Client[]
   followUpSequences     FollowUpSequence[]
@@ -220,7 +225,35 @@ model Prospect {
   @@index([priorityScore])
   @@index([niche])
   @@index([eligibleForCall])
+  @@index([callListAt])
   @@map("prospects")
+}
+
+/// Un appel passé À LA MAIN par le fondateur, et ce qu'il en est sorti.
+///
+/// Distinct de `Call`, qui porte les appels sortants automatiques (transcript,
+/// coût, identifiants du fournisseur). Ici il n'y a ni audio ni transcript: le
+/// fondateur appelle depuis son propre téléphone, et note l'issue. C'est cette
+/// table qui répond à « qu'est-ce qui marche »: par issue, par objection, par
+/// heure, par métier.
+model ProspectCallLog {
+  id         String    @id @default(uuid()) @db.Uuid
+  prospectId String    @map("prospect_id") @db.Uuid
+  userId     String?   @map("user_id") @db.Uuid
+  /// no_answer | voicemail | callback | refused | interested | meeting | wrong_number | do_not_call
+  outcome    String    @db.VarChar(30)
+  /// Renseignée sur un refus: already_handled | anti_ai | too_expensive | no_time | not_interested | other
+  objection  String?   @db.VarChar(40)
+  note       String?
+  /// Quand rappeler, si l'issue est « à rappeler ».
+  callbackAt DateTime? @map("callback_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  prospect   Prospect  @relation(fields: [prospectId], references: [id], onDelete: Cascade)
+
+  @@index([prospectId, createdAt])
+  @@index([createdAt])
+  @@index([outcome])
+  @@map("prospect_call_logs")
 }
 
 model Call {

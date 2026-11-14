@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import {
   RefreshCw, Search, X, Zap, Star, SlidersHorizontal, Bookmark,
-  ClipboardList, Palette, Phone, Loader2, Copy, Check, UserPlus, Trash2, Mail, MessageSquare, Send,
+  ClipboardList, Palette, Phone, Loader2, Copy, Check, UserPlus, Trash2, Mail, MessageSquare, Send, Plus, ListChecks,
 } from '../../components/icons';
 import { formatDistanceToNow } from 'date-fns';
 import { fr } from 'date-fns/locale';
 import api from '../../services/api';
+import { useNavigate } from 'react-router-dom';
 import { pro } from '../../styles/pro-theme';
 import { PageHeader, Card, IconBtn, PrimaryBtn, GhostBtn, Pill } from '../../components/pro/ProBlocks';
 import { useToast } from '../../hooks/useToast';
@@ -44,6 +45,8 @@ interface Lead {
   createdAt: string;
   lastContactDate?: string;
   isFavorite?: boolean;
+  /** Posée quand la fiche est dans « À appeler ». */
+  callListAt?: string | null;
 }
 
 interface SavedSearch {
@@ -180,6 +183,7 @@ const selectStyle = { background: pro.panel, color: pro.text, border: `1px solid
 
 export default function AdminLeads() {
   const { toasts, add: toast, remove } = useToast();
+  const navigate = useNavigate();
 
   // Filters
   const [search, setSearch] = useState('');
@@ -299,6 +303,18 @@ export default function AdminLeads() {
       ? { ...l, status: l.status === 'new' ? 'contacted' : l.status, callAttempts: l.callAttempts + 1 }
       : l)));
     api.post(`/prospects/${lead.id}/touch`).catch(() => { /* the call still happened */ });
+  };
+
+  /** Ajoute la fiche à « À appeler », ou l'en retire. L'écran bouge d'abord, le serveur confirme. */
+  const toggleCallList = async (lead: Lead) => {
+    const next = !lead.callListAt;
+    setLeads(ls => ls.map(l => (l.id === lead.id ? { ...l, callListAt: next ? new Date().toISOString() : null } : l)));
+    try {
+      await api.post(`/prospects/${lead.id}/call-list`, { inList: next });
+    } catch {
+      setLeads(ls => ls.map(l => (l.id === lead.id ? { ...l, callListAt: lead.callListAt ?? null } : l)));
+      toast('La liste d’appels n’a pas pu être mise à jour.', 'error');
+    }
   };
 
   /** Un message parti est un contact : la ligne le montre sans attendre le rechargement. */
@@ -455,6 +471,9 @@ export default function AdminLeads() {
         subtitle="Cherchez, appelez, convertissez."
         right={
           <div className="flex items-center gap-2">
+            <GhostBtn size="sm" onClick={() => navigate('/admin/call-list')}>
+              <ListChecks size={12} /> À appeler
+            </GhostBtn>
             <GhostBtn size="sm" onClick={() => setOutreach({ lead: null, channel: 'email' })}>
               <Send size={12} /> Envoi libre
             </GhostBtn>
@@ -602,6 +621,18 @@ export default function AdminLeads() {
                   <span className="hidden sm:inline-flex"><Pill color={statusColor(lead.status)}>{statusLabel(lead.status)}</Pill></span>
 
                   <div className="flex items-center gap-1.5 flex-shrink-0">
+                    <button
+                      onClick={() => toggleCallList(lead)}
+                      aria-pressed={!!lead.callListAt}
+                      title={lead.callListAt ? 'Dans « À appeler ». Cliquer pour retirer' : 'Ajouter à « À appeler »'}
+                      aria-label={lead.callListAt ? `Retirer ${lead.businessName} de la liste d'appels` : `Ajouter ${lead.businessName} à la liste d'appels`}
+                      className="h-9 w-9 grid place-items-center rounded-xl transition-colors"
+                      style={lead.callListAt
+                        ? { background: pro.accentDim, border: `1px solid ${pro.accentBrd}`, color: pro.accentHi }
+                        : { background: pro.panel, border: `1px solid ${pro.border}`, color: pro.text }}
+                    >
+                      {lead.callListAt ? <Check size={14} /> : <Plus size={14} />}
+                    </button>
                     {/* Opens the dialer on the founder's own phone. */}
                     {href ? (
                       <a

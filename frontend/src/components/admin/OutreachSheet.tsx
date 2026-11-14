@@ -26,13 +26,18 @@ export interface OutreachTarget {
 interface Field { key: string; label: string; placeholder?: string; required?: boolean; long?: boolean }
 interface Template {
   id: string; channel: OutreachChannel; label: string; when: string; fields: Field[]; needsVideo?: boolean;
+  /** L'adresse d'envoi qui convient à ce modèle. */
+  defaultFrom?: string | null;
 }
+interface SenderAddress { key: string; address: string; label: string; hint: string }
 interface Sender { prenom: string; nom: string; telephone: string; lienVideo: string }
 
 interface Preview {
   ok: boolean;
   error?: string;
   field?: string;
+  /** L'en-tête « De » tel qu'il partira. */
+  from?: string | null;
   rendered?:
     | { channel: 'email'; subject: string; html: string }
     | { channel: 'sms'; body: string; segments: number };
@@ -50,7 +55,20 @@ interface Props {
 }
 
 const SENDER_KEY = 'qwillio.outreach.sender';
-const EMPTY_SENDER: Sender = { prenom: '', nom: '', telephone: '', lienVideo: '' };
+const FROM_KEY = 'qwillio.outreach.from';
+
+/** '' : l'adresse du modèle. Sinon, l'adresse choisie une fois pour toutes sur ce navigateur. */
+function loadFromChoice(): string {
+  try { return window.localStorage.getItem(FROM_KEY) ?? ''; } catch { return ''; }
+}
+function saveFromChoice(value: string) {
+  try {
+    if (value) window.localStorage.setItem(FROM_KEY, value);
+    else window.localStorage.removeItem(FROM_KEY);
+  } catch { /* sans stockage, le choix vaut pour cet envoi */ }
+}
+/** Le fondateur. Modifiable dans « Vous », et retenu ensuite sur le navigateur. */
+const EMPTY_SENDER: Sender = { prenom: 'Mathieu', nom: 'Polle', telephone: '', lienVideo: '' };
 
 /** Le stockage du navigateur peut manquer (fenêtre privée) : l'écran doit marcher sans. */
 function loadSender(): Sender {
@@ -95,6 +113,8 @@ function Label({ htmlFor, children }: { htmlFor: string; children: React.ReactNo
 export default function OutreachSheet({ open, onClose, target, channel: initialChannel, onSent, onError }: Props) {
   const [templates, setTemplates] = useState<Template[]>([]);
   const [smsMissing, setSmsMissing] = useState<string[]>([]);
+  const [addresses, setAddresses] = useState<SenderAddress[]>([]);
+  const [fromChoice, setFromChoice] = useState('');
   const [channel, setChannel] = useState<OutreachChannel>(initialChannel);
   const [templateId, setTemplateId] = useState('');
   const [to, setTo] = useState('');
@@ -119,6 +139,7 @@ export default function OutreachSheet({ open, onClose, target, channel: initialC
     api.get('/prospects/outreach/templates')
       .then(({ data }) => {
         setTemplates(Array.isArray(data?.templates) ? data.templates : []);
+        setAddresses(Array.isArray(data?.senders) ? data.senders : []);
         setSmsMissing(data?.sms?.ok === false ? data.sms.missing ?? [] : []);
       })
       .catch(() => { if (!failed.current) { failed.current = true; onErrorRef.current('Les modèles de message n’ont pas pu être chargés.'); } });
@@ -134,6 +155,7 @@ export default function OutreachSheet({ open, onClose, target, channel: initialC
     setAccord(false);
     setPreview(null);
     setSender(saved);
+    setFromChoice(loadFromChoice());
     setSenderOpen(!saved.prenom);
   }, [open, target, initialChannel]);
 
@@ -159,7 +181,8 @@ export default function OutreachSheet({ open, onClose, target, channel: initialC
     to: to.trim() || null,
     vars,
     sender,
-  }), [channel, template?.id, target?.id, to, vars, sender]);
+    fromKey: fromChoice || null,
+  }), [channel, template?.id, target?.id, to, vars, sender, fromChoice]);
 
   // L'aperçu suit la frappe, avec un court délai pour ne pas interroger à chaque lettre.
   useEffect(() => {
@@ -279,6 +302,30 @@ export default function OutreachSheet({ open, onClose, target, channel: initialC
           </p>
         </div>
 
+        {/* D'où part le mail : un alias de la boîte principale, donc la réponse y revient */}
+        {channel === 'email' && addresses.length > 0 && (
+          <div>
+            <Label htmlFor="outreach-from">Envoyé depuis</Label>
+            <select
+              id="outreach-from"
+              value={fromChoice}
+              onChange={e => { setFromChoice(e.target.value); saveFromChoice(e.target.value); }}
+              className={`${inputCls} appearance-none`}
+              style={{ ...inputStyle, colorScheme: 'dark' }}
+            >
+              <option value="">
+                Selon le modèle ({addresses.find(a => a.key === template?.defaultFrom)?.address ?? 'hello@qwillio.com'})
+              </option>
+              {addresses.map(a => (
+                <option key={a.key} value={a.key}>{a.address} · {a.hint}</option>
+              ))}
+            </select>
+            <p className="text-[11.5px] mt-1.5 leading-relaxed" style={{ color: pro.textTer }}>
+              Les réponses arrivent à cette adresse, donc dans votre boîte principale.
+            </p>
+          </div>
+        )}
+
         {/* Modèle */}
         <div>
           <p className={labelCls} style={{ color: pro.textSec }}>Modèle</p>
@@ -388,9 +435,10 @@ export default function OutreachSheet({ open, onClose, target, channel: initialC
             </p>
           ) : rendered?.channel === 'email' ? (
             <div className="rounded-xl overflow-hidden" style={{ border: `1px solid ${pro.border}` }}>
-              <p className="px-4 py-2.5 text-[12.5px] truncate" style={{ color: pro.textSec, borderBottom: `1px solid ${pro.border}` }}>
-                <span style={{ color: pro.textTer }}>Objet · </span>{rendered.subject}
-              </p>
+              <div className="px-4 py-2.5 text-[12.5px] space-y-0.5" style={{ color: pro.textSec, borderBottom: `1px solid ${pro.border}` }}>
+                {preview?.from && <p className="truncate"><span style={{ color: pro.textTer }}>De · </span>{preview.from}</p>}
+                <p className="truncate"><span style={{ color: pro.textTer }}>Objet · </span>{rendered.subject}</p>
+              </div>
               <iframe
                 title="Aperçu du mail"
                 sandbox=""
