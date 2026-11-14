@@ -3,6 +3,8 @@ import { prospectsController } from '../controllers/prospects.controller';
 import { authMiddleware, adminMiddleware, AuthRequest } from '../middleware/auth.middleware';
 import { prospectWorkbenchService, savedSearchService } from '../services/prospect-workbench.service';
 import { logger } from '../config/logger';
+import { prisma } from '../config/database';
+import { outreachService, type OutreachRequest } from '../services/outreach.service';
 
 const router = Router();
 
@@ -55,6 +57,55 @@ router.delete('/saved-searches/:id', async (req: AuthRequest, res: Response) => 
     res.status(204).end();
   } catch (err: any) {
     res.status(500).json({ error: err.message });
+  }
+});
+
+// ─── Mails et SMS envoyés à la main ───────────────────────
+// Déclarés avant `/:id`, pour la même raison que les recherches sauvegardées.
+
+function outreachRequest(body: any): OutreachRequest {
+  const b = body && typeof body === 'object' ? body : {};
+  return {
+    channel: b.channel === 'sms' ? 'sms' : 'email',
+    templateId: String(b.templateId || ''),
+    prospectId: b.prospectId ? String(b.prospectId) : null,
+    to: typeof b.to === 'string' ? b.to : null,
+    vars: b.vars && typeof b.vars === 'object' ? b.vars : {},
+    sender: b.sender && typeof b.sender === 'object' ? b.sender : { prenom: '' },
+    accord: b.accord === true,
+  };
+}
+
+router.get('/outreach/templates', (_req: AuthRequest, res: Response) => {
+  res.json(outreachService.templates());
+});
+
+router.post('/outreach/preview', async (req: AuthRequest, res: Response) => {
+  try {
+    res.json(await outreachService.preview(outreachRequest(req.body)));
+  } catch (err: any) {
+    logger.error('[prospects] outreach preview failed', err);
+    res.status(500).json({ error: 'preview_failed' });
+  }
+});
+
+router.post('/outreach/send', async (req: AuthRequest, res: Response) => {
+  try {
+    /* Les réponses reviennent à CELUI QUI ENVOIE, pas à la boîte générale:
+       un prospect qui répond « oui » doit tomber chez la personne qui va le
+       rappeler dans l'heure. */
+    const me = req.userId
+      ? await prisma.user.findUnique({ where: { id: req.userId }, select: { email: true } })
+      : null;
+    const result = await outreachService.send(outreachRequest(req.body), me?.email ?? null);
+    if (!result.ok) {
+      const status = result.error === 'send_failed' || result.error === 'sms_unavailable' ? 502 : 400;
+      return res.status(status).json(result);
+    }
+    res.json(result);
+  } catch (err: any) {
+    logger.error('[prospects] outreach send failed', err);
+    res.status(500).json({ ok: false, error: 'send_failed' });
   }
 });
 

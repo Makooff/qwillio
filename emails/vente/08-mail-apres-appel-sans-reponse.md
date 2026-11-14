@@ -3,6 +3,12 @@
 Pour ceux que tu as appelés et qui n'ont pas décroché. Trois mails sur huit
 jours, écrits à la main, envoyés depuis ta propre boîte.
 
+> **Ces mails s'envoient depuis le tableau de bord** (page Prospection, bouton
+> mail d'une ligne, ou « Envoi libre »). Le texte qui PART est celui de
+> `backend/src/config/outreach-templates.ts`, avec sa mise en page. Ce fichier
+> explique quand et pourquoi l'envoyer ; en cas d'écart entre les deux, c'est le
+> code qui fait foi, et c'est lui qu'on modifie.
+
 L'appel manqué est ton meilleur argument : il vient de vivre, côté client, ce
 que tu lui proposes de régler. Le mail ne vend rien, il montre.
 
