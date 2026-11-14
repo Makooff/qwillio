@@ -119,3 +119,59 @@ export function Device({ children, scale }: { children: React.ReactNode; scale: 
     </div>
   );
 }
+
+/**
+ * L'écran d'appel en cours. Le kit n'en a pas : il est recomposé avec les
+ * pièces du modèle « Phone », mode sombre (1118:8444) : fond noir du système,
+ * touches rondes de 78 pt en #333 (1118:7170), barre d'état claire avec l'île
+ * dynamique (2012:16930), le nom au gabarit du numéro composé (36 pt), la
+ * durée au gabarit secondaire, et le bouton raccrocher du kit (call-decline).
+ * La disposition (deux rangées de trois, raccrocher au centre) est celle de
+ * l'app Téléphone d'iOS pendant un appel.
+ */
+export function InCallScreen({ name, duration, labels, banner }: { name: string; duration: string; labels: [string, string, string, string, string, string]; banner?: React.ReactNode }) {
+  const glyph = (k: number) => {
+    const s = { width: 30, height: 30, display: 'block' } as React.CSSProperties;
+    if (k === 0) return <svg viewBox="0 0 24 24" style={s} fill="white"><path d="M3 9h4l5-4v14l-5-4H3z" /><path d="M16 8.5a5 5 0 0 1 0 7M18.5 6a8.5 8.5 0 0 1 0 12" stroke="white" strokeWidth="1.8" fill="none" strokeLinecap="round" /></svg>;
+    if (k === 1) return <svg viewBox="0 0 24 24" style={s} fill="white"><rect x="2" y="6" width="14" height="12" rx="3" /><path d="M17 10.5l5-3v9l-5-3z" /></svg>;
+    if (k === 2) return <svg viewBox="0 0 24 24" style={s} fill="none" stroke="white" strokeWidth="1.8" strokeLinecap="round"><rect x="9" y="3" width="6" height="11" rx="3" fill="white" stroke="none" /><path d="M5.5 11a6.5 6.5 0 0 0 13 0M12 17.5V21M4 4l16 16" /></svg>;
+    if (k === 3) return <svg viewBox="0 0 24 24" style={s} fill="none" stroke="white" strokeWidth="2" strokeLinecap="round"><path d="M12 5v14M5 12h14" /></svg>;
+    return <Img src={icon('keypad-white')} style={{ width: 27, height: 27 }} />;
+  };
+  const key = (k: number) => (
+    <div key={k} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, width: 78 }}>
+      <div style={{ width: 78, height: 78, borderRadius: 100, background: '#333', display: 'grid', placeItems: 'center' }}>{glyph(k)}</div>
+      <span style={{ fontSize: 13, color: '#fff', letterSpacing: -0.08 }}>{labels[k]}</span>
+    </div>
+  );
+  return (
+    <div style={{ position: 'relative', width: W, height: H, overflow: 'hidden', background: '#000', ...sf }}>
+      <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 59, display: 'flex', alignItems: 'flex-end' }}>
+        <div style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: 10, paddingBottom: 3 }}>
+          <span style={{ width: 54, textAlign: 'center', fontSize: 16, fontWeight: 600, letterSpacing: -0.32, color: '#fff', background: '#30D158', borderRadius: 24, lineHeight: '21px' }}>{duration.slice(0, 5)}</span>
+        </div>
+        <div style={{ height: '100%', display: 'flex', alignItems: 'center' }}><div style={{ width: 125, height: 37, borderRadius: 100, background: '#000' }} /></div>
+        <div style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingRight: 11 }}>
+          <Img src={icon('signal-dark')} style={{ width: 78.4, height: 13 }} />
+        </div>
+      </div>
+      <div style={{ position: 'absolute', left: 0, right: 0, top: 97, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 11 }}>
+        <span style={{ fontSize: 18, lineHeight: '22px', letterSpacing: -0.6, color: 'rgba(235,235,245,0.6)' }}>{duration}</span>
+        <span style={{ fontSize: 36, lineHeight: '41px', letterSpacing: 0.2, color: '#fff' }}>{name}</span>
+      </div>
+      <div style={{ position: 'absolute', left: 0, right: 0, top: 470, display: 'flex', flexDirection: 'column', gap: 26, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 24 }}>{[0, 1, 2].map(key)}</div>
+        <div style={{ display: 'flex', gap: 24 }}>
+          {key(3)}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8, width: 78 }}>
+            <Img src={icon('call-decline')} style={{ width: 78, height: 78 }} />
+            <span style={{ fontSize: 13, color: '#fff', letterSpacing: -0.08 }}>{labels[5]}</span>
+          </div>
+          {key(4)}
+        </div>
+      </div>
+      <div style={{ position: 'absolute', left: '50%', bottom: 8, width: 134, height: 5, marginLeft: -67, borderRadius: 100, background: '#fff' }} />
+      {banner && <div style={{ position: 'absolute', left: 10, top: 11 }}>{banner}</div>}
+    </div>
+  );
+}

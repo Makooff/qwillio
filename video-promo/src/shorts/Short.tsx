@@ -17,7 +17,7 @@ import { EASE_IN_OUT, EASE_OUT, mix, p, useOutfit } from '../lib';
 import { J, Mark, useFonts } from '../pub2/Pub2';
 import { MacBookBookings } from '../pub2/mac';
 import { Canvas, Phone, buzzAngle, reveal, spring } from '../pub3/Pub3';
-import { Device, IncomingCall, LockScreen, Notification } from '../pub3/ios';
+import { Device, InCallScreen, IncomingCall, LockScreen, Notification } from '../pub3/ios';
 import { ShaderOrb } from '../pub3/ShaderOrb';
 import { Sfx, phraseChunks, titleTimes, wordIn } from '../fx';
 import { SiteFrame } from '../pub4/illustrations';
@@ -32,18 +32,18 @@ export const SHORT_FPS = 30;
 /* ------------------------------------------------------------------ langues et formats */
 
 /** Ce que l'image écrit elle-même, dans la langue de la vidéo. */
-export const STR: Record<Lang, { agent: string; caller: string; now: string; date: string; missed: string; mobile: string; unanswered: string; learned: string; cta: string; note: { chip: string; title: string; rows: [string, string][]; sent: string }; second: string; oncall: string; rules: { title: string; rows: [string, boolean][]; foot: string } }> = {
+export const STR: Record<Lang, { agent: string; caller: string; now: string; date: string; missed: string; mobile: string; unanswered: string; learned: string; cta: string; note: { chip: string; title: string; rows: [string, string][]; sent: string }; second: string; oncall: string; keys: [string, string, string, string, string, string]; rules: { title: string; rows: [string, boolean][]; foot: string } }> = {
   fr: { agent: 'RÉCEPTIONNISTE IA', caller: 'APPELANT', now: 'maintenant', date: 'mardi 10 novembre', missed: 'Appel manqué', mobile: 'mobile', unanswered: 'QUESTION SANS RÉPONSE · APPEL DE 12:42', learned: 'Elle le saura au prochain appel.', cta: 'Essayez-la sur qwillio.com',
     note: { chip: 'Nouveau message', title: 'Julie Martin a appelé', rows: [['Pour', 'Marc'], ['Rappeler', 'après 17 h'], ['Numéro', '+32 471 52 18 90'], ['Motif', 'Une table pour huit, vendredi']], sent: 'Envoyé à Marc par SMS' },
-    second: 'deuxième appel', oncall: 'en ligne',
+    second: 'deuxième appel', oncall: 'en ligne', keys: ['haut-parleur', 'FaceTime', 'silence', 'ajouter', 'clavier', 'fin'],
     rules: { title: 'QUAND QWILLIO DÉCROCHE', rows: [['Vous êtes déjà en ligne', true], ['Vous ne décrochez pas en 30 s', true], ['Tous vos appels', false]], foot: 'Votre téléphone sonne toujours en premier.' } },
   en: { agent: 'AI RECEPTIONIST', caller: 'CALLER', now: 'now', date: 'Tuesday 10 November', missed: 'Missed call', mobile: 'mobile', unanswered: 'UNANSWERED QUESTION · CALL AT 12:42', learned: 'She’ll know on the next call.', cta: 'Try her at qwillio.com',
     note: { chip: 'New message', title: 'Julie Martin called', rows: [['For', 'Marc'], ['Call back', 'after 5 pm'], ['Number', '+32 471 52 18 90'], ['Reason', 'A table for eight, Friday']], sent: 'Sent to Marc by text' },
-    second: 'second call', oncall: 'on a call',
+    second: 'second call', oncall: 'on a call', keys: ['speaker', 'FaceTime', 'mute', 'add', 'keypad', 'end'],
     rules: { title: 'WHEN QWILLIO PICKS UP', rows: [['You’re already on a call', true], ['You don’t answer within 30 s', true], ['Every single call', false]], foot: 'Your own phone always rings first.' } },
   nl: { agent: 'AI-RECEPTIONIST', caller: 'BELLER', now: 'nu', date: 'dinsdag 10 november', missed: 'Gemiste oproep', mobile: 'mobiel', unanswered: 'ONBEANTWOORDE VRAAG · OPROEP VAN 12:42', learned: 'Bij de volgende oproep weet ze het.', cta: 'Probeer haar op qwillio.com',
     note: { chip: 'Nieuw bericht', title: 'Julie Martin belde', rows: [['Voor', 'Marc'], ['Terugbellen', 'na 17 u'], ['Nummer', '+32 471 52 18 90'], ['Reden', 'Een tafel voor acht, vrijdag']], sent: 'Per sms naar Marc gestuurd' },
-    second: 'tweede oproep', oncall: 'in gesprek',
+    second: 'tweede oproep', oncall: 'in gesprek', keys: ['luidspreker', 'FaceTime', 'dempen', 'voeg toe', 'toetsen', 'beëindig'],
     rules: { title: 'WANNEER QWILLIO OPNEEMT', rows: [['U bent al in gesprek', true], ['U neemt niet op binnen 30 s', true], ['Al uw oproepen', false]], foot: 'Uw eigen telefoon gaat altijd eerst over.' } },
 };
 
@@ -383,23 +383,7 @@ function MessageNote({ t, from, lang }: { t: number; from: number; lang: Lang })
 }
 
 
-/** L'écran d'un appel en cours : le gérant est déjà en ligne quand le deuxième appel arrive. */
-function InCall({ name, initials, since, t }: { name: string; initials: string; since: number; t: number }) {
-  const sec = 134 + Math.max(0, Math.floor(t - since));
-  const tm = `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
-  const btn = (k: number) => <div key={k} style={{ width: 78, height: 78, borderRadius: 999, background: k === 5 ? '#EB4E3D' : 'rgba(255,255,255,0.16)' }} />;
-  return (
-    <div style={{ position: 'relative', width: 393, height: 852, overflow: 'hidden', background: 'linear-gradient(180deg,#3A3A3F,#1C1C1E 60%,#111113)', fontFamily: '-apple-system, "SF Pro Display", Outfit, sans-serif' }}>
-      <div style={{ position: 'absolute', left: 0, right: 0, top: 150, textAlign: 'center', color: '#fff' }}>
-        <div style={{ width: 96, height: 96, margin: '0 auto', borderRadius: 999, background: 'linear-gradient(180deg,#A5AAB5,#858A95)', display: 'grid', placeItems: 'center', fontSize: 38, fontWeight: 600 }}>{initials}</div>
-        <div style={{ fontSize: 34, marginTop: 22, letterSpacing: -0.5 }}>{name}</div>
-        <div style={{ fontSize: 20, marginTop: 6, color: 'rgba(235,235,245,0.6)' }}>{tm}</div>
-      </div>
-      <div style={{ position: 'absolute', left: 50, right: 50, top: 520, display: 'grid', gridTemplateColumns: 'repeat(3, 78px)', justifyContent: 'space-between', rowGap: 34 }}>{[0, 1, 2, 3, 4, 5].map((k) => (k === 5 ? null : btn(k)))}</div>
-      <div style={{ position: 'absolute', left: '50%', top: 740, marginLeft: -39 }}>{btn(5)}</div>
-    </div>
-  );
-}
+const clock = (sec: number) => `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
 
 /** Le réglage qui dit QUAND Qwillio décroche : le gérant garde sa ligne. */
 function RulesCard({ t, s, lang }: { t: number; s: TScene; lang: Lang }) {
@@ -502,10 +486,7 @@ function Scene({ t, s, prev, levels, fps, lang, F, index = 0 }: { t: number; s: 
     body = (
       <>
         <AnyPhone t={t} inAt={s.at + 0.05} outAt={s.out + 0.3} angle={buzzAngle(t, s.ring!)} x={324} y={560}>
-          <div style={{ position: 'relative' }}>
-            <InCall name={v.busy} initials={v.busy.split(' ').map((w) => w[0]).join('').slice(0, 2)} since={s.at} t={t} />
-            {banner && <div style={{ position: 'absolute', left: 10, top: 11 }}>{banner}</div>}
-          </div>
+          <InCallScreen name={v.busy} duration={clock(134 + Math.max(0, Math.floor(t - s.at)))} labels={L.keys} banner={banner} />
         </AnyPhone>
       </>
     );
