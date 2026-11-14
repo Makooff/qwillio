@@ -1,36 +1,26 @@
-# Qwillio — orientation produit
+# Qwillio — produit et direction
 
-Révisé le 14 novembre 2026 à partir des points d’entrée du dépôt. Ce document donne une direction et des références vérifiables ; il ne certifie pas les services activés en production.
+Révision du 14 novembre 2026.
 
-## Direction
+Qwillio aide les professionnels à traiter leurs appels, comprendre les demandes et organiser leurs suites : informations, rendez-vous, contacts et suivi. La présentation doit donner la cohérence et la précision d’un produit établi, avec une identité propre et des parcours complets.
 
-Qwillio aide les professionnels à gérer leurs appels, les demandes de leurs clients et les suites de ces échanges. Le réceptionniste vocal, les rendez-vous et le suivi constituent un socle à approfondir.
+## Références pour travailler
 
-Le périmètre peut s’élargir : fonctions plus avancées, nouveaux métiers, langues, automatisations, intégrations ou autres interfaces. Une ambition ne devient une fonction « livrée » qu’après implémentation et vérification du parcours correspondant. Voir la [politique d’évolution](docs/EVOLUTION.md).
+- [État fonctionnel](docs/FONCTIONNALITES.md) : surfaces accessibles, code serveur présent, prototypes et limites de vérification.
+- [Charte Qwillio](DESIGN.md) : branding, spacing, arrondis, typographie, composants et interactions, inspirés de Codex et d’ElevenLabs.
+- [Consignes communes](AGENTS.md) : même contexte pour Claude et Codex.
+- [Référence générée](docs/REFERENCE-GENEREE.md) : inventaire des routes, tokens et offre configurée.
 
-## Ce que l’on peut vérifier dans le code
+## Développer sans confondre ambition et état actuel
 
-| Domaine | Point d’entrée |
-| --- | --- |
-| Pages publiques, authentification et espaces utilisateurs | `frontend/src/App.tsx` |
-| Appels, réceptionniste et orchestration vocale | `backend/src/services/voice/`, `backend/src/routes/` |
-| Interface avec voice-core | `backend/src/routes/voice-core.routes.ts` |
-| Réservations, clients et données métier | `backend/prisma/`, `backend/src/services/` |
-| Offre, minutes et période d’essai configurées | `backend/src/config/plans.ts` |
-| Suivi des affiliations et commissions | `backend/src/services/affiliate.service.ts`, `backend/prisma/` |
+Le réceptionniste, les espaces client/admin, le CRM et les outils vocaux constituent le socle à approfondir. De nouveaux modules, marchés, langues, interfaces et intégrations peuvent enrichir le produit.
 
-Une route, une table ou un écran ne prouvent pas à eux seuls qu’un parcours est complet ou activé. Vérifier le comportement et les dépendances avant toute promesse commerciale.
+La page publique Agent redirige actuellement vers l’accueil ; seul le module Agent CRM est explicitement monté côté client. D’autres modules disposent de code ou d’écrans administratifs sans que cela prouve leur ouverture commerciale. Le portail actif utilise `pages/client/`, pas le prototype `pages/v2/app/`.
 
-## Présentation et langues
+La qualité attendue ne signifie ni simplification graphique systématique ni immobilité. Une nouvelle idée doit pouvoir être proposée, prototypée et intégrée au système lorsqu’elle améliore l’usage. [Politique d’évolution](docs/EVOLUTION.md).
 
-La communication vise notamment les professionnels francophones en Belgique et en France. Les contenus de publication sont classés en français, anglais et néerlandais ; un dossier de langue ne prouve pas qu’une traduction du produit est terminée.
+## Parler du produit avec justesse
 
-La direction visuelle actuelle est décrite dans [DA/](DA/README.md), avec une référence propre au [portail client](frontend/DESIGN_SYSTEM.md). Elle peut évoluer avec les objectifs du produit. Les conventions visuelles ne limitent pas les nouvelles fonctionnalités.
+Les fonctions accessibles doivent être distinguées des possibilités futures. Prix, quotas et essais se vérifient dans `backend/src/config/plans.ts` et le parcours de facturation. Performances vocales, disponibilité, résultats commerciaux et activation des fournisseurs demandent des preuves adaptées ; ne pas transformer un objectif ou un ancien document en garantie.
 
-## Offre et promesses
-
-Lire les prix, quotas, remises et conditions d’essai dans le code et vérifier leur alignement avec le parcours de souscription. Les taux de commission dépendent de leur configuration ; ne pas recopier un ancien pourcentage comme règle générale.
-
-Les délais de réponse, gains commerciaux, niveaux de service, capacités d’une intégration et lieux d’hébergement doivent être étayés avant publication. L’ancien document présentait notamment une suite de modules, une promesse de réponse en moins d’une seconde et des engagements commerciaux sans distinguer assez clairement ambition et validation.
-
-[Ancien contexte produit, conservé comme historique](docs/archives/consignes-avant-2026-11-14/PRODUCT.md).
+Les contenus sont organisés en français, anglais et néerlandais pour la publication. L’interface déclare actuellement français/anglais ; les capacités vocales se vérifient séparément.

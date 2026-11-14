@@ -31,7 +31,7 @@ L’isolation des clients, la confidentialité, la cohérence des paiements, l�
 
 ## État de la documentation après cette révision
 
-Les consignes centrales de développement et le contexte produit ont été revus. Les références de design et les fiches des agents de revue/architecture indiquent leur portée révisable. L’ancien guide accumulant les incidents est conservé en archive, sans être injecté comme instruction permanente.
+Les consignes centrales de développement, le contexte produit et l’état fonctionnel ont été revus. Codex et Claude utilisent le même guide AGENTS.md ; les valeurs communes du design sont dans tokens.json et le catalogue montre leurs usages. La charte de design commune, les fondations partagées et les fiches des agents de revue/architecture indiquent leur portée révisable. L’ancien guide accumulant les incidents est conservé en archive, sans être injecté comme instruction permanente.
 
 **Tous les fichiers Markdown ne sont pas certifiés à jour.** Les runbooks, plans, scripts de vente et notes techniques gardent leur contexte daté. Leur validité doit être contrôlée lors d’une tâche qui les utilise. Cette révision ne valide ni les réglages distants ni les promesses commerciales en production.
 

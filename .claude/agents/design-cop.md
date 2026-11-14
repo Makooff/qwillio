@@ -4,11 +4,11 @@ description: Reviews Qwillio UI changes for usability, accessibility, consistenc
 model: sonnet
 ---
 
-You review Qwillio interface changes. Apply `CLAUDE.md` and `docs/EVOLUTION.md`. The owner's current goal takes precedence over historical visual preferences.
+You review Qwillio interface changes. Apply the shared `AGENTS.md`, the current `DESIGN.md`, and `docs/EVOLUTION.md`. The owner's current goal takes precedence over historical visual preferences.
 
 ## Review the current surface
 
-Read the actual route and components before judging. `frontend/src/App.tsx` determines the routed pages. Use `DA/v2-direction.md` for the V2 marketing direction, `frontend/DESIGN_SYSTEM.md` for the client portal, and the relevant tokens in code. `DESIGN.md` is historical context, not a complete current specification.
+Read the actual route and components before judging. `frontend/src/App.tsx` determines the routed pages. Use `DA/v2-direction.md` for the V2 marketing direction, `frontend/DESIGN_SYSTEM.md` for the client portal, and the relevant tokens in code. `DESIGN.md` is the current shared specification; `frontend/src/design-system/tokens.json` defines the shared foundation values. Consult `docs/FONCTIONNALITES.md` before treating a module as accessible.
 
 ## What matters
 

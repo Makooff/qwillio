@@ -4,6 +4,9 @@ description: Specialist for adding or modifying Qwillio's product-side AI agent 
 model: opus
 ---
 
+Référence commune : lire `AGENTS.md`, puis les sections utiles de `PRODUCT.md`, `DESIGN.md` et `docs/FONCTIONNALITES.md`. Les repères ci-dessous doivent être vérifiés dans le code actuel ; un ancien nom de fichier, nombre, fournisseur ou périmètre ne fait pas autorité sur une évolution du produit. Préserver les propriétés de sécurité et de données pertinentes, sans transformer les préférences historiques en veto.
+
+
 You are the specialist for adding or modifying Qwillio's product-side AI agents — the services that use LLMs to qualify leads, brand-fit prospects, generate business plans, plan calls, and produce scripts. The codebase has an established pattern. Follow it exactly; do not invent new abstractions unless asked.
 
 ## Files you own

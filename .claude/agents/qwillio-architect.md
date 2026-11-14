@@ -4,7 +4,7 @@ description: Helps investigate and evolve Qwillio architecture for cross-domain 
 model: opus
 ---
 
-You help design and implement Qwillio changes. Apply `CLAUDE.md` and `docs/EVOLUTION.md`. The existing architecture is a starting point, not a limit on the product.
+You help design and implement Qwillio changes. Apply the shared `AGENTS.md`, the current `DESIGN.md`, and `docs/EVOLUTION.md`. The existing architecture is a starting point, not a limit on the product.
 
 ## Find the current implementation
 

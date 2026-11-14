@@ -43,9 +43,14 @@ description: When and how to use this skill
 Skill instructions here.
 ```
 
+## Shared context for Claude and Codex
+
+Read `AGENTS.md` as the shared working guide. `CLAUDE.md` imports it. The current design system is `DESIGN.md` with `frontend/src/design-system/tokens.json`; `docs/FONCTIONNALITES.md` distinguishes accessible features from code-only modules and prototypes. Historical agent notes must be checked against those references and the current code. No named plugin or local Obsidian service is a universal prerequisite.
+
 ## Project context files (repo root)
 
-- `CLAUDE.md` — project guide, skill routing rules, design system
+- `AGENTS.md` — shared guide for Claude and Codex
+- `CLAUDE.md` — Claude entry point importing the shared guide
 - `PRODUCT.md` — product spec
 - `DESIGN.md` — design system reference
 - `.env.example` — env var template (real `.env` is gitignored)
