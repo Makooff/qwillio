@@ -1,3 +1,5 @@
+> **Archive historique.** Ce document décrit une ancienne session ou un état daté du projet. Ses actions et constats ne sont pas un diagnostic de la production actuelle.
+
 # AUDIT.md — Gap analysis « état de l'art 2026 »
 
 **Ré-audit du 13/08/2026, contre `master` = `047c45b` (post-PR #133).**

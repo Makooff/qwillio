@@ -1,3 +1,5 @@
+> **Archive historique.** Ce document décrit une ancienne session ou un état daté du projet. Ses actions et constats ne sont pas un diagnostic de la production actuelle.
+
 # Prompt de passation — session desktop (rédigé le 13/08/2026)
 
 Ce fichier est le prompt à donner à une session Claude Code **desktop** (sur le
@@ -11,13 +13,13 @@ session cloud qui a produit la PR #133. Il se suffit à lui-même.
 Tu es un ingénieur senior spécialisé en agents vocaux IA et systèmes SaaS
 multi-tenant. Tu travailles sur le dépôt **Qwillio** (réceptionniste vocal IA
 pour PME FR/BE, stack réelle : Express/TypeScript + Prisma/Neon + Vapi +
-Twilio + Stripe + React 19, détaillée dans `ARCHITECTURE.md`). Tu es sur le
+Twilio + Stripe + React 19, détaillée dans `docs/archives/2026-08/ARCHITECTURE.md`). Tu es sur le
 PC du propriétaire : tu as accès au réseau (prod comprise), à un navigateur
 pilotable (Playwright), et au clone local du dépôt.
 
 **Une session précédente a déjà livré la PR #133** (branche
-`claude/qwillio-audit-gap-analysis-ppux3n`) : audit complet (`ARCHITECTURE.md`,
-`AUDIT.md`, `ROADMAP.md` à la racine — LIS-LES EN PREMIER, avec `CLAUDE.md`),
+`claude/qwillio-audit-gap-analysis-ppux3n`) : audit complet (`docs/archives/2026-08/ARCHITECTURE.md`,
+`docs/archives/2026-08/AUDIT.md`, `docs/archives/2026-08/ROADMAP.md` à la racine — LIS-LES EN PREMIER, avec `CLAUDE.md`),
 conformité au décroché (divulgation IA + notice d'enregistrement, AI Act
 art. 50), guardrails anti-injection, métriques P50/P95/P99 + coût/appel sur
 `GET /api/webhooks/vapi/health`, rétention RGPD avec purge quotidienne, chemin
@@ -43,7 +45,7 @@ tout, y compris ce qui reste à activer côté exploitation.
 ## ÉTAPE 1 — PROTOCOLE « PRÊT À VENDRE » (tests réels)
 
 Exécute, dans l'ordre, en vérifiant chaque critère et en notant les résultats
-dans un fichier `docs/TEST-VENTE-RESULTATS.md` :
+dans un fichier `docs/archives/2026-08/TEST-VENTE-RESULTATS.md` :
 
 A. **Endpoints** (toi-même) : les trois ci-dessus + `GET /ping`.
 B. **Parcours web** (toi-même, via Playwright sur le navigateur local) :
@@ -69,7 +71,7 @@ E. Chaque échec : diagnostique (les métriques par étage disent quel étage es
 
 ## ÉTAPE 2 — RÉ-AUDIT COMPLET
 
-Refais la gap analysis d'`AUDIT.md` contre l'état POST-PR-#133 : mets à jour
+Refais la gap analysis d'`docs/archives/2026-08/AUDIT.md` contre l'état POST-PR-#133 : mets à jour
 chaque ligne du tableau (des PARTIEL sont devenus PRÉSENT, des ABSENT sont
 devenus PARTIEL), avec preuves `fichier:ligne` fraîches. Ne te fie pas aux
 documents : relis le code. Signale toute régression ou tout écart entre ce que
@@ -115,5 +117,5 @@ Dans cet ordre, une PR par lot, mêmes règles que la session précédente
 - Suis `CLAUDE.md` (routing des skills, conventions de commit, pièges connus —
   notamment : ne jamais recopier `VAPI_PHONE_NUMBER` dans une fiche client,
   et le déplacement de champs vers Paramètres se fait en 3 étapes indissociables).
-- Après chaque lot : mets à jour `ROADMAP.md`, lance les tests, résume ce qui
+- Après chaque lot : mets à jour `docs/archives/2026-08/ROADMAP.md`, lance les tests, résume ce qui
   a changé et ce qui reste. Demande validation avant chaque niveau suivant.

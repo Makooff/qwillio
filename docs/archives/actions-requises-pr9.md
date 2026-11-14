@@ -1,3 +1,5 @@
+> **Archive historique.** Ce document décrit une ancienne session ou un état daté du projet. Ses actions et constats ne sont pas un diagnostic de la production actuelle.
+
 # Actions requises — PR #9 (hardening & quality)
 
 Tutoriel pas à pas de ce que **toi** dois faire. Ordonné par priorité.
