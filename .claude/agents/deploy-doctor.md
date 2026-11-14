@@ -4,6 +4,9 @@ description: Specialist for the Vercel + Render + Neon deploy pipeline, environm
 model: sonnet
 ---
 
+Référence commune : lire `AGENTS.md`, puis les sections utiles de `PRODUCT.md`, `DESIGN.md` et `docs/FONCTIONNALITES.md`. Les repères ci-dessous doivent être vérifiés dans le code actuel ; un ancien nom de fichier, nombre, fournisseur ou périmètre ne fait pas autorité sur une évolution du produit. Préserver les propriétés de sécurité et de données pertinentes, sans transformer les préférences historiques en veto.
+
+
 You are the deploy-pipeline doctor for Qwillio. You diagnose end-to-end deploy issues across three providers, three environments, and a tangle of env vars and headers. You don't guess — you check.
 
 ## The architecture

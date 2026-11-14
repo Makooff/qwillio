@@ -7,14 +7,16 @@
  * Usage: import { t } from '../styles/admin-theme';
  */
 
+import { tokens, radiusPx } from '../design-system/tokens';
+
 export const t = {
   // ── Backgrounds — exact hex to match the reference screen ───────────────────
-  bg:         '#0a0a0a',   // app background ("le fond")
-  panel:      '#0a0a0a',   // content surface
-  panelSolid: '#0a0a0a',
-  panelHover: '#1a1a1a',
-  elevated:   '#111111',   // sidebar
-  inset:      '#111111',   // shell frame — shows through the content's rounded top-left corner (sidebar-side curve)
+  bg:         tokens.color.product.canvas,   // app background ("le fond")
+  panel:      tokens.color.product.surface,   // content surface
+  panelSolid: tokens.color.product.surface,
+  panelHover: tokens.color.product.hover,
+  elevated:   tokens.color.product.sidebar,   // sidebar
+  inset:      tokens.color.product.sidebar,   // shell frame — shows through the content's rounded top-left corner (sidebar-side curve)
 
   // ── Borders ──────────────────────────────────────────────────────────────
   border:      'oklch(24% 0 0 / 0.55)',
@@ -22,16 +24,16 @@ export const t = {
   borderFocus: 'rgba(115,73,254,0.50)',
 
   // ── Text ─────────────────────────────────────────────────────────────────
-  text:     'oklch(95% 0 0)',
-  textSec:  'oklch(65% 0 0)',
-  textTer:  'oklch(42% 0 0)',
+  text:     tokens.color.product.text,
+  textSec:  tokens.color.product.textSecondary,
+  textTer:  tokens.color.product.textTertiary,
   textMuted:'oklch(28% 0 0)',
 
   // ── Brand — mauve #7349fe ─────────────────────────────────────────────
-  brand:  '#7349fe',
-  brandHi:'#8a6fff',
-  violet: 'oklch(70.5% 0.213 316)',
-  live:   'oklch(72% 0.18 145)',
+  brand:  tokens.color.brand.deep,
+  brandHi:tokens.color.brand.onDark,
+  violet: tokens.color.brand.violet,
+  live:   tokens.color.signal.success,
 
   // ── Accent system ─────────────────────────────────────────────────────────
   // Vapi-pro: flat, restrained. No gradients, no glow. Indigo carries meaning
@@ -53,15 +55,15 @@ export const t = {
   shadowGlow:  '0 0 0 1px rgba(115,73,254,0.25)',
 
   // ── Status ───────────────────────────────────────────────────────────────
-  success: 'oklch(72% 0.18 145)',
-  warning: 'oklch(78% 0.18 75)',
-  danger:  'oklch(65% 0.22 25)',
-  info:    'oklch(70% 0.18 240)',
+  success: tokens.color.signal.success,
+  warning: tokens.color.signal.warning,
+  danger:  tokens.color.signal.danger,
+  info:    tokens.color.signal.info,
 
   // ── Radius ───────────────────────────────────────────────────────────────
-  r:    '14px',
-  rSm:  '10px',
-  rFull:'9999px',
+  r:    radiusPx('surface'),
+  rSm:  radiusPx('inset'),
+  rFull:radiusPx('pill'),
 
   // ── Blur ─────────────────────────────────────────────────────────────────
   blur:   'blur(40px)',

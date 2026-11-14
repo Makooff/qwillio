@@ -29,3 +29,7 @@ Les fichiers `render.yaml`, `vercel.json` et les dossiers de code servent au fon
 ## Documents anciens
 
 Les anciens audits et comptes rendus sont dans les [archives](docs/archives/README.md). Le guide technique des assistants reste dans [CLAUDE.md](CLAUDE.md), les références produit dans [PRODUCT.md](PRODUCT.md) et [DESIGN.md](DESIGN.md).
+
+## Concevoir et développer Qwillio
+
+[Charte et design system](DESIGN.md) · [Catalogue visuel](docs/design-system/index.html) · [Fonctionnalités et limites](docs/FONCTIONNALITES.md) · [Guide commun Claude/Codex](AGENTS.md).
