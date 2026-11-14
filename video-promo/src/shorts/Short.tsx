@@ -32,13 +32,19 @@ export const SHORT_FPS = 30;
 /* ------------------------------------------------------------------ langues et formats */
 
 /** Ce que l'image écrit elle-même, dans la langue de la vidéo. */
-export const STR: Record<Lang, { agent: string; caller: string; now: string; date: string; missed: string; mobile: string; unanswered: string; learned: string; cta: string; note: { chip: string; title: string; rows: [string, string][]; sent: string } }> = {
+export const STR: Record<Lang, { agent: string; caller: string; now: string; date: string; missed: string; mobile: string; unanswered: string; learned: string; cta: string; note: { chip: string; title: string; rows: [string, string][]; sent: string }; second: string; oncall: string; rules: { title: string; rows: [string, boolean][]; foot: string } }> = {
   fr: { agent: 'RÉCEPTIONNISTE IA', caller: 'APPELANT', now: 'maintenant', date: 'mardi 10 novembre', missed: 'Appel manqué', mobile: 'mobile', unanswered: 'QUESTION SANS RÉPONSE · APPEL DE 12:42', learned: 'Elle le saura au prochain appel.', cta: 'Essayez-la sur qwillio.com',
-    note: { chip: 'Nouveau message', title: 'Julie Martin a appelé', rows: [['Pour', 'Marc'], ['Rappeler', 'après 17 h'], ['Numéro', '+32 471 52 18 90'], ['Motif', 'Une table pour huit, vendredi']], sent: 'Envoyé à Marc par SMS' } },
+    note: { chip: 'Nouveau message', title: 'Julie Martin a appelé', rows: [['Pour', 'Marc'], ['Rappeler', 'après 17 h'], ['Numéro', '+32 471 52 18 90'], ['Motif', 'Une table pour huit, vendredi']], sent: 'Envoyé à Marc par SMS' },
+    second: 'deuxième appel', oncall: 'en ligne',
+    rules: { title: 'QUAND QWILLIO DÉCROCHE', rows: [['Vous êtes déjà en ligne', true], ['Vous ne décrochez pas en 30 s', true], ['Tous vos appels', false]], foot: 'Votre téléphone sonne toujours en premier.' } },
   en: { agent: 'AI RECEPTIONIST', caller: 'CALLER', now: 'now', date: 'Tuesday 10 November', missed: 'Missed call', mobile: 'mobile', unanswered: 'UNANSWERED QUESTION · CALL AT 12:42', learned: 'She’ll know on the next call.', cta: 'Try her at qwillio.com',
-    note: { chip: 'New message', title: 'Julie Martin called', rows: [['For', 'Marc'], ['Call back', 'after 5 pm'], ['Number', '+32 471 52 18 90'], ['Reason', 'A table for eight, Friday']], sent: 'Sent to Marc by text' } },
+    note: { chip: 'New message', title: 'Julie Martin called', rows: [['For', 'Marc'], ['Call back', 'after 5 pm'], ['Number', '+32 471 52 18 90'], ['Reason', 'A table for eight, Friday']], sent: 'Sent to Marc by text' },
+    second: 'second call', oncall: 'on a call',
+    rules: { title: 'WHEN QWILLIO PICKS UP', rows: [['You’re already on a call', true], ['You don’t answer within 30 s', true], ['Every single call', false]], foot: 'Your own phone always rings first.' } },
   nl: { agent: 'AI-RECEPTIONIST', caller: 'BELLER', now: 'nu', date: 'dinsdag 10 november', missed: 'Gemiste oproep', mobile: 'mobiel', unanswered: 'ONBEANTWOORDE VRAAG · OPROEP VAN 12:42', learned: 'Bij de volgende oproep weet ze het.', cta: 'Probeer haar op qwillio.com',
-    note: { chip: 'Nieuw bericht', title: 'Julie Martin belde', rows: [['Voor', 'Marc'], ['Terugbellen', 'na 17 u'], ['Nummer', '+32 471 52 18 90'], ['Reden', 'Een tafel voor acht, vrijdag']], sent: 'Per sms naar Marc gestuurd' } },
+    note: { chip: 'Nieuw bericht', title: 'Julie Martin belde', rows: [['Voor', 'Marc'], ['Terugbellen', 'na 17 u'], ['Nummer', '+32 471 52 18 90'], ['Reden', 'Een tafel voor acht, vrijdag']], sent: 'Per sms naar Marc gestuurd' },
+    second: 'tweede oproep', oncall: 'in gesprek',
+    rules: { title: 'WANNEER QWILLIO OPNEEMT', rows: [['U bent al in gesprek', true], ['U neemt niet op binnen 30 s', true], ['Al uw oproepen', false]], foot: 'Uw eigen telefoon gaat altijd eerst over.' } },
 };
 
 /**
@@ -68,7 +74,7 @@ export type TNarr = Narr & { at: number; out: number };
 export type TLine = Line & { at: number; end: number; until: number };
 export type TScene = SceneData & { at: number; out: number; tsay?: TNarr; tlines: TLine[]; ring?: { at: number; out: number }; card: number; missed?: number; typed?: number; learned?: number };
 
-const MIN: Record<string, number> = { ring: 2.6, notif: 2.8, mac: 3.8, learn: 4.4, message: 3.6, langs: 0, orb: 0, type: 0 };
+const MIN: Record<string, number> = { relay: 4.4, rules: 4.2, ring: 2.6, notif: 2.8, mac: 3.8, learn: 4.4, message: 3.6, langs: 0, orb: 0, type: 0 };
 
 export function buildTimeline(id: string) {
   const sh = data.shorts[id];
@@ -91,6 +97,9 @@ export function buildTimeline(id: string) {
     const s: TScene = { ...sc, at, out, tsay, tlines, card: at + 0.35 };
     if (v.kind === 'ring') s.ring = { at: at + 0.3, out: v.missed ? out - 1.0 : out - 0.1 };
     if (v.kind === 'ring' && v.missed) s.missed = out - 0.95;
+    // le deuxième appel sonne d'abord sur le téléphone du gérant, puis Qwillio le prend
+    if (v.kind === 'relay') { s.ring = { at: at + 0.6, out: at + 3.0 }; s.card = at + 3.05; }
+    if (v.kind === 'rules') s.card = at + 0.3;
     if (v.kind === 'learn') { s.typed = at + 1.3; s.learned = s.typed + v.answer.length / 26 + 0.35; s.out = Math.max(s.out, s.learned + 1.2); }
     cursor = s.out;
     return s;
@@ -373,6 +382,50 @@ function MessageNote({ t, from, lang }: { t: number; from: number; lang: Lang })
   );
 }
 
+
+/** L'écran d'un appel en cours : le gérant est déjà en ligne quand le deuxième appel arrive. */
+function InCall({ name, initials, since, t }: { name: string; initials: string; since: number; t: number }) {
+  const sec = 134 + Math.max(0, Math.floor(t - since));
+  const tm = `${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`;
+  const btn = (k: number) => <div key={k} style={{ width: 78, height: 78, borderRadius: 999, background: k === 5 ? '#EB4E3D' : 'rgba(255,255,255,0.16)' }} />;
+  return (
+    <div style={{ position: 'relative', width: 393, height: 852, overflow: 'hidden', background: 'linear-gradient(180deg,#3A3A3F,#1C1C1E 60%,#111113)', fontFamily: '-apple-system, "SF Pro Display", Outfit, sans-serif' }}>
+      <div style={{ position: 'absolute', left: 0, right: 0, top: 150, textAlign: 'center', color: '#fff' }}>
+        <div style={{ width: 96, height: 96, margin: '0 auto', borderRadius: 999, background: 'linear-gradient(180deg,#A5AAB5,#858A95)', display: 'grid', placeItems: 'center', fontSize: 38, fontWeight: 600 }}>{initials}</div>
+        <div style={{ fontSize: 34, marginTop: 22, letterSpacing: -0.5 }}>{name}</div>
+        <div style={{ fontSize: 20, marginTop: 6, color: 'rgba(235,235,245,0.6)' }}>{tm}</div>
+      </div>
+      <div style={{ position: 'absolute', left: 50, right: 50, top: 520, display: 'grid', gridTemplateColumns: 'repeat(3, 78px)', justifyContent: 'space-between', rowGap: 34 }}>{[0, 1, 2, 3, 4, 5].map((k) => (k === 5 ? null : btn(k)))}</div>
+      <div style={{ position: 'absolute', left: '50%', top: 740, marginLeft: -39 }}>{btn(5)}</div>
+    </div>
+  );
+}
+
+/** Le réglage qui dit QUAND Qwillio décroche : le gérant garde sa ligne. */
+function RulesCard({ t, s, lang }: { t: number; s: TScene; lang: Lang }) {
+  const R = STR[lang].rules;
+  return (
+    <div style={{ position: 'absolute', left: 90, right: 90, top: 560, borderRadius: 44, background: '#fff', padding: '40px 44px', boxShadow: `0 0 0 1px ${PLATE}, 0 50px 90px -40px rgba(60,30,120,0.35)`, ...ff, ...reveal(t, s.card, 0.6) }}>
+      <div style={{ fontSize: 24, letterSpacing: '0.16em', fontWeight: 600, color: BODY }}>{R.title}</div>
+      {R.rows.map(([label, on], i) => {
+        const at = s.card + 0.4 + i * 0.45;
+        const k = p(t, at, 0.45, EASE_OUT);
+        const sw = on ? p(t, at + 0.35, 0.35, EASE_OUT) : 0;
+        return (
+          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 24, marginTop: i ? 22 : 30, padding: '24px 28px', borderRadius: 26, background: '#F7F7F8', opacity: k, transform: `translateY(${(1 - k) * 14}px)` }}>
+            <span style={{ flex: 1, fontSize: 36, color: on ? INK : BODY, letterSpacing: '-0.01em' }}>{label}</span>
+            <span style={{ position: 'relative', width: 92, height: 54, borderRadius: 999, background: on ? mixColor(sw) : PLATE, flex: 'none' }}>
+              <span style={{ position: 'absolute', top: 5, left: 5 + 38 * sw, width: 44, height: 44, borderRadius: 999, background: '#fff', boxShadow: '0 2px 6px rgba(0,0,0,0.18)' }} />
+            </span>
+          </div>
+        );
+      })}
+      <div style={{ marginTop: 30, fontSize: 30, color: INK, ...reveal(t, s.card + 2.0, 0.5) }}>{R.foot}</div>
+    </div>
+  );
+}
+const mixColor = (k: number) => `rgb(${Math.round(mix(235, 122, k))},${Math.round(mix(232, 95, k))},${Math.round(mix(228, 255, k))})`;
+
 /* ------------------------------------------------------------------ une scène */
 
 export type Fmt = (typeof FORMATS)[Format];
@@ -442,7 +495,22 @@ function Scene({ t, s, prev, levels, fps, lang, F, index = 0 }: { t: number; s: 
       </>
     );
     over = <ChatThread t={t} s={s} y={F.langsSpokenY - (F.h > 1500 ? 40 : 0)} bottom={F.h - (F.h > 1500 ? 90 : 50)} size={F.spokenSize} lang={lang} />;
-  } else if (v.kind === 'learn') body = <LearnCard t={t} s={s} question={v.question} answer={v.answer} lang={lang} />;
+  } else if (v.kind === 'relay') {
+    const ringing = t >= s.ring!.at && t < s.ring!.out;
+    const banner = ringing ? <div style={reveal(t, s.ring!.at)}><IncomingCall name={v.name} initials={v.initials} sub={L.second} /></div>
+      : t >= s.card ? <div style={reveal(t, s.card)}><Notification kind="qwillio" title={v.took.title} desc={v.took.desc} time={L.now} /></div> : undefined;
+    body = (
+      <>
+        <AnyPhone t={t} inAt={s.at + 0.05} outAt={s.out + 0.3} angle={buzzAngle(t, s.ring!)} x={324} y={560}>
+          <div style={{ position: 'relative' }}>
+            <InCall name={v.busy} initials={v.busy.split(' ').map((w) => w[0]).join('').slice(0, 2)} since={s.at} t={t} />
+            {banner && <div style={{ position: 'absolute', left: 10, top: 11 }}>{banner}</div>}
+          </div>
+        </AnyPhone>
+      </>
+    );
+  } else if (v.kind === 'rules') body = <RulesCard t={t} s={s} lang={lang} />;
+  else if (v.kind === 'learn') body = <LearnCard t={t} s={s} question={v.question} answer={v.answer} lang={lang} />;
   else if (v.kind === 'message') body = <MessageNote t={t} from={s.card} lang={lang} />;
   else if (v.kind === 'mac') body = <MacCard t={t} s={s} />;
   else if (v.kind === 'type' && v.tag) {
@@ -540,6 +608,7 @@ export const Short: React.FC<{ id: string; format: Format; cine?: boolean; poste
           for (let b = s.ring.at, j = 0; b < s.ring.out - 0.4; b += 1.4, j++) out.push(<Sfx key={`b${i}-${j}`} at={b} name="buzz" gain={0.55} />);
         }
         if (s.missed !== undefined) out.push(<Sfx key={`m${i}`} at={s.missed} name="pop" gain={0.55} />);
+        if (v.kind === 'relay' || v.kind === 'rules') out.push(<Sfx key={`c${i}`} at={s.card} name="pop" gain={0.55} />);
         if (v.kind === 'notif' || v.kind === 'learn' || v.kind === 'message' || v.kind === 'mac') out.push(<Sfx key={`c${i}`} at={s.card} name="pop" gain={0.55} />);
         if (v.kind === 'learn') out.push(<Sfx key={`ok${i}`} at={s.learned!} name="click" gain={0.6} />);
         if (v.kind === 'orb' && T.scenes[i - 1]?.visual.kind === 'ring') out.push(<Sfx key={`a${i}`} at={s.at} name="click" gain={0.6} />);

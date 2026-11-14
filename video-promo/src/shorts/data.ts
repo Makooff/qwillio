@@ -8475,6 +8475,1034 @@ const data = {
      }
     }
    ]
+  },
+  "fr-c01": {
+   "lang": "fr",
+   "slug": "double-appel",
+   "music": 8,
+   "scenes": [
+    {
+     "visual": {
+      "kind": "type"
+     },
+     "say": {
+      "file": "voices/shorts/c01-n0.mp3",
+      "duration": 3.76,
+      "serif": [
+       10
+      ],
+      "words": [
+       {
+        "w": "Vendredi,",
+        "start": 0.132
+       },
+       {
+        "w": "dix-neuf",
+        "start": 0.993
+       },
+       {
+        "w": "heures.",
+        "start": 1.48
+       },
+       {
+        "w": "Vous",
+        "start": 2.004
+       },
+       {
+        "w": "êtes",
+        "start": 2.2
+       },
+       {
+        "w": "déjà",
+        "start": 2.28
+       },
+       {
+        "w": "au",
+        "start": 2.6
+       },
+       {
+        "w": "téléphone",
+        "start": 2.681
+       },
+       {
+        "w": "avec",
+        "start": 3
+       },
+       {
+        "w": "un",
+        "start": 3.32
+       },
+       {
+        "w": "client.",
+        "start": 3.321
+       }
+      ],
+      "title": "Vendredi, 19 h. Vous êtes déjà en ligne.",
+      "titleSerif": [
+       7
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "relay",
+      "busy": "Marc Peeters",
+      "name": "Sophie Lambert",
+      "initials": "SL",
+      "time": "19:02",
+      "took": {
+       "title": "Qwillio a pris le 2e appel",
+       "desc": "Sophie Lambert · en cours"
+      }
+     },
+     "say": {
+      "file": "voices/shorts/c01-n1.mp3",
+      "duration": 4.16,
+      "serif": [
+       12
+      ],
+      "words": [
+       {
+        "w": "Un",
+        "start": 0.111
+       },
+       {
+        "w": "deuxième",
+        "start": 0.202
+       },
+       {
+        "w": "appel",
+        "start": 0.601
+       },
+       {
+        "w": "arrive.",
+        "start": 0.84
+       },
+       {
+        "w": "Votre",
+        "start": 1.543
+       },
+       {
+        "w": "ligne",
+        "start": 2.04
+       },
+       {
+        "w": "est",
+        "start": 2.2
+       },
+       {
+        "w": "occupée,",
+        "start": 2.281
+       },
+       {
+        "w": "alors",
+        "start": 2.909
+       },
+       {
+        "w": "c’est",
+        "start": 3.081
+       },
+       {
+        "w": "elle",
+        "start": 3.32
+       },
+       {
+        "w": "qui",
+        "start": 3.48
+       },
+       {
+        "w": "décroche.",
+        "start": 3.641
+       }
+      ],
+      "title": "Ligne occupée ? Elle prend le deuxième.",
+      "titleSerif": [
+       5
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "orb"
+     },
+     "lines": [
+      {
+       "who": "caller",
+       "file": "voices/shorts/c01-2-0-tel.mp3",
+       "duration": 3.52,
+       "words": [
+        {
+         "w": "Bonsoir,",
+         "start": 0.127
+        },
+        {
+         "w": "vous",
+         "start": 1.101
+        },
+        {
+         "w": "auriez",
+         "start": 1.4
+        },
+        {
+         "w": "encore",
+         "start": 1.64
+        },
+        {
+         "w": "une",
+         "start": 1.88
+        },
+        {
+         "w": "table",
+         "start": 2.041
+        },
+        {
+         "w": "pour",
+         "start": 2.36
+        },
+        {
+         "w": "deux,",
+         "start": 2.44
+        },
+        {
+         "w": "ce",
+         "start": 2.906
+        },
+        {
+         "w": "soir",
+         "start": 3.08
+        },
+        {
+         "w": "?",
+         "start": 3.24
+        }
+       ]
+      },
+      {
+       "who": "agent",
+       "file": "voices/shorts/c01-2-1.mp3",
+       "duration": 2.72,
+       "words": [
+        {
+         "w": "Bonsoir",
+         "start": 0.139
+        },
+        {
+         "w": "!",
+         "start": 0.409
+        },
+        {
+         "w": "Oui,",
+         "start": 0.755
+        },
+        {
+         "w": "à",
+         "start": 1.035
+        },
+        {
+         "w": "vingt",
+         "start": 1.16
+        },
+        {
+         "w": "et",
+         "start": 1.48
+        },
+        {
+         "w": "une",
+         "start": 1.56
+        },
+        {
+         "w": "heures.",
+         "start": 1.72
+        },
+        {
+         "w": "C’est",
+         "start": 1.992
+        },
+        {
+         "w": "à",
+         "start": 2.36
+        },
+        {
+         "w": "quel",
+         "start": 2.36
+        },
+        {
+         "w": "nom",
+         "start": 2.6
+        },
+        {
+         "w": "?",
+         "start": 2.64
+        }
+       ]
+      },
+      {
+       "who": "caller",
+       "file": "voices/shorts/c01-2-2-tel.mp3",
+       "duration": 2.32,
+       "words": [
+        {
+         "w": "Lambert.",
+         "start": 0.12
+        },
+        {
+         "w": "Sophie",
+         "start": 1.208
+        },
+        {
+         "w": "Lambert.",
+         "start": 1.801
+        }
+       ]
+      },
+      {
+       "who": "agent",
+       "file": "voices/shorts/c01-2-3.mp3",
+       "duration": 2.72,
+       "words": [
+        {
+         "w": "C’est",
+         "start": 0.11
+        },
+        {
+         "w": "noté,",
+         "start": 0.36
+        },
+        {
+         "w": "Madame",
+         "start": 0.79
+        },
+        {
+         "w": "Lambert.",
+         "start": 1.241
+        },
+        {
+         "w": "À",
+         "start": 2.082
+        },
+        {
+         "w": "tantôt",
+         "start": 2.282
+        },
+        {
+         "w": "!",
+         "start": 2.481
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "visual": {
+      "kind": "notif",
+      "title": "Nouvelle réservation",
+      "desc": "Sophie Lambert · 2 personnes · 21:00"
+     },
+     "say": {
+      "file": "voices/shorts/c01-n3.mp3",
+      "duration": 4,
+      "serif": [
+       12
+      ],
+      "words": [
+       {
+        "w": "Vous",
+        "start": 0.111
+       },
+       {
+        "w": "raccrochez",
+        "start": 0.282
+       },
+       {
+        "w": "avec",
+        "start": 0.84
+       },
+       {
+        "w": "votre",
+        "start": 1.001
+       },
+       {
+        "w": "premier",
+        "start": 1.241
+       },
+       {
+        "w": "client,",
+        "start": 1.561
+       },
+       {
+        "w": "et",
+        "start": 2.276
+       },
+       {
+        "w": "la",
+        "start": 2.44
+       },
+       {
+        "w": "deuxième",
+        "start": 2.441
+       },
+       {
+        "w": "table",
+        "start": 2.842
+       },
+       {
+        "w": "est",
+        "start": 3.08
+       },
+       {
+        "w": "déjà",
+        "start": 3.24
+       },
+       {
+        "w": "réservée.",
+        "start": 3.481
+       }
+      ],
+      "title": "Deux appels en même temps. Deux tables.",
+      "titleSerif": [
+       6
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "rules"
+     },
+     "say": {
+      "file": "voices/shorts/c01-n4.mp3",
+      "duration": 5.52,
+      "serif": [
+       19
+      ],
+      "words": [
+       {
+        "w": "Le",
+        "start": 0.111
+       },
+       {
+        "w": "reste",
+        "start": 0.36
+       },
+       {
+        "w": "du",
+        "start": 0.604
+       },
+       {
+        "w": "temps,",
+        "start": 0.761
+       },
+       {
+        "w": "c’est",
+        "start": 1.333
+       },
+       {
+        "w": "vous",
+        "start": 1.72
+       },
+       {
+        "w": "qui",
+        "start": 1.88
+       },
+       {
+        "w": "répondez.",
+        "start": 2.041
+       },
+       {
+        "w": "Elle",
+        "start": 3.052
+       },
+       {
+        "w": "ne",
+        "start": 3.32
+       },
+       {
+        "w": "prend",
+        "start": 3.56
+       },
+       {
+        "w": "que",
+        "start": 3.723
+       },
+       {
+        "w": "les",
+        "start": 3.96
+       },
+       {
+        "w": "appels",
+        "start": 4.041
+       },
+       {
+        "w": "que",
+        "start": 4.44
+       },
+       {
+        "w": "vous",
+        "start": 4.6
+       },
+       {
+        "w": "ne",
+        "start": 4.76
+       },
+       {
+        "w": "pouvez",
+        "start": 4.84
+       },
+       {
+        "w": "pas",
+        "start": 4.922
+       },
+       {
+        "w": "prendre.",
+        "start": 5.24
+       }
+      ],
+      "title": "Vous répondez d’abord. Elle prend le reste.",
+      "titleSerif": [
+       6
+      ]
+     }
+    }
+   ]
+  },
+  "fr-c02": {
+   "lang": "fr",
+   "slug": "soiree",
+   "music": 138,
+   "scenes": [
+    {
+     "visual": {
+      "kind": "type"
+     },
+     "say": {
+      "file": "voices/shorts/c02-n0.mp3",
+      "duration": 4.64,
+      "serif": [
+       17
+      ],
+      "words": [
+       {
+        "w": "Vingt",
+        "start": 0.116
+       },
+       {
+        "w": "et",
+        "start": 0.44
+       },
+       {
+        "w": "une",
+        "start": 0.52
+       },
+       {
+        "w": "heures",
+        "start": 0.6
+       },
+       {
+        "w": "trente.",
+        "start": 0.763
+       },
+       {
+        "w": "La",
+        "start": 1.523
+       },
+       {
+        "w": "boutique",
+        "start": 1.8
+       },
+       {
+        "w": "est",
+        "start": 2.04
+       },
+       {
+        "w": "fermée,",
+        "start": 2.041
+       },
+       {
+        "w": "et",
+        "start": 2.741
+       },
+       {
+        "w": "vous",
+        "start": 2.76
+       },
+       {
+        "w": "êtes",
+        "start": 2.92
+       },
+       {
+        "w": "enfin",
+        "start": 3.111
+       },
+       {
+        "w": "à",
+        "start": 3.48
+       },
+       {
+        "w": "table",
+        "start": 3.641
+       },
+       {
+        "w": "avec",
+        "start": 3.8
+       },
+       {
+        "w": "les",
+        "start": 4.04
+       },
+       {
+        "w": "enfants.",
+        "start": 4.28
+       }
+      ],
+      "title": "21 h 30. Vous êtes enfin à table.",
+      "titleSerif": [
+       7
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "ring",
+      "name": "Céline Dupont",
+      "initials": "CD",
+      "time": "21:34"
+     },
+     "say": {
+      "file": "voices/shorts/c02-n1.mp3",
+      "duration": 3.44,
+      "serif": [
+       8
+      ],
+      "words": [
+       {
+        "w": "Le",
+        "start": 0.106
+       },
+       {
+        "w": "GSM",
+        "start": 0.29
+       },
+       {
+        "w": "sonne.",
+        "start": 0.761
+       },
+       {
+        "w": "Ce",
+        "start": 1.507
+       },
+       {
+        "w": "soir,",
+        "start": 1.801
+       },
+       {
+        "w": "vous",
+        "start": 2.418
+       },
+       {
+        "w": "le",
+        "start": 2.68
+       },
+       {
+        "w": "laissez",
+        "start": 2.761
+       },
+       {
+        "w": "sonner.",
+        "start": 2.921
+       }
+      ],
+      "title": "Le GSM sonne. Vous le laissez sonner.",
+      "titleSerif": [
+       6
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "orb"
+     },
+     "lines": [
+      {
+       "who": "caller",
+       "file": "voices/shorts/c02-2-0-tel.mp3",
+       "duration": 5.2,
+       "words": [
+        {
+         "w": "Bonsoir,",
+         "start": 0.124
+        },
+        {
+         "w": "je",
+         "start": 1.123
+        },
+        {
+         "w": "voudrais",
+         "start": 1.4
+        },
+        {
+         "w": "commander",
+         "start": 1.561
+        },
+        {
+         "w": "un",
+         "start": 2.12
+        },
+        {
+         "w": "plateau",
+         "start": 2.2
+        },
+        {
+         "w": "de",
+         "start": 2.52
+        },
+        {
+         "w": "fromages",
+         "start": 2.521
+        },
+        {
+         "w": "pour",
+         "start": 3.16
+        },
+        {
+         "w": "samedi,",
+         "start": 3.164
+        },
+        {
+         "w": "pour",
+         "start": 4.004
+        },
+        {
+         "w": "huit",
+         "start": 4.44
+        },
+        {
+         "w": "personnes.",
+         "start": 4.523
+        }
+       ]
+      },
+      {
+       "who": "agent",
+       "file": "voices/shorts/c02-2-1.mp3",
+       "duration": 3.84,
+       "words": [
+        {
+         "w": "Avec",
+         "start": 0.116
+        },
+        {
+         "w": "plaisir.",
+         "start": 0.442
+        },
+        {
+         "w": "Vous",
+         "start": 1.498
+        },
+        {
+         "w": "passez",
+         "start": 1.88
+        },
+        {
+         "w": "le",
+         "start": 2.12
+        },
+        {
+         "w": "chercher",
+         "start": 2.201
+        },
+        {
+         "w": "à",
+         "start": 2.6
+        },
+        {
+         "w": "quelle",
+         "start": 2.601
+        },
+        {
+         "w": "heure,",
+         "start": 2.92
+        },
+        {
+         "w": "samedi",
+         "start": 3.226
+        },
+        {
+         "w": "?",
+         "start": 3.473
+        }
+       ]
+      },
+      {
+       "who": "caller",
+       "file": "voices/shorts/c02-2-2-tel.mp3",
+       "duration": 2.4,
+       "words": [
+        {
+         "w": "Vers",
+         "start": 0.119
+        },
+        {
+         "w": "onze",
+         "start": 0.523
+        },
+        {
+         "w": "heures,",
+         "start": 0.761
+        },
+        {
+         "w": "si",
+         "start": 1.468
+        },
+        {
+         "w": "c’est",
+         "start": 1.64
+        },
+        {
+         "w": "possible.",
+         "start": 1.881
+        }
+       ]
+      },
+      {
+       "who": "agent",
+       "file": "voices/shorts/c02-2-3.mp3",
+       "duration": 5.28,
+       "words": [
+        {
+         "w": "C’est",
+         "start": 0.109
+        },
+        {
+         "w": "noté",
+         "start": 0.361
+        },
+        {
+         "w": ":",
+         "start": 0.726
+        },
+        {
+         "w": "un",
+         "start": 0.783
+        },
+        {
+         "w": "plateau",
+         "start": 0.841
+        },
+        {
+         "w": "pour",
+         "start": 1.16
+        },
+        {
+         "w": "huit,",
+         "start": 1.401
+        },
+        {
+         "w": "samedi",
+         "start": 1.924
+        },
+        {
+         "w": "vers",
+         "start": 2.362
+        },
+        {
+         "w": "onze",
+         "start": 2.76
+        },
+        {
+         "w": "heures.",
+         "start": 2.921
+        },
+        {
+         "w": "La",
+         "start": 3.579
+        },
+        {
+         "w": "boutique",
+         "start": 3.8
+        },
+        {
+         "w": "vous",
+         "start": 4.2
+        },
+        {
+         "w": "confirme",
+         "start": 4.36
+        },
+        {
+         "w": "demain",
+         "start": 4.602
+        },
+        {
+         "w": "matin.",
+         "start": 4.84
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "visual": {
+      "kind": "notif",
+      "title": "Nouvelle commande",
+      "desc": "Céline Dupont · plateau 8 pers. · samedi 11:00"
+     },
+     "say": {
+      "file": "voices/shorts/c02-n3.mp3",
+      "duration": 5.12,
+      "serif": [
+       14
+      ],
+      "words": [
+       {
+        "w": "Demain",
+        "start": 0.12
+       },
+       {
+        "w": "matin,",
+        "start": 0.441
+       },
+       {
+        "w": "la",
+        "start": 0.983
+       },
+       {
+        "w": "commande",
+        "start": 1.24
+       },
+       {
+        "w": "vous",
+        "start": 1.56
+       },
+       {
+        "w": "attend,",
+        "start": 1.641
+       },
+       {
+        "w": "avec",
+        "start": 2.278
+       },
+       {
+        "w": "le",
+        "start": 2.6
+       },
+       {
+        "w": "nom,",
+        "start": 2.76
+       },
+       {
+        "w": "le",
+        "start": 3.387
+       },
+       {
+        "w": "numéro",
+        "start": 3.481
+       },
+       {
+        "w": "et",
+        "start": 4.192
+       },
+       {
+        "w": "tous",
+        "start": 4.44
+       },
+       {
+        "w": "les",
+        "start": 4.6
+       },
+       {
+        "w": "détails.",
+        "start": 4.601
+       }
+      ],
+      "title": "La commande vous attend demain matin.",
+      "titleSerif": [
+       4,
+       5
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "type"
+     },
+     "say": {
+      "file": "voices/shorts/c02-n4.mp3",
+      "duration": 5.04,
+      "serif": [
+       15
+      ],
+      "words": [
+       {
+        "w": "Votre",
+        "start": 0.115
+       },
+       {
+        "w": "téléphone",
+        "start": 0.443
+       },
+       {
+        "w": "a",
+        "start": 0.84
+       },
+       {
+        "w": "sonné",
+        "start": 1.001
+       },
+       {
+        "w": "d’abord.",
+        "start": 1.321
+       },
+       {
+        "w": "Vous",
+        "start": 1.767
+       },
+       {
+        "w": "avez",
+        "start": 1.96
+       },
+       {
+        "w": "choisi",
+        "start": 2.201
+       },
+       {
+        "w": "votre",
+        "start": 2.441
+       },
+       {
+        "w": "soirée.",
+        "start": 2.84
+       },
+       {
+        "w": "Elle,",
+        "start": 3.461
+       },
+       {
+        "w": "elle",
+        "start": 4.18
+       },
+       {
+        "w": "a",
+        "start": 4.36
+       },
+       {
+        "w": "pris",
+        "start": 4.36
+       },
+       {
+        "w": "la",
+        "start": 4.6
+       },
+       {
+        "w": "commande.",
+        "start": 4.601
+       }
+      ],
+      "title": "Vous gardez votre soirée. Elle prend la commande.",
+      "titleSerif": [
+       3
+      ]
+     }
+    }
+   ]
   }
  }
 };

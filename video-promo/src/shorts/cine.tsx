@@ -69,7 +69,12 @@ export const LOOKS: Look[] = [
   L('cream', 'crane', 'brand', 'center', 1),
   L('cream', 'roll', 'brand', 'left', -1),
 ];
-export const lookFor = (id: string) => LOOKS[(Number((id.match(/s(\d+)/) ?? [])[1] ?? 1) - 1) % LOOKS.length];
+// la campagne (c01…) décale la série pour ne pas reprendre le look de s01
+export const lookFor = (id: string) => {
+  const m = id.match(/([sc])(\d+)/);
+  const n = Number(m?.[2] ?? 1) - 1 + (m?.[1] === 'c' ? 5 : 0);
+  return LOOKS[n % LOOKS.length];
+};
 export const LookCtx = React.createContext<Look>(LOOKS[0]);
 export const useLook = () => React.useContext(LookCtx);
 

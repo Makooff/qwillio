@@ -155,6 +155,45 @@ const FR = [
       { visual: { kind: 'orb' }, say: { text: 'Appelez-la vous-même. Elle vous attend.', emotion: 'affectionate', title: 'Appelez-la vous-même. Elle vous attend.', titleSerif: [4] } },
     ],
   },
+
+  // ---- La campagne « elle prend le relais » (c01…), une publication tous les
+  // trois jours. Le message : Qwillio ne remplace pas le gérant au téléphone,
+  // il prend le DEUXIÈME appel quand la ligne est occupée, et ceux qu'on ne
+  // décroche pas (soir, week-end, mains prises). Le téléphone du gérant sonne
+  // toujours d'abord : c'est le renvoi conditionnel (CLAUDE.md, 6unquadragesies).
+  {
+    id: 'c01', slug: 'double-appel', music: 8,
+    scenes: [
+      { visual: { kind: 'type' }, say: { text: 'Vendredi, dix-neuf heures. Vous êtes déjà au téléphone avec un client.', emotion: 'calm', title: 'Vendredi, 19 h. Vous êtes déjà en ligne.', titleSerif: [7] } },
+      { visual: { kind: 'relay', busy: 'Marc Peeters', name: 'Sophie Lambert', initials: 'SL', time: '19:02', took: { title: 'Qwillio a pris le 2e appel', desc: 'Sophie Lambert · en cours' } },
+        say: { text: 'Un deuxième appel arrive. Votre ligne est occupée, alors c’est elle qui décroche.', emotion: 'confident', title: 'Ligne occupée ? Elle prend le deuxième.', titleSerif: [5] } },
+      { visual: { kind: 'orb' },
+        lines: [caller(LEONIE, `Bonsoir, vous auriez encore une table pour deux, ce soir${NB}?`),
+          agent(`Bonsoir${NB}! Oui, à vingt et une heures. C’est à quel nom${NB}?`, 'happy'),
+          caller(LEONIE, 'Lambert. Sophie Lambert.'),
+          agent(`C’est noté, Madame Lambert. À tantôt${NB}!`, 'happy')] },
+      { visual: { kind: 'notif', title: 'Nouvelle réservation', desc: 'Sophie Lambert · 2 personnes · 21:00' },
+        say: { text: 'Vous raccrochez avec votre premier client, et la deuxième table est déjà réservée.', emotion: 'happy', title: 'Deux appels en même temps. Deux tables.', titleSerif: [6] } },
+      { visual: { kind: 'rules' },
+        say: { text: 'Le reste du temps, c’est vous qui répondez. Elle ne prend que les appels que vous ne pouvez pas prendre.', emotion: 'affectionate', title: 'Vous répondez d’abord. Elle prend le reste.', titleSerif: [6] } },
+    ],
+  },
+  {
+    id: 'c02', slug: 'soiree', music: 138,
+    scenes: [
+      { visual: { kind: 'type' }, say: { text: 'Vingt et une heures trente. La boutique est fermée, et vous êtes enfin à table avec les enfants.', emotion: 'calm', title: '21 h 30. Vous êtes enfin à table.', titleSerif: [7] } },
+      { visual: { kind: 'ring', name: 'Céline Dupont', initials: 'CD', time: '21:34' },
+        say: { text: 'Le GSM sonne. Ce soir, vous le laissez sonner.', emotion: 'calm', title: 'Le GSM sonne. Vous le laissez sonner.', titleSerif: [6] } },
+      { visual: { kind: 'orb' },
+        lines: [caller(LEONIE, `Bonsoir, je voudrais commander un plateau de fromages pour samedi, pour huit personnes.`),
+          agent(`Avec plaisir. Vous passez le chercher à quelle heure, samedi${NB}?`, 'happy'),
+          caller(LEONIE, 'Vers onze heures, si c’est possible.'),
+          agent('C’est noté : un plateau pour huit, samedi vers onze heures. La boutique vous confirme demain matin.', 'content')] },
+      { visual: { kind: 'notif', title: 'Nouvelle commande', desc: 'Céline Dupont · plateau 8 pers. · samedi 11:00' },
+        say: { text: 'Demain matin, la commande vous attend, avec le nom, le numéro et tous les détails.', emotion: 'content', title: 'La commande vous attend demain matin.', titleSerif: [4, 5] } },
+      { visual: { kind: 'type' }, say: { text: 'Votre téléphone a sonné d’abord. Vous avez choisi votre soirée. Elle, elle a pris la commande.', emotion: 'affectionate', title: 'Vous gardez votre soirée. Elle prend la commande.', titleSerif: [3] } },
+    ],
+  },
 ];
 
 // Les versions anglaise et néerlandaise : mêmes histoires, mêmes scènes. Le

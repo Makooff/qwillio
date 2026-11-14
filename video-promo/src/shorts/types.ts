@@ -9,7 +9,9 @@ export type Visual =
   | { kind: 'langs' }
   | { kind: 'learn'; question: string; answer: string }
   | { kind: 'message' }
-  | { kind: 'mac' };
+  | { kind: 'mac' }
+  | { kind: 'relay'; busy: string; name: string; initials: string; time: string; took: { title: string; desc: string } }
+  | { kind: 'rules' };
 export type SceneData = { visual: Visual; say?: Narr; lines?: Line[] };
 export type Lang = 'fr' | 'en' | 'nl';
 export type ShortData = { lang: Lang; slug: string; music: number; scenes: SceneData[] };
