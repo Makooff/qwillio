@@ -17,11 +17,15 @@ Les contenus sont rangés par **vidéo ou photo**, puis par **français, anglais
 | [emails/](emails/README.md) et [sms/](sms/README.md) | Les messages commerciaux et automatiques |
 | [contrats/](contrats/README.md) | Les contrats partenaires |
 | [DA/](DA/README.md) | Le logo, les couleurs et les règles de la marque |
-| [docs/](docs/) | Les guides de travail et la documentation technique |
+| [docs/](docs/README.md) | Les guides de travail et la documentation technique |
 | [frontend/](frontend/) | Le code du site et des espaces utilisateurs |
 | [backend/](backend/) | Le code du serveur et de la base de données |
 | [discord-bot/](discord-bot/) | Le bot Discord |
 | [remotion-ads/](remotion-ads/) | Le projet de montage de la publicité vidéo |
-| [scripts/](scripts/) | Les outils techniques du dépôt |
+| [scripts/](scripts/README.md) | Les outils techniques du dépôt |
 
 Les fichiers `render.yaml`, `vercel.json` et les dossiers de code servent au fonctionnement et au déploiement de l'application. Pour préparer un post, commence par `contenus-a-publier/`.
+
+## Documents anciens
+
+Les anciens audits et comptes rendus sont dans les [archives](docs/archives/README.md). Le guide technique des assistants reste dans [CLAUDE.md](CLAUDE.md), les références produit dans [PRODUCT.md](PRODUCT.md) et [DESIGN.md](DESIGN.md).

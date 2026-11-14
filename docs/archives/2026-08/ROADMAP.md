@@ -1,3 +1,5 @@
+> **Archive historique.** Ce document décrit une ancienne session ou un état daté du projet. Ses actions et constats ne sont pas un diagnostic de la production actuelle.
+
 # ROADMAP.md — Plan d'implémentation (issu de AUDIT.md, 13/08/2026)
 
 Trois niveaux : **Quick wins** (< 1 sem), **Différenciation** (1-4 sem), **Avantage
