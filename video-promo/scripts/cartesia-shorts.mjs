@@ -194,6 +194,132 @@ const FR = [
       { visual: { kind: 'type' }, say: { text: 'Votre téléphone a sonné d’abord. Vous avez choisi votre soirée. Elle, elle a pris la commande.', emotion: 'affectionate', title: 'Vous gardez votre soirée. Elle prend la commande.', titleSerif: [3] } },
     ],
   },
+  {
+    id: 'c03', slug: 'pas-un-robot', music: 160,
+    scenes: [
+      { visual: { kind: 'type' }, say: { text: 'Je ne veux pas qu’une machine réponde à mes clientes. On l’entend souvent. Et on est d’accord.', emotion: 'calm', title: '« Pas une machine à ma place. » D’accord.', titleSerif: [5] } },
+      { visual: { kind: 'ring', name: 'Isabelle Renard', initials: 'IR', time: '10:42' },
+        say: { text: 'Quand le téléphone sonne au salon, c’est vous qui décrochez. Comme avant.', emotion: 'content', title: 'Le téléphone sonne. Vous décrochez. Comme avant.', titleSerif: [6] } },
+      { visual: { kind: 'rules' },
+        say: { text: 'Elle ne décroche que dans deux cas : vous êtes déjà en ligne, ou vous avez les mains dans un brushing et vous ne répondez pas.', emotion: 'confident', title: 'Seulement quand vous ne pouvez pas.', titleSerif: [4, 5] } },
+      { visual: { kind: 'orb' },
+        lines: [caller(LEONIE, `Bonjour, il vous reste une place samedi pour une couleur${NB}?`),
+          agent(`Bonjour${NB}! Samedi à quatorze heures, c’est libre. C’est à quel nom${NB}?`, 'happy'),
+          caller(LEONIE, 'Renard. Isabelle Renard.'),
+          agent(`C’est noté, Madame Renard. À samedi${NB}!`, 'happy')] },
+      { visual: { kind: 'type' }, say: { text: 'Vos clientes vous parlent à vous. Celles que vous ratiez, elle les rattrape.', emotion: 'affectionate', title: 'Celles que vous ratiez, elle les rattrape.', titleSerif: [5] } },
+    ],
+  },
+  {
+    id: 'c04', slug: 'rush-midi', music: 40,
+    scenes: [
+      { visual: { kind: 'type' }, say: { text: 'Midi et quart. Une file jusqu’à la porte, et le téléphone qui sonne.', emotion: 'serious', title: '12 h 15. Trois appels. Deux mains.', titleSerif: [6] } },
+      { visual: { kind: 'relay', busy: 'Julien Maes', name: 'Numéro inconnu', initials: '?', time: '12:16', took: { title: 'Qwillio a pris l’appel', desc: 'Commande à emporter · en cours' } },
+        say: { text: 'Vous êtes déjà sur une commande. L’appel suivant n’attend pas : c’est elle qui répond.', emotion: 'confident', title: 'Le premier pour vous. Le suivant pour elle.', titleSerif: [7] } },
+      { visual: { kind: 'orb' },
+        lines: [caller(MARC, 'Bonjour, je voudrais deux clubs poulet et un américain, à emporter.'),
+          agent(`Deux clubs poulet et un américain. Vous passez vers quelle heure${NB}?`, 'happy'),
+          caller(MARC, 'Dans vingt minutes. C’est pour Mertens.'),
+          agent(`C’est noté, Monsieur Mertens. À tout de suite${NB}!`, 'happy')] },
+      { visual: { kind: 'notif', title: 'Nouvelle commande', desc: 'Mertens · 2 clubs poulet, 1 américain · 12:40' },
+        say: { text: 'La commande s’affiche sur votre téléphone. Pas un client de perdu pendant le rush.', emotion: 'happy', title: 'Pas un client de perdu pendant le rush.', titleSerif: [7] } },
+      { visual: { kind: 'type' }, say: { text: 'Le rush, c’est là que vos clients appellent. Et c’est là que vous ne pouvez pas décrocher.', emotion: 'confident', title: 'Quand vous ne pouvez pas, elle peut.', titleSerif: [6] } },
+    ],
+  },
+  {
+    id: 'c05', slug: 'sous-evier', music: 215,
+    scenes: [
+      { visual: { kind: 'ring', name: 'Laura Vandamme', initials: 'LV', time: '14:20' },
+        say: { text: 'Il est sous un évier, les deux mains prises. Son GSM sonne dans sa poche.', emotion: 'calm', title: 'Sous un évier. Le GSM sonne dans la poche.', titleSerif: [7] } },
+      { visual: { kind: 'type' }, say: { text: 'Trente secondes sans réponse. D’habitude, c’est la messagerie, et le client appelle le suivant sur la liste.', emotion: 'serious', title: '30 secondes. Puis le suivant sur la liste.', titleSerif: [7] } },
+      { visual: { kind: 'orb' },
+        lines: [caller(LEONIE, 'Bonjour, ma chaudière fait un drôle de bruit. C’est pour un devis.'),
+          agent(`Bonjour${NB}! Je note votre demande. À quel moment Monsieur Dubois peut-il vous rappeler${NB}?`, 'content'),
+          caller(LEONIE, 'Après seize heures, c’est parfait.'),
+          agent('C’est noté : un devis pour la chaudière, et un rappel après seize heures.', 'content')] },
+      { visual: { kind: 'notif', title: 'Demande de devis', desc: 'Laura Vandamme · chaudière · rappeler après 16 h' },
+        say: { text: 'En sortant du chantier, il sait qui rappeler, pourquoi, et à quelle heure.', emotion: 'content', title: 'Qui rappeler, pourquoi, et quand.', titleSerif: [4] } },
+      { visual: { kind: 'rules' },
+        say: { text: 'Son téléphone sonne toujours en premier. Elle ne prend que les appels qu’il laisse sonner.', emotion: 'affectionate', title: 'Il décroche quand il peut. Elle, le reste.', titleSerif: [6] } },
+    ],
+  },
+  {
+    id: 'c06', slug: 'dimanche', music: 250,
+    scenes: [
+      { visual: { kind: 'type' }, say: { text: 'Dimanche, vingt heures. Le cabinet est fermé depuis vendredi.', emotion: 'calm', title: 'Dimanche, 20 h. Le cabinet est fermé.', titleSerif: [6] } },
+      { visual: { kind: 'ring', name: 'Thomas Claes', initials: 'TC', time: '20:07' },
+        say: { text: 'Un patient s’est bloqué le dos ce week-end. Il appelle maintenant, parce que c’est maintenant qu’il y pense.', emotion: 'calm', title: 'Vos patients appellent quand ils y pensent.', titleSerif: [6] } },
+      { visual: { kind: 'orb' },
+        lines: [caller(MARC, 'Bonsoir, je voudrais un rendez-vous, le plus tôt possible.'),
+          agent(`Bonsoir${NB}! Demain à huit heures, ça vous convient${NB}?`, 'happy'),
+          caller(MARC, 'Parfait. Thomas Claes.'),
+          agent('C’est réservé, Monsieur Claes, demain à huit heures. Je vous envoie un SMS de confirmation.', 'content')] },
+      { visual: { kind: 'notif', title: 'Nouveau rendez-vous', desc: 'Thomas Claes · lundi 08:00' },
+        say: { text: 'Lundi matin, l’agenda est déjà rempli. Et personne n’a travaillé le dimanche.', emotion: 'happy', title: 'Lundi se prépare dimanche soir. Sans vous.', titleSerif: [6] } },
+      { visual: { kind: 'type' }, say: { text: 'Vous gardez vos week-ends. Vos patients gardent leur rendez-vous.', emotion: 'affectionate', title: 'Vos week-ends restent à vous.', titleSerif: [4] } },
+    ],
+  },
+  {
+    id: 'c07', slug: 'le-bip', music: 100,
+    scenes: [
+      { visual: { kind: 'type' }, say: { text: 'Vous êtes bien sur la messagerie de… Vous connaissez la suite.', emotion: 'calm', title: '« Laissez un message après le bip. »', titleSerif: [5] } },
+      { visual: { kind: 'type' }, say: { text: 'Personne n’aime parler à un répondeur. Alors on raccroche, et on appelle ailleurs.', emotion: 'serious', title: 'Personne n’aime parler à un répondeur.', titleSerif: [5] } },
+      { visual: { kind: 'orb' },
+        lines: [agent(`Garage Lemaire, bonsoir${NB}! Je peux vous aider${NB}?`, 'happy'),
+          caller(MARC, 'Ah… Bonsoir. Je pensais tomber sur le répondeur.'),
+          agent(`Le garage est fermé, mais je prends votre demande. C’est pour quoi${NB}?`, 'content'),
+          caller(MARC, 'Un entretien pour ma voiture, la semaine prochaine.'),
+          agent(`Jeudi à neuf heures, ça vous va${NB}?`, 'happy')] },
+      { visual: { kind: 'notif', title: 'Nouveau rendez-vous', desc: 'Entretien · jeudi 09:00' },
+        say: { text: 'Au lieu d’un bip, une vraie réponse. Et un rendez-vous dans votre agenda.', emotion: 'happy', title: 'Au lieu d’un bip, une réponse.', titleSerif: [5] } },
+      { visual: { kind: 'type' }, say: { text: 'Et le reste de la journée, c’est toujours vous qui répondez.', emotion: 'affectionate', title: 'Le reste du temps, c’est vous.', titleSerif: [5] } },
+    ],
+  },
+  {
+    id: 'c08', slug: 'conges', music: 185,
+    scenes: [
+      { visual: { kind: 'type', tag: 'FERMÉ' }, say: { text: 'Fermé pour congés, jusqu’au trente et un. Le panneau est sur la porte.', emotion: 'calm', title: 'Fermé pour congés.', titleSerif: [2] } },
+      { visual: { kind: 'ring', name: 'Anne Dumont', initials: 'AD', time: '11:12' },
+        say: { text: 'Mais le téléphone, lui, continue de sonner.', emotion: 'curious', title: 'Le téléphone, lui, sonne encore.', titleSerif: [5] } },
+      { visual: { kind: 'orb' },
+        lines: [caller(LEONIE, 'Bonjour, je voudrais commander une galette des rois pour le six janvier.'),
+          agent(`Bonjour${NB}! La boulangerie est en congé jusqu’au trente et un, mais je note votre commande. C’est à quel nom${NB}?`, 'content'),
+          caller(LEONIE, 'Dumont. Anne Dumont.'),
+          agent('C’est noté, Madame Dumont : une galette pour le six janvier. La boulangerie vous la confirme à la réouverture.', 'content')] },
+      { visual: { kind: 'notif', title: 'Commande pour la réouverture', desc: 'Anne Dumont · galette des rois · 6 janvier' },
+        say: { text: 'À votre retour, les commandes vous attendent, dans l’ordre.', emotion: 'happy', title: 'À votre retour, les commandes attendent.', titleSerif: [6] } },
+      { visual: { kind: 'type' }, say: { text: 'Vous partez vraiment en congé. Et vos clients ne restent pas sans réponse.', emotion: 'affectionate', title: 'Fermé, mais pas injoignable.', titleSerif: [4] } },
+    ],
+  },
+  {
+    id: 'c09', slug: 'trois-langues-soir', music: 60,
+    scenes: [
+      { visual: { kind: 'type' }, say: { text: 'Vingt-deux heures, à Bruxelles. Le cabinet est fermé.', emotion: 'calm', title: '22 h, Bruxelles. Le cabinet est fermé.', titleSerif: [3] } },
+      { visual: { kind: 'ring', name: 'Pieter Janssens', initials: 'PJ', time: '22:04' },
+        say: { text: 'Un patient appelle. En néerlandais.', emotion: 'curious', title: 'Un appel. En néerlandais.', titleSerif: [3] } },
+      { visual: { kind: 'orb' },
+        lines: [{ who: 'caller', voice: 'da743a82-ddf2-4d9b-8eb8-ff67ca0b138e', lang: 'nl', say: 'Goedenavond, ik wil graag een afspraak maken voor morgen.', emotion: 'content' },
+          agent('Goedenavond! Morgen om tien uur is nog vrij. Op welke naam mag ik het zetten?', 'happy', { voice: ISA, lang: 'nl', tag: 'NL' }),
+          { who: 'caller', voice: 'da743a82-ddf2-4d9b-8eb8-ff67ca0b138e', lang: 'nl', say: 'Janssens. Pieter Janssens.', emotion: 'content' },
+          agent('Genoteerd, meneer Janssens. Tot morgen!', 'happy', { voice: ISA, lang: 'nl', tag: 'NL' })] },
+      { visual: { kind: 'notif', title: 'Nouveau rendez-vous', desc: 'Pieter Janssens · demain 10:00' },
+        say: { text: 'Elle lui répond dans sa langue. Et vous, demain matin, vous retrouvez le rendez-vous en français.', emotion: 'happy', title: 'Sa langue à lui. Votre agenda à vous.', titleSerif: [7] } },
+      { visual: { kind: 'langs' }, say: { text: 'Français, néerlandais, anglais : à Bruxelles, c’est le minimum.', emotion: 'confident', title: 'FR, NL, EN. Le minimum à Bruxelles.', titleSerif: [5] } },
+    ],
+  },
+  {
+    id: 'c10', slug: 'un-code', music: 280,
+    scenes: [
+      { visual: { kind: 'type' }, say: { text: 'Comment on installe Qwillio ? On vous le montre en trente secondes.', emotion: 'curious', title: 'Comment on l’installe ?', titleSerif: [2] } },
+      { visual: { kind: 'rules' },
+        say: { text: 'Vous choisissez quand elle décroche : quand vous êtes déjà en ligne, quand vous ne répondez pas, ou les deux.', emotion: 'confident', title: 'Vous choisissez quand elle décroche.', titleSerif: [4] } },
+      { visual: { kind: 'type' }, say: { text: 'Puis vous tapez un code sur votre téléphone. Votre numéro ne change pas.', emotion: 'content', title: 'Un code. Votre numéro ne change pas.', titleSerif: [5] } },
+      { visual: { kind: 'type' }, say: { text: 'Et si vous voulez arrêter, un autre code, et votre ligne redevient comme avant.', emotion: 'calm', title: 'Un autre code, et tout redevient comme avant.', titleSerif: [6] } },
+      { visual: { kind: 'orb' },
+        lines: [agent(`Bonjour${NB}! Ici la réceptionniste de Qwillio. Posez-moi une question, je vous écoute.`, 'happy')] },
+      { visual: { kind: 'type' }, say: { text: 'Essayez-la sept jours, sur votre propre numéro.', emotion: 'affectionate', title: 'Sept jours d’essai, sur votre numéro.', titleSerif: [3] } },
+    ],
+  },
 ];
 
 // Les versions anglaise et néerlandaise : mêmes histoires, mêmes scènes. Le
@@ -443,7 +569,7 @@ for (const lang of Object.keys(SCRIPTS)) {
         s.lines = [];
         for (const [j, l] of sc.lines.entries()) {
           const base = `${DIR}/${pre}-${i}-${j}`;
-          const voice = l.who === 'caller' ? VOICES[lang][l.voice] : (l.voice ?? VOICES[lang].agent);
+          const voice = l.who === 'caller' ? (VOICES[lang][l.voice] ?? l.voice) : (l.voice ?? VOICES[lang].agent);
           if (RECOVER) {
             const old = prev.shorts[key]?.scenes?.[i]?.lines?.[j];
             if (!fresh(`${base}.mp3`)) { if (old) s.lines.push(old); continue; }

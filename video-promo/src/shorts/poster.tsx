@@ -220,6 +220,15 @@ export const POSTS: Record<Lang, PostData[]> = {
     { stat: '?', small: 'Question sans réponse', l1: 'Elle n’invente rien.', l2: 'Elle vous demande, puis retient.', sub: 'Votre réponse sert à tous les appels suivants.', t: 10 },
     { stat: 'Pour Marc', small: 'Nouveau message · rappeler après 17 h', l1: 'Chaque message noté.', l2: 'Pour qui, et quand rappeler.', sub: 'Envoyé par SMS à la bonne personne.', t: 13 },
     { stat: 'Urgent', small: 'Appel transféré tout de suite', l1: 'Les urgences vous arrivent.', l2: 'Le reste, elle le gère.', sub: 'Elle trie les appels comme une vraie réceptionniste.', t: 16 },
+    // la campagne « Elle prend le relais » (p01 à p08 dans social/campagne/README.md)
+    { stat: '1er', small: 'Votre téléphone sonne toujours en premier', l1: 'Votre GSM sonne d’abord.', l2: 'Elle prend ce que vous ratez.', sub: 'Qwillio ne décroche que quand vous ne pouvez pas.', t: 2 },
+    { stat: '2e appel', small: 'Ligne occupée · Qwillio répond', l1: 'Le deuxième appel,', l2: 'c’est elle.', sub: 'Vous êtes en ligne ? Le client suivant n’attend pas.', t: 5 },
+    { stat: 'À vous', small: 'Renvoi si occupé ou sans réponse', l1: 'Vous gardez votre ligne.', l2: 'Et vos soirées.', sub: 'Vous choisissez quand elle décroche.', t: 8 },
+    { stat: '21:34', small: 'Nouvelle commande · plateau pour 8', l1: 'Les commandes du soir,', l2: 'notées pour demain matin.', sub: 'Avec le nom, le numéro et le détail.', t: 11 },
+    { stat: '30 s', small: 'Pas de réponse · elle décroche', l1: 'Les mains prises.', l2: 'Le client servi.', sub: 'Sur un chantier, au bac à shampoing, en cuisine.', t: 14 },
+    { stat: 'Lun. 8:00', small: 'Réservé dimanche à 20:07', l1: 'Lundi se prépare', l2: 'dimanche soir.', sub: 'Vos clients réservent quand ils y pensent.', t: 17 },
+    { stat: 'Fermé', small: 'Congés, soirées, week-ends', l1: 'Fermé ne veut plus dire', l2: 'injoignable.', sub: 'Les demandes vous attendent à votre retour.', t: 20 },
+    { stat: '7 jours', small: 'Sur votre propre numéro', l1: 'Un code pour l’activer.', l2: 'Un code pour l’enlever.', sub: 'Essayez Qwillio sept jours.', t: 23 },
   ],
   en: [
     { stat: '24/7', small: 'Even at 3 a.m.', l1: 'Every call answered.', l2: 'Even when you’re busy.', sub: 'The AI receptionist for shops and practices.', t: 1 },

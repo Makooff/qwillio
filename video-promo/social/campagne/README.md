@@ -36,10 +36,12 @@ fin seulement.
 | c09 | `c09-trois-langues-soir` | Cabinet bruxellois | « 22 h, Bruxelles. Un appel en néerlandais. » | Après les heures, en FR, NL et EN |
 | c10 | `c10-un-code` | Tous | « Comment on l'installe ? Avec un code. » | Un code sur votre téléphone, un autre pour l'enlever, 7 jours d'essai |
 
-c01 et c02 sont faites en français pour validation. Les huit autres, puis les
-versions NL et EN, suivent le même gabarit une fois ces deux-là validées.
+Les dix sont faites en français (`fr/9x16/` et `fr/4x5/`, avec une couverture
+`-cover.jpg` pour TikTok et les Reels). Les versions NL et EN suivent le même gabarit.
 
 ## Les posts photo associés (4:5, 1:1 et 9:16)
+
+Fichiers : `posts/fr/<format>/pNN.png`.
 
 | # | Titre | Sous-titre |
 |---|---|---|

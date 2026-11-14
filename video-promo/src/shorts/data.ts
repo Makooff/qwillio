@@ -9503,6 +9503,3881 @@ const data = {
      }
     }
    ]
+  },
+  "fr-c03": {
+   "lang": "fr",
+   "slug": "pas-un-robot",
+   "music": 160,
+   "scenes": [
+    {
+     "visual": {
+      "kind": "type"
+     },
+     "say": {
+      "file": "voices/shorts/c03-n0.mp3",
+      "duration": 4.48,
+      "serif": [
+       16
+      ],
+      "words": [
+       {
+        "w": "Je",
+        "start": 0.104
+       },
+       {
+        "w": "ne",
+        "start": 0.2
+       },
+       {
+        "w": "veux",
+        "start": 0.36
+       },
+       {
+        "w": "pas",
+        "start": 0.52
+       },
+       {
+        "w": "qu’une",
+        "start": 0.521
+       },
+       {
+        "w": "machine",
+        "start": 0.761
+       },
+       {
+        "w": "réponde",
+        "start": 1.161
+       },
+       {
+        "w": "à",
+        "start": 1.48
+       },
+       {
+        "w": "mes",
+        "start": 1.48
+       },
+       {
+        "w": "clientes.",
+        "start": 1.564
+       },
+       {
+        "w": "On",
+        "start": 2.349
+       },
+       {
+        "w": "l’entend",
+        "start": 2.6
+       },
+       {
+        "w": "souvent.",
+        "start": 2.761
+       },
+       {
+        "w": "Et",
+        "start": 3.569
+       },
+       {
+        "w": "on",
+        "start": 3.88
+       },
+       {
+        "w": "est",
+        "start": 3.88
+       },
+       {
+        "w": "d’accord.",
+        "start": 3.961
+       }
+      ],
+      "title": "« Pas une machine à ma place. » D’accord.",
+      "titleSerif": [
+       5
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "ring",
+      "name": "Isabelle Renard",
+      "initials": "IR",
+      "time": "10:42"
+     },
+     "say": {
+      "file": "voices/shorts/c03-n1.mp3",
+      "duration": 3.76,
+      "serif": [
+       11
+      ],
+      "words": [
+       {
+        "w": "Quand",
+        "start": 0.111
+       },
+       {
+        "w": "le",
+        "start": 0.2
+       },
+       {
+        "w": "téléphone",
+        "start": 0.361
+       },
+       {
+        "w": "sonne",
+        "start": 0.761
+       },
+       {
+        "w": "au",
+        "start": 1.08
+       },
+       {
+        "w": "salon,",
+        "start": 1.081
+       },
+       {
+        "w": "c’est",
+        "start": 1.736
+       },
+       {
+        "w": "vous",
+        "start": 2.04
+       },
+       {
+        "w": "qui",
+        "start": 2.36
+       },
+       {
+        "w": "décrochez.",
+        "start": 2.362
+       },
+       {
+        "w": "Comme",
+        "start": 3.199
+       },
+       {
+        "w": "avant.",
+        "start": 3.401
+       }
+      ],
+      "title": "Le téléphone sonne. Vous décrochez. Comme avant.",
+      "titleSerif": [
+       6
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "rules"
+     },
+     "say": {
+      "file": "voices/shorts/c03-n2.mp3",
+      "duration": 5.2,
+      "serif": [
+       25
+      ],
+      "words": [
+       {
+        "w": "Elle",
+        "start": 0.105
+       },
+       {
+        "w": "ne",
+        "start": 0.2
+       },
+       {
+        "w": "décroche",
+        "start": 0.361
+       },
+       {
+        "w": "que",
+        "start": 0.761
+       },
+       {
+        "w": "dans",
+        "start": 1
+       },
+       {
+        "w": "deux",
+        "start": 1.08
+       },
+       {
+        "w": "cas",
+        "start": 1.32
+       },
+       {
+        "w": ":",
+        "start": 1.481
+       },
+       {
+        "w": "vous",
+        "start": 1.52
+       },
+       {
+        "w": "êtes",
+        "start": 1.56
+       },
+       {
+        "w": "déjà",
+        "start": 1.72
+       },
+       {
+        "w": "en",
+        "start": 2.04
+       },
+       {
+        "w": "ligne,",
+        "start": 2.041
+       },
+       {
+        "w": "ou",
+        "start": 2.571
+       },
+       {
+        "w": "vous",
+        "start": 2.6
+       },
+       {
+        "w": "avez",
+        "start": 2.84
+       },
+       {
+        "w": "les",
+        "start": 3.08
+       },
+       {
+        "w": "mains",
+        "start": 3.16
+       },
+       {
+        "w": "dans",
+        "start": 3.241
+       },
+       {
+        "w": "un",
+        "start": 3.56
+       },
+       {
+        "w": "brushing",
+        "start": 3.562
+       },
+       {
+        "w": "et",
+        "start": 4.178
+       },
+       {
+        "w": "vous",
+        "start": 4.36
+       },
+       {
+        "w": "ne",
+        "start": 4.44
+       },
+       {
+        "w": "répondez",
+        "start": 4.601
+       },
+       {
+        "w": "pas.",
+        "start": 4.841
+       }
+      ],
+      "title": "Seulement quand vous ne pouvez pas.",
+      "titleSerif": [
+       4,
+       5
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "orb"
+     },
+     "lines": [
+      {
+       "who": "caller",
+       "file": "voices/shorts/c03-3-0-tel.mp3",
+       "duration": 2.96,
+       "words": [
+        {
+         "w": "Bonjour,",
+         "start": 0.12
+        },
+        {
+         "w": "il",
+         "start": 0.909
+        },
+        {
+         "w": "vous",
+         "start": 1.24
+        },
+        {
+         "w": "reste",
+         "start": 1.24
+        },
+        {
+         "w": "une",
+         "start": 1.56
+        },
+        {
+         "w": "place",
+         "start": 1.56
+        },
+        {
+         "w": "samedi",
+         "start": 1.801
+        },
+        {
+         "w": "pour",
+         "start": 2.28
+        },
+        {
+         "w": "une",
+         "start": 2.44
+        },
+        {
+         "w": "couleur",
+         "start": 2.44
+        },
+        {
+         "w": "?",
+         "start": 2.64
+        }
+       ]
+      },
+      {
+       "who": "agent",
+       "file": "voices/shorts/c03-3-1.mp3",
+       "duration": 3.84,
+       "words": [
+        {
+         "w": "Bonjour",
+         "start": 0.121
+        },
+        {
+         "w": "!",
+         "start": 0.401
+        },
+        {
+         "w": "Samedi",
+         "start": 1.003
+        },
+        {
+         "w": "à",
+         "start": 1.56
+        },
+        {
+         "w": "quatorze",
+         "start": 1.561
+        },
+        {
+         "w": "heures,",
+         "start": 1.96
+        },
+        {
+         "w": "c’est",
+         "start": 2.355
+        },
+        {
+         "w": "libre.",
+         "start": 2.68
+        },
+        {
+         "w": "C’est",
+         "start": 3.082
+        },
+        {
+         "w": "à",
+         "start": 3.32
+        },
+        {
+         "w": "quel",
+         "start": 3.48
+        },
+        {
+         "w": "nom",
+         "start": 3.56
+        },
+        {
+         "w": "?",
+         "start": 3.64
+        }
+       ]
+      },
+      {
+       "who": "caller",
+       "file": "voices/shorts/c03-3-2-tel.mp3",
+       "duration": 2.4,
+       "words": [
+        {
+         "w": "Renard.",
+         "start": 0.12
+        },
+        {
+         "w": "Isabelle",
+         "start": 1.17
+        },
+        {
+         "w": "Renard.",
+         "start": 1.801
+        }
+       ]
+      },
+      {
+       "who": "agent",
+       "file": "voices/shorts/c03-3-3.mp3",
+       "duration": 2.72,
+       "words": [
+        {
+         "w": "C’est",
+         "start": 0.111
+        },
+        {
+         "w": "noté,",
+         "start": 0.361
+        },
+        {
+         "w": "Madame",
+         "start": 0.801
+        },
+        {
+         "w": "Renard.",
+         "start": 1.161
+        },
+        {
+         "w": "À",
+         "start": 1.85
+        },
+        {
+         "w": "samedi",
+         "start": 2.042
+        },
+        {
+         "w": "!",
+         "start": 2.321
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "visual": {
+      "kind": "type"
+     },
+     "say": {
+      "file": "voices/shorts/c03-n4.mp3",
+      "duration": 3.84,
+      "serif": [
+       12
+      ],
+      "words": [
+       {
+        "w": "Vos",
+        "start": 0.112
+       },
+       {
+        "w": "clientes",
+        "start": 0.282
+       },
+       {
+        "w": "vous",
+        "start": 0.84
+       },
+       {
+        "w": "parlent",
+        "start": 0.84
+       },
+       {
+        "w": "à",
+        "start": 1.08
+       },
+       {
+        "w": "vous.",
+        "start": 1.161
+       },
+       {
+        "w": "Celles",
+        "start": 1.758
+       },
+       {
+        "w": "que",
+        "start": 1.96
+       },
+       {
+        "w": "vous",
+        "start": 2.2
+       },
+       {
+        "w": "ratiez,",
+        "start": 2.202
+       },
+       {
+        "w": "elle",
+        "start": 2.893
+       },
+       {
+        "w": "les",
+        "start": 3.16
+       },
+       {
+        "w": "rattrape.",
+        "start": 3.164
+       }
+      ],
+      "title": "Celles que vous ratiez, elle les rattrape.",
+      "titleSerif": [
+       5
+      ]
+     }
+    }
+   ]
+  },
+  "fr-c04": {
+   "lang": "fr",
+   "slug": "rush-midi",
+   "music": 40,
+   "scenes": [
+    {
+     "visual": {
+      "kind": "type"
+     },
+     "say": {
+      "file": "voices/shorts/c04-n0.mp3",
+      "duration": 4.08,
+      "serif": [
+       12
+      ],
+      "words": [
+       {
+        "w": "Midi",
+        "start": 0.115
+       },
+       {
+        "w": "et",
+        "start": 0.52
+       },
+       {
+        "w": "quart.",
+        "start": 0.521
+       },
+       {
+        "w": "Une",
+        "start": 1.315
+       },
+       {
+        "w": "file",
+        "start": 1.64
+       },
+       {
+        "w": "jusqu’à",
+        "start": 1.721
+       },
+       {
+        "w": "la",
+        "start": 2.04
+       },
+       {
+        "w": "porte,",
+        "start": 2.121
+       },
+       {
+        "w": "et",
+        "start": 2.731
+       },
+       {
+        "w": "le",
+        "start": 2.92
+       },
+       {
+        "w": "téléphone",
+        "start": 3.001
+       },
+       {
+        "w": "qui",
+        "start": 3.4
+       },
+       {
+        "w": "sonne.",
+        "start": 3.641
+       }
+      ],
+      "title": "12 h 15. Trois appels. Deux mains.",
+      "titleSerif": [
+       6
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "relay",
+      "busy": "Julien Maes",
+      "name": "Numéro inconnu",
+      "initials": "?",
+      "time": "12:16",
+      "took": {
+       "title": "Qwillio a pris l’appel",
+       "desc": "Commande à emporter · en cours"
+      }
+     },
+     "say": {
+      "file": "voices/shorts/c04-n1.mp3",
+      "duration": 4.32,
+      "serif": [
+       14
+      ],
+      "words": [
+       {
+        "w": "Vous",
+        "start": 0.11
+       },
+       {
+        "w": "êtes",
+        "start": 0.36
+       },
+       {
+        "w": "déjà",
+        "start": 0.441
+       },
+       {
+        "w": "sur",
+        "start": 0.68
+       },
+       {
+        "w": "une",
+        "start": 0.92
+       },
+       {
+        "w": "commande.",
+        "start": 0.923
+       },
+       {
+        "w": "L’appel",
+        "start": 1.875
+       },
+       {
+        "w": "suivant",
+        "start": 2.281
+       },
+       {
+        "w": "n’attend",
+        "start": 2.602
+       },
+       {
+        "w": "pas",
+        "start": 2.923
+       },
+       {
+        "w": ":",
+        "start": 3.339
+       },
+       {
+        "w": "c’est",
+        "start": 3.409
+       },
+       {
+        "w": "elle",
+        "start": 3.481
+       },
+       {
+        "w": "qui",
+        "start": 3.64
+       },
+       {
+        "w": "répond.",
+        "start": 3.96
+       }
+      ],
+      "title": "Le premier pour vous. Le suivant pour elle.",
+      "titleSerif": [
+       7
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "orb"
+     },
+     "lines": [
+      {
+       "who": "caller",
+       "file": "voices/shorts/c04-2-0-tel.mp3",
+       "duration": 3.6,
+       "words": [
+        {
+         "w": "Bonjour,",
+         "start": 0.12
+        },
+        {
+         "w": "je",
+         "start": 0.813
+        },
+        {
+         "w": "voudrais",
+         "start": 0.92
+        },
+        {
+         "w": "deux",
+         "start": 1.163
+        },
+        {
+         "w": "clubs",
+         "start": 1.4
+        },
+        {
+         "w": "poulet",
+         "start": 1.641
+        },
+        {
+         "w": "et",
+         "start": 1.988
+        },
+        {
+         "w": "un",
+         "start": 2.28
+        },
+        {
+         "w": "américain,",
+         "start": 2.281
+        },
+        {
+         "w": "à",
+         "start": 2.896
+        },
+        {
+         "w": "emporter.",
+         "start": 3.081
+        }
+       ]
+      },
+      {
+       "who": "agent",
+       "file": "voices/shorts/c04-2-1.mp3",
+       "duration": 3.12,
+       "words": [
+        {
+         "w": "Deux",
+         "start": 0.113
+        },
+        {
+         "w": "clubs",
+         "start": 0.281
+        },
+        {
+         "w": "poulet",
+         "start": 0.601
+        },
+        {
+         "w": "et",
+         "start": 0.927
+        },
+        {
+         "w": "un",
+         "start": 1.16
+        },
+        {
+         "w": "américain.",
+         "start": 1.161
+        },
+        {
+         "w": "Vous",
+         "start": 2.001
+        },
+        {
+         "w": "passez",
+         "start": 2.28
+        },
+        {
+         "w": "vers",
+         "start": 2.52
+        },
+        {
+         "w": "quelle",
+         "start": 2.76
+        },
+        {
+         "w": "heure",
+         "start": 2.92
+        },
+        {
+         "w": "?",
+         "start": 2.96
+        }
+       ]
+      },
+      {
+       "who": "caller",
+       "file": "voices/shorts/c04-2-2-tel.mp3",
+       "duration": 2.24,
+       "words": [
+        {
+         "w": "Dans",
+         "start": 0.105
+        },
+        {
+         "w": "vingt",
+         "start": 0.441
+        },
+        {
+         "w": "minutes.",
+         "start": 0.522
+        },
+        {
+         "w": "C’est",
+         "start": 1.23
+        },
+        {
+         "w": "pour",
+         "start": 1.4
+        },
+        {
+         "w": "Mertens.",
+         "start": 1.485
+        }
+       ]
+      },
+      {
+       "who": "agent",
+       "file": "voices/shorts/c04-2-3.mp3",
+       "duration": 2.88,
+       "words": [
+        {
+         "w": "C’est",
+         "start": 0.074
+        },
+        {
+         "w": "noté,",
+         "start": 0.201
+        },
+        {
+         "w": "Monsieur",
+         "start": 0.823
+        },
+        {
+         "w": "Mertens.",
+         "start": 1.163
+        },
+        {
+         "w": "À",
+         "start": 2.07
+        },
+        {
+         "w": "tout",
+         "start": 2.28
+        },
+        {
+         "w": "de",
+         "start": 2.44
+        },
+        {
+         "w": "suite",
+         "start": 2.441
+        },
+        {
+         "w": "!",
+         "start": 2.6
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "visual": {
+      "kind": "notif",
+      "title": "Nouvelle commande",
+      "desc": "Mertens · 2 clubs poulet, 1 américain · 12:40"
+     },
+     "say": {
+      "file": "voices/shorts/c04-n3.mp3",
+      "duration": 4.08,
+      "serif": [
+       13
+      ],
+      "words": [
+       {
+        "w": "La",
+        "start": 0.114
+       },
+       {
+        "w": "commande",
+        "start": 0.28
+       },
+       {
+        "w": "s’affiche",
+        "start": 0.602
+       },
+       {
+        "w": "sur",
+        "start": 1
+       },
+       {
+        "w": "votre",
+        "start": 1.24
+       },
+       {
+        "w": "téléphone.",
+        "start": 1.404
+       },
+       {
+        "w": "Pas",
+        "start": 2.305
+       },
+       {
+        "w": "un",
+        "start": 2.6
+       },
+       {
+        "w": "client",
+        "start": 2.68
+       },
+       {
+        "w": "de",
+        "start": 2.92
+       },
+       {
+        "w": "perdu",
+        "start": 3.081
+       },
+       {
+        "w": "pendant",
+        "start": 3.32
+       },
+       {
+        "w": "le",
+        "start": 3.56
+       },
+       {
+        "w": "rush.",
+        "start": 3.641
+       }
+      ],
+      "title": "Pas un client de perdu pendant le rush.",
+      "titleSerif": [
+       7
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "type"
+     },
+     "say": {
+      "file": "voices/shorts/c04-n4.mp3",
+      "duration": 4.64,
+      "serif": [
+       16
+      ],
+      "words": [
+       {
+        "w": "Le",
+        "start": 0.111
+       },
+       {
+        "w": "rush,",
+        "start": 0.281
+       },
+       {
+        "w": "c’est",
+        "start": 0.888
+       },
+       {
+        "w": "là",
+        "start": 1.24
+       },
+       {
+        "w": "que",
+        "start": 1.4
+       },
+       {
+        "w": "vos",
+        "start": 1.4
+       },
+       {
+        "w": "clients",
+        "start": 1.561
+       },
+       {
+        "w": "appellent.",
+        "start": 1.961
+       },
+       {
+        "w": "Et",
+        "start": 2.674
+       },
+       {
+        "w": "c’est",
+        "start": 3
+       },
+       {
+        "w": "là",
+        "start": 3.08
+       },
+       {
+        "w": "que",
+        "start": 3.4
+       },
+       {
+        "w": "vous",
+        "start": 3.48
+       },
+       {
+        "w": "ne",
+        "start": 3.64
+       },
+       {
+        "w": "pouvez",
+        "start": 3.641
+       },
+       {
+        "w": "pas",
+        "start": 3.961
+       },
+       {
+        "w": "décrocher.",
+        "start": 4.042
+       }
+      ],
+      "title": "Quand vous ne pouvez pas, elle peut.",
+      "titleSerif": [
+       6
+      ]
+     }
+    }
+   ]
+  },
+  "fr-c05": {
+   "lang": "fr",
+   "slug": "sous-evier",
+   "music": 215,
+   "scenes": [
+    {
+     "visual": {
+      "kind": "ring",
+      "name": "Laura Vandamme",
+      "initials": "LV",
+      "time": "14:20"
+     },
+     "say": {
+      "file": "voices/shorts/c05-n0.mp3",
+      "duration": 4.24,
+      "serif": [
+       14
+      ],
+      "words": [
+       {
+        "w": "Il",
+        "start": 0.11
+       },
+       {
+        "w": "est",
+        "start": 0.28
+       },
+       {
+        "w": "sous",
+        "start": 0.44
+       },
+       {
+        "w": "un",
+        "start": 0.6
+       },
+       {
+        "w": "évier,",
+        "start": 0.681
+       },
+       {
+        "w": "les",
+        "start": 1.279
+       },
+       {
+        "w": "deux",
+        "start": 1.48
+       },
+       {
+        "w": "mains",
+        "start": 1.56
+       },
+       {
+        "w": "prises.",
+        "start": 1.642
+       },
+       {
+        "w": "Son",
+        "start": 2.371
+       },
+       {
+        "w": "GSM",
+        "start": 2.687
+       },
+       {
+        "w": "sonne",
+        "start": 3.083
+       },
+       {
+        "w": "dans",
+        "start": 3.48
+       },
+       {
+        "w": "sa",
+        "start": 3.64
+       },
+       {
+        "w": "poche.",
+        "start": 3.642
+       }
+      ],
+      "title": "Sous un évier. Le GSM sonne dans la poche.",
+      "titleSerif": [
+       7
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "type"
+     },
+     "say": {
+      "file": "voices/shorts/c05-n1.mp3",
+      "duration": 5.6,
+      "serif": [
+       16
+      ],
+      "words": [
+       {
+        "w": "Trente",
+        "start": 0.095
+       },
+       {
+        "w": "secondes",
+        "start": 0.361
+       },
+       {
+        "w": "sans",
+        "start": 0.682
+       },
+       {
+        "w": "réponse.",
+        "start": 0.842
+       },
+       {
+        "w": "D’habitude,",
+        "start": 1.627
+       },
+       {
+        "w": "c’est",
+        "start": 2.113
+       },
+       {
+        "w": "la",
+        "start": 2.68
+       },
+       {
+        "w": "messagerie,",
+        "start": 2.762
+       },
+       {
+        "w": "et",
+        "start": 3.536
+       },
+       {
+        "w": "le",
+        "start": 3.72
+       },
+       {
+        "w": "client",
+        "start": 3.801
+       },
+       {
+        "w": "appelle",
+        "start": 4.12
+       },
+       {
+        "w": "le",
+        "start": 4.44
+       },
+       {
+        "w": "suivant",
+        "start": 4.441
+       },
+       {
+        "w": "sur",
+        "start": 4.84
+       },
+       {
+        "w": "la",
+        "start": 5.08
+       },
+       {
+        "w": "liste.",
+        "start": 5.081
+       }
+      ],
+      "title": "30 secondes. Puis le suivant sur la liste.",
+      "titleSerif": [
+       7
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "orb"
+     },
+     "lines": [
+      {
+       "who": "caller",
+       "file": "voices/shorts/c05-2-0-tel.mp3",
+       "duration": 3.84,
+       "words": [
+        {
+         "w": "Bonjour,",
+         "start": 0.124
+        },
+        {
+         "w": "ma",
+         "start": 0.82
+        },
+        {
+         "w": "chaudière",
+         "start": 1
+        },
+        {
+         "w": "fait",
+         "start": 1.401
+        },
+        {
+         "w": "un",
+         "start": 1.64
+        },
+        {
+         "w": "drôle",
+         "start": 1.641
+        },
+        {
+         "w": "de",
+         "start": 2.04
+        },
+        {
+         "w": "bruit.",
+         "start": 2.12
+        },
+        {
+         "w": "C’est",
+         "start": 2.754
+        },
+        {
+         "w": "pour",
+         "start": 3
+        },
+        {
+         "w": "un",
+         "start": 3.24
+        },
+        {
+         "w": "devis.",
+         "start": 3.401
+        }
+       ]
+      },
+      {
+       "who": "agent",
+       "file": "voices/shorts/c05-2-1.mp3",
+       "duration": 4.72,
+       "words": [
+        {
+         "w": "Bonjour",
+         "start": 0.137
+        },
+        {
+         "w": "!",
+         "start": 0.449
+        },
+        {
+         "w": "Je",
+         "start": 1.035
+        },
+        {
+         "w": "note",
+         "start": 1.32
+        },
+        {
+         "w": "votre",
+         "start": 1.561
+        },
+        {
+         "w": "demande.",
+         "start": 1.802
+        },
+        {
+         "w": "À",
+         "start": 2.671
+        },
+        {
+         "w": "quel",
+         "start": 2.761
+        },
+        {
+         "w": "moment",
+         "start": 3
+        },
+        {
+         "w": "Monsieur",
+         "start": 3.321
+        },
+        {
+         "w": "Dubois",
+         "start": 3.641
+        },
+        {
+         "w": "peut-il",
+         "start": 3.804
+        },
+        {
+         "w": "vous",
+         "start": 4.12
+        },
+        {
+         "w": "rappeler",
+         "start": 4.281
+        },
+        {
+         "w": "?",
+         "start": 4.44
+        }
+       ]
+      },
+      {
+       "who": "caller",
+       "file": "voices/shorts/c05-2-2-tel.mp3",
+       "duration": 2.48,
+       "words": [
+        {
+         "w": "Après",
+         "start": 0.12
+        },
+        {
+         "w": "seize",
+         "start": 0.521
+        },
+        {
+         "w": "heures,",
+         "start": 0.761
+        },
+        {
+         "w": "c’est",
+         "start": 1.51
+        },
+        {
+         "w": "parfait.",
+         "start": 1.882
+        }
+       ]
+      },
+      {
+       "who": "agent",
+       "file": "voices/shorts/c05-2-3.mp3",
+       "duration": 3.28,
+       "words": [
+        {
+         "w": "C’est",
+         "start": 0.099
+        },
+        {
+         "w": "noté",
+         "start": 0.36
+        },
+        {
+         "w": ":",
+         "start": 0.68
+        },
+        {
+         "w": "un",
+         "start": 0.68
+        },
+        {
+         "w": "devis",
+         "start": 0.682
+        },
+        {
+         "w": "pour",
+         "start": 1.08
+        },
+        {
+         "w": "la",
+         "start": 1.24
+        },
+        {
+         "w": "chaudière,",
+         "start": 1.241
+        },
+        {
+         "w": "et",
+         "start": 2.016
+        },
+        {
+         "w": "un",
+         "start": 2.2
+        },
+        {
+         "w": "rappel",
+         "start": 2.2
+        },
+        {
+         "w": "après",
+         "start": 2.601
+        },
+        {
+         "w": "seize",
+         "start": 2.762
+        },
+        {
+         "w": "heures.",
+         "start": 3.16
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "visual": {
+      "kind": "notif",
+      "title": "Demande de devis",
+      "desc": "Laura Vandamme · chaudière · rappeler après 16 h"
+     },
+     "say": {
+      "file": "voices/shorts/c05-n3.mp3",
+      "duration": 4,
+      "serif": [
+       12
+      ],
+      "words": [
+       {
+        "w": "En",
+        "start": 0.115
+       },
+       {
+        "w": "sortant",
+        "start": 0.36
+       },
+       {
+        "w": "du",
+        "start": 0.68
+       },
+       {
+        "w": "chantier,",
+        "start": 0.761
+       },
+       {
+        "w": "il",
+        "start": 1.4
+       },
+       {
+        "w": "sait",
+        "start": 1.72
+       },
+       {
+        "w": "qui",
+        "start": 1.88
+       },
+       {
+        "w": "rappeler,",
+        "start": 1.961
+       },
+       {
+        "w": "pourquoi,",
+        "start": 2.609
+       },
+       {
+        "w": "et",
+        "start": 3.296
+       },
+       {
+        "w": "à",
+        "start": 3.56
+       },
+       {
+        "w": "quelle",
+        "start": 3.64
+       },
+       {
+        "w": "heure.",
+        "start": 3.8
+       }
+      ],
+      "title": "Qui rappeler, pourquoi, et quand.",
+      "titleSerif": [
+       4
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "rules"
+     },
+     "say": {
+      "file": "voices/shorts/c05-n4.mp3",
+      "duration": 4.24,
+      "serif": [
+       14
+      ],
+      "words": [
+       {
+        "w": "Son",
+        "start": 0.109
+       },
+       {
+        "w": "téléphone",
+        "start": 0.441
+       },
+       {
+        "w": "sonne",
+        "start": 0.763
+       },
+       {
+        "w": "toujours",
+        "start": 1.081
+       },
+       {
+        "w": "en",
+        "start": 1.4
+       },
+       {
+        "w": "premier.",
+        "start": 1.481
+       },
+       {
+        "w": "Elle",
+        "start": 2.338
+       },
+       {
+        "w": "ne",
+        "start": 2.68
+       },
+       {
+        "w": "prend",
+        "start": 2.76
+       },
+       {
+        "w": "que",
+        "start": 2.922
+       },
+       {
+        "w": "les",
+        "start": 3
+       },
+       {
+        "w": "appels",
+        "start": 3.24
+       },
+       {
+        "w": "qu’il",
+        "start": 3.56
+       },
+       {
+        "w": "laisse",
+        "start": 3.64
+       },
+       {
+        "w": "sonner.",
+        "start": 3.881
+       }
+      ],
+      "title": "Il décroche quand il peut. Elle, le reste.",
+      "titleSerif": [
+       6
+      ]
+     }
+    }
+   ]
+  },
+  "fr-c06": {
+   "lang": "fr",
+   "slug": "dimanche",
+   "music": 250,
+   "scenes": [
+    {
+     "visual": {
+      "kind": "type"
+     },
+     "say": {
+      "file": "voices/shorts/c06-n0.mp3",
+      "duration": 3.68,
+      "serif": [
+       8
+      ],
+      "words": [
+       {
+        "w": "Dimanche,",
+        "start": 0.131
+       },
+       {
+        "w": "vingt",
+        "start": 0.916
+       },
+       {
+        "w": "heures.",
+        "start": 1.4
+       },
+       {
+        "w": "Le",
+        "start": 1.875
+       },
+       {
+        "w": "cabinet",
+        "start": 2.201
+       },
+       {
+        "w": "est",
+        "start": 2.52
+       },
+       {
+        "w": "fermé",
+        "start": 2.68
+       },
+       {
+        "w": "depuis",
+        "start": 2.842
+       },
+       {
+        "w": "vendredi.",
+        "start": 3.241
+       }
+      ],
+      "title": "Dimanche, 20 h. Le cabinet est fermé.",
+      "titleSerif": [
+       6
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "ring",
+      "name": "Thomas Claes",
+      "initials": "TC",
+      "time": "20:07"
+     },
+     "say": {
+      "file": "voices/shorts/c06-n1.mp3",
+      "duration": 5.04,
+      "serif": [
+       17
+      ],
+      "words": [
+       {
+        "w": "Un",
+        "start": 0.105
+       },
+       {
+        "w": "patient",
+        "start": 0.281
+       },
+       {
+        "w": "s’est",
+        "start": 0.601
+       },
+       {
+        "w": "bloqué",
+        "start": 0.76
+       },
+       {
+        "w": "le",
+        "start": 1
+       },
+       {
+        "w": "dos",
+        "start": 1.24
+       },
+       {
+        "w": "ce",
+        "start": 1.401
+       },
+       {
+        "w": "week-end.",
+        "start": 1.481
+       },
+       {
+        "w": "Il",
+        "start": 2.286
+       },
+       {
+        "w": "appelle",
+        "start": 2.6
+       },
+       {
+        "w": "maintenant,",
+        "start": 2.762
+       },
+       {
+        "w": "parce",
+        "start": 3.422
+       },
+       {
+        "w": "que",
+        "start": 3.72
+       },
+       {
+        "w": "c’est",
+        "start": 3.72
+       },
+       {
+        "w": "maintenant",
+        "start": 3.881
+       },
+       {
+        "w": "qu’il",
+        "start": 4.36
+       },
+       {
+        "w": "y",
+        "start": 4.44
+       },
+       {
+        "w": "pense.",
+        "start": 4.601
+       }
+      ],
+      "title": "Vos patients appellent quand ils y pensent.",
+      "titleSerif": [
+       6
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "orb"
+     },
+     "lines": [
+      {
+       "who": "caller",
+       "file": "voices/shorts/c06-2-0-tel.mp3",
+       "duration": 3.12,
+       "words": [
+        {
+         "w": "Bonsoir,",
+         "start": 0.119
+        },
+        {
+         "w": "je",
+         "start": 0.907
+        },
+        {
+         "w": "voudrais",
+         "start": 1.08
+        },
+        {
+         "w": "un",
+         "start": 1.24
+        },
+        {
+         "w": "rendez-vous,",
+         "start": 1.482
+        },
+        {
+         "w": "le",
+         "start": 2.028
+        },
+        {
+         "w": "plus",
+         "start": 2.28
+        },
+        {
+         "w": "tôt",
+         "start": 2.52
+        },
+        {
+         "w": "possible.",
+         "start": 2.521
+        }
+       ]
+      },
+      {
+       "who": "agent",
+       "file": "voices/shorts/c06-2-1.mp3",
+       "duration": 2.72,
+       "words": [
+        {
+         "w": "Bonsoir",
+         "start": 0.128
+        },
+        {
+         "w": "!",
+         "start": 0.404
+        },
+        {
+         "w": "Demain",
+         "start": 0.863
+        },
+        {
+         "w": "à",
+         "start": 1.24
+        },
+        {
+         "w": "huit",
+         "start": 1.4
+        },
+        {
+         "w": "heures,",
+         "start": 1.482
+        },
+        {
+         "w": "ça",
+         "start": 2.015
+        },
+        {
+         "w": "vous",
+         "start": 2.2
+        },
+        {
+         "w": "convient",
+         "start": 2.28
+        },
+        {
+         "w": "?",
+         "start": 2.44
+        }
+       ]
+      },
+      {
+       "who": "caller",
+       "file": "voices/shorts/c06-2-2-tel.mp3",
+       "duration": 1.6,
+       "words": [
+        {
+         "w": "Parfait.",
+         "start": 0.101
+        },
+        {
+         "w": "Thomas",
+         "start": 0.686
+        },
+        {
+         "w": "Claes.",
+         "start": 1.005
+        }
+       ]
+      },
+      {
+       "who": "agent",
+       "file": "voices/shorts/c06-2-3.mp3",
+       "duration": 5.12,
+       "words": [
+        {
+         "w": "C’est",
+         "start": 0.137
+        },
+        {
+         "w": "réservé,",
+         "start": 0.361
+        },
+        {
+         "w": "Monsieur",
+         "start": 1.119
+        },
+        {
+         "w": "Claes,",
+         "start": 1.321
+        },
+        {
+         "w": "demain",
+         "start": 1.903
+        },
+        {
+         "w": "à",
+         "start": 2.44
+        },
+        {
+         "w": "huit",
+         "start": 2.52
+        },
+        {
+         "w": "heures.",
+         "start": 2.6
+        },
+        {
+         "w": "Je",
+         "start": 3.224
+        },
+        {
+         "w": "vous",
+         "start": 3.48
+        },
+        {
+         "w": "envoie",
+         "start": 3.561
+        },
+        {
+         "w": "un",
+         "start": 3.96
+        },
+        {
+         "w": "SMS",
+         "start": 4.119
+        },
+        {
+         "w": "de",
+         "start": 4.36
+        },
+        {
+         "w": "confirmation.",
+         "start": 4.365
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "visual": {
+      "kind": "notif",
+      "title": "Nouveau rendez-vous",
+      "desc": "Thomas Claes · lundi 08:00"
+     },
+     "say": {
+      "file": "voices/shorts/c06-n3.mp3",
+      "duration": 4.56,
+      "serif": [
+       11
+      ],
+      "words": [
+       {
+        "w": "Lundi",
+        "start": 0.116
+       },
+       {
+        "w": "matin,",
+        "start": 0.364
+       },
+       {
+        "w": "l’agenda",
+        "start": 0.999
+       },
+       {
+        "w": "est",
+        "start": 1.64
+       },
+       {
+        "w": "déjà",
+        "start": 1.641
+       },
+       {
+        "w": "rempli.",
+        "start": 1.961
+       },
+       {
+        "w": "Et",
+        "start": 2.685
+       },
+       {
+        "w": "personne",
+        "start": 2.846
+       },
+       {
+        "w": "n’a",
+        "start": 3.4
+       },
+       {
+        "w": "travaillé",
+        "start": 3.561
+       },
+       {
+        "w": "le",
+        "start": 3.88
+       },
+       {
+        "w": "dimanche.",
+        "start": 3.961
+       }
+      ],
+      "title": "Lundi se prépare dimanche soir. Sans vous.",
+      "titleSerif": [
+       6
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "type"
+     },
+     "say": {
+      "file": "voices/shorts/c06-n4.mp3",
+      "duration": 3.12,
+      "serif": [
+       8
+      ],
+      "words": [
+       {
+        "w": "Vous",
+        "start": 0.111
+       },
+       {
+        "w": "gardez",
+        "start": 0.36
+       },
+       {
+        "w": "vos",
+        "start": 0.6
+       },
+       {
+        "w": "week-ends.",
+        "start": 0.762
+       },
+       {
+        "w": "Vos",
+        "start": 1.598
+       },
+       {
+        "w": "patients",
+        "start": 1.881
+       },
+       {
+        "w": "gardent",
+        "start": 2.121
+       },
+       {
+        "w": "leur",
+        "start": 2.44
+       },
+       {
+        "w": "rendez-vous.",
+        "start": 2.521
+       }
+      ],
+      "title": "Vos week-ends restent à vous.",
+      "titleSerif": [
+       4
+      ]
+     }
+    }
+   ]
+  },
+  "fr-c07": {
+   "lang": "fr",
+   "slug": "le-bip",
+   "music": 100,
+   "scenes": [
+    {
+     "visual": {
+      "kind": "type"
+     },
+     "say": {
+      "file": "voices/shorts/c07-n0.mp3",
+      "duration": 3.04,
+      "serif": [
+       10
+      ],
+      "words": [
+       {
+        "w": "Vous",
+        "start": 0.11
+       },
+       {
+        "w": "êtes",
+        "start": 0.36
+       },
+       {
+        "w": "bien",
+        "start": 0.36
+       },
+       {
+        "w": "sur",
+        "start": 0.6
+       },
+       {
+        "w": "la",
+        "start": 0.76
+       },
+       {
+        "w": "messagerie",
+        "start": 0.841
+       },
+       {
+        "w": "de…",
+        "start": 1.241
+       },
+       {
+        "w": "Vous",
+        "start": 1.798
+       },
+       {
+        "w": "connaissez",
+        "start": 2.041
+       },
+       {
+        "w": "la",
+        "start": 2.52
+       },
+       {
+        "w": "suite.",
+        "start": 2.521
+       }
+      ],
+      "title": "« Laissez un message après le bip. »",
+      "titleSerif": [
+       5
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "type"
+     },
+     "say": {
+      "file": "voices/shorts/c07-n1.mp3",
+      "duration": 3.92,
+      "serif": [
+       12
+      ],
+      "words": [
+       {
+        "w": "Personne",
+        "start": 0.115
+       },
+       {
+        "w": "n’aime",
+        "start": 0.44
+       },
+       {
+        "w": "parler",
+        "start": 0.6
+       },
+       {
+        "w": "à",
+        "start": 1
+       },
+       {
+        "w": "un",
+        "start": 1.08
+       },
+       {
+        "w": "répondeur.",
+        "start": 1.082
+       },
+       {
+        "w": "Alors",
+        "start": 1.931
+       },
+       {
+        "w": "on",
+        "start": 2.12
+       },
+       {
+        "w": "raccroche,",
+        "start": 2.282
+       },
+       {
+        "w": "et",
+        "start": 2.953
+       },
+       {
+        "w": "on",
+        "start": 3.16
+       },
+       {
+        "w": "appelle",
+        "start": 3.16
+       },
+       {
+        "w": "ailleurs.",
+        "start": 3.481
+       }
+      ],
+      "title": "Personne n’aime parler à un répondeur.",
+      "titleSerif": [
+       5
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "orb"
+     },
+     "lines": [
+      {
+       "who": "agent",
+       "file": "voices/shorts/c07-2-0.mp3",
+       "duration": 2.48,
+       "words": [
+        {
+         "w": "Garage",
+         "start": 0.12
+        },
+        {
+         "w": "Lemaire,",
+         "start": 0.6
+        },
+        {
+         "w": "bonsoir",
+         "start": 1.057
+        },
+        {
+         "w": "!",
+         "start": 1.348
+        },
+        {
+         "w": "Je",
+         "start": 1.788
+        },
+        {
+         "w": "peux",
+         "start": 1.88
+        },
+        {
+         "w": "vous",
+         "start": 2.04
+        },
+        {
+         "w": "aider",
+         "start": 2.2
+        },
+        {
+         "w": "?",
+         "start": 2.28
+        }
+       ]
+      },
+      {
+       "who": "caller",
+       "file": "voices/shorts/c07-2-1-tel.mp3",
+       "duration": 3.04,
+       "words": [
+        {
+         "w": "Ah…",
+         "start": 0.108
+        },
+        {
+         "w": "Bonsoir.",
+         "start": 0.611
+        },
+        {
+         "w": "Je",
+         "start": 1.434
+        },
+        {
+         "w": "pensais",
+         "start": 1.72
+        },
+        {
+         "w": "tomber",
+         "start": 1.961
+        },
+        {
+         "w": "sur",
+         "start": 2.12
+        },
+        {
+         "w": "le",
+         "start": 2.28
+        },
+        {
+         "w": "répondeur.",
+         "start": 2.362
+        }
+       ]
+      },
+      {
+       "who": "agent",
+       "file": "voices/shorts/c07-2-2.mp3",
+       "duration": 3.12,
+       "words": [
+        {
+         "w": "Le",
+         "start": 0.105
+        },
+        {
+         "w": "garage",
+         "start": 0.28
+        },
+        {
+         "w": "est",
+         "start": 0.52
+        },
+        {
+         "w": "fermé,",
+         "start": 0.681
+        },
+        {
+         "w": "mais",
+         "start": 1.193
+        },
+        {
+         "w": "je",
+         "start": 1.4
+        },
+        {
+         "w": "prends",
+         "start": 1.48
+        },
+        {
+         "w": "votre",
+         "start": 1.56
+        },
+        {
+         "w": "demande.",
+         "start": 1.722
+        },
+        {
+         "w": "C’est",
+         "start": 2.368
+        },
+        {
+         "w": "pour",
+         "start": 2.68
+        },
+        {
+         "w": "quoi",
+         "start": 2.76
+        },
+        {
+         "w": "?",
+         "start": 2.88
+        }
+       ]
+      },
+      {
+       "who": "caller",
+       "file": "voices/shorts/c07-2-3-tel.mp3",
+       "duration": 2.72,
+       "words": [
+        {
+         "w": "Un",
+         "start": 0.108
+        },
+        {
+         "w": "entretien",
+         "start": 0.281
+        },
+        {
+         "w": "pour",
+         "start": 0.76
+        },
+        {
+         "w": "ma",
+         "start": 0.84
+        },
+        {
+         "w": "voiture,",
+         "start": 0.922
+        },
+        {
+         "w": "la",
+         "start": 1.703
+        },
+        {
+         "w": "semaine",
+         "start": 1.881
+        },
+        {
+         "w": "prochaine.",
+         "start": 2.042
+        }
+       ]
+      },
+      {
+       "who": "agent",
+       "file": "voices/shorts/c07-2-4.mp3",
+       "duration": 1.92,
+       "words": [
+        {
+         "w": "Jeudi",
+         "start": 0.119
+        },
+        {
+         "w": "à",
+         "start": 0.44
+        },
+        {
+         "w": "neuf",
+         "start": 0.6
+        },
+        {
+         "w": "heures,",
+         "start": 0.84
+        },
+        {
+         "w": "ça",
+         "start": 1.191
+        },
+        {
+         "w": "vous",
+         "start": 1.56
+        },
+        {
+         "w": "va",
+         "start": 1.64
+        },
+        {
+         "w": "?",
+         "start": 1.72
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "visual": {
+      "kind": "notif",
+      "title": "Nouveau rendez-vous",
+      "desc": "Entretien · jeudi 09:00"
+     },
+     "say": {
+      "file": "voices/shorts/c07-n3.mp3",
+      "duration": 3.76,
+      "serif": [
+       12
+      ],
+      "words": [
+       {
+        "w": "Au",
+        "start": 0.102
+       },
+       {
+        "w": "lieu",
+        "start": 0.28
+       },
+       {
+        "w": "d’un",
+        "start": 0.36
+       },
+       {
+        "w": "bip,",
+        "start": 0.602
+       },
+       {
+        "w": "une",
+        "start": 1.066
+       },
+       {
+        "w": "vraie",
+        "start": 1.32
+       },
+       {
+        "w": "réponse.",
+        "start": 1.481
+       },
+       {
+        "w": "Et",
+        "start": 2.389
+       },
+       {
+        "w": "un",
+        "start": 2.84
+       },
+       {
+        "w": "rendez-vous",
+        "start": 3
+       },
+       {
+        "w": "dans",
+        "start": 3.08
+       },
+       {
+        "w": "votre",
+        "start": 3.16
+       },
+       {
+        "w": "agenda.",
+        "start": 3.321
+       }
+      ],
+      "title": "Au lieu d’un bip, une réponse.",
+      "titleSerif": [
+       5
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "type"
+     },
+     "say": {
+      "file": "voices/shorts/c07-n4.mp3",
+      "duration": 2.64,
+      "serif": [
+       10
+      ],
+      "words": [
+       {
+        "w": "Et",
+        "start": 0.116
+       },
+       {
+        "w": "le",
+        "start": 0.28
+       },
+       {
+        "w": "reste",
+        "start": 0.361
+       },
+       {
+        "w": "de",
+        "start": 0.68
+       },
+       {
+        "w": "la",
+        "start": 0.68
+       },
+       {
+        "w": "journée,",
+        "start": 0.84
+       },
+       {
+        "w": "c’est",
+        "start": 1.297
+       },
+       {
+        "w": "toujours",
+        "start": 1.483
+       },
+       {
+        "w": "vous",
+        "start": 1.96
+       },
+       {
+        "w": "qui",
+        "start": 1.96
+       },
+       {
+        "w": "répondez.",
+        "start": 2.201
+       }
+      ],
+      "title": "Le reste du temps, c’est vous.",
+      "titleSerif": [
+       5
+      ]
+     }
+    }
+   ]
+  },
+  "fr-c08": {
+   "lang": "fr",
+   "slug": "conges",
+   "music": 185,
+   "scenes": [
+    {
+     "visual": {
+      "kind": "type",
+      "tag": "FERMÉ"
+     },
+     "say": {
+      "file": "voices/shorts/c08-n0.mp3",
+      "duration": 3.76,
+      "serif": [
+       12
+      ],
+      "words": [
+       {
+        "w": "Fermé",
+        "start": 0.117
+       },
+       {
+        "w": "pour",
+        "start": 0.52
+       },
+       {
+        "w": "congés,",
+        "start": 0.601
+       },
+       {
+        "w": "jusqu’au",
+        "start": 1.307
+       },
+       {
+        "w": "trente",
+        "start": 1.56
+       },
+       {
+        "w": "et",
+        "start": 1.88
+       },
+       {
+        "w": "un.",
+        "start": 1.881
+       },
+       {
+        "w": "Le",
+        "start": 2.415
+       },
+       {
+        "w": "panneau",
+        "start": 2.76
+       },
+       {
+        "w": "est",
+        "start": 3
+       },
+       {
+        "w": "sur",
+        "start": 3.08
+       },
+       {
+        "w": "la",
+        "start": 3.24
+       },
+       {
+        "w": "porte.",
+        "start": 3.401
+       }
+      ],
+      "title": "Fermé pour congés.",
+      "titleSerif": [
+       2
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "ring",
+      "name": "Anne Dumont",
+      "initials": "AD",
+      "time": "11:12"
+     },
+     "say": {
+      "file": "voices/shorts/c08-n1.mp3",
+      "duration": 2.8,
+      "serif": [
+       6
+      ],
+      "words": [
+       {
+        "w": "Mais",
+        "start": 0.113
+       },
+       {
+        "w": "le",
+        "start": 0.28
+       },
+       {
+        "w": "téléphone,",
+        "start": 0.363
+       },
+       {
+        "w": "lui,",
+        "start": 1.31
+       },
+       {
+        "w": "continue",
+        "start": 1.856
+       },
+       {
+        "w": "de",
+        "start": 2.36
+       },
+       {
+        "w": "sonner.",
+        "start": 2.441
+       }
+      ],
+      "title": "Le téléphone, lui, sonne encore.",
+      "titleSerif": [
+       5
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "orb"
+     },
+     "lines": [
+      {
+       "who": "caller",
+       "file": "voices/shorts/c08-2-0-tel.mp3",
+       "duration": 3.84,
+       "words": [
+        {
+         "w": "Bonjour,",
+         "start": 0.12
+        },
+        {
+         "w": "je",
+         "start": 1.01
+        },
+        {
+         "w": "voudrais",
+         "start": 1.081
+        },
+        {
+         "w": "commander",
+         "start": 1.481
+        },
+        {
+         "w": "une",
+         "start": 1.88
+        },
+        {
+         "w": "galette",
+         "start": 1.961
+        },
+        {
+         "w": "des",
+         "start": 2.36
+        },
+        {
+         "w": "rois",
+         "start": 2.52
+        },
+        {
+         "w": "pour",
+         "start": 2.681
+        },
+        {
+         "w": "le",
+         "start": 3
+        },
+        {
+         "w": "six",
+         "start": 3
+        },
+        {
+         "w": "janvier.",
+         "start": 3.242
+        }
+       ]
+      },
+      {
+       "who": "agent",
+       "file": "voices/shorts/c08-2-1.mp3",
+       "duration": 5.44,
+       "words": [
+        {
+         "w": "Bonjour",
+         "start": 0.153
+        },
+        {
+         "w": "!",
+         "start": 0.537
+        },
+        {
+         "w": "La",
+         "start": 1.267
+        },
+        {
+         "w": "boulangerie",
+         "start": 1.401
+        },
+        {
+         "w": "est",
+         "start": 1.88
+        },
+        {
+         "w": "en",
+         "start": 1.88
+        },
+        {
+         "w": "congé",
+         "start": 2.04
+        },
+        {
+         "w": "jusqu’au",
+         "start": 2.361
+        },
+        {
+         "w": "trente",
+         "start": 2.68
+        },
+        {
+         "w": "et",
+         "start": 2.84
+        },
+        {
+         "w": "un,",
+         "start": 3
+        },
+        {
+         "w": "mais",
+         "start": 3.367
+        },
+        {
+         "w": "je",
+         "start": 3.48
+        },
+        {
+         "w": "note",
+         "start": 3.72
+        },
+        {
+         "w": "votre",
+         "start": 3.801
+        },
+        {
+         "w": "commande.",
+         "start": 4.122
+        },
+        {
+         "w": "C’est",
+         "start": 4.63
+        },
+        {
+         "w": "à",
+         "start": 4.84
+        },
+        {
+         "w": "quel",
+         "start": 5
+        },
+        {
+         "w": "nom",
+         "start": 5.16
+        },
+        {
+         "w": "?",
+         "start": 5.24
+        }
+       ]
+      },
+      {
+       "who": "caller",
+       "file": "voices/shorts/c08-2-2-tel.mp3",
+       "duration": 2,
+       "words": [
+        {
+         "w": "Dumont.",
+         "start": 0.12
+        },
+        {
+         "w": "Anne",
+         "start": 1.085
+        },
+        {
+         "w": "Dumont.",
+         "start": 1.563
+        }
+       ]
+      },
+      {
+       "who": "agent",
+       "file": "voices/shorts/c08-2-3.mp3",
+       "duration": 5.92,
+       "words": [
+        {
+         "w": "C’est",
+         "start": 0.138
+        },
+        {
+         "w": "noté,",
+         "start": 0.44
+        },
+        {
+         "w": "Madame",
+         "start": 1.063
+        },
+        {
+         "w": "Dumont",
+         "start": 1.402
+        },
+        {
+         "w": ":",
+         "start": 1.858
+        },
+        {
+         "w": "une",
+         "start": 1.949
+        },
+        {
+         "w": "galette",
+         "start": 2.041
+        },
+        {
+         "w": "pour",
+         "start": 2.44
+        },
+        {
+         "w": "le",
+         "start": 2.52
+        },
+        {
+         "w": "six",
+         "start": 2.601
+        },
+        {
+         "w": "janvier.",
+         "start": 2.762
+        },
+        {
+         "w": "La",
+         "start": 3.669
+        },
+        {
+         "w": "boulangerie",
+         "start": 4.041
+        },
+        {
+         "w": "vous",
+         "start": 4.44
+        },
+        {
+         "w": "la",
+         "start": 4.6
+        },
+        {
+         "w": "confirme",
+         "start": 4.681
+        },
+        {
+         "w": "à",
+         "start": 5.16
+        },
+        {
+         "w": "la",
+         "start": 5.24
+        },
+        {
+         "w": "réouverture.",
+         "start": 5.242
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "visual": {
+      "kind": "notif",
+      "title": "Commande pour la réouverture",
+      "desc": "Anne Dumont · galette des rois · 6 janvier"
+     },
+     "say": {
+      "file": "voices/shorts/c08-n3.mp3",
+      "duration": 3.12,
+      "serif": [
+       8
+      ],
+      "words": [
+       {
+        "w": "À",
+        "start": 0.111
+       },
+       {
+        "w": "votre",
+        "start": 0.281
+       },
+       {
+        "w": "retour,",
+        "start": 0.521
+       },
+       {
+        "w": "les",
+        "start": 1.152
+       },
+       {
+        "w": "commandes",
+        "start": 1.481
+       },
+       {
+        "w": "vous",
+        "start": 1.8
+       },
+       {
+        "w": "attendent,",
+        "start": 1.881
+       },
+       {
+        "w": "dans",
+        "start": 2.451
+       },
+       {
+        "w": "l’ordre.",
+        "start": 2.68
+       }
+      ],
+      "title": "À votre retour, les commandes attendent.",
+      "titleSerif": [
+       6
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "type"
+     },
+     "say": {
+      "file": "voices/shorts/c08-n4.mp3",
+      "duration": 3.76,
+      "serif": [
+       12
+      ],
+      "words": [
+       {
+        "w": "Vous",
+        "start": 0.09
+       },
+       {
+        "w": "partez",
+        "start": 0.201
+       },
+       {
+        "w": "vraiment",
+        "start": 0.681
+       },
+       {
+        "w": "en",
+        "start": 1
+       },
+       {
+        "w": "congé.",
+        "start": 1.001
+       },
+       {
+        "w": "Et",
+        "start": 1.857
+       },
+       {
+        "w": "vos",
+        "start": 1.96
+       },
+       {
+        "w": "clients",
+        "start": 2.041
+       },
+       {
+        "w": "ne",
+        "start": 2.44
+       },
+       {
+        "w": "restent",
+        "start": 2.601
+       },
+       {
+        "w": "pas",
+        "start": 2.844
+       },
+       {
+        "w": "sans",
+        "start": 3.08
+       },
+       {
+        "w": "réponse.",
+        "start": 3.242
+       }
+      ],
+      "title": "Fermé, mais pas injoignable.",
+      "titleSerif": [
+       4
+      ]
+     }
+    }
+   ]
+  },
+  "fr-c09": {
+   "lang": "fr",
+   "slug": "trois-langues-soir",
+   "music": 60,
+   "scenes": [
+    {
+     "visual": {
+      "kind": "type"
+     },
+     "say": {
+      "file": "voices/shorts/c09-n0.mp3",
+      "duration": 2.96,
+      "serif": [
+       7
+      ],
+      "words": [
+       {
+        "w": "Vingt-deux",
+        "start": 0.126
+       },
+       {
+        "w": "heures,",
+        "start": 0.68
+       },
+       {
+        "w": "à",
+        "start": 0.968
+       },
+       {
+        "w": "Bruxelles.",
+        "start": 1.161
+       },
+       {
+        "w": "Le",
+        "start": 1.923
+       },
+       {
+        "w": "cabinet",
+        "start": 2.122
+       },
+       {
+        "w": "est",
+        "start": 2.52
+       },
+       {
+        "w": "fermé.",
+        "start": 2.601
+       }
+      ],
+      "title": "22 h, Bruxelles. Le cabinet est fermé.",
+      "titleSerif": [
+       3
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "ring",
+      "name": "Pieter Janssens",
+      "initials": "PJ",
+      "time": "22:04"
+     },
+     "say": {
+      "file": "voices/shorts/c09-n1.mp3",
+      "duration": 2.48,
+      "serif": [
+       4
+      ],
+      "words": [
+       {
+        "w": "Un",
+        "start": 0.04
+       },
+       {
+        "w": "patient",
+        "start": 0.122
+       },
+       {
+        "w": "appelle.",
+        "start": 0.66
+       },
+       {
+        "w": "En",
+        "start": 1.532
+       },
+       {
+        "w": "néerlandais.",
+        "start": 1.802
+       }
+      ],
+      "title": "Un appel. En néerlandais.",
+      "titleSerif": [
+       3
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "orb"
+     },
+     "lines": [
+      {
+       "who": "caller",
+       "file": "voices/shorts/c09-2-0-tel.mp3",
+       "duration": 3.2,
+       "words": [
+        {
+         "w": "Goedenavond,",
+         "start": 0.154
+        },
+        {
+         "w": "ik",
+         "start": 1.04
+        },
+        {
+         "w": "wil",
+         "start": 1.24
+        },
+        {
+         "w": "graag",
+         "start": 1.48
+        },
+        {
+         "w": "een",
+         "start": 1.72
+        },
+        {
+         "w": "afspraak",
+         "start": 1.73
+        },
+        {
+         "w": "maken",
+         "start": 2.36
+        },
+        {
+         "w": "voor",
+         "start": 2.68
+        },
+        {
+         "w": "morgen.",
+         "start": 2.761
+        }
+       ]
+      },
+      {
+       "who": "agent",
+       "tag": "NL",
+       "file": "voices/shorts/c09-2-1.mp3",
+       "duration": 5.04,
+       "words": [
+        {
+         "w": "Goedenavond!",
+         "start": 0.226
+        },
+        {
+         "w": "Morgen",
+         "start": 1.306
+        },
+        {
+         "w": "om",
+         "start": 1.88
+        },
+        {
+         "w": "tien",
+         "start": 1.894
+        },
+        {
+         "w": "uur",
+         "start": 2.361
+        },
+        {
+         "w": "is",
+         "start": 2.6
+        },
+        {
+         "w": "nog",
+         "start": 2.68
+        },
+        {
+         "w": "vrij.",
+         "start": 2.921
+        },
+        {
+         "w": "Op",
+         "start": 3.397
+        },
+        {
+         "w": "welke",
+         "start": 3.722
+        },
+        {
+         "w": "naam",
+         "start": 3.961
+        },
+        {
+         "w": "mag",
+         "start": 4.2
+        },
+        {
+         "w": "ik",
+         "start": 4.52
+        },
+        {
+         "w": "het",
+         "start": 4.6
+        },
+        {
+         "w": "zetten?",
+         "start": 4.681
+        }
+       ]
+      },
+      {
+       "who": "caller",
+       "file": "voices/shorts/c09-2-2-tel.mp3",
+       "duration": 2.48,
+       "words": [
+        {
+         "w": "Janssens.",
+         "start": 0.156
+        },
+        {
+         "w": "Pieter",
+         "start": 1.152
+        },
+        {
+         "w": "Janssens.",
+         "start": 1.646
+        }
+       ]
+      },
+      {
+       "who": "agent",
+       "tag": "NL",
+       "file": "voices/shorts/c09-2-3.mp3",
+       "duration": 2.88,
+       "words": [
+        {
+         "w": "Genoteerd,",
+         "start": 0.165
+        },
+        {
+         "w": "meneer",
+         "start": 1.053
+        },
+        {
+         "w": "Janssens.",
+         "start": 1.323
+        },
+        {
+         "w": "Tot",
+         "start": 2.159
+        },
+        {
+         "w": "morgen!",
+         "start": 2.441
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "visual": {
+      "kind": "notif",
+      "title": "Nouveau rendez-vous",
+      "desc": "Pieter Janssens · demain 10:00"
+     },
+     "say": {
+      "file": "voices/shorts/c09-n3.mp3",
+      "duration": 4.48,
+      "serif": [
+       15
+      ],
+      "words": [
+       {
+        "w": "Elle",
+        "start": 0.107
+       },
+       {
+        "w": "lui",
+        "start": 0.28
+       },
+       {
+        "w": "répond",
+        "start": 0.36
+       },
+       {
+        "w": "dans",
+        "start": 0.6
+       },
+       {
+        "w": "sa",
+        "start": 0.84
+       },
+       {
+        "w": "langue.",
+        "start": 0.92
+       },
+       {
+        "w": "Et",
+        "start": 1.526
+       },
+       {
+        "w": "vous,",
+        "start": 1.8
+       },
+       {
+        "w": "demain",
+        "start": 2.211
+       },
+       {
+        "w": "matin,",
+        "start": 2.601
+       },
+       {
+        "w": "vous",
+        "start": 2.983
+       },
+       {
+        "w": "retrouvez",
+        "start": 3.241
+       },
+       {
+        "w": "le",
+        "start": 3.48
+       },
+       {
+        "w": "rendez-vous",
+        "start": 3.561
+       },
+       {
+        "w": "en",
+        "start": 3.96
+       },
+       {
+        "w": "français.",
+        "start": 4.04
+       }
+      ],
+      "title": "Sa langue à lui. Votre agenda à vous.",
+      "titleSerif": [
+       7
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "langs"
+     },
+     "say": {
+      "file": "voices/shorts/c09-n4.mp3",
+      "duration": 4,
+      "serif": [
+       8
+      ],
+      "words": [
+       {
+        "w": "Français,",
+        "start": 0.125
+       },
+       {
+        "w": "néerlandais,",
+        "start": 0.979
+       },
+       {
+        "w": "anglais",
+        "start": 1.924
+       },
+       {
+        "w": ":",
+        "start": 2.44
+       },
+       {
+        "w": "à",
+        "start": 2.44
+       },
+       {
+        "w": "Bruxelles,",
+        "start": 2.442
+       },
+       {
+        "w": "c’est",
+        "start": 3.128
+       },
+       {
+        "w": "le",
+        "start": 3.4
+       },
+       {
+        "w": "minimum.",
+        "start": 3.401
+       }
+      ],
+      "title": "FR, NL, EN. Le minimum à Bruxelles.",
+      "titleSerif": [
+       5
+      ]
+     }
+    }
+   ]
+  },
+  "fr-c10": {
+   "lang": "fr",
+   "slug": "un-code",
+   "music": 280,
+   "scenes": [
+    {
+     "visual": {
+      "kind": "type"
+     },
+     "say": {
+      "file": "voices/shorts/c10-n0.mp3",
+      "duration": 2.72,
+      "serif": [
+       11
+      ],
+      "words": [
+       {
+        "w": "Comment",
+        "start": 0.106
+       },
+       {
+        "w": "on",
+        "start": 0.44
+       },
+       {
+        "w": "installe",
+        "start": 0.52
+       },
+       {
+        "w": "Qwillio",
+        "start": 0.766
+       },
+       {
+        "w": "?",
+        "start": 1.003
+       },
+       {
+        "w": "On",
+        "start": 1.351
+       },
+       {
+        "w": "vous",
+        "start": 1.56
+       },
+       {
+        "w": "le",
+        "start": 1.72
+       },
+       {
+        "w": "montre",
+        "start": 1.721
+       },
+       {
+        "w": "en",
+        "start": 2.04
+       },
+       {
+        "w": "trente",
+        "start": 2.04
+       },
+       {
+        "w": "secondes.",
+        "start": 2.28
+       }
+      ],
+      "title": "Comment on l’installe ?",
+      "titleSerif": [
+       2
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "rules"
+     },
+     "say": {
+      "file": "voices/shorts/c10-n1.mp3",
+      "duration": 4.56,
+      "serif": [
+       19
+      ],
+      "words": [
+       {
+        "w": "Vous",
+        "start": 0.113
+       },
+       {
+        "w": "choisissez",
+        "start": 0.282
+       },
+       {
+        "w": "quand",
+        "start": 0.68
+       },
+       {
+        "w": "elle",
+        "start": 0.92
+       },
+       {
+        "w": "décroche",
+        "start": 1.002
+       },
+       {
+        "w": ":",
+        "start": 1.559
+       },
+       {
+        "w": "quand",
+        "start": 1.56
+       },
+       {
+        "w": "vous",
+        "start": 1.64
+       },
+       {
+        "w": "êtes",
+        "start": 1.8
+       },
+       {
+        "w": "déjà",
+        "start": 1.881
+       },
+       {
+        "w": "en",
+        "start": 2.2
+       },
+       {
+        "w": "ligne,",
+        "start": 2.361
+       },
+       {
+        "w": "quand",
+        "start": 2.733
+       },
+       {
+        "w": "vous",
+        "start": 2.92
+       },
+       {
+        "w": "ne",
+        "start": 3.08
+       },
+       {
+        "w": "répondez",
+        "start": 3.081
+       },
+       {
+        "w": "pas,",
+        "start": 3.482
+       },
+       {
+        "w": "ou",
+        "start": 4.011
+       },
+       {
+        "w": "les",
+        "start": 4.12
+       },
+       {
+        "w": "deux.",
+        "start": 4.36
+       }
+      ],
+      "title": "Vous choisissez quand elle décroche.",
+      "titleSerif": [
+       4
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "type"
+     },
+     "say": {
+      "file": "voices/shorts/c10-n2.mp3",
+      "duration": 4.08,
+      "serif": [
+       12
+      ],
+      "words": [
+       {
+        "w": "Puis",
+        "start": 0.111
+       },
+       {
+        "w": "vous",
+        "start": 0.2
+       },
+       {
+        "w": "tapez",
+        "start": 0.44
+       },
+       {
+        "w": "un",
+        "start": 0.68
+       },
+       {
+        "w": "code",
+        "start": 0.84
+       },
+       {
+        "w": "sur",
+        "start": 0.921
+       },
+       {
+        "w": "votre",
+        "start": 1.081
+       },
+       {
+        "w": "téléphone.",
+        "start": 1.482
+       },
+       {
+        "w": "Votre",
+        "start": 2.345
+       },
+       {
+        "w": "numéro",
+        "start": 2.84
+       },
+       {
+        "w": "ne",
+        "start": 3.242
+       },
+       {
+        "w": "change",
+        "start": 3.401
+       },
+       {
+        "w": "pas.",
+        "start": 3.88
+       }
+      ],
+      "title": "Un code. Votre numéro ne change pas.",
+      "titleSerif": [
+       5
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "type"
+     },
+     "say": {
+      "file": "voices/shorts/c10-n3.mp3",
+      "duration": 4.24,
+      "serif": [
+       13
+      ],
+      "words": [
+       {
+        "w": "Et",
+        "start": 0.114
+       },
+       {
+        "w": "si",
+        "start": 0.36
+       },
+       {
+        "w": "vous",
+        "start": 0.52
+       },
+       {
+        "w": "voulez",
+        "start": 0.52
+       },
+       {
+        "w": "arrêter,",
+        "start": 0.762
+       },
+       {
+        "w": "un",
+        "start": 1.507
+       },
+       {
+        "w": "autre",
+        "start": 1.561
+       },
+       {
+        "w": "code,",
+        "start": 1.961
+       },
+       {
+        "w": "et",
+        "start": 2.432
+       },
+       {
+        "w": "votre",
+        "start": 2.6
+       },
+       {
+        "w": "ligne",
+        "start": 3
+       },
+       {
+        "w": "redevient",
+        "start": 3.183
+       },
+       {
+        "w": "comme",
+        "start": 3.72
+       },
+       {
+        "w": "avant.",
+        "start": 3.88
+       }
+      ],
+      "title": "Un autre code, et tout redevient comme avant.",
+      "titleSerif": [
+       6
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "orb"
+     },
+     "lines": [
+      {
+       "who": "agent",
+       "file": "voices/shorts/c10-4-0.mp3",
+       "duration": 4.56,
+       "words": [
+        {
+         "w": "Bonjour",
+         "start": 0.116
+        },
+        {
+         "w": "!",
+         "start": 0.358
+        },
+        {
+         "w": "Ici",
+         "start": 0.805
+        },
+        {
+         "w": "la",
+         "start": 1.16
+        },
+        {
+         "w": "réceptionniste",
+         "start": 1.322
+        },
+        {
+         "w": "de",
+         "start": 1.881
+        },
+        {
+         "w": "Qwillio.",
+         "start": 2.122
+        },
+        {
+         "w": "Posez-moi",
+         "start": 2.711
+        },
+        {
+         "w": "une",
+         "start": 3.16
+        },
+        {
+         "w": "question,",
+         "start": 3.241
+        },
+        {
+         "w": "je",
+         "start": 3.849
+        },
+        {
+         "w": "vous",
+         "start": 3.96
+        },
+        {
+         "w": "écoute.",
+         "start": 4.121
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "visual": {
+      "kind": "type"
+     },
+     "say": {
+      "file": "voices/shorts/c10-n5.mp3",
+      "duration": 2.8,
+      "serif": [
+       6
+      ],
+      "words": [
+       {
+        "w": "Essayez-la",
+        "start": 0.125
+       },
+       {
+        "w": "sept",
+        "start": 0.68
+       },
+       {
+        "w": "jours,",
+        "start": 0.92
+       },
+       {
+        "w": "sur",
+        "start": 1.512
+       },
+       {
+        "w": "votre",
+        "start": 1.72
+       },
+       {
+        "w": "propre",
+        "start": 1.881
+       },
+       {
+        "w": "numéro.",
+        "start": 2.281
+       }
+      ],
+      "title": "Sept jours d’essai, sur votre numéro.",
+      "titleSerif": [
+       3
+      ]
+     }
+    }
+   ]
   }
  }
 };
