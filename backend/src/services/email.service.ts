@@ -63,11 +63,14 @@ export class EmailService {
    * have a dedicated typed helper below — quota alerts, one-off notifications,
    * admin escalations. Wraps the raw HTML with the standard unsubscribe footer.
    */
-  async send(data: { to: string; subject: string; html: string; replyTo?: string; tags?: { name: string; value: string }[] }) {
+  /* `from` est réservé aux appelants qui tiennent leur PROPRE liste fermée
+     d'expéditeurs (la prospection manuelle). Sans lui, l'adresse de la
+     plateforme s'applique, comme avant. */
+  async send(data: { to: string; subject: string; html: string; replyTo?: string; from?: string; tags?: { name: string; value: string }[] }) {
     const html = this.injectUnsubscribeLink(data.html, data.to);
     try {
       const result = await resend.emails.send({
-        from: env.RESEND_FROM_EMAIL,
+        from: data.from ?? env.RESEND_FROM_EMAIL,
         to: data.to,
         subject: data.subject,
         html,

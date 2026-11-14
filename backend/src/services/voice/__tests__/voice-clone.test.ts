@@ -72,8 +72,19 @@ describe('create', () => {
     expect(voice.name).toContain('Ma voix');
   });
 
-  it('surfaces the upstream status — 401 here means a free plan, not a bad key', async () => {
+  it('names a plan refusal as such, whatever status carries it', async () => {
+    // Since 1aebb05 the BODY decides: a plan that excludes cloning is a 402 the
+    // portal can explain, not a generic upstream failure.
     fetchMock.mockResolvedValue({ ok: false, status: 401, text: async () => 'can_not_use_instant_voice_cloning' });
+    await expect(voiceCloneService.create(good())).rejects.toMatchObject({
+      message: 'elevenlabs_plan_required',
+      status: 402,
+      upstream: 401,
+    });
+  });
+
+  it('surfaces the upstream status on any other refusal', async () => {
+    fetchMock.mockResolvedValue({ ok: false, status: 401, text: async () => 'invalid_api_key' });
     await expect(voiceCloneService.create(good())).rejects.toMatchObject({
       message: 'elevenlabs_clone_failed',
       status: 502,

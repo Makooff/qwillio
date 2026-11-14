@@ -1,7 +1,7 @@
 ﻿import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard, Users, Phone, Zap, Settings, ExternalLink, FlaskConical, PhoneForwarded,
+  LayoutDashboard, Users, Phone, Zap, Settings, ExternalLink, FlaskConical, PhoneForwarded, ListChecks,
 } from '../icons';
 import { t } from '../../styles/admin-theme';
 import CommandPalette from '../ui/CommandPalette';
@@ -10,6 +10,8 @@ import DashboardShell, { NavItem } from './DashboardShell';
 const PRIMARY_NAV: NavItem[] = [
   { path: '/admin',          icon: LayoutDashboard, label: 'Dashboard', exact: true },
   { path: '/admin/leads',    icon: Zap,             label: 'Leads' },
+  /* La file de travail du fondateur: les fiches choisies dans Leads. */
+  { path: '/admin/call-list', icon: ListChecks,     label: 'À appeler' },
   { path: '/admin/calls',    icon: Phone,           label: 'Appels' },
   { path: '/admin/clients',  icon: Users,           label: 'Clients' },
   { path: '/admin/lab',      icon: FlaskConical,    label: 'Banc d\'essai' },
@@ -30,6 +32,7 @@ const MOBILE_NAV: NavItem[] = [
 const PAGE_TITLES: Record<string, string> = {
   '/admin':          'Dashboard',
   '/admin/leads':    'Leads',
+  '/admin/call-list': 'À appeler',
   '/admin/calls':    'Appels',
   '/admin/clients':  'Clients',
   '/admin/lab':      "Banc d'essai",

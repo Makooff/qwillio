@@ -24,6 +24,7 @@ const Dashboard = lazy(() => import('./pages/Dashboard'));
 const AdminClients = lazy(() => import('./pages/Clients'));
 const AdminCalls = lazy(() => import('./pages/admin/Calls'));
 const AdminLeads = lazy(() => import('./pages/admin/Leads'));
+const AdminCallList = lazy(() => import('./pages/admin/CallList'));
 const AdminBilling = lazy(() => import('./pages/admin/Billing'));
 const AdminSettings = lazy(() => import('./pages/admin/AdminSettings'));
 const VoiceLab = lazy(() => import('./pages/admin/VoiceLab'));
@@ -514,6 +515,7 @@ export default function App() {
           <Route path="settings" element={<Suspense fallback={<Spinner />}><AdminSettings /></Suspense>} />
           <Route path="calls" element={<Suspense fallback={<Spinner />}><AdminCalls /></Suspense>} />
           <Route path="leads" element={<Suspense fallback={<Spinner />}><AdminLeads /></Suspense>} />
+          <Route path="call-list" element={<Suspense fallback={<Spinner />}><AdminCallList /></Suspense>} />
           <Route path="billing" element={<Suspense fallback={<Spinner />}><AdminBilling /></Suspense>} />
           <Route path="agents" element={<Suspense fallback={<Spinner />}><ListProductAgents /></Suspense>} />
           <Route path="agents/email-ai" element={<Suspense fallback={<Spinner />}><AdminAgentEmail /></Suspense>} />
