@@ -1,5 +1,7 @@
 # Qwillio Design System — Portail client (routed)
 
+> Portée clarifiée le 14/11/2026 : conventions actuelles révisables avec le produit, selon la [politique d’évolution](../docs/EVOLUTION.md). Une préférence visuelle ne constitue pas une limite fonctionnelle ni une interdiction définitive.
+
 Canonical usage guide for the **real routed client portal** (`src/pages/client/*`,
 `DashboardShell`, settings aesthetic). It is a thin **semantic layer over the
 existing tokens** — not a new theme, not a separate library.

@@ -14,3 +14,9 @@ Ces documents sont conservés comme historique. Ils ne constituent pas une liste
 Les liens des documents déplacés ont été ajustés. Le code et les configurations actuelles restent les références pour vérifier le fonctionnement.
 
 [Retour aux guides](../README.md)
+
+## Anciennes consignes centrales
+
+[Ancien guide CLAUDE.md](consignes-avant-2026-11-14/CLAUDE.md) et [ancien contexte produit](consignes-avant-2026-11-14/PRODUCT.md), conservés avant la clarification du 14 novembre. Ils contiennent des règles remplacées et des constats datés ; ils ne font pas autorité sur les consignes actives.
+
+Les anciennes fiches [revue design](consignes-avant-2026-11-14/design-cop.md) et [architecture](consignes-avant-2026-11-14/qwillio-architect.md) sont également conservées pour expliquer les consignes remplacées.

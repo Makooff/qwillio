@@ -1,5 +1,7 @@
 # DA Qwillio, direction artistique
 
+> Portée clarifiée le 14/11/2026 : conventions actuelles révisables avec le produit, selon la [politique d’évolution](../docs/EVOLUTION.md). Une préférence visuelle ne constitue pas une limite fonctionnelle ni une interdiction définitive.
+
 La marque tient dans quatre fichiers. Celui-ci donne la plateforme, les autres donnent les règles.
 
 | Fichier | Contenu |

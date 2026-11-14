@@ -1,5 +1,7 @@
 # Guides Qwillio
 
+[Comment la documentation accompagne l’évolution du produit](EVOLUTION.md).
+
 ## Pour gérer le projet
 
 - [Actions du propriétaire](A-FAIRE-PROPRIETAIRE.md) : liste datée, à confronter à la configuration actuelle.
