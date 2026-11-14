@@ -6,7 +6,7 @@
 
 Les contenus sont rangés par **vidéo ou photo**, puis par **français, anglais ou néerlandais**. Les visuels sans texte et les vidéos qui mélangent les langues ont leur propre dossier.
 
-[Textes LinkedIn en français](contenus-a-publier/textes/francais/posts-linkedin.md) · [Présentations commerciales PDF](presentations/pdf/) · [Emails de vente](emails/vente/)
+[Présentations commerciales PDF](presentations/pdf/) · [Emails de vente](emails/vente/)
 
 ## Le reste du dépôt
 

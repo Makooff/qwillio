@@ -16,6 +16,6 @@ Les photos de commerce, restaurant et salon viennent d'Unsplash : [sources et li
 
 La photo de café vient d'un extrait Mixkit : [source et licence](../frontend/public/marketing/VIDEO-SOURCE.md). Les photos de boulangerie et de coiffeur sont des images extraites des vidéos Mixkit : [sources et licences](../frontend/public/marketing/SECTOR-VIDEO-SOURCES.md).
 
-Les scripts français venaient de `docs/scripts-video/` et les posts LinkedIn de `emails/vente/posts-linkedin-warmup.md`. Ces anciens emplacements contiennent désormais un lien vers le document classé ici.
+Les scripts français ont été déplacés depuis `docs/scripts-video/` vers `videos/francais/scripts/`. Les anciens raccourcis ont été supprimés pour ne garder qu’un emplacement. Les brouillons LinkedIn contenant des témoignages et chiffres non sourcés ont été retirés ; leur historique reste accessible dans Git.
 
 [Retour aux contenus à publier](README.md)

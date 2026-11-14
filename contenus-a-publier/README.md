@@ -9,7 +9,6 @@
 
 - [Vidéo multilingue](videos/multilingue/) : une publicité verticale qui mélange anglais et français.
 - [Photos sans texte](photos/sans-texte/) : utilisables avec une légende dans les trois langues.
-- [Textes LinkedIn en français](textes/francais/posts-linkedin.md) : anciens brouillons à relire avant publication.
 
 ## Ce qui est disponible
 
@@ -19,9 +18,8 @@
 | Démo de 90 secondes | [Lire le script français](videos/francais/scripts/demo-90-secondes.md) | Script à tourner, pas une vidéo terminée |
 | Démos par métier de 45 secondes | [Lire les scripts français](videos/francais/scripts/demos-par-metier-45-secondes.md) | Scripts à tourner |
 | Six photos d'illustration sans texte | [Choisir une photo](photos/sans-texte/) | Images existantes, sans légende ni mise en page de post |
-| Trois posts LinkedIn | [Lire les textes français](textes/francais/posts-linkedin.md) | Brouillons existants ; chiffres, témoignages et tarifs à vérifier |
 
-Aucune version finale entièrement française, anglaise ou néerlandaise n'a été identifiée parmi les contenus classés. Les dossiers sont prêts pour les recevoir. Les scripts et les textes ont été conservés sans réécriture commerciale.
+Aucune version finale entièrement française, anglaise ou néerlandaise n'a été identifiée parmi les contenus classés. Les dossiers sont prêts pour les recevoir. Les scripts sont des brouillons à vérifier avant tournage, notamment les tarifs et les affirmations commerciales.
 
 ## Ranger un nouveau contenu
 
