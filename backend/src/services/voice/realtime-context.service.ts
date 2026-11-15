@@ -120,6 +120,11 @@ export interface ClientVoiceProfile {
    */
   transferMode?: 'always' | 'hours' | 'never';
   /**
+   * Les plages où le client décroche lui-même (« mon téléphone d'abord »).
+   * Brutes: c'est `humanFirstActive` qui les lit, à l'instant de l'appel.
+   */
+  humanFirst?: unknown;
+  /**
    * Les numéros de CE client qui aboutissent à la réceptionniste.
    *
    * Portés sur le profil et non relus au moment du transfert: `buildVoiceTools`
@@ -404,6 +409,7 @@ class RealtimeContextService {
       transferMode: ['always', 'hours', 'never'].includes(String(vapiConfig.transferMode))
         ? (vapiConfig.transferMode as 'always' | 'hours' | 'never')
         : 'always',
+      humanFirst: vapiConfig.humanFirst,
       /* `personalityNotes` en dernier repli: c'est le champ où l'assistant et
          l'écran Réceptionniste rangent les consignes de ton (« ne donnez
          jamais de prix »). Il n'était lu que par le mode test au clavier:

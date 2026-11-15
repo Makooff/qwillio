@@ -1,3 +1,4 @@
+import { parseHumanFirst } from '../utils/human-first';
 import { Request, Response } from 'express';
 import { clientLocale } from '../utils/client-locale';
 import crypto from 'crypto';
@@ -621,6 +622,9 @@ export class ClientDashboardController {
            réglé, alors que `urgent` et `always` sont bien ce qui s'applique. */
         leadAlert: ['all', 'urgent', 'none'].includes(String(cfg.leadAlert)) ? cfg.leadAlert : 'urgent',
         transferMode: ['always', 'hours', 'never'].includes(String(cfg.transferMode)) ? cfg.transferMode : 'always',
+        /* Les plages « mon téléphone d'abord », rendues nettoyées: l'écran
+           affiche exactement ce que l'appel lira. */
+        humanFirst: parseHumanFirst(cfg.humanFirst),
         /* Ce que le compte peut RÉELLEMENT faire aujourd'hui. Sans ce drapeau,
            l'écran proposerait un canal qui n'enverra jamais rien, et le client
            croirait avoir activé quelque chose. */
@@ -757,7 +761,8 @@ export class ClientDashboardController {
         body.ttsProvider !== undefined ||
         body.notificationChannel !== undefined ||
         body.leadAlert !== undefined ||
-        body.transferMode !== undefined;
+        body.transferMode !== undefined ||
+        body.humanFirst !== undefined;
       if (hasKnowledgeUpdate) {
         const existing = await prisma.client.findUnique({
           where: { id: req.clientId },
@@ -803,6 +808,7 @@ export class ClientDashboardController {
              inexistant, y compris en appelant l'API à la main. */
           leadAlert:         body.leadAlert,
           transferMode:      body.transferMode,
+          humanFirst:        body.humanFirst,
         });
       }
 
