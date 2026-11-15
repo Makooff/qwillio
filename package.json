@@ -5,6 +5,10 @@
     "sync:templates": "node scripts/sync-templates.mjs",
     "check:templates": "node scripts/sync-templates.mjs --check",
     "decks": "node presentations/build.mjs",
-    "decks:fonts": "node presentations/fetch-fonts.mjs"
+    "decks:fonts": "node presentations/fetch-fonts.mjs",
+    "sync:reference": "node scripts/sync-reference.mjs",
+    "check:reference": "node scripts/sync-reference.mjs --check",
+    "sync:design": "node scripts/build-design-catalog.mjs",
+    "check:design": "node scripts/build-design-catalog.mjs --check"
   }
 }

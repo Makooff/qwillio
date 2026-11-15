@@ -18,6 +18,7 @@
  */
 import type { CSSProperties } from 'react';
 import { t } from './admin-theme';
+import { tokens, radiusPx } from '../design-system/tokens';
 
 /* ── Surfaces ──────────────────────────────────────────────────────────── */
 
@@ -47,7 +48,7 @@ export const surfaceInset = {
 export const surfaceFloat = {
   background: t.panelSolid,
   border: `1px solid ${t.borderHi}`,
-  borderRadius: '16px',
+  borderRadius: radiusPx('overlay'),
   boxShadow: t.shadowFloat,
 } as const;
 
@@ -60,7 +61,7 @@ const btnBase = {
   display: 'inline-flex',
   alignItems: 'center',
   justifyContent: 'center',
-  gap: 8,
+  gap: tokens.control.gap,
   /* Un libellé long (200 % de zoom, toolbar étroite) reflate au lieu de
      déborder: la gélule passe sur deux lignes, jamais hors de son parent. */
   flexWrap: 'wrap',
@@ -68,7 +69,7 @@ const btnBase = {
   /* Gélule partout sur les commandes (décision utilisateur, même référence
      que le bouton « Connexion » du site). */
   borderRadius: t.rFull,
-  fontFamily: `'Outfit', system-ui, sans-serif`,
+  fontFamily: tokens.type.family,
   fontSize: 13,
   fontWeight: 500,
   transition: 'background-color 150ms, opacity 150ms',
@@ -83,7 +84,7 @@ const btnBase = {
    passe WCAG AA pour du 13px, là où #7349fe tombe à ~3,9:1. */
 export const btnPrimary = {
   ...btnBase,
-  padding: '9px 16px',
+  padding: `${tokens.control.product.md.paddingY}px ${tokens.control.product.md.paddingX}px`,
   background: 'transparent',
   color: t.brandHi,
   border: `1px solid ${t.brandHi}`,
@@ -100,7 +101,7 @@ export const btnPrimaryHover = {
 /** Destructive confirm — danger red, white text. */
 export const btnDanger = {
   ...btnBase,
-  padding: '9px 16px',
+  padding: `${tokens.control.product.md.paddingY}px ${tokens.control.product.md.paddingX}px`,
   background: t.danger,
   color: '#fff',
 } as const;
@@ -108,7 +109,7 @@ export const btnDanger = {
 /** Neutral secondary — ghost wash, secondary text. */
 export const btnGhost = {
   ...btnBase,
-  padding: '9px 16px',
+  padding: `${tokens.control.product.md.paddingY}px ${tokens.control.product.md.paddingX}px`,
   background: 'transparent',
   color: t.textSec,
 } as const;

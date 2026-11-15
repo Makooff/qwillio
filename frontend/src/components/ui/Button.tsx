@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import type { ButtonHTMLAttributes, ReactNode } from 'react';
 import { ds } from '../../styles/design-system';
+import { tokens } from '../../design-system/tokens';
 
 export type ButtonVariant = 'primary' | 'ghost' | 'danger' | 'subtle';
 export type ButtonSize = 'sm' | 'md';
@@ -31,8 +32,8 @@ const sizeAdjust: Record<ButtonSize, React.CSSProperties> = {
   /* Plancher de cible (WCAG 2.5.8, 24×24 AA): les gélules md/sm mesurent
      ~30-34 px naturellement; le plancher garantit la taille même si la
      police ou le zoom la comprime, sans changer le look courant. */
-  md: { minHeight: 36 },
-  sm: { padding: '6px 12px', fontSize: 12, minHeight: 30 },
+  md: { minHeight: tokens.control.product.md.minHeight },
+  sm: { padding: `${tokens.control.product.sm.paddingY}px ${tokens.control.product.sm.paddingX}px`, fontSize: 12, minHeight: tokens.control.product.sm.minHeight },
 };
 
 /**

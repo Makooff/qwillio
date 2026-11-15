@@ -62,7 +62,7 @@ jobs:
         continue-on-error: true
 
   docs:
-    name: Docs (miroirs des templates)
+    name: Docs (templates · référence · design system)
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -76,6 +76,12 @@ jobs:
       # templates without a regenerated folder fails here.
       - name: Les miroirs sont à jour
         run: npm run check:templates
+
+      - name: La référence correspond au code
+        run: npm run check:reference
+
+      - name: Le catalogue correspond aux fondations
+        run: npm run check:design
 
   frontend:
     name: Frontend (build · test)

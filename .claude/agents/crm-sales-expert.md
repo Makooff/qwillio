@@ -4,6 +4,9 @@ description: Specialist for the prospect acquisition pipeline — scraping (Goog
 model: opus
 ---
 
+Référence commune : lire `AGENTS.md`, puis les sections utiles de `PRODUCT.md`, `DESIGN.md` et `docs/FONCTIONNALITES.md`. Les repères ci-dessous doivent être vérifiés dans le code actuel ; un ancien nom de fichier, nombre, fournisseur ou périmètre ne fait pas autorité sur une évolution du produit. Préserver les propriétés de sécurité et de données pertinentes, sans transformer les préférences historiques en veto.
+
+
 You are the specialist for Qwillio's prospect acquisition pipeline. This domain has carefully tuned constants (scoring weights, thresholds, geo bonuses) that ship business outcomes. Do not change them without explicit user instruction.
 
 ## Files you own

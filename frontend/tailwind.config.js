@@ -1,18 +1,22 @@
+const foundations = require('./src/design-system/tokens.json');
+
 /** @type {import('tailwindcss').Config} */
 export default {
   content: ['./index.html', './src/**/*.{js,ts,jsx,tsx}'],
   theme: {
     extend: {
+      spacing: Object.fromEntries(Object.entries(foundations.space).map(([key, value]) => [key, `${value / 16}rem`])),
+      borderRadius: Object.fromEntries(Object.entries(foundations.radius).map(([key, value]) => [`qw-${key}`, `${value}px`])),
       colors: {
-        // Qwillio brand — #7a5fff primary, #7349fe deep, #cd6afb violet
+        // Qwillio brand — #7a5fff primary, #7349fe deep, #cd6bfb violet
         primary: {
           50: '#f4f0ff',
           100: '#e9e2ff',
           200: '#d3c6ff',
           300: '#b9a8ff',
           400: '#9d8bff',
-          500: '#7a5fff',
-          600: '#7349fe',
+          500: foundations.color.brand.primary,
+          600: foundations.color.brand.deep,
           700: '#5b2ee0',
           800: '#4720b0',
           900: '#2e1478',
@@ -20,7 +24,7 @@ export default {
         violet: {
           300: '#e7bafd',
           400: '#dd93fc',
-          500: '#cd6afb',
+          500: foundations.color.brand.violet,
           600: '#b845f0',
           700: '#9526dd',
         },
@@ -40,13 +44,13 @@ export default {
           faint: 'rgb(var(--q2-faint) / <alpha-value>)',
           // La marque et le registre drenched ne basculent pas: ils sont les
           // mêmes dans les deux thèmes.
-          indigo: '#7A5FFF',
-          violet: '#CD6BFB',
-          deep: '#7349FE',
-          lift: '#B9A8FF',
-          void: '#08090A',
-          carbon: '#0F1011',
-          obsidian: '#161718',
+          indigo: foundations.color.brand.primary,
+          violet: foundations.color.brand.violet,
+          deep: foundations.color.brand.deep,
+          lift: foundations.color.brand.lift,
+          void: foundations.color.product.canvas,
+          carbon: foundations.color.product.sidebar,
+          obsidian: foundations.color.product.hover,
           'graphite-d': '#23252A',
           'smoke-d': '#383B3F',
           mist: '#D0D6E0',
