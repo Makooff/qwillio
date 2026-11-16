@@ -3,6 +3,7 @@
 // conversational assistant (assistant-chat) go through here so validation and
 // the Vapi re-sync happen in exactly one place.
 
+import { parseHumanFirst } from '../utils/human-first';
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { isValidCharacterId, CUSTOM_CHARACTER_ID } from '../config/voice-characters';
@@ -81,6 +82,8 @@ export interface VapiConfigPatch {
    * après 19 h ». `never` prend toujours un message.
    */
   transferMode?: 'always' | 'hours' | 'never';
+  /** Les plages où le client décroche lui-même: voir `utils/human-first.ts`. */
+  humanFirst?: unknown;
 }
 
 const PERSONA_KEYS = new Set(Object.keys(PERSONALITY_PROMPTS));
@@ -229,6 +232,11 @@ export function buildVapiConfigPatch(
     next.transferMode = ['always', 'hours', 'never'].includes(String(patch.transferMode))
       ? patch.transferMode
       : 'always';
+  }
+  if (patch.humanFirst !== undefined) {
+    /* Stockée NETTOYÉE: une plage à moitié valide s'enregistre éteinte, pour
+       que l'écran et l'appel lisent la même chose au rechargement. */
+    next.humanFirst = parseHumanFirst(patch.humanFirst);
   }
   if (patch.knowledge !== undefined) {
     const src = patch.knowledge && typeof patch.knowledge === 'object' && !Array.isArray(patch.knowledge)

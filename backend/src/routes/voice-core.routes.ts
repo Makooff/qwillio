@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { humanFirstActive } from '../utils/human-first';
 import { prisma } from '../config/database';
 import { logger } from '../config/logger';
 import { voiceCoreAuth } from '../middleware/voice-core.middleware';
@@ -169,6 +170,11 @@ router.get('/context/by-number/:trunkNumber', async (req, res) => {
       transferNumber: ligne?.transferNumber || profil.transferNumber || null,
       transferMode: profil.transferMode || 'always',
       forwardingType: profil.forwardingType || null,
+      /* LE RENVOI SELON L'HEURE. Calculé ICI, dans le fuseau du commerce, à
+         l'instant du décroché: le moteur ne reçoit qu'un oui ou un non, pour
+         qu'il n'existe qu'une règle d'horaire. Le profil est mis en cache,
+         mais ce booléen ne l'est pas: il se recalcule à chaque appel. */
+      humanFirstNow: humanFirstActive(profil.humanFirst, new Date(), profil.timezone),
 
       /* LES HORAIRES DU CLIENT, et ils ne passaient pas (28/09/2026).
          `voice-core` décidait avec une table écrite en dur dans `storage.py` —

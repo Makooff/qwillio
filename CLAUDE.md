@@ -2613,6 +2613,28 @@ baisser `EXTERNAL_TIMEOUT_MS` pour « reparer » un outil a 6,5 s. Ca ne toucher
 pas les quatre secondes et ca ferait tomber en repli des lectures d'agenda qui
 aboutissaient. Neuvieme fois que ce genre de levier degraderait ce qui marche.
 
+### 6duoseptuagesies. Le renvoi selon l'heure, et l'écho en haut-parleur (15/11/2026)
+Les deux vivent à cheval sur ce dépôt et sur `qwillio-voice-core`, le moteur
+LiveKit qui décroche par défaut (`VOICE_RUNTIME=core`). Rien de ce qui suit n'a
+encore été entendu sur un appel réel.
+**Le renvoi selon l'heure.** Aucun opérateur mobile ne renvoie « seulement le
+soir » : le client renvoie tout vers nous, et c'est nous qui décidons à
+l'arrivée. `utils/human-first.ts` est LA règle de plage (fuseau du commerce, une
+plage qui passe minuit appartient au jour où elle commence) ; le pont n'envoie
+au moteur qu'un booléen, `humanFirstNow`, recalculé à chaque appel. Dans la
+plage, le moteur annonce puis passe l'appel au numéro de transfert par REFER,
+sans conversation. Trois limites à ne pas redécouvrir : un REFER accepté puis
+non décroché ne revient PAS chez nous (l'appelant tombe sur la messagerie du
+numéro) ; le numéro de transfert ne peut pas être une ligne renvoyée vers nous,
+ni en renvoi total (boucle) ni en conditionnel (elle a déjà sonné) ; et avec UN
+seul numéro la plage ne peut donc rien, c'est le téléphone qui doit couper son
+renvoi.
+**L'écho.** Les réglages d'interruption de LiveKit ne changent pas en cours
+d'appel (`update_options` ne les porte pas). Le durcissement est donc dans notre
+filtre de transcription : après deux paroles distinctes de l'agent revenues en
+écho, l'appel est tenu pour un haut-parleur et les fragments courts sont écartés
+à leur tour. Avant cette preuve, rien ne change. `VC_SPEAKER_MODE=0` coupe.
+
 ### 6. Divers
 - Renommage de l'agent en ligne sur le carrousel : **fait** (icône crayon,
   `CharacterCarousel.tsx`).
