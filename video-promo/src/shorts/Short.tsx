@@ -26,6 +26,7 @@ import data from './data';
 import { Poster } from './poster';
 import { CameraRig, CineBackdrop, CineCtx, CineFinish, CineTitle, LookCtx, OrbStage, Phone3D, lookFor, useCine, useLook } from './cine';
 import type { Lang, Line, Narr, SceneData } from './types';
+import { campaignVisual } from './campaign';
 
 export const SHORT_FPS = 30;
 
@@ -91,7 +92,7 @@ export function buildTimeline(id: string) {
     });
     tlines.forEach((l, j) => { l.until = j < tlines.length - 1 ? tlines[j + 1].at - 0.05 : Infinity; });
     const v = sc.visual;
-    const min = MIN[v.kind] + (v.kind === 'ring' && v.missed ? 0.8 : 0);
+    const min = v.kind === 'x' ? (v.min ?? 3) : MIN[v.kind] + (v.kind === 'ring' && v.missed ? 0.8 : 0);
     const out = Math.max(t + (v.kind === 'type' ? 0.25 : 0.45), at + min);
     tlines.forEach((l) => { if (l.until === Infinity) l.until = out; });
     const s: TScene = { ...sc, at, out, tsay, tlines, card: at + 0.35 };
@@ -100,6 +101,10 @@ export function buildTimeline(id: string) {
     // le deuxième appel sonne d'abord sur le téléphone du gérant, puis Qwillio le prend
     if (v.kind === 'relay') { s.ring = { at: at + 0.6, out: at + 3.0 }; s.card = at + 3.05; }
     if (v.kind === 'rules') s.card = at + 0.3;
+    // les sonneries des mises en scène de la campagne
+    if (v.kind === 'x' && v.scene === 'split' && v.opts?.stage === 'two') s.ring = { at: at + 0.6, out: at + 2.8 };
+    if (v.kind === 'x' && v.scene === 'pile') s.ring = { at: at + 0.4, out: at + 0.4 + 0.9 * ((v.opts?.calls?.length ?? 1) - 1) + 1.2 };
+    if (v.kind === 'x' && v.scene === 'clock' && v.opts?.phone === 'ring') s.ring = { at: at + 0.5, out: out - 0.2 };
     if (v.kind === 'learn') { s.typed = at + 1.3; s.learned = s.typed + v.answer.length / 26 + 0.35; s.out = Math.max(s.out, s.learned + 1.2); }
     cursor = s.out;
     return s;
@@ -182,7 +187,7 @@ function Spoken({ t, l, y, size, lang }: { t: number; l: TLine; y: number; size:
 
 /** L'appel en fil de messages : l'appelant d'abord, la réponse s'ajoute dessous.
  *  Rien ne disparaît pendant l'appel ; quand le fil déborde, il glisse vers le haut. */
-function ChatThread({ t, s, y, bottom, size, lang }: { t: number; s: TScene; y: number; bottom: number; size: number; lang: Lang }) {
+export function ChatThread({ t, s, y, bottom, size, lang }: { t: number; s: TScene; y: number; bottom: number; size: number; lang: Lang }) {
   const fs = Math.round(size * 0.86);
   const side = 80, maxW = (1080 - side * 2) * 0.8, pad = 26, gap = 20, label = 34;
   const perLine = (maxW - pad * 2) / (fs * 0.5);
@@ -491,6 +496,10 @@ function Scene({ t, s, prev, levels, fps, lang, F, index = 0 }: { t: number; s: 
       </>
     );
   } else if (v.kind === 'rules') body = <RulesCard t={t} s={s} lang={lang} />;
+  else if (v.kind === 'x') {
+    body = campaignVisual(t, s, lang).body;
+    if (v.chat) over = <ChatThread t={t} s={s} y={F.spokenY + (F.h > 1500 ? 40 : 0)} bottom={F.h - (F.h > 1500 ? 90 : 50)} size={F.spokenSize} lang={lang} />;
+  }
   else if (v.kind === 'learn') body = <LearnCard t={t} s={s} question={v.question} answer={v.answer} lang={lang} />;
   else if (v.kind === 'message') body = <MessageNote t={t} from={s.card} lang={lang} />;
   else if (v.kind === 'mac') body = <MacCard t={t} s={s} />;
@@ -589,6 +598,7 @@ export const Short: React.FC<{ id: string; format: Format; cine?: boolean; poste
           for (let b = s.ring.at, j = 0; b < s.ring.out - 0.4; b += 1.4, j++) out.push(<Sfx key={`b${i}-${j}`} at={b} name="buzz" gain={0.55} />);
         }
         if (s.missed !== undefined) out.push(<Sfx key={`m${i}`} at={s.missed} name="pop" gain={0.55} />);
+        if (v.kind === 'x' && !['pile'].includes(v.scene)) out.push(<Sfx key={`x${i}`} at={s.at + 0.35} name="pop" gain={0.4} />);
         if (v.kind === 'relay' || v.kind === 'rules') out.push(<Sfx key={`c${i}`} at={s.card} name="pop" gain={0.55} />);
         if (v.kind === 'notif' || v.kind === 'learn' || v.kind === 'message' || v.kind === 'mac') out.push(<Sfx key={`c${i}`} at={s.card} name="pop" gain={0.55} />);
         if (v.kind === 'learn') out.push(<Sfx key={`ok${i}`} at={s.learned!} name="click" gain={0.6} />);

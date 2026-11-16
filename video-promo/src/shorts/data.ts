@@ -8483,7 +8483,26 @@ const data = {
    "scenes": [
     {
      "visual": {
-      "kind": "type"
+      "kind": "x",
+      "scene": "split",
+      "opts": {
+       "stage": "one",
+       "busy": "Marc Peeters",
+       "name": "Sophie Lambert",
+       "initials": "SL",
+       "time": "19:02",
+       "date": "vendredi 14 novembre",
+       "you": "Vous",
+       "keys": [
+        "haut-parleur",
+        "FaceTime",
+        "silence",
+        "ajouter",
+        "clavier",
+        "fin"
+       ],
+       "took": "Qwillio a pris le 2e appel"
+      }
      },
      "say": {
       "file": "voices/shorts/c01-n0.mp3",
@@ -8545,14 +8564,26 @@ const data = {
     },
     {
      "visual": {
-      "kind": "relay",
-      "busy": "Marc Peeters",
-      "name": "Sophie Lambert",
-      "initials": "SL",
-      "time": "19:02",
-      "took": {
-       "title": "Qwillio a pris le 2e appel",
-       "desc": "Sophie Lambert · en cours"
+      "kind": "x",
+      "scene": "split",
+      "min": 4.2,
+      "opts": {
+       "stage": "two",
+       "busy": "Marc Peeters",
+       "name": "Sophie Lambert",
+       "initials": "SL",
+       "time": "19:02",
+       "date": "vendredi 14 novembre",
+       "you": "Vous",
+       "keys": [
+        "haut-parleur",
+        "FaceTime",
+        "silence",
+        "ajouter",
+        "clavier",
+        "fin"
+       ],
+       "took": "Qwillio a pris le 2e appel"
       }
      },
      "say": {
@@ -8623,7 +8654,26 @@ const data = {
     },
     {
      "visual": {
-      "kind": "orb"
+      "kind": "x",
+      "scene": "split",
+      "opts": {
+       "stage": "talk",
+       "busy": "Marc Peeters",
+       "name": "Sophie Lambert",
+       "initials": "SL",
+       "time": "19:02",
+       "date": "vendredi 14 novembre",
+       "you": "Vous",
+       "keys": [
+        "haut-parleur",
+        "FaceTime",
+        "silence",
+        "ajouter",
+        "clavier",
+        "fin"
+       ],
+       "took": "Qwillio a pris le 2e appel"
+      }
      },
      "lines": [
       {
@@ -8794,9 +8844,28 @@ const data = {
     },
     {
      "visual": {
-      "kind": "notif",
-      "title": "Nouvelle réservation",
-      "desc": "Sophie Lambert · 2 personnes · 21:00"
+      "kind": "x",
+      "scene": "split",
+      "opts": {
+       "stage": "done",
+       "busy": "Marc Peeters",
+       "name": "Sophie Lambert",
+       "initials": "SL",
+       "time": "19:02",
+       "date": "vendredi 14 novembre",
+       "you": "Vous",
+       "keys": [
+        "haut-parleur",
+        "FaceTime",
+        "silence",
+        "ajouter",
+        "clavier",
+        "fin"
+       ],
+       "took": "Qwillio a pris le 2e appel",
+       "doneTitle": "Nouvelle réservation",
+       "doneDesc": "Sophie Lambert · 2 personnes · 21:00"
+      }
      },
      "say": {
       "file": "voices/shorts/c01-n3.mp3",
@@ -8971,7 +9040,14 @@ const data = {
    "scenes": [
     {
      "visual": {
-      "kind": "type"
+      "kind": "x",
+      "scene": "clock",
+      "min": 4,
+      "opts": {
+       "from": 1080,
+       "to": 1290,
+       "label": "La boutique est fermée."
+      }
      },
      "say": {
       "file": "voices/shorts/c02-n0.mp3",
@@ -9061,10 +9137,17 @@ const data = {
     },
     {
      "visual": {
-      "kind": "ring",
-      "name": "Céline Dupont",
-      "initials": "CD",
-      "time": "21:34"
+      "kind": "x",
+      "scene": "clock",
+      "min": 3.4,
+      "opts": {
+       "from": 1294,
+       "phone": "ring",
+       "name": "Céline Dupont",
+       "initials": "CD",
+       "date": "jeudi 13 novembre",
+       "label": "À table, enfin."
+      }
      },
      "say": {
       "file": "voices/shorts/c02-n1.mp3",
@@ -9341,9 +9424,18 @@ const data = {
     },
     {
      "visual": {
-      "kind": "notif",
-      "title": "Nouvelle commande",
-      "desc": "Céline Dupont · plateau 8 pers. · samedi 11:00"
+      "kind": "x",
+      "scene": "clock",
+      "min": 3.6,
+      "opts": {
+       "from": 450,
+       "to": 452,
+       "phone": "notif",
+       "title": "Nouvelle commande",
+       "desc": "Céline Dupont · plateau 8 pers. · samedi 11:00",
+       "ago": "hier",
+       "label": "Le lendemain matin."
+      }
      },
      "say": {
       "file": "voices/shorts/c02-n3.mp3",
@@ -9511,7 +9603,11 @@ const data = {
    "scenes": [
     {
      "visual": {
-      "kind": "type"
+      "kind": "x",
+      "scene": "quote",
+      "opts": {
+       "by": "Ce qu’on entend souvent."
+      }
      },
      "say": {
       "file": "voices/shorts/c03-n0.mp3",
@@ -9666,7 +9762,29 @@ const data = {
     },
     {
      "visual": {
-      "kind": "rules"
+      "kind": "x",
+      "scene": "settings",
+      "min": 4,
+      "opts": {
+       "back": "Téléphone",
+       "title": "Renvoi",
+       "section": "Qwillio décroche quand",
+       "rows": [
+        [
+         "Vous êtes déjà en ligne",
+         true
+        ],
+        [
+         "Pas de réponse en 30 s",
+         true
+        ],
+        [
+         "Tous les appels",
+         false
+        ]
+       ],
+       "foot": "Votre téléphone sonne toujours en premier. Vous changez ce réglage quand vous voulez."
+      }
      },
      "say": {
       "file": "voices/shorts/c03-n2.mp3",
@@ -9960,7 +10078,9 @@ const data = {
     },
     {
      "visual": {
-      "kind": "type"
+      "kind": "x",
+      "scene": "quote",
+      "opts": {}
      },
      "say": {
       "file": "voices/shorts/c03-n4.mp3",
@@ -10037,7 +10157,28 @@ const data = {
    "scenes": [
     {
      "visual": {
-      "kind": "type"
+      "kind": "x",
+      "scene": "pile",
+      "min": 4,
+      "opts": {
+       "calls": [
+        [
+         "Numéro inconnu",
+         "?"
+        ],
+        [
+         "Sarah Leclercq",
+         "SL"
+        ],
+        [
+         "Kevin Dubois",
+         "KD"
+        ]
+       ],
+       "unit": "APPELS",
+       "time": "12:15",
+       "date": "vendredi 14 novembre"
+      }
      },
      "say": {
       "file": "voices/shorts/c04-n0.mp3",
@@ -10193,7 +10334,30 @@ const data = {
     },
     {
      "visual": {
-      "kind": "orb"
+      "kind": "x",
+      "scene": "ticket",
+      "chat": true,
+      "opts": {
+       "head": "COMMANDE · À EMPORTER",
+       "sub": "Prise au téléphone",
+       "items": [
+        [
+         0,
+         "2 × Club poulet"
+        ],
+        [
+         0,
+         "1 × Américain"
+        ],
+        [
+         2,
+         "Retrait vers 12:40"
+        ]
+       ],
+       "footAt": 2,
+       "foot": "Nom : Mertens",
+       "by": "Notée par Qwillio · 12:17"
+      }
      },
      "lines": [
       {
@@ -10549,10 +10713,35 @@ const data = {
    "scenes": [
     {
      "visual": {
-      "kind": "ring",
-      "name": "Laura Vandamme",
-      "initials": "LV",
-      "time": "14:20"
+      "kind": "x",
+      "scene": "recents",
+      "min": 3.4,
+      "opts": {
+       "title": "Récents",
+       "rows": [
+        {
+         "name": "Laura Vandamme",
+         "sub": "appel entrant…",
+         "time": "14:20",
+         "at": 0.6
+        },
+        {
+         "name": "Thomas Claes",
+         "sub": "mobile",
+         "time": "11:02"
+        },
+        {
+         "name": "Grossiste Pirard",
+         "sub": "bureau",
+         "time": "09:15"
+        },
+        {
+         "name": "Maman",
+         "sub": "mobile",
+         "time": "hier"
+        }
+       ]
+      }
      },
      "say": {
       "file": "voices/shorts/c05-n0.mp3",
@@ -10630,7 +10819,13 @@ const data = {
     },
     {
      "visual": {
-      "kind": "type"
+      "kind": "x",
+      "scene": "countdown",
+      "min": 4.5,
+      "opts": {
+       "unit": "secondes sans réponse",
+       "after": "prend l’appel"
+      }
      },
      "say": {
       "file": "voices/shorts/c05-n1.mp3",
@@ -10716,7 +10911,11 @@ const data = {
     },
     {
      "visual": {
-      "kind": "orb"
+      "kind": "x",
+      "scene": "livecall",
+      "opts": {
+       "who": "Laura Vandamme"
+      }
      },
      "lines": [
       {
@@ -10935,9 +11134,37 @@ const data = {
     },
     {
      "visual": {
-      "kind": "notif",
-      "title": "Demande de devis",
-      "desc": "Laura Vandamme · chaudière · rappeler après 16 h"
+      "kind": "x",
+      "scene": "recents",
+      "min": 3.4,
+      "opts": {
+       "title": "Récents",
+       "rows": [
+        {
+         "name": "Qwillio · Laura Vandamme",
+         "sub": "Devis chaudière · rappeler après 16 h",
+         "time": "14:21",
+         "q": true,
+         "at": 0.5
+        },
+        {
+         "name": "Laura Vandamme",
+         "sub": "mobile",
+         "time": "14:20",
+         "missed": true
+        },
+        {
+         "name": "Thomas Claes",
+         "sub": "mobile",
+         "time": "11:02"
+        },
+        {
+         "name": "Grossiste Pirard",
+         "sub": "bureau",
+         "time": "09:15"
+        }
+       ]
+      }
      },
      "say": {
       "file": "voices/shorts/c05-n3.mp3",
@@ -11007,7 +11234,7 @@ const data = {
     },
     {
      "visual": {
-      "kind": "rules"
+      "kind": "type"
      },
      "say": {
       "file": "voices/shorts/c05-n4.mp3",
@@ -11092,7 +11319,42 @@ const data = {
    "scenes": [
     {
      "visual": {
-      "kind": "type"
+      "kind": "x",
+      "scene": "calendar",
+      "min": 3.4,
+      "opts": {
+       "title": "Semaine du 17 novembre",
+       "days": [
+        "Lun",
+        "Mar",
+        "Mer",
+        "Jeu",
+        "Ven",
+        "Sam",
+        "Dim"
+       ],
+       "events": [
+        {
+         "d": 1,
+         "h": 9,
+         "txt": "Mme Peeters",
+         "at": 0.3
+        },
+        {
+         "d": 2,
+         "h": 10,
+         "txt": "M. Laurent",
+         "at": 0.4
+        },
+        {
+         "d": 3,
+         "h": 8,
+         "txt": "Mme Aerts",
+         "at": 0.5
+        }
+       ],
+       "foot": "Dimanche, 20:00. Lundi est encore vide."
+      }
      },
      "say": {
       "file": "voices/shorts/c06-n0.mp3",
@@ -11239,7 +11501,11 @@ const data = {
     },
     {
      "visual": {
-      "kind": "orb"
+      "kind": "x",
+      "scene": "livecall",
+      "opts": {
+       "who": "Thomas Claes"
+      }
      },
      "lines": [
       {
@@ -11422,9 +11688,47 @@ const data = {
     },
     {
      "visual": {
-      "kind": "notif",
-      "title": "Nouveau rendez-vous",
-      "desc": "Thomas Claes · lundi 08:00"
+      "kind": "x",
+      "scene": "calendar",
+      "min": 3.4,
+      "opts": {
+       "title": "Semaine du 17 novembre",
+       "days": [
+        "Lun",
+        "Mar",
+        "Mer",
+        "Jeu",
+        "Ven",
+        "Sam",
+        "Dim"
+       ],
+       "events": [
+        {
+         "d": 1,
+         "h": 9,
+         "txt": "Mme Peeters",
+         "at": 0
+        },
+        {
+         "d": 2,
+         "h": 10,
+         "txt": "M. Laurent",
+         "at": 0
+        },
+        {
+         "d": 3,
+         "h": 8,
+         "txt": "Mme Aerts",
+         "at": 0
+        },
+        {
+         "d": 0,
+         "h": 8,
+         "txt": "Thomas Claes",
+         "at": 0.6
+        }
+       ]
+      }
      },
      "say": {
       "file": "voices/shorts/c06-n3.mp3",
@@ -11490,7 +11794,65 @@ const data = {
     },
     {
      "visual": {
-      "kind": "type"
+      "kind": "x",
+      "scene": "calendar",
+      "opts": {
+       "title": "Semaine du 17 novembre",
+       "days": [
+        "Lun",
+        "Mar",
+        "Mer",
+        "Jeu",
+        "Ven",
+        "Sam",
+        "Dim"
+       ],
+       "events": [
+        {
+         "d": 1,
+         "h": 9,
+         "txt": "Mme Peeters",
+         "at": 0
+        },
+        {
+         "d": 2,
+         "h": 10,
+         "txt": "M. Laurent",
+         "at": 0
+        },
+        {
+         "d": 3,
+         "h": 8,
+         "txt": "Mme Aerts",
+         "at": 0
+        },
+        {
+         "d": 0,
+         "h": 8,
+         "txt": "Thomas Claes",
+         "at": 0
+        },
+        {
+         "d": 0,
+         "h": 9,
+         "txt": "Mme Wouters",
+         "at": 0.6
+        },
+        {
+         "d": 0,
+         "h": 11,
+         "txt": "M. Gilson",
+         "at": 1.1
+        },
+        {
+         "d": 1,
+         "h": 11,
+         "txt": "Mme Lenoir",
+         "at": 1.6
+        }
+       ],
+       "foot": "Réservé pendant le week-end, sans vous."
+      }
      },
      "say": {
       "file": "voices/shorts/c06-n4.mp3",
@@ -11551,7 +11913,15 @@ const data = {
    "scenes": [
     {
      "visual": {
-      "kind": "type"
+      "kind": "x",
+      "scene": "voicemail",
+      "min": 3.6,
+      "opts": {
+       "mode": "beep",
+       "calling": "appel en cours…",
+       "name": "Garage Lemaire",
+       "beep": 2.4
+      }
      },
      "say": {
       "file": "voices/shorts/c07-n0.mp3",
@@ -11613,7 +11983,14 @@ const data = {
     },
     {
      "visual": {
-      "kind": "type"
+      "kind": "x",
+      "scene": "voicemail",
+      "opts": {
+       "mode": "hangup",
+       "calling": "messagerie",
+       "name": "Garage Lemaire",
+       "endedLabel": "Appel terminé · 0:04"
+      }
      },
      "say": {
       "file": "voices/shorts/c07-n1.mp3",
@@ -12050,8 +12427,12 @@ const data = {
    "scenes": [
     {
      "visual": {
-      "kind": "type",
-      "tag": "FERMÉ"
+      "kind": "x",
+      "scene": "sign",
+      "opts": {
+       "closed": "FERMÉ",
+       "closedSub": "Congés jusqu’au 31 décembre"
+      }
      },
      "say": {
       "file": "voices/shorts/c08-n0.mp3",
@@ -12170,7 +12551,13 @@ const data = {
     },
     {
      "visual": {
-      "kind": "orb"
+      "kind": "x",
+      "scene": "sign",
+      "chat": true,
+      "opts": {
+       "closed": "FERMÉ",
+       "closedSub": "Congés jusqu’au 31 décembre"
+      }
      },
      "lines": [
       {
@@ -12425,9 +12812,26 @@ const data = {
     },
     {
      "visual": {
-      "kind": "notif",
-      "title": "Commande pour la réouverture",
-      "desc": "Anne Dumont · galette des rois · 6 janvier"
+      "kind": "x",
+      "scene": "orders",
+      "min": 3.6,
+      "opts": {
+       "title": "À LA RÉOUVERTURE",
+       "rows": [
+        [
+         "2 bûches · Martin",
+         "2 janv."
+        ],
+        [
+         "Pain surprise · Lambert",
+         "3 janv."
+        ],
+        [
+         "Galette des rois · Dumont",
+         "6 janv."
+        ]
+       ]
+      }
      },
      "say": {
       "file": "voices/shorts/c08-n3.mp3",
@@ -12481,7 +12885,15 @@ const data = {
     },
     {
      "visual": {
-      "kind": "type"
+      "kind": "x",
+      "scene": "sign",
+      "opts": {
+       "closed": "FERMÉ",
+       "closedSub": "Congés jusqu’au 31 décembre",
+       "open": "OUVERT",
+       "openSub": "3 commandes vous attendent",
+       "flipAt": 0.5
+      }
      },
      "say": {
       "file": "voices/shorts/c08-n4.mp3",
@@ -12558,7 +12970,13 @@ const data = {
    "scenes": [
     {
      "visual": {
-      "kind": "type"
+      "kind": "x",
+      "scene": "city",
+      "opts": {
+       "city": "Bruxelles",
+       "time": "22:04",
+       "words": []
+      }
      },
      "say": {
       "file": "voices/shorts/c09-n0.mp3",
@@ -12649,7 +13067,14 @@ const data = {
     },
     {
      "visual": {
-      "kind": "orb"
+      "kind": "x",
+      "scene": "city",
+      "chat": true,
+      "opts": {
+       "city": "Bruxelles",
+       "time": "22:04",
+       "words": []
+      }
      },
      "lines": [
       {
@@ -12898,7 +13323,33 @@ const data = {
     },
     {
      "visual": {
-      "kind": "langs"
+      "kind": "x",
+      "scene": "city",
+      "opts": {
+       "city": "Bruxelles",
+       "time": "22:06",
+       "words": [
+        [
+         "Goedenavond",
+         "NL",
+         110,
+         1020
+        ],
+        [
+         "Bonsoir",
+         "FR",
+         640,
+         1080
+        ],
+        [
+         "Good evening",
+         "EN",
+         300,
+         1230
+        ]
+       ],
+       "lit": "NL"
+      }
      },
      "say": {
       "file": "voices/shorts/c09-n4.mp3",
@@ -13123,7 +13574,15 @@ const data = {
     },
     {
      "visual": {
-      "kind": "type"
+      "kind": "x",
+      "scene": "dialer",
+      "min": 5,
+      "opts": {
+       "code": "*61*+32 2 588 00 00**30#",
+       "hint": "Renvoi si pas de réponse",
+       "result": "Renvoi activé",
+       "resultDesc": "Si pas de réponse après 30 s"
+      }
      },
      "say": {
       "file": "voices/shorts/c10-n2.mp3",
@@ -13193,7 +13652,15 @@ const data = {
     },
     {
      "visual": {
-      "kind": "type"
+      "kind": "x",
+      "scene": "dialer",
+      "min": 4,
+      "opts": {
+       "code": "##002#",
+       "hint": "Annuler les renvois",
+       "result": "Renvois désactivés",
+       "resultDesc": "Votre ligne redevient normale"
+      }
      },
      "say": {
       "file": "voices/shorts/c10-n3.mp3",

@@ -11,7 +11,9 @@ export type Visual =
   | { kind: 'message' }
   | { kind: 'mac' }
   | { kind: 'relay'; busy: string; name: string; initials: string; time: string; took: { title: string; desc: string } }
-  | { kind: 'rules' };
+  | { kind: 'rules' }
+  // les mises en scène propres à une seule vidéo de la campagne (src/shorts/campaign.tsx)
+  | { kind: 'x'; scene: string; chat?: boolean; min?: number; opts?: Record<string, any> };
 export type SceneData = { visual: Visual; say?: Narr; lines?: Line[] };
 export type Lang = 'fr' | 'en' | 'nl';
 export type ShortData = { lang: Lang; slug: string; music: number; scenes: SceneData[] };

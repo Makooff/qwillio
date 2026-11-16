@@ -14,11 +14,11 @@ import React from 'react';
 import { Img, staticFile } from 'remotion';
 
 export const W = 393, H = 852;
-const sf: React.CSSProperties = { fontFamily: 'Inter, sans-serif', fontFeatureSettings: '"case" 1, "cv11"' };
+export const sf: React.CSSProperties = { fontFamily: 'Inter, sans-serif', fontFeatureSettings: '"case" 1, "cv11"' };
 const icon = (n: string) => staticFile(`ios/${n}.svg`);
 
 /** Barre d'état avec l'île dynamique (1503:15313), en mode clair comme dans le kit. */
-function StatusBar({ time }: { time: string }) {
+export function StatusBar({ time }: { time: string }) {
   return (
     <div style={{ position: 'absolute', left: 0, right: 0, top: 0, height: 59, display: 'flex', alignItems: 'flex-end', ...sf }}>
       <div style={{ flex: 1, height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', paddingLeft: 10, paddingBottom: 3 }}>
