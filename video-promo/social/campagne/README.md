@@ -58,25 +58,25 @@ Fichiers : `posts/fr/<format>/pNN.png`.
 
 | Date | Post | Légende (FR) |
 |---|---|---|
-| lun. 17/11 | c01 double appel | Vous êtes déjà au téléphone, et ça sonne encore. Avant, ce deuxième client tombait sur la messagerie. Maintenant, Qwillio le prend, et vous gardez le premier. |
-| jeu. 20/11 | p01 | Votre téléphone sonne toujours en premier. Qwillio ne prend que ce que vous ne pouvez pas prendre. |
-| dim. 23/11 | c02 soirée | 21 h 30, la boutique est fermée. Le GSM sonne, vous le laissez sonner. Demain matin, la commande vous attend. |
-| mer. 26/11 | p04 | Vos clients commandent quand ils y pensent. Souvent le soir. |
-| sam. 29/11 | c03 pas un robot | Vos clientes vous appellent pour vous parler à vous. Qwillio ne prend que les appels que vous ratez. |
-| mar. 02/12 | p03 | Vous gardez votre ligne. Et vos soirées. |
-| ven. 05/12 | c04 rush de midi | 12 h 15, trois appels, deux mains. Le premier est pour vous, les suivants pour elle. |
-| lun. 08/12 | p02 | Le deuxième appel, c'est elle. |
-| jeu. 11/12 | c05 sous l'évier | Sur un chantier, on ne décroche pas. Qwillio note le devis et l'heure à laquelle rappeler. |
-| dim. 14/12 | p05 | Les mains prises, le client servi. |
-| mer. 17/12 | c06 dimanche soir | Lundi se prépare dimanche soir. Vos patients réservent quand le cabinet est fermé. |
-| sam. 20/12 | p06 | Lundi 8 h, déjà réservé. |
-| mar. 23/12 | c08 congés | Fermé pour les fêtes ? Vos clients peuvent quand même appeler. |
-| ven. 26/12 | p07 | Fermé ne veut plus dire injoignable. |
-| lun. 29/12 | c07 le bip | Personne n'aime laisser un message. Alors quelqu'un répond. |
-| jeu. 01/01 | p01 (rediffusion 1:1, LinkedIn) | Bonne année. Votre GSM sonne toujours en premier. |
-| dim. 04/01 | c09 trois langues | 22 h à Bruxelles, un appel en néerlandais. Elle répond dans la bonne langue. |
-| mer. 07/01 | p08 | Un code pour l'activer, un code pour l'enlever. |
-| sam. 10/01 | c10 un code | Comment on installe Qwillio ? Un code sur votre téléphone. Essayez 7 jours. |
+| mar. 17/11 | c01 double appel | Vous êtes déjà au téléphone, et ça sonne encore. Avant, ce deuxième client tombait sur la messagerie. Maintenant, Qwillio le prend, et vous gardez le premier. |
+| ven. 20/11 | p01 | Votre téléphone sonne toujours en premier. Qwillio ne prend que ce que vous ne pouvez pas prendre. |
+| lun. 23/11 | c02 soirée | 21 h 30, la boutique est fermée. Le GSM sonne, vous le laissez sonner. Demain matin, la commande vous attend. |
+| jeu. 26/11 | p04 | Vos clients commandent quand ils y pensent. Souvent le soir. |
+| dim. 29/11 | c03 pas un robot | Vos clientes vous appellent pour vous parler à vous. Qwillio ne prend que les appels que vous ratez. |
+| mer. 02/12 | p03 | Vous gardez votre ligne. Et vos soirées. |
+| sam. 05/12 | c04 rush de midi | 12 h 15, trois appels, deux mains. Le premier est pour vous, les suivants pour elle. |
+| mar. 08/12 | p02 | Le deuxième appel, c'est elle. |
+| ven. 11/12 | c05 sous l'évier | Sur un chantier, on ne décroche pas. Qwillio note le devis et l'heure à laquelle rappeler. |
+| lun. 14/12 | p05 | Les mains prises, le client servi. |
+| jeu. 17/12 | c06 dimanche soir | Lundi se prépare dimanche soir. Vos patients réservent quand le cabinet est fermé. |
+| dim. 20/12 | p06 | Lundi 8 h, déjà réservé. |
+| mer. 23/12 | c08 congés | Fermé pour les fêtes ? Vos clients peuvent quand même appeler. |
+| sam. 26/12 | p07 | Fermé ne veut plus dire injoignable. |
+| mar. 29/12 | c07 le bip | Personne n'aime laisser un message. Alors quelqu'un répond. |
+| ven. 01/01 | p01 (rediffusion 1:1, LinkedIn) | Bonne année. Votre GSM sonne toujours en premier. |
+| lun. 04/01 | c09 trois langues | 22 h à Bruxelles, un appel en néerlandais. Elle répond dans la bonne langue. |
+| jeu. 07/01 | p08 | Un code pour l'activer, un code pour l'enlever. |
+| dim. 10/01 | c10 un code | Comment on installe Qwillio ? Un code sur votre téléphone. Essayez 7 jours. |
 
 Heures de publication : 12 h ou 19 h (les pauses des commerçants). Instagram et
 Facebook en 4:5 dans le fil, 9:16 en Reels et Stories ; TikTok en 9:16 ; LinkedIn en
