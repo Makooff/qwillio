@@ -42,6 +42,21 @@ function PhoneAt({ t, s, x, y, angle = 0, children }: { t: number; s: TScene; x:
   return <Phone3D t={t} inAt={s.at + 0.05} outAt={s.out + 0.3} x={x} y={y} angle={angle} w={432} h={904}><Device scale={1.03}>{children}</Device></Phone3D>;
 }
 
+
+/**
+ * La notification qui sort de l'écran vers la caméra, comme dans la série
+ * d'origine (scène « notif » de Short.tsx) : « j'aimais bien les effets 3D ».
+ */
+function Pop3D({ t, at, title, desc, time = 'maintenant', y = 1000 }: { t: number; at: number; title: string; desc: string; time?: string; y?: number }) {
+  if (!useCine() || t < at) return null;
+  const k = 1 - Math.pow(2, -10 * Math.min(1, (t - at) / 0.9));
+  return (
+    <div style={{ position: 'absolute', left: 540 - 186, top: y, width: 373, transformOrigin: '50% 50%', opacity: Math.min(1, k * 1.5), transform: `translateZ(${60 + 220 * k}px) translateY(${(1 - k) * 80}px) rotateX(${(1 - k) * 25}deg) scale(${1.4 + 0.5 * k})`, borderRadius: 23, background: 'rgba(250,250,252,0.97)', boxShadow: '0 30px 60px -20px rgba(40,20,80,0.35), 0 0 0 1px rgba(0,0,0,0.04)' }}>
+      <Notification kind="qwillio" title={title} desc={desc} time={time} />
+    </div>
+  );
+}
+
 /* ------------------------------------------------------------------ l'appel vu dans le téléphone */
 
 /** L'écran de l'app Qwillio pendant qu'elle répond : la transcription en direct. */
@@ -131,11 +146,7 @@ function Clock({ t, s, o }: { t: number; s: TScene; o: any }) {
           <LockScreen time={hhmm(now)} date={o.date} wallpaper={WALL} banner={t >= s.at + 0.5 ? <div style={reveal(t, s.at + 0.5)}><IncomingCall name={o.name} initials={o.initials} /></div> : undefined} />
         </PhoneAt>
       )}
-      {o.phone === 'notif' && t >= s.at + 0.8 && (
-        <div style={{ position: 'absolute', left: 540 - 280, top: 1150, width: 373, transform: 'scale(1.5)', transformOrigin: '50% 0', ...reveal(t, s.at + 0.8) }}>
-          <Notification kind="qwillio" title={o.title} desc={o.desc} time={o.ago} />
-        </div>
-      )}
+      {o.phone === 'notif' && <Pop3D t={t} at={s.at + 0.8} title={o.title} desc={o.desc} time={o.ago} y={1180} />}
     </>
   );
 }
@@ -411,6 +422,7 @@ function Dialer({ t, s, o }: { t: number; s: TScene; o: any }) {
   const pressK = typed > 0 ? 1 - p(t, start + (typed - 1) * step, 0.18) : 0;
   const called = t >= start + code.length * step + 0.3;
   return (
+    <>
     <PhoneAt t={t} s={s} x={324} y={560} angle={-2}>
       <div style={{ position: 'relative', width: W, height: H, background: '#000', overflow: 'hidden', ...sf }}>
         <div style={{ position: 'absolute', left: 0, right: 0, top: 110, textAlign: 'center', color: '#fff', fontSize: code.length > 12 ? 28 : 36, letterSpacing: 0.2, height: 41 }}>{code.slice(0, typed)}</div>
@@ -429,12 +441,21 @@ function Dialer({ t, s, o }: { t: number; s: TScene; o: any }) {
         {called && o.result && <div style={{ position: 'absolute', left: 16, right: 16, top: 10, ...reveal(t, start + code.length * step + 0.5) }}><Notification kind="phone" title={o.result} desc={o.resultDesc ?? ''} time={o.now ?? 'maintenant'} /></div>}
       </div>
     </PhoneAt>
+    {o.result && <Pop3D t={t} at={start + code.length * step + 0.7} title={o.result} desc={o.resultDesc ?? ''} y={1250} />}
+    </>
   );
 }
 
 /* ------------------------------------------------------------------ l'aiguillage */
 
 export function campaignVisual(t: number, s: TScene, lang: Lang): { body?: React.ReactNode; over?: React.ReactNode } {
+  const r = campaignBody(t, s, lang);
+  const o = (s.visual as Extract<TScene['visual'], { kind: 'x' }>).opts ?? {};
+  if (!o.pop) return r;
+  return { ...r, body: <>{r.body}<Pop3D t={t} at={s.at + o.pop.at} title={o.pop.title} desc={o.pop.desc} y={o.pop.y ?? 1250} /></> };
+}
+
+function campaignBody(t: number, s: TScene, lang: Lang): { body?: React.ReactNode; over?: React.ReactNode } {
   const v = s.visual as Extract<TScene['visual'], { kind: 'x' }>;
   const o = v.opts ?? {};
   switch (v.scene) {

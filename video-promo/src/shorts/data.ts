@@ -8569,6 +8569,12 @@ const data = {
       "min": 4.2,
       "opts": {
        "stage": "two",
+       "pop": {
+        "at": 2.9,
+        "title": "Qwillio a pris le 2e appel",
+        "desc": "Sophie Lambert · en cours",
+        "y": 1220
+       },
        "busy": "Marc Peeters",
        "name": "Sophie Lambert",
        "initials": "SL",
@@ -8864,7 +8870,13 @@ const data = {
        ],
        "took": "Qwillio a pris le 2e appel",
        "doneTitle": "Nouvelle réservation",
-       "doneDesc": "Sophie Lambert · 2 personnes · 21:00"
+       "doneDesc": "Sophie Lambert · 2 personnes · 21:00",
+       "pop": {
+        "at": 0.7,
+        "title": "Nouvelle réservation",
+        "desc": "Sophie Lambert · 2 personnes · 21:00",
+        "y": 1220
+       }
       }
      },
      "say": {
@@ -11163,7 +11175,12 @@ const data = {
          "sub": "bureau",
          "time": "09:15"
         }
-       ]
+       ],
+       "pop": {
+        "at": 0.9,
+        "title": "Demande de devis",
+        "desc": "Laura Vandamme · rappeler après 16 h"
+       }
       }
      },
      "say": {
@@ -11727,7 +11744,13 @@ const data = {
          "txt": "Thomas Claes",
          "at": 0.6
         }
-       ]
+       ],
+       "pop": {
+        "at": 0.9,
+        "title": "Nouveau rendez-vous",
+        "desc": "Thomas Claes · lundi 08:00",
+        "y": 1300
+       }
       }
      },
      "say": {
@@ -12830,7 +12853,13 @@ const data = {
          "Galette des rois · Dumont",
          "6 janv."
         ]
-       ]
+       ],
+       "pop": {
+        "at": 1.8,
+        "title": "Commande pour la réouverture",
+        "desc": "Anne Dumont · galette des rois · 6 janvier",
+        "y": 1250
+       }
       }
      },
      "say": {
