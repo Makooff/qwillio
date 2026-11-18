@@ -1,0 +1,23 @@
+CAMPAGNE « ELLE PREND LE RELAIS », un post tous les 3 jours
+Chaque dossier = un jour. Dedans : les fichiers à poster et A-POSTER.txt (légende par réseau).
+Les bios de profil sont dans BIOS-DES-PROFILS.txt.
+
+01  mardi 17 novembre 2026       19:00  vidéo c01  Double appel (restaurant)
+02  vendredi 20 novembre 2026    12:00  photo p01  Votre GSM sonne d'abord
+03  lundi 23 novembre 2026       19:00  vidéo c02  Soirée (fromagerie)
+04  jeudi 26 novembre 2026       12:00  photo p04  Les commandes du soir
+05  dimanche 29 novembre 2026    12:00  vidéo c03  Pas un robot (coiffeuse)
+06  mercredi 2 décembre 2026     19:00  photo p03  Vous gardez votre ligne
+07  samedi 5 décembre 2026       12:00  vidéo c04  Rush de midi (sandwicherie)
+08  mardi 8 décembre 2026        12:00  photo p02  Le deuxième appel, c'est elle
+09  vendredi 11 décembre 2026    19:00  vidéo c05  Sous l'évier (plombier)
+10  lundi 14 décembre 2026       19:00  photo p05  Les mains prises
+11  jeudi 17 décembre 2026       19:00  vidéo c06  Dimanche soir (kiné)
+12  dimanche 20 décembre 2026    12:00  photo p06  Lundi se prépare dimanche soir
+13  mercredi 23 décembre 2026    12:00  vidéo c08  Congés (boulangerie)
+14  samedi 26 décembre 2026      12:00  photo p07  Fermé, pas injoignable
+15  mardi 29 décembre 2026       19:00  vidéo c07  Le bip
+16  vendredi 1 janvier 2027      12:00  photo p01  Bonne année (rediffusion p01)
+17  lundi 4 janvier 2027         19:00  vidéo c09  Bruxelles, 22 h (trois langues)
+18  jeudi 7 janvier 2027         12:00  photo p08  Un code
+19  dimanche 10 janvier 2027     12:00  vidéo c10  Un code (installation)

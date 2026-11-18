@@ -1,6 +1,6 @@
 # Campagne « Elle prend le relais »
 
-> **Pour poster : ouvrez `jours/`.** Un dossier par jour de publication, avec les fichiers et `A-POSTER.txt` (légende Instagram, Facebook, TikTok, LinkedIn). Bios de profil : `jours/00-BIOS-PROFILS.txt`.
+> **Pour poster : ouvrez [`contenus-a-publier/`](../../../contenus-a-publier/).** Un dossier par jour de publication, avec les fichiers et `A-POSTER.txt` (légende Instagram, Facebook, TikTok, LinkedIn). Ce dossier-ci garde les rendus sources.
 
 Une publication tous les trois jours, en alternant une vidéo et un post photo.
 Le message est le même partout : **Qwillio ne remplace pas le gérant au téléphone.**
