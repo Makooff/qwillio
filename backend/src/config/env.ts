@@ -908,7 +908,7 @@ export const env = {
   ALLOW_DEGRADED_BOOT: process.env.ALLOW_DEGRADED_BOOT || '',
   RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL || 'Qwillio <hello@qwillio.com>',
   RESEND_FROM_NAME: process.env.RESEND_FROM_NAME || 'Qwillio',
-  RESEND_REPLY_TO: process.env.RESEND_REPLY_TO || 'contact@qwillio.com',
+  RESEND_REPLY_TO: process.env.RESEND_REPLY_TO || 'support@qwillio.com',
 
   GOOGLE_CLIENT_ID: process.env.GOOGLE_CLIENT_ID || '',
   GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET || '',

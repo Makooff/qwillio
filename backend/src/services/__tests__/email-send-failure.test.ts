@@ -17,7 +17,7 @@ vi.mock('../../config/env', () => ({
   env: {
     API_BASE_URL: 'https://api.test',
     RESEND_FROM_EMAIL: 'Qwillio <no-reply@qwillio.com>',
-    RESEND_REPLY_TO: 'contact@qwillio.com',
+    RESEND_REPLY_TO: 'support@qwillio.com',
   },
 }));
 

@@ -6,7 +6,7 @@
 const BRAND = {
   logoUrl:    'https://qwillio.com/logo-qw.png',
   homeUrl:    'https://qwillio.com',
-  supportUrl: 'mailto:contact@qwillio.com',
+  supportUrl: 'mailto:support@qwillio.com',
   // Brand violets
   violet:     '#7B5CF0',
   violetDeep: '#5C3CE0',
@@ -132,7 +132,7 @@ export function brandWrap(opts: {
               <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:12px;color:${BRAND.textMuted};line-height:1.6;">
                 ${tagline}<br>
                 <a href="${BRAND.homeUrl}" style="color:${BRAND.textMuted};text-decoration:underline;">qwillio.com</a>
-                · <a href="${BRAND.supportUrl}" style="color:${BRAND.textMuted};text-decoration:underline;">contact@qwillio.com</a>
+                · <a href="${BRAND.supportUrl}" style="color:${BRAND.textMuted};text-decoration:underline;">support@qwillio.com</a>
               </p>
               ${unsubscribeHtml}
             </td>

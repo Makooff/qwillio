@@ -87,8 +87,8 @@ export default function VerifyEmail() {
         {resendError && (
           <p role="alert" className={AUTH_ALERT}>
             {isFr
-              ? "L'envoi a échoué. Réessayez dans un instant, ou écrivez-nous à contact@qwillio.com."
-              : 'Sending failed. Try again shortly, or email us at contact@qwillio.com.'}
+              ? "L'envoi a échoué. Réessayez dans un instant, ou écrivez-nous à support@qwillio.com."
+              : 'Sending failed. Try again shortly, or email us at support@qwillio.com.'}
           </p>
         )}
 

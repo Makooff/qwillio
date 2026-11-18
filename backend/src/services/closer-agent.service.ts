@@ -530,7 +530,7 @@ export class CloserAgentService {
               await resend.emails.send({
                 from: env.RESEND_FROM_EMAIL || 'Qwillio <hello@qwillio.com>',
                 to: p.email,
-                replyTo: env.RESEND_REPLY_TO || 'contact@qwillio.com',
+                replyTo: env.RESEND_REPLY_TO || 'support@qwillio.com',
                 subject: payload.subject,
                 html: payload.html,
               });

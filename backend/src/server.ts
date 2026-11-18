@@ -238,7 +238,7 @@ app.get('/api/unsubscribe/:token', async (req, res) => {
     res.send(`<html><body style="font-family:sans-serif;text-align:center;padding:60px;">
       <h2>You've been unsubscribed</h2>
       <p>You will no longer receive emails from Qwillio.</p>
-      <p style="color:#888;margin-top:30px;">If this was a mistake, contact us at contact@qwillio.com</p>
+      <p style="color:#888;margin-top:30px;">If this was a mistake, contact us at support@qwillio.com</p>
     </body></html>`);
   } catch (error) {
     logger.error('Unsubscribe error:', error);

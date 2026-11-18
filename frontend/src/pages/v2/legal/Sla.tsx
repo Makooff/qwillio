@@ -154,8 +154,8 @@ export default function Sla() {
           {isFr
             ? "Pour signaler un incident ou discuter d'un engagement de service Enterprise : "
             : 'To report an incident or discuss an Enterprise service commitment: '}
-          <a href="mailto:sla@qwillio.com" className={LEGAL_LINK}>
-            sla@qwillio.com
+          <a href="mailto:support@qwillio.com" className={LEGAL_LINK}>
+            support@qwillio.com
           </a>
           .
         </LegalP>
