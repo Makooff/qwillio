@@ -4,7 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import { motion, useReducedMotion } from 'framer-motion';
 import {
   Phone, Bot, Settings, ChevronRight, AlertCircle,
-  Headphones, Sparkles, PhoneForwarded,
+  Headphones, LineChart, PhoneForwarded,
 } from '../../components/icons';
 import { useAuthStore } from '../../stores/authStore';
 import { fetchLive, peekLive, subscribeLive } from '../../services/liveData';
@@ -12,7 +12,7 @@ import { daysUntil } from '../../utils/format';
 import OnboardingChecklist from '../../components/client/OnboardingChecklist';
 import { knowsEnough, type SetupState } from '../../components/client/setup-state';
 import {
-  KpiSplit, HeroTrendPanel, RadialGauge, TallyMeter, DetailCard,
+  KpiSplit, HeroTrendPanel, TallyMeter, DetailCard,
   SegmentBar, InsightCard,
   type KpiCell, type Dir,
 } from '../../components/dashboard/OverviewBlocks';
@@ -21,24 +21,38 @@ import {
 const OVERVIEW_KEY = '/my-dashboard/overview';
 const RECENT_CALLS_KEY = '/my-dashboard/calls?page=1&limit=6';
 
-function greeting(name: string): string {
-  const h = new Date().getHours();
-  const first = name?.split(' ')[0] || name;
-  if (h < 12) return `Bonjour, ${first}`;
-  if (h < 18) return `Bon après-midi, ${first}`;
-  return `Bonsoir, ${first}`;
-}
+/* Les valeurs sont celles que l'analyse d'appel écrit réellement
+   (`client-call.service.ts`). Les deux seules traduites jusqu'ici,
+   `lead_captured` et `transferred`, n'en faisaient qu'une: les autres
+   s'affichaient en brut, « BOOKING_MADE » dans la liste d'un client. */
+const OUTCOME_LABELS: Record<string, string> = {
+  booking_made: 'Rendez-vous',
+  info_provided: 'Renseigné',
+  message_taken: 'Message pris',
+  transferred: 'Transféré',
+  complaint: 'Réclamation',
+  missed: 'Manqué',
+  spam: 'Spam',
+  lead_captured: 'Lead',
+  other: 'Autre',
+};
 
 function outcomeLabel(outcome: string): string {
-  if (outcome === 'lead_captured') return 'Lead';
-  if (outcome === 'transferred') return 'Transféré';
-  return outcome;
+  return OUTCOME_LABELS[outcome] ?? 'Autre';
 }
 
+/* Une seule issue porte l'accent: celle qui rapporte, le rendez-vous. Les
+   autres restent dans le gris du texte, l'échec en rouge sourd. */
 function outcomePill(outcome: string): string {
-  if (outcome === 'lead_captured') return 'bg-emerald-400/10 text-emerald-400';
-  if (outcome === 'transferred') return 'bg-white/[0.08] text-white/60';
-  return 'bg-white/[0.05] text-white/40';
+  if (outcome === 'booking_made' || outcome === 'lead_captured') return 'bg-[#7a5fff]/[0.12] text-[#b9a8ff]';
+  if (outcome === 'complaint' || outcome === 'missed') return 'bg-red-400/10 text-red-300/80';
+  return 'bg-white/[0.05] text-white/50';
+}
+
+function formatDuration(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const s = Math.round(seconds % 60);
+  return m > 0 ? `${m} min ${String(s).padStart(2, '0')}` : `${s} s`;
 }
 
 // Skeleton block
@@ -66,7 +80,7 @@ function Reveal({ i, className, children }: { i: number; className?: string; chi
 }
 
 export default function ClientOverview() {
-  const { user, checkAuth } = useAuthStore();
+  const { checkAuth } = useAuthStore();
   const [searchParams, setSearchParams] = useSearchParams();
   // Seeded from the live cache, which the launch animation filled: coming back
   // to this tab shows the dashboard, not a spinner over a page that already
@@ -291,8 +305,11 @@ export default function ClientOverview() {
       <Reveal i={0}>
         <section className="flex items-start justify-between gap-4">
           <div>
-            <h1 className="text-[22px] font-semibold tracking-tight text-white/90">
-              {greeting(user?.name || 'Utilisateur')}
+            {/* Le titre nomme la page, comme sur toutes les autres. Il disait
+                « Bonjour, Cabinet », c'est-à-dire le premier mot du nom de
+                compte, et changeait selon l'heure. */}
+            <h1 className="text-[22px] font-medium tracking-tight text-white/90">
+              Vue d’ensemble
             </h1>
             <p className="text-[12.5px] mt-1 text-white/50">
               {new Date().toLocaleDateString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long' })}
@@ -350,8 +367,8 @@ export default function ClientOverview() {
           <div className="grid grid-cols-1 md:grid-cols-2 md:divide-x divide-white/[0.06]">
             <div className="md:pr-6">
               <InsightCard
-                kicker="Analyse IA"
-                icon={Sparkles}
+                kicker="Analyse du mois"
+                icon={LineChart}
                 action={{ label: 'Voir l’analyse', to: '/dashboard/analytics' }}
               >
                 {insightText}
@@ -361,7 +378,10 @@ export default function ClientOverview() {
               <SegmentBar
                 title="Minutes consommées"
                 value={quotaTotal > 0 ? `${quotaUsed.toLocaleString('fr-FR')}` : quotaUsed.toLocaleString('fr-FR')}
-                hint={quotaTotal > 0 ? `sur ${quotaTotal.toLocaleString('fr-FR')} minutes incluses` : 'Aucun quota plafonné'}
+                hint={[
+                  quotaTotal > 0 ? `sur ${quotaTotal.toLocaleString('fr-FR')} minutes incluses` : 'Aucun quota plafonné',
+                  spamBlockedMonth > 0 ? `${spamBlockedMonth.toLocaleString('fr-FR')} appels indésirables filtrés` : '',
+                ].filter(Boolean).join(' · ')}
                 segments={quotaTotal > 0
                   ? [
                       { label: 'Utilisé', pct: quotaPct, bright: true },
@@ -376,7 +396,7 @@ export default function ClientOverview() {
           {/* Recent activity — frameless, rows split by lines */}
           <section aria-label="Appels récents" className="py-6">
             <div className="flex items-center justify-between mb-2">
-              <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-white/40">Activité récente</h2>
+              <h2 className="text-[12px] font-medium text-white/40">Activité récente</h2>
               <Link
                 to="/dashboard/calls"
                 className="text-[11.5px] font-medium text-white/40 hover:text-white/70 transition-colors flex items-center gap-1 focus:outline-none focus-visible:ring-1 focus-visible:ring-white/30 rounded"
@@ -403,19 +423,22 @@ export default function ClientOverview() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="text-[13px] font-medium text-white/90 truncate">
-                            {(call.callerName as string) || (call.phoneNumber as string) || 'Appel inconnu'}
+                            {(call.callerName as string) || (call.callerNumber as string) || 'Numéro masqué'}
                           </p>
                           <p className="text-[11px] text-white/30">
-                            {call.startedAt
-                              ? new Date(call.startedAt as string).toLocaleString('fr-FR', {
+                            {/* Les champs sont ceux de la ligne `ClientCall`: `phoneNumber`
+                                et `duration` n'existent pas, la date tombait donc sur « — »
+                                et la durée ne s'affichait jamais. */}
+                            {(call.startedAt || call.createdAt)
+                              ? new Date((call.startedAt || call.createdAt) as string).toLocaleString('fr-FR', {
                                   day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit',
                                 })
                               : '—'}
-                            {call.duration ? ` · ${Math.round(call.duration as number)}s` : ''}
+                            {call.durationSeconds ? ` · ${formatDuration(call.durationSeconds as number)}` : ''}
                           </p>
                         </div>
                         {!!call.outcome && (
-                          <span className={`text-[10.5px] font-medium px-2.5 py-0.5 rounded-full uppercase tracking-wide flex-shrink-0 ${outcomePill(call.outcome as string)}`}>
+                          <span className={`text-[11px] font-medium px-2.5 py-0.5 rounded-full flex-shrink-0 ${outcomePill(call.outcome as string)}`}>
                             {outcomeLabel(call.outcome as string)}
                           </span>
                         )}
@@ -431,31 +454,16 @@ export default function ClientOverview() {
 
         {/* Right rail — flat, divided by hairlines */}
         <div className="divide-y divide-white/[0.06] border-t border-white/[0.06] xl:border-t-0 xl:pl-6">
-          <RadialGauge
-            caption={quotaTotal > 0 ? 'Minutes ce mois' : 'Appels ce mois'}
-            value={quotaTotal > 0 ? quotaUsed.toLocaleString('fr-FR') : callsMonth.toLocaleString('fr-FR')}
-            fraction={quotaTotal > 0 ? quotaPct / 100 : Math.min(1, callsMonth / 200)}
-            legend={[
-              ...(quotaTotal > 0
-                ? [
-                    { label: 'Utilisé (min)', value: quotaUsed.toLocaleString('fr-FR'), bright: true },
-                    { label: 'Inclus (min)', value: quotaTotal.toLocaleString('fr-FR') },
-                  ]
-                : [{ label: 'Ce mois', value: callsMonth.toLocaleString('fr-FR'), bright: true }]),
-              ...(spamBlockedMonth > 0
-                ? [{ label: 'Spam bloqué', value: spamBlockedMonth.toLocaleString('fr-FR') }]
-                : []),
-            ]}
-            action={{ label: 'Voir les appels', to: '/dashboard/calls' }}
-          />
-
+          {/* La jauge à graduations redisait les minutes que « Minutes
+              consommées » affiche déjà dans la colonne de gauche: le même
+              chiffre deux fois sur un écran. Le spam bloqué, seul fait qu'elle
+              portait en propre, est passé sous la barre des minutes. */}
           <TallyMeter
             caption="Leads qualifiés ce mois"
             value={leadsMonth.toLocaleString('fr-FR')}
             pct={convRate}
             legend={[
-              { label: 'Qualifiés', value: '', bright: true },
-              { label: 'Total appels', value: '' },
+              { label: 'des appels du mois', value: '', bright: true },
             ]}
           />
 
@@ -464,26 +472,30 @@ export default function ClientOverview() {
                   s'informe, sans quitter la colonne de droite. Tuiles empilées et
                   non sur trois colonnes: le rail fait 320 px. */}
               <section aria-label="Actions rapides" className="py-5">
-            <h2 className="text-[12px] font-semibold uppercase tracking-[0.08em] text-white/40 mb-3">Actions rapides</h2>
+            <h2 className="text-[12px] font-medium text-white/40 mb-3">Actions rapides</h2>
             <div className="grid grid-cols-1 divide-y divide-white/[0.06]">
               {[
                 { icon: PhoneForwarded, label: 'Configurer le renvoi', desc: 'iPhone et Android, guide pas à pas', to: '/dashboard/setup/call-forwarding' },
                 { icon: Bot, label: "Personnaliser l'IA", desc: 'Voix, scripts, transferts', to: '/dashboard/receptionist' },
                 { icon: Settings, label: 'Paramètres du compte', desc: 'Profil, sécurité, notifications', to: '/dashboard/account' },
               ].map(({ icon: Icon, label, desc, to }) => (
+                /* Une rangée par action: icône, texte, chevron, sur une ligne.
+                   Le pas horizontal `sm:px-6 first:pl-0 last:pr-0` venait de
+                   l'ancienne disposition sur trois colonnes, et décalait les
+                   deux dernières tuiles une fois empilées. */
                 <Link
                   key={to}
                   to={to}
-                  className="group py-4 sm:px-6 first:sm:pl-0 last:sm:pr-0 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25 rounded-lg"
+                  className="group flex items-center gap-3 py-3 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-white/25 rounded-lg"
                 >
-                  <div className="flex items-center gap-3 mb-2.5">
-                    <div className="w-8 h-8 rounded-lg bg-white/[0.06] flex items-center justify-center">
-                      <Icon size={14} className="text-white/70" />
-                    </div>
-                    <ChevronRight size={13} className="ml-auto text-white/20 group-hover:text-white/60 transition-colors" />
+                  <div className="w-8 h-8 shrink-0 rounded-lg bg-white/[0.06] flex items-center justify-center">
+                    <Icon size={14} className="text-white/70" />
                   </div>
-                  <p className="text-[13px] font-semibold text-white/90">{label}</p>
-                  <p className="text-[11.5px] mt-0.5 text-white/30">{desc}</p>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[13px] font-medium text-white/90">{label}</p>
+                    <p className="text-[11.5px] mt-0.5 text-white/40 truncate">{desc}</p>
+                  </div>
+                  <ChevronRight size={13} className="shrink-0 text-white/20 group-hover:text-white/60 transition-colors" />
                 </Link>
               ))}
             </div>

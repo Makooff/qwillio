@@ -142,8 +142,8 @@ export const BLOG_ARTICLES: BlogArticle[] = [
       fr: "Pourquoi chaque plombier a besoin d'une réceptionniste IA en 2026",
     },
     excerpt: {
-      en: 'Plumbing businesses miss a large share of inbound calls during service hours. An AI receptionist captures every lead and books appointments 24/7 — for many shops it pays for itself within the first month.',
-      fr: "Les entreprises de plomberie manquent une grande partie de leurs appels entrants pendant les heures de service. Une réceptionniste IA capture chaque prospect et prend les rendez-vous 24 h/24 — pour beaucoup d'ateliers, elle s'autofinance dès le premier mois.",
+      en: 'Plumbing businesses miss a large share of inbound calls during service hours. An AI receptionist can capture requests outside service hours and book with a connected calendar. Test your own setup before assessing its return.',
+      fr: "Les entreprises de plomberie manquent une grande partie de leurs appels entrants pendant les heures de service. Une réceptionniste IA peut recueillir les demandes hors horaires et réserver dans un agenda connecté. Testez votre configuration avant d’en mesurer le résultat.",
     },
     date: '2026-04-10',
     readTime: 6,
@@ -155,7 +155,7 @@ export const BLOG_ARTICLES: BlogArticle[] = [
         { type: 'p', text: "In 2026, an AI receptionist is not a gadget. It is the way to close the answer gap. Three shifts have made it inevitable: voice AI in French and English now passes for human on most calls, the monthly cost sits at a fraction of a full-time receptionist, and the plumbing shops that adopt it early are visibly outgrowing the ones that do not." },
         { type: 'h2', text: 'The three call moments plumbers still lose' },
         { type: 'p', text: "Plumbing calls tend to concentrate in three windows: 6–9 a.m. before the truck rolls, 12–2 p.m. around lunch and dispatch, and 5–10 p.m. after hours. A shop staffed only 9 to 5 catches the middle window at best; the morning and evening calls go straight to voicemail." },
-        { type: 'p', text: "An AI receptionist runs on the same phone number twenty-four hours a day, in the caller's language. It never breaks for lunch. It never puts a client on hold to grab another line. It picks up on ring one, identifies the call type (emergency, quote, service, dispatch), captures the address, the issue and the callback window, then either books the appointment directly into your calendar or transfers the emergency to your on-call number." },
+        { type: 'p', text: "An AI receptionist runs on the same phone number twenty-four hours a day, in the caller's language. It never breaks for lunch. It never puts a client on hold to grab another line. With forwarding and routing configured, it identifies the request, captures the address and callback window, then books in a connected calendar or requests a transfer to your configured on-call number. A requested transfer does not prove anyone answered." },
         { type: 'h2', text: 'What a single missed call actually costs' },
         { type: 'p', text: "The math is worth doing on paper. Run illustrative numbers for Belgium: assume an average job around 280 € and a lifetime value around 1 100 € for a residential client who books two follow-up jobs plus one referral. At a 45 % close rate on inbound calls, each missed call carries about 126 € of expected revenue, and roughly every fifth missed call carries a full 1 100 € of expected lifetime value." },
         { type: 'p', text: "At ten missed calls a week — plausible for a busy solo plumber — that arithmetic reaches roughly 65 000 € a year. An illustration of the stakes, not a measured average: rerun it with your own ticket size and close rate." },
@@ -167,15 +167,15 @@ export const BLOG_ARTICLES: BlogArticle[] = [
           'Address and city, with automatic postal-code capture',
           'Nature of the issue (leak, no hot water, blocked drain, etc.)',
           'Preferred window: today, tomorrow morning, this week',
-          'Confirmation SMS with the booked slot and a photo-upload link',
+          'Confirmation text with the booked slot, when SMS is enabled for your account',
         ]},
         { type: 'p', text: "The whole flow takes 90 to 150 seconds. The client hangs up with an appointment. You get a structured lead in your CRM with the transcript, the sentiment, and the address ready for routing." },
         { type: 'h2', text: 'Objections — and what is actually true' },
         { type: 'p', text: "My clients want a real human. Voice quality has moved fast enough that this objection is worth testing rather than assuming: call the demo line yourself, then decide. What we hear most from the callers who do notice is that they mind less than expected, because they are not put on hold and they get an answer at once." },
-        { type: 'p', text: "It will book garbage jobs. A well-configured AI qualifies harder than most human receptionists. It refuses out-of-zone requests, filters non-payer red-flag keywords, and can require a photo before confirming a large-quote job." },
+        { type: 'p', text: "It will book garbage jobs. A well-configured AI qualifies harder than most human receptionists. Set service-area rules and review what it captures. It does not verify payment reliability or require a photo before confirming a quote." },
         { type: 'p', text: "It is expensive. In 2026 a bilingual AI receptionist covering a plumbing shop typically runs between 130 € and 400 € a month depending on volume, versus roughly 2 000 to 3 000 € a month all-in for a part-time human." },
         { type: 'h2', text: 'Getting started — a realistic first month' },
-        { type: 'p', text: "Day one: forward your business number to the AI, configure service zones, business hours, on-call number, service types and typical price ranges. Days two to seven: monitor every call and refine the qualifying script based on what you hear. Days eight to thirty: let the AI handle 100 % of inbound while you focus on the truck. Many plumbing shops recover the monthly cost with the first two booked emergency calls." },
+        { type: 'p', text: "Day one: forward your business number to the AI, configure service zones, business hours, on-call number, service types and typical price ranges. Days two to seven: monitor every call and refine the qualifying script based on what you hear. Days eight to thirty: let the AI handle 100 % of inbound while you focus on the truck. Measure completed jobs and costs in your own business; no payback period is guaranteed." },
         { type: 'p', text: "In 2026, missing a plumbing call is a choice. An AI receptionist is not a nice-to-have — it is the difference between growing and standing still." },
       ],
       fr: [
@@ -184,7 +184,7 @@ export const BLOG_ARTICLES: BlogArticle[] = [
         { type: 'p', text: "En 2026, une réceptionniste IA n'est pas un gadget. C'est la façon concrète de refermer le trou de couverture. Trois basculements l'ont rendue incontournable : la voix IA en français et en anglais passe désormais pour humaine sur la plupart des appels, le coût mensuel représente une fraction d'une réceptionniste à temps plein, et les plombiers qui adoptent tôt dépassent visiblement ceux qui restent immobiles." },
         { type: 'h2', text: 'Les trois moments où les plombiers perdent encore leurs appels' },
         { type: 'p', text: "Les appels de plomberie ont tendance à se concentrer sur trois fenêtres : 6–9 h avant le départ du camion, 12–14 h autour de la pause et du dispatch, et 17–22 h en fin de journée. Un atelier ouvert 9–17 n'attrape au mieux que la fenêtre du milieu ; les appels du matin et du soir partent directement en messagerie." },
-        { type: 'p', text: "Une réceptionniste IA vit sur le même numéro professionnel vingt-quatre heures sur vingt-quatre, dans la langue du client. Elle ne prend pas de pause. Elle ne met jamais un client en attente pour prendre une autre ligne. Elle décroche à la première sonnerie, identifie le type d'appel (urgence, devis, intervention, dispatch), capture l'adresse, la nature du problème et le créneau souhaité, puis pose le rendez-vous directement dans votre agenda ou transfère l'urgence à votre numéro d'astreinte." },
+        { type: 'p', text: "Une réceptionniste IA vit sur le même numéro professionnel vingt-quatre heures sur vingt-quatre, dans la langue du client. Elle ne prend pas de pause. Elle ne met jamais un client en attente pour prendre une autre ligne. Avec le renvoi et les règles configurés, elle identifie la demande, recueille l’adresse et le créneau souhaité, puis réserve dans l’agenda connecté ou demande le transfert vers votre numéro d’astreinte configuré. Ce transfert ne prouve pas qu’une personne a décroché." },
         { type: 'h2', text: "Le vrai coût d'un appel manqué" },
         { type: 'p', text: "Le calcul mérite d'être posé noir sur blanc. Prenons des chiffres illustratifs pour la Belgique : un ticket moyen autour de 280 € et une valeur à vie autour de 1 100 € pour un client résidentiel qui repasse deux fois et recommande une fois. À un taux de closing de 45 % sur les appels entrants, chaque appel manqué porte environ 126 € d'espérance de revenu, et à peu près un appel raté sur cinq porte 1 100 € de valeur à vie." },
         { type: 'p', text: "À dix appels manqués par semaine — plausible pour un plombier solo chargé — cette arithmétique atteint environ 65 000 € par an. Une illustration de l'enjeu, pas une moyenne mesurée : refaites le calcul avec votre propre ticket et votre propre taux de closing." },
@@ -196,87 +196,172 @@ export const BLOG_ARTICLES: BlogArticle[] = [
           'Adresse et ville, avec capture automatique du code postal',
           'Nature du problème (fuite, pas d\'eau chaude, canalisation bouchée, etc.)',
           'Créneau préféré : aujourd\'hui, demain matin, cette semaine',
-          'SMS de confirmation avec le créneau réservé et un lien d\'envoi de photo',
+          'SMS de confirmation avec le créneau réservé, si les SMS sont activés sur votre compte',
         ]},
         { type: 'p', text: "L'ensemble prend 90 à 150 secondes. Le client raccroche avec un rendez-vous. Vous recevez un lead structuré dans votre CRM, avec la transcription, le score de sentiment et l'adresse prête pour le routage." },
         { type: 'h2', text: "Objections — et ce qui est réellement vrai" },
         { type: 'p', text: "Mes clients veulent parler à un vrai humain. La qualité vocale a assez progressé pour que cette objection se teste au lieu de se supposer : appelez la ligne de démo vous-même, puis jugez. Ce qu'on entend le plus souvent chez ceux qui remarquent l'IA, c'est que ça les dérange moins que prévu, parce qu'ils ne sont pas mis en attente et qu'ils ont une réponse tout de suite." },
-        { type: 'p', text: "Elle va réserver n'importe quoi. Une IA bien configurée qualifie plus dur que la plupart des réceptionnistes humaines. Elle refuse les zones hors périmètre, filtre les mots-clés de mauvais payeur et peut exiger une photo avant de confirmer un gros devis." },
+        { type: 'p', text: "Elle va réserver n'importe quoi. Une IA bien configurée qualifie plus dur que la plupart des réceptionnistes humaines. Définissez vos zones et contrôlez les informations recueillies. Elle ne vérifie pas la solvabilité et n’exige pas de photo avant de confirmer un devis." },
         { type: 'p', text: "C'est cher. En 2026, une réceptionniste IA bilingue pour un atelier de plomberie coûte typiquement entre 130 € et 400 € par mois selon le volume, contre environ 2 000 à 3 000 € par mois tout compris pour un temps partiel humain." },
         { type: 'h2', text: "Comment démarrer — un premier mois réaliste" },
-        { type: 'p', text: "Jour 1 : renvoyez votre numéro professionnel vers l'IA, configurez les zones de service, les horaires, le numéro d'astreinte, les types d'intervention et vos fourchettes de prix. Jours 2 à 7 : écoutez chaque appel et ajustez le script de qualification en fonction de ce que vous entendez. Jours 8 à 30 : laissez l'IA prendre 100 % des appels entrants pendant que vous vous concentrez sur le terrain. Beaucoup d'ateliers récupèrent le coût mensuel dès les deux premières urgences réservées." },
+        { type: 'p', text: "Jour 1 : renvoyez votre numéro professionnel vers l'IA, configurez les zones de service, les horaires, le numéro d'astreinte, les types d'intervention et vos fourchettes de prix. Jours 2 à 7 : écoutez chaque appel et ajustez le script de qualification en fonction de ce que vous entendez. Jours 8 à 30 : laissez l'IA prendre 100 % des appels entrants pendant que vous vous concentrez sur le terrain. Mesurez les interventions réalisées et les coûts dans votre activité ; aucun délai de rentabilité n’est garanti." },
         { type: 'p', text: "En 2026, rater un appel de plomberie est un choix. Une réceptionniste IA n'est plus un confort — c'est la différence entre grandir et stagner." },
       ],
     },
   },
 
   {
-    slug: 'dental-offices-ai-no-shows',
-    title: {
-      en: 'How Dental Offices Are Cutting No-Shows with AI',
-      fr: "Comment les cabinets dentaires réduisent les absences avec l'IA",
+    "slug": "dental-offices-ai-no-shows",
+    "title": {
+      "en": "Dental no-shows: improve booking and measure what changes",
+      "fr": "Absences au cabinet dentaire : améliorer la prise de rendez-vous et mesurer le résultat"
     },
-    excerpt: {
-      en: 'Automated confirmation calls, smart rescheduling and personalised reminders are transforming dental practice management and reclaiming revenue that used to leak away every month.',
-      fr: "Les appels de confirmation automatisés, la replanification intelligente et les rappels personnalisés transforment la gestion des cabinets dentaires et récupèrent des revenus qui s'évaporaient chaque mois.",
+    "excerpt": {
+      "en": "A practical workflow for answering, rescheduling and appointment follow-up, without promising a percentage reduction or a native dental-software integration.",
+      "fr": "Un parcours concret pour répondre, reprogrammer et suivre les rendez-vous, sans promettre un pourcentage de baisse ni une intégration native à votre logiciel dentaire."
     },
-    date: '2026-04-05',
-    readTime: 7,
-    tag: { en: 'Dental', fr: 'Dentaire' },
-    content: {
-      en: [
-        { type: 'p', text: "In a typical general dentistry practice with two chairs, one no-show represents between 150 € and 400 € of chair time evaporated. Multiply that by no-show rates that commonly run in the double digits, and the annual leak can reach tens of thousands of euros for a mid-size cabinet. It is not a small problem. It is the largest silent cost line most practices carry." },
-        { type: 'p', text: "For a decade, the answer was to layer more reminders. A postcard. An SMS. A call from the front desk two days out. Each layer cut no-shows a few percent, but the diminishing returns kicked in fast, and the front desk drowned in reminder calls that were not the front desk's real job." },
-        { type: 'p', text: "In 2026, AI receptionists are quietly closing the gap the layered approach could not reach. Practices reporting 40 % no-show reductions are not doing anything magical — they are automating three specific behaviours that were previously unaffordable at scale." },
-        { type: 'h2', text: 'Why no-shows actually happen' },
-        { type: 'p', text: "Ask patients why they missed an appointment and you get four answers over and over: they forgot, they had a conflict they never called in, they were afraid of the procedure, or they could not reach the office to reschedule. The first three call for reminders and empathy. The fourth calls for an office that answers the phone during working hours and off-hours." },
-        { type: 'p', text: "Traditional call-back practices drop a large share of inbound patient calls to voicemail, especially during clinical hours when the front desk is chairside. Every one of those unanswered calls is a rescheduling attempt that turns into a no-show 24 to 72 hours later." },
-        { type: 'h2', text: 'What the 40 % reduction looks like in practice' },
-        { type: 'p', text: "The practices getting the biggest results deploy three AI behaviours in sequence. First, a personalised confirmation call 48 hours out — not an SMS, but a real voice call from the AI, in the patient's language, offering to reschedule immediately if the slot no longer works. Second, an SMS reminder 24 hours out with the exact procedure name, chair time and a one-tap reschedule link. Third, a live AI receptionist that answers 24/7 the moment a patient calls in with a conflict — and offers the next open slot from your calendar in real time." },
-        { type: 'p', text: "The compounding effect is what drives the 40 %. Every conflict that would have become a no-show is caught upstream, either by the confirmation call or by the always-on receptionist. What is left — patients who had a genuine emergency — is a small residual you cannot design away." },
-        { type: 'h2', text: 'What it does not replace' },
-        { type: 'p', text: "AI does not replace the human relationship at the chair. It does not diagnose. It does not counsel an anxious patient. What it does replace is the front-desk workload of confirmation calls, initial triage, and after-hours coverage. Most cabinets that adopt an AI receptionist report the front desk regains real hours every week — hours that go into treatment plan follow-up, insurance claims, and patient onboarding, which are the tasks that actually move revenue." },
-        { type: 'h2', text: 'The waitlist multiplier' },
-        { type: 'p', text: "The most under-used feature in modern AI receptionists is the automated waitlist. When a patient cancels or reschedules, the AI immediately reaches out — by SMS then by voice call — to the top candidates on a waitlist you defined. In many cases, the freed slot is refilled within hours. That is not just no-show reduction: it is same-day chair-time recovery, which turns lost revenue into full revenue on the same date." },
-        { type: 'h2', text: 'Getting it live — a realistic rollout' },
-        { type: 'p', text: "Practices that get the smoothest rollout follow a five-step sequence over roughly three weeks:" },
-        { type: 'ul', items: [
-          'Week 1: connect the AI to your PMS (Julie, Doctolib, Dentally, Curve, etc.) and load your procedure catalogue with chair times and prep instructions.',
-          'Week 1: turn on the 48-hour confirmation call for a single procedure category (recall exams is the safest start).',
-          'Week 2: expand to all procedure categories, activate the 24-hour SMS reminder with the reschedule link.',
-          'Week 2: enable 24/7 live inbound answering for new-patient calls and rescheduling.',
-          'Week 3: enable the waitlist auto-refill, then measure the no-show rate against the four weeks prior.',
-        ]},
-        { type: 'p', text: "Practices with clean historical data usually see the no-show rate drop the second week, then stabilise at a noticeably lower level by week six. The savings on chair time alone typically pay for the AI within the first month of use." },
-        { type: 'p', text: "The dental cabinets moving fastest in 2026 are the ones treating the AI receptionist not as a call-answering tool but as an operations layer that catches every appointment friction the front desk cannot reach. The math is not marketing — it is chair time, and chair time is the practice." },
+    "date": "2026-11-01",
+    "readTime": 5,
+    "tag": {
+      "en": "Dental",
+      "fr": "Dentaire"
+    },
+    "content": {
+      "fr": [
+        {
+          "type": "p",
+          "text": "Un patient qui ne peut pas venir doit pouvoir prévenir le cabinet. Commencez par vérifier le parcours : peut-il appeler hors horaires, retrouver son rendez-vous puis demander un changement ? Un rappel ne corrige pas une ligne impossible à joindre."
+        },
+        {
+          "type": "h2",
+          "text": "Séparer accueil et logiciel médical"
+        },
+        {
+          "type": "p",
+          "text": "Qwillio peut recueillir la demande et créer un nouveau rendez-vous dans un agenda Google ou Outlook connecté. La recherche, la modification et l’annulation d’un rendez-vous existant passent à votre équipe après vérification d’identité. Un flux via un webhook reste à configurer et à faire valider. Cela ne constitue pas une intégration native à Julie, Doctolib ou à un dossier patient. Faites valider le flux exact avant de modifier votre organisation."
+        },
+        {
+          "type": "p",
+          "text": "L’accueil doit se limiter aux informations nécessaires : nom, coordonnées et créneau. Les symptômes, décisions de soin et urgences médicales relèvent du cabinet et de ses consignes. Ne configurez pas une IA comme un professionnel qui pose un diagnostic."
+        },
+        {
+          "type": "h2",
+          "text": "Prévoir les cas qui échouent"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Un créneau déjà pris ne doit pas être proposé comme libre.",
+            "Une annulation doit rester visible si sa suppression dans l’agenda externe est encore en attente.",
+            "Un agenda déconnecté doit provoquer une information claire, pas une réservation annoncée sans preuve.",
+            "Un patient demandant un humain doit recevoir le parcours prévu par le cabinet."
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Le transfert vers votre équipe exige un numéro configuré et une personne disponible. L’acceptation technique du transfert ne prouve pas qu’un membre du cabinet a décroché. Prévoyez donc aussi une demande de rappel."
+        },
+        {
+          "type": "h2",
+          "text": "Rappels et liste d’attente : ne pas confondre"
+        },
+        {
+          "type": "p",
+          "text": "Les SMS et séquences de suivi dépendent des options activées et de la configuration du compte. Un SMS de confirmation n’est pas une campagne d’appels de rappel. Qwillio ne promet pas ici de rappels vocaux à J-2 ni de lien patient de reprogrammation en un clic."
+        },
+        {
+          "type": "p",
+          "text": "Après une annulation, votre équipe peut contacter les patients qui ont accepté d’être rappelés. Ce guide ne présente pas un remplissage automatique de liste d’attente par appels et SMS comme une fonction disponible. Gardez la validation humaine du créneau proposé."
+        },
+        {
+          "type": "h2",
+          "text": "Mesurer sur votre cabinet"
+        },
+        {
+          "type": "p",
+          "text": "Consignez sur des périodes comparables les rendez-vous prévus, les absences et les annulations reçues à temps. Notez aussi les changements d’horaires et de patientèle. Aucun pourcentage de réduction n’est garanti ; une différence observée ne prouve pas à elle seule son origine."
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Avant activation : noter les absences et les demandes de reprogrammation.",
+            "Pendant l’essai : tester une nouvelle réservation et le passage à votre équipe des demandes de modification ou d’annulation.",
+            "Après activation : relire les appels et les erreurs de synchronisation avec l’équipe."
+          ]
+        },
+        {
+          "type": "p",
+          "text": "L’essai Qwillio dure 7 jours, avec carte à l’inscription. La démo navigateur reste en lecture seule : elle permet d’écouter, pas de confirmer que votre cabinet et son agenda sont prêts. Validez ensuite la ligne réelle avant d’y envoyer les patients."
+        }
       ],
-      fr: [
-        { type: 'p', text: "Dans un cabinet dentaire généraliste avec deux fauteuils, une absence représente entre 150 € et 400 € de temps de fauteuil qui s'évapore. Multipliez par des taux d'absence qui courent couramment en double chiffre, et la fuite annuelle peut atteindre des dizaines de milliers d'euros pour un cabinet de taille moyenne. Ce n'est pas un petit sujet. C'est la plus grosse ligne de coût silencieuse que porte la plupart des cabinets." },
-        { type: 'p', text: "Pendant dix ans, la réponse a été d'empiler les rappels. Une carte postale. Un SMS. Un appel de la réception 48 h avant. Chaque couche a fait baisser les absences de quelques points, mais le rendement décroissant a vite frappé, et l'accueil s'est noyé sous des appels de confirmation qui n'étaient pas son vrai métier." },
-        { type: 'p', text: "En 2026, les réceptionnistes IA comblent silencieusement l'écart que l'approche empilée n'atteignait plus. Les cabinets qui affichent 40 % de baisse d'absences ne font rien de magique — ils automatisent trois comportements précis qui étaient auparavant hors budget à cette échelle." },
-        { type: 'h2', text: 'Pourquoi les patients ne viennent pas' },
-        { type: 'p', text: "Quand on demande aux patients pourquoi ils ont manqué un rendez-vous, quatre réponses reviennent en boucle : j'ai oublié, j'ai eu un empêchement que je n'ai jamais signalé, j'avais peur de l'acte, ou je n'ai pas réussi à joindre le cabinet pour reprogrammer. Les trois premières se traitent par des rappels et de l'empathie. La quatrième exige un cabinet qui décroche pendant les heures d'ouverture — et en dehors." },
-        { type: 'p', text: "Les cabinets traditionnels laissent une grande part de leurs appels patients entrer en messagerie, en particulier pendant les heures cliniques quand la réception est au fauteuil. Chacun de ces appels non répondus est une tentative de reprogrammation qui devient une absence 24 à 72 h plus tard." },
-        { type: 'h2', text: "À quoi ressemble concrètement la baisse de 40 %" },
-        { type: 'p', text: "Les cabinets qui obtiennent les meilleurs résultats déploient trois comportements IA en cascade. D'abord, un appel de confirmation personnalisé à J-2 — pas un SMS, un vrai appel vocal de l'IA, dans la langue du patient, avec proposition immédiate de reprogrammer si le créneau ne tient plus. Ensuite, un rappel SMS à J-1 avec le nom exact de l'acte, le temps fauteuil et un lien de reprogrammation en un clic. Enfin, une réceptionniste IA en ligne 24/7 qui décroche dès qu'un patient appelle pour signaler un empêchement — et propose le prochain créneau libre de votre agenda en temps réel." },
-        { type: 'p', text: "L'effet composé fait les 40 %. Chaque empêchement qui serait devenu une absence est capté en amont, soit par l'appel de confirmation, soit par la réceptionniste toujours en ligne. Ce qui reste — les urgences authentiques — est un résidu petit que l'on ne peut pas éliminer par design." },
-        { type: 'h2', text: "Ce que l'IA ne remplace pas" },
-        { type: 'p', text: "L'IA ne remplace pas la relation humaine au fauteuil. Elle ne diagnostique pas. Elle ne rassure pas un patient anxieux. Ce qu'elle remplace, c'est la charge de la réception : appels de confirmation, triage initial, couverture hors heures d'ouverture. La plupart des cabinets qui adoptent une réceptionniste IA constatent que l'accueil récupère de vraies heures chaque semaine — heures reversées dans le suivi des plans de traitement, les remboursements mutuelles et l'onboarding patient, qui sont les tâches qui font réellement bouger le chiffre." },
-        { type: 'h2', text: "Le multiplicateur de la liste d'attente" },
-        { type: 'p', text: "La fonctionnalité la plus sous-utilisée des réceptionnistes IA modernes est la liste d'attente automatisée. Dès qu'un patient annule ou reprogramme, l'IA contacte immédiatement — par SMS puis par appel vocal — les premiers candidats d'une liste d'attente que vous avez définie. Dans de nombreux cas, le créneau libéré est repourvu en quelques heures. Ce n'est plus seulement une baisse d'absences : c'est une récupération de temps fauteuil le jour même, qui transforme un revenu perdu en revenu plein sur la même date." },
-        { type: 'h2', text: "La mise en route — un déploiement réaliste" },
-        { type: 'p', text: "Les cabinets qui déploient le plus proprement suivent une séquence en cinq étapes sur environ trois semaines :" },
-        { type: 'ul', items: [
-          "Semaine 1 : connectez l'IA à votre logiciel (Julie, Doctolib, Dentally, Curve, etc.) et chargez votre catalogue d'actes avec temps fauteuil et instructions de préparation.",
-          "Semaine 1 : activez l'appel de confirmation à J-2 sur une seule catégorie d'acte (les visites de contrôle sont le démarrage le plus sûr).",
-          "Semaine 2 : élargissez à toutes les catégories, activez le rappel SMS à J-1 avec le lien de reprogrammation.",
-          "Semaine 2 : activez la prise d'appels entrants 24/7 pour les nouveaux patients et les reprogrammations.",
-          "Semaine 3 : activez la relance automatique de la liste d'attente, puis mesurez le taux d'absence sur les quatre semaines précédentes.",
-        ]},
-        { type: 'p', text: "Les cabinets qui disposent d'un historique propre voient le taux d'absence baisser dès la deuxième semaine, puis se stabiliser à un niveau nettement plus bas à la sixième semaine. Les économies de temps fauteuil couvrent en général le coût de l'IA dès le premier mois d'utilisation." },
-        { type: 'p', text: "Les cabinets dentaires qui avancent le plus vite en 2026 sont ceux qui considèrent la réceptionniste IA non comme un outil de décroché mais comme une couche opérationnelle qui rattrape chaque friction que l'accueil ne peut plus couvrir. Les chiffres ne sont pas du marketing — c'est du temps fauteuil, et le temps fauteuil est le cabinet." },
-      ],
-    },
+      "en": [
+        {
+          "type": "p",
+          "text": "A patient who cannot attend needs a way to tell the practice. Start with the workflow: can they call after hours, identify the appointment and request a change? Reminders do not fix an unreachable phone line."
+        },
+        {
+          "type": "h2",
+          "text": "Separate answering from clinical software"
+        },
+        {
+          "type": "p",
+          "text": "Qwillio can capture the request and create a new booking in a connected Google or Outlook calendar. Looking up, changing or cancelling an existing booking goes to your team for identity verification. A workflow via webhook still needs configuration and validation. This is not a native integration with Julie, Doctolib or a patient record system. Validate the exact workflow before changing operations."
+        },
+        {
+          "type": "p",
+          "text": "Collect only what is necessary for reception: name, contact details and time slot. Symptoms, treatment decisions and medical emergencies remain subject to the practice’s instructions and clinical staff. Do not configure AI as a clinician making diagnoses."
+        },
+        {
+          "type": "h2",
+          "text": "Plan for failure cases"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "An occupied slot must not be offered as available.",
+            "A cancellation must remain visible if external-calendar deletion is pending.",
+            "A disconnected calendar needs a clear message, not an unverified booking confirmation.",
+            "A patient asking for a person needs the practice’s defined escalation path."
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Transfer to your team requires a configured number and an available person. Technical acceptance of the transfer does not prove a staff member answered. Include a callback option."
+        },
+        {
+          "type": "h2",
+          "text": "Reminders are not a waitlist"
+        },
+        {
+          "type": "p",
+          "text": "Texts and follow-up sequences depend on enabled options and account configuration. A confirmation text is not an outbound reminder-call campaign. This guide does not promise voice reminders two days ahead or a one-click patient rescheduling link."
+        },
+        {
+          "type": "p",
+          "text": "After a cancellation, your team can contact patients who agreed to be called. This guide does not present automatic waitlist filling through calls and texts as an available feature. Keep human approval of the proposed appointment."
+        },
+        {
+          "type": "h2",
+          "text": "Measure your own practice"
+        },
+        {
+          "type": "p",
+          "text": "Across comparable periods, record scheduled visits, missed visits and timely cancellations. Note changes in hours and patient mix. No percentage reduction is guaranteed; a measured difference alone does not establish what caused it."
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Before activation: record no-shows and rescheduling requests.",
+            "During the trial: test a new booking and referral of rescheduling or cancellation requests to your team.",
+            "After activation: review calls and synchronization errors with the team."
+          ]
+        },
+        {
+          "type": "p",
+          "text": "The Qwillio trial lasts 7 days and requires a card at signup. The browser demo is read-only: listening does not establish that your practice and calendar are ready. Validate the actual phone line before directing patients to it."
+        }
+      ]
+    }
   },
 
   {
@@ -347,91 +432,167 @@ export const BLOG_ARTICLES: BlogArticle[] = [
   },
 
   {
-    slug: 'ai-vs-human-receptionist-cost',
-    title: {
-      en: 'AI vs Human Receptionist: A Real Cost Comparison',
-      fr: 'IA vs réceptionniste humaine : la vraie comparaison des coûts',
+    "slug": "ai-vs-human-receptionist-cost",
+    "title": {
+      "en": "AI vs human receptionist: compare your actual costs",
+      "fr": "IA ou réceptionniste humaine : comparer vos coûts réels"
     },
-    excerpt: {
-      en: "A full-time receptionist costs 38 000 € or more per year all-in. An AI receptionist handles unlimited calls for a fraction, 24/7, with zero sick days and zero turnover. Here is the honest math.",
-      fr: "Une réceptionniste temps plein coûte 38 000 € et plus par an tout compris. Une réceptionniste IA gère un volume élevé pour une fraction, 24/7, sans arrêt maladie ni turnover. Voici les calculs honnêtes.",
+    "excerpt": {
+      "en": "Compare included minutes, overage and human coverage with the same call volume. A subscription price is not an unlimited-call budget.",
+      "fr": "Comparez minutes incluses, dépassements et couverture humaine à volume identique. Un prix d’abonnement n’est pas un budget d’appels illimités."
     },
-    date: '2026-03-20',
-    readTime: 8,
-    tag: { en: 'Cost Analysis', fr: 'Analyse des coûts' },
-    content: {
-      en: [
-        { type: 'p', text: "The AI-versus-human receptionist question gets asked in every SMB owner's chat in 2026. Most posts answer it lazily — a headline number, a chart, a marketing conclusion. This post does the math honestly, including the parts the AI vendors do not want to talk about, and lands on when to pick which." },
-        { type: 'p', text: "The truth is more nuanced than the pitch decks. There is a clean segment where AI wins by a factor of ten, a clean segment where a human is still worth it, and a growing hybrid middle where the right answer is both." },
-        { type: 'h2', text: 'The real annual cost of a human receptionist' },
-        { type: 'p', text: "Owners look at the salary and stop there. That is the mistake. In Belgium in 2026, the full loaded cost of a full-time front-desk receptionist is roughly:" },
-        { type: 'ul', items: [
-          "Gross salary: 28 000 € to 34 000 € per year",
-          "Employer social contributions: roughly 27 %, so 7 500 € to 9 200 €",
-          "Meal vouchers, transport, insurances: 1 800 € to 2 600 €",
-          "Training and turnover replacement (annualised over 3 years average tenure): 1 500 €",
-          "Physical desk, phone system, software seat: 1 200 €",
-        ]},
-        { type: 'p', text: "Total: 40 000 to 48 500 € per year for a single front-desk headcount, and that headcount covers 38 hours a week — call it 1 750 hours out of 8 760 in a year, or 20 % of clock-time coverage. In France, add 3 to 6 %. In the US, expect roughly 55 000 to 68 000 USD all-in depending on the state." },
-        { type: 'h2', text: 'The real annual cost of an AI receptionist' },
-        { type: 'p', text: "AI receptionists in 2026 price on a subscription that scales with call volume. The realistic all-in for a small to mid-size SMB looks like this:" },
-        { type: 'ul', items: [
-          "Subscription tier for 800–2 500 calls per month: 1 600 to 15 000 € per year",
-          "Overage above the tier: 0.15 to 0.65 € per call",
-          "One-time setup (self-onboard products): 0 €. Assisted setup: 500 to 3 000 €",
-          "Phone number rental: 60 to 180 € per year",
-        ]},
-        { type: 'p', text: "A small home-service SMB handling 400 calls a month runs around 1 800 to 4 500 € per year all-in. A mid-size dental cabinet handling 1 500 calls a month runs 6 000 to 12 000 € per year. Compared to a full-time human, the AI covers 24 hours a day 365 days a year — call it 8 760 hours out of 8 760, which is 100 % of clock-time coverage." },
-        { type: 'h2', text: 'The cost-per-hour reality' },
-        { type: 'p', text: "Divide the annual cost by the annual coverage hours and the picture snaps into focus. A human at 44 000 € / 1 750 hours is around 25 € per covered hour of pick-up. An AI at 3 500 € / 8 760 hours is around 0.40 € per covered hour. On a pure cost-of-coverage basis, the AI is roughly 60 times cheaper. That is not a marketing gap — that is the math." },
-        { type: 'p', text: "The AI wins another way that is less obvious: it does not scale linearly. A human handling twice the calls needs a second human. An AI handling twice the calls moves to the next subscription tier, which is not double the cost — it is usually 60 to 75 % higher." },
-        { type: 'h2', text: 'Where the human is still worth it' },
-        { type: 'p', text: "There are three situations where a human is still the right pick. First, a very-high-touch B2B service where every inbound is a strategic account and warmth is the product (private banking, high-end consulting). Second, a walk-in reality where the front desk also greets people in the physical space (a spa, a dental cabinet with heavy walk-in). Third, a business under 15 calls a week where the AI subscription cost per call is worse than a fractional in-house resource." },
-        { type: 'p', text: "Everywhere else — home services, most healthcare cabinets doing more than 400 calls a month, most retail and e-commerce phone lines, most legal and accounting practices, most beauty and wellness bookings — the AI wins on cost and often wins on quality (24/7, bilingual, structured intake, zero hold time)." },
-        { type: 'h2', text: 'The hybrid model that is winning in 2026' },
-        { type: 'p', text: "The most common pattern in 2026 is not either / or. It is the AI as the primary pick-up on 100 % of inbound, with human hand-offs on defined triggers: named clients, escalation keywords, complex quote requests, and any caller who explicitly asks for a human. The AI handles 80 to 90 % of volume end-to-end. The remaining 10 to 20 % lands in a human's hands with a briefed hand-off." },
-        { type: 'p', text: "This hybrid model gets the coverage economics of AI, the human touch on the calls that need it, and — critically — frees the human to focus on retention, upsell and referral work rather than call-answering. The businesses that adopt this pattern typically report their existing front-desk headcount becomes more productive, not redundant." },
-        { type: 'h2', text: 'Payback period' },
-        { type: 'p', text: "For a home-service SMB, the AI receptionist typically pays for itself with the first two to four calls per month that would have gone to voicemail and are now booked. For a dental cabinet, it pays for itself with the first two chair-time recoveries. For a mid-size professional service firm, it pays for itself with a single retained client saved from a hold-then-drop. In every scenario we have run, the payback period is under 45 days." },
-        { type: 'p', text: "The AI-versus-human question is settled on cost. The remaining question is only about fit — which model matches your operation. In 2026, for most SMBs, the answer is hybrid, with the AI as the always-on layer." },
+    "date": "2026-11-01",
+    "readTime": 5,
+    "tag": {
+      "en": "Cost Analysis",
+      "fr": "Analyse des coûts"
+    },
+    "content": {
+      "fr": [
+        {
+          "type": "p",
+          "text": "Comparer un salaire mensuel à un abonnement IA ne suffit pas. L’un rémunère une personne qui peut aussi accueillir des visiteurs et gérer des situations complexes. L’autre couvre un périmètre téléphonique défini, avec des limites de consommation et des dépendances techniques."
+        },
+        {
+          "type": "h2",
+          "text": "Partir du même volume"
+        },
+        {
+          "type": "p",
+          "text": "Relevez vos minutes d’appel, leur répartition et le nombre de demandes qui exigent une personne. Ne convertissez pas automatiquement un nombre d’appels en minutes : un appel long peut peser bien plus que plusieurs demandes brèves."
+        },
+        {
+          "type": "h2",
+          "text": "Lire le forfait Qwillio"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Solo : 99 €/mois, 250 minutes incluses.",
+            "Starter : 249 €/mois, 750 minutes incluses.",
+            "Pro : 599 €/mois, 2 000 minutes incluses.",
+            "Enterprise : 1 290 €/mois, 5 000 minutes incluses."
+          ]
+        },
+        {
+          "type": "p",
+          "text": "Ces tarifs mensuels sont hors remise annuelle. Les minutes au-delà du forfait sont facturées à la minute au tarif de la formule. Consultez la page Tarifs pour les dépassements et les options avant de calculer votre budget ; ne remplacez pas cette unité par un prix par appel."
+        },
+        {
+          "type": "h2",
+          "text": "Ajouter ce que le prix ne remplace pas"
+        },
+        {
+          "type": "p",
+          "text": "Pour l’humain, utilisez le devis de votre secrétariat social ou vos coûts internes, pas un salaire moyen trouvé dans un article. Pour l’IA, ajoutez le temps de paramétrage, de revue des appels et les coûts applicables à votre configuration. Gardez les hypothèses visibles."
+        },
+        {
+          "type": "p",
+          "text": "Un transfert Qwillio sollicite votre propre équipe, si le numéro est configuré. Il ne fournit pas une permanence humaine externalisée. Si vous avez besoin d’un humain disponible à chaque escalade, chiffrez cette couverture séparément."
+        },
+        {
+          "type": "h2",
+          "text": "Tester les tâches, pas seulement la voix"
+        },
+        {
+          "type": "p",
+          "text": "La prise de rendez-vous nécessite un agenda connecté. Les messages et automatisations dépendent des options activées. La démo navigateur est en lecture seule ; elle ne prouve pas que les actions sont configurées sur votre compte."
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Un appel d’information et une demande hors consigne.",
+            "Une réservation, puis une demande de modification ou d’annulation transmise à votre équipe.",
+            "Un agenda déconnecté et un transfert sans réponse."
+          ]
+        },
+        {
+          "type": "h2",
+          "text": "Décider sans résultat inventé"
+        },
+        {
+          "type": "p",
+          "text": "Comparez ensuite le coût pour les demandes réellement traitées, le travail restant et les erreurs à reprendre. Nous ne présentons pas ici de taux d’autonomie mesuré chez des clients ni de délai garanti de retour sur investissement."
+        },
+        {
+          "type": "p",
+          "text": "L’essai Qwillio dure 7 jours, avec carte à l’inscription. Il permet de tester votre configuration. Pour mesurer un effet commercial, utilisez ensuite une période et des données adaptées à votre activité, sans confondre quelques appels de démonstration avec une étude."
+        }
       ],
-      fr: [
-        { type: 'p', text: "La question IA-contre-humain se pose dans tous les groupes de patrons de PME en 2026. La plupart des articles y répondent paresseusement — un chiffre-choc, un graphique, une conclusion marketing. Ce post fait les calculs honnêtement, y compris les parties dont les éditeurs d'IA ne veulent pas parler, et conclut sur quand choisir quoi." },
-        { type: 'p', text: "La vérité est plus nuancée que les pitch decks. Il existe un segment clair où l'IA gagne par un facteur dix, un segment clair où un humain reste indispensable, et un milieu hybride grandissant où la bonne réponse est les deux." },
-        { type: 'h2', text: "Le vrai coût annuel d'une réceptionniste humaine" },
-        { type: 'p', text: "Les patrons regardent le salaire et s'arrêtent là. C'est l'erreur. En Belgique en 2026, le coût chargé complet d'une réceptionniste à temps plein est à peu près :" },
-        { type: 'ul', items: [
-          "Salaire brut : 28 000 € à 34 000 € par an",
-          "Cotisations patronales : environ 27 %, soit 7 500 € à 9 200 €",
-          "Chèques repas, transport, assurances : 1 800 € à 2 600 €",
-          "Formation et remplacement de turnover (annualisé sur 3 ans de tenure moyenne) : 1 500 €",
-          "Bureau physique, système téléphonique, licence logicielle : 1 200 €",
-        ]},
-        { type: 'p', text: "Total : 40 000 à 48 500 € par an pour un seul poste de réception, qui couvre 38 heures par semaine — soit 1 750 heures sur les 8 760 de l'année, ou 20 % de couverture temporelle. En France, ajoutez 3 à 6 %. Aux États-Unis, comptez 55 000 à 68 000 USD tout compris selon l'État." },
-        { type: 'h2', text: "Le vrai coût annuel d'une réceptionniste IA" },
-        { type: 'p', text: "Les réceptionnistes IA en 2026 tarifent en abonnement qui évolue avec le volume d'appels. Le tout compris réaliste pour une PME petite à moyenne ressemble à :" },
-        { type: 'ul', items: [
-          "Abonnement 800–2 500 appels par mois : 1 600 à 15 000 € par an",
-          "Dépassement au-dessus du palier : 0,15 à 0,65 € par appel",
-          "Setup ponctuel (produits self-serve) : 0 €. Setup assisté : 500 à 3 000 €",
-          "Location de numéro : 60 à 180 € par an",
-        ]},
-        { type: 'p', text: "Une petite PME de service à domicile qui traite 400 appels par mois tourne entre 1 800 et 4 500 € par an tout compris. Un cabinet dentaire de taille moyenne qui traite 1 500 appels par mois tourne entre 6 000 et 12 000 € par an. Comparée à une humaine à temps plein, l'IA couvre 24 heures sur 24, 365 jours par an — soit 8 760 heures sur 8 760, ou 100 % de couverture temporelle." },
-        { type: 'h2', text: "Le vrai coût par heure couverte" },
-        { type: 'p', text: "Divisez le coût annuel par les heures de couverture annuelle et l'image devient nette. Une humaine à 44 000 € / 1 750 heures : environ 25 € par heure couverte de décroché. Une IA à 3 500 € / 8 760 heures : environ 0,40 € par heure couverte. Sur la seule base du coût de couverture, l'IA est environ 60 fois moins chère. Ce n'est pas un écart marketing — c'est du calcul." },
-        { type: 'p', text: "L'IA gagne aussi d'une autre façon moins évidente : elle ne se cale pas linéairement. Une humaine qui traite deux fois plus d'appels demande une seconde humaine. Une IA qui traite deux fois plus d'appels passe au palier suivant, qui n'est pas le double du prix — il est en général 60 à 75 % plus élevé." },
-        { type: 'h2', text: "Là où l'humain reste indispensable" },
-        { type: 'p', text: "Il existe trois situations où l'humain reste le bon choix. Un service B2B à très forte valeur relationnelle où chaque appel entrant est un compte stratégique et la chaleur est le produit (banque privée, conseil haut de gamme). Une réalité de passage physique où l'accueil sert aussi les visiteurs sur place (un spa, un cabinet dentaire à fort walk-in). Une entreprise sous 15 appels par semaine où le coût d'abonnement IA par appel est pire qu'une ressource interne partielle." },
-        { type: 'p', text: "Partout ailleurs — service à domicile, la plupart des cabinets de santé au-dessus de 400 appels par mois, la plupart des lignes retail et e-commerce, la plupart des cabinets juridiques et comptables, la plupart des réservations beauté et bien-être — l'IA gagne au coût et gagne souvent aussi à la qualité (24/7, bilingue, prise de brief structurée, zéro attente)." },
-        { type: 'h2', text: "Le modèle hybride qui gagne en 2026" },
-        { type: 'p', text: "Le schéma le plus courant en 2026 n'est pas soit / soit. C'est l'IA en décroché principal sur 100 % des appels entrants, avec passage de relais humain sur des déclencheurs définis : clients nommés, mots-clés d'escalade, demandes de devis complexes, ou tout appelant qui demande explicitement un humain. L'IA gère 80 à 90 % du volume de bout en bout. Les 10 à 20 % restants tombent chez un humain avec un passage de relais briefé." },
-        { type: 'p', text: "Ce modèle hybride récupère l'économie de couverture de l'IA, le contact humain sur les appels qui l'exigent, et — surtout — libère l'humain pour se concentrer sur la rétention, l'upsell et la recommandation plutôt que sur le décroché. Les entreprises qui adoptent ce schéma constatent en général que leur effectif de réception existant devient plus productif, pas obsolète." },
-        { type: 'h2', text: "Délai de retour sur investissement" },
-        { type: 'p', text: "Pour une PME de service à domicile, la réceptionniste IA s'autofinance en général avec les deux à quatre premiers appels par mois qui seraient partis en messagerie et sont désormais réservés. Pour un cabinet dentaire, elle s'autofinance avec les deux premières récupérations de temps fauteuil. Pour un cabinet professionnel de taille moyenne, elle s'autofinance avec un seul client conservé après un raccroché suite à mise en attente. Dans tous les scénarios que nous avons calculés, le retour sur investissement est inférieur à 45 jours." },
-        { type: 'p', text: "La question IA-contre-humain est tranchée au coût. La question restante est seulement celle de l'adéquation — quel modèle correspond à votre opération. En 2026, pour la plupart des PME, la réponse est hybride, avec l'IA en couche always-on." },
-      ],
-    },
+      "en": [
+        {
+          "type": "p",
+          "text": "A monthly salary and an AI subscription are not equivalent services. A person may also greet visitors and handle complex situations. AI covers a defined phone workflow with usage limits and technical dependencies."
+        },
+        {
+          "type": "h2",
+          "text": "Start with the same volume"
+        },
+        {
+          "type": "p",
+          "text": "Record your call minutes, their distribution and requests requiring a person. Do not automatically convert call counts into minutes: one long call can cost more than several brief enquiries."
+        },
+        {
+          "type": "h2",
+          "text": "Read the Qwillio allowance"
+        },
+        {
+          "type": "ul",
+          "items": [
+            "Solo: €99/month, 250 included minutes.",
+            "Starter: €249/month, 750 included minutes.",
+            "Pro: €599/month, 2,000 included minutes.",
+            "Enterprise: €1,290/month, 5,000 included minutes."
+          ]
+        },
+        {
+          "type": "p",
+          "text": "These monthly prices are before annual discounts. Overage is charged per minute at the selected plan’s rate. Check Pricing for current overage and options before budgeting; do not substitute a per-call price for that unit."
+        },
+        {
+          "type": "h2",
+          "text": "Add what the subscription does not replace"
+        },
+        {
+          "type": "p",
+          "text": "For a person, use your payroll provider’s estimate or internal costs, not an article’s assumed average salary. For AI, include setup time, call review and charges applicable to your configuration. Keep assumptions visible."
+        },
+        {
+          "type": "p",
+          "text": "A Qwillio transfer goes to your own team when a destination is configured. It does not supply an outsourced human answering team. Budget that coverage separately if a person must be available for every escalation."
+        },
+        {
+          "type": "h2",
+          "text": "Test the tasks, not only the voice"
+        },
+        {
+          "type": "p",
+          "text": "Booking requires a connected calendar. Messages and automation depend on enabled options. The browser demo is read-only; it does not prove actions are configured on your account."
+        },
+        {
+          "type": "ul",
+          "items": [
+            "An information request and an out-of-scope question.",
+            "A booking, then a reschedule or cancellation request referred to your team.",
+            "A disconnected calendar and an unanswered transfer."
+          ]
+        },
+        {
+          "type": "h2",
+          "text": "Decide without invented results"
+        },
+        {
+          "type": "p",
+          "text": "Compare costs against requests actually handled, work left for your team and errors requiring attention. This guide does not present measured customer automation rates or guarantee a payback period."
+        },
+        {
+          "type": "p",
+          "text": "The Qwillio trial lasts 7 days and requires a card at signup. Use it to test your setup. To assess business impact, then use a period and data suited to your business; a few demo calls are not a study."
+        }
+      ]
+    }
   },
+
   {
     slug: 'receptionniste-ia-vs-repondeur',
     title: {

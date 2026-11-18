@@ -995,6 +995,36 @@ export const env = {
 
   TZ: process.env.TZ || 'Europe/Brussels',
 
+  // ─── LiveKit (navigateur signé, qwillioWeb) ──────────────
+  /**
+   * URL du SFU LiveKit, réservée aux sessions navigateur (`qwillioWeb`).
+   * Uniquement `wss://…`: le client n'accepte PAS d'URL arbitraire (aucune
+   * configuration navigateur ne peut rediriger l'appel vers un autre hôte),
+   * et `ws://` refuserait de toute façon la connexion sécurisée exigée par
+   * les navigateurs modernes. Vide = refus explicite de session (503).
+   * Seul VOICE_RUNTIME=vapi autorise le retour arrière historique.
+   */
+  LIVEKIT_URL: (process.env.LIVEKIT_URL || '').trim(),
+  LIVEKIT_API_KEY: process.env.LIVEKIT_API_KEY || '',
+  LIVEKIT_API_SECRET: process.env.LIVEKIT_API_SECRET || '',
+  /** Nom du worker d'agent dispatché dans la room (roomConfig.agents). */
+  LIVEKIT_AGENT_NAME: process.env.LIVEKIT_AGENT_NAME || 'inbound-agent-eu',
+  /**
+   * Moteur d'exécution de la voix. `core` (défaut) = le worker
+   * qwillio-voice-core répond, sur SIP comme en navigateur signé ; `vapi` =
+   * retour arrière explicite vers l'assistant Vapi historique (les
+   * identifiants d'assistant existants sont conservés pour ce repli).
+   * Toute autre valeur est un démarrage refusé : un faute de frappe ne doit
+   * pas basculer silencieusement la flotte d'un moteur à l'autre.
+   */
+  VOICE_RUNTIME: (() => {
+    const raw = (process.env.VOICE_RUNTIME || 'core').trim().toLowerCase();
+    if (raw !== 'core' && raw !== 'vapi') {
+      throw new Error(`Invalid VOICE_RUNTIME: ${JSON.stringify(process.env.VOICE_RUNTIME)}. Expected 'core' or 'vapi'.`);
+    }
+    return raw;
+  })() as 'core' | 'vapi',
+
   // ─── Apify (Google Maps scraping) ────────────────────────
   APIFY_API_KEY: process.env.APIFY_API_KEY || '',
   APIFY_ACTOR_ID: process.env.APIFY_ACTOR_ID || 'compass~crawler-google-places',

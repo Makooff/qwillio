@@ -89,7 +89,7 @@ export default function StatStrip({ items, label }: { items: StatCell[]; label?:
                   contrepartie de cette insécabilité: une durée de six signes
                   mesure 96 px en 18 px gras, pour une colonne de 87 px, et elle
                   débordait sur l'icône de la cellule voisine. */}
-              <p className="text-[16px] sm:text-[26px] font-bold tabular-nums leading-none text-white/90 whitespace-nowrap">
+              <p className="text-[16px] sm:text-[26px] font-medium tabular-nums leading-none text-white/90 whitespace-nowrap">
                 {k.value}
               </p>
               {k.delta !== undefined && k.delta !== 0 && (

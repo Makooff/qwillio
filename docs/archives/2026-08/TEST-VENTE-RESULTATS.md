@@ -1,3 +1,5 @@
+> **Archive historique.** Ce document décrit une ancienne session ou un état daté du projet. Ses actions et constats ne sont pas un diagnostic de la production actuelle.
+
 # TEST-VENTE-RESULTATS.md — protocole « prêt à vendre »
 
 Session desktop du **13/08/2026**, contre la production post-PR #133

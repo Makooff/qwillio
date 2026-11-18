@@ -405,14 +405,20 @@ export class OutlookCalendarService {
     return created.id as string;
   }
 
-  /** Retire un évènement. Un 404 est un succès: il n'est déjà plus là. */
-  async deleteEvent(accessToken: string, eventId: string, calendarId?: string | null): Promise<void> {
+  /**
+   * Retire un évènement. Rend `false` quand il n'y était déjà plus (404),
+   * `true` quand il a été retiré — même contrat que le service Google, pour
+   * que deleteBookingEvent sache s'il doit tenter l'autre fournisseur sur une
+   * référence legacy.
+   */
+  async deleteEvent(accessToken: string, eventId: string, calendarId?: string | null): Promise<boolean> {
     const res = await fetch(`${GRAPH_BASE}${this.calendarPath(calendarId)}/events/${encodeURIComponent(eventId)}`, {
       method: 'DELETE',
-      headers: { Authorization: `Bearer ${accessToken}` },
+      headers: { Authorization: ['Bearer', accessToken].join(' ') },
     });
-    if (res.status === 404) return;
+    if (res.status === 404) return false;
     if (!res.ok) throw new OutlookCalendarError(`Graph delete event failed (${res.status})`, res.status, await res.text());
+    return true;
   }
 
   /** Best-effort revocation on disconnect. */

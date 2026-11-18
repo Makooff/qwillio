@@ -47,7 +47,7 @@ Voile de marque optionnel sur le fond drenched : dégradé vers `oklch(10% 0.015
 | Corps | 16px / 400 / 1.5 / `+0.01em` |
 | Petit corps | 14px / 400 / 1.5 / `+0.01em` |
 | Bouton | 14px / 500 |
-| Eyebrow | 11px / 600 / `0.18em` uppercase, indigo ou violet selon la sémantique |
+| Eyebrow | 13px / 500 / casse de phrase, sans tracking. Encre `--q2-indigo-ink` ou `--q2-violet-ink` (mauve assombri au-dessus de 4,5:1 sur le canvas clair, valeur de marque sur sombre). Passe unslop du 07/11/2026 : les capitales espacées à 11 px étaient le registre de tous les gabarits et le texte le moins lisible de la page |
 | Prix | `clamp(2.2rem, 3.2vw, 3rem)` / 300 / `-0.04em` / `tabular-nums` |
 
 Le whisper 300 est LA signature V2 : jamais de poids >500 en display (eyebrow 600 excepté). Un mot serif italic système max par titre (`.q2-serif-word`). Chiffres changeants toujours `tabular-nums`. Interdits : Inter, em dash, gradient text. Espaces insécables avant `:;?!` et entre nombre et unité (`99 €`, `250 min`).

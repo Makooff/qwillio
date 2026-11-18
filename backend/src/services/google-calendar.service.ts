@@ -17,6 +17,11 @@ import { businessTimezone, zonedInstant, ymdOf } from '../utils/zoned-time';
 const OAUTH_SCOPES = [
   'https://www.googleapis.com/auth/calendar.events',
   'https://www.googleapis.com/auth/calendar.freebusy',
+  /* `userinfo.email` ne lit qu'une chose : l'adresse du compte branché. Rien de
+     l'agenda, rien des contacts. Sans elle, la page Intégrations ne peut pas
+     dire QUEL compte Google est connecté — et le client vérifie « Test Qwillio »
+     dans le mauvais agenda. Même permission que `User.Read` côté Outlook. */
+  'https://www.googleapis.com/auth/userinfo.email',
 ];
 
 // ═══════════════════════════════════════════════════════════
@@ -107,13 +112,79 @@ export class GoogleCalendarService {
     }
   }
 
-  /** Supprime un événement SANS toucher à la réservation: le déplacement recrée le sien. */
-  async deleteEvent(googleEventId: string, accessToken: string, calendarId = 'primary'): Promise<void> {
+  /**
+   * Crée un événement de test nu « Test Qwillio » et le rend — sert au bouton
+   * « Tester » de la page Intégrations. Aucune réservation n'est écrite : c'est
+   * un événement libre, destiné à prouver que le jeton écrit réellement dans
+   * l'agenda du client. Planifié demain à 10 h (fuseau de l'entreprise), 30 min.
+   */
+  async createTestEvent(
+    accessToken: string,
+    calendarId: string,
+    timezone: string,
+  ): Promise<{ id: string; summary: string; start: string; end: string }> {
+    const start = zonedInstant(ymdOf(new Date(Date.now() + 86_400_000)), '10:00', timezone);
+    const end = new Date(start.getTime() + 30 * 60 * 1000);
+    const summary = 'Test Qwillio — connexion agenda';
+    const event = {
+      summary,
+      description: 'Événement de test créé depuis Qwillio pour vérifier la connexion à votre agenda. Vous pouvez le supprimer.',
+      start: { dateTime: start.toISOString(), timeZone: timezone },
+      end: { dateTime: end.toISOString(), timeZone: timezone },
+    };
+    const response = await fetch(`${this.baseUrl}/calendars/${encodeURIComponent(calendarId)}/events`, {
+      method: 'POST',
+      headers: { 'Authorization': `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify(event),
+    });
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(`Google Calendar API error (${response.status}): ${error}`);
+    }
+    const created = await response.json() as any;
+    if (!created?.id) throw new Error('Google Calendar created no event id');
+    logger.info(`Google Calendar test event created: ${created.id}`);
+    return { id: created.id, summary, start: event.start.dateTime, end: event.end.dateTime };
+  }
+
+  /**
+   * Le compte Google branché — pour l'afficher sur la page Intégrations.
+   *
+   * N'appelle que l'endpoint `userinfo`, qui ne rend que l'identité du titulaire
+   * du jeton (email, nom, photo). C'est la seule manière fiable de savoir QUEL
+   * compte a été connecté : le calendrier « primary » porte comme identifiant
+   * l'adresse elle-même, et un client qui vérifie « Test Qwillio » dans le
+   * mauvais onglet Google conclut à tort que l'intégration ne marche pas.
+   * Miroir de `getConnectedAccount` côté Outlook.
+   */
+  async getConnectedAccount(accessToken: string): Promise<{ email: string | null; name: string | null }> {
+    const response = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
+      headers: { Authorization: `Bearer ${accessToken}` },
+    });
+    if (!response.ok) {
+      throw new Error(`Google userinfo failed (${response.status})`);
+    }
+    const me = await response.json() as { email?: string; name?: string };
+    return { email: me.email || null, name: me.name || null };
+  }
+
+  /**
+   * Supprime un événement SANS toucher à la réservation: le déplacement recrée le sien.
+   *
+   * Rend `true` quand l'événement a véritablement été retiré, `false` quand il
+   * n'y était déjà plus (404/410). L'appelant DOIT pouvoir distinguer les deux :
+   * pour une référence legacy dont le fournisseur est inconnu, conclure « fait »
+   * sur un 404 court-circuite la tentative chez l'autre fournisseur, et
+   * l'événement survit à l'annulation (voir calendar-provider.service.ts).
+   */
+  async deleteEvent(googleEventId: string, accessToken: string, calendarId = 'primary'): Promise<boolean> {
     const r = await fetch(`${this.baseUrl}/calendars/${calendarId}/events/${googleEventId}`, {
       method: 'DELETE',
       headers: { 'Authorization': `Bearer ${accessToken}` },
     });
-    if (!r.ok && r.status !== 404 && r.status !== 410) throw new Error(`Google event delete failed: ${r.status}`);
+    if (r.status === 404 || r.status === 410) return false;
+    if (!r.ok) throw new Error(`Google event delete failed: ${r.status}`);
+    return true;
   }
 
   // ═══════════════════════════════════════════════════════════

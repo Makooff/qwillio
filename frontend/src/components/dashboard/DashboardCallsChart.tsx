@@ -19,7 +19,7 @@ function ChartTooltip({ active, payload, label }: {
       style={{ background: pro.panelHi, border: `1px solid ${pro.borderHi}`, boxShadow: proShadow.float }}
     >
       <p className="text-[11px] mb-1" style={{ color: pro.textTer }}>{label}</p>
-      <p className="text-[15px] font-bold tabular-nums" style={{ color: pro.text }}>
+      <p className="text-[15px] font-semibold tabular-nums" style={{ color: pro.text }}>
         {payload[0].value}
         <span className="text-[11px] font-normal ml-1" style={{ color: pro.textSec }}>appels</span>
       </p>
@@ -60,7 +60,7 @@ export function DashboardCallsChart({ data, className }: Props) {
         <div className="flex items-start justify-between mb-4">
           <div>
             <div className="flex items-center gap-2">
-              <p className="text-[28px] font-bold tabular-nums leading-none" style={{ color: pro.text }}>{total}</p>
+              <p className="text-[28px] font-semibold tabular-nums leading-none" style={{ color: pro.text }}>{total}</p>
               {demo
                 ? <Pill color="neutral">Démo</Pill>
                 : (chartData.length > 1 && firstHalf > 0 && (

@@ -74,7 +74,7 @@ export default function KnowledgeGaps({ onAnswered }: { onAnswered?: () => void 
   return (
     <div className="mb-6">
       <div className="flex items-center justify-between mb-2">
-        <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5]">
+        <label className="flex items-center gap-2 text-[11px] font-medium text-[#9A9AA5]">
           <HelpCircle size={12} /> Ce que l'IA n'a pas su répondre
         </label>
         <span className="text-[11px] text-[#6B6B75]">

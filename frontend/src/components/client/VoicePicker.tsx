@@ -199,7 +199,7 @@ export default function VoicePicker({
 
   return (
     <div className="mt-3">
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-2">
+      <p className="text-[11px] font-medium text-[#9A9AA5] mb-2">
         Voix du personnage
       </p>
       {notice && (
@@ -224,7 +224,7 @@ export default function VoicePicker({
           return (
             <div key={r.key}>
               {r.header && (
-                <p className="px-3 pt-2.5 pb-1 text-[10px] font-semibold uppercase tracking-wider text-[#6D6D7A]">
+                <p className="px-3 pt-2.5 pb-1 text-[11px] font-medium text-[#6D6D7A]">
                   {r.header}
                 </p>
               )}

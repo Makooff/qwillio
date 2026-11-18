@@ -265,7 +265,7 @@ export default function Subscribe() {
               : (isFr ? 'Annuel' : 'Annual')}
             {période === 'annual' && (
               <span
-                className={`text-[10px] font-semibold tracking-[0.08em] uppercase px-1.5 py-0.5 rounded-full ${
+                className={`text-[11px] font-medium px-1.5 py-0.5 rounded-full ${
                   billing === 'annual' ? 'bg-white/15 text-q2-canvas' : 'bg-q2-plate text-q2-graphite'
                 }`}
               >
@@ -299,7 +299,7 @@ export default function Subscribe() {
               <span className="flex flex-wrap items-center gap-2">
                 <span className="text-base font-medium text-q2-ink">{plan.name}</span>
                 {plan.popular && (
-                  <span className="q2-eyebrow text-q2-indigo rounded-full border border-q2-indigo/30 px-2.5 py-1">
+                  <span className="q2-eyebrow text-[color:var(--q2-indigo-ink)] rounded-full border border-q2-indigo/30 px-2.5 py-1">
                     {isFr ? 'Populaire' : 'Popular'}
                   </span>
                 )}

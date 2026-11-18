@@ -429,13 +429,13 @@ export default function ClientLeads() {
                         <span key={t} className="hidden lg:inline flex-shrink-0 text-[10px] px-2 py-0.5 rounded-md bg-white/[0.06] text-[#A1A1A8] font-medium">{t}</span>
                       ))}
                     </div>
-                    <span className={`justify-self-start text-[10px] font-semibold px-2 py-0.5 rounded-full ${sc.pill}`}>
-                      {sc.label.toUpperCase()}
+                    <span className={`justify-self-start text-[11px] font-medium px-2 py-0.5 rounded-full ${sc.pill}`}>
+                      {sc.label}
                     </span>
                     {r.score != null ? (
                       <div className="hidden sm:flex items-center gap-1">
                         <Star size={12} className="text-[#7349fe]" aria-hidden="true" />
-                        <span className="text-xs font-bold text-[#7349fe]">{r.score}/10</span>
+                        <span className="text-xs font-medium text-white/90">{r.score}/10</span>
                       </div>
                     ) : <span aria-hidden="true" className="hidden sm:block" />}
                     <div className="justify-self-start">
@@ -482,7 +482,7 @@ export default function ClientLeads() {
                       <div className="flex items-center justify-between">
                         {r.lead ? <SentimentBadge sentiment={r.lead.sentiment} /> : <span className="text-[10px] text-[#A1A1A8]">fiche</span>}
                         {r.score != null && (
-                          <span className="text-[10px] font-bold text-[#7349fe]">{r.score}/10</span>
+                          <span className="text-[10px] font-medium text-white/90">{r.score}/10</span>
                         )}
                       </div>
                     </motion.div>
@@ -506,7 +506,7 @@ export default function ClientLeads() {
             <div className="p-6 space-y-5">
                 <div className="flex items-center gap-4">
                   <div className="w-12 h-12 rounded-xl bg-amber-400/10 flex items-center justify-center">
-                    <Users size={22} className="text-amber-400" />
+                    <Users size={22} className="text-white/45" />
                   </div>
                   <div>
                     <p className="text-base font-semibold text-[#F5F5F7]">{selectedLead.callerName || selectedLead.nameCollected || 'Inconnu'}</p>
@@ -545,7 +545,7 @@ export default function ClientLeads() {
                           style={{ width: `${selectedLead.leadScore * 10}%` }}
                         />
                       </div>
-                      <span className="text-lg font-bold text-[#7349fe]">{selectedLead.leadScore}/10</span>
+                      <span className="text-lg font-medium text-white/90">{selectedLead.leadScore}/10</span>
                     </div>
                   </div>
                 )}

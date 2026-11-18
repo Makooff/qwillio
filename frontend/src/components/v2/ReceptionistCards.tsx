@@ -146,7 +146,7 @@ function AgendaCard({ isFr }: { isFr: boolean }) {
       <div className="p-4 sm:p-5">
         <div className="mb-2 grid grid-cols-7 gap-1.5">
           {WEEKDAYS_FR.map((d) => (
-            <div key={d} className="text-center text-[10px] uppercase tracking-wider" style={{ color: C.ter }}>
+            <div key={d} className="text-center text-[11px]" style={{ color: C.ter }}>
               {d}
             </div>
           ))}
@@ -222,7 +222,7 @@ function BriefCard({ isFr }: { isFr: boolean }) {
         </div>
 
         <div className="rounded-xl p-3" style={{ background: C.well, border: `1px solid ${C.border}` }}>
-          <p className="mb-1 text-[10px] uppercase tracking-wider" style={{ color: C.ter }}>
+          <p className="mb-1 text-[11px]" style={{ color: C.ter }}>
             {isFr ? 'Résumé IA' : 'AI summary'}
           </p>
           <p className="text-[12.5px] leading-relaxed" style={{ color: C.text }}>
@@ -321,7 +321,7 @@ function TranscriptCard({ isFr }: { isFr: boolean }) {
             <p key={i} className="text-[12.5px] leading-relaxed">
               {line.who && (
                 <span
-                  className="mr-1.5 text-[10.5px] font-semibold uppercase tracking-wide"
+                  className="mr-1.5 text-[11px] font-medium"
                   style={{ color: line.who === 'agent' ? C.brandHi : C.sec }}
                 >
                   {line.who === 'agent' ? 'IA' : 'Appelant'}
@@ -371,13 +371,13 @@ function GuaranteeCard({ isFr }: { isFr: boolean }) {
   const reduced = useReducedMotion();
   const rows = isFr
     ? [
-        'Enregistrement annoncé au décrochage, conforme RGPD',
+        'Enregistrement, lorsqu’il est activé, annoncé au décrochage, conforme RGPD',
         'Données jamais vendues, jamais utilisées pour entraîner un modèle sans accord',
         'Appels spam écartés, non décomptés',
         '24/7, français et anglais sur le même appel',
       ]
     : [
-        'Recording announced at pickup, GDPR compliant',
+        'Recording, when enabled, announced at pickup, GDPR compliant',
         'Data never sold, never used to train a model without consent',
         'Spam calls filtered out, not counted',
         '24/7, French and English on the same call',

@@ -64,12 +64,12 @@ export default function Receptionist() {
           icon: CalendarCheck,
           num: '01',
           title: 'Le rendez-vous est inscrit avant qu’il raccroche',
-          body: 'Il consulte votre agenda Google ou Outlook et confirme le créneau choisi pendant l’appel. Vos clients peuvent aussi déplacer ou annuler un rendez-vous. Si le créneau vient d’être pris, il propose une autre heure.',
+          body: 'Il consulte votre agenda Google ou Outlook et confirme le créneau choisi pendant l’appel. Les demandes de recherche, déplacement ou annulation passent à votre équipe après vérification d’identité. Si le créneau vient d’être pris, il propose une autre heure.',
           panelLabel: 'Ce qui se passe pendant la phrase',
           panelRows: [
             { label: 'Un jour est prononcé, l’agenda est interrogé', meta: 'en avance' },
             { label: 'Le créneau choisi est écrit, confirmé' },
-            { label: 'Déplacement et annulation pendant l’appel' },
+            { label: 'Déplacement et annulation : vérification par votre équipe' },
           ],
           panelNote: `Fonctionne si votre agenda Google ou Outlook est connecté${NB}: sinon il note la demande et vous rappelez.`,
         },
@@ -118,12 +118,12 @@ export default function Receptionist() {
           icon: CalendarCheck,
           num: '01',
           title: 'The appointment is written before it hangs up',
-          body: 'It checks your Google or Outlook calendar and confirms the chosen slot during the call. Customers can also reschedule or cancel an appointment. If the slot has just been taken, it offers another time.',
+          body: 'It checks your Google or Outlook calendar and confirms the chosen slot during the call. Requests to look up, reschedule or cancel an existing booking go to your team for identity verification. If the slot has just been taken, it offers another time.',
           panelLabel: 'What happens mid-sentence',
           panelRows: [
             { label: 'A day is named, the calendar is queried', meta: 'ahead' },
             { label: 'The chosen slot is written, confirmed' },
-            { label: 'Reschedule or cancel during the call' },
+            { label: 'Rescheduling and cancellation: team verification' },
           ],
           panelNote: 'Requires a connected Google or Outlook calendar: otherwise it takes the request and you call back.',
         },
@@ -334,11 +334,11 @@ export default function Receptionist() {
                 <H2 id="pillars-heading" className="max-w-[560px]">
                   {isFr ? (
                     <>
-                      La conversation avance, <SerifWord>le travail aussi.</SerifWord>
+                      La conversation avance, <SerifWord>le travail aussi</SerifWord>
                     </>
                   ) : (
                     <>
-                      The conversation moves, <SerifWord>so does the work.</SerifWord>
+                      The conversation moves, <SerifWord>so does the work</SerifWord>
                     </>
                   )}
                 </H2>
@@ -433,11 +433,11 @@ export default function Receptionist() {
             <H2 id="config-heading" onDark className="max-w-[520px]">
               {isFr ? (
                 <>
-                  Dites-lui ce qui change, <SerifWord>il change.</SerifWord>
+                  Dites-lui ce qui change, <SerifWord>il change</SerifWord>
                 </>
               ) : (
                 <>
-                  Tell it what changed, <SerifWord>it changes.</SerifWord>
+                  Tell it what changed, <SerifWord>it changes</SerifWord>
                 </>
               )}
             </H2>
@@ -489,11 +489,11 @@ export default function Receptionist() {
               <TextReveal>
                 {isFr ? (
                   <>
-                    Choisissez qui <SerifWord>décroche.</SerifWord>
+                    Choisissez qui <SerifWord>décroche</SerifWord>
                   </>
                 ) : (
                   <>
-                    Choose who <SerifWord>answers.</SerifWord>
+                    Choose who <SerifWord>answers</SerifWord>
                   </>
                 )}
               </TextReveal>
@@ -520,11 +520,11 @@ export default function Receptionist() {
             <H2 id="knowledge-heading" className="max-w-[460px]">
               {isFr ? (
                 <>
-                  Il répond avec vos mots, <SerifWord>pas les nôtres.</SerifWord>
+                  Il répond avec vos mots, <SerifWord>pas les nôtres</SerifWord>
                 </>
               ) : (
                 <>
-                  It answers in your words, <SerifWord>not ours.</SerifWord>
+                  It answers in your words, <SerifWord>not ours</SerifWord>
                 </>
               )}
             </H2>
@@ -551,11 +551,11 @@ export default function Receptionist() {
             <H2 id="after-heading" className="max-w-[520px] mb-7 sm:mb-10">
               {isFr ? (
                 <>
-                  Ce qui vous revient, <SerifWord>et ce qui est cadré.</SerifWord>
+                  Ce qui vous revient, <SerifWord>et ce qui est cadré</SerifWord>
                 </>
               ) : (
                 <>
-                  What comes back to you, <SerifWord>and what is fenced in.</SerifWord>
+                  What comes back to you, <SerifWord>and what is fenced in</SerifWord>
                 </>
               )}
             </H2>

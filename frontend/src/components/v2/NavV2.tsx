@@ -102,7 +102,7 @@ function PanelItem({ link, onNavigate }: { link: PanelLink; onNavigate: () => vo
         <span className="min-w-0">
           <span className="flex items-center gap-2 text-[14px] text-q2-body">
             {link.label}
-            <span className="rounded-full bg-q2-band px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-q2-faint">
+            <span className="rounded-full bg-q2-band px-2 py-0.5 text-[11px] font-medium text-q2-faint">
               Bientôt
             </span>
           </span>
@@ -502,7 +502,7 @@ export default function NavV2() {
   const companyAside = (
     <div className="hidden sm:flex flex-col justify-between rounded-2xl bg-q2-band p-4">
       <div>
-        <p className="q2-eyebrow text-q2-indigo">Qwillio</p>
+        <p className="q2-eyebrow text-[color:var(--q2-indigo-ink)]">Qwillio</p>
         <p className="mt-2 text-[12px] leading-snug text-q2-body q2-body-text">
           {isFr
             ? 'Construit à Bruxelles. Chaque premier client est accompagné personnellement.'

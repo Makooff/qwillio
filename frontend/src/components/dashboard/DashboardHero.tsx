@@ -46,7 +46,7 @@ export function DashboardHero({ status, busy, onToggle }: Props) {
                     boxShadow: active ? `0 0 8px ${pro.okGlow}` : undefined,
                   }}
                 />
-                <span className="text-base font-bold tracking-tight" style={{ color: pro.text }}>
+                <span className="text-base font-semibold tracking-tight" style={{ color: pro.text }}>
                   {active ? 'Bot actif' : 'Bot inactif'}
                 </span>
               </div>

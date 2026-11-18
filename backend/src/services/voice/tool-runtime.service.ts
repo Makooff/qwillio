@@ -5,7 +5,9 @@ import { googleCalendarService } from '../google-calendar.service';
 import { outlookCalendarService } from '../outlook-calendar.service';
 import {
   resolveCalendar,
-  deleteBookingEvent,
+  moveBookingEvent,
+  storeEventRef,
+  parseStoredEventRef,
   bookingInstants,
   bookingSubject,
   bookingDescription,
@@ -1030,6 +1032,19 @@ class ToolRuntimeService {
     if (target.provider === 'google') {
       const accessToken = await googleCalendarService.getAccessTokenFromRefresh(target.refreshToken);
       await googleCalendarService.createEventFromBooking(bookingId, accessToken, target.calendarId || 'primary');
+      /* createEventFromBooking range l'identifiant NU. On l'étiquette pour que
+         toute annulation/déplacement ultérieur vise Google sans tenter Outlook
+         en prime (les identifiants nu = legacy restent, eux, essayés chez les
+         deux). Écriture best-effort : l'identifiant nu reste utilisable. */
+      const row = await prisma.clientBooking.findUnique({ where: { id: bookingId }, select: { googleEventId: true } });
+      if (row?.googleEventId) {
+        const parsed = parseStoredEventRef(row.googleEventId);
+        if (parsed.provider === null) {
+          await prisma.clientBooking
+            .update({ where: { id: bookingId }, data: { googleEventId: storeEventRef(parsed.eventId, 'google') } })
+            .catch(() => { /* best-effort : l'identifiant nu reste décodé legacy */ });
+        }
+      }
       return;
     }
 
@@ -1060,9 +1075,12 @@ class ToolRuntimeService {
       timeZone,
       attendees: booking.customerEmail ? [booking.customerEmail] : [],
     }, target.calendarId);
+    /* Référence ÉTIQUETÉE : sans `outlook:`, une annulation ou un déplacement
+       ultérieur tenterait la suppression chez Google, et l'événement
+       survivrait dans l'agenda du gérant (identifiant nu = Google). */
     await prisma.clientBooking.update({
       where: { id: bookingId },
-      data: { googleEventId: eventId },
+      data: { googleEventId: storeEventRef(eventId, 'outlook') },
     });
   }
 
@@ -1384,7 +1402,7 @@ class ToolRuntimeService {
 
     callSessionStore.holdSlot(profile.clientId, date, time);
     callSessionStore.markBooked(vapiCallId, booking.id);
-    void this.moveCalendarEvent(profile.clientId, booking.id, booking.googleEventId);
+    const calendarOk = await this.moveCalendarEvent(profile.clientId, booking.id, booking.googleEventId);
 
     const smsTo = session?.callerNumber ?? null;
     const smsPromised = !!smsTo && (await this.canSendSms(profile.clientId));
@@ -1394,6 +1412,11 @@ class ToolRuntimeService {
 
     const oldDay = spokenDateAloud(booking.bookingDate, profile.language, profile.timezone);
     const newDay = spokenDateAloud(date, profile.language, profile.timezone);
+    if (!calendarOk) {
+      return profile.language === 'fr'
+        ? `DEPLACE DANS QWILLIO au ${newDay} a ${time}, mais synchronisation de l'agenda externe en attente. Explique cette limite, ne promets pas que l'ancien creneau externe est libere.`
+        : `MOVED IN QWILLIO to ${newDay} at ${time}, but external calendar sync is pending. Explain that limitation; do not claim the old external slot is released.`;
+    }
     if (profile.language === 'fr') {
       return `DEPLACE: ${booking.customerName}, du ${oldDay}${booking.bookingTime ? ` ${booking.bookingTime}` : ''} au ${newDay} a ${time}. L'ancien creneau est libere. Confirme a voix haute, en nommant le nouveau jour.`
         + (smsPromised ? " Dis-lui qu'un SMS de confirmation avec le lien pour l'agenda part sur son numero." : '')
@@ -1404,23 +1427,19 @@ class ToolRuntimeService {
       + ' Ask if they need anything else.';
   }
 
-  /** L'ancien événement part, le nouveau est créé par la synchronisation ordinaire. */
-  private async moveCalendarEvent(clientId: string, bookingId: string, oldEventId: string | null): Promise<void> {
-    if (oldEventId) {
-      try {
-        const client = await prisma.client.findUnique({ where: { id: clientId } });
-        /* `deleteBookingEvent` vise l'agenda qui a POSÉ l'évènement, pas
-           l'agenda actif. Un client qui a basculé sur Outlook puis déplace un
-           rendez-vous pris sous Google aurait sinon un 404 silencieux, et
-           l'ancien créneau resterait occupé chez Google. */
-        if (client) {
-          await deleteBookingEvent(client, { eventId: oldEventId });
-        }
-      } catch (error) {
-        logger.warn(`[VoiceTools] ancien événement d'agenda non supprimé (${bookingId}): ${(error as Error).message}`);
-      }
-    }
-    await this.syncBookingToCalendar(clientId, bookingId);
+  /**
+   * L'ancien événement part, le nouveau est créé par la synchronisation ordinaire.
+   *
+   * GARDE-FOU DU DOUBLON : si la suppression échoue pour de vrai (5xx), on
+   * N'APPELLE PAS la synchronisation. Avant, l'échec était avalé et la
+   * synchronisation recréait l'événement pendant que l'ancien survivait — et
+   * le job de réconciliation (qui ne reprend que les lignes `confirmed`)
+   * aurait fini le doublon à l'heure. La ligne est sortie de ce filet, la
+   * référence conservée pointe vers l'événement vivant : une annulation
+   * ultérieure le retirera proprement.
+   */
+  private async moveCalendarEvent(clientId: string, bookingId: string, oldEventId: string | null): Promise<boolean> {
+    return moveBookingEvent(clientId, bookingId, oldEventId, () => this.syncBookingToCalendar(clientId, bookingId));
   }
 
   // ── cancelBooking ───────────────────────────────────────────────────────
@@ -1521,6 +1540,11 @@ class ToolRuntimeService {
        (6sexquadragesies, neuf appels d'affilée). Le second appel ne refait
        aucune écriture et ne doit pas se lire comme un échec, sinon le modèle
        cherche une autre voie pour un geste déjà accompli. */
+    if (outcome.calendarSync === 'retained') {
+      return profile.language === 'fr'
+        ? `ANNULE DANS QWILLIO pour ${day}${at}, mais synchronisation de l'agenda externe en attente. Ne promets pas la suppression dans l'agenda externe.`
+        : `CANCELLED IN QWILLIO for ${day}${at}, but external calendar cleanup is pending. Do not claim deletion from the external calendar.`;
+    }
     if (outcome.alreadyCancelled) {
       return profile.language === 'fr'
         ? `DEJA ANNULE: le rendez-vous de ${target.customerName}, le ${day}${at}, est deja annule. N'appelle PLUS cancelBooking. Confirme simplement a voix haute et demande s'il faut autre chose.`

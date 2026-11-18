@@ -31,7 +31,7 @@ export function SubPageHeader({
       className="flex items-start justify-between gap-4 mb-6"
     >
       <div className="min-w-0">
-        <h1 className="text-[22px] font-semibold tracking-tight" style={{ color: pro.text }}>{title}</h1>
+        <h1 className="text-[22px] font-medium tracking-tight" style={{ color: pro.text }}>{title}</h1>
         {subtitle && <p className="text-[12.5px] mt-0.5" style={{ color: pro.textSec }}>{subtitle}</p>}
       </div>
       {action && <div className="flex items-center gap-2 flex-shrink-0">{action}</div>}
@@ -90,7 +90,7 @@ export function KpiSplit({ items }: { items: KpiCell[] }) {
       {items.map((k, i) => (
         <div key={i} className="py-1 px-3 sm:px-6 first:pl-0 last:pr-0">
           <p className="text-[11px] sm:text-[12px] leading-tight" style={{ color: pro.textSec }}>{k.label}</p>
-          <p className="text-[20px] sm:text-[26px] font-semibold tabular-nums leading-none mt-2" style={{ color: pro.text }}>
+          <p className="text-[20px] sm:text-[26px] font-medium tabular-nums leading-none mt-2" style={{ color: pro.text }}>
             {k.value}
           </p>
           {k.delta ? (
@@ -124,7 +124,7 @@ function HeroTooltip({ active, payload, label, unit }: {
       style={{ background: pro.panelHi, border: `1px solid ${pro.borderHi}`, boxShadow: proShadow.float }}
     >
       <p className="text-[11px] mb-1" style={{ color: pro.textTer }}>{label}</p>
-      <p className="text-[15px] font-bold tabular-nums" style={{ color: pro.text }}>
+      <p className="text-[15px] font-medium tabular-nums" style={{ color: pro.text }}>
         {payload[0].value.toLocaleString('fr-FR')}
         {unit && <span className="text-[11px] font-normal ml-1" style={{ color: pro.textSec }}>{unit}</span>}
       </p>
@@ -155,7 +155,7 @@ export function HeroTrendPanel({
     <div className="py-6">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <p className="text-[38px] font-semibold tabular-nums leading-none tracking-tight" style={{ color: pro.text }}>
+          <p className="text-[38px] font-medium tabular-nums leading-none tracking-tight" style={{ color: pro.text }}>
             {value}
           </p>
           <p className="text-[12.5px] mt-2" style={{ color: pro.textSec }}>
@@ -283,8 +283,8 @@ export function RadialGauge({
               <Icon size={15} style={{ color: pro.textSec }} />
             </div>
           )}
-          <p className="text-[11px] uppercase tracking-[0.08em]" style={{ color: pro.textTer }}>{caption}</p>
-          <p className="text-[26px] font-semibold tabular-nums leading-none mt-2" style={{ color: pro.text }}>{value}</p>
+          <p className="text-[11px] " style={{ color: pro.textTer }}>{caption}</p>
+          <p className="text-[26px] font-medium tabular-nums leading-none mt-2" style={{ color: pro.text }}>{value}</p>
         </div>
       </div>
 
@@ -297,7 +297,7 @@ export function RadialGauge({
                 style={{ background: l.bright ? pro.text : 'oklch(40% 0 0)' }}
               />
               {l.label}
-              <span className="font-semibold tabular-nums" style={{ color: pro.text }}>{l.value}</span>
+              <span className="font-medium tabular-nums" style={{ color: pro.text }}>{l.value}</span>
             </span>
           ))}
         </div>
@@ -325,29 +325,20 @@ export function TallyMeter({
   pct: number;
   legend?: GaugeLegend[];
 }) {
-  const N = 56;
   const clamped = Math.max(0, Math.min(100, pct));
-  const lit = Math.round((clamped / 100) * N);
 
+  /* Une part se lit sur UNE barre. Cinquante-six bâtonnets dont un sur quatre
+     plus haut ne disaient rien de plus que ce pourcentage, ils le décoraient. */
   return (
     <div className="py-6">
-      <p className="text-[11px] uppercase tracking-[0.08em]" style={{ color: pro.textTer }}>{caption}</p>
+      <p className="text-[12px]" style={{ color: pro.textTer }}>{caption}</p>
       <div className="flex items-end justify-between gap-3 mt-1.5">
-        <p className="text-[26px] font-semibold tabular-nums leading-none" style={{ color: pro.text }}>{value}</p>
+        <p className="text-[26px] font-medium tabular-nums leading-none" style={{ color: pro.text }}>{value}</p>
         <span className="text-[12px] font-medium tabular-nums" style={{ color: pro.textSec }}>{clamped}%</span>
       </div>
 
-      <div className="flex items-end gap-[3px] mt-4" style={{ height: 44 }} aria-hidden="true">
-        {Array.from({ length: N }, (_, i) => (
-          <span
-            key={i}
-            className="flex-1 rounded-full"
-            style={{
-              height: i % 4 === 0 ? '100%' : '64%',
-              background: i < lit ? pro.text : 'oklch(28% 0 0)',
-            }}
-          />
-        ))}
+      <div className="mt-4 h-1.5 rounded-full" style={{ background: 'oklch(28% 0 0)' }} aria-hidden="true">
+        <div className="h-full rounded-full" style={{ width: `${clamped}%`, background: pro.text }} />
       </div>
 
       {legend && legend.length > 0 && (
@@ -385,14 +376,14 @@ export function DetailCard({
 }) {
   return (
     <div className="py-6">
-      <h3 className="text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: pro.textSec }}>{title}</h3>
+      <h3 className="text-[12px] font-medium " style={{ color: pro.textSec }}>{title}</h3>
       <dl className="mt-4 space-y-3">
         {rows.map((r, i) => (
           <div key={i} className="flex items-center justify-between gap-3">
             <dt className="text-[12.5px]" style={{ color: pro.textTer }}>{r.k}</dt>
             {r.status ? (
               <dd
-                className="text-[10.5px] font-semibold uppercase tracking-wider px-2.5 py-1 rounded-full"
+                className="text-[11px] font-medium px-2.5 py-1 rounded-full"
                 style={{ background: toneMap[r.status].bg, color: toneMap[r.status].fg }}
               >
                 {r.v}
@@ -428,7 +419,7 @@ export interface AttnItem {
 export function AttentionList({ title, items, empty }: { title: string; items: AttnItem[]; empty?: string }) {
   return (
     <div className="py-6">
-      <h3 className="text-[12px] font-semibold uppercase tracking-[0.08em] mb-1" style={{ color: pro.textSec }}>{title}</h3>
+      <h3 className="text-[12px] font-medium mb-1" style={{ color: pro.textSec }}>{title}</h3>
       {items.length === 0 ? (
         <p className="text-[12.5px] mt-3" style={{ color: pro.textTer }}>{empty ?? 'Rien à signaler.'}</p>
       ) : (
@@ -477,7 +468,7 @@ export function SegmentBar({
   return (
     <div className="py-6 h-full">
       <div className="flex items-center justify-between gap-3">
-        <h3 className="text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: pro.textSec }}>{title}</h3>
+        <h3 className="text-[12px] font-medium " style={{ color: pro.textSec }}>{title}</h3>
         {action && (
           <Link
             to={action.to}
@@ -488,7 +479,7 @@ export function SegmentBar({
           </Link>
         )}
       </div>
-      <p className="text-[28px] font-semibold tabular-nums leading-none mt-2" style={{ color: pro.text }}>{value}</p>
+      <p className="text-[28px] font-medium tabular-nums leading-none mt-2" style={{ color: pro.text }}>{value}</p>
       {hint && <p className="text-[11.5px] mt-1.5" style={{ color: pro.textTer }}>{hint}</p>}
 
       <div className="flex items-center gap-1.5 mt-4">
@@ -531,7 +522,7 @@ export function InsightCard({
   return (
     <div className="py-6 h-full flex flex-col">
       <div className="flex items-center justify-between gap-3">
-        <span className="inline-flex items-center gap-2 text-[12px] font-semibold uppercase tracking-[0.08em]" style={{ color: pro.textSec }}>
+        <span className="inline-flex items-center gap-2 text-[12px] font-medium " style={{ color: pro.textSec }}>
           {Icon && <Icon size={14} />}
           {kicker}
         </span>

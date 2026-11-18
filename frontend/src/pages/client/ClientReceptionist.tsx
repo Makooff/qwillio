@@ -274,6 +274,13 @@ export default function ClientReceptionist() {
   const [transferMode, setTransferMode] = useState<'always' | 'hours' | 'never'>('always');
   const [agentName, setAgentName] = useState('');
   const [forwardingType, setForwardingType] = useState('');
+  /* « Mon téléphone d'abord »: les plages où l'appel est passé au numéro de
+     transfert sans conversation. C'est le renvoi selon l'heure, décidé par
+     Qwillio à l'arrivée de l'appel, puisque aucun opérateur mobile ne sait le
+     faire. Les jours suivent `Date.getDay()`: 0 = dimanche. */
+  const [humanFirst, setHumanFirst] = useState<{ enabled: boolean; days: number[]; from: string; to: string }>(
+    { enabled: false, days: [1, 2, 3, 4, 5], from: '09:00', to: '17:00' },
+  );
   const [googleCalendarId, setGoogleCalendarId] = useState('');
   // Google Calendar OAuth integration
   const [integrations, setIntegrations] = useState<{ provider: string; syncStatus?: string; lastSync?: string | null }[]>([]);
@@ -352,6 +359,14 @@ export default function ClientReceptionist() {
       setBusinessType(s?.businessType || '');
       setTransferNumber(s?.transferNumber || '');
       if (['always', 'hours', 'never'].includes(s?.transferMode)) setTransferMode(s.transferMode);
+      if (s?.humanFirst && Array.isArray(s.humanFirst.days)) {
+        setHumanFirst({
+          enabled: s.humanFirst.enabled === true,
+          days: s.humanFirst.days,
+          from: s.humanFirst.from || '09:00',
+          to: s.humanFirst.to || '17:00',
+        });
+      }
       setAgentName(s?.agentName || '');
       setAgentLanguage(s?.agentLanguage || 'en');
       setForwardingType(s?.forwardingType || '');
@@ -512,7 +527,7 @@ export default function ClientReceptionist() {
       // moindre frappe, ce que le client vient d'y saisir — par la copie que
       // cette page a chargée au montage. Une perte de données sans symptôme.
       await api.put('/my-dashboard/settings', {
-        transferNumber, agentName, transferMode,
+        transferNumber, agentName, transferMode, humanFirst,
         forwardingType, googleCalendarId,
         items: items.filter(i => i.name.trim()),
         hours: weekHours,
@@ -536,7 +551,7 @@ export default function ClientReceptionist() {
       // the instant this call returns.
       invalidateLive('/my-dashboard/');
     } catch { /* silent — the next edit retries */ }
-  }, [transferNumber, agentName, transferMode, forwardingType, googleCalendarId,
+  }, [transferNumber, agentName, transferMode, humanFirst, forwardingType, googleCalendarId,
       items, weekHours, faqEntries, knowledge, personalityPreset, characterId, customVoice]);
 
   // Auto-save: debounce after any edit. Skips the initial hydration from load()
@@ -762,7 +777,7 @@ export default function ClientReceptionist() {
         {/* —— Services / Menu / Tarifs —— */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-3">
-            <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5]">
+            <label className="flex items-center gap-2 text-[11px] font-medium text-[#9A9AA5]">
               <Tag size={12} /> Services, menu, tarifs
             </label>
             <span className="text-[11px] text-[#6B6B75]">{items.length} élément{items.length > 1 ? 's' : ''}</span>
@@ -818,7 +833,7 @@ export default function ClientReceptionist() {
 
         {/* —— Horaires hebdomadaires —— */}
         <div className="mb-6">
-          <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-3">
+          <label className="flex items-center gap-2 text-[11px] font-medium text-[#9A9AA5] mb-3">
             <Clock3 size={12} /> Horaires d'ouverture
           </label>
           <div className="rounded-xl border border-white/[0.06] overflow-hidden divide-y divide-white/[0.04]">
@@ -830,7 +845,7 @@ export default function ClientReceptionist() {
                   <button
                     type="button"
                     onClick={() => setWeekHours(w => ({ ...w, [d.k]: { ...w[d.k], open: !w[d.k].open } }))}
-                    className="col-span-3 h-8 px-3 rounded-lg text-[11.5px] font-semibold uppercase tracking-wider transition-colors"
+                    className="col-span-3 h-8 px-3 rounded-lg text-[11.5px] font-medium transition-colors"
                     style={{
                       background: h.open ? 'rgba(34,197,94,0.10)' : 'rgba(239,68,68,0.08)',
                       color:      h.open ? '#22C55E' : '#EF4444',
@@ -867,7 +882,7 @@ export default function ClientReceptionist() {
             niches, et ne peut donc pas diverger de celle du backend. */}
         {presets?.fields?.length ? (
           <div className="mb-6">
-            <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5] mb-1">
+            <label className="flex items-center gap-2 text-[11px] font-medium text-[#9A9AA5] mb-1">
               <BookOpen size={12} /> Précisions {businessType ? `« ${BUSINESS_TYPE_LABELS[businessType] ?? businessType} »` : 'métier'}
             </label>
             <p className="text-[11.5px] text-[#6B6B75] mb-3 leading-relaxed">
@@ -902,7 +917,7 @@ export default function ClientReceptionist() {
         {/* —— FAQ —— */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
-            <label className="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-wider text-[#9A9AA5]">
+            <label className="flex items-center gap-2 text-[11px] font-medium text-[#9A9AA5]">
               <HelpCircle size={12} /> FAQ
             </label>
             <span className="text-[11px] text-[#6B6B75]">{faqEntries.length} question{faqEntries.length > 1 ? 's' : ''}</span>
@@ -1049,6 +1064,96 @@ export default function ClientReceptionist() {
             {transferMode === 'never' && "L'IA ne transfère jamais. Elle prend le message et vous prévient."}
           </p>
         </div>
+        {/* QUI DÉCROCHE EN PREMIER, selon l'heure. Troisième question de cette
+            section, et la seule qui dépende de l'horloge: le renvoi dit comment
+            l'appel arrive, le bouton du dessus quand l'IA passe la main, celui-ci
+            quand elle ne décroche pas du tout. */}
+        <div className="mt-5 pt-5 border-t border-white/[0.06]">
+          <div className="flex items-start justify-between gap-4">
+            <div className="min-w-0">
+              <p className="text-xs text-[#F5F5F7] font-medium">Mon téléphone d'abord, sur une plage horaire</p>
+              <p className="text-[10px] text-[#8B8BA7] mt-1 leading-relaxed">
+                Pendant cette plage, l'appel est passé directement à votre numéro de transfert, sans conversation. En dehors, la réceptionniste décroche.
+              </p>
+            </div>
+            <button
+              type="button"
+              role="switch"
+              aria-checked={humanFirst.enabled}
+              aria-label="Mon téléphone d'abord, sur une plage horaire"
+              onClick={() => setHumanFirst(h => ({ ...h, enabled: !h.enabled }))}
+              className={`relative flex-shrink-0 h-6 w-11 rounded-full transition-colors ${humanFirst.enabled ? 'bg-[#8a6fff]' : 'bg-white/[0.12]'}`}
+            >
+              <span
+                className="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-white transition-transform duration-150 ease-out"
+                style={{ transform: humanFirst.enabled ? 'translateX(20px)' : 'translateX(0)' }}
+              />
+            </button>
+          </div>
+
+          {humanFirst.enabled && (
+            <div className="mt-4 space-y-4">
+              <div>
+                <p className="text-xs text-[#8B8BA7] mb-1.5">Jours</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {([[1, 'Lun'], [2, 'Mar'], [3, 'Mer'], [4, 'Jeu'], [5, 'Ven'], [6, 'Sam'], [0, 'Dim']] as const).map(([day, label]) => {
+                    const on = humanFirst.days.includes(day);
+                    return (
+                      <button
+                        key={day}
+                        type="button"
+                        aria-pressed={on}
+                        onClick={() => setHumanFirst(h => ({
+                          ...h,
+                          days: on ? h.days.filter(d => d !== day) : [...h.days, day].sort((a, b) => a - b),
+                        }))}
+                        className={`h-9 px-3.5 rounded-xl text-[12.5px] font-medium transition-colors border ${
+                          on
+                            ? 'bg-white/[0.08] text-[#F5F5F7] border-[#8a6fff]'
+                            : 'bg-white/[0.04] text-[#8B8BA7] border-transparent hover:text-[#F5F5F7]'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4 max-w-[320px]">
+                <div>
+                  <label htmlFor="humanFirstFrom" className="text-xs text-[#8B8BA7] mb-1.5 block">De</label>
+                  <input id="humanFirstFrom" type="time" value={humanFirst.from}
+                    onChange={e => setHumanFirst(h => ({ ...h, from: e.target.value }))}
+                    className={inputCls} style={{ colorScheme: 'dark' }} />
+                </div>
+                <div>
+                  <label htmlFor="humanFirstTo" className="text-xs text-[#8B8BA7] mb-1.5 block">À</label>
+                  <input id="humanFirstTo" type="time" value={humanFirst.to}
+                    onChange={e => setHumanFirst(h => ({ ...h, to: e.target.value }))}
+                    className={inputCls} style={{ colorScheme: 'dark' }} />
+                </div>
+              </div>
+
+              {/* Ce qui empêche la plage de s'appliquer, dit avant le premier appel
+                  plutôt que découvert quand le téléphone ne sonne pas. */}
+              {humanFirst.days.length === 0 || humanFirst.from === humanFirst.to || !humanFirst.from || !humanFirst.to ? (
+                <p className="text-[11px] text-amber-300/90 leading-relaxed">
+                  Choisissez au moins un jour, et une heure de fin différente de l'heure de début. Tant que ce n'est pas le cas, la réceptionniste décroche tout le temps.
+                </p>
+              ) : !transferNumber.trim() ? (
+                <p className="text-[11px] text-amber-300/90 leading-relaxed">
+                  Indiquez un numéro de transfert ci-dessus. Sans lui, il n'y a personne à qui passer l'appel et la réceptionniste décroche.
+                </p>
+              ) : (
+                <p className="text-[10px] text-[#8B8BA7] leading-relaxed">
+                  Le numéro de transfert doit être une autre ligne que celle renvoyée vers Qwillio, sinon la réceptionniste décroche pour éviter une boucle. Si vous ne répondez pas, l'appelant tombe sur la messagerie de ce numéro.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
         {fwdVerified && transferNumber && (
           <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-400/5 border border-emerald-400/15">
             <CheckCircle2 size={14} className="text-emerald-400" />
@@ -1127,7 +1232,7 @@ export default function ClientReceptionist() {
             {/* Read proof: next events from the connected calendar */}
             {gcal?.connected && (gcal.upcoming?.length ?? 0) > 0 && (
               <div className="mt-3 pt-3 border-t border-white/[0.04] space-y-1.5">
-                <p className="text-[10px] uppercase tracking-wide text-[#8B8BA7]">Prochains rendez-vous</p>
+                <p className="text-[11px] text-[#8B8BA7]">Prochains rendez-vous</p>
                 {gcal.upcoming!.map(ev => (
                   <div key={ev.id} className="flex items-center justify-between gap-3 text-[12px]">
                     <span className="truncate text-white/80">{ev.summary}</span>

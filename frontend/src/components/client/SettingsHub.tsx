@@ -30,7 +30,7 @@ const EASE = [0.16, 1, 0.3, 1] as const;
 export function HubGroup({ label, children }: { label: string; children: ReactNode }) {
   return (
     <section className="mt-6 first:mt-0">
-      <p className="px-1 mb-2 text-[11px] font-semibold uppercase tracking-wider text-[#6B6B75]">
+      <p className="px-1 mb-2 text-[11px] font-medium text-[#6B6B75]">
         {label}
       </p>
       {/* Une seule carte, des filets entre les rangées: c'est ce qui distingue

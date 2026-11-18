@@ -81,11 +81,11 @@ export default function Terms() {
       title={
         isFr ? (
           <>
-            Conditions <SerifWord>générales</SerifWord> d'utilisation.
+            Conditions <SerifWord>générales</SerifWord> d'utilisation
           </>
         ) : (
           <>
-            Terms of <SerifWord>service.</SerifWord>
+            Terms of <SerifWord>service</SerifWord>
           </>
         )
       }

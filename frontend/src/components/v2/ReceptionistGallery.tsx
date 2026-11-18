@@ -98,7 +98,7 @@ export default function ReceptionistGallery({ isFr }: { isFr: boolean }) {
         <div>
           <div className="flex items-baseline gap-3 mb-1.5 flex-wrap">
             <p className="text-xl text-q2-ink font-normal">{p.name}</p>
-            <span className="q2-eyebrow text-q2-indigo">{isFr ? p.personalityFr : p.personalityEn}</span>
+            <span className="q2-eyebrow text-[color:var(--q2-indigo-ink)]">{isFr ? p.personalityFr : p.personalityEn}</span>
           </div>
           <p className="text-[15px] text-q2-body leading-relaxed q2-body-text mb-3">{isFr ? p.descFr : p.descEn}</p>
           <p className="text-[13px] text-q2-body q2-body-text">

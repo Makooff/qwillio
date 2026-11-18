@@ -35,11 +35,11 @@ interface RawActivity {
    mauves Qwillio au lieu d'un bleu et d'un violet Tailwind qui
    n'appartenaient a rien. */
 const TYPE_CONFIG: Record<ActivityType, { label: string; icon: React.ElementType; bg: string; text: string; iconColor: string }> = {
-  call:        { label: 'Appel',   icon: Phone,         bg: 'bg-[#7a5fff]/12', text: 'text-[#7a5fff]', iconColor: 'text-[#7a5fff]' },
-  email:       { label: 'Email',   icon: Mail,          bg: 'bg-[#cd6bfb]/12', text: 'text-[#cd6bfb]', iconColor: 'text-[#cd6bfb]' },
-  note:        { label: 'Note',    icon: FileText,      bg: 'bg-[#f59e0b]/12', text: 'text-[#f59e0b]', iconColor: 'text-[#f59e0b]' },
-  deal_update: { label: 'Affaire', icon: TrendingUp,    bg: 'bg-[#34d399]/12', text: 'text-[#34d399]', iconColor: 'text-[#34d399]' },
-  sms:         { label: 'SMS',     icon: MessageSquare, bg: 'bg-[#38bdf8]/12', text: 'text-[#38bdf8]', iconColor: 'text-[#38bdf8]' },
+  call:        { label: 'Appel',   icon: Phone,         bg: 'bg-[#7a5fff]/[0.12]', text: 'text-[#7a5fff]', iconColor: 'text-[#7a5fff]' },
+  email:       { label: 'Email',   icon: Mail,          bg: 'bg-[#cd6bfb]/[0.12]', text: 'text-[#cd6bfb]', iconColor: 'text-[#cd6bfb]' },
+  note:        { label: 'Note',    icon: FileText,      bg: 'bg-[#f59e0b]/[0.12]', text: 'text-[#f59e0b]', iconColor: 'text-[#f59e0b]' },
+  deal_update: { label: 'Affaire', icon: TrendingUp,    bg: 'bg-[#34d399]/[0.12]', text: 'text-[#34d399]', iconColor: 'text-[#34d399]' },
+  sms:         { label: 'SMS',     icon: MessageSquare, bg: 'bg-[#38bdf8]/[0.12]', text: 'text-[#38bdf8]', iconColor: 'text-[#38bdf8]' },
 };
 
 export default function CrmActivities() {
@@ -88,7 +88,7 @@ export default function CrmActivities() {
   return (
     <div>
       {/* La MEME entete que le reste du portail: titre en 22px semibold, et
-          non plus un `text-2xl font-bold` propre a cette page. */}
+          non plus un `text-2xl font-semibold` propre a cette page. */}
       <PageHeader
         title="Activité"
         subtitle={`${activities.length} activité${activities.length > 1 ? 's' : ''} enregistrée${activities.length > 1 ? 's' : ''}`}
@@ -181,8 +181,8 @@ export default function CrmActivities() {
                         <div className="flex-1 rounded-2xl border border-white/[0.07] bg-white/[0.03] px-4 py-3 hover:bg-white/[0.05] hover:border-white/[0.12] transition-colors">
                           <div className="flex items-start justify-between gap-2 mb-1">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.text}`}>
-                                {cfg.label.toUpperCase()}
+                              <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.text}`}>
+                                {cfg.label}
                               </span>
                               <span className="text-sm font-semibold text-[#F5F5F7]">{activity.contactName}</span>
                             </div>

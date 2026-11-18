@@ -79,7 +79,7 @@ export default function PageHeader({
     <header className="mb-4">
       <Layer i={0} className="flex items-start justify-between gap-4 mb-6">
         <div className="min-w-0">
-          <h1 className="text-[22px] font-semibold tracking-tight text-[#F5F5F7]">{title}</h1>
+          <h1 className="text-[22px] font-medium tracking-tight text-[#F5F5F7]">{title}</h1>
           {subtitle && <p className="text-[12.5px] mt-0.5 text-[#A1A1A8]">{subtitle}</p>}
         </div>
         {action && <div className="flex items-center gap-2 flex-shrink-0">{action}</div>}
@@ -129,7 +129,7 @@ export default function PageHeader({
               Filtres
               {count > 0 && (
                 <span
-                  className="w-5 h-5 rounded-full bg-[#7349fe] text-white text-[10px] flex items-center justify-center font-bold"
+                  className="w-5 h-5 rounded-full bg-[#7349fe] text-white text-[10px] flex items-center justify-center font-semibold"
                   aria-label={`${count} filtre(s) actif(s)`}
                 >
                   {count}

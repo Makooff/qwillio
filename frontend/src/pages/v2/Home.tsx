@@ -105,8 +105,8 @@ export default function Home() {
       icon: CalendarCheck,
       title: isFr ? 'Elle vérifie le créneau' : 'She checks the slot',
       desc: isFr
-        ? 'Avec votre agenda Google ou Outlook connecté, elle vérifie les disponibilités avant de confirmer. Vos clients peuvent aussi déplacer ou annuler un rendez-vous pendant l’appel.'
-        : 'With your Google or Outlook calendar connected, she checks availability before confirming. Your customers can also reschedule or cancel an appointment during the call.',
+        ? 'Avec votre agenda Google ou Outlook connecté, elle vérifie les disponibilités avant de confirmer. Pour retrouver, déplacer ou annuler un rendez-vous existant, la demande passe à votre équipe après vérification d’identité.'
+        : 'With your Google or Outlook calendar connected, she checks availability before confirming. Requests to look up, reschedule or cancel an existing booking go to your team for identity verification.',
     },
     {
       icon: Sparkles,
@@ -232,8 +232,8 @@ export default function Home() {
       icon: Mic2,
       label: isFr ? 'Appelez-la pour l’essayer' : 'Call her to try her out',
       desc: isFr
-        ? 'Un vrai appel test dans le navigateur, avec sa vraie voix et votre vraie config.'
-        : 'A real test call in the browser, with her real voice and your real setup.',
+        ? 'Essayez la voix de démonstration dans votre navigateur : un vrai appel test sur une configuration de démo publique, distincte des réglages de votre compte.'
+        : 'Try the demo voice in your browser: a real test call on a public demo configuration, separate from your account settings.',
     },
   ];
 
@@ -429,11 +429,11 @@ export default function Home() {
                   <TextReveal>
                     {isFr ? (
                       <>
-                        Tout se passe <SerifWord>en ligne.</SerifWord>
+                        Tout se passe <SerifWord>en ligne</SerifWord>
                       </>
                     ) : (
                       <>
-                        Everything happens <SerifWord>on the line.</SerifWord>
+                        Everything happens <SerifWord>on the line</SerifWord>
                       </>
                     )}
                   </TextReveal>
@@ -469,7 +469,7 @@ export default function Home() {
                       aria-hidden="true"
                     />
                   </span>
-                  <span className="q2-eyebrow text-q2-faint tabular-nums transition-colors duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-data-[active=true]:text-q2-indigo">
+                  <span className="q2-eyebrow text-q2-faint tabular-nums transition-colors duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-data-[active=true]:text-[color:var(--q2-indigo-ink)]">
                     {String(i + 1).padStart(2, '0')}
                   </span>
                 </div>
@@ -497,11 +497,11 @@ export default function Home() {
               <TextReveal>
                 {isFr ? (
                   <>
-                    Choisissez qui <SerifWord>décroche.</SerifWord>
+                    Choisissez qui <SerifWord>décroche</SerifWord>
                   </>
                 ) : (
                   <>
-                    Choose who <SerifWord>answers.</SerifWord>
+                    Choose who <SerifWord>answers</SerifWord>
                   </>
                 )}
               </TextReveal>
@@ -539,11 +539,11 @@ export default function Home() {
                 <TextReveal>
                   {isFr ? (
                     <>
-                      Parlez-lui comme à <SerifWord>quelqu'un.</SerifWord>
+                      Parlez-lui comme à <SerifWord>quelqu'un</SerifWord>
                     </>
                   ) : (
                     <>
-                      Talk to her like a <SerifWord>person.</SerifWord>
+                      Talk to her like a <SerifWord>person</SerifWord>
                     </>
                   )}
                 </TextReveal>
@@ -665,11 +665,11 @@ export default function Home() {
                   <TextReveal>
                     {isFr ? (
                       <>
-                        Configurez-la en lui <SerifWord>parlant.</SerifWord>
+                        Configurez-la en lui <SerifWord>parlant</SerifWord>
                       </>
                     ) : (
                       <>
-                        Set her up by <SerifWord>talking.</SerifWord>
+                        Set her up by <SerifWord>talking</SerifWord>
                       </>
                     )}
                   </TextReveal>
@@ -701,7 +701,7 @@ export default function Home() {
                       aria-hidden="true"
                     />
                   </span>
-                  <span className="q2-eyebrow text-q2-faint tabular-nums transition-colors duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-data-[active=true]:text-q2-violet">
+                  <span className="q2-eyebrow text-q2-faint tabular-nums transition-colors duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-data-[active=true]:text-[color:var(--q2-violet-ink)]">
                     {String(i + 1).padStart(2, '0')}
                   </span>
                 </div>
@@ -740,11 +740,11 @@ export default function Home() {
               <TextReveal>
                 {isFr ? (
                   <>
-                    Il y a plus à voir <SerifWord>par ici.</SerifWord>
+                    Il y a plus à voir <SerifWord>par ici</SerifWord>
                   </>
                 ) : (
                   <>
-                    There is more to see <SerifWord>over here.</SerifWord>
+                    There is more to see <SerifWord>over here</SerifWord>
                   </>
                 )}
               </TextReveal>
@@ -805,11 +805,11 @@ export default function Home() {
                 <TextReveal>
                   {isFr ? (
                     <>
-                      Votre prochaine cliente appelle <SerifWord>ce soir.</SerifWord>
+                      Votre prochaine cliente appelle <SerifWord>ce soir</SerifWord>
                     </>
                   ) : (
                     <>
-                      Your next customer calls <SerifWord>tonight.</SerifWord>
+                      Your next customer calls <SerifWord>tonight</SerifWord>
                     </>
                   )}
                 </TextReveal>

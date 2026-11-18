@@ -1,8 +1,10 @@
+> **Archive historique.** Ce document décrit une ancienne session ou un état daté du projet. Ses actions et constats ne sont pas un diagnostic de la production actuelle.
+
 # ARCHITECTURE.md — État réel constaté (audit du 13/08/2026)
 
 Ce document décrit **ce que le code fait aujourd'hui**, preuves à l'appui (`fichier:ligne`),
-pas ce que la documentation promet. Il est le socle de `AUDIT.md` (gap analysis) et
-`ROADMAP.md` (plan d'implémentation).
+pas ce que la documentation promet. Il est le socle de `docs/archives/2026-08/AUDIT.md` (gap analysis) et
+`docs/archives/2026-08/ROADMAP.md` (plan d'implémentation).
 
 ## 1. Vue d'ensemble
 

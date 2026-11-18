@@ -32,6 +32,11 @@ interface Entry {
   setup: 'url' | 'oauth' | 'apiKey' | 'none';
   benefit: string;
   connected: boolean;
+  /* L'adresse du compte branché (Google/Outlook), rendue par le catalogue pour
+     qu'on sache QUEL agenda est connecté — sinon on vérifie « Test Qwillio »
+     dans le mauvais compte. Absente pour les intégrations qui n'ont pas de
+     compte d'agenda (Slack, webhooks…). */
+  accountEmail?: string | null;
 }
 
 const SECTIONS: { verb: Verb; icon: typeof PhoneCall; title: string; blurb: string }[] = [
@@ -94,6 +99,11 @@ export default function ClientIntegrations() {
      globale s'afficherait donc sous une carte qui n'a rien demandé, ou nulle
      part. Attachée à sa carte, elle se lit là où le clic a eu lieu. */
   const [problem, setProblem] = useState<{ id: string; text: string } | null>(null);
+  /* Le test d'agenda: quel fournisseur est en train d'écrire, et le résultat du
+     dernier essai. Un agenda connecté ne prouve rien tant qu'on n'a pas vu un
+     événement apparaître dedans — l'appel de test, lui, n'écrit jamais. */
+  const [testing, setTesting] = useState<string | null>(null);
+  const [testOutcome, setTestOutcome] = useState<{ id: string; ok: boolean; text: string } | null>(null);
 
   const load = () => {
     api.get('/crm/integrations/catalog')
@@ -203,6 +213,30 @@ export default function ClientIntegrations() {
     }
   };
 
+  /** Écrire un vrai événement de test dans l'agenda connecté, et le dire. */
+  const testCalendar = async (entry: Entry) => {
+    setTesting(entry.id);
+    setTestOutcome(null);
+    try {
+      const endpoint = entry.id === GCAL
+        ? '/my-dashboard/integrations/google-calendar/test'
+        : '/my-dashboard/integrations/outlook-calendar/test';
+      const { data } = await api.post(endpoint);
+      const start = data?.start ? new Date(data.start) : null;
+      const when = start && !Number.isNaN(start.getTime())
+        ? start.toLocaleString('fr-FR', { weekday: 'long', day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })
+        : '';
+      setTestOutcome({
+        id: entry.id, ok: true,
+        text: `Rendez-vous de test créé${when ? ` (${when})` : ''}. Regardez dans votre agenda, puis supprimez-le.`,
+      });
+    } catch (e: unknown) {
+      setTestOutcome({ id: entry.id, ok: false, text: serverSaid(e, 'Le test a échoué : rien n’a été écrit.') });
+    } finally {
+      setTesting(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex items-center gap-2.5 py-16 text-sm text-[#8B8BA7]" aria-busy="true">
@@ -277,6 +311,11 @@ export default function ClientIntegrations() {
                     <div className="flex items-start justify-between gap-4">
                       <div className="min-w-0">
                         <p className="text-sm font-medium text-[#F5F5F7]">{entry.name}</p>
+                        {entry.connected && entry.accountEmail && (
+                          <p className="mt-0.5 truncate text-[12px] text-[#8B8BA7]" title={entry.accountEmail}>
+                            Compte connecté : <span className="text-[#c9c9d6]">{entry.accountEmail}</span>
+                          </p>
+                        )}
                         <p className="mt-1 text-[13px] leading-relaxed text-[#8B8BA7]">{entry.benefit}</p>
                       </div>
                       <span className={`shrink-0 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium ${b.cls}`}>
@@ -302,6 +341,15 @@ export default function ClientIntegrations() {
                             className="text-[13px] font-medium text-[#7349fe] hover:text-[#8f6dff] disabled:opacity-40 transition-colors"
                           >
                             {oauth ? (saving ? 'Ouverture de Google' : `Connecter ${entry.name}`) : 'Brancher'}
+                          </button>
+                        )}
+                        {entry.connected && (entry.id === GCAL || entry.id === OUTLOOK) && (
+                          <button
+                            onClick={() => testCalendar(entry)}
+                            disabled={testing !== null}
+                            className="text-[13px] font-medium text-[#7349fe] hover:text-[#8f6dff] disabled:opacity-40 transition-colors"
+                          >
+                            {testing === entry.id ? 'Test en cours…' : 'Tester'}
                           </button>
                         )}
                         {entry.connected && (
@@ -355,6 +403,9 @@ export default function ClientIntegrations() {
                     )}
 
                     {err && <p className="mt-2 text-[12px] text-[#f87171]">{err}</p>}
+                    {testOutcome?.id === entry.id && (
+                      <p className={`mt-2 text-[12px] ${testOutcome.ok ? 'text-[#4ade80]' : 'text-[#f87171]'}`}>{testOutcome.text}</p>
+                    )}
                   </motion.li>
                 );
               })}

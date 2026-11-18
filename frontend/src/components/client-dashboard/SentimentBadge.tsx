@@ -5,12 +5,16 @@ interface SentimentBadgeProps {
 
 export default function SentimentBadge({ sentiment, size = 'sm' }: SentimentBadgeProps) {
   const s = sentiment?.toLowerCase() || 'neutral';
-  const styles: Record<string, string> = {
-    positive: 'bg-emerald-400/10 text-emerald-400 border-emerald-400/20',
-    negative: 'bg-red-400/10 text-red-400 border-red-400/20',
-    neutral: 'bg-amber-400/10 text-amber-400 border-amber-400/20',
+  /* Le sentiment se dit par un POINT, le libellé reste dans le gris du texte.
+     Trois pastilles pleines par ligne, dont le neutre en jaune vif, faisaient
+     de la colonne Sentiment la plus voyante du tableau, alors qu'elle est la
+     moins décisive. Vert et rouge sourds, gris pour le neutre. */
+  const dots: Record<string, string> = {
+    positive: 'bg-emerald-400/80',
+    negative: 'bg-red-400/80',
+    neutral: 'bg-white/30',
   };
-  const cls = styles[s] || styles.neutral;
+  const dot = dots[s] || dots.neutral;
   const sizeClass = size === 'md' ? 'px-3 py-1 text-sm' : 'px-2.5 py-0.5 text-xs';
 
   /* La pastille affichait la valeur BRUTE de la base, en anglais et en
@@ -43,7 +47,8 @@ export default function SentimentBadge({ sentiment, size = 'sm' }: SentimentBadg
   }
 
   return (
-    <span className={`inline-flex items-center rounded-full font-medium border ${cls} ${sizeClass}`}>
+    <span className={`inline-flex items-center gap-1.5 font-medium text-white/70 ${size === 'md' ? 'text-sm' : 'text-xs'}`}>
+      <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} aria-hidden="true" />
       {labels[s] || labels.neutral}
     </span>
   );

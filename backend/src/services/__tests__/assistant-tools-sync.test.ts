@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { env } from '../../config/env';
 
 /**
  * L'assistant qui DÉCROCHE doit porter des outils.
@@ -92,6 +93,8 @@ const profile = {
 describe('syncVapiAssistant — les outils partent avec la configuration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // Explicitly exercise the retained Vapi rollback, not the default core.
+    Object.assign(env, { VOICE_RUNTIME: 'vapi' });
     order.length = 0;
     updateAssistant.mockResolvedValue({});
     invalidateClient.mockResolvedValue(undefined);

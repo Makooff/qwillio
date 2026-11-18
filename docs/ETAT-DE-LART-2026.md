@@ -55,7 +55,7 @@ fonctionnels, pas la latence de conversation. Voir CLAUDE.md, 6sexquadragesies.
 
 ### 1.1 Bloctel n'existe plus. La roadmap vise une cible morte.
 
-`ROADMAP.md` niveau 3, lot 2, prévoit « préparation Bloctel (l'abonnement est
+`docs/archives/2026-08/ROADMAP.md` niveau 3, lot 2, prévoit « préparation Bloctel (l'abonnement est
 externe) ». **Cette ligne est caduque.**
 
 En application de la loi n° 2025-594 du 30 juin 2025, **Bloctel a cessé son

@@ -17,7 +17,7 @@ const wrap = (children: ReactNode) => render(<MemoryRouter>{children}</MemoryRou
 describe('Separate visual marketing sections', () => {
   it('keeps each benefit in its own story, with three distinct editorial visuals rather than a six-card grid', () => {
     const { container } = wrap(<BenefitsGrid isFr />);
-    expect(screen.getByRole('heading', { name: 'Puissante là où ça compte.' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Puissante là où ça compte' })).toBeInTheDocument();
     expect(container.querySelectorAll('[data-benefit]')).toHaveLength(6);
     const stories = [...container.querySelectorAll('[data-benefit-story]')];
     expect(stories).toHaveLength(6);

@@ -61,6 +61,7 @@
     "helmet": "^8.0.0",
     "jsonwebtoken": "^9.0.2",
     "libphonenumber-js": "^1.13.12",
+    "livekit-server-sdk": "2.19.2",
     "node-cron": "^3.0.3",
     "pdf-lib": "^1.17.1",
     "pg": "^8.18.0",

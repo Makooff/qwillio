@@ -1,3 +1,4 @@
+import type { Client } from '@prisma/client';
 import { prisma } from '../config/database';
 import { clientLocale } from '../utils/client-locale';
 import { endCallFarewell } from './voice/system-prompt';
@@ -36,6 +37,39 @@ const RETRY_BASE_DELAY_MS = 2000; // 2s, 4s, 8s exponential backoff
 
 export class OnboardingService {
 
+  private async onboardCoreClient(client: Client): Promise<void> {
+    // A core agent is dispatched from the called SIP line and tenant profile;
+    // it is not a remotely-created Vapi assistant. Keep any legacy id for rollback.
+    const line = await phoneSetupService.ensureLine(client.id, undefined, { runtime: 'core' });
+    if (!line.number || !['active', 'shared', 'pending_regulatory'].includes(line.state)) {
+      throw new Error('voice_core_line_unavailable');
+    }
+    realtimeContextService.invalidateClient(client.id);
+    const profile = await realtimeContextService.getClientProfile(client.id);
+    if (!profile || profile.clientId !== client.id) throw new Error('voice_core_profile_unavailable');
+    await prisma.client.update({
+      where: { id: client.id },
+      data: {
+        vapiPhoneNumber: line.number,
+        vapiConfig: {
+          ...((client.vapiConfig as Record<string, any>) || {}),
+          voiceRuntime: 'core',
+          onboarded_at: new Date().toISOString(),
+          // Profile/line readiness is not a telephony health check.
+          coreProfileReady: true,
+        },
+        onboardingStatus: 'completed', onboardingCompletedAt: new Date(),
+      },
+    });
+    await emailService.sendWelcomeEmail({
+      to: client.contactEmail, contactName: client.contactName,
+      businessName: client.businessName, planType: client.planType,
+      vapiPhoneNumber: line.number, dashboardUrl: clientPortalUrl(client.id, client.dashboardToken),
+      lang: this.isFrenchClient(client) ? 'fr' : 'en',
+    });
+    await discordService.notify(`Core onboarding completed: ${client.id}; assigned SIP line and tenant profile ready. Telephony acceptance remains separate.`);
+  }
+
   // ═══════════════════════════════════════════════════════════
   // MAIN ONBOARDING - Called after payment or trial start
   // Uses shared phone number + retry logic
@@ -59,6 +93,11 @@ export class OnboardingService {
       });
 
       logger.info(`Starting onboarding for ${client.businessName} (attempt ${retryCount + 1}/${MAX_RETRIES})...`);
+
+      if (env.VOICE_RUNTIME === 'core') {
+        await this.onboardCoreClient(client);
+        return;
+      }
 
       // ── STEP 1: Create VAPI assistant with retry ──
       const cfg = (client.vapiConfig as any) || {};
@@ -1049,6 +1088,10 @@ IMPORTANT: You represent ${client.businessName} - be impeccable!`;
   // Reads current client record and pushes updated config to VAPI
   // ═══════════════════════════════════════════════════════════
   async syncVapiAssistant(clientId: string): Promise<void> {
+    if (env.VOICE_RUNTIME === 'core') {
+      await realtimeContextService.invalidateClient(clientId);
+      return;
+    }
     const client = await prisma.client.findUnique({ where: { id: clientId } });
     if (!client || !client.vapiAssistantId) {
       logger.warn(`syncVapiAssistant: no assistant found for client ${clientId}`);

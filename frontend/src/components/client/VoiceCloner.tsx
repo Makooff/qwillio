@@ -27,6 +27,7 @@ const MAX_SECONDS = 90;
 const ERRORS: Record<string, string> = {
   consent_required: "Il faut confirmer que la voix enregistrée est bien la vôtre.",
   elevenlabs_key_missing: "Le clonage n'est pas disponible : la clé ElevenLabs n'est pas configurée sur le serveur.",
+  elevenlabs_plan_required: "Le clonage de voix n'est pas inclus dans votre abonnement ElevenLabs. Passez à un forfait payant (Starter ou supérieur), puis réessayez.",
   sample_too_short: "Enregistrement trop court. Parlez au moins 20 secondes d'affilée.",
   sample_too_large: "Enregistrement trop long. Une minute suffit largement.",
   voice_clone_failed: "Le clonage a échoué. Réessayez dans un instant.",

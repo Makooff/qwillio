@@ -59,11 +59,11 @@ export default function Blog() {
             <Display>
               {isFr ? (
                 <>
-                  Actualités &amp; <SerifWord>ressources.</SerifWord>
+                  Actualités &amp; <SerifWord>ressources</SerifWord>
                 </>
               ) : (
                 <>
-                  News &amp; <SerifWord>resources.</SerifWord>
+                  News &amp; <SerifWord>resources</SerifWord>
                 </>
               )}
             </Display>
@@ -105,7 +105,7 @@ export default function Blog() {
                       {isFr ? article.excerptFr : article.excerpt}
                     </p>
                     <p className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-q2-body">
-                      <span className="q2-eyebrow text-q2-indigo">{isFr ? article.tagFr : article.tag}</span>
+                      <span className="q2-eyebrow text-[color:var(--q2-indigo-ink)]">{isFr ? article.tagFr : article.tag}</span>
                       <span aria-hidden="true">·</span>
                       <span className="tabular-nums">{article.readTime}&nbsp;min</span>
                     </p>

@@ -63,19 +63,28 @@ const FALLBACK_CONTACT: Contact = {
 };
 
 const TYPE_CONFIG: Record<ActivityType, { icon: React.ElementType; bg: string; iconColor: string; label: string }> = {
-  call:        { icon: PhoneIcon,    bg: 'bg-[#7a5fff]/12',    iconColor: 'text-[#7a5fff]',    label: 'Call' },
-  email:       { icon: MailIcon,     bg: 'bg-[#cd6bfb]/12',  iconColor: 'text-[#cd6bfb]',  label: 'Email' },
-  note:        { icon: FileText,     bg: 'bg-amber-400/12', iconColor: 'text-amber-300',  label: 'Note' },
-  deal_update: { icon: TrendingUp,   bg: 'bg-emerald-400/12', iconColor: 'text-emerald-300', label: 'Mise à jour' },
-  sms:         { icon: MessageSquare,bg: 'bg-sky-400/12',  iconColor: 'text-sky-300',  label: 'SMS' },
+  call:        { icon: PhoneIcon,    bg: 'bg-[#7a5fff]/[0.12]',    iconColor: 'text-[#7a5fff]',    label: 'Appel' },
+  email:       { icon: MailIcon,     bg: 'bg-[#cd6bfb]/[0.12]',  iconColor: 'text-[#cd6bfb]',  label: 'Email' },
+  note:        { icon: FileText,     bg: 'bg-amber-400/[0.12]', iconColor: 'text-amber-300',  label: 'Note' },
+  deal_update: { icon: TrendingUp,   bg: 'bg-emerald-400/[0.12]', iconColor: 'text-emerald-300', label: 'Mise à jour' },
+  sms:         { icon: MessageSquare,bg: 'bg-sky-400/[0.12]',  iconColor: 'text-sky-300',  label: 'SMS' },
 };
 
 const STATUS_COLORS: Record<string, { bg: string; text: string }> = {
-  active:   { bg: 'bg-emerald-400/12', text: 'text-emerald-300' },
-  prospect: { bg: 'bg-[#7a5fff]/12',    text: 'text-[#7a5fff]' },
-  client:   { bg: 'bg-emerald-400/12',  text: 'text-emerald-300' },
+  active:   { bg: 'bg-emerald-400/[0.12]', text: 'text-emerald-300' },
+  prospect: { bg: 'bg-[#7a5fff]/[0.12]',    text: 'text-[#7a5fff]' },
+  client:   { bg: 'bg-emerald-400/[0.12]',  text: 'text-emerald-300' },
   inactive: { bg: 'bg-white/[0.08]',   text: 'text-[#A1A1A8]' },
-  lost:     { bg: 'bg-red-400/12',     text: 'text-red-300' },
+  lost:     { bg: 'bg-red-400/[0.12]',     text: 'text-red-300' },
+};
+
+/* Les clés de statut et d'étape sont celles de l'API. Elles s'affichaient
+   telles quelles, en capitales: « PROSPECT », « QUALIFIED ». */
+const STATUS_LABELS: Record<string, string> = {
+  active: 'Actif', prospect: 'Prospect', client: 'Client', inactive: 'Inactif', lost: 'Perdu',
+};
+const STAGE_LABELS: Record<string, string> = {
+  new: 'Nouveau', qualified: 'Qualifié', appointment: 'Rendez-vous', client: 'Client', inactive: 'Inactif', lost: 'Perdu',
 };
 
 const STAGE_COLORS: Record<string, string> = {
@@ -198,9 +207,9 @@ export default function CrmContactDetail() {
   const sc = STATUS_COLORS[contact.status] || STATUS_COLORS.prospect;
 
   function scoreColor(score: number) {
-    if (score >= 8) return 'text-emerald-300 bg-emerald-400/12';
-    if (score >= 5) return 'text-amber-300 bg-amber-400/12';
-    return 'text-red-300 bg-red-400/12';
+    if (score >= 8) return 'text-emerald-300 bg-emerald-400/[0.12]';
+    if (score >= 5) return 'text-amber-300 bg-amber-400/[0.12]';
+    return 'text-red-300 bg-red-400/[0.12]';
   }
 
   if (loading) {
@@ -242,10 +251,10 @@ export default function CrmContactDetail() {
         stats={
           <div className="space-y-3">
             <div className="flex items-center gap-2 flex-wrap">
-              <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${sc.bg} ${sc.text}`}>
-                {contact.status.toUpperCase()}
+              <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${sc.bg} ${sc.text}`}>
+                {STATUS_LABELS[contact.status] ?? contact.status}
               </span>
-              <span className={`text-xs font-bold px-2 py-0.5 rounded-lg ${scoreColor(contact.leadScore)}`}>
+              <span className={`text-xs font-semibold px-2 py-0.5 rounded-lg ${scoreColor(contact.leadScore)}`}>
                 <Star size={10} className="inline mr-0.5" aria-hidden="true" />{contact.leadScore}/10
               </span>
               {contact.tags.map((tag: string) => (
@@ -301,7 +310,7 @@ export default function CrmContactDetail() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Contact info */}
               <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-5">
-                <p className="text-xs font-semibold text-[#A1A1A8] uppercase tracking-wide mb-4">Coordonnées</p>
+                <p className="text-xs font-medium text-[#A1A1A8] mb-4">Coordonnées</p>
                 <div className="space-y-3">
                   {[
                     { icon: Calendar, label: 'Ajouté le', value: contact.createdAt },
@@ -319,7 +328,7 @@ export default function CrmContactDetail() {
 
               {/* Enrichment data */}
               <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-5">
-                <p className="text-xs font-semibold text-[#A1A1A8] uppercase tracking-wide mb-4">Données enrichies</p>
+                <p className="text-xs font-medium text-[#A1A1A8] mb-4">Données enrichies</p>
                 <div className="space-y-3">
                   {Object.entries(contact.enrichment || {}).map(([key, val]) => (
                     <div key={key} className="flex items-center gap-3">
@@ -393,12 +402,12 @@ export default function CrmContactDetail() {
               <div key={d.id} className="rounded-2xl border border-white/[0.07] bg-white/[0.03] px-5 py-4">
                 <div className="flex items-center justify-between mb-2">
                   <p className="text-sm font-semibold text-[#F5F5F7]">{d.title}</p>
-                  <span className="text-sm font-bold text-emerald-300">{d.value.toLocaleString('fr-FR')} €</span>
+                  <span className="text-sm font-semibold text-emerald-300">{d.value.toLocaleString('fr-FR')} €</span>
                 </div>
                 <div className="flex items-center gap-4">
-                  <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full"
+                  <span className="text-[11px] font-medium px-2 py-0.5 rounded-full"
                     style={{ background: `${STAGE_COLORS[d.stage]}20`, color: STAGE_COLORS[d.stage] }}>
-                    {d.stage.toUpperCase()}
+                    {STAGE_LABELS[d.stage] ?? d.stage}
                   </span>
                   <span className="text-xs text-[#A1A1A8]">{d.probability}% de probabilité</span>
                   <span className="text-xs text-[#A1A1A8]">Clôture : {d.closeDate}</span>
@@ -414,7 +423,7 @@ export default function CrmContactDetail() {
         {/* NOTES */}
         {activeTab === 'notes' && (
           <div className="rounded-2xl border border-white/[0.07] bg-white/[0.03] p-5">
-            <p className="text-xs font-semibold text-[#A1A1A8] uppercase tracking-wide mb-3">Notes</p>
+            <p className="text-xs font-medium text-[#A1A1A8] mb-3">Notes</p>
             <textarea
               value={notes}
               onChange={e => setNotes(e.target.value)}
@@ -464,7 +473,7 @@ export default function CrmContactDetail() {
                       </div>
                       <div className="flex-1 rounded-2xl border border-white/[0.07] bg-white/[0.03] px-4 py-3">
                         <div className="flex items-center justify-between mb-1">
-                          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.iconColor}`}>{cfg.label.toUpperCase()}</span>
+                          <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full ${cfg.bg} ${cfg.iconColor}`}>{cfg.label}</span>
                           <span className="text-[11px] text-[#A1A1A8]">{a.date} · {a.timestamp}</span>
                         </div>
                         <p className="text-[12px] text-[#A1A1A8] leading-relaxed">{a.description}</p>

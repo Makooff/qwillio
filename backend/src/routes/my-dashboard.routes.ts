@@ -76,11 +76,13 @@ router.put('/leads/:id/notes', (req, res) => clientDashboardController.updateLea
 router.get('/integrations/google-calendar/auth-url', (req, res) => clientDashboardController.getGoogleCalendarAuthUrl(req, res));
 router.post('/integrations/google-calendar/callback', (req, res) => clientDashboardController.connectGoogleCalendar(req, res));
 router.get('/integrations/google-calendar/status', (req, res) => clientDashboardController.googleCalendarStatus(req, res));
+router.post('/integrations/google-calendar/test', (req, res) => clientDashboardController.testGoogleCalendar(req, res));
 router.delete('/integrations/google-calendar', (req, res) => clientDashboardController.disconnectGoogleCalendar(req, res));
 // ── Outlook / Microsoft 365 : mêmes gestes, même page de retour ──────────
 router.get('/integrations/outlook-calendar/auth-url', (req, res) => clientDashboardController.getOutlookCalendarAuthUrl(req, res));
 router.post('/integrations/outlook-calendar/callback', (req, res) => clientDashboardController.connectOutlookCalendar(req, res));
 router.get('/integrations/outlook-calendar/status', (req, res) => clientDashboardController.outlookCalendarStatus(req, res));
+router.post('/integrations/outlook-calendar/test', (req, res) => clientDashboardController.testOutlookCalendar(req, res));
 router.delete('/integrations/outlook-calendar', (req, res) => clientDashboardController.disconnectOutlookCalendar(req, res));
 
 // ─── Receptionist settings ──────────────────────────────
