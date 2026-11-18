@@ -74,14 +74,15 @@ fort.
 
 ## 3. Qui cibler, dans l'ordre
 
-| Rang | Cible | Pourquoi | Où |
-|---|---|---|---|
-| 1 | **Chauffagistes, plombiers, serruriers, électriciens**, 1 à 5 personnes | Le patron décroche lui-même, souvent sur un toit ou sous un évier. En dépannage, **le premier qui décroche prend le chantier** (un chantier vaut 150 à 2 000 €). Novembre à février = pannes de chaudière. | Bruxelles, Brabant wallon, une commune à la fois |
-| 2 | **Kinés, ostéos, vétérinaires** en cabinet seul, **sans secrétaire** | Ils sont en séance, ne peuvent pas décrocher, et chaque appel est un rendez-vous. La prise de rendez-vous est déjà dans le produit. | Vérifie d'abord qu'ils n'ont pas déjà Doctena ou un secrétariat |
-| 3 | **Agences immobilières** | Fort volume d'appels sur les annonces, chaque contact peut valoir une commission | En réserve, si 1 et 2 ne répondent pas |
-| ✗ | Garages, restaurants, grandes enseignes | Appels peu urgents ou déjà un accueil humain | Plus avant d'avoir 5 clients |
+Le détail jour par jour est dans [`agenda-nov-dec.md`](agenda-nov-dec.md).
 
----
+| Rang | Cible | Pourquoi | Jours |
+|---|---|---|---|
+| 1 | **Agences immobilières** | Un appel raté le soir ou le samedi, c'est un acheteur ou un vendeur perdu, et un mandat vaut des milliers d'euros. Le patron décide seul, et l'agence a une vitrine : tu entres sans rendez-vous. | Mardi, jeudi |
+| 2 | **Chauffagistes, plombiers, serruriers**, 1 à 5 personnes | En dépannage, le premier qui décroche prend le chantier. Novembre à février, c'est la saison des pannes. | Lundi, mercredi |
+| 🤝 | **Fiduciaires** | Pas un client : un **partenaire**. Elles ont 50 à 300 PME clientes, et toi tu leur reverses 20 % à vie. | Vendredi matin |
+| ⏸️ | **Dentistes, kinés** | Les dentistes ont plus de patients qu'ils ne peuvent en soigner, donc un appel raté ne leur coûte presque rien. Et ce sont des données de santé, avec un serveur aux États-Unis. | Janvier, après vérification RGPD |
+| ✗ | Garages, restaurants, grands comptes (VOO, Domino's) | Appels peu urgents, ou six mois de cycle de vente et un questionnaire de sécurité que tu ne passes pas encore. Les **franchisés** (le patron de 4 pizzerias) sont l'exception, à viser après 5 clients. | Plus tard |
 
 ## 4. L'offre (la même pour tout le monde)
 
