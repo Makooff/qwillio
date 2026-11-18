@@ -163,9 +163,15 @@ describe('premium review regressions', () => {
     expect((await service.get(base.clientId, phone))?.totalCalls).toBe(2);
   });
   it('preserves fresher summary, preferences and request corrections', async () => {
+    // Les dates sont fixes et une demande expire au bout de MEMORY_REQUEST_TTL_DAYS :
+    // sans horloge figée, ce test tombait de lui-même trente jours après son écriture.
+    vi.useFakeTimers({ toFake: ['Date'] });
+    vi.setSystemTime(new Date('2026-10-20'));
+    try {
     await remember({ occurredAt: new Date('2026-10-19'), summary: 'Fresh', outcome: 'booked', preferences: ['Quiet'], request: { text: 'Quote', callbackWhen: 'Tuesday' } });
     await remember({ occurredAt: new Date('2026-10-18'), summary: 'Old', outcome: 'missed', removePreferences: ['Quiet'], preferences: ['Loud'], request: { text: 'Quote', callbackWhen: 'Monday' } });
     expect(await service.get(base.clientId, phone)).toMatchObject({ lastSummary: 'Fresh', lastOutcome: 'booked', preferences: ['Quiet'], lastCallAt: new Date('2026-10-19'), openRequests: [{ text: 'Quote', callbackWhen: 'Tuesday' }] });
+    } finally { vi.useRealTimers(); }
   });
   it('does not erase summary on an empty capture', async () => {
     await remember({ summary: 'Context', outcome: 'booked' });
