@@ -13874,6 +13874,549 @@ const data = {
      }
     }
    ]
+  },
+  "en-c01": {
+   "lang": "en",
+   "slug": "double-call",
+   "music": 8,
+   "scenes": [
+    {
+     "visual": {
+      "kind": "x",
+      "scene": "split",
+      "opts": {
+       "stage": "one",
+       "busy": "Marc Peeters",
+       "name": "Sophie Lambert",
+       "initials": "SL",
+       "time": "19:02",
+       "date": "Friday 14 November",
+       "you": "You",
+       "keys": [
+        "speaker",
+        "FaceTime",
+        "mute",
+        "add",
+        "keypad",
+        "end"
+       ],
+       "took": "Qwillio took the 2nd call"
+      }
+     },
+     "say": {
+      "file": "voices/shorts/en-c01-n0.mp3",
+      "duration": 3.92,
+      "serif": [
+       10
+      ],
+      "words": [
+       {
+        "w": "Friday,",
+        "start": 0.114
+       },
+       {
+        "w": "seven",
+        "start": 0.884
+       },
+       {
+        "w": "p.m.",
+        "start": 1.321
+       },
+       {
+        "w": "You’re",
+        "start": 1.68
+       },
+       {
+        "w": "already",
+        "start": 2.096
+       },
+       {
+        "w": "on",
+        "start": 2.68
+       },
+       {
+        "w": "the",
+        "start": 2.76
+       },
+       {
+        "w": "phone",
+        "start": 2.84
+       },
+       {
+        "w": "with",
+        "start": 3.16
+       },
+       {
+        "w": "a",
+        "start": 3.16
+       },
+       {
+        "w": "customer.",
+        "start": 3.241
+       }
+      ],
+      "title": "Friday, 7 p.m. You’re already on a call.",
+      "titleSerif": [
+       6
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "x",
+      "scene": "split",
+      "min": 4.2,
+      "opts": {
+       "stage": "two",
+       "pop": {
+        "at": 2.9,
+        "title": "Qwillio took the 2nd call",
+        "desc": "Sophie Lambert · in progress",
+        "time": "now",
+        "y": 1220
+       },
+       "busy": "Marc Peeters",
+       "name": "Sophie Lambert",
+       "initials": "SL",
+       "time": "19:02",
+       "date": "Friday 14 November",
+       "you": "You",
+       "keys": [
+        "speaker",
+        "FaceTime",
+        "mute",
+        "add",
+        "keypad",
+        "end"
+       ],
+       "took": "Qwillio took the 2nd call"
+      }
+     },
+     "say": {
+      "file": "voices/shorts/en-c01-n1.mp3",
+      "duration": 4.4,
+      "serif": [
+       12
+      ],
+      "words": [
+       {
+        "w": "A",
+        "start": 0.103
+       },
+       {
+        "w": "second",
+        "start": 0.201
+       },
+       {
+        "w": "call",
+        "start": 0.681
+       },
+       {
+        "w": "comes",
+        "start": 1
+       },
+       {
+        "w": "in.",
+        "start": 1.24
+       },
+       {
+        "w": "Your",
+        "start": 1.818
+       },
+       {
+        "w": "line",
+        "start": 2.121
+       },
+       {
+        "w": "is",
+        "start": 2.6
+       },
+       {
+        "w": "busy,",
+        "start": 2.681
+       },
+       {
+        "w": "so",
+        "start": 3.317
+       },
+       {
+        "w": "she",
+        "start": 3.4
+       },
+       {
+        "w": "picks",
+        "start": 3.642
+       },
+       {
+        "w": "up.",
+        "start": 4.04
+       }
+      ],
+      "title": "Line busy? She takes the second one.",
+      "titleSerif": [
+       5
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "x",
+      "scene": "split",
+      "opts": {
+       "stage": "talk",
+       "busy": "Marc Peeters",
+       "name": "Sophie Lambert",
+       "initials": "SL",
+       "time": "19:02",
+       "date": "Friday 14 November",
+       "you": "You",
+       "keys": [
+        "speaker",
+        "FaceTime",
+        "mute",
+        "add",
+        "keypad",
+        "end"
+       ],
+       "took": "Qwillio took the 2nd call"
+      }
+     },
+     "lines": [
+      {
+       "who": "caller",
+       "file": "voices/shorts/en-c01-2-0-tel.mp3",
+       "duration": 2.8,
+       "words": [
+        {
+         "w": "Good",
+         "start": 0.108
+        },
+        {
+         "w": "evening,",
+         "start": 0.281
+        },
+        {
+         "w": "would",
+         "start": 0.992
+        },
+        {
+         "w": "you",
+         "start": 1.08
+        },
+        {
+         "w": "still",
+         "start": 1.16
+        },
+        {
+         "w": "have",
+         "start": 1.4
+        },
+        {
+         "w": "a",
+         "start": 1.56
+        },
+        {
+         "w": "table",
+         "start": 1.64
+        },
+        {
+         "w": "for",
+         "start": 1.88
+        },
+        {
+         "w": "two",
+         "start": 2.12
+        },
+        {
+         "w": "tonight?",
+         "start": 2.28
+        }
+       ]
+      },
+      {
+       "who": "agent",
+       "file": "voices/shorts/en-c01-2-1.mp3",
+       "duration": 4.24,
+       "words": [
+        {
+         "w": "Good",
+         "start": 0.122
+        },
+        {
+         "w": "evening!",
+         "start": 0.364
+        },
+        {
+         "w": "Yes,",
+         "start": 1.073
+        },
+        {
+         "w": "at",
+         "start": 1.713
+        },
+        {
+         "w": "nine",
+         "start": 1.881
+        },
+        {
+         "w": "o’clock.",
+         "start": 2.201
+        },
+        {
+         "w": "What",
+         "start": 2.871
+        },
+        {
+         "w": "name",
+         "start": 3.241
+        },
+        {
+         "w": "is",
+         "start": 3.48
+        },
+        {
+         "w": "it",
+         "start": 3.64
+        },
+        {
+         "w": "under?",
+         "start": 3.72
+        }
+       ]
+      },
+      {
+       "who": "caller",
+       "file": "voices/shorts/en-c01-2-2-tel.mp3",
+       "duration": 1.92,
+       "words": [
+        {
+         "w": "Lambert.",
+         "start": 0.122
+        },
+        {
+         "w": "Sophie",
+         "start": 0.87
+        },
+        {
+         "w": "Lambert.",
+         "start": 1.321
+        }
+       ]
+      },
+      {
+       "who": "agent",
+       "file": "voices/shorts/en-c01-2-3.mp3",
+       "duration": 2.72,
+       "words": [
+        {
+         "w": "All",
+         "start": 0.128
+        },
+        {
+         "w": "set,",
+         "start": 0.52
+        },
+        {
+         "w": "Mrs",
+         "start": 0.913
+        },
+        {
+         "w": "Lambert.",
+         "start": 1.161
+        },
+        {
+         "w": "See",
+         "start": 1.809
+        },
+        {
+         "w": "you",
+         "start": 2.12
+        },
+        {
+         "w": "tonight!",
+         "start": 2.122
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "visual": {
+      "kind": "x",
+      "scene": "split",
+      "opts": {
+       "stage": "done",
+       "busy": "Marc Peeters",
+       "name": "Sophie Lambert",
+       "initials": "SL",
+       "time": "19:02",
+       "date": "Friday 14 November",
+       "you": "You",
+       "keys": [
+        "speaker",
+        "FaceTime",
+        "mute",
+        "add",
+        "keypad",
+        "end"
+       ],
+       "took": "Qwillio took the 2nd call",
+       "doneTitle": "New booking",
+       "doneDesc": "Sophie Lambert · 2 people · 21:00",
+       "pop": {
+        "at": 0.7,
+        "title": "New booking",
+        "desc": "Sophie Lambert · 2 people · 21:00",
+        "time": "now",
+        "y": 1220
+       }
+      }
+     },
+     "say": {
+      "file": "voices/shorts/en-c01-n3.mp3",
+      "duration": 4.4,
+      "serif": [
+       13
+      ],
+      "words": [
+       {
+        "w": "You",
+        "start": 0.114
+       },
+       {
+        "w": "hang",
+        "start": 0.44
+       },
+       {
+        "w": "up",
+        "start": 0.52
+       },
+       {
+        "w": "with",
+        "start": 0.6
+       },
+       {
+        "w": "your",
+        "start": 0.84
+       },
+       {
+        "w": "first",
+        "start": 0.842
+       },
+       {
+        "w": "customer,",
+        "start": 1.321
+       },
+       {
+        "w": "and",
+        "start": 1.948
+       },
+       {
+        "w": "the",
+        "start": 2.12
+       },
+       {
+        "w": "second",
+        "start": 2.2
+       },
+       {
+        "w": "table",
+        "start": 2.522
+       },
+       {
+        "w": "is",
+        "start": 3.083
+       },
+       {
+        "w": "already",
+        "start": 3.288
+       },
+       {
+        "w": "booked.",
+        "start": 3.803
+       }
+      ],
+      "title": "Two calls at once. Two tables.",
+      "titleSerif": [
+       5
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "rules"
+     },
+     "say": {
+      "file": "voices/shorts/en-c01-n4.mp3",
+      "duration": 4.16,
+      "serif": [
+       13
+      ],
+      "words": [
+       {
+        "w": "The",
+        "start": 0.106
+       },
+       {
+        "w": "rest",
+        "start": 0.36
+       },
+       {
+        "w": "of",
+        "start": 0.6
+       },
+       {
+        "w": "the",
+        "start": 0.68
+       },
+       {
+        "w": "time,",
+        "start": 0.681
+       },
+       {
+        "w": "you",
+        "start": 1.272
+       },
+       {
+        "w": "answer.",
+        "start": 1.561
+       },
+       {
+        "w": "She",
+        "start": 2.295
+       },
+       {
+        "w": "only",
+        "start": 2.601
+       },
+       {
+        "w": "takes",
+        "start": 2.76
+       },
+       {
+        "w": "the",
+        "start": 3.08
+       },
+       {
+        "w": "calls",
+        "start": 3.16
+       },
+       {
+        "w": "you",
+        "start": 3.48
+       },
+       {
+        "w": "can’t.",
+        "start": 3.562
+       }
+      ],
+      "title": "You answer first. She takes the rest.",
+      "titleSerif": [
+       5
+      ]
+     }
+    }
+   ]
   }
  }
 };

@@ -452,7 +452,7 @@ export function campaignVisual(t: number, s: TScene, lang: Lang): { body?: React
   const r = campaignBody(t, s, lang);
   const o = (s.visual as Extract<TScene['visual'], { kind: 'x' }>).opts ?? {};
   if (!o.pop) return r;
-  return { ...r, body: <>{r.body}<Pop3D t={t} at={s.at + o.pop.at} title={o.pop.title} desc={o.pop.desc} y={o.pop.y ?? 1250} /></> };
+  return { ...r, body: <>{r.body}<Pop3D t={t} at={s.at + o.pop.at} title={o.pop.title} desc={o.pop.desc} time={o.pop.time ?? (lang === 'fr' ? 'maintenant' : lang === 'nl' ? 'nu' : 'now')} y={o.pop.y ?? 1250} /></> };
 }
 
 function campaignBody(t: number, s: TScene, lang: Lang): { body?: React.ReactNode; over?: React.ReactNode } {
