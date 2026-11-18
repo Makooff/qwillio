@@ -2,7 +2,9 @@
 
 **Un dossier = un jour de publication.** Ouvre celui du jour : les fichiers sont nommés selon le réseau, et `A-POSTER.txt` contient la légende à copier pour Instagram, Facebook, TikTok et LinkedIn.
 
-À faire une seule fois : coller les bios de [BIOS-DES-PROFILS.txt](BIOS-DES-PROFILS.txt).
+À faire une seule fois : monter les profils avec [contenu-social/](contenu-social/) (logo HD, bannières LinkedIn, bios et slogan).
+
+Le jour 01 existe aussi en anglais, dans son sous-dossier `anglais/`.
 
 | # | Jour | Heure | Post | Dossier |
 | --- | --- | --- | --- | --- |

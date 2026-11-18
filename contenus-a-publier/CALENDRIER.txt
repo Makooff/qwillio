@@ -1,6 +1,6 @@
 CAMPAGNE « ELLE PREND LE RELAIS », un post tous les 3 jours
 Chaque dossier = un jour. Dedans : les fichiers à poster et A-POSTER.txt (légende par réseau).
-Les bios de profil sont dans BIOS-DES-PROFILS.txt.
+Les bios de profil, le logo et les bannières sont dans contenu-social/.
 
 01  mardi 17 novembre 2026       19:00  vidéo c01  Double appel (restaurant)
 02  vendredi 20 novembre 2026    12:00  photo p01  Votre GSM sonne d'abord
