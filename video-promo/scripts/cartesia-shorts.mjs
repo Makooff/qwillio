@@ -386,6 +386,22 @@ const EN = [
     { visual: { kind: 'orb' }, lines: [agent('Hello! I’m Qwillio’s receptionist. Ask me anything, I’m listening.', 'happy')] },
     { visual: { kind: 'orb' }, say: { text: 'Call her yourself. She’s waiting.', emotion: 'affectionate', title: 'Call her yourself. She’s waiting.', titleSerif: [4] } },
   ] },
+
+  // ---- Campaign « she takes over » (c01…), English version of the French series.
+  { id: 'c01', slug: 'double-call', music: 8, scenes: [
+    { visual: { kind: 'x', scene: 'split', opts: { stage: 'one', busy: 'Marc Peeters', name: 'Sophie Lambert', initials: 'SL', time: '19:02', date: 'Friday 14 November', you: 'You', keys: ['speaker', 'FaceTime', 'mute', 'add', 'keypad', 'end'], took: 'Qwillio took the 2nd call' } }, say: { text: 'Friday, seven p.m. You’re already on the phone with a customer.', emotion: 'calm', title: 'Friday, 7 p.m. You’re already on a call.', titleSerif: [6] } },
+    { visual: { kind: 'x', scene: 'split', min: 4.2, opts: { stage: 'two', pop: { at: 2.9, title: 'Qwillio took the 2nd call', desc: 'Sophie Lambert · in progress', time: 'now', y: 1220 }, busy: 'Marc Peeters', name: 'Sophie Lambert', initials: 'SL', time: '19:02', date: 'Friday 14 November', you: 'You', keys: ['speaker', 'FaceTime', 'mute', 'add', 'keypad', 'end'], took: 'Qwillio took the 2nd call' } },
+      say: { text: 'A second call comes in. Your line is busy, so she picks up.', emotion: 'confident', title: 'Line busy? She takes the second one.', titleSerif: [5] } },
+    { visual: { kind: 'x', scene: 'split', opts: { stage: 'talk', busy: 'Marc Peeters', name: 'Sophie Lambert', initials: 'SL', time: '19:02', date: 'Friday 14 November', you: 'You', keys: ['speaker', 'FaceTime', 'mute', 'add', 'keypad', 'end'], took: 'Qwillio took the 2nd call' } },
+      lines: [caller('F', 'Good evening, would you still have a table for two tonight?'),
+        agent('Good evening! Yes, at nine o’clock. What name is it under?', 'happy'),
+        caller('F', 'Lambert. Sophie Lambert.'),
+        agent('All set, Mrs Lambert. See you tonight!', 'happy')] },
+    { visual: { kind: 'x', scene: 'split', opts: { stage: 'done', busy: 'Marc Peeters', name: 'Sophie Lambert', initials: 'SL', time: '19:02', date: 'Friday 14 November', you: 'You', keys: ['speaker', 'FaceTime', 'mute', 'add', 'keypad', 'end'], took: 'Qwillio took the 2nd call', doneTitle: 'New booking', doneDesc: 'Sophie Lambert · 2 people · 21:00', pop: { at: 0.7, title: 'New booking', desc: 'Sophie Lambert · 2 people · 21:00', time: 'now', y: 1220 } } },
+      say: { text: 'You hang up with your first customer, and the second table is already booked.', emotion: 'happy', title: 'Two calls at once. Two tables.', titleSerif: [5] } },
+    { visual: { kind: 'rules' },
+      say: { text: 'The rest of the time, you answer. She only takes the calls you can’t.', emotion: 'affectionate', title: 'You answer first. She takes the rest.', titleSerif: [5] } },
+  ] },
 ];
 
 const NL = [
