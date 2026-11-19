@@ -12,7 +12,7 @@ Le « pourquoi » est dans [`plan-du-jour.md`](plan-du-jour.md). Ici, seulement
 | **Agences immobilières** | ✅ **Cible n° 1** | Un appel raté le soir ou le samedi, c'est un acheteur ou un vendeur qui appelle l'agence d'à côté. Un mandat vaut des milliers d'euros. Le patron décide seul, et l'agence a une **vitrine** : tu peux entrer sans rendez-vous. | Mardi et jeudi |
 | **Artisans de dépannage** (chauffagiste, plombier, serrurier) | ✅ **Cible n° 2** | Le premier qui décroche prend le chantier, et c'est la saison des pannes de chaudière. Ils signent vite, à 99 €. | Lundi et mercredi |
 | **Fiduciaires** | 🤝 **Partenaire, pas client** | Un comptable rate rarement un appel qui lui coûte un client. Par contre, il a **50 à 300 PME clientes** qui lui font confiance. Tu lui proposes **20 % de commission à vie** sur chaque client qu'il t'envoie. | Vendredi matin |
-| **Dentistes** | ⏸️ **En janvier, pas avant** | En Belgique, les dentistes ont plus de patients qu'ils ne peuvent en soigner : un patient qui tombe sur la messagerie rappelle, il ne part pas. L'argument « vous perdez des clients » ne tient donc pas, seul « vous êtes moins dérangé pendant les soins » tient. Et ce sont des **données de santé** : avec un serveur aux États-Unis, c'est le premier client qui peut te causer un problème RGPD. | Janvier, après vérification RGPD |
+| **Dentistes** | ⏸️ **En janvier, pas avant** | En Belgique, les dentistes ont plus de patients qu'ils ne peuvent en soigner : un patient qui tombe sur la messagerie rappelle, il ne part pas. L'argument « vous perdez des clients » ne tient donc pas, seul « vous êtes moins dérangé pendant les soins » tient. Et ce sont des **données de santé** : le serveur est à Francfort, mais l'audio passe chez des fournisseurs qui peuvent traiter hors UE. C'est le premier client qui peut te causer un problème RGPD. | Janvier, après vérification RGPD |
 
 ---
 
@@ -57,7 +57,7 @@ c'est le jour des visites, donc des appels ratés.
 
 | Heure | Tâche | ✔ |
 |---|---|---|
-| 9 h | Recharger le solde Vapi et appeler toi-même ta ligne de démo | ☐ |
+| 9 h | Vérifier les crédits des fournisseurs de voix (Cartesia ou ElevenLabs) et le solde Twilio, puis appeler toi-même ta ligne de démo | ☐ |
 | 9 h 30 | Configurer **deux** lignes de démo : un chauffagiste fictif, et une agence immobilière fictive avec 3 biens (prix, nombre de chambres, adresse) | ☐ |
 | 11 h | Vérifier la liste « Ne m'appelez plus » sur le site officiel | ☐ |
 | 11 h 30 | Écrire tes trois nombres pour les garages : appels passés, décrochés, intéressés | ☐ |

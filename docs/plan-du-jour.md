@@ -81,7 +81,7 @@ Le détail jour par jour est dans [`agenda-nov-dec.md`](agenda-nov-dec.md).
 | 1 | **Agences immobilières** | Un appel raté le soir ou le samedi, c'est un acheteur ou un vendeur perdu, et un mandat vaut des milliers d'euros. Le patron décide seul, et l'agence a une vitrine : tu entres sans rendez-vous. | Mardi, jeudi |
 | 2 | **Chauffagistes, plombiers, serruriers**, 1 à 5 personnes | En dépannage, le premier qui décroche prend le chantier. Novembre à février, c'est la saison des pannes. | Lundi, mercredi |
 | 🤝 | **Fiduciaires** | Pas un client : un **partenaire**. Elles ont 50 à 300 PME clientes, et toi tu leur reverses 20 % à vie. | Vendredi matin |
-| ⏸️ | **Dentistes, kinés** | Les dentistes ont plus de patients qu'ils ne peuvent en soigner, donc un appel raté ne leur coûte presque rien. Et ce sont des données de santé, avec un serveur aux États-Unis. | Janvier, après vérification RGPD |
+| ⏸️ | **Dentistes, kinés** | Les dentistes ont plus de patients qu'ils ne peuvent en soigner, donc un appel raté ne leur coûte presque rien. Et ce sont des données de santé : le serveur est à Francfort, mais certains fournisseurs de la chaîne vocale peuvent traiter hors UE. | Janvier, après vérification RGPD |
 | ✗ | Garages, restaurants, grands comptes (VOO, Domino's) | Appels peu urgents, ou six mois de cycle de vente et un questionnaire de sécurité que tu ne passes pas encore. Les **franchisés** (le patron de 4 pizzerias) sont l'exception, à viser après 5 clients. | Plus tard |
 
 ## 4. L'offre (la même pour tout le monde)
@@ -124,7 +124,7 @@ semaine, rien d'autre.
 - Tout refus est noté **mot pour mot**. Les 3 refus les plus fréquents de la
   semaine = ce que tu corriges le lundi.
 - Un « non merci, ne me rappelez plus » est définitif (case `doNotCall`).
-- Avant la première visite de la journée : solde Vapi positif, et tu appelles
+- Avant la première visite de la journée : tu appelles
   toi-même ta ligne de démo.
 
 ---
@@ -170,7 +170,7 @@ Dans cet ordre, du moins coûteux au plus coûteux :
 
 ## 8. Ce qu'il ne faut jamais faire
 
-- Dire « hébergé en Europe » (c'est faux, le serveur est en Oregon).
+- Dire « tout est hébergé en Europe ». Le serveur et la base sont à Francfort, c'est vrai, mais l'audio passe aussi chez des fournisseurs (modèle, voix, transcription) qui peuvent traiter hors UE. La phrase honnête : « serveurs en Europe, conforme au RGPD ».
 - Inventer un client ou un chiffre. Cite son chiffre à lui, issu du test d'appel.
 - Envoyer un SMS ou un courriel de prospection à un indépendant sur son numéro
   ou son adresse personnelle sans son accord (droit belge). Le SMS part
