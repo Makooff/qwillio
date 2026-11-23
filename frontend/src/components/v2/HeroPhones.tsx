@@ -1,239 +1,190 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useInView, useReducedMotion } from 'framer-motion';
-import { Camera, Mic, Phone, PhoneOff, Plus, Volume2 } from '../icons';
-import QwillioLogo from '../QwillioLogo';
+import { Device, H, InCallScreen, IncomingCall, LockScreen, Notification, W, sf } from './ios/IosKit';
 
 /**
- * L'illustration qui referme le hero (demande utilisateur: « une illustration
- * qui remplace l'ancienne, avec deux iPhone animés en motion design smooth »,
- * sans texte autour ni effet mauve). Dessinée en DOM et animée par Framer
- * Motion, pas en vidéo: une vidéo à fond transparent s'affichait sur fond NOIR
- * sur iPhone, WebKit ignorant la couche alpha du WebM.
- *
- * À gauche, votre téléphone: vous êtes déjà en ligne. À droite, la ligne que
- * Qwillio tient: le deuxième appel arrive, elle le prend, la conversation
- * s'écrit, la réservation tombe. Puis la boucle recommence.
+ * L'illustration du hero (demande utilisateur: « les mockups iOS de la pub »,
+ * deux iPhones animés en motion design, sans texte autour ni effet mauve).
+ * Les écrans sont ceux des publicités, repris de video-promo par `ios/IosKit`,
+ * et la mise en scène est celle de la vidéo c01:
+ *   1. vous êtes en ligne avec un client;
+ *   2. un deuxième appel sonne, ligne occupée;
+ *   3. Qwillio le prend;
+ *   4. la conversation s'écrit dans l'app;
+ *   5. la réservation tombe.
+ * Dessinée en DOM et animée par Framer Motion: transparente partout, iPhone
+ * compris (une vidéo WebM à fond transparent s'y affichait sur fond noir).
  */
 
 const EASE = [0.16, 1, 0.3, 1] as const;
-/* Les temps de la boucle, en millisecondes. Le dernier ramène au premier. */
+const INDIGO = '#7A5FFF';
 const STEPS = [
-  { key: 'idle', ms: 1400 },
-  { key: 'ring', ms: 2400 },
-  { key: 'took', ms: 1500 },
-  { key: 'live', ms: 5600 },
-  { key: 'booked', ms: 3200 },
+  { key: 'idle', ms: 1500 },
+  { key: 'ring', ms: 2600 },
+  { key: 'took', ms: 1700 },
+  { key: 'live', ms: 6200 },
+  { key: 'booked', ms: 3400 },
 ] as const;
 type Step = (typeof STEPS)[number]['key'];
 
 const TXT = {
   fr: {
-    incoming: 'Appel entrant', waiting: 'Sophie Lambert · en attente', took: 'Qwillio a répondu', tookDesc: 'Sophie Lambert',
-    booked: 'Nouvelle réservation', bookedDesc: 'Sophie Lambert · 2 pers. · 21:00', now: 'maintenant', date: 'vendredi 14 novembre',
+    date: 'vendredi 14 novembre', lineBusy: 'ligne occupée', took: 'Qwillio a pris le 2e appel', booked: 'Nouvelle réservation',
+    bookedDesc: 'Sophie Lambert · 2 personnes · 21:00', now: 'maintenant',
+    keys: ['haut-parleur', 'FaceTime', 'silence', 'ajouter', 'clavier', 'fin'] as [string, string, string, string, string, string],
     lines: [
-      { me: false, t: 'Bonsoir, vous auriez une table pour deux ce soir ?' },
-      { me: true, t: 'Bonsoir ! Oui, à 21 h. À quel nom ?' },
-      { me: false, t: 'Lambert. Sophie Lambert.' },
-      { me: true, t: 'C’est noté, Madame Lambert. À tantôt !' },
+      { agent: false, t: 'Bonsoir, vous auriez encore une table pour deux, ce soir ?' },
+      { agent: true, t: 'Bonsoir ! Oui, à vingt et une heures. C’est à quel nom ?' },
+      { agent: false, t: 'Lambert. Sophie Lambert.' },
+      { agent: true, t: 'C’est noté, Madame Lambert. À tantôt !' },
     ],
   },
   en: {
-    incoming: 'Incoming call', waiting: 'Sophie Lambert · waiting', took: 'Qwillio answered', tookDesc: 'Sophie Lambert',
-    booked: 'New booking', bookedDesc: 'Sophie Lambert · 2 people · 21:00', now: 'now', date: 'Friday 14 November',
+    date: 'Friday 14 November', lineBusy: 'line busy', took: 'Qwillio took the 2nd call', booked: 'New booking',
+    bookedDesc: 'Sophie Lambert · 2 people · 21:00', now: 'now',
+    keys: ['speaker', 'FaceTime', 'mute', 'add', 'keypad', 'end'] as [string, string, string, string, string, string],
     lines: [
-      { me: false, t: 'Good evening, do you have a table for two tonight?' },
-      { me: true, t: 'Good evening! Yes, at 9 p.m. What name is it under?' },
-      { me: false, t: 'Lambert. Sophie Lambert.' },
-      { me: true, t: 'All set, Mrs Lambert. See you tonight!' },
+      { agent: false, t: 'Good evening, would you still have a table for two tonight?' },
+      { agent: true, t: 'Good evening! Yes, at nine o’clock. What name is it under?' },
+      { agent: false, t: 'Lambert. Sophie Lambert.' },
+      { agent: true, t: 'All set, Mrs Lambert. See you tonight!' },
     ],
   },
 };
 
-/** La coque: un liseré de titane, un verre noir, l'île dynamique. */
-function Shell({ children, dark = false }: { children: React.ReactNode; dark?: boolean }) {
+const WALL = '/ios-kit/wallpaper.webp';
+const clock = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
+
+/** L'écran de l'app Qwillio pendant qu'elle répond, comme dans la pub (campaign.tsx, LiveCall). */
+function LiveCall({ who, lines, sec }: { who: string; lines: { agent: boolean; t: string }[]; sec: number }) {
   return (
-    <div className="relative w-full aspect-[9/19] rounded-[16%/7.6%] bg-[#1d1d1f] p-[3.2%] shadow-[0_44px_70px_-34px_rgba(0,0,0,0.45),0_0_0_1px_rgba(255,255,255,0.06)_inset]">
-      <div className={`relative h-full w-full overflow-hidden rounded-[13%/6.2%] ${dark ? 'bg-[#0b0b0c]' : 'bg-[#f2f2f7]'}`}>
-        {children}
-        <div className="absolute left-1/2 top-[1.6%] h-[3.4%] w-[31%] -translate-x-1/2 rounded-full bg-black" />
+    <div style={{ position: 'relative', width: W, height: H, background: '#F2F2F7', overflow: 'hidden', ...sf }}>
+      <div style={{ position: 'absolute', left: 0, right: 0, top: 70, textAlign: 'center' }}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 14px', borderRadius: 100, background: '#fff', fontSize: 13, fontWeight: 600, color: INDIGO }}>
+          <span style={{ width: 8, height: 8, borderRadius: 8, background: '#30D158' }} />QWILLIO · {`0:${String(sec).padStart(2, '0')}`}
+        </div>
+        <div style={{ fontSize: 26, fontWeight: 600, marginTop: 14, color: '#000', letterSpacing: -0.4 }}>{who}</div>
+      </div>
+      <div style={{ position: 'absolute', left: 14, right: 14, bottom: 60, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <AnimatePresence initial={false}>
+          {lines.slice(-3).map((l) => (
+            <motion.div key={l.t} layout initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
+              transition={{ type: 'spring', stiffness: 260, damping: 28 }}
+              style={{ alignSelf: l.agent ? 'flex-end' : 'flex-start', maxWidth: '86%', padding: '12px 16px', borderRadius: 22, fontSize: 21, lineHeight: '27px', background: l.agent ? INDIGO : '#fff', color: l.agent ? '#fff' : '#000' }}>
+              {l.t}
+            </motion.div>
+          ))}
+        </AnimatePresence>
       </div>
     </div>
   );
 }
 
-function StatusBar({ time, light = false }: { time: string; light?: boolean }) {
-  return (
-    <div className={`absolute inset-x-0 top-[2%] flex items-center justify-between px-[9%] text-[clamp(8px,1.1vw,11px)] font-semibold ${light ? 'text-white' : 'text-black'}`}>
-      <span>{time}</span>
-      <span className="flex items-center gap-[3px]">
-        <span className={`h-[6px] w-[14px] rounded-[2px] border ${light ? 'border-white/80' : 'border-black/70'} p-[1px]`}><span className={`block h-full w-3/4 rounded-[1px] ${light ? 'bg-white' : 'bg-black'}`} /></span>
-      </span>
-    </div>
-  );
+/** Le boîtier du kit, mis à l'échelle de la colonne qui le reçoit. */
+function ScaledDevice({ children }: { children: React.ReactNode }) {
+  const ref = useRef<HTMLDivElement>(null);
+  const [scale, setScale] = useState(0.5);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const fit = () => setScale(el.clientWidth / (W + 26));
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
+  return <div ref={ref} className="w-full"><Device scale={scale}>{children}</Device></div>;
 }
 
-/** Le téléphone du gérant: un appel en cours, le minuteur avance. */
-function YourPhone({ step, L, running }: { step: Step; L: (typeof TXT)['fr']; running: boolean }) {
-  const [sec, setSec] = useState(134);
-  useEffect(() => {
-    if (!running) return;
-    const id = setInterval(() => setSec((s) => s + 1), 1000);
-    return () => clearInterval(id);
-  }, [running]);
-  const keys = [Volume2, Camera, Mic, Plus, null];
-  return (
-    <Shell dark>
-      <StatusBar time="19:02" light />
-      <AnimatePresence>
-        {step === 'ring' && (
-          <motion.div key="wait" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -6 }} transition={{ duration: 0.45, ease: EASE }}
-            className="absolute left-[7%] right-[7%] top-[8%] rounded-full bg-white/[0.12] px-[6%] py-[3%] text-center text-[clamp(7px,0.95vw,10px)] font-medium text-white/85">
-            {L.waiting}
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <div className="absolute inset-x-0 top-[19%] text-center text-white">
-        <div className="text-[clamp(8px,1vw,10px)] tabular-nums text-white/55">{`${String(Math.floor(sec / 60)).padStart(2, '0')}:${String(sec % 60).padStart(2, '0')}`}</div>
-        <div className="mt-[2%] text-[clamp(13px,1.9vw,19px)] font-medium tracking-[-0.01em]">Marc Peeters</div>
-      </div>
-      <div className="absolute inset-x-[12%] top-[52%] grid grid-cols-3 gap-[9%]">
-        {keys.map((K, i) => (
-          <span key={i} className="mx-auto flex aspect-square w-full max-w-[44px] items-center justify-center rounded-full bg-white/[0.12] text-white">
-            {K ? <K size={14} aria-hidden="true" /> : <span className="grid grid-cols-3 gap-[2px]">{Array.from({ length: 9 }, (_, j) => <span key={j} className="h-[3px] w-[3px] rounded-full bg-white" />)}</span>}
-          </span>
-        ))}
-        <span className="mx-auto flex aspect-square w-full max-w-[44px] items-center justify-center rounded-full bg-[#ff3b30] text-white"><PhoneOff size={14} aria-hidden="true" /></span>
-      </div>
-      <div className="absolute bottom-[2%] left-1/2 h-[0.6%] w-[34%] -translate-x-1/2 rounded-full bg-white/80" />
-    </Shell>
-  );
-}
-
-function NotifCard({ title, desc, now }: { title: string; desc: string; now: string }) {
-  return (
-    <div className="flex items-center gap-[6%] rounded-[18px] bg-white/85 px-[6%] py-[5%] shadow-[0_8px_24px_-12px_rgba(0,0,0,0.25)] backdrop-blur">
-      <span className="flex h-[26px] w-[26px] shrink-0 items-center justify-center rounded-[7px] bg-white"><QwillioLogo size={20} /></span>
-      <span className="min-w-0 flex-1 leading-tight">
-        <span className="flex items-baseline justify-between gap-2">
-          <span className="truncate text-[clamp(8px,1vw,11px)] font-semibold text-black">{title}</span>
-          <span className="shrink-0 text-[clamp(6px,0.8vw,9px)] text-black/45">{now}</span>
-        </span>
-        <span className="block truncate text-[clamp(7px,0.9vw,10px)] text-black/70">{desc}</span>
-      </span>
-    </div>
-  );
-}
-
-/** La ligne que tient Qwillio: écran verrouillé, appel, conversation, réservation. */
-function QwillioPhone({ step, L, lineCount }: { step: Step; L: (typeof TXT)['fr']; lineCount: number }) {
-  const lock = step !== 'live';
-  return (
-    <Shell>
-      <AnimatePresence mode="wait" initial={false}>
-        {lock ? (
-          <motion.div key="lock" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.5, ease: EASE }}
-            className="absolute inset-0 bg-[linear-gradient(170deg,#f4f2ef_0%,#e4e0db_55%,#d4cfc8_100%)]">
-            <StatusBar time="19:02" />
-            <div className="absolute inset-x-0 top-[13%] text-center text-[#1d1d1f]">
-              <div className="text-[clamp(7px,0.95vw,10px)] font-medium text-black/50">{L.date}</div>
-              <div className="text-[clamp(30px,4.6vw,50px)] font-medium leading-none tracking-[-0.03em]">19:02</div>
-            </div>
-            <div className="absolute inset-x-[5%] bottom-[14%]">
-              <AnimatePresence>
-                {step === 'booked' && (
-                  <motion.div key="booked" initial={{ opacity: 0, y: 18, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0 }} transition={{ type: 'spring', stiffness: 260, damping: 24 }}>
-                    <NotifCard title={L.booked} desc={L.bookedDesc} now={L.now} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-            <div className="absolute inset-x-[5%] top-[6.5%]">
-              <AnimatePresence mode="wait">
-                {step === 'ring' && (
-                  <motion.div key="ring" initial={{ opacity: 0, y: -14, scale: 0.94 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, scale: 0.96 }} transition={{ type: 'spring', stiffness: 300, damping: 26 }}
-                    className="flex items-center gap-[5%] rounded-full bg-black px-[4%] py-[3.2%] text-white">
-                    <span className="flex h-[24px] w-[24px] shrink-0 items-center justify-center rounded-full bg-[#8e8e93] text-[9px] font-semibold">SL</span>
-                    <span className="min-w-0 flex-1 leading-tight">
-                      <span className="block truncate text-[clamp(8px,1vw,11px)] font-medium">Sophie Lambert</span>
-                      <span className="block text-[clamp(6px,0.8vw,9px)] text-white/55">{L.incoming}</span>
-                    </span>
-                    <motion.span animate={{ scale: [1, 1.12, 1] }} transition={{ duration: 0.9, repeat: Infinity }} className="flex h-[22px] w-[22px] shrink-0 items-center justify-center rounded-full bg-[#34c759]"><Phone size={11} aria-hidden="true" /></motion.span>
-                  </motion.div>
-                )}
-                {step === 'took' && (
-                  <motion.div key="took" initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -8 }} transition={{ duration: 0.45, ease: EASE }}>
-                    <NotifCard title={L.took} desc={L.tookDesc} now={L.now} />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </motion.div>
-        ) : (
-          <motion.div key="live" initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.5, ease: EASE }} className="absolute inset-0 bg-[#f2f2f7]">
-            <StatusBar time="19:02" />
-            <div className="absolute inset-x-0 top-[9%] flex flex-col items-center gap-[2px]">
-              <span className="flex items-center gap-1 rounded-full bg-white px-2 py-[2px] text-[clamp(6px,0.75vw,8px)] font-semibold uppercase tracking-[0.08em] text-black/60">
-                <span className="h-[5px] w-[5px] rounded-full bg-[#34c759]" />Qwillio
-              </span>
-              <span className="text-[clamp(9px,1.15vw,12px)] font-semibold text-black">Sophie Lambert</span>
-            </div>
-            <div className="absolute inset-x-[5%] bottom-[5%] flex flex-col gap-[5px]">
-              <AnimatePresence initial={false}>
-                {L.lines.slice(0, lineCount).map((l, i) => (
-                  <motion.div key={i} layout initial={{ opacity: 0, y: 12, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} transition={{ type: 'spring', stiffness: 320, damping: 28 }}
-                    className={`max-w-[84%] rounded-[12px] px-[7%] py-[4%] text-[clamp(7px,0.9vw,10px)] leading-snug ${l.me ? 'self-end bg-[#1d1d1f] text-white' : 'self-start bg-white text-black'}`}>
-                    {l.t}
-                  </motion.div>
-                ))}
-              </AnimatePresence>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
-      <div className="absolute bottom-[2%] left-1/2 h-[0.6%] w-[34%] -translate-x-1/2 rounded-full bg-black/70" />
-    </Shell>
-  );
-}
+const drop = { initial: { opacity: 0, y: -18, scale: 0.96 }, animate: { opacity: 1, y: 0, scale: 1 }, exit: { opacity: 0, y: -10, scale: 0.98 } };
 
 export default function HeroPhones({ isFr, className = '' }: { isFr: boolean; className?: string }) {
   const L = isFr ? TXT.fr : TXT.en;
   const reduce = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
   const visible = useInView(ref, { margin: '0px 0px -10% 0px' });
-  const [i, setI] = useState(reduce ? 4 : 0);
-  const [lineCount, setLineCount] = useState(0);
-  const step = STEPS[i].key;
   const running = visible && !reduce;
+  const [i, setI] = useState(0);
+  const [lineCount, setLineCount] = useState(0);
+  const [sec, setSec] = useState(134);
+  const [liveSec, setLiveSec] = useState(0);
+  const step: Step = reduce ? 'booked' : STEPS[i].key;
 
-  // la boucle: on n'avance que si l'illustration est à l'écran
   useEffect(() => {
     if (!running) return;
     const id = setTimeout(() => setI((n) => (n + 1) % STEPS.length), STEPS[i].ms);
     return () => clearTimeout(id);
   }, [i, running]);
-  // la conversation s'écrit une réplique après l'autre
   useEffect(() => {
-    if (step !== 'live') { setLineCount(0); return; }
-    if (!running) { setLineCount(L.lines.length); return; }
+    if (!running) return;
+    const id = setInterval(() => { setSec((s) => s + 1); setLiveSec((s) => s + 1); }, 1000);
+    return () => clearInterval(id);
+  }, [running]);
+  useEffect(() => {
+    if (step !== 'live') { setLineCount(0); setLiveSec(0); return; }
     setLineCount(1);
-    const ids = L.lines.slice(1).map((_, k) => setTimeout(() => setLineCount(k + 2), 1250 * (k + 1)));
+    const ids = L.lines.slice(1).map((_, k) => setTimeout(() => setLineCount(k + 2), 1450 * (k + 1)));
     return () => ids.forEach(clearTimeout);
-  }, [step, running, L.lines]);
+  }, [step, L.lines]);
 
-  const float = (delay: number) => (reduce ? {} : { animate: { y: [0, -7, 0] }, transition: { duration: 6, repeat: Infinity, ease: 'easeInOut' as const, delay } });
+  const banner = (
+    <AnimatePresence mode="wait">
+      {step === 'ring' && (
+        <motion.div key="ring" {...drop} transition={{ type: 'spring', stiffness: 320, damping: 26 }}>
+          <IncomingCall name="Sophie Lambert" initials="SL" sub={L.lineBusy} />
+        </motion.div>
+      )}
+      {step === 'took' && (
+        <motion.div key="took" {...drop} transition={{ duration: 0.45, ease: EASE }}>
+          <Notification kind="qwillio" title={L.took} desc="Sophie Lambert" time={L.now} />
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+
+  /* le flottement: deux périodes différentes, pour que les téléphones ne bougent jamais ensemble */
+  const float = (dur: number, delay: number) => (reduce ? {} : { animate: { y: [0, -8, 0] }, transition: { duration: dur, repeat: Infinity, ease: 'easeInOut' as const, delay } });
+
   return (
     <div ref={ref} className={`relative ${className}`} role="img"
       aria-label={isFr
         ? 'Illustration: vous êtes déjà en ligne, un deuxième appel arrive, Qwillio le prend, répond et la réservation arrive.'
         : 'Illustration: you are already on a call, a second call comes in, Qwillio takes it, answers and the booking arrives.'}>
-      <div className="relative mx-auto flex w-full max-w-[520px] items-end justify-center gap-[6%] lg:mx-0">
-        {/* l'inclinaison sur un enveloppe, le flottement dessous: Framer écrit
-            `transform` en ligne et effacerait une rotation Tailwind posée au même endroit */}
-        <div className="w-[42%] -rotate-[4deg] translate-y-[6%]">
-          <motion.div {...float(0)}><YourPhone step={step} L={L} running={running} /></motion.div>
+      <div className="relative mx-auto flex w-full max-w-[520px] items-start justify-center gap-[7%] lg:mx-0" style={{ perspective: 1600 }}>
+        {/* la rotation sur une enveloppe, le flottement dessous: Framer écrit `transform` en ligne */}
+        <div className="w-[44%] mt-[8%]" style={{ transform: 'rotateY(14deg) rotateX(4deg) rotateZ(-3deg)', transformStyle: 'preserve-3d' }}>
+          <motion.div {...float(6.5, 0)}>
+            <ScaledDevice>
+              <InCallScreen name="Marc Peeters" duration={clock(sec)} labels={L.keys} />
+            </ScaledDevice>
+          </motion.div>
         </div>
-        <div className="w-[42%] rotate-[3deg]">
-          <motion.div {...float(1.2)}><QwillioPhone step={step} L={L} lineCount={lineCount} /></motion.div>
+        <div className="w-[44%]" style={{ transform: 'rotateY(-14deg) rotateX(4deg) rotateZ(3deg)', transformStyle: 'preserve-3d' }}>
+          <motion.div {...float(7.2, 1.1)}>
+            <ScaledDevice>
+              <div style={{ position: 'relative', width: W, height: H }}>
+                <AnimatePresence initial={false}>
+                  {step === 'live' ? (
+                    <motion.div key="live" style={{ position: 'absolute', inset: 0 }} initial={{ opacity: 0, scale: 1.04 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.55, ease: EASE }}>
+                      <LiveCall who="Sophie Lambert" lines={L.lines.slice(0, lineCount)} sec={liveSec} />
+                    </motion.div>
+                  ) : (
+                    <motion.div key="lock" style={{ position: 'absolute', inset: 0 }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.55, ease: EASE }}>
+                      <LockScreen time="19:02" date={L.date} wallpaper={WALL} banner={banner}>
+                        <AnimatePresence>
+                          {step === 'booked' && (
+                            <motion.div key="booked" initial={{ opacity: 0, y: 24, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0 }} transition={{ type: 'spring', stiffness: 240, damping: 24 }}>
+                              <Notification kind="qwillio" title={L.booked} desc={L.bookedDesc} time={L.now} />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </LockScreen>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
+            </ScaledDevice>
+          </motion.div>
         </div>
       </div>
     </div>
