@@ -4,7 +4,9 @@
  * en cours et boîtier, aux cotes du kit Figma « iOS 16 UI Kit ». Seuls
  * changent le chargement des images (fichiers de public/ios-kit au lieu de
  * `staticFile` de Remotion), la police (celle du système, donc SF Pro sur
- * les appareils Apple) et l'ombre du boîtier, neutre au lieu de mauve.
+ * les appareils Apple) l'ombre du boîtier, neutre au lieu de mauve, et la notification: un fond
+ * presque opaque au lieu du verre flouté, que Safari rend mal dans un
+ * téléphone incliné en 3D (backdrop-filter sous transformation).
  * Toute retouche se fait dans les DEUX fichiers, pour que le site et les
  * pubs montrent le même téléphone.
  */
@@ -50,7 +52,7 @@ export function AppIcon({ kind }: { kind: 'phone' | 'qwillio' }) {
 /** La notification du kit (1259:11286) : 370 pt, rayon 23, verre clair flouté à 40. */
 export function Notification({ kind, title, desc, time, top }: { kind: 'phone' | 'qwillio'; title: string; desc: string; time: string; top?: string }) {
   return (
-    <div style={{ width: 373, borderRadius: 23, padding: '14px 18px 14px 14px', background: 'rgba(245,245,245,0.62)', backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)', display: 'flex', gap: 10, alignItems: 'center', ...sf }}>
+    <div style={{ width: 373, borderRadius: 23, padding: '14px 18px 14px 14px', background: 'rgba(246,246,248,0.94)', boxShadow: '0 6px 20px -10px rgba(0,0,0,0.35)', display: 'flex', gap: 10, alignItems: 'center', ...sf }}>
       <AppIcon kind={kind} />
       <div style={{ flex: 1, minWidth: 0, position: 'relative' }}>
         {top && <div style={{ fontSize: 13, fontWeight: 600, lineHeight: '18px', letterSpacing: -0.078, color: 'rgba(0,0,0,0.55)' }}>{top}</div>}
@@ -111,7 +113,7 @@ export function Device({ children, scale }: { children: React.ReactNode; scale: 
     <div style={{ width: (W + b * 2) * scale, height: (H + b * 2) * scale, position: 'relative' }}>
       <div style={{ position: 'absolute', inset: 0, transformOrigin: '0 0', transform: `scale(${scale})`, width: W + b * 2, height: H + b * 2 }}>
         <div style={{ position: 'absolute', inset: 0, borderRadius: 68, background: '#0B0B0C', boxShadow: 'inset 0 0 0 1.5px #5A5A60, inset 0 0 0 3px #1A1A1C, 0 40px 80px -20px rgba(0,0,0,0.32), 0 18px 36px -12px rgba(0,0,0,0.25)' }} />
-        <div style={{ position: 'absolute', left: b, top: b, width: W, height: H, borderRadius: 55, overflow: 'hidden' }}>{children}</div>
+        <div style={{ position: 'absolute', left: b, top: b, width: W, height: H, borderRadius: 55, overflow: 'hidden', isolation: 'isolate', WebkitMaskImage: '-webkit-radial-gradient(white, black)' }}>{children}</div>
       </div>
     </div>
   );
