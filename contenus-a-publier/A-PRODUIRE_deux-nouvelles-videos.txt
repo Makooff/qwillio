@@ -1,0 +1,83 @@
+DEUX NOUVELLES VIDÉOS À PRODUIRE (stratégie marketing du 23/11/2026)
+Elles remplacent deux vidéos de commerce alimentaire dans le calendrier, pour que
+la campagne montre tous les métiers et pas seulement la restauration :
+  - samedi 5 décembre, 12:00 : L'ÉLECTRICIEN EN URGENCE (à la place de c04 sandwicherie)
+  - mercredi 23 décembre, 12:00 : LA FIDUCIAIRE EN RENDEZ-VOUS (à la place de c08 boulangerie,
+    gardée pour plus tard)
+Même gabarit que les autres vidéos de la campagne : Sarah raconte, la réceptionniste
+répond, l'appelant passe par un filtre téléphone, 20 à 25 secondes, fin sur le logo.
+À produire avec video-promo/scripts/cartesia-shorts.mjs (il faut la clé Cartesia).
+
+
+========================================================================
+c11  L'ÉLECTRICIEN EN URGENCE        métier : artisan    issue : urgence transférée
+========================================================================
+
+SCÈNE 1 (narration, Sarah)
+  « Kevin est électricien. En ce moment, il est sur une échelle, les deux mains dans un tableau. »
+
+SCÈNE 2 (l'appel)
+  Appelante (femme, inquiète) : « Bonjour, on n'a plus de courant dans toute la maison, et ça sent le brûlé. »
+  Réceptionniste : « Je vous passe Kevin tout de suite, je lui explique la situation. »
+  Réceptionniste (à Kevin, plus bas) : « Mme Claes, Uccle, plus de courant et une odeur de brûlé. »
+
+SCÈNE 3 (narration)
+  « Kevin décroche en sachant déjà tout. Le reste de ses appels, elle s'en occupe. »
+
+FIN : logo, « Elle prend le relais. »
+
+À l'écran (signature visuelle) : la notification « Urgence transférée · Mme Claes · plus de courant »
+qui tombe sur l'écran verrouillé de Kevin, puis l'écran d'appel qui s'ouvre.
+
+Note produit : le transfert avec résumé existe (outil de transfert). Elle ne donne pas de
+conseil technique de sécurité : ce n'est pas son rôle, et elle n'invente pas ce qu'on ne lui a pas appris.
+
+LÉGENDES
+Instagram / Facebook :
+  Sur l'échelle, les deux mains dans un tableau. Le téléphone sonne : c'est une urgence.
+  Qwillio répond et vous passe l'appel avec le résumé. Les autres appels ? Elle s'en occupe.
+  Essai gratuit 7 jours, lien en bio.
+  #électricien #artisan #indépendant #belgique #bruxelles #wallonie
+TikTok :
+  Il est sur l'échelle. Elle tient le téléphone. ⚡ #artisan #électricien #belgique #ia
+LinkedIn :
+  Un artisan perd rarement un client sur la qualité de son travail. Il le perd sur un appel
+  qu'il n'a pas pu prendre. Qwillio répond pendant qu'il travaille, trie l'urgence du devis,
+  et lui passe les appels qui ne peuvent pas attendre, avec un résumé.
+
+
+========================================================================
+c12  LA FIDUCIAIRE EN RENDEZ-VOUS     métier : services   issue : message avec destinataire
+========================================================================
+
+SCÈNE 1 (narration, Sarah)
+  « Marie est comptable. Elle est en rendez-vous, et son téléphone sonne pour la quatrième fois. »
+
+SCÈNE 2 (l'appel)
+  Appelant (homme, pressé) : « Je voudrais parler à Marie, c'est pour ma déclaration TVA. »
+  Réceptionniste : « Elle est en rendez-vous. Je lui laisse votre message : elle vous rappelle quand ? »
+  Appelant : « Après dix-sept heures, c'est parfait. »
+  Réceptionniste : « C'est noté, Monsieur Lambert. »
+
+SCÈNE 3 (narration)
+  « À la sortie du rendez-vous, Marie sait qui a appelé, pourquoi, et quand rappeler. »
+
+FIN : logo, « Elle prend le relais. »
+
+À l'écran : la notification « Message pour Marie · Paul Lambert · TVA · rappeler après 17 h ».
+
+Note produit : le destinataire (« pour qui ») et le moment de rappel (« quand ») sont deux
+champs réels de la prise de message (captureLead : forPerson, callbackWhen).
+
+LÉGENDES
+Instagram / Facebook :
+  En rendez-vous client, on ne décroche pas. Qwillio, si.
+  Elle prend le message, pour qui, à quel sujet, et quand rappeler. Vous sortez, tout est là.
+  Essai gratuit 7 jours, lien en bio.
+  #fiduciaire #comptable #expertcomptable #avocat #indépendant #belgique
+TikTok :
+  En rendez-vous. Elle prend le message, pour la bonne personne. #comptable #belgique #ia
+LinkedIn :
+  Dans un cabinet, chaque appel coupe un rendez-vous ou part sur une messagerie que personne
+  n'écoute avant le soir. Qwillio prend le message avec son destinataire, le sujet et le moment
+  où rappeler. Vous sortez de rendez-vous avec une liste claire, pas une messagerie à décoder.
