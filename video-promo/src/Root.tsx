@@ -10,6 +10,8 @@ import { Pub4, DURATION as PUB4_DURATION } from './pub4/Pub4';
 import { DURATION, FPS } from './timeline';
 import { Post, POSTS, POST_FORMATS, type PostFormat } from './shorts/poster';
 import { FORMATS, Format, SHORT_FPS, SHORT_IDS, Short, buildTimeline, shortName } from './shorts/Short';
+import { SiteLoop, SITE_LOOP_SIZE, siteLoopFrames } from './shorts/siteLoop';
+import { SiteExperience, SITE_EXP_SIZE, experienceFrames } from './shorts/siteExperience';
 
 export const RemotionRoot: React.FC = () => (
   <>
@@ -23,6 +25,13 @@ export const RemotionRoot: React.FC = () => (
   {SHORT_IDS.flatMap((id) => (Object.keys(FORMATS) as Format[]).map((format) => (
     <Composition key={`${id}-${format}`} id={shortName(id, format)} component={Short} defaultProps={{ id, format, cine: true }} durationInFrames={Math.round(buildTimeline(id).duration * SHORT_FPS)} fps={SHORT_FPS} width={FORMATS[format].w} height={FORMATS[format].h} />
   )))}
+  {/* L'illustration animée du site (fond transparent), FR et EN. */}
+  {(['fr-c01', 'en-c01'] as const).map((id) => (
+    <Composition key={`site-${id}`} id={`SiteLoop-${id}`} component={SiteLoop} defaultProps={{ id }} durationInFrames={siteLoopFrames(id)} fps={SHORT_FPS} width={SITE_LOOP_SIZE.w} height={SITE_LOOP_SIZE.h} />
+  ))}
+  {(['fr-c01', 'en-c01'] as const).map((id) => (
+    <Composition key={`siteexp-${id}`} id={`SiteExperience-${id}`} component={SiteExperience} defaultProps={{ id }} durationInFrames={experienceFrames(id)} fps={SHORT_FPS} width={SITE_EXP_SIZE.w} height={SITE_EXP_SIZE.h} />
+  ))}
   {/* Les posts fixes, Instagram et LinkedIn (4:5). */}
   {(['fr', 'en', 'nl'] as const).flatMap((lang) => POSTS[lang].flatMap((_, i) => (Object.keys(POST_FORMATS) as PostFormat[]).map((fmt) => (
     <Composition key={`post-${lang}-${i}-${fmt}`} id={`Post-${lang}-${String(i + 1).padStart(2, '0')}${fmt === '4x5' ? '' : `-${fmt}`}`} component={Post} defaultProps={{ lang, index: i, fmt }} durationInFrames={1} fps={30} width={POST_FORMATS[fmt].w} height={POST_FORMATS[fmt].h} />

@@ -60,7 +60,7 @@ function Pop3D({ t, at, title, desc, time = 'maintenant', y = 1000 }: { t: numbe
 /* ------------------------------------------------------------------ l'appel vu dans le téléphone */
 
 /** L'écran de l'app Qwillio pendant qu'elle répond : la transcription en direct. */
-function LiveCall({ t, s, who }: { t: number; s: TScene; who: string }) {
+export function LiveCall({ t, s, who }: { t: number; s: TScene; who: string }) {
   const lines = s.tlines.filter((l) => t >= l.at - 0.3);
   const shown = lines.slice(-3);
   const sec = Math.max(0, Math.floor(t - s.at));

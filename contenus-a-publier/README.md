@@ -38,5 +38,6 @@ Quel fichier pour quel réseau :
 | `instagram-facebook.png` | Fil Instagram, Facebook |
 | `linkedin.png` | LinkedIn |
 | `story-tiktok.png` | Stories, TikTok en mode photo |
+| `youtube-16x9.mp4` | Vidéo YouTube classique (le Short se poste avec `reel-tiktok-story.mp4`) |
 
 Le reste (scripts de démo à tourner, photos sans texte, publicité multilingue) est rangé à part dans [autres-contenus/](autres-contenus/).

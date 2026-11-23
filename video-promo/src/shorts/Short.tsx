@@ -55,9 +55,14 @@ export const STR: Record<Lang, { agent: string; caller: string; now: string; dat
  * réduit à 68 % ; les textes, eux, sont reposés à leur taille pour rester
  * lisibles dans un fil.
  */
-export type Format = '9x16' | '4x5';
-export const FORMATS: Record<Format, { w: number; h: number; sayY: number; saySize: number; typeY: number; typeSize: number; tagY: number; spokenY: number; langsSpokenY: number; spokenSize: number; brandY: number; body: { k: number; dy: number }; end: { k: number; dy: number } }> = {
+export type Format = '9x16' | '4x5' | '16x9';
+export const FORMATS: Record<Format, { w: number; h: number; sayY: number; saySize: number; typeY: number; typeSize: number; tagY: number; spokenY: number; langsSpokenY: number; spokenSize: number; brandY: number; body: { k: number; dy: number }; end: { k: number; dy: number }; land?: { col: { x: number; k: number }; stage: { x: number; y: number; k: number }; end: { x: number; y: number; k: number } } }> = {
   '9x16': { w: 1080, h: 1920, sayY: 300, saySize: 80, typeY: 900, typeSize: 108, tagY: 690, spokenY: 1240, langsSpokenY: 1280, spokenSize: 48, brandY: 120, body: { k: 1, dy: 0 }, end: { k: 1, dy: 0 } },
+  // 16:9 (YouTube) : pas la vidéo verticale posée sur un fond. Les titres et la
+  // conversation vivent dans une colonne à gauche, la scène (téléphones,
+  // fiches) à droite ; chaque côté garde son dessin 1080 de large, réduit.
+  '16x9': { w: 1920, h: 1080, sayY: 620, saySize: 84, typeY: 620, typeSize: 108, tagY: 420, spokenY: 520, langsSpokenY: 540, spokenSize: 48, brandY: 40, body: { k: 1, dy: 0 }, end: { k: 1, dy: 0 },
+    land: { col: { x: 40, k: 0.82 }, stage: { x: 1010, y: -222, k: 0.8 }, end: { x: 960 - 1080 * 0.8 / 2, y: -217, k: 0.8 } } },
   '4x5': { w: 1080, h: 1350, sayY: 220, saySize: 66, typeY: 700, typeSize: 92, tagY: 470, spokenY: 960, langsSpokenY: 985, spokenSize: 42, brandY: 64, body: { k: 0.68, dy: -190 }, end: { k: 0.75, dy: -300 } },
 };
 const INK = '#1D1D1F';
@@ -508,6 +513,27 @@ function Scene({ t, s, prev, levels, fps, lang, F, index = 0 }: { t: number; s: 
     const dark = ['APRÈS', 'AFTER', 'NA'].includes(v.tag);
     over = <div style={{ position: 'absolute', left: 0, right: 0, top: F.tagY, textAlign: 'center', ...ff }}><span style={{ display: 'inline-block', padding: '10px 28px', borderRadius: 999, fontSize: 30, fontWeight: 600, letterSpacing: '0.18em', color: dark ? '#fff' : INK, background: dark ? INK : '#fff', boxShadow: `0 0 0 1px ${PLATE}`, ...tk }}>{v.tag}</span></div>;
   }
+  if (F.land) {
+    // 16:9 : la colonne de gauche porte le titre (ou la conversation quand
+    // personne ne raconte), la scène tourne à droite. Un plan sans scène (« type »)
+    // prend toute la largeur.
+    const L2 = F.land;
+    if (!over && !s.tsay && s.tlines.length && v.kind !== 'langs') over = <ChatThread t={t} s={s} y={260} bottom={F.h / L2.col.k - 60} size={F.spokenSize} lang={lang} />;
+    const title = s.tsay && <Said line={s.tsay} t={t} size={v.kind === 'type' ? F.typeSize : F.saySize} y={v.kind === 'type' ? F.typeY : F.sayY} />;
+    const stage = <AbsoluteFill style={{ transformStyle: 'preserve-3d' }}>{body}</AbsoluteFill>;
+    if (v.kind === 'type' && !body) return <AbsoluteFill><div style={{ position: 'absolute', left: 420, width: 1080, top: 0, height: 1240, transformOrigin: '0 0', transform: `scale(${F.h / 1240})` }}>{over}{title}</div></AbsoluteFill>;
+    return (
+      <AbsoluteFill>
+        <div style={{ position: 'absolute', left: L2.stage.x, top: L2.stage.y, width: 1080, height: 1920, transformOrigin: '0 0', transform: `scale(${L2.stage.k})` }}>
+          {cine ? <CameraRig t={t} at={s.at} out={s.out} index={index}>{stage}</CameraRig> : stage}
+        </div>
+        <div style={{ position: 'absolute', left: L2.col.x, top: 0, width: 1080, height: F.h / L2.col.k, transformOrigin: '0 0', transform: `scale(${L2.col.k})` }}>
+          {over}
+          {title}
+        </div>
+      </AbsoluteFill>
+    );
+  }
   if (cine) {
     // la scène est un plan : la caméra tourne autour, les titres restent à l'écran
     return (
@@ -568,7 +594,7 @@ export const Short: React.FC<{ id: string; format: Format; cine?: boolean; poste
       {T.scenes.map((s, i) => between(t, s.at, s.out + 0.05) && <Scene key={i} t={t} s={s} prev={T.scenes[i - 1]} levels={levels} fps={fps} lang={T.lang} F={F} index={i} />)}
 
       {t >= T.end.at && (
-        <AbsoluteFill style={{ transformOrigin: '540px 960px', transform: `translateY(${F.end.dy}px) scale(${F.end.k})` }}>
+        <AbsoluteFill style={F.land ? { left: F.land.end.x, top: F.land.end.y, width: 1080, height: 1920, transformOrigin: '0 0', transform: `scale(${F.land.end.k})` } : { transformOrigin: '540px 960px', transform: `translateY(${F.end.dy}px) scale(${F.end.k})` }}>
           {cine ? (
             <AbsoluteFill style={{ perspective: 1400 }}>
               <AbsoluteFill style={{ transform: logoIn(t - T.end.at, look.logo), WebkitBoxReflect: 'below -560px linear-gradient(transparent 82%, rgba(255,255,255,0.18))' } as React.CSSProperties}>

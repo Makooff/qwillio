@@ -6,7 +6,8 @@ import footer from '../../components/v2/FooterV2.tsx?raw';
 describe('Homepage — original identity with explanatory illustrations', () => {
   it('replaces landscape and screenshots while keeping navigation and demo flows', () => {
     expect(source).toContain('<HeroBackdrop dark />');
-    expect(source).toContain('<ProductIllustration kind="overview"');
+    expect(source).toContain('<HeroCallLoop isFr={isFr}');
+    expect(source).not.toContain('<ProductIllustration kind="overview"');
     expect(source).toContain('<BenefitsGrid isFr={isFr} />');
     expect(source).toContain('<LaunchSteps isFr={isFr} />');
     expect(source).toContain('<EcosystemMosaic isFr={isFr} />');
@@ -18,6 +19,13 @@ describe('Homepage — original identity with explanatory illustrations', () => 
     expect(source).toContain('<TryVoiceButton variant="outline">');
     expect(source).not.toContain('home-marketing.css');
     expect(shell).not.toContain('qm-public-light');
+  });
+  it('presents the principle, with the phones, before the first feature', () => {
+    const principle = source.indexOf('aria-labelledby="principle-heading"');
+    const during = source.indexOf('aria-labelledby="during-heading"');
+    expect(principle).toBeGreaterThan(-1);
+    expect(principle).toBeLessThan(during);
+    expect(source.slice(principle, during)).toContain('<HeroCallLoop isFr={isFr}');
   });
   it('keeps both feature lists text-only and puts imagery in independent sections', () => {
     const during = source.split('aria-labelledby="during-heading"')[1].split('aria-labelledby="team-heading"')[0];
