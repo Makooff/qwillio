@@ -44,11 +44,27 @@ const EXPLORE_PHOTOS = [
    Zéro copie V1. Chaque affirmation est couverte par le code
    (DA/v2-direction.md, piliers + interdits de vente). */
 
+/* Les trois cas où Qwillio décroche: le renvoi conditionnel du produit
+   (occupé, non-réponse après 30 s, et tout le reste quand c'est fermé). */
+const PRINCIPLE = {
+  fr: [
+    { when: 'Ligne occupée', what: 'Vous êtes déjà en ligne : elle prend le deuxième appel.' },
+    { when: 'Pas de réponse', what: 'Vous ne décrochez pas en 30 s : elle décroche à votre place.' },
+    { when: 'Soir et week-end', what: 'Elle répond, réserve dans votre agenda et vous transmet le reste.' },
+  ],
+  en: [
+    { when: 'Line busy', what: 'You are already on a call: she takes the second one.' },
+    { when: 'No answer', what: 'You do not pick up within 30 s: she answers for you.' },
+    { when: 'Evenings, weekends', what: 'She answers, books into your calendar and passes the rest on to you.' },
+  ],
+};
+
 export default function Home() {
   const { lang } = useLang();
   /* Repère du cadre qui passe d'une étape à l'autre dans « Pendant l'appel ». */
   const duringRef = useRef<HTMLDivElement>(null);
   const isFr = lang === 'fr';
+  const principle = isFr ? PRINCIPLE.fr : PRINCIPLE.en;
   /* Le carrousel du bas mène à quatre pages du site. `href` reste posé pour que
      le lien s'ouvre dans un onglet, se copie et se lise comme un lien; la
      navigation, elle, passe par le routeur, sinon un clic rechargerait toute
@@ -402,11 +418,44 @@ export default function Home() {
             </div>
           </RevealV2>
 
-          {/* Les deux iPhones de la vidéo c01 referment le hero, à GAUCHE,
-              sur fond transparent (demande utilisateur): le principe se
-              comprend en quelques secondes, sans capture d'écran à lire. Ils
-              remplacent la capture du tableau de bord. */}
-          <HeroCallLoop isFr={isFr} className="mt-10 sm:mt-14 mr-auto w-full max-w-[min(560px,100%)] -ml-2 sm:-ml-6" />
+        </Container>
+      </Section>
+
+      {/* ── LE PRINCIPE, juste après le hero (retour utilisateur: « Pendant
+          l'appel est une des fonctionnalités, ça ne présente pas bien
+          Qwillio »). Avant de détailler ce qu'elle fait en ligne, on dit QUAND
+          elle décroche: votre téléphone sonne d'abord, elle prend le reste.
+          Les deux iPhones de la vidéo c01 le montrent à gauche, sur fond
+          transparent; le texte, à droite, le dit en trois lignes. Ils
+          remplacent la capture du tableau de bord qui fermait le hero. ── */}
+      <Section aria-labelledby="principle-heading" className="relative">
+        <Container className="relative z-10 [&>*]:min-w-0">
+          <div className="grid lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] gap-8 lg:gap-14 items-center">
+            <HeroCallLoop isFr={isFr} className="w-full max-w-[560px] mx-auto lg:mx-0 lg:-ml-8" />
+            <RevealV2 className="max-w-[520px]">
+              <Eyebrow tone="indigo" className="mb-4">{isFr ? 'Le principe' : 'How it works'}</Eyebrow>
+              <H2 id="principle-heading">
+                {isFr ? (
+                  <>Votre téléphone sonne d’abord. Elle prend <SerifWord>le reste.</SerifWord></>
+                ) : (
+                  <>Your phone rings first. She takes <SerifWord>the rest.</SerifWord></>
+                )}
+              </H2>
+              <ul className="mt-6 sm:mt-8 border-t border-q2-plate/70">
+                {principle.map((row) => (
+                  <li key={row.when} className="grid grid-cols-[minmax(0,11rem)_1fr] gap-4 py-4 border-b border-q2-plate/70">
+                    <span className="text-q2-ink font-medium">{row.when}</span>
+                    <span className="text-q2-body q2-body-text">{row.what}</span>
+                  </li>
+                ))}
+              </ul>
+              <p className="text-q2-body text-base leading-relaxed mt-5 q2-body-text">
+                {isFr
+                  ? 'Vous gardez votre numéro : un code pour l’activer, un code pour l’enlever.'
+                  : 'You keep your number: one code to turn it on, one code to turn it off.'}
+              </p>
+            </RevealV2>
+          </div>
         </Container>
       </Section>
 

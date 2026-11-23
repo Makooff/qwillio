@@ -20,6 +20,13 @@ describe('Homepage — original identity with explanatory illustrations', () => 
     expect(source).not.toContain('home-marketing.css');
     expect(shell).not.toContain('qm-public-light');
   });
+  it('presents the principle, with the phones, before the first feature', () => {
+    const principle = source.indexOf('aria-labelledby="principle-heading"');
+    const during = source.indexOf('aria-labelledby="during-heading"');
+    expect(principle).toBeGreaterThan(-1);
+    expect(principle).toBeLessThan(during);
+    expect(source.slice(principle, during)).toContain('<HeroCallLoop isFr={isFr}');
+  });
   it('keeps both feature lists text-only and puts imagery in independent sections', () => {
     const during = source.split('aria-labelledby="during-heading"')[1].split('aria-labelledby="team-heading"')[0];
     const setup = source.split('aria-labelledby="setup-heading"')[1].split('<LaunchSteps')[0];
