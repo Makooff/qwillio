@@ -1,6 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useInView, useReducedMotion } from 'framer-motion';
-import { Device, H, InCallScreen, IncomingCall, LockScreen, Notification, W, sf } from './ios/IosKit';
+import ScaledDevice from './ios/ScaledDevice';
+import { H, InCallScreen, IncomingCall, LockScreen, Notification, W, sf } from './ios/IosKit';
 
 /**
  * L'illustration du hero (demande utilisateur: « les mockups iOS de la pub »,
@@ -66,10 +67,12 @@ function LiveCall({ who, lines, sec }: { who: string; lines: { agent: boolean; t
         <div style={{ fontSize: 26, fontWeight: 600, marginTop: 14, color: '#000', letterSpacing: -0.4 }}>{who}</div>
       </div>
       <div style={{ position: 'absolute', left: 14, right: 14, bottom: 60, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        {/* pas de `layout`: dans un téléphone mis à l'échelle, Framer recalcule la taille
+            des bulles et déforme leurs arrondis */}
         <AnimatePresence initial={false}>
           {lines.slice(-3).map((l) => (
-            <motion.div key={l.t} layout initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
-              transition={{ type: 'spring', stiffness: 260, damping: 28 }}
+            <motion.div key={l.t} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, transition: { duration: 0 } }}
+              transition={{ duration: 0.5, ease: EASE }}
               style={{ alignSelf: l.agent ? 'flex-end' : 'flex-start', maxWidth: '86%', padding: '12px 16px', borderRadius: 22, fontSize: 21, lineHeight: '27px', background: l.agent ? INDIGO : '#fff', color: l.agent ? '#fff' : '#000' }}>
               {l.t}
             </motion.div>
@@ -78,22 +81,6 @@ function LiveCall({ who, lines, sec }: { who: string; lines: { agent: boolean; t
       </div>
     </div>
   );
-}
-
-/** Le boîtier du kit, mis à l'échelle de la colonne qui le reçoit. */
-function ScaledDevice({ children }: { children: React.ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(0.5);
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const fit = () => setScale(el.clientWidth / (W + 26));
-    fit();
-    const ro = new ResizeObserver(fit);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  return <div ref={ref} className="w-full"><Device scale={scale}>{children}</Device></div>;
 }
 
 const drop = { initial: { opacity: 0, y: -18, scale: 0.96 }, animate: { opacity: 1, y: 0, scale: 1 }, exit: { opacity: 0, y: -10, scale: 0.98 } };

@@ -7,7 +7,7 @@ import {
 import { useSEO } from '../../hooks/useSEO';
 import { useLang } from '../../stores/langStore';
 import PublicShell from '../../components/v2/PublicShell';
-import HeroBackdrop from '../../components/v2/HospitalityBackdrop';
+import HeroAgenda from '../../components/v2/HeroAgenda';
 import ProductIllustration from '../../components/v2/ProductIllustration';
 import { Container, Section, Eyebrow, Display, H2, Lead, SerifWord } from '../../components/v2/Primitives';
 import { PillLink } from '../../components/v2/Button';
@@ -244,20 +244,17 @@ export default function Receptionist() {
 
   return (
     <PublicShell>
-      {/* HERO, asymétrique: titre whisper à gauche, le dashboard dans l'iPhone à droite */}
+      {/* HERO, asymétrique: titre à gauche, l'iPhone dont l'agenda se remplit pendant l'appel à droite */}
       <Section
         aria-label={isFr ? 'Réceptionniste IA Qwillio' : 'Qwillio AI receptionist'}
         className="relative -mt-16 !pt-32 md:!pt-40 overflow-hidden"
       >
-        {/* Même décor que l’accueil, continu jusque sous la navigation. */}
+        {/* Fond papier, sans la vidéo de l’accueil (demande utilisateur: les deux heros se ressemblaient trop). */}
         <div
           className="absolute inset-0 pointer-events-none"
           aria-hidden="true"
           style={{ background: 'linear-gradient(180deg, rgb(var(--q2-canvas)) 0%, rgb(var(--q2-band)) 14%, rgb(var(--q2-band)) 58%, rgb(var(--q2-canvas)) 100%)' }}
         />
-        <HeroBackdrop />
-        {/* Protéger le contraste du texte sur la vidéo, dans les deux thèmes. */}
-        <div aria-hidden="true" className="absolute inset-0 pointer-events-none" style={{ background: 'linear-gradient(90deg, rgb(var(--q2-canvas) / 0.88) 0%, rgb(var(--q2-canvas) / 0.78) 38%, rgb(var(--q2-canvas) / 0.24) 62%, transparent 85%)' }} />
         <Container className="relative grid lg:grid-cols-[1.1fr_1fr] gap-9 sm:gap-14 lg:gap-20 items-center">
           <RevealV2>
             <div>
@@ -267,14 +264,11 @@ export default function Receptionist() {
               <Display className="mb-5 sm:mb-7 !text-[clamp(2rem,4.6vw,3.9rem)]">
                 {isFr ? (
                   <>
-                    Il ne prend pas<br />
-                    le message<br />
-                    il prend le<br />
-                    <SerifWord>rendez-vous</SerifWord>
+                    Votre agenda se remplit <SerifWord>pendant l’appel</SerifWord>
                   </>
                 ) : (
                   <>
-                    It doesn’t take a message. <SerifWord>It takes the appointment.</SerifWord>
+                    Your calendar fills up <SerifWord>during the call</SerifWord>
                   </>
                 )}
               </Display>
@@ -317,7 +311,7 @@ export default function Receptionist() {
           </RevealV2>
 
           <RevealV2 index={2}>
-            <ProductIllustration kind="overview" isFr={isFr} />
+            <HeroAgenda isFr={isFr} />
           </RevealV2>
         </Container>
       </Section>
