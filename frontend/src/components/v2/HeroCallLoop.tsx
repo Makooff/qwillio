@@ -27,14 +27,16 @@ export default function HeroCallLoop({ isFr, className = '' }: { isFr: boolean; 
     ? 'Animation: vous êtes déjà en ligne, Qwillio prend le deuxième appel, réserve la table, envoie un SMS de confirmation et ajoute le rendez-vous à votre agenda.'
     : 'Animation: you are already on a call, Qwillio takes the second call, books the table, texts a confirmation and adds the booking to your calendar.';
   const common = 'block w-full h-auto select-none';
+  // le reflet du téléphone s'arrête au bord de l'image: un fondu en bas évite la coupe nette
+  const fade = { WebkitMaskImage: 'linear-gradient(to bottom, #000 82%, transparent)', maskImage: 'linear-gradient(to bottom, #000 82%, transparent)' };
   return (
     <figure className={className} aria-label={label}>
       {mode === 'video' ? (
-        <video className={common} autoPlay muted loop playsInline preload="metadata" poster={`${base}.png`} aria-hidden="true" width={1050} height={795}>
+        <video className={common} style={fade} autoPlay muted loop playsInline preload="metadata" poster={`${base}.png`} aria-hidden="true" width={1050} height={795}>
           <source src={`${base}.webm`} type='video/webm; codecs="vp9"' />
         </video>
       ) : (
-        <img className={common} src={mode === 'webp' ? `${base}.webp` : `${base}.png`} alt="" aria-hidden="true" width={1050} height={795} decoding="async" />
+        <img className={common} style={fade} src={mode === 'webp' ? `${base}.webp` : `${base}.png`} alt="" aria-hidden="true" width={1050} height={795} decoding="async" loading="lazy" />
       )}
     </figure>
   );

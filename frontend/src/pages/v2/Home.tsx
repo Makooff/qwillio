@@ -443,7 +443,7 @@ export default function Home() {
               </H2>
               <ul className="mt-6 sm:mt-8 border-t border-q2-plate/70">
                 {principle.map((row) => (
-                  <li key={row.when} className="grid grid-cols-[minmax(0,11rem)_1fr] gap-4 py-4 border-b border-q2-plate/70">
+                  <li key={row.when} className="grid grid-cols-1 sm:grid-cols-[minmax(0,11rem)_1fr] gap-1 sm:gap-4 py-4 border-b border-q2-plate/70">
                     <span className="text-q2-ink font-medium">{row.when}</span>
                     <span className="text-q2-body q2-body-text">{row.what}</span>
                   </li>
