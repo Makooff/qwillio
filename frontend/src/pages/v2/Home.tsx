@@ -379,6 +379,11 @@ export default function Home() {
                   (`q2-graphite`), ce qui marchait tant que le fond restait
                   clair. Le voile a inversé le problème: on ne fonce plus le
                   texte, on éclaircit, et c'est le voile qui fait le noir. */}
+              {/* Sur ordinateur, les iPhones passent À DROITE du paragraphe et des
+                  boutons (demande utilisateur), sous le titre qui garde toute la
+                  largeur; sur téléphone ils restent sous le hero. */}
+              <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:items-start lg:gap-10">
+              <div>
               <Lead className="max-w-[500px] mb-7 sm:mb-10 q2-body-text !text-white/[0.88]">
                 {isFr
                   ? 'Elle prend les appels, réserve dans votre agenda connecté et vous transmet les demandes. Dès 99 € par mois.'
@@ -398,15 +403,18 @@ export default function Home() {
                   {isFr ? 'L’entendre décrocher' : 'Hear her answer'}
                 </TryVoiceButton>
               </div>
+              </div>
+              <HeroPhones isFr={isFr} className="hidden lg:block lg:mt-2" />
+              </div>
 
             </div>
           </RevealV2>
 
-          {/* Deux iPhones animés referment le hero (demande utilisateur): vous
-              êtes déjà en ligne, Qwillio prend le deuxième appel, la
-              réservation tombe. Dessinés en DOM, donc transparents partout,
-              iPhone compris; ils remplacent la capture du tableau de bord. */}
-          <HeroPhones isFr={isFr} className="mt-12 sm:mt-16" />
+          {/* Deux iPhones animés (demande utilisateur): vous êtes déjà en ligne,
+              Qwillio prend le deuxième appel, la réservation tombe. Dessinés en
+              DOM, donc transparents partout, iPhone compris. Sur téléphone, ils
+              referment le hero; sur ordinateur, ils sont à droite, plus haut. */}
+          <HeroPhones isFr={isFr} className="mt-12 sm:mt-16 lg:hidden" />
         </Container>
       </Section>
 
