@@ -30,11 +30,11 @@ export default function HeroCallLoop({ isFr, className = '' }: { isFr: boolean; 
   return (
     <figure className={className} aria-label={label}>
       {mode === 'video' ? (
-        <video className={common} autoPlay muted loop playsInline preload="metadata" poster={`${base}.png`} aria-hidden="true" width={980} height={742}>
+        <video className={common} autoPlay muted loop playsInline preload="metadata" poster={`${base}.png`} aria-hidden="true" width={1050} height={795}>
           <source src={`${base}.webm`} type='video/webm; codecs="vp9"' />
         </video>
       ) : (
-        <img className={common} src={mode === 'webp' ? `${base}.webp` : `${base}.png`} alt="" aria-hidden="true" width={980} height={742} decoding="async" />
+        <img className={common} src={mode === 'webp' ? `${base}.webp` : `${base}.png`} alt="" aria-hidden="true" width={1050} height={795} decoding="async" />
       )}
     </figure>
   );
