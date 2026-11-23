@@ -197,8 +197,8 @@ export default function HeroAgenda({ isFr, className = '' }: { isFr: boolean; cl
                 <CallIsland open={step !== 'done'} line={line} agent={step !== 'call'} sec={sec} />
                 <AnimatePresence>
                   {step === 'done' && (
-                    <motion.div key="added" style={{ position: 'absolute', left: 10, top: 11 }}
-                      initial={{ opacity: 0, y: -18, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10 }}
+                    <motion.div key="added" style={{ position: 'absolute', left: 10, top: 58 }}
+                      initial={{ opacity: 0, y: -24, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -12 }}
                       transition={{ type: 'spring', stiffness: 300, damping: 26, delay: reduce ? 0 : 0.35 }}>
                       <Notification kind="qwillio" title={L.added} desc={L.addedDesc} time={L.now} />
                     </motion.div>
