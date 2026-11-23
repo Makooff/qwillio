@@ -261,6 +261,13 @@ export default function Receptionist() {
         <div className="pointer-events-none absolute right-[-3%] top-24 hidden w-[44%] max-w-[620px] lg:block xl:right-[2%]">
           <HeroAgenda isFr={isFr} fill />
         </div>
+        {/* Sur téléphone, le même iPhone passe DERRIÈRE le texte (demande utilisateur),
+            décalé à droite; un voile aux couleurs du fond garde le texte lisible
+            dans les deux thèmes. */}
+        <div className="pointer-events-none absolute right-[-36%] top-36 w-[86%] max-w-[460px] sm:right-[-6%] sm:w-[60%] lg:hidden">
+          <HeroAgenda isFr={isFr} fill />
+        </div>
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 lg:hidden" style={{ background: 'linear-gradient(90deg, rgb(var(--q2-band) / 0.96) 0%, rgb(var(--q2-band) / 0.88) 50%, rgb(var(--q2-band) / 0.45) 100%)' }} />
         <Container className="relative">
           <RevealV2>
             <div className="lg:max-w-[600px]">
@@ -316,9 +323,6 @@ export default function Receptionist() {
             </div>
           </RevealV2>
 
-          <div className="lg:hidden -mb-[78%] mt-12 sm:-mb-[60%] px-[12%] sm:px-[22%]">
-            <HeroAgenda isFr={isFr} fill />
-          </div>
         </Container>
       </Section>
 
