@@ -35,11 +35,18 @@ export function StatusBar({ time }: { time: string }) {
 }
 
 /** L'icône d'application, au gabarit du kit (34:36 : 38 pt, rayon 10). */
-export function AppIcon({ kind }: { kind: 'phone' | 'qwillio' }) {
+export function AppIcon({ kind }: { kind: 'phone' | 'qwillio' | 'messages' }) {
   if (kind === 'qwillio') {
     return (
       <div style={{ width: 38, height: 38, borderRadius: 10, background: '#FDFDFF', display: 'grid', placeItems: 'center', flex: 'none', boxShadow: 'inset 0 0 0 0.5px rgba(0,0,0,0.08)' }}>
         <Img src={staticFile('qwillio-logo-512.svg')} style={{ width: 36, height: 36 }} />
+      </div>
+    );
+  }
+  if (kind === 'messages') {
+    return (
+      <div style={{ width: 38, height: 38, borderRadius: 10, background: 'linear-gradient(180deg,#5FF777,#2BCB45)', display: 'grid', placeItems: 'center', flex: 'none' }}>
+        <svg width="24" height="24" viewBox="0 0 24 24"><path fill="#fff" d="M12 3.5c-5.2 0-9.4 3.5-9.4 7.9 0 2.5 1.4 4.7 3.6 6.2-.2 1.2-.8 2.3-1.7 3.1 1.7 0 3.3-.6 4.5-1.6 1 .2 2 .3 3 .3 5.2 0 9.4-3.5 9.4-7.9S17.2 3.5 12 3.5z" /></svg>
       </div>
     );
   }
@@ -51,7 +58,7 @@ export function AppIcon({ kind }: { kind: 'phone' | 'qwillio' }) {
 }
 
 /** La notification du kit (1259:11286) : 370 pt, rayon 23, verre clair flouté à 40. */
-export function Notification({ kind, title, desc, time, top }: { kind: 'phone' | 'qwillio'; title: string; desc: string; time: string; top?: string }) {
+export function Notification({ kind, title, desc, time, top }: { kind: 'phone' | 'qwillio' | 'messages'; title: string; desc: string; time: string; top?: string }) {
   return (
     <div style={{ width: 373, borderRadius: 23, padding: '14px 18px 14px 14px', background: 'rgba(245,245,245,0.62)', backdropFilter: 'blur(40px)', WebkitBackdropFilter: 'blur(40px)', display: 'flex', gap: 10, alignItems: 'center', ...sf }}>
       <AppIcon kind={kind} />

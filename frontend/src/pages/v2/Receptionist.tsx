@@ -255,9 +255,15 @@ export default function Receptionist() {
           aria-hidden="true"
           style={{ background: 'linear-gradient(180deg, rgb(var(--q2-canvas)) 0%, rgb(var(--q2-band)) 14%, rgb(var(--q2-band)) 58%, rgb(var(--q2-canvas)) 100%)' }}
         />
-        <Container className="relative grid lg:grid-cols-[1.1fr_1fr] gap-9 sm:gap-14 lg:gap-20 items-center">
+        {/* L'iPhone EN FOND du hero (demande utilisateur): grand, à droite, coupé par
+            le bas de la section, derrière le texte. Sur téléphone il passe sous le
+            texte et le bas de la section le coupe de même. */}
+        <div className="pointer-events-none absolute right-[-3%] top-24 hidden w-[44%] max-w-[620px] lg:block xl:right-[2%]">
+          <HeroAgenda isFr={isFr} fill />
+        </div>
+        <Container className="relative">
           <RevealV2>
-            <div>
+            <div className="lg:max-w-[600px]">
               <Eyebrow tone="indigo" className="mb-4 sm:mb-6">
                 {isFr ? 'Réceptionniste IA' : 'AI receptionist'}
               </Eyebrow>
@@ -310,9 +316,9 @@ export default function Receptionist() {
             </div>
           </RevealV2>
 
-          <RevealV2 index={2}>
-            <HeroAgenda isFr={isFr} />
-          </RevealV2>
+          <div className="lg:hidden -mb-[78%] mt-12 sm:-mb-[60%] px-[12%] sm:px-[22%]">
+            <HeroAgenda isFr={isFr} fill />
+          </div>
         </Container>
       </Section>
 

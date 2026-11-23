@@ -1,63 +1,82 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence, motion, useInView, useReducedMotion } from 'framer-motion';
 import ScaledDevice from './ios/ScaledDevice';
-import { H, InCallScreen, IncomingCall, LockScreen, Notification, W, sf } from './ios/IosKit';
+import { H, InCallScreen, LockScreen, Notification, W, sf } from './ios/IosKit';
 
 /**
- * L'illustration du hero (demande utilisateur: « les mockups iOS de la pub »,
- * deux iPhones animés en motion design, sans texte autour ni effet mauve).
- * Les écrans sont ceux des publicités, repris de video-promo par `ios/IosKit`,
- * et la mise en scène est celle de la vidéo c01:
- *   1. vous êtes en ligne avec un client;
- *   2. un deuxième appel sonne, ligne occupée;
- *   3. Qwillio le prend;
- *   4. la conversation s'écrit dans l'app;
- *   5. la réservation tombe.
- * Dessinée en DOM et animée par Framer Motion: transparente partout, iPhone
- * compris (une vidéo WebM à fond transparent s'y affichait sur fond noir).
+ * L'illustration du hero de l'accueil: l'expérience client EN ENTIER, pas une
+ * fonctionnalité (demande utilisateur: le double appel « est une
+ * fonctionnalité parmi d'autres »). Deux iPhones, deux côtés du même appel:
+ *   - à gauche, la cliente qui appelle le restaurant, puis reçoit sa
+ *     confirmation par SMS;
+ *   - à droite, le gérant: Qwillio décroche, la conversation s'écrit mot à
+ *     mot comme des sous-titres, puis la réservation et le résumé tombent.
+ * Les écrans sont ceux des pubs (`ios/IosKit`). Les notifications vivent
+ * dans la pile de l'écran verrouillé, là où iOS les pose: tout en haut, elles
+ * passaient sous l'île et dans les coins arrondis de l'écran.
  */
 
 const EASE = [0.16, 1, 0.3, 1] as const;
 const INDIGO = '#7A5FFF';
-const STEPS = [
-  { key: 'idle', ms: 1500 },
-  { key: 'ring', ms: 2600 },
-  { key: 'took', ms: 1700 },
-  { key: 'live', ms: 6200 },
-  { key: 'booked', ms: 3400 },
-] as const;
-type Step = (typeof STEPS)[number]['key'];
+const WORD_MS = 120;   // un mot toutes les 120 ms, le rythme d'une parole posée
+const PAUSE_MS = 750;  // le silence entre deux répliques
+const LEAD_MS = 350;
+
+type Line = { agent: boolean; t: string };
 
 const TXT = {
   fr: {
-    date: 'vendredi 14 novembre', lineBusy: 'ligne occupée', took: 'Qwillio a pris le 2e appel', booked: 'Nouvelle réservation',
-    bookedDesc: 'Sophie Lambert · 2 personnes · 21:00', now: 'maintenant',
-    keys: ['haut-parleur', 'FaceTime', 'silence', 'ajouter', 'clavier', 'fin'] as [string, string, string, string, string, string],
+    date: 'vendredi 14 novembre', place: 'Le Comptoir', calling: 'appel…', keys: ['haut-parleur', 'FaceTime', 'silence', 'ajouter', 'clavier', 'fin'] as [string, string, string, string, string, string],
+    ringTitle: 'Appel de Sophie Lambert', ringDesc: 'Qwillio décroche pour vous',
+    booked: 'Nouvelle réservation', bookedDesc: 'Sophie Lambert · 2 personnes · 21:00',
+    summary: 'Résumé de l’appel', summaryDesc: 'Table pour deux ce soir, a demandé le parking',
+    sms: 'Réservation confirmée : ce soir 21:00, 2 personnes. À tantôt !', now: 'maintenant',
     lines: [
-      { agent: false, t: 'Bonsoir, vous auriez encore une table pour deux, ce soir ?' },
+      { agent: false, t: 'Bonsoir, vous auriez une table pour deux ce soir ?' },
       { agent: true, t: 'Bonsoir ! Oui, à vingt et une heures. C’est à quel nom ?' },
-      { agent: false, t: 'Lambert. Sophie Lambert.' },
-      { agent: true, t: 'C’est noté, Madame Lambert. À tantôt !' },
-    ],
+      { agent: false, t: 'Lambert. Et il y a un parking ?' },
+      { agent: true, t: 'Oui, juste derrière. C’est réservé, Madame Lambert, à ce soir !' },
+    ] as Line[],
   },
   en: {
-    date: 'Friday 14 November', lineBusy: 'line busy', took: 'Qwillio took the 2nd call', booked: 'New booking',
-    bookedDesc: 'Sophie Lambert · 2 people · 21:00', now: 'now',
-    keys: ['speaker', 'FaceTime', 'mute', 'add', 'keypad', 'end'] as [string, string, string, string, string, string],
+    date: 'Friday 14 November', place: 'Le Comptoir', calling: 'calling…', keys: ['speaker', 'FaceTime', 'mute', 'add', 'keypad', 'end'] as [string, string, string, string, string, string],
+    ringTitle: 'Call from Sophie Lambert', ringDesc: 'Qwillio is answering for you',
+    booked: 'New booking', bookedDesc: 'Sophie Lambert · 2 people · 21:00',
+    summary: 'Call summary', summaryDesc: 'Table for two tonight, asked about parking',
+    sms: 'Booking confirmed: tonight 21:00, 2 people. See you soon!', now: 'now',
     lines: [
-      { agent: false, t: 'Good evening, would you still have a table for two tonight?' },
+      { agent: false, t: 'Good evening, would you have a table for two tonight?' },
       { agent: true, t: 'Good evening! Yes, at nine o’clock. What name is it under?' },
-      { agent: false, t: 'Lambert. Sophie Lambert.' },
-      { agent: true, t: 'All set, Mrs Lambert. See you tonight!' },
-    ],
+      { agent: false, t: 'Lambert. Is there any parking?' },
+      { agent: true, t: 'Yes, just behind. You’re booked, Mrs Lambert, see you tonight!' },
+    ] as Line[],
   },
 };
+
+/** Le calendrier de la conversation: quand chaque réplique commence, et combien elle dure. */
+function schedule(lines: Line[]) {
+  let at = LEAD_MS;
+  const starts = lines.map((l) => {
+    const s = at;
+    at += l.t.split(' ').length * WORD_MS + PAUSE_MS;
+    return s;
+  });
+  return { starts, total: at };
+}
 
 const WALL = '/ios-kit/wallpaper.webp';
 const clock = (s: number) => `${String(Math.floor(s / 60)).padStart(2, '0')}:${String(s % 60).padStart(2, '0')}`;
 
-/** L'écran de l'app Qwillio pendant qu'elle répond, comme dans la pub (campaign.tsx, LiveCall). */
-function LiveCall({ who, lines, sec }: { who: string; lines: { agent: boolean; t: string }[]; sec: number }) {
+/** L'app Qwillio pendant qu'elle répond: les répliques s'écrivent mot à mot, comme des sous-titres. */
+function LiveCall({ who, lines, starts, ms, sec }: { who: string; lines: Line[]; starts: number[]; ms: number; sec: number }) {
+  const shown = lines
+    .map((l, k) => {
+      const words = l.t.split(' ');
+      const n = Math.min(words.length, Math.floor((ms - starts[k]) / WORD_MS) + 1);
+      return { ...l, k, text: words.slice(0, n).join(' '), on: ms >= starts[k] };
+    })
+    .filter((l) => l.on)
+    .slice(-3);
   return (
     <div style={{ position: 'relative', width: W, height: H, background: '#F2F2F7', overflow: 'hidden', ...sf }}>
       <div style={{ position: 'absolute', left: 0, right: 0, top: 70, textAlign: 'center' }}>
@@ -70,11 +89,11 @@ function LiveCall({ who, lines, sec }: { who: string; lines: { agent: boolean; t
         {/* pas de `layout`: dans un téléphone mis à l'échelle, Framer recalcule la taille
             des bulles et déforme leurs arrondis */}
         <AnimatePresence initial={false}>
-          {lines.slice(-3).map((l) => (
-            <motion.div key={l.t} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, transition: { duration: 0 } }}
-              transition={{ duration: 0.5, ease: EASE }}
+          {shown.map((l) => (
+            <motion.div key={l.k} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, transition: { duration: 0 } }}
+              transition={{ duration: 0.35, ease: EASE }}
               style={{ alignSelf: l.agent ? 'flex-end' : 'flex-start', maxWidth: '86%', padding: '12px 16px', borderRadius: 22, fontSize: 21, lineHeight: '27px', background: l.agent ? INDIGO : '#fff', color: l.agent ? '#fff' : '#000' }}>
-              {l.t}
+              {l.text}
             </motion.div>
           ))}
         </AnimatePresence>
@@ -83,84 +102,109 @@ function LiveCall({ who, lines, sec }: { who: string; lines: { agent: boolean; t
   );
 }
 
-const drop = { initial: { opacity: 0, y: -18, scale: 0.96 }, animate: { opacity: 1, y: 0, scale: 1 }, exit: { opacity: 0, y: -10, scale: 0.98 } };
+const pop = { initial: { opacity: 0, y: 24, scale: 0.95 }, animate: { opacity: 1, y: 0, scale: 1 }, exit: { opacity: 0 } };
+const spring = { type: 'spring' as const, stiffness: 260, damping: 24 };
 
 export default function HeroPhones({ isFr, className = '' }: { isFr: boolean; className?: string }) {
   const L = isFr ? TXT.fr : TXT.en;
+  const { starts, total } = useMemo(() => schedule(L.lines), [L]);
+  const STEPS = useMemo(() => [
+    { key: 'idle' as const, ms: 1300 },
+    { key: 'ring' as const, ms: 2300 },
+    { key: 'live' as const, ms: total + 500 },
+    { key: 'booked' as const, ms: 4800 },
+  ], [total]);
+  type Step = (typeof STEPS)[number]['key'];
+
   const reduce = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
   const visible = useInView(ref, { margin: '0px 0px -10% 0px' });
   const running = visible && !reduce;
   const [i, setI] = useState(0);
-  const [lineCount, setLineCount] = useState(0);
-  const [sec, setSec] = useState(134);
-  const [liveSec, setLiveSec] = useState(0);
+  const [ms, setMs] = useState(0);
   const step: Step = reduce ? 'booked' : STEPS[i].key;
 
   useEffect(() => {
     if (!running) return;
     const id = setTimeout(() => setI((n) => (n + 1) % STEPS.length), STEPS[i].ms);
     return () => clearTimeout(id);
-  }, [i, running]);
+  }, [i, running, STEPS]);
+  /* une seule horloge par étape: la durée affichée et les mots viennent d'elle */
   useEffect(() => {
-    if (!running) return;
-    const id = setInterval(() => { setSec((s) => s + 1); setLiveSec((s) => s + 1); }, 1000);
+    setMs(0);
+    if (!running || step !== 'live') return;
+    const t0 = performance.now();
+    const id = setInterval(() => setMs(performance.now() - t0), 50);
     return () => clearInterval(id);
-  }, [running]);
-  useEffect(() => {
-    if (step !== 'live') { setLineCount(0); setLiveSec(0); return; }
-    setLineCount(1);
-    const ids = L.lines.slice(1).map((_, k) => setTimeout(() => setLineCount(k + 2), 1450 * (k + 1)));
-    return () => ids.forEach(clearTimeout);
-  }, [step, L.lines]);
-
-  const banner = (
-    <AnimatePresence mode="wait">
-      {step === 'ring' && (
-        <motion.div key="ring" {...drop} transition={{ type: 'spring', stiffness: 320, damping: 26 }}>
-          <IncomingCall name="Sophie Lambert" initials="SL" sub={L.lineBusy} />
-        </motion.div>
-      )}
-      {step === 'took' && (
-        <motion.div key="took" {...drop} transition={{ duration: 0.45, ease: EASE }}>
-          <Notification kind="qwillio" title={L.took} desc="Sophie Lambert" time={L.now} />
-        </motion.div>
-      )}
-    </AnimatePresence>
-  );
+  }, [step, running]);
+  const sec = Math.floor(ms / 1000);
+  const onCall = step === 'ring' || step === 'live';
 
   /* le flottement: deux périodes différentes, pour que les téléphones ne bougent jamais ensemble */
   const float = (dur: number, delay: number) => (reduce ? {} : { animate: { y: [0, -8, 0] }, transition: { duration: dur, repeat: Infinity, ease: 'easeInOut' as const, delay } });
+  const fade = { initial: { opacity: 0 }, animate: { opacity: 1 }, exit: { opacity: 0 }, transition: { duration: 0.5, ease: EASE } };
 
   return (
     <div ref={ref} className={`relative ${className}`} role="img"
       aria-label={isFr
-        ? 'Illustration: vous êtes déjà en ligne, un deuxième appel arrive, Qwillio le prend, répond et la réservation arrive.'
-        : 'Illustration: you are already on a call, a second call comes in, Qwillio takes it, answers and the booking arrives.'}>
+        ? 'Illustration: une cliente appelle le restaurant, Qwillio décroche, répond à ses questions et réserve sa table; elle reçoit la confirmation, le gérant la réservation et le résumé.'
+        : 'Illustration: a customer calls the restaurant, Qwillio answers, handles her questions and books her table; she gets the confirmation, the owner gets the booking and the summary.'}>
       <div className="relative mx-auto flex w-full max-w-[520px] items-start justify-center gap-[7%] lg:mx-0" style={{ perspective: 1600 }}>
         {/* la rotation sur une enveloppe, le flottement dessous: Framer écrit `transform` en ligne */}
         <div className="w-[44%] mt-[8%]" style={{ transform: 'rotateY(14deg) rotateX(4deg) rotateZ(-3deg)', transformStyle: 'preserve-3d' }}>
           <motion.div {...float(6.5, 0)}>
             <ScaledDevice>
-              <InCallScreen name="Marc Peeters" duration={clock(sec)} labels={L.keys} />
+              {/* LA CLIENTE: elle appelle, puis reçoit sa confirmation */}
+              <div style={{ position: 'relative', width: W, height: H }}>
+                <AnimatePresence initial={false}>
+                  {onCall ? (
+                    <motion.div key="call" style={{ position: 'absolute', inset: 0 }} {...fade}>
+                      <InCallScreen name={L.place} duration={step === 'ring' ? L.calling : clock(sec)} labels={L.keys} />
+                    </motion.div>
+                  ) : (
+                    <motion.div key="lock" style={{ position: 'absolute', inset: 0 }} {...fade}>
+                      <LockScreen time="19:02" date={L.date} wallpaper={WALL}>
+                        <AnimatePresence>
+                          {step === 'booked' && (
+                            <motion.div key="sms" {...pop} transition={{ ...spring, delay: reduce ? 0 : 0.5 }}>
+                              <Notification kind="messages" title={L.place} desc={L.sms} time={L.now} />
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </LockScreen>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+              </div>
             </ScaledDevice>
           </motion.div>
         </div>
         <div className="w-[44%]" style={{ transform: 'rotateY(-14deg) rotateX(4deg) rotateZ(3deg)', transformStyle: 'preserve-3d' }}>
           <motion.div {...float(7.2, 1.1)}>
             <ScaledDevice>
+              {/* LE GÉRANT: Qwillio décroche, la conversation s'écrit, le résultat tombe */}
               <div style={{ position: 'relative', width: W, height: H }}>
                 <AnimatePresence initial={false}>
                   {step === 'live' ? (
-                    <motion.div key="live" style={{ position: 'absolute', inset: 0 }} initial={{ opacity: 0, scale: 1.04 }} animate={{ opacity: 1, scale: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.55, ease: EASE }}>
-                      <LiveCall who="Sophie Lambert" lines={L.lines.slice(0, lineCount)} sec={liveSec} />
+                    <motion.div key="live" style={{ position: 'absolute', inset: 0 }} {...fade}>
+                      <LiveCall who="Sophie Lambert" lines={L.lines} starts={starts} ms={ms} sec={sec + 3} />
                     </motion.div>
                   ) : (
-                    <motion.div key="lock" style={{ position: 'absolute', inset: 0 }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.55, ease: EASE }}>
-                      <LockScreen time="19:02" date={L.date} wallpaper={WALL} banner={banner}>
+                    <motion.div key="lock" style={{ position: 'absolute', inset: 0 }} {...fade}>
+                      <LockScreen time="19:02" date={L.date} wallpaper={WALL}>
                         <AnimatePresence>
+                          {step === 'ring' && (
+                            <motion.div key="ring" {...pop} transition={spring}>
+                              <Notification kind="qwillio" title={L.ringTitle} desc={L.ringDesc} time={L.now} />
+                            </motion.div>
+                          )}
                           {step === 'booked' && (
-                            <motion.div key="booked" initial={{ opacity: 0, y: 24, scale: 0.95 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0 }} transition={{ type: 'spring', stiffness: 240, damping: 24 }}>
+                            <motion.div key="summary" {...pop} transition={{ ...spring, delay: reduce ? 0 : 0.9 }}>
+                              <Notification kind="qwillio" title={L.summary} desc={L.summaryDesc} time={L.now} />
+                            </motion.div>
+                          )}
+                          {step === 'booked' && (
+                            <motion.div key="booked" {...pop} transition={{ ...spring, delay: reduce ? 0 : 0.3 }}>
                               <Notification kind="qwillio" title={L.booked} desc={L.bookedDesc} time={L.now} />
                             </motion.div>
                           )}

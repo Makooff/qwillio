@@ -10,7 +10,7 @@ import { H, Notification, StatusBar, W, sf } from './ios/IosKit';
  * seul iPhone montre ce que la page vend: le rendez-vous s'écrit dans
  * l'agenda PENDANT l'appel.
  *   1. l'appel est en cours, l'île dynamique affiche ce qui se dit;
- *   2. Qwillio regarde l'agenda, le créneau libre s'allume;
+ *   2. Qwillio regarde l'agenda, le créneau libre de midi s'allume;
  *   3. le rendez-vous s'inscrit;
  *   4. l'appel se termine, la notification tombe.
  * L'app Calendrier n'est pas dans le kit Figma: elle est recomposée à la
@@ -32,14 +32,14 @@ type Step = (typeof STEPS)[number]['key'];
 const TXT = {
   fr: {
     month: 'Novembre', days: ['L', 'M', 'M', 'J', 'V', 'S', 'D'], title: 'jeudi 26 novembre 2026',
-    lines: { call: '« Un créneau jeudi, en fin de journée ? »', scan: 'Je regarde l’agenda…', write: '« Jeudi à 17 h 30, c’est noté. »' },
-    caller: 'Julie Martin', service: 'Coupe brushing', added: 'Rendez-vous ajouté', addedDesc: 'Julie Martin · jeudi 26 · 17:30', now: 'maintenant',
+    lines: { call: '« Un créneau jeudi, vers midi ? »', scan: 'Je regarde l’agenda…', write: '« Jeudi à midi, c’est noté. »' },
+    caller: 'Julie Martin', service: 'Coupe brushing', added: 'Rendez-vous ajouté', addedDesc: 'Julie Martin · jeudi 26 · 12:00', now: 'maintenant',
     events: [['Coupe', 'Marc Dubois'], ['Couleur', 'Sarah Leroy'], ['Mèches', 'Inès Haddad'], ['Barbe', 'Tom Lemaire']],
   },
   en: {
     month: 'November', days: ['M', 'T', 'W', 'T', 'F', 'S', 'S'], title: 'Thursday 26 November 2026',
-    lines: { call: '"Anything Thursday, late afternoon?"', scan: 'Checking the calendar…', write: '"Thursday at 5:30 pm, you’re booked."' },
-    caller: 'Julie Martin', service: 'Cut and blow-dry', added: 'Appointment added', addedDesc: 'Julie Martin · Thu 26 · 17:30', now: 'now',
+    lines: { call: '"Anything Thursday around noon?"', scan: 'Checking the calendar…', write: '"Thursday at noon, you’re booked."' },
+    caller: 'Julie Martin', service: 'Cut and blow-dry', added: 'Appointment added', addedDesc: 'Julie Martin · Thu 26 · 12:00', now: 'now',
     events: [['Cut', 'Marc Dubois'], ['Colour', 'Sarah Leroy'], ['Highlights', 'Inès Haddad'], ['Beard', 'Tom Lemaire']],
   },
 };
@@ -53,7 +53,7 @@ const BOOKED: { from: number; to: number; color: string }[] = [
   { from: 13.5, to: 15, color: '#34A853' },
   { from: 15.5, to: 16.5, color: '#2BB3C0' },
 ];
-const SLOT = { from: 17.5, to: 18.5 };
+const SLOT = { from: 12, to: 13 }; // haut dans la journée: en fond de hero, le bas du téléphone est coupé
 
 function EventBlock({ from, to, color, title, sub }: { from: number; to: number; color: string; title: string; sub: string }) {
   return (
@@ -110,7 +110,7 @@ function CalendarDay({ L, step }: { L: typeof TXT.fr; step: Step }) {
           <motion.div key="event" initial={{ opacity: 0, clipPath: 'inset(0 0 100% 0 round 6px)' }} animate={{ opacity: 1, clipPath: 'inset(0 0 0% 0 round 6px)' }} exit={{ opacity: 0, transition: { duration: 0.35 } }} transition={{ duration: 0.7, ease: EASE }}
             style={{ position: 'absolute', left: 64, right: 10, top: y(SLOT.from) + 1, height: (SLOT.to - SLOT.from) * ROW - 2, borderRadius: 6, background: INDIGO, padding: '5px 9px', color: '#fff' }}>
             <div style={{ fontSize: 13, fontWeight: 600, lineHeight: '17px' }}>{L.caller}</div>
-            <div style={{ fontSize: 12, lineHeight: '16px', opacity: 0.85 }}>{L.service} · 17:30</div>
+            <div style={{ fontSize: 12, lineHeight: '16px', opacity: 0.85 }}>{L.service} · 12:00</div>
           </motion.div>
         )}
       </AnimatePresence>
@@ -158,7 +158,7 @@ function CallIsland({ open, line, agent, sec }: { open: boolean; line: string; a
   );
 }
 
-export default function HeroAgenda({ isFr, className = '' }: { isFr: boolean; className?: string }) {
+export default function HeroAgenda({ isFr, className = '', fill = false }: { isFr: boolean; className?: string; fill?: boolean }) {
   const L = isFr ? TXT.fr : TXT.en;
   const reduce = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
@@ -187,7 +187,8 @@ export default function HeroAgenda({ isFr, className = '' }: { isFr: boolean; cl
       aria-label={isFr
         ? 'Illustration: pendant l’appel, Qwillio trouve un créneau libre et inscrit le rendez-vous dans l’agenda.'
         : 'Illustration: during the call, Qwillio finds a free slot and writes the appointment into the calendar.'}>
-      <div className="relative mx-auto w-[68%] max-w-[330px] sm:w-[52%] lg:w-[78%]" style={{ perspective: 1600 }}>
+      {/* `fill`: le téléphone prend toute la largeur reçue, pour servir de fond au hero */}
+      <div className={`relative mx-auto ${fill ? 'w-full' : 'w-[68%] max-w-[330px] sm:w-[52%] lg:w-[78%]'}`} style={{ perspective: 1600 }}>
         {/* la rotation sur une enveloppe, le flottement dessous: Framer écrit `transform` en ligne */}
         <div style={{ transform: 'rotateY(-12deg) rotateX(4deg) rotateZ(2deg)', transformStyle: 'preserve-3d' }}>
           <motion.div {...(reduce ? {} : { animate: { y: [0, -8, 0] }, transition: { duration: 6.8, repeat: Infinity, ease: 'easeInOut' as const } })}>
@@ -197,8 +198,8 @@ export default function HeroAgenda({ isFr, className = '' }: { isFr: boolean; cl
                 <CallIsland open={step !== 'done'} line={line} agent={step !== 'call'} sec={sec} />
                 <AnimatePresence>
                   {step === 'done' && (
-                    <motion.div key="added" style={{ position: 'absolute', left: 10, top: 11 }}
-                      initial={{ opacity: 0, y: -18, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -10 }}
+                    <motion.div key="added" style={{ position: 'absolute', left: 10, top: 58 }}
+                      initial={{ opacity: 0, y: -24, scale: 0.96 }} animate={{ opacity: 1, y: 0, scale: 1 }} exit={{ opacity: 0, y: -12 }}
                       transition={{ type: 'spring', stiffness: 300, damping: 26, delay: reduce ? 0 : 0.35 }}>
                       <Notification kind="qwillio" title={L.added} desc={L.addedDesc} time={L.now} />
                     </motion.div>
