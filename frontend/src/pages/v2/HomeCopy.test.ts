@@ -6,7 +6,8 @@ import footer from '../../components/v2/FooterV2.tsx?raw';
 describe('Homepage — original identity with explanatory illustrations', () => {
   it('replaces landscape and screenshots while keeping navigation and demo flows', () => {
     expect(source).toContain('<HeroBackdrop dark />');
-    expect(source).toContain('<ProductIllustration kind="overview"');
+    expect(source).toContain('<HeroCallLoop isFr={isFr}');
+    expect(source).not.toContain('<ProductIllustration kind="overview"');
     expect(source).toContain('<BenefitsGrid isFr={isFr} />');
     expect(source).toContain('<LaunchSteps isFr={isFr} />');
     expect(source).toContain('<EcosystemMosaic isFr={isFr} />');

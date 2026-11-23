@@ -12,7 +12,7 @@ import { useSEO } from '../../hooks/useSEO';
 import { useLang } from '../../stores/langStore';
 import PublicShell from '../../components/v2/PublicShell';
 import HeroBackdrop from '../../components/v2/HospitalityBackdrop';
-import ProductIllustration from '../../components/v2/ProductIllustration';
+import HeroCallLoop from '../../components/v2/HeroCallLoop';
 import Atmosphere from '../../components/v2/AtmosphereFocus';
 import { Container, Section, Eyebrow, Display, H2, Lead, SerifWord } from '../../components/v2/Primitives';
 import { PillLink } from '../../components/v2/Button';
@@ -402,8 +402,11 @@ export default function Home() {
             </div>
           </RevealV2>
 
-          {/* La vraie capture du dashboard referme le hero, pleine largeur */}
-          <div className="mt-12 sm:mt-16 max-w-[1080px] mx-auto"><ProductIllustration kind="overview" isFr={isFr} /></div>
+          {/* Les deux iPhones de la vidéo c01 referment le hero, à GAUCHE,
+              sur fond transparent (demande utilisateur): le principe se
+              comprend en quelques secondes, sans capture d'écran à lire. Ils
+              remplacent la capture du tableau de bord. */}
+          <HeroCallLoop isFr={isFr} className="mt-10 sm:mt-14 mr-auto w-full max-w-[min(560px,100%)] -ml-2 sm:-ml-6" />
         </Container>
       </Section>
 
