@@ -1,6 +1,7 @@
-import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { AnimatePresence, motion, useInView, useReducedMotion } from 'framer-motion';
-import { Device, H, InCallScreen, IncomingCall, LockScreen, Notification, W, sf } from './ios/IosKit';
+import ScaledDevice from './ios/ScaledDevice';
+import { H, InCallScreen, IncomingCall, LockScreen, Notification, W, sf } from './ios/IosKit';
 
 /**
  * L'illustration du hero (demande utilisateur: « les mockups iOS de la pub »,
@@ -80,22 +81,6 @@ function LiveCall({ who, lines, sec }: { who: string; lines: { agent: boolean; t
       </div>
     </div>
   );
-}
-
-/** Le boîtier du kit, mis à l'échelle de la colonne qui le reçoit. */
-function ScaledDevice({ children }: { children: React.ReactNode }) {
-  const ref = useRef<HTMLDivElement>(null);
-  const [scale, setScale] = useState(0.5);
-  useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
-    const fit = () => setScale(el.clientWidth / (W + 26));
-    fit();
-    const ro = new ResizeObserver(fit);
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, []);
-  return <div ref={ref} className="w-full"><Device scale={scale}>{children}</Device></div>;
 }
 
 const drop = { initial: { opacity: 0, y: -18, scale: 0.96 }, animate: { opacity: 1, y: 0, scale: 1 }, exit: { opacity: 0, y: -10, scale: 0.98 } };
