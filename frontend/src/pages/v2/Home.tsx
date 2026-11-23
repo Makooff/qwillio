@@ -431,7 +431,7 @@ export default function Home() {
       <Section aria-labelledby="principle-heading" className="relative">
         <Container className="relative z-10 [&>*]:min-w-0">
           <div className="grid lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] gap-8 lg:gap-14 items-center">
-            <HeroCallLoop isFr={isFr} className="w-full max-w-[560px] mx-auto lg:mx-0 lg:-ml-8" />
+            <HeroCallLoop isFr={isFr} className="w-full max-w-[640px] mx-auto lg:mx-0 lg:-ml-10" />
             <RevealV2 className="max-w-[520px]">
               <Eyebrow tone="indigo" className="mb-4">{isFr ? 'Le principe' : 'How it works'}</Eyebrow>
               <H2 id="principle-heading">

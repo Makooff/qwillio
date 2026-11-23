@@ -11,6 +11,7 @@ import { DURATION, FPS } from './timeline';
 import { Post, POSTS, POST_FORMATS, type PostFormat } from './shorts/poster';
 import { FORMATS, Format, SHORT_FPS, SHORT_IDS, Short, buildTimeline, shortName } from './shorts/Short';
 import { SiteLoop, SITE_LOOP_SIZE, siteLoopFrames } from './shorts/siteLoop';
+import { SiteExperience, SITE_EXP_SIZE, experienceFrames } from './shorts/siteExperience';
 
 export const RemotionRoot: React.FC = () => (
   <>
@@ -27,6 +28,9 @@ export const RemotionRoot: React.FC = () => (
   {/* L'illustration animée du site (fond transparent), FR et EN. */}
   {(['fr-c01', 'en-c01'] as const).map((id) => (
     <Composition key={`site-${id}`} id={`SiteLoop-${id}`} component={SiteLoop} defaultProps={{ id }} durationInFrames={siteLoopFrames(id)} fps={SHORT_FPS} width={SITE_LOOP_SIZE.w} height={SITE_LOOP_SIZE.h} />
+  ))}
+  {(['fr-c01', 'en-c01'] as const).map((id) => (
+    <Composition key={`siteexp-${id}`} id={`SiteExperience-${id}`} component={SiteExperience} defaultProps={{ id }} durationInFrames={experienceFrames(id)} fps={SHORT_FPS} width={SITE_EXP_SIZE.w} height={SITE_EXP_SIZE.h} />
   ))}
   {/* Les posts fixes, Instagram et LinkedIn (4:5). */}
   {(['fr', 'en', 'nl'] as const).flatMap((lang) => POSTS[lang].flatMap((_, i) => (Object.keys(POST_FORMATS) as PostFormat[]).map((fmt) => (
