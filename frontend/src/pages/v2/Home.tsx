@@ -12,7 +12,7 @@ import { useSEO } from '../../hooks/useSEO';
 import { useLang } from '../../stores/langStore';
 import PublicShell from '../../components/v2/PublicShell';
 import HeroBackdrop from '../../components/v2/HospitalityBackdrop';
-import HeroCallLoop from '../../components/v2/HeroCallLoop';
+import HeroPhones from '../../components/v2/HeroPhones';
 import Atmosphere from '../../components/v2/AtmosphereFocus';
 import { Container, Section, Eyebrow, Display, H2, Lead, SerifWord } from '../../components/v2/Primitives';
 import { PillLink } from '../../components/v2/Button';
@@ -44,27 +44,11 @@ const EXPLORE_PHOTOS = [
    Zéro copie V1. Chaque affirmation est couverte par le code
    (DA/v2-direction.md, piliers + interdits de vente). */
 
-/* Les trois cas où Qwillio décroche: le renvoi conditionnel du produit
-   (occupé, non-réponse après 30 s, et tout le reste quand c'est fermé). */
-const PRINCIPLE = {
-  fr: [
-    { when: 'Ligne occupée', what: 'Vous êtes déjà en ligne : elle prend le deuxième appel.' },
-    { when: 'Pas de réponse', what: 'Vous ne décrochez pas en 30 s : elle décroche à votre place.' },
-    { when: 'Soir et week-end', what: 'Elle répond, réserve dans votre agenda et vous transmet le reste.' },
-  ],
-  en: [
-    { when: 'Line busy', what: 'You are already on a call: she takes the second one.' },
-    { when: 'No answer', what: 'You do not pick up within 30 s: she answers for you.' },
-    { when: 'Evenings, weekends', what: 'She answers, books into your calendar and passes the rest on to you.' },
-  ],
-};
-
 export default function Home() {
   const { lang } = useLang();
   /* Repère du cadre qui passe d'une étape à l'autre dans « Pendant l'appel ». */
   const duringRef = useRef<HTMLDivElement>(null);
   const isFr = lang === 'fr';
-  const principle = isFr ? PRINCIPLE.fr : PRINCIPLE.en;
   /* Le carrousel du bas mène à quatre pages du site. `href` reste posé pour que
      le lien s'ouvre dans un onglet, se copie et se lise comme un lien; la
      navigation, elle, passe par le routeur, sinon un clic rechargerait toute
@@ -395,6 +379,11 @@ export default function Home() {
                   (`q2-graphite`), ce qui marchait tant que le fond restait
                   clair. Le voile a inversé le problème: on ne fonce plus le
                   texte, on éclaircit, et c'est le voile qui fait le noir. */}
+              {/* Sur ordinateur, les iPhones passent À DROITE du paragraphe et des
+                  boutons (demande utilisateur), sous le titre qui garde toute la
+                  largeur; sur téléphone ils restent sous le hero. */}
+              <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_minmax(0,460px)] lg:items-start lg:gap-10">
+              <div>
               <Lead className="max-w-[500px] mb-7 sm:mb-10 q2-body-text !text-white/[0.88]">
                 {isFr
                   ? 'Elle prend les appels, réserve dans votre agenda connecté et vous transmet les demandes. Dès 99 € par mois.'
@@ -414,48 +403,18 @@ export default function Home() {
                   {isFr ? 'L’entendre décrocher' : 'Hear her answer'}
                 </TryVoiceButton>
               </div>
+              </div>
+              <HeroPhones isFr={isFr} className="hidden lg:block lg:mt-2" />
+              </div>
 
             </div>
           </RevealV2>
 
-        </Container>
-      </Section>
-
-      {/* ── LE PRINCIPE, juste après le hero (retour utilisateur: « Pendant
-          l'appel est une des fonctionnalités, ça ne présente pas bien
-          Qwillio »). Avant de détailler ce qu'elle fait en ligne, on dit QUAND
-          elle décroche: votre téléphone sonne d'abord, elle prend le reste.
-          Les deux iPhones de la vidéo c01 le montrent à gauche, sur fond
-          transparent; le texte, à droite, le dit en trois lignes. Ils
-          remplacent la capture du tableau de bord qui fermait le hero. ── */}
-      <Section aria-labelledby="principle-heading" className="relative">
-        <Container className="relative z-10 [&>*]:min-w-0">
-          <div className="grid lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] gap-8 lg:gap-14 items-center">
-            <HeroCallLoop isFr={isFr} className="w-full max-w-[640px] mx-auto lg:mx-0 lg:-ml-10" />
-            <RevealV2 className="max-w-[520px]">
-              <Eyebrow tone="indigo" className="mb-4">{isFr ? 'Le principe' : 'How it works'}</Eyebrow>
-              <H2 id="principle-heading">
-                {isFr ? (
-                  <>Votre téléphone sonne d’abord. Elle prend <SerifWord>le reste.</SerifWord></>
-                ) : (
-                  <>Your phone rings first. She takes <SerifWord>the rest.</SerifWord></>
-                )}
-              </H2>
-              <ul className="mt-6 sm:mt-8 border-t border-q2-plate/70">
-                {principle.map((row) => (
-                  <li key={row.when} className="grid grid-cols-1 sm:grid-cols-[minmax(0,11rem)_1fr] gap-1 sm:gap-4 py-4 border-b border-q2-plate/70">
-                    <span className="text-q2-ink font-medium">{row.when}</span>
-                    <span className="text-q2-body q2-body-text">{row.what}</span>
-                  </li>
-                ))}
-              </ul>
-              <p className="text-q2-body text-base leading-relaxed mt-5 q2-body-text">
-                {isFr
-                  ? 'Vous gardez votre numéro : un code pour l’activer, un code pour l’enlever.'
-                  : 'You keep your number: one code to turn it on, one code to turn it off.'}
-              </p>
-            </RevealV2>
-          </div>
+          {/* Deux iPhones animés (demande utilisateur): vous êtes déjà en ligne,
+              Qwillio prend le deuxième appel, la réservation tombe. Dessinés en
+              DOM, donc transparents partout, iPhone compris. Sur téléphone, ils
+              referment le hero; sur ordinateur, ils sont à droite, plus haut. */}
+          <HeroPhones isFr={isFr} className="mt-12 sm:mt-16 lg:hidden" />
         </Container>
       </Section>
 
