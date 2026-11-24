@@ -1,5 +1,11 @@
 # Les deux niveaux de réceptionniste : Standard et Superagent
 
+> **Retiré le 24/11/2026.** Le Superagent n'est plus vendu ni accordé :
+> `superagentAllowed` répond toujours non, l'option a quitté la caisse, la
+> Facturation et la page tarifs, et les scripts `voice:tier` / `voice:pricing`
+> sont supprimés. La voix tourne sur `qwillio-voice-core`, qui ne l'utilisait
+> pas. Ce qui suit est historique (moteur Vapi).
+
 Un seul réglage par client, `voiceTier`, et deux valeurs. Ce document dit ce
 que chacune est faite, ce que la seconde gagne, ce qu'elle perd, comment la
 poser et comment vérifier qu'elle a servi.

@@ -20,7 +20,8 @@
 import type { StageStats } from './latency-tracker';
 import { PLANS, type PlanId } from '../../config/plans';
 import { superagentCost, inclusionCostEur, eur, revenuePerIncludedMinuteEur } from '../../config/voice-economics';
-import { PRICED_FOR_MODEL } from '../../config/superagent-option';
+/** Le modèle temps réel dont le tarif a été relevé et tient la marge (retour arrière Vapi seulement). */
+const PRICED_FOR_MODEL = 'gpt-realtime-mini-2025-12-15';
 import { isPlaceholderName } from '../../utils/spelled-name';
 import { VOICE_TIERS, type VoiceTierId } from './voice-tiers';
 import { llmStreamRuns } from './profile-voice';
@@ -1681,7 +1682,7 @@ export function auditCall(facts: CallFacts): AuditReport {
         ].filter(Boolean).join(' — '),
         target: `≤ ${floor.toFixed(3)} €/min`,
         lever: loses
-          ? "cette minute coûte plus qu'elle ne rapporte. Le poste le plus lourd est en tête de la valeur: si c'est le modèle, c'est `VOICE_REALTIME_MODEL` (facteur dix entre les six); si c'est la plateforme, c'est la part que supprimerait un trunk SIP direct. `npm run voice:pricing` donne la feuille par palier"
+          ? "cette minute coûte plus qu'elle ne rapporte. Le poste le plus lourd est en tête de la valeur: si c'est le modèle, c'est `VOICE_REALTIME_MODEL` (facteur dix entre les six); si c'est la plateforme, c'est la part que supprimerait un trunk SIP direct."
           : undefined,
       });
     }
@@ -1739,7 +1740,7 @@ export function auditCall(facts: CallFacts): AuditReport {
       lever: hybride
         ? 'RESTE d\'une synchronisation classique, conservé par le PATCH de Vapi. Le réglage est bon, ne pas relancer `voice:tier`: déployer le correctif qui envoie `transcriber` et `startSpeakingPlan` à `null`, puis `npm run voice:resync -- --confirm`. En attendant, `--tier=base --confirm` rend une ligne qui marche'
         : got !== null && got !== want
-        ? "l'assistant enregistré ne porte pas le niveau du client: `npm run voice:tier -- --email=… --tier=… --confirm`"
+        ? "l'assistant enregistré ne porte pas le niveau du client: corriger `voiceTier` puis `npm run voice:resync -- --confirm`"
         : undefined,
     });
   }
@@ -1820,7 +1821,7 @@ export function auditCall(facts: CallFacts): AuditReport {
             ].filter(Boolean).join(' — '),
         target: got && priced && !ruinous ? got : PRICED_FOR_MODEL,
         lever: ruinous
-          ? `ce modèle coûte plus qu'une minute ne rapporte: poser \`VOICE_REALTIME_MODEL=${PRICED_FOR_MODEL}\` sur RENDER, puis \`voice:validate\` et \`voice:resync -- --confirm\` depuis un poste dont le \`.env\` porte la MÊME valeur. \`npm run voice:pricing\` donne la feuille`
+          ? `ce modèle coûte plus qu'une minute ne rapporte: poser \`VOICE_REALTIME_MODEL=${PRICED_FOR_MODEL}\` sur RENDER, puis \`voice:validate\` et \`voice:resync -- --confirm\` depuis un poste dont le \`.env\` porte la MÊME valeur.`
           : !priced
             ? `son tarif n'a jamais été relevé, donc ce que coûte la minute est INCONNU: le lire sur le tableau de bord Vapi et le poser dans \`REALTIME_RATES\`, ou revenir à \`${PRICED_FOR_MODEL}\``
             : diverges

@@ -122,8 +122,10 @@ s'appuyer sur l'ancien chiffre pour fixer un prix.
 tenir ensemble) : Solo 500 min et 0,29 €/min au-delà, Starter 1 400 et 0,25,
 Pro 3 500 et 0,22, Enterprise 8 000 et 0,20, prix mensuels inchangés. Le prix
 à la minute doit BAISSER à chaque palier (un test le garde) et le dépassement
-rester au-dessus de lui. L'option Superagent, calculée sur les minutes
-incluses, passe à 30 et 70 € sous une clé Stripe neuve (`…_v2_eur`). La
+rester au-dessus de lui. **Le Superagent est supprimé le même jour** : plus
+d'option à la caisse ni en Facturation, plus inclus dans Pro, `superagentAllowed`
+répond toujours non (la colonne `superagent_option` reste en base, sans effet).
+Tout ce qui, plus bas, parle de le vendre est historique. La
 migration `20261124000000_plan_minutes_grid` relève les quotas des clients qui
 valaient exactement l'ancien défaut. LiveKit est gratuit pour le moment : la
 marge est à revoir le jour où il ne l'est plus (`docs/business-plan.md`).
