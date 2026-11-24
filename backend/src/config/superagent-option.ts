@@ -67,8 +67,8 @@ export const PRICED_FOR_MODEL = 'gpt-realtime-mini-2025-12-15';
  * `reportRealtimeSurcharge` évite depuis l'autre bout de la chaîne.
  */
 export const OPTION_MONTHLY_EUR: Partial<Record<PlanId, number>> = {
-  solo: 20,
-  starter: 40,
+  solo: 30,
+  starter: 70,
 };
 
 /**
@@ -110,7 +110,11 @@ export function optionPriceEur(
  * le 1297 € de 6duodecies.
  */
 export function optionLookupKey(planId: PlanId, period: BillingPeriod = 'monthly'): string {
-  return `qwillio_superagent_${planId}_${period}_eur`;
+  // `v2` : la grille du 24/11/2026 (plus de minutes incluses, donc une option à
+  // 30 et 70 €). Une clé neuve plutôt que l'ancienne : le prix retrouvé sous
+  // l'ancienne clé ne correspondrait plus et la caisse refuserait de s'ouvrir.
+  // Les lignes déjà vendues restent reconnues par OPTION_LOOKUP_PREFIX.
+  return `qwillio_superagent_${planId}_${period}_v2_eur`;
 }
 
 /** Une clé de prix Stripe désigne-t-elle une ligne d'option ? */

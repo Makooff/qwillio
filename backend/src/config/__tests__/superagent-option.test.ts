@@ -48,27 +48,27 @@ describe('à qui l\'option se vend', () => {
   });
 
   it('se vend à Solo et Starter', () => {
-    expect(optionPriceEur('solo')).toBe(20);
-    expect(optionPriceEur('starter')).toBe(40);
+    expect(optionPriceEur('solo')).toBe(30);
+    expect(optionPriceEur('starter')).toBe(70);
   });
 
   it('un forfait inconnu retombe sur Starter, comme getPlan', () => {
-    expect(optionPriceEur(null)).toBe(40);
+    expect(optionPriceEur(null)).toBe(70);
   });
 });
 
 describe('la période', () => {
   it('l\'annuel porte la MÊME remise que les forfaits, pas une remise à part', () => {
-    expect(optionPriceEur('solo', 'annual')).toBe(Math.round(20 * 12 * 0.8));
-    expect(optionPriceEur('starter', 'annual')).toBe(Math.round(40 * 12 * 0.8));
+    expect(optionPriceEur('solo', 'annual')).toBe(Math.round(30 * 12 * 0.8));
+    expect(optionPriceEur('starter', 'annual')).toBe(Math.round(70 * 12 * 0.8));
   });
 
   it('chaque période a sa propre clé de prix Stripe', () => {
     /* Stripe refuse un abonnement dont les lignes n'ont pas le même
        intervalle: une seule clé pour les deux ferait poser une ligne mensuelle
        sur un abonnement annuel, donc un ajout qui échoue. */
-    expect(optionLookupKey('solo', 'monthly')).toBe('qwillio_superagent_solo_monthly_eur');
-    expect(optionLookupKey('solo', 'annual')).toBe('qwillio_superagent_solo_annual_eur');
+    expect(optionLookupKey('solo', 'monthly')).toBe('qwillio_superagent_solo_monthly_v2_eur');
+    expect(optionLookupKey('solo', 'annual')).toBe('qwillio_superagent_solo_annual_v2_eur');
     expect(optionLookupKey('solo', 'monthly')).not.toBe(optionLookupKey('solo', 'annual'));
   });
 
@@ -102,7 +102,7 @@ describe('le modèle temps réel décide si le prix existe', () => {
     if (verdict.sellable) throw new Error('unreachable');
     // Le premier forfait qui casse est nommé, avec le coût en face du prix.
     expect(verdict.reason).toMatch(/Solo/);
-    expect(verdict.reason).toMatch(/20 €/);
+    expect(verdict.reason).toMatch(/30 €/);
   });
 
   it('REFUSE un modèle inconnu du module plutôt que de le supposer gratuit', () => {
@@ -123,7 +123,7 @@ describe('ce que le portail doit afficher', () => {
 
   it('forfait Solo sans option: achetable, à son prix', () => {
     const offer = superagentOffer({ planType: 'solo', superagentOption: false }, MINI);
-    expect(offer).toMatchObject({ included: false, active: false, priceEur: 20, sellable: true });
+    expect(offer).toMatchObject({ included: false, active: false, priceEur: 30, sellable: true });
   });
 
   it('forfait Solo avec option: active, et plus rien à vendre', () => {

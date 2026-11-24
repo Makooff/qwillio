@@ -58,10 +58,10 @@ export default function Terms() {
   );
 
   const corePlans = [
-    { plan: 'Solo', price: '99 €/mo', minutes: '250', overage: '0,45 € / min' },
-    { plan: 'Starter', price: '249 €/mo', minutes: '750', overage: '0,39 € / min' },
-    { plan: 'Pro', price: '599 €/mo', minutes: '2,000', overage: '0,35 € / min' },
-    { plan: 'Enterprise', price: '1,290 €/mo', minutes: '5,000', overage: '0,30 € / min' },
+    { plan: 'Solo', price: '99 €/mo', minutes: '500', overage: '0,29 € / min' },
+    { plan: 'Starter', price: '249 €/mo', minutes: '1,400', overage: '0,25 € / min' },
+    { plan: 'Pro', price: '599 €/mo', minutes: '3,500', overage: '0,22 € / min' },
+    { plan: 'Enterprise', price: '1,290 €/mo', minutes: '8,000', overage: '0,20 € / min' },
   ];
 
   const addOns: { addon: string; price: string }[] = [

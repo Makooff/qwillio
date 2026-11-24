@@ -29,7 +29,7 @@ describe('Public comparisons render useful, supportable claims in both languages
       expect(container.querySelectorAll('table').length).toBeGreaterThanOrEqual(2);
       expect(text).toContain('Solo');
       expect(text).toContain('Enterprise');
-      expect(text).toMatch(/250 min/);
+      expect(text).toMatch(/500 min/);
       expect(text).toMatch(lang === 'fr' ? /carte requise/ : /card required/);
       expect(text).toMatch(lang === 'fr' ? /opérateur/ : /carrier/);
       expect(text).toMatch(lang === 'fr' ? /agenda Google ou Outlook connecté/ : /connected Google or Outlook calendar/);

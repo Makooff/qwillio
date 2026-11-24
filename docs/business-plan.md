@@ -14,23 +14,25 @@ Conséquence directe pour le plan : la valeur ne se construit pas sur le décroc
 
 | Palier | Prix | Minutes incluses | Dépassement |
 |---|---:|---:|---:|
-| Solo | 99 € | 250 | 0,45 €/min |
-| Starter | 249 € | 750 | 0,39 €/min |
-| Pro | 599 € | 2 000 | 0,35 €/min |
-| Enterprise | 1 290 € | 5 000 | 0,30 €/min |
+| Solo | 99 € | 500 | 0,29 €/min |
+| Starter | 249 € | 1 400 | 0,25 €/min |
+| Pro | 599 € | 3 500 | 0,22 €/min |
+| Enterprise | 1 290 € | 8 000 | 0,20 €/min |
 
 Essai 7 jours, carte demandée à l'inscription. Annuel : 12 mois d'engagement contre 20 % de remise.
 
 ## Économie unitaire
 
-Le coût de revient tourne autour de **0,15 €/minute tout compris** (voix, transcription, modèle, télécom). C'est la base de calcul retenue dans `plans.ts`.
+**Grille du 24/11/2026** : plus de minutes incluses à prix égal (Solo 500, Starter 1 400, Pro 3 500, Enterprise 8 000), pour s'aligner sur la concurrence belge (Elevedia : 450 min pour 94,90 €). La marge dépend du coût réel à la minute, qui **n'a pas été remesuré depuis le passage au moteur LiveKit** (gratuit pour le moment). Deux hypothèses, à remplacer par la mesure :
 
-| Palier | Prix | Coût des minutes incluses | Marge brute si quota plein | Marge sur dépassement |
-|---|---:|---:|---:|---:|
-| Solo | 99 € | 37,50 € | **62 %** | 67 % |
-| Starter | 249 € | 112,50 € | **55 %** | 62 % |
-| Pro | 599 € | 300 € | **50 %** | 57 % |
-| Enterprise | 1 290 € | 750 € | **42 %** | 50 % |
+| Palier | Prix | Minutes | Marge si quota plein à 0,09 €/min | à 0,15 €/min | Marge sur dépassement à 0,09 € |
+|---|---:|---:|---:|---:|---:|
+| Solo | 99 € | 500 | **55 %** | 24 % | 69 % |
+| Starter | 249 € | 1 400 | **49 %** | 16 % | 64 % |
+| Pro | 599 € | 3 500 | **47 %** | 12 % | 59 % |
+| Enterprise | 1 290 € | 8 000 | **44 %** | 7 % | 55 % |
+
+0,09 €/min est le dernier coût mesuré (chaîne Vapi, septembre 2026) ; 0,15 € était l'estimation prudente d'origine. Un quota plein est rare, mais **si la mesure du moteur actuel dépasse 0,12 €/min, la grille est à revoir** avant de signer des forfaits Pro ou Enterprise.
 
 Deux choses à retenir :
 

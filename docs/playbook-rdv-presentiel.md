@@ -398,13 +398,13 @@ propre entreprise à l'écran, pas une démonstration.
 
 | Plan | Prix | Minutes incluses | Au delà |
 |---|---|---|---|
-| Solo | 99 € | 250 | 0,45 €/min |
-| Starter | 249 € | 750 | 0,39 €/min |
-| Pro | 599 € | 2 000 | 0,35 €/min |
-| Enterprise | 1 290 € | 5 000 | 0,30 €/min |
+| Solo | 99 € | 500 | 0,29 €/min |
+| Starter | 249 € | 1 400 | 0,25 €/min |
+| Pro | 599 € | 3 500 | 0,22 €/min |
+| Enterprise | 1 290 € | 8 000 | 0,20 €/min |
 
-Pour un plombier seul, c'est **Solo**, et ça ne se discute pas : 250 minutes,
-c'est environ deux cents appels d'une minute et quart. Ne vends pas Starter à
+Pour un plombier seul, c'est **Solo**, et ça ne se discute pas : 500 minutes,
+c'est environ quatre cents appels d'une minute et quart. Ne vends pas Starter à
 quelqu'un qui n'en a pas besoin, il te le reprochera au deuxième mois.
 
 **16 à 20 minutes, la mise en route.** C'est ici que la vente se fait, pas dans

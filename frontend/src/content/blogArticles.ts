@@ -77,7 +77,7 @@ export const BLOG_ARTICLES: BlogArticle[] = [
         ]},
         { type: 'p', text: "For a full-time receptionist, multiply by roughly 1.8 to 2 — the loaded annual cost lands well above 50 000 EUR in Belgium 2026. In France the structure is similar, with somewhat lower contribution rates." },
         { type: 'h2', text: 'What the AI alternative actually costs' },
-        { type: 'p', text: "A bilingual AI receptionist in 2026 running 24/7 for a Belgian SMB costs 99 EUR/month (Solo, 250 included minutes) to 249 EUR/month (Starter, 750 minutes, bilingual EN+FR), billed by the minute beyond that. On the annual discount, that drops another 20 percent. Even the Starter tier is under 3,000 EUR per year — ten times cheaper than the loaded human cost." },
+        { type: 'p', text: "A bilingual AI receptionist in 2026 running 24/7 for a Belgian SMB costs 99 EUR/month (Solo, 500 included minutes) to 249 EUR/month (Starter, 1 400 minutes, bilingual EN+FR), billed by the minute beyond that. On the annual discount, that drops another 20 percent. Even the Starter tier is under 3,000 EUR per year — ten times cheaper than the loaded human cost." },
         { type: 'p', text: "The AI does not eat, does not sleep, does not take vacation, does not go on sick leave, does not need a backup, does not turn over. It covers 24 hours a day 365 days a year instead of 20 hours a week 44 weeks a year." },
         { type: 'h2', text: 'When to still hire a human' },
         { type: 'p', text: "None of this argues that businesses should stop hiring receptionists. Some contexts genuinely need a human: high-touch client service, physical walk-in reception, complex judgement calls on every inbound. But most SMB inbound calls are informational, transactional, or routing — perfectly handled by an AI at a fraction of the cost." },
@@ -127,7 +127,7 @@ export const BLOG_ARTICLES: BlogArticle[] = [
         ]},
         { type: 'p', text: "Pour une secrétaire temps plein, multipliez par environ 1,8 à 2 — le coût chargé annuel dépasse largement 50 000 € en Belgique en 2026. En France, la structure est similaire avec des taux de cotisation un peu plus bas." },
         { type: 'h2', text: "Ce que coûte réellement l'alternative IA" },
-        { type: 'p', text: "Une réceptionniste IA bilingue en 2026 qui tourne 24/7 pour une PME belge coûte 99 €/mois (Solo, 250 minutes incluses) à 249 €/mois (Starter, 750 minutes, bilingue EN+FR), facturée à la minute au-delà. Avec la remise annuelle, retirez encore 20 %. Même le tier Starter est sous 3 000 € par an — dix fois moins que le coût chargé humain." },
+        { type: 'p', text: "Une réceptionniste IA bilingue en 2026 qui tourne 24/7 pour une PME belge coûte 99 €/mois (Solo, 500 minutes incluses) à 249 €/mois (Starter, 1 400 minutes, bilingue EN+FR), facturée à la minute au-delà. Avec la remise annuelle, retirez encore 20 %. Même le tier Starter est sous 3 000 € par an — dix fois moins que le coût chargé humain." },
         { type: 'p', text: "L'IA ne mange pas, ne dort pas, ne prend pas de vacances, ne se met pas en arrêt, n'a pas besoin de backup, ne turnove pas. Elle couvre 24 heures sur 24, 365 jours par an, au lieu de 20 heures par semaine 44 semaines par an." },
         { type: 'h2', text: "Quand il reste pertinent d'embaucher un humain" },
         { type: 'p', text: "Rien de tout cela n'argumente pour que les entreprises arrêtent d'embaucher des secrétaires. Certains contextes ont vraiment besoin d'un humain : service client haut de gamme, accueil physique en boutique, jugement complexe sur chaque appel entrant. Mais la majorité des appels PME entrants sont informationnels, transactionnels ou de routage — parfaitement gérés par une IA à une fraction du coût." },
@@ -468,10 +468,10 @@ export const BLOG_ARTICLES: BlogArticle[] = [
         {
           "type": "ul",
           "items": [
-            "Solo : 99 €/mois, 250 minutes incluses.",
-            "Starter : 249 €/mois, 750 minutes incluses.",
-            "Pro : 599 €/mois, 2 000 minutes incluses.",
-            "Enterprise : 1 290 €/mois, 5 000 minutes incluses."
+            "Solo : 99 €/mois, 500 minutes incluses.",
+            "Starter : 249 €/mois, 1 400 minutes incluses.",
+            "Pro : 599 €/mois, 3 500 minutes incluses.",
+            "Enterprise : 1 290 €/mois, 8 000 minutes incluses."
           ]
         },
         {
@@ -539,7 +539,7 @@ export const BLOG_ARTICLES: BlogArticle[] = [
         {
           "type": "ul",
           "items": [
-            "Solo: €99/month, 250 included minutes.",
+            "Solo: €99/month, 500 included minutes.",
             "Starter: €249/month, 750 included minutes.",
             "Pro: €599/month, 2,000 included minutes.",
             "Enterprise: €1,290/month, 5,000 included minutes."

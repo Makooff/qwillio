@@ -81,7 +81,7 @@ const EVIDENCE: ComparisonEvidence[] = [
         [
           "Budget de départ",
           "Start : 49 € HT / 100 min",
-          "Solo : 99 € / 250 min"
+          "Solo : 99 € / 500 min"
         ]
       ],
       "en": [
@@ -98,7 +98,7 @@ const EVIDENCE: ComparisonEvidence[] = [
         [
           "Entry budget",
           "Start: €49 excl. tax / 100 min",
-          "Solo: €99 / 250 min"
+          "Solo: €99 / 500 min"
         ]
       ]
     }
@@ -293,7 +293,7 @@ const EVIDENCE: ComparisonEvidence[] = [
         [
           "Budget de départ",
           "Professional : 49 $ / 250 min",
-          "Solo : 99 € / 250 min"
+          "Solo : 99 € / 500 min"
         ]
       ],
       "en": [
@@ -310,7 +310,7 @@ const EVIDENCE: ComparisonEvidence[] = [
         [
           "Entry budget",
           "Professional: $49 / 250 min",
-          "Solo: €99 / 250 min"
+          "Solo: €99 / 500 min"
         ]
       ]
     }

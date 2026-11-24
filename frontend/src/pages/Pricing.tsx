@@ -47,12 +47,12 @@ export default function Pricing() {
       id: 'solo',
       name: 'Solo',
       monthly: 99,
-      minutes: 250,
-      overage: 0.45,
+      minutes: 500,
+      overage: 0.29,
       description: isFr ? 'Pour un indépendant' : 'For a solo operator',
       features: isFr
-        ? ['250 minutes incluses par mois', 'IA 24/7 en français', 'Prise de RDV + agenda', 'Transfert des urgences', 'Bouclier anti-spam inclus', 'Conforme RGPD', 'Support email']
-        : ['250 minutes included per month', '24/7 AI in French', 'Booking + calendar sync', 'Urgency transfer', 'Spam shield included', 'GDPR compliant', 'Email support'],
+        ? ['500 minutes incluses par mois', 'IA 24/7 en français', 'Prise de RDV + agenda', 'Transfert des urgences', 'Bouclier anti-spam inclus', 'Conforme RGPD', 'Support email']
+        : ['500 minutes included per month', '24/7 AI in French', 'Booking + calendar sync', 'Urgency transfer', 'Spam shield included', 'GDPR compliant', 'Email support'],
       cta: isFr ? 'Commencer' : 'Start',
       popular: false,
     },
@@ -60,12 +60,12 @@ export default function Pricing() {
       id: 'starter',
       name: 'Starter',
       monthly: 249,
-      minutes: 750,
-      overage: 0.39,
+      minutes: 1400,
+      overage: 0.25,
       description: isFr ? 'Pour commencer' : 'To get started',
       features: isFr
-        ? ['750 minutes incluses par mois', 'IA 24/7 bilingue FR / EN', 'Prise de RDV + agenda', 'Transfert des urgences', 'Transcription + sentiment', 'Bouclier anti-spam inclus', 'Capture de leads', 'Support email']
-        : ['750 minutes included per month', '24/7 AI, bilingual FR / EN', 'Booking + calendar sync', 'Urgency transfer', 'Transcript + sentiment', 'Spam shield included', 'Lead capture', 'Email support'],
+        ? ['1 400 minutes incluses par mois', 'IA 24/7 bilingue FR / EN', 'Prise de RDV + agenda', 'Transfert des urgences', 'Transcription + sentiment', 'Bouclier anti-spam inclus', 'Capture de leads', 'Support email']
+        : ['1,400 minutes included per month', '24/7 AI, bilingual FR / EN', 'Booking + calendar sync', 'Urgency transfer', 'Transcript + sentiment', 'Spam shield included', 'Lead capture', 'Email support'],
       cta: isFr ? 'Commencer' : 'Start',
       popular: false,
     },
@@ -74,12 +74,12 @@ export default function Pricing() {
       name: 'Pro',
       badge: isFr ? 'Le plus populaire' : 'Most popular',
       monthly: 599,
-      minutes: 2000,
-      overage: 0.35,
+      minutes: 3500,
+      overage: 0.22,
       description: isFr ? 'Pour grandir' : 'To grow',
       features: isFr
-        ? ['2 000 minutes incluses par mois', 'Tout Starter inclus', 'Analytiques avancées', 'Intégrations CRM natives', 'Support prioritaire']
-        : ['2,000 minutes included per month', 'Everything in Starter', 'Advanced analytics', 'Native CRM integrations', 'Priority support'],
+        ? ['3 500 minutes incluses par mois', 'Tout Starter inclus', 'Analytiques avancées', 'Intégrations CRM natives', 'Support prioritaire']
+        : ['3,500 minutes included per month', 'Everything in Starter', 'Advanced analytics', 'Native CRM integrations', 'Priority support'],
       cta: isFr ? 'Choisir Pro' : 'Choose Pro',
       popular: true,
     },
@@ -87,12 +87,12 @@ export default function Pricing() {
       id: 'enterprise',
       name: 'Enterprise',
       monthly: 1290,
-      minutes: 5000,
-      overage: 0.30,
+      minutes: 8000,
+      overage: 0.20,
       description: isFr ? 'Pour scale' : 'To scale',
       features: isFr
-        ? ['5 000 minutes incluses par mois', 'Tout Pro inclus', 'Multi-sites & numéros multiples', 'Responsable dédié', 'SLA 99,5% uptime', 'Accès API complet']
-        : ['5,000 minutes included per month', 'Everything in Pro', 'Multi-site & multiple numbers', 'Dedicated manager', '99.5% uptime SLA', 'Full API access'],
+        ? ['8 000 minutes incluses par mois', 'Tout Pro inclus', 'Multi-sites & numéros multiples', 'Responsable dédié', 'SLA 99,5% uptime', 'Accès API complet']
+        : ['8,000 minutes included per month', 'Everything in Pro', 'Multi-site & multiple numbers', 'Dedicated manager', '99.5% uptime SLA', 'Full API access'],
       cta: isFr ? 'Contacter' : 'Contact us',
       popular: false,
     },
@@ -102,7 +102,7 @@ export default function Pricing() {
     ? [
         { q: 'Y a-t-il un engagement ?', a: 'En mensuel, non. Annulez en un clic depuis votre dashboard, à tout moment. En annuel, vous vous engagez sur 12 mois en échange d\'une remise de 20 %. Les 7 jours d’essai restent offerts dans les deux cas.' },
         { q: 'Comment fonctionne la remise de 20 % en annuel ?', a: 'Choisissez la facturation annuelle sur la page tarifs. Vous économisez 20 % sur le prix mensuel, prélevé en une fois à l\'inscription. Le calcul est simple : le montant annuel affiché correspond à 12 × (prix mensuel × 0,80).' },
-        { q: 'Comment fonctionne la facturation à la minute ?', a: 'Chaque plan inclut un volume de minutes par mois. Au-delà, les minutes supplémentaires sont facturées au tarif de dépassement de votre plan (par exemple 0,39 €/min en Starter). Seuls les appels réels comptent : le spam bloqué n\'est jamais facturé. Vous recevez une alerte à 80, 95 et 100 % de votre quota.' },
+        { q: 'Comment fonctionne la facturation à la minute ?', a: 'Chaque plan inclut un volume de minutes par mois. Au-delà, les minutes supplémentaires sont facturées au tarif de dépassement de votre plan (par exemple 0,25 €/min en Starter). Seuls les appels réels comptent : le spam bloqué n\'est jamais facturé. Vous recevez une alerte à 80, 95 et 100 % de votre quota.' },
         { q: 'Puis-je changer de plan ?', a: 'Oui, à tout moment. Les changements sont au prorata sur votre prochaine facture.' },
         { q: 'Combien de temps prend la mise en route ?', a: 'Compte créé en 2 minutes. Premiers appels traités le jour même. Configuration assistée si besoin.' },
         { q: 'Quels moyens de paiement acceptez-vous ?', a: 'Carte bancaire (Visa, Mastercard, Amex), SEPA, virement pour les comptes Enterprise et annuels.' },
@@ -110,7 +110,7 @@ export default function Pricing() {
     : [
         { q: 'Is there a commitment?', a: 'On monthly billing, none: cancel anytime from your dashboard. On annual, you commit for 12 months in exchange for a 20% discount. The 7-day trial applies either way.' },
         { q: 'How does the 20% annual discount work?', a: 'Pick annual billing on the pricing page. You save 20% on the monthly price, charged upfront at signup. The math is simple: the annual amount shown equals 12 × (monthly price × 0.80).' },
-        { q: 'How does per-minute billing work?', a: 'Each plan includes a monthly minute allowance. Beyond that, extra minutes are billed at your plan\'s overage rate (for example €0.39/min on Starter). Only real calls count: blocked spam is never billed. You get an alert at 80%, 95% and 100% of your quota.' },
+        { q: 'How does per-minute billing work?', a: 'Each plan includes a monthly minute allowance. Beyond that, extra minutes are billed at your plan\'s overage rate (for example €0.25/min on Starter). Only real calls count: blocked spam is never billed. You get an alert at 80%, 95% and 100% of your quota.' },
         { q: 'Can I change my plan?', a: 'Yes, anytime. Changes are prorated on your next invoice.' },
         { q: 'How long does setup take?', a: 'Account created in 2 minutes. First calls handled the same day. Assisted setup if you need it.' },
         { q: 'What payment methods do you accept?', a: 'Credit card (Visa, Mastercard, Amex), SEPA, wire transfer for Enterprise and annual accounts.' },
@@ -325,7 +325,7 @@ export default function Pricing() {
             : `A part-time human in Belgium: roughly 2,300 EUR loaded per month (gross, social charges, meal vouchers, absence backup, turnover), for 20 hours a week, in a single language.`;
 
           const qwillioRow = isFr
-            ? `Qwillio Starter : ${fmt(qwillioMonthlyEur)} € par mois, 750 minutes incluses, facturation à la minute au-delà, français et anglais sur le même compte, 24 heures sur 24, 365 jours par an, sans arrêt et sans turnover.`
+            ? `Qwillio Starter : ${fmt(qwillioMonthlyEur)} € par mois, 1 400 minutes incluses, facturation à la minute au-delà, français et anglais sur le même compte, 24 heures sur 24, 365 jours par an, sans arrêt et sans turnover.`
             : `Qwillio Starter: ${fmt(qwillioMonthlyEur)} EUR a month, 750 included minutes, billed by the minute beyond that, French and English on the same account, 24 hours a day, 365 days a year, no downtime and no turnover.`;
 
           return (
@@ -376,7 +376,7 @@ export default function Pricing() {
                 <Reveal delay={0.28}>
                   <p className="mt-4 text-[13px] text-[#6e6e73]">
                     {isFr
-                      ? 'Basé sur un mi-temps CP200 chargé (brut + ONSS 27 % + chèques repas + transport + backup + turnover) et le tier Qwillio Starter (750 minutes incluses), mensuel ou annuel selon le sélecteur ci-dessus. Prix de lancement.'
+                      ? 'Basé sur un mi-temps CP200 chargé (brut + ONSS 27 % + chèques repas + transport + backup + turnover) et le tier Qwillio Starter (1 400 minutes incluses), mensuel ou annuel selon le sélecteur ci-dessus. Prix de lancement.'
                       : 'Based on a CP200 loaded part-time (gross + 27% ONSS + meal vouchers + transport + backup + turnover) and the Qwillio Starter tier (750 included minutes), monthly or annual depending on the toggle above. Launch pricing.'}
                   </p>
                 </Reveal>
@@ -412,7 +412,7 @@ export default function Pricing() {
                     // priceFor(), so a fixed row here contradicted them the
                     // moment the annual toggle was flipped.
                     [`Prix / ${perLabel}`, ...tiers.map(t => `${priceFor(t.monthly).toLocaleString('fr-FR')} €`)],
-                    ['Dépassement / minute', '0,45 €', '0,39 €', '0,35 €', '0,30 €'],
+                    ['Dépassement / minute', '0,29 €', '0,25 €', '0,22 €', '0,20 €'],
                     ['IA 24/7', 'FR', 'FR + EN', 'FR + EN', 'FR + EN'],
                     ['Prise de RDV + agenda', '✓', '✓', '✓', '✓'],
                     ['Transfert des urgences', '✓', '✓', '✓', '✓'],
@@ -428,7 +428,7 @@ export default function Pricing() {
                 : [
                     ['Minutes included', '250', '750', '2,000', '5,000'],
                     [`Price / ${perLabel}`, ...tiers.map(t => `€${priceFor(t.monthly).toLocaleString('en-US')}`)],
-                    ['Overage per minute', '€0.45', '€0.39', '€0.35', '€0.30'],
+                    ['Overage per minute', '€0.29', '€0.25', '€0.22', '€0.20'],
                     ['24/7 AI', 'FR', 'FR + EN', 'FR + EN', 'FR + EN'],
                     ['Booking + calendar', '✓', '✓', '✓', '✓'],
                     ['Urgency transfer', '✓', '✓', '✓', '✓'],

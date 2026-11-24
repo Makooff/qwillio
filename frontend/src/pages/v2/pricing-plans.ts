@@ -17,10 +17,10 @@ export const PLAN_MONTHLY_EUR = { solo: 99, starter: 249, pro: 599, enterprise: 
  * qui en contient 250. Les deux tables sont indissociables, et les séparer
  * ferait de nouveau afficher un prix sans dire ce qu'il achète.
  */
-export const PLAN_MINUTES = { solo: 250, starter: 750, pro: 2000, enterprise: 5000 } as const;
+export const PLAN_MINUTES = { solo: 500, starter: 1400, pro: 3500, enterprise: 8000 } as const;
 
 /** Le dépassement, par palier. Doit rester AU-DESSUS du prix effectif. */
-export const PLAN_OVERAGE_EUR = { solo: 0.45, starter: 0.39, pro: 0.35, enterprise: 0.30 } as const;
+export const PLAN_OVERAGE_EUR = { solo: 0.29, starter: 0.25, pro: 0.22, enterprise: 0.20 } as const;
 
 /**
  * Le prix réellement payé par minute incluse, arrondi au centime.

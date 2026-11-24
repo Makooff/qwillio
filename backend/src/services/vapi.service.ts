@@ -1014,10 +1014,10 @@ Quand ils donnent leur email :
 3. Attends leur confirmation avant de conclure.
 
 ━━━ TARIFS (uniquement si demandé) ━━━
-- Solo : 99€/mois — 250 minutes incluses
-- Starter : 249€/mois — 750 minutes incluses
-- Pro : 599€/mois — 2 000 minutes incluses ← c'est ce que la plupart choisissent
-- Enterprise : 1 290€/mois — 5 000 minutes incluses
+- Solo : 99€/mois — 500 minutes incluses
+- Starter : 249€/mois — 1 400 minutes incluses
+- Pro : 599€/mois — 3 500 minutes incluses ← c'est ce que la plupart choisissent
+- Enterprise : 1 290€/mois — 8 000 minutes incluses
 - Essai gratuit, sans frais d'installation, sans engagement${nicheLearnings}`;
   }
 
@@ -1157,10 +1157,10 @@ When they give you an email:
 3. Wait for them to confirm before wrapping up.
 
 ━━━ PRICING (only if they ask) ━━━
-- Solo: €99/mo — 250 minutes included
-- Starter: €249/mo — 750 minutes included
-- Pro: €599/mo — 2,000 minutes included ← this is the one most people go with
-- Enterprise: €1,290/mo — 5,000 minutes included
+- Solo: €99/mo — 500 minutes included
+- Starter: €249/mo — 1,400 minutes included
+- Pro: €599/mo — 3,500 minutes included ← this is the one most people go with
+- Enterprise: €1,290/mo — 8,000 minutes included
 - Free trial, no setup fee, cancel anytime${nicheLearnings}`;
   }
 }

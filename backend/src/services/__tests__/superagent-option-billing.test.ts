@@ -262,10 +262,10 @@ describe('vendre l\'option', () => {
   it('crée le prix au montant du forfait Solo', async () => {
     await stripeService.addSuperagentOption(SOLO);
     expect(pricesCreate).toHaveBeenCalledWith(expect.objectContaining({
-      unit_amount: 2000,
+      unit_amount: 3000,
       currency: 'eur',
       recurring: { interval: 'month' },
-      lookup_key: 'qwillio_superagent_solo_monthly_eur',
+      lookup_key: 'qwillio_superagent_solo_monthly_v2_eur',
     }));
   });
 
@@ -275,9 +275,9 @@ describe('vendre l\'option', () => {
     subRetrieve.mockResolvedValue(subscription({ interval: 'year' }));
     await stripeService.addSuperagentOption(SOLO);
     expect(pricesCreate).toHaveBeenCalledWith(expect.objectContaining({
-      unit_amount: Math.round(20 * 12 * 0.8) * 100,
+      unit_amount: Math.round(30 * 12 * 0.8) * 100,
       recurring: { interval: 'year' },
-      lookup_key: 'qwillio_superagent_solo_annual_eur',
+      lookup_key: 'qwillio_superagent_solo_annual_v2_eur',
     }));
   });
 
@@ -394,7 +394,7 @@ describe('le changement de forfait', () => {
     subRetrieve.mockResolvedValue(subscription({ option: true }));
     pricesCreate.mockResolvedValue({ id: 'price_starter_opt' });
     await stripeService.reconcileSuperagentOptionForPlan(SOLO, 'starter');
-    expect(pricesCreate).toHaveBeenCalledWith(expect.objectContaining({ unit_amount: 4000 }));
+    expect(pricesCreate).toHaveBeenCalledWith(expect.objectContaining({ unit_amount: 7000 }));
     expect(itemUpdate).toHaveBeenCalledWith('si_option', expect.objectContaining({ price: 'price_starter_opt' }));
   });
 
