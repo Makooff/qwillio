@@ -8,13 +8,13 @@ Les bios de profil, le logo et les bannières sont dans contenu-social/.
 04  jeudi 26 novembre 2026       12:00  photo p04  Les commandes du soir
 05  dimanche 29 novembre 2026    12:00  vidéo c03  Pas un robot (coiffeuse)
 06  mercredi 2 décembre 2026     19:00  photo p03  Vous gardez votre ligne
-07  samedi 5 décembre 2026       12:00  vidéo c04  Rush de midi (sandwicherie)   -> à remplacer par c11 électricien, voir A-PRODUIRE
+07  samedi 5 décembre 2026       12:00  vidéo c11  L'électricien en urgence
 08  mardi 8 décembre 2026        12:00  photo p02  Le deuxième appel, c'est elle
 09  vendredi 11 décembre 2026    19:00  vidéo c05  Sous l'évier (plombier)
 10  lundi 14 décembre 2026       19:00  photo p05  Les mains prises
 11  jeudi 17 décembre 2026       19:00  vidéo c06  Dimanche soir (kiné)
 12  dimanche 20 décembre 2026    12:00  photo p06  Lundi se prépare dimanche soir
-13  mercredi 23 décembre 2026    12:00  vidéo c08  Congés (boulangerie)          -> à remplacer par c12 fiduciaire, voir A-PRODUIRE
+13  mercredi 23 décembre 2026    12:00  vidéo c12  La fiduciaire en rendez-vous
 14  samedi 26 décembre 2026      12:00  photo p07  Fermé, pas injoignable
 15  mardi 29 décembre 2026       19:00  vidéo c07  Le bip
 16  vendredi 1 janvier 2027      12:00  photo p01  Bonne année (rediffusion p01)

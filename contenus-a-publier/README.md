@@ -14,13 +14,13 @@ Le jour 01 existe aussi en anglais, dans son sous-dossier `anglais/`.
 | 04 | jeudi 26 novembre 2026 | 12:00 | photo : Les commandes du soir | [ouvrir](04_jeu-26-nov_photo-commandes-du-soir/) |
 | 05 | dimanche 29 novembre 2026 | 12:00 | vidéo : Pas un robot (coiffeuse) | [ouvrir](05_dim-29-nov_video-pas-un-robot/) |
 | 06 | mercredi 2 décembre 2026 | 19:00 | photo : Vous gardez votre ligne | [ouvrir](06_mer-2-dec_photo-vous-gardez-votre-ligne/) |
-| 07 | samedi 5 décembre 2026 | 12:00 | vidéo : Rush de midi (sandwicherie) | [ouvrir](07_sam-5-dec_video-rush-midi/) |
+| 07 | samedi 5 décembre 2026 | 12:00 | vidéo : L'électricien en urgence | [ouvrir](07_sam-5-dec_video-electricien/) |
 | 08 | mardi 8 décembre 2026 | 12:00 | photo : Le deuxième appel, c'est elle | [ouvrir](08_mar-8-dec_photo-deuxieme-appel/) |
 | 09 | vendredi 11 décembre 2026 | 19:00 | vidéo : Sous l'évier (plombier) | [ouvrir](09_ven-11-dec_video-sous-evier/) |
 | 10 | lundi 14 décembre 2026 | 19:00 | photo : Les mains prises | [ouvrir](10_lun-14-dec_photo-mains-prises/) |
 | 11 | jeudi 17 décembre 2026 | 19:00 | vidéo : Dimanche soir (kiné) | [ouvrir](11_jeu-17-dec_video-dimanche/) |
 | 12 | dimanche 20 décembre 2026 | 12:00 | photo : Lundi se prépare dimanche soir | [ouvrir](12_dim-20-dec_photo-lundi-dimanche-soir/) |
-| 13 | mercredi 23 décembre 2026 | 12:00 | vidéo : Congés (boulangerie) | [ouvrir](13_mer-23-dec_video-conges/) |
+| 13 | mercredi 23 décembre 2026 | 12:00 | vidéo : La fiduciaire en rendez-vous | [ouvrir](13_mer-23-dec_video-fiduciaire/) |
 | 14 | samedi 26 décembre 2026 | 12:00 | photo : Fermé, pas injoignable | [ouvrir](14_sam-26-dec_photo-ferme-pas-injoignable/) |
 | 15 | mardi 29 décembre 2026 | 19:00 | vidéo : Le bip | [ouvrir](15_mar-29-dec_video-le-bip/) |
 | 16 | vendredi 1 janvier 2027 | 12:00 | photo : Bonne année (rediffusion p01) | [ouvrir](16_ven-1-jan_photo-bonne-annee/) |

@@ -14417,6 +14417,1047 @@ const data = {
      }
     }
    ]
+  },
+  "fr-c11": {
+   "lang": "fr",
+   "slug": "electricien",
+   "music": 215,
+   "scenes": [
+    {
+     "visual": {
+      "kind": "x",
+      "scene": "recents",
+      "min": 3.4,
+      "opts": {
+       "title": "Récents",
+       "rows": [
+        {
+         "name": "Nathalie Claes",
+         "sub": "appel entrant…",
+         "time": "10:12",
+         "at": 0.6
+        },
+        {
+         "name": "Grossiste Pirard",
+         "sub": "bureau",
+         "time": "08:40"
+        },
+        {
+         "name": "M. Janssens",
+         "sub": "mobile",
+         "time": "hier"
+        },
+        {
+         "name": "Maman",
+         "sub": "mobile",
+         "time": "hier"
+        }
+       ]
+      }
+     },
+     "say": {
+      "file": "voices/shorts/c11-n0.mp3",
+      "duration": 3.92,
+      "serif": [
+       13
+      ],
+      "words": [
+       {
+        "w": "Kevin",
+        "start": 0.154
+       },
+       {
+        "w": "est",
+        "start": 0.52
+       },
+       {
+        "w": "électricien.",
+        "start": 0.605
+       },
+       {
+        "w": "Il",
+        "start": 1.51
+       },
+       {
+        "w": "est",
+        "start": 1.8
+       },
+       {
+        "w": "sur",
+        "start": 1.8
+       },
+       {
+        "w": "une",
+        "start": 2.04
+       },
+       {
+        "w": "échelle,",
+        "start": 2.042
+       },
+       {
+        "w": "les",
+        "start": 2.657
+       },
+       {
+        "w": "deux",
+        "start": 2.84
+       },
+       {
+        "w": "mains",
+        "start": 3.08
+       },
+       {
+        "w": "dans",
+        "start": 3.16
+       },
+       {
+        "w": "un",
+        "start": 3.4
+       },
+       {
+        "w": "tableau.",
+        "start": 3.401
+       }
+      ],
+      "title": "Sur l’échelle. Les deux mains dans un tableau.",
+      "titleSerif": [
+       5
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "ring",
+      "name": "Nathalie Claes",
+      "initials": "NC",
+      "time": "10:12"
+     },
+     "say": {
+      "file": "voices/shorts/c11-n1.mp3",
+      "duration": 4.08,
+      "serif": [
+       14
+      ],
+      "words": [
+       {
+        "w": "Son",
+        "start": 0.151
+       },
+       {
+        "w": "téléphone",
+        "start": 0.362
+       },
+       {
+        "w": "sonne.",
+        "start": 0.841
+       },
+       {
+        "w": "Une",
+        "start": 1.506
+       },
+       {
+        "w": "cliente",
+        "start": 1.642
+       },
+       {
+        "w": "n’a",
+        "start": 2.04
+       },
+       {
+        "w": "plus",
+        "start": 2.121
+       },
+       {
+        "w": "de",
+        "start": 2.36
+       },
+       {
+        "w": "courant,",
+        "start": 2.441
+       },
+       {
+        "w": "et",
+        "start": 2.891
+       },
+       {
+        "w": "ça",
+        "start": 3
+       },
+       {
+        "w": "ne",
+        "start": 3.24
+       },
+       {
+        "w": "peut",
+        "start": 3.24
+       },
+       {
+        "w": "pas",
+        "start": 3.322
+       },
+       {
+        "w": "attendre.",
+        "start": 3.484
+       }
+      ],
+      "title": "Une urgence. Il ne peut pas décrocher.",
+      "titleSerif": [
+       3
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "x",
+      "scene": "livecall",
+      "opts": {
+       "who": "Nathalie Claes"
+      }
+     },
+     "lines": [
+      {
+       "who": "caller",
+       "file": "voices/shorts/c11-2-0-tel.mp3",
+       "duration": 4,
+       "words": [
+        {
+         "w": "Bonjour,",
+         "start": 0.125
+        },
+        {
+         "w": "on",
+         "start": 0.998
+        },
+        {
+         "w": "n’a",
+         "start": 1.32
+        },
+        {
+         "w": "plus",
+         "start": 1.32
+        },
+        {
+         "w": "de",
+         "start": 1.56
+        },
+        {
+         "w": "courant",
+         "start": 1.56
+        },
+        {
+         "w": "dans",
+         "start": 1.803
+        },
+        {
+         "w": "toute",
+         "start": 2.12
+        },
+        {
+         "w": "la",
+         "start": 2.2
+        },
+        {
+         "w": "maison,",
+         "start": 2.281
+        },
+        {
+         "w": "et",
+         "start": 2.894
+        },
+        {
+         "w": "ça",
+         "start": 3
+        },
+        {
+         "w": "sent",
+         "start": 3.24
+        },
+        {
+         "w": "le",
+         "start": 3.4
+        },
+        {
+         "w": "brûlé.",
+         "start": 3.402
+        }
+       ]
+      },
+      {
+       "who": "agent",
+       "file": "voices/shorts/c11-2-1.mp3",
+       "duration": 3.12,
+       "words": [
+        {
+         "w": "Je",
+         "start": 0.108
+        },
+        {
+         "w": "vous",
+         "start": 0.28
+        },
+        {
+         "w": "passe",
+         "start": 0.36
+        },
+        {
+         "w": "Kevin",
+         "start": 0.522
+        },
+        {
+         "w": "tout",
+         "start": 0.841
+        },
+        {
+         "w": "de",
+         "start": 1.08
+        },
+        {
+         "w": "suite,",
+         "start": 1.081
+        },
+        {
+         "w": "je",
+         "start": 1.625
+        },
+        {
+         "w": "lui",
+         "start": 1.88
+        },
+        {
+         "w": "explique",
+         "start": 1.961
+        },
+        {
+         "w": "la",
+         "start": 2.36
+        },
+        {
+         "w": "situation.",
+         "start": 2.362
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "visual": {
+      "kind": "x",
+      "scene": "recents",
+      "min": 3.4,
+      "opts": {
+       "title": "Récents",
+       "rows": [
+        {
+         "name": "Qwillio · Nathalie Claes",
+         "sub": "Urgence · plus de courant, odeur de brûlé",
+         "time": "10:13",
+         "q": true,
+         "at": 0.5
+        },
+        {
+         "name": "Nathalie Claes",
+         "sub": "mobile",
+         "time": "10:12",
+         "missed": true
+        },
+        {
+         "name": "Grossiste Pirard",
+         "sub": "bureau",
+         "time": "08:40"
+        },
+        {
+         "name": "M. Janssens",
+         "sub": "mobile",
+         "time": "hier"
+        }
+       ],
+       "pop": {
+        "at": 0.9,
+        "title": "Urgence transférée",
+        "desc": "Nathalie Claes · plus de courant"
+       }
+      }
+     },
+     "say": {
+      "file": "voices/shorts/c11-n3.mp3",
+      "duration": 4.24,
+      "serif": [
+       11
+      ],
+      "words": [
+       {
+        "w": "Kevin",
+        "start": 0.119
+       },
+       {
+        "w": "décroche",
+        "start": 0.441
+       },
+       {
+        "w": "en",
+        "start": 0.84
+       },
+       {
+        "w": "sachant",
+        "start": 0.921
+       },
+       {
+        "w": "déjà",
+        "start": 1.321
+       },
+       {
+        "w": "tout.",
+        "start": 1.562
+       },
+       {
+        "w": "Les",
+        "start": 2.232
+       },
+       {
+        "w": "autres",
+        "start": 2.52
+       },
+       {
+        "w": "appels,",
+        "start": 2.682
+       },
+       {
+        "w": "elle",
+        "start": 3.291
+       },
+       {
+        "w": "s’en",
+        "start": 3.48
+       },
+       {
+        "w": "occupe.",
+        "start": 3.642
+       }
+      ],
+      "title": "Il décroche en sachant déjà tout.",
+      "titleSerif": [
+       3
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "type"
+     },
+     "say": {
+      "file": "voices/shorts/c11-n4.mp3",
+      "duration": 3.28,
+      "serif": [
+       8
+      ],
+      "words": [
+       {
+        "w": "Les",
+        "start": 0.12
+       },
+       {
+        "w": "urgences",
+        "start": 0.441
+       },
+       {
+        "w": "passent.",
+        "start": 0.847
+       },
+       {
+        "w": "Les",
+        "start": 1.555
+       },
+       {
+        "w": "devis",
+        "start": 1.723
+       },
+       {
+        "w": "attendent",
+        "start": 2.123
+       },
+       {
+        "w": "dans",
+        "start": 2.52
+       },
+       {
+        "w": "la",
+        "start": 2.68
+       },
+       {
+        "w": "liste.",
+        "start": 2.761
+       }
+      ],
+      "title": "Les urgences passent. Le reste attend.",
+      "titleSerif": [
+       4
+      ]
+     }
+    }
+   ]
+  },
+  "fr-c12": {
+   "lang": "fr",
+   "slug": "fiduciaire",
+   "music": 250,
+   "scenes": [
+    {
+     "visual": {
+      "kind": "x",
+      "scene": "calendar",
+      "min": 3.4,
+      "opts": {
+       "title": "Mardi 24 novembre",
+       "days": [
+        "Lun",
+        "Mar",
+        "Mer",
+        "Jeu",
+        "Ven",
+        "Sam",
+        "Dim"
+       ],
+       "events": [
+        {
+         "d": 1,
+         "h": 9,
+         "txt": "Bilan SRL Dupont",
+         "at": 0.3
+        },
+        {
+         "d": 1,
+         "h": 14,
+         "txt": "RDV M. et Mme Gilson",
+         "at": 0.4
+        },
+        {
+         "d": 2,
+         "h": 10,
+         "txt": "TVA Garage Renard",
+         "at": 0.5
+        }
+       ],
+       "foot": "Mardi, 14 h. Marie est en rendez-vous."
+      }
+     },
+     "say": {
+      "file": "voices/shorts/c12-n0.mp3",
+      "duration": 4.64,
+      "serif": [
+       14
+      ],
+      "words": [
+       {
+        "w": "Marie",
+        "start": 0.112
+       },
+       {
+        "w": "est",
+        "start": 0.44
+       },
+       {
+        "w": "comptable.",
+        "start": 0.521
+       },
+       {
+        "w": "Elle",
+        "start": 1.286
+       },
+       {
+        "w": "est",
+        "start": 1.56
+       },
+       {
+        "w": "en",
+        "start": 1.56
+       },
+       {
+        "w": "rendez-vous,",
+        "start": 1.721
+       },
+       {
+        "w": "et",
+        "start": 2.542
+       },
+       {
+        "w": "son",
+        "start": 2.76
+       },
+       {
+        "w": "téléphone",
+        "start": 2.841
+       },
+       {
+        "w": "sonne",
+        "start": 3.241
+       },
+       {
+        "w": "pour",
+        "start": 3.56
+       },
+       {
+        "w": "la",
+        "start": 3.8
+       },
+       {
+        "w": "quatrième",
+        "start": 3.802
+       },
+       {
+        "w": "fois.",
+        "start": 4.201
+       }
+      ],
+      "title": "En rendez-vous. Le téléphone sonne encore.",
+      "titleSerif": [
+       3
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "ring",
+      "name": "Paul Lambert",
+      "initials": "PL",
+      "time": "14:32"
+     },
+     "say": {
+      "file": "voices/shorts/c12-n1.mp3",
+      "duration": 3.2,
+      "serif": [
+       10
+      ],
+      "words": [
+       {
+        "w": "Un",
+        "start": 0.108
+       },
+       {
+        "w": "client",
+        "start": 0.201
+       },
+       {
+        "w": "veut",
+        "start": 0.521
+       },
+       {
+        "w": "lui",
+        "start": 0.68
+       },
+       {
+        "w": "parler.",
+        "start": 0.84
+       },
+       {
+        "w": "C’est",
+        "start": 1.508
+       },
+       {
+        "w": "pour",
+        "start": 1.8
+       },
+       {
+        "w": "sa",
+        "start": 1.88
+       },
+       {
+        "w": "déclaration",
+        "start": 2.042
+       },
+       {
+        "w": "de",
+        "start": 2.681
+       },
+       {
+        "w": "TVA.",
+        "start": 2.841
+       }
+      ],
+      "title": "« Je voudrais parler à Marie. »",
+      "titleSerif": [
+       4
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "x",
+      "scene": "livecall",
+      "opts": {
+       "who": "Paul Lambert"
+      }
+     },
+     "lines": [
+      {
+       "who": "caller",
+       "file": "voices/shorts/c12-2-0-tel.mp3",
+       "duration": 3.76,
+       "words": [
+        {
+         "w": "Bonjour,",
+         "start": 0.122
+        },
+        {
+         "w": "je",
+         "start": 0.895
+        },
+        {
+         "w": "voudrais",
+         "start": 0.92
+        },
+        {
+         "w": "parler",
+         "start": 1.161
+        },
+        {
+         "w": "à",
+         "start": 1.48
+        },
+        {
+         "w": "Marie,",
+         "start": 1.561
+        },
+        {
+         "w": "c’est",
+         "start": 2.087
+        },
+        {
+         "w": "pour",
+         "start": 2.36
+        },
+        {
+         "w": "ma",
+         "start": 2.36
+        },
+        {
+         "w": "déclaration",
+         "start": 2.446
+        },
+        {
+         "w": "de",
+         "start": 3.24
+        },
+        {
+         "w": "TVA.",
+         "start": 3.401
+        }
+       ]
+      },
+      {
+       "who": "agent",
+       "file": "voices/shorts/c12-2-1.mp3",
+       "duration": 3.68,
+       "words": [
+        {
+         "w": "Elle",
+         "start": 0.117
+        },
+        {
+         "w": "est",
+         "start": 0.28
+        },
+        {
+         "w": "en",
+         "start": 0.44
+        },
+        {
+         "w": "rendez-vous.",
+         "start": 0.441
+        },
+        {
+         "w": "Je",
+         "start": 1.341
+        },
+        {
+         "w": "lui",
+         "start": 1.56
+        },
+        {
+         "w": "laisse",
+         "start": 1.64
+        },
+        {
+         "w": "votre",
+         "start": 1.801
+        },
+        {
+         "w": "message",
+         "start": 2.122
+        },
+        {
+         "w": ":",
+         "start": 2.706
+        },
+        {
+         "w": "elle",
+         "start": 2.773
+        },
+        {
+         "w": "vous",
+         "start": 2.92
+        },
+        {
+         "w": "rappelle",
+         "start": 3
+        },
+        {
+         "w": "quand",
+         "start": 3.241
+        },
+        {
+         "w": "?",
+         "start": 3.4
+        }
+       ]
+      },
+      {
+       "who": "caller",
+       "file": "voices/shorts/c12-2-2-tel.mp3",
+       "duration": 2.16,
+       "words": [
+        {
+         "w": "Après",
+         "start": 0.116
+        },
+        {
+         "w": "dix-sept",
+         "start": 0.444
+        },
+        {
+         "w": "heures,",
+         "start": 0.922
+        },
+        {
+         "w": "c’est",
+         "start": 1.461
+        },
+        {
+         "w": "parfait.",
+         "start": 1.724
+        }
+       ]
+      },
+      {
+       "who": "agent",
+       "file": "voices/shorts/c12-2-3.mp3",
+       "duration": 4.64,
+       "words": [
+        {
+         "w": "C’est",
+         "start": 0.112
+        },
+        {
+         "w": "noté,",
+         "start": 0.28
+        },
+        {
+         "w": "Monsieur",
+         "start": 0.805
+        },
+        {
+         "w": "Lambert.",
+         "start": 1.161
+        },
+        {
+         "w": "Un",
+         "start": 2.122
+        },
+        {
+         "w": "message",
+         "start": 2.361
+        },
+        {
+         "w": "pour",
+         "start": 2.68
+        },
+        {
+         "w": "Marie,",
+         "start": 2.84
+        },
+        {
+         "w": "rappel",
+         "start": 3.374
+        },
+        {
+         "w": "après",
+         "start": 3.8
+        },
+        {
+         "w": "dix-sept",
+         "start": 4.041
+        },
+        {
+         "w": "heures.",
+         "start": 4.52
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "visual": {
+      "kind": "x",
+      "scene": "recents",
+      "min": 3.4,
+      "opts": {
+       "title": "Récents",
+       "rows": [
+        {
+         "name": "Qwillio · Paul Lambert",
+         "sub": "Pour Marie · TVA · rappeler après 17 h",
+         "time": "14:33",
+         "q": true,
+         "at": 0.5
+        },
+        {
+         "name": "Paul Lambert",
+         "sub": "mobile",
+         "time": "14:32",
+         "missed": true
+        },
+        {
+         "name": "SRL Dupont",
+         "sub": "bureau",
+         "time": "09:05"
+        },
+        {
+         "name": "Garage Renard",
+         "sub": "bureau",
+         "time": "hier"
+        }
+       ],
+       "pop": {
+        "at": 0.9,
+        "title": "Message pour Marie",
+        "desc": "Paul Lambert · rappeler après 17 h"
+       }
+      }
+     },
+     "say": {
+      "file": "voices/shorts/c12-n3.mp3",
+      "duration": 4.48,
+      "serif": [
+       12
+      ],
+      "words": [
+       {
+        "w": "En",
+        "start": 0.116
+       },
+       {
+        "w": "sortant",
+        "start": 0.2
+       },
+       {
+        "w": "du",
+        "start": 0.52
+       },
+       {
+        "w": "rendez-vous,",
+        "start": 0.683
+       },
+       {
+        "w": "Marie",
+        "start": 1.444
+       },
+       {
+        "w": "sait",
+        "start": 1.881
+       },
+       {
+        "w": "qui",
+        "start": 2.04
+       },
+       {
+        "w": "a",
+        "start": 2.28
+       },
+       {
+        "w": "appelé,",
+        "start": 2.281
+       },
+       {
+        "w": "pourquoi,",
+        "start": 2.969
+       },
+       {
+        "w": "et",
+        "start": 3.695
+       },
+       {
+        "w": "quand",
+        "start": 3.801
+       },
+       {
+        "w": "rappeler.",
+        "start": 4.041
+       }
+      ],
+      "title": "Qui, pourquoi, et quand rappeler.",
+      "titleSerif": [
+       3
+      ]
+     }
+    },
+    {
+     "visual": {
+      "kind": "type"
+     },
+     "say": {
+      "file": "voices/shorts/c12-n4.mp3",
+      "duration": 3.2,
+      "serif": [
+       9
+      ],
+      "words": [
+       {
+        "w": "Plus",
+        "start": 0.115
+       },
+       {
+        "w": "de",
+        "start": 0.36
+       },
+       {
+        "w": "messagerie",
+        "start": 0.442
+       },
+       {
+        "w": "à",
+        "start": 1
+       },
+       {
+        "w": "décoder",
+        "start": 1
+       },
+       {
+        "w": "le",
+        "start": 1.32
+       },
+       {
+        "w": "soir.",
+        "start": 1.48
+       },
+       {
+        "w": "Une",
+        "start": 2.225
+       },
+       {
+        "w": "liste",
+        "start": 2.441
+       },
+       {
+        "w": "claire.",
+        "start": 2.761
+       }
+      ],
+      "title": "Une liste claire, pas une messagerie.",
+      "titleSerif": [
+       4
+      ]
+     }
+    }
+   ]
   }
  }
 };
