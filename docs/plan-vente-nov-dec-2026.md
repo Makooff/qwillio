@@ -66,8 +66,8 @@ mois), Starter annuel = **2 390 €**. Deux Solo annuels en décembre, c'est
 
 À cocher. Tant qu'une case est vide, la démo peut échouer devant un prospect.
 
-- [ ] Solde Vapi positif (une ligne à solde négatif raccroche sur tout le monde)
-- [ ] `npm run voice:audit` au vert sur un appel de test passé par toi
+- [ ] Crédits positifs chez les fournisseurs du moteur vocal (Twilio, LiveKit, modèles) : un solde vide coupe les appels de toute la flotte. *(Mis à jour le 24/11 : la voix ne passe plus par Vapi, voir CLAUDE.md.)*
+- [ ] Un appel de test passé par toi sur la ligne de démo, écouté en entier : réservation, transfert, message. *(`voice:audit` lit Vapi et ne dit plus rien des appels actuels.)*
 - [ ] Une ligne de démonstration configurée comme un plombier fictif, avec ses
       horaires et ses services, que le prospect peut appeler pendant la visite
 - [ ] Render en formule payante (sinon rappels et relances s'arrêtent en silence)
@@ -229,12 +229,48 @@ Checklist, pas un avis juridique.
 
 | Poste | Montant | Obligatoire |
 |---|---|---|
-| Solde Vapi pour les démos et les essais | 10 à 20 € | Oui |
+| Crédits du moteur vocal (Twilio, LiveKit, modèles) pour les démos et les essais | À relever sur les premières factures, le coût à la minute du nouveau moteur n'a pas encore été mesuré | Oui |
 | Render payant | environ 7 € par mois | Oui |
 | Listes de prospects | Crédits Apify, ou gratuit en relevant Google Maps à la main (40 lignes par commune) | Au choix |
 | Déplacements | Essence, communes à moins de 45 minutes | Oui |
 
 Aucun outil payant de prospection n'est nécessaire pour ces sept semaines.
+
+---
+
+## 10. Ajout du 24 novembre : le produit est gelé, la décision est datée
+
+Ce plan reste le bon. Ce qui manquait, c'est la règle qui l'empêche d'être
+remplacé par « encore une amélioration du produit ».
+
+**Le gel, jusqu'au 31 janvier.**
+
+- Plus aucune nouvelle fonctionnalité, plus aucune retouche de design du site.
+- On ne corrige que ce qui casse un appel ou une démo, le jour même.
+- Le temps libéré va aux séances d'appels, aux visites et au réseau.
+- Une idée de produit va dans une liste, datée. Elle sera relue le 31 janvier,
+  avec les mots des prospects à côté.
+
+**Ce qui se décide, et quand.**
+
+| Date | Question | Si oui | Si non |
+|---|---|---|---|
+| Vendredi 4 décembre | Le canal donne-t-il des rendez-vous ? (section 7) | Continuer | Changer de métier ou d'horaire, pas de produit |
+| Jeudi 31 décembre | Au moins **3 clients payants** (le plancher de la section 5) ? | Continuer en janvier sur le même métier | Janvier se joue sur le réseau et les apporteurs |
+| Dimanche 31 janvier | Au moins **5 clients payants** au total ? | Il y a quelque chose : on accélère sur ce métier | Arrêter de vendre le logiciel en direct (voir ci-dessous) |
+
+**Si la réponse du 31 janvier est non**, ce n'est pas un échec à cacher, c'est
+une réponse. Deux suites possibles, sans regret :
+
+1. **Vendre par d'autres** : proposer le moteur à une fiduciaire, une agence
+   web ou un éditeur de logiciel pour artisans, qui le revend sous son nom.
+2. **Vendre des services** : une offre d'automatisation et de contenus pour
+   petites entreprises, où Qwillio n'est qu'un outil parmi d'autres.
+
+**Une condition pour que la règle compte** : elle ne vaut que si le plan a
+vraiment été joué. Le 31 janvier, on regarde d'abord le nombre d'appels et de
+visites. En dessous de 400 appels, la question « est-ce que ça marche » n'a pas
+encore été posée, et on ne conclut rien.
 
 ---
 
