@@ -118,6 +118,16 @@ appelant → numéro Twilio (mobile belge 04xx)
 core (LiveKit + trunk Twilio + modèles) **n'a pas été remesuré** : ne pas
 s'appuyer sur l'ancien chiffre pour fixer un prix.
 
+**Grille du 24/11/2026** (`config/plans.ts` et `pages/v2/pricing-plans.ts`, à
+tenir ensemble) : Solo 500 min et 0,29 €/min au-delà, Starter 1 400 et 0,25,
+Pro 3 500 et 0,22, Enterprise 8 000 et 0,20, prix mensuels inchangés. Le prix
+à la minute doit BAISSER à chaque palier (un test le garde) et le dépassement
+rester au-dessus de lui. L'option Superagent, calculée sur les minutes
+incluses, passe à 30 et 70 € sous une clé Stripe neuve (`…_v2_eur`). La
+migration `20261124000000_plan_minutes_grid` relève les quotas des clients qui
+valaient exactement l'ancien défaut. LiveKit est gratuit pour le moment : la
+marge est à revoir le jour où il ne l'est plus (`docs/business-plan.md`).
+
 ## Skill Routing — Auto-Invoke Rules
 
 ### Design tasks (UI, pages, components, redesign)
