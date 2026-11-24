@@ -61,7 +61,7 @@ export default function Landing() {
           name: 'Solo',
           price: '99',
           desc: 'Pour les indépendants et les petites équipes qui démarrent.',
-          highlights: ['250 minutes / mois incluses', '1 numéro dédié', 'Voix française naturelle', 'Calendrier Google ou Outlook'],
+          highlights: ['500 minutes / mois incluses', '1 numéro dédié', 'Voix française naturelle', 'Calendrier Google ou Outlook'],
           cta: 'Démarrer',
         },
         {
@@ -69,7 +69,7 @@ export default function Landing() {
           price: '249',
           desc: 'Le forfait le plus choisi par les cabinets et les agences.',
           highlights: [
-            '750 minutes / mois incluses',
+            '1 400 minutes / mois incluses',
             'CRM intégré + SMS de suivi',
             'Transferts urgences',
             'Multilingue (FR, EN, ES, IT)',
@@ -82,7 +82,7 @@ export default function Landing() {
           name: 'Volume',
           price: '599',
           desc: "Pour les multi-sites, franchises et opérations à grand volume.",
-          highlights: ['2 000 minutes / mois incluses', 'API complète + webhooks', 'White-label'],
+          highlights: ['3 500 minutes / mois incluses', 'API complète + webhooks', 'White-label'],
           cta: 'Nous contacter',
         },
       ]
@@ -91,7 +91,7 @@ export default function Landing() {
           name: 'Solo',
           price: '99',
           desc: 'For independents and small teams getting started.',
-          highlights: ['250 minutes / month included', '1 dedicated number', 'Natural English voice', 'Google or Outlook calendar'],
+          highlights: ['500 minutes / month included', '1 dedicated number', 'Natural English voice', 'Google or Outlook calendar'],
           cta: 'Get started',
         },
         {
@@ -99,7 +99,7 @@ export default function Landing() {
           price: '249',
           desc: 'The most chosen plan by practices and agencies.',
           highlights: [
-            '750 minutes / month included',
+            '1,400 minutes / month included',
             'Built-in CRM + SMS follow-up',
             'Urgency transfers',
             'Multilingual (EN, FR, ES, IT)',
@@ -112,7 +112,7 @@ export default function Landing() {
           name: 'Volume',
           price: '599',
           desc: 'For multi-site, franchises, and high-volume operations.',
-          highlights: ['2,000 minutes / month included', 'Full API + webhooks', 'White-label'],
+          highlights: ['3,500 minutes / month included', 'Full API + webhooks', 'White-label'],
           cta: 'Contact us',
         },
       ];

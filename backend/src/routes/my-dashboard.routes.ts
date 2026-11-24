@@ -162,7 +162,6 @@ router.post('/billing-portal', billingLimiter, (req, res) => clientDashboardCont
 /* Même limiteur, même raison: la route modifie un abonnement chez Stripe, donc
    un aller-retour externe par appel. C'est aussi une route qui ENGAGE de
    l'argent, ce qui vaut bien le garde-fou des autres routes de facturation. */
-router.post('/superagent-option', billingLimiter, (req, res) => clientDashboardController.setSuperagentOption(req, res));
 
 // ─── Base de connaissance (chemin d'écriture du RAG) ────
 router.get('/knowledge', (req, res) => clientDashboardController.listKnowledge(req, res));

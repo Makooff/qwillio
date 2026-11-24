@@ -83,8 +83,8 @@ Puis : « C'est bien au [adresse] ? Et vous y serez, ou vous serez sur chantier 
 
 ## Prix, si la question tombe
 
-Solo **99 €**, 250 minutes, 0,45 € au-delà. C'est le plan d'un indépendant.
-Starter 249 € / 750 min. Pro 599 € / 2 000 min.
+Solo **99 €**, 500 minutes, 0,29 € au-delà. C'est le plan d'un indépendant.
+Starter 249 € / 1 400 min. Pro 599 € / 3 500 min.
 Essai **7 jours, 60 minutes**, **carte requise** (dis-le), résiliable en un clic.
 
 Ancre : une secrétaire à mi-temps chargée, c'est combien chez vous ?

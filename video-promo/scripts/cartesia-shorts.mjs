@@ -319,6 +319,42 @@ const FR = [
         lines: [agent(`Bonjour${NB}! Ici la réceptionniste de Qwillio. Posez-moi une question, je vous écoute.`, 'happy')] },
       { visual: { kind: 'type' }, say: { text: 'Essayez-la sept jours, sur votre propre numéro.', emotion: 'affectionate', title: 'Sept jours d’essai, sur votre numéro.', titleSerif: [3] } },
     ],
+  },  // Stratégie du 23/11 : la campagne montrait surtout des commerces de bouche.
+  // c11 (artisan, urgence transférée) et c12 (fiduciaire, message avec
+  // destinataire) montrent deux issues d'appel qui ne sont pas un rendez-vous.
+  {
+    id: 'c11', slug: 'electricien', music: 215,
+    scenes: [
+      { visual: { kind: 'x', scene: 'recents', min: 3.4, opts: { title: 'Récents', rows: [{ name: 'Nathalie Claes', sub: 'appel entrant…', time: '10:12', at: 0.6 }, { name: 'Grossiste Pirard', sub: 'bureau', time: '08:40' }, { name: 'M. Janssens', sub: 'mobile', time: 'hier' }, { name: 'Maman', sub: 'mobile', time: 'hier' }] } },
+        say: { text: 'Kevin est électricien. Il est sur une échelle, les deux mains dans un tableau.', emotion: 'calm', title: 'Sur l’échelle. Les deux mains dans un tableau.', titleSerif: [5] } },
+      { visual: { kind: 'ring', name: 'Nathalie Claes', initials: 'NC', time: '10:12' },
+        say: { text: 'Son téléphone sonne. Une cliente n’a plus de courant, et ça ne peut pas attendre.', emotion: 'serious', title: 'Une urgence. Il ne peut pas décrocher.', titleSerif: [3] } },
+      { visual: { kind: 'x', scene: 'livecall', opts: { who: 'Nathalie Claes' } },
+        lines: [caller(LEONIE, 'Bonjour, on n’a plus de courant dans toute la maison, et ça sent le brûlé.'),
+          agent('Je vous passe Kevin tout de suite, je lui explique la situation.', 'content')] },
+      { visual: { kind: 'x', scene: 'recents', min: 3.4, opts: { title: 'Récents', rows: [{ name: 'Qwillio · Nathalie Claes', sub: 'Urgence · plus de courant, odeur de brûlé', time: '10:13', q: true, at: 0.5 }, { name: 'Nathalie Claes', sub: 'mobile', time: '10:12', missed: true }, { name: 'Grossiste Pirard', sub: 'bureau', time: '08:40' }, { name: 'M. Janssens', sub: 'mobile', time: 'hier' }], pop: { at: 0.9, title: 'Urgence transférée', desc: 'Nathalie Claes · plus de courant' } } },
+        say: { text: 'Kevin décroche en sachant déjà tout. Les autres appels, elle s’en occupe.', emotion: 'content', title: 'Il décroche en sachant déjà tout.', titleSerif: [3] } },
+      { visual: { kind: 'type' },
+        say: { text: 'Les urgences passent. Les devis attendent dans la liste.', emotion: 'affectionate', title: 'Les urgences passent. Le reste attend.', titleSerif: [4] } },
+    ],
+  },
+  {
+    id: 'c12', slug: 'fiduciaire', music: 250,
+    scenes: [
+      { visual: { kind: 'x', scene: 'calendar', min: 3.4, opts: { title: 'Mardi 24 novembre', days: ['Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam', 'Dim'], events: [{ d: 1, h: 9, txt: 'Bilan SRL Dupont', at: 0.3 }, { d: 1, h: 14, txt: 'RDV M. et Mme Gilson', at: 0.4 }, { d: 2, h: 10, txt: 'TVA Garage Renard', at: 0.5 }], foot: 'Mardi, 14 h. Marie est en rendez-vous.' } },
+        say: { text: 'Marie est comptable. Elle est en rendez-vous, et son téléphone sonne pour la quatrième fois.', emotion: 'calm', title: 'En rendez-vous. Le téléphone sonne encore.', titleSerif: [3] } },
+      { visual: { kind: 'ring', name: 'Paul Lambert', initials: 'PL', time: '14:32' },
+        say: { text: 'Un client veut lui parler. C’est pour sa déclaration de TVA.', emotion: 'calm', title: '« Je voudrais parler à Marie. »', titleSerif: [4] } },
+      { visual: { kind: 'x', scene: 'livecall', opts: { who: 'Paul Lambert' } },
+        lines: [caller(MARC, 'Bonjour, je voudrais parler à Marie, c’est pour ma déclaration de TVA.'),
+          agent(`Elle est en rendez-vous. Je lui laisse votre message : elle vous rappelle quand${NB}?`, 'content'),
+          caller(MARC, 'Après dix-sept heures, c’est parfait.'),
+          agent('C’est noté, Monsieur Lambert. Un message pour Marie, rappel après dix-sept heures.', 'content')] },
+      { visual: { kind: 'x', scene: 'recents', min: 3.4, opts: { title: 'Récents', rows: [{ name: 'Qwillio · Paul Lambert', sub: 'Pour Marie · TVA · rappeler après 17 h', time: '14:33', q: true, at: 0.5 }, { name: 'Paul Lambert', sub: 'mobile', time: '14:32', missed: true }, { name: 'SRL Dupont', sub: 'bureau', time: '09:05' }, { name: 'Garage Renard', sub: 'bureau', time: 'hier' }], pop: { at: 0.9, title: 'Message pour Marie', desc: 'Paul Lambert · rappeler après 17 h' } } },
+        say: { text: 'En sortant du rendez-vous, Marie sait qui a appelé, pourquoi, et quand rappeler.', emotion: 'content', title: 'Qui, pourquoi, et quand rappeler.', titleSerif: [3] } },
+      { visual: { kind: 'type' },
+        say: { text: 'Plus de messagerie à décoder le soir. Une liste claire.', emotion: 'affectionate', title: 'Une liste claire, pas une messagerie.', titleSerif: [4] } },
+    ],
   },
 ];
 

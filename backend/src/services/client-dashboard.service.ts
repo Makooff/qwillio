@@ -3,7 +3,6 @@ import { logger } from '../config/logger';
 import { planFeatures } from '../config/plan-features';
 import { getPlan, type BillingPeriod } from '../config/plans';
 import { env } from '../config/env';
-import { superagentOffer } from '../config/superagent-option';
 import { setupCompleteness } from './setup-completeness';
 import { knowledgeGapService } from './voice/knowledge-gap.service';
 import { phoneForms } from '../utils/phone-forms';
@@ -71,16 +70,6 @@ export class ClientDashboardService {
          l'annuel: sans cette valeur, un bouton « passer à l'annuel » ne saurait
          pas s'il doit exister. Le défaut est mensuel, comme partout ailleurs. */
       billingPeriod: (client.vapiConfig as any)?.billingPeriod === 'annual' ? 'annual' : 'monthly',
-      /* L'option Superagent: incluse, achetée, achetable, ou bloquée et
-         pourquoi. Une seule lecture (`superagentOffer`) sert la page et la
-         route qui vend, pour la raison qui a fait naître `superagentAllowed`:
-         deux lectures d'un même droit divergent, et celle qui décide n'est
-         jamais celle qu'on a corrigée. */
-      superagent: superagentOffer(
-        client,
-        env.VOICE_REALTIME_MODEL,
-        ((client.vapiConfig as any)?.billingPeriod === 'annual' ? 'annual' : 'monthly') as BillingPeriod,
-      ),
       /* LA CARTE ENREGISTRÉE. La page annonçait le forfait et son prix, mais
          jamais ce qui allait être débité: le client devait ouvrir le portail
          Stripe pour savoir quelle carte paie son abonnement. Chez Stripe,

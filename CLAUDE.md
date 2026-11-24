@@ -6,7 +6,8 @@
 
 **Stack**: React 19, TypeScript, Vite, Tailwind CSS, Framer Motion, GSAP (ScrollTrigger, DrawSVG), Recharts, React Router v7, Zustand.  
 **Icons**: `components/icons.tsx`, a façade over **coolicons**. Import from there, never from `lucide-react` directly: the façade is what lets the whole icon set be swapped in one file.  
-**Backend**: Node.js/Express on Render. Vercel for frontend. Prisma + Neon.  
+**Backend**: Node.js/Express on Render (`qwillio-eu`, Frankfurt). Vercel for frontend. Prisma + Neon.  
+**Voice**: `qwillio-voice-core` (LiveKit, separate repo) answers the calls; this repo is its HTTP bridge (`/api/voice-core/*`). Vapi is a rollback only (`VOICE_RUNTIME=vapi`).  
 **Brand**: Indigo `#7A5FFF` + Violet `#CD6BFB`. Outfit font.
 
 ---
@@ -53,6 +54,81 @@ Theme state: `stores/themeStore.ts`, three values (`light` / `dark` / `system`, 
 No gradient text, no `transition-all`, no identical card grids, no glassmorphism except the two documented exceptions (nav chrome, OS illustration), no em dashes, Outfit only.
 
 ---
+
+## READ THIS FIRST (2) — la voix tourne sur `qwillio-voice-core`, plus sur Vapi
+
+**Depuis le 06-08/11/2026, Vapi ne décroche plus.** `VOICE_RUNTIME` vaut `core`
+par défaut (`backend/src/config/env.ts`) ; `vapi` n'est plus qu'un retour arrière
+explicite, et toute autre valeur refuse le démarrage. Tout ce qui, plus bas,
+parle d'assistant Vapi, de `voice:resync`, de `voice:validate`, de webhooks
+`/api/webhooks/vapi/*`, de custom-LLM ou de `llm-stream` décrit **l'ancien
+moteur** : à lire comme historique, sauf si `VOICE_RUNTIME=vapi`.
+
+**Le chemin d'un appel aujourd'hui :**
+
+```
+appelant → numéro Twilio (mobile belge 04xx)
+         → trunk SIP Twilio, région Irlande (TWILIO_TRUNK_REGION / _EDGE, config/twilio-trunk.ts)
+         → LiveKit SIP (Germany 2)
+         → worker qwillio-voice-core (Python, dépôt SÉPARÉ, agent `inbound-agent-eu`, Francfort)
+         → pont HTTP de ce dépôt : /api/voice-core/* (routes/voice-core.routes.ts)
+```
+
+- **Le worker n'écrit jamais en base.** Il lit le profil au décroché
+  (`GET /api/voice-core/context/by-number/:trunkNumber`) et passe par le pont pour
+  tout le reste : créneaux et réservations (`/bookings/*`), annulation, leads,
+  base de connaissances, lacunes, mémoire d'appelant, transcription en direct,
+  et le compte rendu de fin d'appel (`POST /api/voice-core/calls`). Un seul
+  processus écrit l'agenda : c'est ce qui empêche les doubles réservations.
+- **Le pont est fermé par défaut** : sans `VOICE_CORE_API_KEY`, il répond 503
+  (`middleware/voice-core.middleware.ts`). Une seule clé partagée, qui n'ouvre
+  que ces routes.
+- **Les sessions navigateur** (démo publique, appel test du client, assistant de
+  configuration vocale) passent par des rooms LiveKit signées
+  (`services/voice/web-session.service.ts`, contrat figé avec
+  `qwillio-voice-core/src/voice_core/session_web.py`).
+- **Ce que le moteur dit, écoute et décide** (modèle, STT, TTS, prompt, fin de
+  tour, écho) vit dans `qwillio-voice-core`, **pas ici**. Ce dépôt fournit le
+  profil client, les outils métier et la persistance. Le dépôt du worker n'est
+  pas toujours attaché à la session : l'ajouter avant de conclure quoi que ce
+  soit sur le comportement vocal.
+- **Inscription et réglages** : `onboardClient` passe par `onboardCoreClient`
+  (une ligne SIP + un profil, aucun assistant distant créé) et
+  `syncVapiAssistant` se contente de vider le cache du profil
+  (`realtimeContextService.invalidateClient`). Le profil est relu au décroché
+  suivant : il n'y a plus d'assistant distant à resynchroniser.
+- **Les noms ont gardé « vapi »** : `vapiConfig`, `vapiPhoneNumber`,
+  `vapiAssistantId` sont des colonnes historiques, toujours utilisées par le
+  core (`vapiConfig` porte la configuration du client, `vapiPhoneNumber` sa
+  ligne). Ne pas les renommer sans migration.
+- **Restes à connaître** : `VAPI_WEBHOOK_SECRET` bloque encore le démarrage en
+  production (`config/env-validation.ts`), et les scripts `voice:doctor`,
+  `voice:audit`, `voice:resync`, `voice:validate` interrogent l'API Vapi. Sur le
+  core, ils ne disent rien de ce qui décroche.
+
+**Hébergement** : l'API de production est `qwillio-eu` sur Render à **Francfort**
+(`render.yaml` à la racine, URL par défaut du front
+`https://qwillio-eu.onrender.com`), à côté du worker et de LiveKit.
+`backend/render.yaml` (Oregon) est l'ancien blueprint. Avant de réannoncer
+« hébergement UE » sur le site, vérifier aussi la région de la base Neon
+(`docs/MIGRATION-UE-RUNBOOK.md`).
+
+**Coûts** : les chiffres « Vapi = 76 % de la facture » (6quinquesexagesies) et
+`config/voice-economics.ts` décrivent la chaîne Vapi. Le coût à la minute du
+core (LiveKit + trunk Twilio + modèles) **n'a pas été remesuré** : ne pas
+s'appuyer sur l'ancien chiffre pour fixer un prix.
+
+**Grille du 24/11/2026** (`config/plans.ts` et `pages/v2/pricing-plans.ts`, à
+tenir ensemble) : Solo 500 min et 0,29 €/min au-delà, Starter 1 400 et 0,25,
+Pro 3 500 et 0,22, Enterprise 8 000 et 0,20, prix mensuels inchangés. Le prix
+à la minute doit BAISSER à chaque palier (un test le garde) et le dépassement
+rester au-dessus de lui. **Le Superagent est supprimé le même jour** : plus
+d'option à la caisse ni en Facturation, plus inclus dans Pro, `superagentAllowed`
+répond toujours non (la colonne `superagent_option` reste en base, sans effet).
+Tout ce qui, plus bas, parle de le vendre est historique. La
+migration `20261124000000_plan_minutes_grid` relève les quotas des clients qui
+valaient exactement l'ancien défaut. LiveKit est gratuit pour le moment : la
+marge est à revoir le jour où il ne l'est plus (`docs/business-plan.md`).
 
 ## Skill Routing — Auto-Invoke Rules
 
@@ -223,12 +299,22 @@ No Co-Authored-By attribution (disabled globally).
 
 ## Key URLs
 - Production: https://qwillio.com
-- API: https://qwillio.onrender.com/api
+- API: https://qwillio-eu.onrender.com/api (Render, Frankfurt)
 - Vercel project: qwillio.v2
 
 ---
 
 ## Chantiers ouverts (dernière mise à jour : 2026-08-19)
+
+> **Lire avec la section « la voix tourne sur `qwillio-voice-core` » ci-dessus.**
+> Les entrées 6* datées d'août à septembre 2026 ont été écrites sur le moteur
+> **Vapi**, qui ne décroche plus depuis novembre. Leurs correctifs propres à
+> Vapi (assistant enregistré, `model.tools`, custom-LLM, `voice:resync`,
+> plans Vapi) ne s'appliquent qu'en `VOICE_RUNTIME=vapi`. Leurs **leçons
+> générales** restent vraies et valent pour le core : une seule source par
+> règle, refuser plutôt qu'inventer (dates, noms, prix), ne jamais promettre
+> ce qui n'est pas enregistré, un audit se contredit avec une source
+> indépendante, un mécanisme jamais vu sur un appel réel n'est pas prouvé.
 
 À reprendre en priorité. Chaque point porte son diagnostic pour ne pas le refaire.
 Les points réglés restent écrits, avec ce qui les a réglés : c'est ce qui évite
@@ -2641,7 +2727,7 @@ filtre de transcription : après deux paroles distinctes de l'agent revenues en
 - Géométrie de l'arc du carrousel en 390 px : le compteur ne domine plus, mais l'anneau entier n'a pas été vu à cette largeur.
 - Le flou de la nav sur iOS est corrigé mais **ne peut être validé que sur un vrai iPhone**.
 - Vidéo de fond du hero (`/hero-loop.mp4`) : absente, le hero s'en passe proprement.
-- Région Render : Oregon. Le site ne promet plus d'hébergement UE ; soit basculer la région et rétablir la promesse, soit ne pas la réécrire.
+- Région Render : l'API tourne désormais à Francfort (`qwillio-eu`, voir plus haut). Le site ne promet toujours pas d'hébergement UE : vérifier la région de la base Neon avant de réécrire la promesse.
 - CRM : **corrigé**, les appels remplissent bien les contacts, et les pages sont reliées au menu. Seul le **pipeline** reste alimenté à la main (« Nouvelle affaire ») : rien ne crée d'affaire automatiquement, et c'est assumé tant qu'on ne sait pas à quelle condition un lead en mérite une.
 - **RLS Postgres : toujours absente.** L'isolation entre clients est applicative,
   75 `req.clientId` posés à la main dans les WHERE. C'est le point qui tombe au
@@ -2665,19 +2751,22 @@ les trois. La marche à suivre est écrite dans `docs/PROTOCOLE-TEST-MOTEURS.md`
 
 Trois lots livrés (PR #118). Ce qu'il faut en retenir pour ne pas défaire le travail :
 
-- **Un numéro entrant appartient à UN client.** Recopier `VAPI_PHONE_NUMBER` dans une
+- **Un numéro entrant appartient à UN client** (vrai aussi sur le core, où le worker
+  retrouve le client par le numéro appelé). Recopier `VAPI_PHONE_NUMBER` dans une
   fiche client rendrait de nouveau les deux clients injoignables. Deux endroits
   attribuent une ligne, et un seul répond au cas courant : `phone-stock.service.ts`
   pioche dans le lot de numéros belges achetés d'avance (voir ci-dessous), et
   `phone-allocation.service.ts` ne sert plus qu'à la ligne partagée des essais.
 - **`VAPI_WEBHOOK_SECRET` et `RESEND_API_KEY` refusent le démarrage en production.**
-  Soupape : `ALLOW_DEGRADED_BOOT=1`.
+  Soupape : `ALLOW_DEGRADED_BOOT=1`. Le premier est un reste de l'ère Vapi : le core
+  n'en a pas besoin, mais le contrôle n'a pas encore été retiré.
 - **Tout lien public écrit par le backend passe par `utils/urls.ts`.** `FRONTEND_URL`
   est une liste séparée par des virgules, et `/client-portal/:id` n'existe pas.
 - **Plus aucune donnée inventée dans le portail.** La courbe de l'aperçu trace
   `dailyCalls`, et affiche un état vide plutôt qu'une progression écrite en dur.
-- **Le site ne promet plus d'hébergement UE** (Render est en Oregon). Basculer la
-  région rendrait la promesse ; d'ici là, ne pas la réécrire.
+- **Le site ne promet plus d'hébergement UE.** Écrit quand Render était en Oregon ;
+  l'API est depuis passée à Francfort (`qwillio-eu`). Vérifier la base Neon avant
+  de réécrire la promesse.
 - **Compte de démonstration** : `npm run db:seed:demo` (refuse de tourner en
   production). C'est ce qui donne un tableau de bord peuplé pour une démonstration.
 

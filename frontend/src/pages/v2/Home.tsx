@@ -6,7 +6,7 @@ import { Link, useNavigate } from 'react-router-dom';
 
 import {
   ArrowRight, Play, CalendarCheck, MessageSquare,
-  Camera, Mic2, Sparkles, Users, Clock, Headphones,
+  Camera, Mic2, Sparkles, Users, Clock, Headphones, MessageCircle, PhoneForwarded,
 } from '../../components/icons';
 import { useSEO } from '../../hooks/useSEO';
 import { useLang } from '../../stores/langStore';
@@ -100,27 +100,38 @@ export default function Home() {
 
   /* Ce qu'elle accomplit pendant un appel: chaque ligne est un outil réel du
      runtime (checkAvailability, bookAppointment, SMS, warm transfer). */
+  /* Ce qu'elle fait d'un appel: quatre verbes, et le rendez-vous n'en est
+     qu'un (stratégie du 23/11). Chaque ligne décrit un comportement du
+     produit, sans promesse qu'il ne tient pas: l'agenda dépend de la
+     connexion, le SMS des canaux activés. */
   const during = [
     {
-      icon: CalendarCheck,
-      title: isFr ? 'Elle vérifie le créneau' : 'She checks the slot',
+      icon: MessageCircle,
+      title: isFr ? 'Elle répond' : 'She answers',
       desc: isFr
-        ? 'Avec votre agenda Google ou Outlook connecté, elle vérifie les disponibilités avant de confirmer. Pour retrouver, déplacer ou annuler un rendez-vous existant, la demande passe à votre équipe après vérification d’identité.'
-        : 'With your Google or Outlook calendar connected, she checks availability before confirming. Requests to look up, reschedule or cancel an existing booking go to your team for identity verification.',
+        ? 'Horaires, prix, accès, délais: elle répond depuis ce que vous lui avez appris. Ce qu’elle ne sait pas, elle ne l’invente pas, elle vous le remonte.'
+        : 'Hours, prices, directions, lead times: she answers from what you taught her. What she does not know, she does not make up, she flags it to you.',
     },
     {
-      icon: Sparkles,
-      title: isFr ? 'Elle inscrit le rendez-vous' : 'She books the appointment',
+      icon: CalendarCheck,
+      title: isFr ? 'Elle agit' : 'She acts',
       desc: isFr
-        ? 'La réservation est créée avant de raccrocher, pas dans un message à rappeler.'
-        : 'The booking is created before hanging up, not left in a message to call back.',
+        ? 'Avec votre agenda Google ou Outlook connecté, elle vérifie le créneau et réserve avant de raccrocher. Pour déplacer ou annuler un rendez-vous existant, elle procède après vérification de l’identité de l’appelant.'
+        : 'With your Google or Outlook calendar connected, she checks the slot and books before hanging up. To reschedule or cancel an existing booking, she proceeds after verification of the caller’s identity.',
+    },
+    {
+      icon: PhoneForwarded,
+      title: isFr ? 'Elle passe la main' : 'She hands over',
+      desc: isFr
+        ? 'Une urgence vous est passée avec un résumé de la situation. Sinon, elle prend le message avec son destinataire et le moment où rappeler.'
+        : 'An urgent call is put through to you with a summary. Otherwise she takes the message, who it is for and when to call back.',
     },
     {
       icon: Users,
-      title: isFr ? 'Elle reconnaît vos habitués' : 'She recognises your regulars',
+      title: isFr ? 'Elle vous rend compte' : 'She reports back',
       desc: isFr
-        ? 'Un client déjà venu est salué par son prénom. Elle se souvient des appels précédents et ne redemande pas ce qu’elle sait.'
-        : 'A returning customer is greeted by name. She remembers previous calls and never asks twice for what she knows.',
+        ? 'Chaque appel arrive résumé, le contact est enregistré, et vos habitués sont reconnus à l’appel suivant: elle ne redemande pas ce qu’elle sait.'
+        : 'Every call arrives summarised, the contact is saved, and your regulars are recognised next time: she never asks twice for what she knows.',
     },
   ];
 
@@ -319,7 +330,7 @@ export default function Home() {
                     ne saura plus quoi dire. Le surtitre porte un fait que le
                     produit tient reellement (francais et anglais, 24 heures sur
                     24) et qui reste vrai. */}
-                {isFr ? 'Réceptionniste IA, français et anglais' : 'AI receptionist, French and English'}
+                {isFr ? 'Accueil téléphonique IA, français et anglais' : 'AI phone answering, French and English'}
               </Eyebrow>
               {/* Taille BORNÉE pour ce titre, et pour lui seul (demande
                   utilisateur: « que ça tienne en deux lignes »). `q2-display`
@@ -358,16 +369,16 @@ export default function Home() {
                     changer au rendu, la fin de ligne etant invisible. */}
                 {isFr ? (
                   <>
-                    <span className="block">Elle ne prend pas de messages. </span>
+                    <span className="block">Votre téléphone, tenu. </span>
                     <span className="block">
-                      Elle prend des <SerifWord>rendez-vous.</SerifWord>
+                      Même quand <SerifWord>vous ne pouvez pas.</SerifWord>
                     </span>
                   </>
                 ) : (
                   <>
-                    <span className="block">She doesn't take messages. </span>
+                    <span className="block">Your phone, covered. </span>
                     <span className="block">
-                      She books <SerifWord>appointments.</SerifWord>
+                      Even when <SerifWord>you can’t be.</SerifWord>
                     </span>
                   </>
                 )}
@@ -386,8 +397,8 @@ export default function Home() {
               <div>
               <Lead className="max-w-[500px] mb-7 sm:mb-10 q2-body-text !text-white/[0.88]">
                 {isFr
-                  ? 'Elle prend les appels, réserve dans votre agenda connecté et vous transmet les demandes. Dès 99 € par mois.'
-                  : 'She takes calls, books into your connected calendar and passes requests on to you. From €99 a month.'}
+                  ? 'Elle répond aux questions, réserve dans votre agenda connecté, vous passe les urgences et vous résume chaque appel. Dès 99 € par mois.'
+                  : 'She answers questions, books into your connected calendar, puts urgent calls through and sums up every call for you. From €99 a month.'}
               </Lead>
 
               <div className="flex flex-wrap items-center gap-3 mb-2 sm:mb-4">
@@ -403,6 +414,22 @@ export default function Home() {
                   {isFr ? 'L’entendre décrocher' : 'Hear her answer'}
                 </TryVoiceButton>
               </div>
+
+              {/* Les quatre familles de métiers (stratégie du 23/11): le hero dit
+                  « tout le téléphone », ce rang laisse chacun trouver le sien.
+                  Blanc fixe pour la même raison que le titre: il se lit sur le
+                  voile sombre dans les deux thèmes. */}
+              <nav aria-label={isFr ? 'Qwillio par métier' : 'Qwillio by trade'} className="mt-6 flex flex-wrap items-center gap-x-1.5 gap-y-2 text-sm text-white/[0.72]">
+                <span className="mr-1">{isFr ? 'Pour les' : 'For'}</span>
+                {(isFr
+                  ? [['/plombier', 'artisans'], ['/kine', 'métiers de la santé'], ['/fiduciaire', 'fiduciaires et cabinets'], ['/restaurant', 'commerces et restaurants']]
+                  : [['/plombier', 'trades'], ['/kine', 'health practices'], ['/fiduciaire', 'accountants and firms'], ['/restaurant', 'shops and restaurants']]
+                ).map(([to, label]) => (
+                  <Link key={to} to={to} className="rounded-full border border-white/[0.22] px-3 py-1 text-white/[0.88] transition-colors duration-200 hover:border-white/[0.5] hover:text-white">
+                    {label}
+                  </Link>
+                ))}
+              </nav>
               </div>
               <HeroPhones isFr={isFr} className="hidden lg:block lg:mt-2" />
               </div>
@@ -434,25 +461,25 @@ export default function Home() {
             aside={
               <RevealV2 className="max-w-[420px]">
                 <Eyebrow tone="indigo" className="mb-4">
-                  {isFr ? 'Pendant l’appel' : 'During the call'}
+                  {isFr ? 'Ce qu’elle fait d’un appel' : 'What she does with a call'}
                 </Eyebrow>
                 <H2 id="during-heading">
                   <TextReveal>
                     {isFr ? (
                       <>
-                        Tout se passe <SerifWord>en ligne</SerifWord>
+                        Chaque appel a <SerifWord>une suite</SerifWord>
                       </>
                     ) : (
                       <>
-                        Everything happens <SerifWord>on the line</SerifWord>
+                        Every call <SerifWord>goes somewhere</SerifWord>
                       </>
                     )}
                   </TextReveal>
                 </H2>
                 <p className="text-q2-body text-base leading-relaxed mt-4 q2-body-text">
                   {isFr
-                    ? 'Pas de « je transmets le message ». Pendant que votre client parle, elle agit.'
-                    : 'No “I will pass on the message”. While your customer talks, she acts.'}
+                    ? 'Répondre, agir, passer la main, rendre compte. Pendant que votre client parle, elle fait le travail.'
+                    : 'Answer, act, hand over, report back. While your customer talks, she does the work.'}
                 </p>
               </RevealV2>
             }

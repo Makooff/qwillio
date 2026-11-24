@@ -46,7 +46,7 @@ describe('manual client creation', () => {
     // The whole point: no User row, and the Client is still created.
     expect(data.userId).toBeNull();
     expect(data.monthlyFee).toBe(599);
-    expect(data.monthlyMinutesQuota).toBe(2000);
+    expect(data.monthlyMinutesQuota).toBe(3500);
     expect(data.dashboardToken).toMatch(/^[0-9a-f]{64}$/);
   });
 

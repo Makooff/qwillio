@@ -57,7 +57,7 @@ const FAQ_FR: QA[] = [
   },
   {
     q: 'Combien ça coûte ?',
-    a: "Le plan Solo est à 99 € par mois : 250 minutes incluses. Au-delà, les minutes supplémentaires sont à 0,45 €. Les plans supérieurs ajoutent du volume et des fonctions avancées : Starter 249 € (750 min), Pro 599 € (2 000 min), Enterprise 1 290 € (5 000 min). Le rappel automatique la veille du rendez-vous est inclus sur tous les plans (par SMS si le canal est activé, sinon par email). 7 jours d'essai gratuit, carte requise à l'inscription et rien n'est débité avant la fin, remise de 20 % en annuel.",
+    a: "Le plan Solo est à 99 € par mois : 500 minutes incluses. Au-delà, les minutes supplémentaires sont à 0,29 €. Les plans supérieurs ajoutent du volume et des fonctions avancées : Starter 249 € (1 400 min), Pro 599 € (3 500 min), Enterprise 1 290 € (8 000 min). Le rappel automatique la veille du rendez-vous est inclus sur tous les plans (par SMS si le canal est activé, sinon par email). 7 jours d'essai gratuit, carte requise à l'inscription et rien n'est débité avant la fin, remise de 20 % en annuel.",
   },
   {
     q: 'Puis-je résilier facilement ?',
@@ -108,7 +108,7 @@ const FAQ_EN: QA[] = [
   },
   {
     q: 'How much does it cost?',
-    a: 'The Solo plan is €99 per month: 250 minutes included. Beyond that, extra minutes are €0.45. Higher plans add volume and advanced features: Starter €249 (750 min), Pro €599 (2,000 min), Enterprise €1,290 (5,000 min). The automatic day-before appointment reminder is included on every plan (by text if the channel is enabled, otherwise by email). 7-day free trial, card required at signup and nothing charged until it ends, 20% off annually.',
+    a: 'The Solo plan is €99 per month: 500 minutes included. Beyond that, extra minutes are €0.29. Higher plans add volume and advanced features: Starter €249 (1 400 min), Pro €599 (2,000 min), Enterprise €1,290 (5,000 min). The automatic day-before appointment reminder is included on every plan (by text if the channel is enabled, otherwise by email). 7-day free trial, card required at signup and nothing charged until it ends, 20% off annually.',
   },
   {
     q: 'Can I cancel easily?',

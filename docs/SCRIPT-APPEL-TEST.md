@@ -71,7 +71,7 @@ les mêmes phrases dans le même ordre : deux souvenirs séparés d'un quart
 d'heure ne se comparent pas.
 
 ```
-npm run voice:tier -- --email=… --tier=superagent --confirm   # puis les deux appels
+# (retiré le 24/11/2026 : le Superagent n'existe plus, voir docs/VOICE-TIERS.md)
 npm run voice:tier -- --email=… --tier=base --confirm         # puis les deux mêmes appels
 ```
 

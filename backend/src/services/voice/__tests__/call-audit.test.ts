@@ -764,7 +764,7 @@ describe('auditCall — un assistant basculé dont le PATCH a gardé le classiqu
     const niveau = auditCall(f).checks.find(c => c.id === 'niveau')!;
     expect(niveau.status).toBe('fail');
     expect(niveau.value).not.toMatch(/HYBRIDE/);
-    expect(niveau.lever).toMatch(/voice:tier/);
+    expect(niveau.lever).toMatch(/voice:resync/);
   });
 
   it('reste muet quand l\'assistant distant sert bien le parole-à-parole', () => {

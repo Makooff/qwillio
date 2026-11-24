@@ -134,22 +134,12 @@ describe('les deux écritures de l\'assistant enregistré', () => {
 });
 
 describe('le Superagent est un droit, pas un réglage', () => {
-  it('est INCLUS à partir de Pro', () => {
-    expect(superagentAllowed({ planType: 'pro' })).toBe(true);
-    expect(superagentAllowed({ planType: 'enterprise' })).toBe(true);
-  });
-
-  it('se refuse en dessous, tant que l\'option n\'est pas achetée', () => {
-    expect(superagentAllowed({ planType: 'solo' })).toBe(false);
-    expect(superagentAllowed({ planType: 'starter' })).toBe(false);
-    // Un forfait vide n'accorde rien: le défaut sûr est le refus, parce que
-    // c'est une capacité qui coûte de l'argent à chaque minute.
+  it('ne s\'ouvre plus à personne depuis le retrait de l\'offre (24/11/2026)', () => {
+    for (const planType of ['solo', 'starter', 'pro', 'enterprise']) {
+      expect(superagentAllowed({ planType })).toBe(false);
+      expect(superagentAllowed({ planType, superagentOption: true })).toBe(false);
+    }
     expect(superagentAllowed({})).toBe(false);
-  });
-
-  it('s\'ouvre par l\'option achetée, sur ces mêmes paliers', () => {
-    expect(superagentAllowed({ planType: 'solo', superagentOption: true })).toBe(true);
-    expect(superagentAllowed({ planType: 'starter', superagentOption: true })).toBe(true);
   });
 
   it('ramène au classique un niveau demandé sans le droit', () => {
