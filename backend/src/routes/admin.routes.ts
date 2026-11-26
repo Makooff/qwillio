@@ -255,7 +255,21 @@ router.post('/test-email', async (req: Request, res: Response) => {
       default:
         return res.status(400).json({ ok: false, error: `Type d'email inconnu: ${type}` });
     }
-    logger.info(`[admin/test-email] sent type=${type} to=${to}`);
+    /* Resend ne lève pas sur un refus : elle le rend dans `error`, et la
+       plupart des fonctions typées d'emailService renvoient ce résultat tel
+       quel. Sans ce contrôle, un mail refusé (domaine non vérifié, clé
+       invalide, expéditeur interdit) s'affichait « Envoyé à … · Resend ID — ».
+       Route réservée à l'admin : le message du fournisseur y est montré, c'est
+       lui qui nomme la cause. */
+    const providerError = result?.error;
+    if (providerError) {
+      logger.error(`[admin/test-email] rejected by Resend type=${type} to=${to}: ${providerError.name ?? 'unknown'} ${providerError.message ?? ''}`);
+      return res.status(502).json({
+        ok: false,
+        error: `Refusé par Resend : ${providerError.message || providerError.name || 'raison inconnue'}`,
+      });
+    }
+    logger.info(`[admin/test-email] sent type=${type} to=${to} id=${result?.data?.id ?? result?.id ?? 'none'}`);
     res.json({ ok: true, type, to, resend: result ?? null });
   } catch (err: any) {
     logger.error('[admin/test-email] failed:', err);
