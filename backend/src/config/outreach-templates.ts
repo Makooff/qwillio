@@ -284,38 +284,41 @@ export function smsSegments(text: string): number {
 
 // ── La mise en page du mail ──────────────────────────────────────────────────
 
-/* La marque, telle que le site la porte : le logo aux deux cercles, Outfit,
-   l'encre et l'indigo. Le logo est servi par le site (`frontend/public`), donc
-   il existe en production avant que le premier mail ne parte. */
-const INK = '#1d1d1f';
-const MUTED = '#6b6660';
-const RULE = '#ebe8e4';
-const VIOLET = '#7A5FFF';
-const LILAC = '#f4eefe';
+/* La marque, dans la DA V2 « Papier & Signal » (`DA/v2-direction.md`) :
+   papier coquille d'œuf, encre jamais noire, Outfit léger, et le mauve
+   réservé aux accents. Sur fond clair, l'action est une pilule d'ENCRE, jamais
+   mauve. Le logo est servi par le site (`frontend/public`), donc il existe en
+   production avant que le premier mail ne parte. */
+const CANVAS = '#FDFCFC';
+const BAND = '#F5F3F1';
+const INK = '#1D1D1F';
+const GRAPHITE = '#44403B';
+const MUTED = '#777169';
+const RULE = '#EBE8E4';
+const INDIGO_INK = '#7349FE';
 const LOGO_URL = 'https://qwillio.com/logo-qw.png';
 const SITE_URL = 'https://qwillio.com';
 const FONT = "'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif";
 
 function para(html: string): string {
-  return `<p style="margin:0 0 16px 0;font-family:${FONT};font-size:15px;line-height:1.65;color:${INK};">${html}</p>`;
+  return `<p style="margin:0 0 16px 0;font-family:${FONT};font-size:16px;line-height:1.6;color:${GRAPHITE};">${html}</p>`;
 }
 
 /**
- * La video : le seul bloc illustre du mail, dans le registre du site (fond
- * lilas, titre en Outfit, bouton en pilule). Le degrade est un confort : un
- * client de messagerie qui l'ignore affiche le lilas uni.
+ * La vidéo : le seul bloc illustré du mail. Plaque taupe sans bordure ni
+ * ombre, eyebrow indigo, titre en Outfit léger, pilule d'encre.
  */
 function videoBlock(link: string): string {
   return `
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:8px 0 24px 0;">
     <tr>
-      <td bgcolor="${LILAC}" style="border-radius:18px;padding:24px 24px 22px 24px;background:${LILAC};background-image:linear-gradient(135deg,#ffffff 0%,${LILAC} 55%,#ecdcfd 100%);">
-        <p style="margin:0 0 8px 0;font-family:${FONT};font-size:12px;font-weight:600;letter-spacing:0.06em;text-transform:uppercase;color:${VIOLET};">Démonstration, 45 secondes</p>
-        <p style="margin:0 0 18px 0;font-family:${FONT};font-size:20px;font-weight:600;line-height:1.25;letter-spacing:-0.01em;color:${INK};">Ce que votre client entend quand vous ne pouvez pas décrocher.</p>
+      <td bgcolor="${BAND}" style="border-radius:20px;padding:26px 26px 24px 26px;background:${BAND};">
+        <p style="margin:0 0 10px 0;font-family:${FONT};font-size:13px;font-weight:500;color:${INDIGO_INK};">Démonstration, 45 secondes</p>
+        <p style="margin:0 0 20px 0;font-family:${FONT};font-size:22px;font-weight:300;line-height:1.25;letter-spacing:-0.02em;color:${INK};">Ce que votre client entend quand vous ne pouvez pas décrocher.</p>
         <table role="presentation" cellpadding="0" cellspacing="0" border="0">
           <tr>
-            <td bgcolor="${VIOLET}" style="border-radius:999px;background:${VIOLET};">
-              <a href="${escapeHtml(link)}" style="display:inline-block;padding:12px 24px;font-family:${FONT};font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;border-radius:999px;">&#9654;&nbsp; Voir la vidéo</a>
+            <td bgcolor="${INK}" style="border-radius:9999px;background:${INK};">
+              <a href="${escapeHtml(link)}" style="display:inline-block;padding:12px 22px;font-family:${FONT};font-size:14px;font-weight:500;line-height:1;color:${CANVAS};text-decoration:none;border-radius:9999px;">&#9654;&nbsp; Voir la vidéo</a>
             </td>
           </tr>
         </table>
@@ -331,7 +334,7 @@ function signature(sender: OutreachSender): string {
   return `
   <table role="presentation" cellpadding="0" cellspacing="0" border="0" width="100%" style="margin:28px 0 0 0;">
     <tr><td style="border-top:1px solid ${RULE};padding-top:18px;">
-      <p style="margin:0;font-family:${FONT};font-size:15px;font-weight:600;color:${INK};">${nom}</p>
+      <p style="margin:0;font-family:${FONT};font-size:15px;font-weight:500;color:${INK};">${nom}</p>
       <p style="margin:2px 0 0 0;font-family:${FONT};font-size:13px;line-height:1.6;color:${MUTED};">Fondateur de Qwillio, Bruxelles${tel ? `<br>${tel}` : ''}</p>
     </td></tr>
   </table>`;
@@ -345,19 +348,19 @@ function shell(opts: { subject: string; preheader: string; body: string; sender:
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <meta name="color-scheme" content="light only">
   <title>${escapeHtml(opts.subject)}</title>
-  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500&display=swap" rel="stylesheet">
 </head>
-<body bgcolor="#ffffff" style="margin:0;padding:0;background:#ffffff;color:${INK};-webkit-font-smoothing:antialiased;">
+<body bgcolor="${CANVAS}" style="margin:0;padding:0;background:${CANVAS};color:${INK};-webkit-font-smoothing:antialiased;">
   <div style="display:none;max-height:0;overflow:hidden;opacity:0;font-size:1px;line-height:1px;color:transparent;">${escapeHtml(opts.preheader)}</div>
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="background:#ffffff;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="${CANVAS}" style="background:${CANVAS};">
     <tr>
       <td align="center" style="padding:36px 24px 28px 24px;">
         <table role="presentation" width="560" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;width:100%;">
           <tr>
             <td style="padding:0 0 28px 0;">
               <a href="${SITE_URL}" style="text-decoration:none;">
-                <img src="${LOGO_URL}" width="34" height="34" alt="" style="display:inline-block;vertical-align:middle;border:0;">
-                <span style="font-family:${FONT};font-size:19px;font-weight:600;letter-spacing:-0.02em;color:${INK};vertical-align:middle;margin-left:8px;">Qwillio</span>
+                <img src="${LOGO_URL}" width="28" height="28" alt="" style="display:inline-block;vertical-align:middle;border:0;">
+                <span style="font-family:${FONT};font-size:18px;font-weight:500;letter-spacing:-0.02em;color:${INK};vertical-align:middle;margin-left:8px;">Qwillio</span>
               </a>
             </td>
           </tr>

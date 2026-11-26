@@ -10,12 +10,14 @@ function L(lang?: Lang): Lang {
   return lang === 'en' ? 'en' : 'fr';
 }
 
-/** Highlight block — used for phone numbers, prices, dates (light violet card on white). */
+/** Bloc mis en avant (numéro, prix, date) : plaque taupe V2, libellé en
+ *  eyebrow indigo, valeur en Outfit léger et chiffres tabulaires. */
 export function brandHighlight(label: string, value: string, valueSize = 24): string {
-  return `<div style="margin:16px 0 32px 0;padding:24px 24px;background:rgba(123,92,240,0.08);border:1px solid rgba(123,92,240,0.18);border-radius:12px;text-align:center;">
-    <p style="margin:0 0 6px 0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:11px;font-weight:600;color:rgba(92,60,224,0.70);letter-spacing:0.06em;text-transform:uppercase;">${label}</p>
-    <p style="margin:0;font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display','Helvetica Neue',Arial,sans-serif;font-size:${valueSize}px;font-weight:700;letter-spacing:-0.01em;color:#5C3CE0;font-feature-settings:'tnum';">${value}</p>
-  </div>`;
+  const font = "'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI','Helvetica Neue',Arial,sans-serif";
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 28px 0;"><tr><td bgcolor="#F5F3F1" style="background:#F5F3F1;border-radius:20px;padding:22px 24px;">
+    <p style="margin:0 0 6px 0;font-family:${font};font-size:13px;font-weight:500;color:#7349FE;">${label}</p>
+    <p style="margin:0;font-family:${font};font-size:${valueSize + 4}px;font-weight:300;letter-spacing:-0.02em;line-height:1.2;color:#1D1D1F;font-variant-numeric:tabular-nums;font-feature-settings:'tnum';">${value}</p>
+  </td></tr></table>`;
 }
 
 export function renderQuoteTemplate(data: {
@@ -506,7 +508,7 @@ export function renderPasswordResetTemplate(data: {
         brandTitle('Réinitialisez votre mot de passe'),
         brandText(`Bonjour ${name}, nous avons reçu une demande de réinitialisation de votre mot de passe Qwillio. Cliquez ci-dessous pour en choisir un nouveau.`),
         brandButton('Réinitialiser mon mot de passe', data.resetUrl),
-        brandSmall(`Ou collez ce lien dans votre navigateur :<br><span style="word-break:break-all;color:#A855F7;">${data.resetUrl}</span>`),
+        brandSmall(`Ou collez ce lien dans votre navigateur :<br><span style="word-break:break-all;color:#44403B;">${data.resetUrl}</span>`),
         brandSmall("Ce lien expire dans 1 heure. Si vous n'êtes pas à l'origine de cette demande, ignorez ce courriel : votre mot de passe reste inchangé."),
       ].join(''),
     });
@@ -519,7 +521,7 @@ export function renderPasswordResetTemplate(data: {
       brandTitle('Reset your password'),
       brandText(`Hi ${name}, we received a request to reset your Qwillio password. Click below to choose a new one.`),
       brandButton('Reset my password', data.resetUrl),
-      brandSmall(`Or paste this link into your browser:<br><span style="word-break:break-all;color:#A855F7;">${data.resetUrl}</span>`),
+      brandSmall(`Or paste this link into your browser:<br><span style="word-break:break-all;color:#44403B;">${data.resetUrl}</span>`),
       brandSmall("This link expires in 1 hour. If you didn't request this, ignore this email: your password stays unchanged."),
     ].join(''),
   });
@@ -550,7 +552,7 @@ export function renderEmailChangeTemplate(data: {
         brandTitle('Confirmez votre nouvelle adresse'),
         brandText(`Bonjour ${name}, vous avez demandé à vous connecter désormais avec <strong>${data.newEmail}</strong>. Confirmez ci-dessous pour que le changement prenne effet.`),
         brandButton('Confirmer mon adresse', data.confirmUrl),
-        brandSmall(`Ou collez ce lien dans votre navigateur :<br><span style="word-break:break-all;color:#A855F7;">${data.confirmUrl}</span>`),
+        brandSmall(`Ou collez ce lien dans votre navigateur :<br><span style="word-break:break-all;color:#44403B;">${data.confirmUrl}</span>`),
         brandSmall("Ce lien expire dans 1 heure. Tant qu'il n'est pas utilisé, votre ancienne adresse reste celle de votre compte. Si vous n'êtes pas à l'origine de cette demande, ignorez ce courriel."),
       ].join(''),
     });
@@ -563,7 +565,7 @@ export function renderEmailChangeTemplate(data: {
       brandTitle('Confirm your new address'),
       brandText(`Hi ${name}, you asked to sign in with <strong>${data.newEmail}</strong> from now on. Confirm below to make the change effective.`),
       brandButton('Confirm my address', data.confirmUrl),
-      brandSmall(`Or paste this link into your browser:<br><span style="word-break:break-all;color:#A855F7;">${data.confirmUrl}</span>`),
+      brandSmall(`Or paste this link into your browser:<br><span style="word-break:break-all;color:#44403B;">${data.confirmUrl}</span>`),
       brandSmall("This link expires in 1 hour. Until it is used, your old address remains the one on the account. If you didn't request this, ignore this email."),
     ].join(''),
   });
