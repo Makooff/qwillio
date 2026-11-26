@@ -51,7 +51,7 @@ export class EmailService {
    */
   private injectUnsubscribeLink(html: string, email: string): string {
     const url = this.getUnsubscribeUrl(email);
-    const footer = `<div style="text-align:center;padding:10px 0;"><a href="${url}" style="color:#999;font-size:11px;text-decoration:underline;">Unsubscribe</a></div>`;
+    const footer = `<div style="text-align:center;padding:12px 0 28px 0;background:#FDFCFC;"><a href="${url}" style="color:#777169;font-family:'Outfit',-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;font-size:11px;text-decoration:underline;">Unsubscribe</a></div>`;
     if (html.includes('</body>')) {
       return html.replace('</body>', `${footer}</body>`);
     }
@@ -912,7 +912,7 @@ export class EmailService {
             brandTitle('Confirmez votre courriel'),
             brandText(`Bonjour ${firstName}, merci de votre inscription à Qwillio. Confirmez votre courriel pour activer votre compte et démarrer votre essai gratuit.`),
             brandButton('Confirmer mon courriel', data.confirmUrl),
-            brandSmall(`Ou collez ce lien dans votre navigateur :<br><span style="word-break:break-all;color:#A855F7;">${data.confirmUrl}</span>`),
+            brandSmall(`Ou collez ce lien dans votre navigateur :<br><span style="word-break:break-all;color:#44403B;">${data.confirmUrl}</span>`),
             brandSmall("Si vous n'êtes pas à l'origine de ce compte, vous pouvez ignorer ce courriel."),
           ].join(''),
         })
@@ -924,7 +924,7 @@ export class EmailService {
             brandTitle('Confirm your email'),
             brandText(`Hi ${firstName}, thanks for signing up for Qwillio. Confirm your email to activate your account and start your free trial.`),
             brandButton('Confirm my email', data.confirmUrl),
-            brandSmall(`Or paste this link into your browser:<br><span style="word-break:break-all;color:#A855F7;">${data.confirmUrl}</span>`),
+            brandSmall(`Or paste this link into your browser:<br><span style="word-break:break-all;color:#44403B;">${data.confirmUrl}</span>`),
             brandSmall("If you didn't create this account, you can safely ignore this email."),
           ].join(''),
         });
