@@ -20,11 +20,11 @@ Le jour 01 existe aussi en anglais, dans son sous-dossier `anglais/`.
 | 10 | lundi 14 décembre 2026 | 19:00 | photo : Les mains prises | [ouvrir](10_lun-14-dec_photo-mains-prises/) |
 | 11 | jeudi 17 décembre 2026 | 19:00 | vidéo : Dimanche soir (kiné) | [ouvrir](11_jeu-17-dec_video-dimanche/) |
 | 12 | dimanche 20 décembre 2026 | 12:00 | photo : Lundi se prépare dimanche soir | [ouvrir](12_dim-20-dec_photo-lundi-dimanche-soir/) |
-| 13 | mercredi 23 décembre 2026 | 12:00 | vidéo : La fiduciaire en rendez-vous | [ouvrir](13_mer-23-dec_video-fiduciaire/) |
+| 13 | mercredi 23 décembre 2026 | 12:00 | vidéo : Fermé pour congés (boulangerie) | [ouvrir](13_mer-23-dec_video-conges/) |
 | 14 | samedi 26 décembre 2026 | 12:00 | photo : Fermé, pas injoignable | [ouvrir](14_sam-26-dec_photo-ferme-pas-injoignable/) |
 | 15 | mardi 29 décembre 2026 | 19:00 | vidéo : Le bip | [ouvrir](15_mar-29-dec_video-le-bip/) |
 | 16 | vendredi 1 janvier 2027 | 12:00 | photo : Bonne année (rediffusion p01) | [ouvrir](16_ven-1-jan_photo-bonne-annee/) |
-| 17 | lundi 4 janvier 2027 | 19:00 | vidéo : Bruxelles, 22 h (trois langues) | [ouvrir](17_lun-4-jan_video-trois-langues-soir/) |
+| 17 | lundi 4 janvier 2027 | 19:00 | vidéo : La fiduciaire en rendez-vous | [ouvrir](17_lun-4-jan_video-fiduciaire/) |
 | 18 | jeudi 7 janvier 2027 | 12:00 | photo : Un code | [ouvrir](18_jeu-7-jan_photo-un-code/) |
 | 19 | dimanche 10 janvier 2027 | 12:00 | vidéo : Un code (installation) | [ouvrir](19_dim-10-jan_video-un-code/) |
 
